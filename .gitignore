@@ -1,0 +1,24 @@
+# Basic rules
+tmp/
+*.log
+
+# C/C++
+*.o
+*.ko
+*.obj
+*.elf
+*.slo
+*.lo
+*.o
+*.obj
+
+# Python
+__pycache__/
+
+# JAVA
+*.class
+
+# OS-specific
+.DS_Store
+._*
+Thumbs.db
