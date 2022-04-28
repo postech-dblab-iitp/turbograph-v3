@@ -20,16 +20,26 @@ file(GLOB LIB_SRC
 add_library(lightning STATIC ${LIB_SRC})
 target_link_libraries(lightning "-lrt -lpthread")
 
-add_executable(store "${SRC_DIR}/store.cc")
-target_link_libraries(store lightning)
+#add_executable(store "${SRC_DIR}/store.cc")
+#target_link_libraries(store lightning)
+
+#file(GLOB TEST_SRC
+#  "${PROJECT_SOURCE_DIR}/test/*.cc"
+#)
+
+#foreach(test_file ${TEST_SRC})
+#  get_filename_component(prog_name ${test_file} NAME_WE)
+#  add_executable(${prog_name} "${SRC_DIR}/client.cc" ${test_file})
+#  target_link_libraries(${prog_name} lightning)
+#endforeach(test_file ${TEST_SRC})
 
 file(GLOB TEST_SRC
-  "${PROJECT_SOURCE_DIR}/test/*.cc"
+  "${PROJECT_SOURCE_DIR}/test/test_chunk_cache_manager.cc"
 )
 
 foreach(test_file ${TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
-  add_executable(${prog_name} "${SRC_DIR}/client.cc" ${test_file})
+  add_executable(${prog_name} "${SRC_DIR}/chunk_cache_manager.cc" "${SRC_DIR}/client.cc" "${SRC_DIR}/store.cc" ${test_file})
   target_link_libraries(${prog_name} lightning)
 endforeach(test_file ${TEST_SRC})
 
