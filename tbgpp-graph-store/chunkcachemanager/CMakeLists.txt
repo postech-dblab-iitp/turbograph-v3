@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Lightning)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
@@ -19,9 +20,11 @@ include_directories("${PROJECT_SOURCE_DIR}/inc" "${PROJECT_SOURCE_DIR}/inc/disk_
 
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 SET(LIB_SRC ${SYSTEM_SOURCES})
+message("${LIB_SRC}")
 
 add_library(lightning STATIC ${LIB_SRC})
-target_link_libraries(lightning "-lrt -lpthread")
+#target_link_libraries(lightning "-lrt -lpthread")
+target_link_libraries(lightning "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 
 #add_executable(store "${SRC_DIR}/store.cc")
 #target_link_libraries(store lightning)

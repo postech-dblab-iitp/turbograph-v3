@@ -26,7 +26,7 @@ public:
   bool SidValidityCheck(SegmentID sid);
   bool AllocSizeValidityCheck(size_t alloc_size);
   size_t GetSegmentSize(SegmentID sid, std::string file_path); // sid가 필요한지?
-  void ReadData(SegmentID sid, std::string file_path, uint8_t** ptr);
+  void ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t segment_size);
   void WriteData(SegmentID sid);
   void CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size);
 
@@ -36,7 +36,6 @@ public:
   LightningClient* client;
   Turbo_bin_aio_handler file_handler;
 
-  //
   std::thread* store_thread;
 };
 

@@ -21,12 +21,12 @@ inline bool check_file_exists (const std::string& name) {
 class Turbo_bin_aio_handler {
   public:
 
-  Turbo_bin_aio_handler() : file_descriptor(-1) {
+  Turbo_bin_aio_handler() : file_descriptor(-1), is_reserved(false) {
     file_mmap = NULL;
   }
 
   Turbo_bin_aio_handler(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false)
-    : file_descriptor(-1) {
+    : file_descriptor(-1), is_reserved(false) {
         OpenFile(file_name, create_if_not_exist, write_enabled, delete_if_exist, o_direct);
   }
 
@@ -48,6 +48,7 @@ class Turbo_bin_aio_handler {
   static void InitializeIoInterface() {
     InitializeCoreIds();
     int max_num_ongoing = PER_THREAD_MAXIMUM_ONGOING_DISK_AIO * 2;
+    fprintf(stdout, "%ld\n", DiskAioParameters::NUM_DISK_AIO_THREADS);
     int aio_tid = my_core_id_ % DiskAioParameters::NUM_DISK_AIO_THREADS;
     if (per_thread_aio_interface_read.get(my_core_id_) == nullptr) {
       per_thread_aio_interface_read.get(my_core_id_) = DiskAioFactory::GetPtr()->CreateAioInterface(max_num_ongoing, aio_tid);
@@ -127,7 +128,7 @@ class Turbo_bin_aio_handler {
   }
 
   static void WaitAllPendingDiskIO(bool read) {
-#pragma omp parallel num_threads(UserArguments::NUM_THREADS)
+#pragma omp parallel num_threads(DiskAioParameters::NUM_THREADS)
     {
       diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(read);
       if (my_io != NULL) WaitMyPendingDiskIO(my_io);
@@ -209,6 +210,7 @@ class Turbo_bin_aio_handler {
   }*/
     
   void Append(std::int64_t size_to_append, char* data, void* func, const std::function<void(diskaio::DiskAioInterface*)>& wait_cb = {}) {
+    is_reserved = false;
     exit(-1);
     /*InitializeIoInterface();
     assert(size_to_append % 512 == 0);
@@ -235,6 +237,8 @@ class Turbo_bin_aio_handler {
 
   // TODO - remove buf_to_construct, construct_next, change API to get templated user-defined request
   void Read(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func, diskaio::DiskAioInterface* my_io) {
+    if (is_reserved) return;
+
     assert (size_to_read > 0);
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
@@ -319,15 +323,21 @@ class Turbo_bin_aio_handler {
 
   static void WaitForIoRequests(bool read, bool write) {
 #pragma omp parallel num_threads(DiskAioParameters::NUM_THREADS)
-      {
-          WaitForMyIoRequests(read, write);
-      }
+    {
+        WaitForMyIoRequests(read, write);
     }
+  }
+
+  void ReserveFileSize(size_t reserve_size) {
+    file_size_ = reserve_size;
+    is_reserved = true;
+  }
 
 
 private:
   int file_descriptor;
   int file_id;
+  bool is_reserved;
   char* file_mmap;
   std::string file_path;
   int64_t file_size_;
