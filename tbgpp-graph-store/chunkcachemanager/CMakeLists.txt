@@ -9,13 +9,16 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-include_directories("${PROJECT_SOURCE_DIR}/inc")
+include_directories("${PROJECT_SOURCE_DIR}/inc" "${PROJECT_SOURCE_DIR}/inc/disk_aio")
 
-file(GLOB LIB_SRC
-  "${SRC_DIR}/log_disk.cc"
-  "${SRC_DIR}/malloc.cc"
-  "${SRC_DIR}/object_log.cc"
-)
+#file(GLOB LIB_SRC
+#  "${SRC_DIR}/log_disk.cc"
+#  "${SRC_DIR}/malloc.cc"
+#  "${SRC_DIR}/object_log.cc"
+#)
+
+file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
+SET(LIB_SRC ${SYSTEM_SOURCES})
 
 add_library(lightning STATIC ${LIB_SRC})
 target_link_libraries(lightning "-lrt -lpthread")
