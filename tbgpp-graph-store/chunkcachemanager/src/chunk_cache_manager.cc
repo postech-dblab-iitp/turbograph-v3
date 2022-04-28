@@ -3,6 +3,7 @@
 #include <unordered_set>
 
 #include "chunk_cache_manager.h"
+#include "Turbo_bin_aio_handler.hpp"
 
 ChunkCacheManager::ChunkCacheManager() {
   // Init LightningStore & Run
@@ -152,7 +153,6 @@ void ChunkCacheManager::WriteData(SegmentID sid) {
 }
 
 void ChunkCacheManager::CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size) {
-  // TODO
-  exit(-1);
+  file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, true);
   return;
 }

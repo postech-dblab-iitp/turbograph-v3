@@ -5,8 +5,9 @@
 
 #include "store.h"
 #include "client.h"
+#include "Turbo_bin_aio_handler.hpp"
 
-typedef int32_t SegmentID;
+typedef int16_t SegmentID;
 
 class ChunkCacheManager {
 public:
@@ -33,6 +34,7 @@ public:
   // Member Variables
   LightningStore* store;
   LightningClient* client;
+  Turbo_bin_aio_handler file_handler;
 
   //
   std::thread* store_thread;
