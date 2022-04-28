@@ -79,7 +79,9 @@ class NumaHelper {
 		NumaHelper::cores = numa_num_configured_cpus();
 		NumaHelper::cores_per_socket = NumaHelper::cores / NumaHelper::sockets;
 
-        //UserArguments::NUM_TOTAL_CPU_CORES = NumaHelper::cores;
+        DiskAioParameters::NUM_TOTAL_CPU_CORES = NumaHelper::cores;
+		DiskAioParameters::NUM_CPU_SOCKETS = NumaHelper::sockets;
+		DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
     }
 
 	static void print_numa_info() {
