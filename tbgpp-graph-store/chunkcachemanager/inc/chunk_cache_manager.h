@@ -22,6 +22,12 @@ public:
 
   // ChunkCacheManager Internal Functions
   void InitLightningStoreAndRun(const std::string unix_socket, int size/*, ChunkCacheManager* ccm_*/);
+  bool SidValidityCheck(SegmentID sid);
+  bool AllocSizeValidityCheck(size_t alloc_size);
+  size_t GetSegmentSize(SegmentID sid, std::string file_path); // sid가 필요한지?
+  void ReadData(SegmentID sid, std::string file_path, uint8_t** ptr);
+  void WriteData(SegmentID sid);
+  void CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size);
 
 public:
   // Member Variables
