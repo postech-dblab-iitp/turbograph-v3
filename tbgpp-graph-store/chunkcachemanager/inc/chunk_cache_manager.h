@@ -1,4 +1,4 @@
-#ifdef CHUNK_CACHE_MANAGER_H
+#ifndef CHUNK_CACHE_MANAGER_H
 #define CHUNK_CACHE_MANAGER_H
 
 #include <string>
@@ -6,12 +6,12 @@
 #include "store.h"
 #include "client.h"
 
-typedef SegmentID int32_t;
+typedef int32_t SegmentID;
 
 class ChunkCacheManager {
 public:
   ChunkCacheManager();
-  ~ChunkCacheManager() {}
+  ~ChunkCacheManager();
 
   // ChunkCacheManager APIs
   void PinSegment(SegmentID sid, std::string file_path, uint8_t** ptr, size_t* size);
@@ -21,11 +21,15 @@ public:
   void DestroySegment(SegmentID sid);
 
   // ChunkCacheManager Internal Functions
+  void InitLightningStoreAndRun(const std::string unix_socket, int size/*, ChunkCacheManager* ccm_*/);
 
 public:
   // Member Variables
-  LightningStore store;
-  LightningClient client;
+  LightningStore* store;
+  LightningClient* client;
+
+  //
+  std::thread* store_thread;
 };
 
 #endif // CHUNK_CACHE_MANAGER_H

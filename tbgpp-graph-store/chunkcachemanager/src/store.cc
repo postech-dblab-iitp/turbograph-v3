@@ -507,7 +507,7 @@ void LightningStore::Run() {
   monitor_thread.join();
 }
 
-int main() {
+/*int main() {
   if (signal(SIGINT, signal_handler) == SIG_ERR) {
     std::cerr << "cannot register signal handler!" << std::endl;
     exit(-1);
@@ -517,4 +517,4 @@ int main() {
   store.Run();
 
   return 0;
-}
+}*/

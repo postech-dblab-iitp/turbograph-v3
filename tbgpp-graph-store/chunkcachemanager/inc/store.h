@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <sys/types.h>
+#include <unordered_set>
 
 #include "config.h"
 #include "malloc.h"
