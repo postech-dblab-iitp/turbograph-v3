@@ -1,0 +1,11 @@
+1. This project requires higher cmake version than originally installed cmake (v3.6.2).
+2. Install cmake 3.23.1 (the latest version at 2022.04.27).
+	2.1. wget https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1.tar.gz
+	2.2. tar -zxvf cmake-3.23.1.tar.gz
+	2.3. cd cmake-3.23.1
+	2.4. ./bootstrap --prefix=/usr/local
+	2.5. gmake
+	2.6. make -j (this step is maybe meaningless)
+	2.7. sudo make install
+3. Install Z3
+	3.1. git clone https://github.com/Z3Prover/z3.git
