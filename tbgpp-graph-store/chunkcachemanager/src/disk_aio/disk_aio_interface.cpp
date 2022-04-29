@@ -15,7 +15,7 @@ int DiskAioInterface::ProcessResponses() {
     if (n == 0) { std::this_thread::yield(); } 
     for (int i = 0; i < n; ++i) {
         a_callback_t func = (a_callback_t) reqs_[i]->GetFunc();
-	    assert(func || func_);
+	    //assert(func || func_); //Possible?
 		if (func) {
 			func(reqs_[i]);
 			continue;

@@ -285,17 +285,19 @@ sm_offset MemAllocator::MallocShared(size_t size) {
   size_t real_size = size + sizeof(MemoryEntry);
 
   int size_index = fls(real_size - 1);
+  fprintf(stdout, "size = %lu, real_size = %lu, size_index = %d\n", size, real_size, size_index);
   if (size_index < MINIMAL_BLOCK_SIZE_LOG) {
     size_index = MINIMAL_BLOCK_SIZE_LOG;
   }
 
   int64_t mem_index = get_free_block(size_index);
   assert(mem_index >= 0);
+  fprintf(stdout, "mem_index = %ld\n", mem_index);
 
   MemoryEntry *entry = &header_->memory_entries[mem_index];
   LOGGED_WRITE(entry->in_use, true, header_, disk_);
   // entry->in_use = true;
-
+  fprintf(stdout, "entry->offset = %ld\n", entry->offset);
   return entry->offset + sizeof(MemoryHeader);
 }
 

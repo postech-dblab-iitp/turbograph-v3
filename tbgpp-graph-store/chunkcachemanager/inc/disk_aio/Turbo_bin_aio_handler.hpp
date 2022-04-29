@@ -48,7 +48,6 @@ class Turbo_bin_aio_handler {
   static void InitializeIoInterface() {
     InitializeCoreIds();
     int max_num_ongoing = PER_THREAD_MAXIMUM_ONGOING_DISK_AIO * 2;
-    fprintf(stdout, "%ld\n", DiskAioParameters::NUM_DISK_AIO_THREADS);
     int aio_tid = my_core_id_ % DiskAioParameters::NUM_DISK_AIO_THREADS;
     if (per_thread_aio_interface_read.get(my_core_id_) == nullptr) {
       per_thread_aio_interface_read.get(my_core_id_) = DiskAioFactory::GetPtr()->CreateAioInterface(max_num_ongoing, aio_tid);
@@ -210,19 +209,17 @@ class Turbo_bin_aio_handler {
   }*/
     
   void Append(std::int64_t size_to_append, char* data, void* func, const std::function<void(diskaio::DiskAioInterface*)>& wait_cb = {}) {
-    is_reserved = false;
-    exit(-1);
-    /*InitializeIoInterface();
+    InitializeIoInterface();
     assert(size_to_append % 512 == 0);
     assert(file_size() % 512 == 0);
-    assert(((uintptr_t)data) % 512 == 0);
+    //assert(((uintptr_t)data) % 512 == 0);
     diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
     AioRequest req;
     req.buf = data;
     req.start_pos = file_size_; 
     req.io_size = size_to_append;
-    req.user_info.db_info.file_id = file_id;
-    req.user_info.do_user_cb = true;
+    req.user_info.file_id = file_id;
+    //req.user_info.do_user_cb = true;
     req.user_info.caller = NULL;
     req.user_info.func = func;
     Turbo_bin_aio_handler::WaitMyPendingDiskIO(my_io, 0);
@@ -230,9 +227,12 @@ class Turbo_bin_aio_handler {
     if (wait_cb) {
       wait_cb(my_io);
     }
-    file_size_ += size_to_append;
-    //if (success) return OK;
-    //else return FAIL;*/
+
+    if (is_reserved) {
+      is_reserved = false;
+    } else {
+      file_size_ += size_to_append;
+    }
   }
 
   // TODO - remove buf_to_construct, construct_next, change API to get templated user-defined request
@@ -242,7 +242,7 @@ class Turbo_bin_aio_handler {
     assert (size_to_read > 0);
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
-    assert (((uintptr_t)data) % 512 == 0);
+    //assert (((uintptr_t)data) % 512 == 0);
 
     AioRequest req;
     req.buf = data;
@@ -255,8 +255,6 @@ class Turbo_bin_aio_handler {
 
     // XXX read_buf variable is not for this purpose, but just use it
     bool success = DiskAioFactory::GetPtr()->ARead(req, my_io);
-    //if (success) return OK;
-    //else return FAIL;
   }
     
   void Read(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func) {
@@ -266,8 +264,25 @@ class Turbo_bin_aio_handler {
   }
 
   void Write(int64_t offset_to_write, int64_t size_to_write, char* data) {
-    assert(false);
-    //return OK;
+    InitializeIoInterface();
+    assert(size_to_write % 512 == 0);
+    assert(file_size() % 512 == 0);
+    //assert(((uintptr_t)data) % 512 == 0);
+    diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
+    AioRequest req;
+    req.buf = data;
+    req.start_pos = offset_to_write; 
+    req.io_size = size_to_write;
+    req.user_info.file_id = file_id;
+    //req.user_info.do_user_cb = true;
+    req.user_info.caller = NULL;
+    
+    bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
+
+    if (is_reserved) {
+      is_reserved = false;
+    } else {
+    }
   }
 
   char* CreateMmap(bool write_enabled) {
@@ -333,11 +348,16 @@ class Turbo_bin_aio_handler {
     is_reserved = true;
   }
 
+  bool IsReserved() {
+    return is_reserved;
+  }
+
 
 private:
   int file_descriptor;
   int file_id;
   bool is_reserved;
+  bool delete_when_close;
   char* file_mmap;
   std::string file_path;
   int64_t file_size_;

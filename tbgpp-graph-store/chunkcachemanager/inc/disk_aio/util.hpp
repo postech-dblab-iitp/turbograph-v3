@@ -84,6 +84,16 @@ class NumaHelper {
 		DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
     }
 
+	void Initialize() {
+		NumaHelper::sockets = numa_num_configured_nodes();
+		NumaHelper::cores = numa_num_configured_cpus();
+		NumaHelper::cores_per_socket = NumaHelper::cores / NumaHelper::sockets;
+
+        DiskAioParameters::NUM_TOTAL_CPU_CORES = NumaHelper::cores;
+		DiskAioParameters::NUM_CPU_SOCKETS = NumaHelper::sockets;
+		DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
+	}
+
 	static void print_numa_info() {
 		fprintf(stdout, "(# of sockets) = %ld, (# of cores) = %ld\n", NumaHelper::sockets, NumaHelper::cores);
 	}
