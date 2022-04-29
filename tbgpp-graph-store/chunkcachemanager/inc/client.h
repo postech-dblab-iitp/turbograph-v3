@@ -8,6 +8,8 @@
 #include "malloc.h"
 #include "object_log.h"
 
+class Turbo_bin_aio_handler;
+
 class LightningClient {
 public:
   LightningClient(const std::string &store_socket, const std::string &password);
@@ -30,11 +32,13 @@ public:
 
   int Seal(uint64_t object_id);
 
+  int SetDirty(uint64_t object_id);
+
   int Get(uint64_t object_id, uint8_t **ptr, size_t *size);
 
   int Release(uint64_t object_id);
 
-  int Delete(uint64_t object_id);
+  int Delete(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
 
   int Subscribe(uint64_t object_id);
 
@@ -54,7 +58,8 @@ private:
   int create_internal(uint64_t object_id, sm_offset *offset, size_t size);
   int get_internal(uint64_t object_id, sm_offset *ptr, size_t *size);
   int seal_internal(uint64_t object_id);
-  int delete_internal(uint64_t object_id);
+  int set_dirty_internal(uint64_t object_id);
+  int delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
   int subscribe_internal(uint64_t object_id, sem_t **sem, bool *wait);
   void init_mpk();
 

@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "client.h"
+#include "Turbo_bin_aio_handler.hpp"
 
 static int pkey_ = -1;
 static std::mutex pkey_lock_;
@@ -387,6 +388,39 @@ int LightningClient::Seal(uint64_t object_id) {
   return status;
 }
 
+int LightningClient::set_dirty_internal(uint64_t object_id) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    // object not found
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    // object is not sealed yet
+    return -1;
+  }
+
+  LOGGED_WRITE(object_entry->dirty_bit, 1, header_,
+               disk_);
+  // object_entry->dirty_bit = 1;
+
+  return 0;
+}
+
+int LightningClient::SetDirty(uint64_t object_id) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = set_dirty_internal(object_id);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
 int LightningClient::get_internal(uint64_t object_id, sm_offset *offset_ptr,
                                   size_t *size) {
   int64_t object_index = find_object(object_id);
@@ -446,7 +480,7 @@ int LightningClient::Release(uint64_t object_id) {
                disk_);
   // object_entry->ref_count--;
 
-  if (object_entry->ref_count == 0) {
+  /*if (object_entry->ref_count == 0) {
     allocator_->FreeShared(object_entry->offset);
     int64_t prev_object_index = object_entry->prev;
     int64_t next_object_index = object_entry->next;
@@ -475,18 +509,27 @@ int LightningClient::Release(uint64_t object_id) {
       }
     }
     dealloc_object_entry(object_index);
-  }
+  }*/
   UNLOCK;
   mpk_lock();
   return 0;
 }
 
-int LightningClient::delete_internal(uint64_t object_id) {
+int LightningClient::delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
   int64_t object_index = find_object(object_id);
   assert(object_index >= 0);
 
   ObjectEntry *object_entry = &header_->object_entries[object_index];
   assert(object_entry->sealed);
+  if (object_entry->dirty_bit == 1) {
+    assert(file_handler);
+    if (file_handler->IsReserved())
+      file_handler->Write(0, object_entry->size, (char*) &base_[object_entry->offset]);
+      //file_handler->Append(object_entry->size, (char*) &base_[object_entry->offset], nullptr);
+    else
+      exit(-1);
+  }
+
   object_log_->CloseObject(object_id);
   allocator_->FreeShared(object_entry->offset);
   int64_t prev_object_index = object_entry->prev;
@@ -522,11 +565,11 @@ int LightningClient::delete_internal(uint64_t object_id) {
   return 0;
 }
 
-int LightningClient::Delete(uint64_t object_id) {
+int LightningClient::Delete(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
   mpk_unlock();
   LOCK;
   disk_->BeginTx();
-  int status = delete_internal(object_id);
+  int status = delete_internal(object_id, file_handler);
   disk_->CommitTx();
   UNLOCK;
   mpk_lock();
@@ -599,7 +642,7 @@ int LightningClient::MultiUpdate(uint64_t object_id,
   mpk_unlock();
   LOCK;
   disk_->BeginTx();
-  int status = delete_internal(object_id);
+  int status = delete_internal(object_id, nullptr);
   assert(status == 0);
   disk_->CommitTx();
 
