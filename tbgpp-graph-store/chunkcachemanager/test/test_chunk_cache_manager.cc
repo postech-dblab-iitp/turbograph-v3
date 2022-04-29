@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < buf_size / sizeof(int64_t); i++) {
     fprintf(stdout, "buf_ptr[%d] = %ld\n", i, buf_ptr[i]);
   }
-
+  ccm.UnPinSegment(0);
   ccm.DestroySegment(0);
 
   buf_ptr = nullptr;
@@ -77,5 +77,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < buf_size / sizeof(int64_t); i++) {
     fprintf(stdout, "buf_ptr[%d] = %ld\n", i, buf_ptr[i]);
   }
+  ccm.UnPinSegment(0);
+  ccm.DestroySegment(0);
   return 0;
 }
