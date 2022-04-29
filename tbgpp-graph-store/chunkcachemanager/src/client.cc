@@ -294,6 +294,9 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
     LOGGED_WRITE(object->ref_count, 1, header_, disk_);
     // object->ref_count = 1;
 
+    LOGGED_WRITE(object->dirty_bit, 0, header_, disk_);
+    // object->dirty_bit = 0;
+
     *offset_ptr = object_buffer_offset;
     object_log_->OpenObject(object_id);
 
@@ -319,6 +322,9 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
 
   LOGGED_WRITE(new_object->ref_count, 1, header_, disk_);
   // new_object->ref_count = 1;
+
+  LOGGED_WRITE(new_object->dirty_bit, 0, header_, disk_);
+  // object->dirty_bit = 0;
 
   LOGGED_WRITE(new_object->sealed, false, header_, disk_);
   // new_object->sealed = false;
