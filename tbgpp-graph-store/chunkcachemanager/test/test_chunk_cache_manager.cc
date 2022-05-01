@@ -17,16 +17,6 @@
 #include <catch2/catch_all.hpp>
 
 SCENARIO ("Client connection test", "[chunkcachemanager]") {
-  DiskAioParameters::NUM_THREADS = 1;
-  DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
-  DiskAioParameters::NUM_CPU_SOCKETS = 1;
-  DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-  
-  int res;
-  DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
-  core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
-
-  int x;
   std::string file_path = "/home/tslee/data/seg";
   int64_t* buf_ptr;
   size_t buf_size;
@@ -36,6 +26,17 @@ SCENARIO ("Client connection test", "[chunkcachemanager]") {
 }
 
 int main(int argc, char **argv) {
+  // Initialize System Parameters
+  DiskAioParameters::NUM_THREADS = 1;
+  DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
+  DiskAioParameters::NUM_CPU_SOCKETS = 1;
+  DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
+  
+  int res;
+  DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
+  core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
+
+  // Run Catch Test
   int result = Catch::Session().run(argc, argv);                               
   return 0; 
 }
