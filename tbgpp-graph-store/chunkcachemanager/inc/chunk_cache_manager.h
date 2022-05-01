@@ -3,7 +3,6 @@
 
 #include <string>
 
-#include "store.h"
 #include "client.h"
 #include "Turbo_bin_aio_handler.hpp"
 
@@ -32,11 +31,11 @@ public:
 
 public:
   // Member Variables
-  LightningStore* store;
+  //LightningStore* store;
   LightningClient* client;
   Turbo_bin_aio_handler file_handler;
 
-  std::thread* store_thread;
+  //std::thread* store_thread;
 };
 
 #endif // CHUNK_CACHE_MANAGER_H
