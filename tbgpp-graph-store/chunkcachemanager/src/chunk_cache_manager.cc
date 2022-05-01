@@ -8,15 +8,14 @@
 ChunkCacheManager::ChunkCacheManager() {
   // Init LightningStore & Run
   // TODO parameter
-  store_thread = new std::thread(&ChunkCacheManager::InitLightningStoreAndRun, this, "/tmp/lightning", 1024 * 1024 * 1024);
+  //store_thread = new std::thread(&ChunkCacheManager::InitLightningStoreAndRun, this, "/tmp/lightning", 1024 * 1024 * 1024);
 
   // Init LightningClient
-  sleep(2);
   client = new LightningClient("/tmp/lightning", "password");
 }
 
 ChunkCacheManager::~ChunkCacheManager() {
-  store_thread->join();
+  //store_thread->join();
   fprintf(stdout, "Finish LightningStore");
 }
 
@@ -124,9 +123,9 @@ void ChunkCacheManager::DestroySegment(SegmentID sid) {
 //void ChunkCacheManager::InitLightningStoreAndRun(const std::string unix_socket, int size, ChunkCacheManager* ccm_) {
 void ChunkCacheManager::InitLightningStoreAndRun(const std::string unix_socket, int size) {
   // TODO: socket & size will be given
-  store = new LightningStore("/tmp/lightning", 1024 * 1024 * 1024);
-  store->Run();
-  fprintf(stdout, "Run LightningStore");
+  //store = new LightningStore("/tmp/lightning", 1024 * 1024 * 1024);
+  //store->Run();
+  //fprintf(stdout, "Run LightningStore");
 }
 
 // Return true if the given SegmentID is not valid
