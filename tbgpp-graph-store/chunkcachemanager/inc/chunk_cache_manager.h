@@ -21,7 +21,6 @@ public:
   void DestroySegment(SegmentID sid);
 
   // ChunkCacheManager Internal Functions
-  void InitLightningStoreAndRun(const std::string unix_socket, int size/*, ChunkCacheManager* ccm_*/);
   bool SidValidityCheck(SegmentID sid);
   bool AllocSizeValidityCheck(size_t alloc_size);
   size_t GetSegmentSize(SegmentID sid, std::string file_path); // sid가 필요한지?
@@ -31,11 +30,8 @@ public:
 
 public:
   // Member Variables
-  //LightningStore* store;
   LightningClient* client;
   Turbo_bin_aio_handler file_handler;
-
-  //std::thread* store_thread;
 };
 
 #endif // CHUNK_CACHE_MANAGER_H
