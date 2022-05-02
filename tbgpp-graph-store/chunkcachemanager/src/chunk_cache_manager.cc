@@ -22,22 +22,30 @@ ReturnStatus ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path,
     //TODO: exception 추가
     //throw InvalidInputException("[PinSegment] invalid sid");
 
+  size_t segment_size = GetSegmentSize(sid, file_path);
+  size_t file_size = GetFileSize(sid, file_path);
+  size_t required_memory_size = file_size + 512; // Add 512 byte for memory aligning
+  assert(file_size >= segment_size);
+
   // Pin Segment using Lightning Get()
   if (client->Get(sid, ptr, size) != 0) {
-    // Get fail: 1) object not found, 2) object is not sealed yet
+    // Get() fail: 1) object not found, 2) object is not sealed yet
     // TODO: Check if there is enough memory space
-    size_t segment_size = GetSegmentSize(sid, file_path);
+
     //size_t deleted_size = 0;
     //if (!IsMemorySpaceEnough(segment_size)) {
     //  FindVictimAndDelete(segment_size, deleted_size);
     //  // Replacement algorithm은 일단 지원 X
     //}
 
-    if (client->Create(sid, ptr, segment_size) == 0) {
+    if (client->Create(sid, ptr, required_memory_size) == 0) {
       // TODO: Memory usage should be controlled in Lightning Create
 
+      // Align memory
+      MemAlign(ptr, segment_size, required_memory_size);
+      
       // Read data & Seal object
-      ReadData(sid, file_path, ptr, segment_size);
+      ReadData(sid, file_path, ptr, file_size);
       client->Seal(sid);
       *size = segment_size;
     } else {
@@ -45,8 +53,18 @@ ReturnStatus ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path,
       client->Subscribe(sid);
       int status = client->Get(sid, ptr, size);
       assert(status == 0);
+
+      // Align memory & adjust size
+      MemAlign(ptr, segment_size, required_memory_size);
+      *size = segment_size;
     }
+    return NOERROR;
   }
+
+  // Get() success. Align memory & adjust size
+  MemAlign(ptr, segment_size, required_memory_size);
+  *size = segment_size;
+
   return NOERROR;
 }
 
@@ -99,18 +117,6 @@ ReturnStatus ChunkCacheManager::DestroySegment(SegmentID sid) {
   // TODO: Check the reference count
   // If the count > 0, we cannot destroy the segment
   
-  // Check if the segment can be destroyed
-  /*if (segid_to_segcandestroy_map[sid]) {
-    // Just remove the segment file
-    DestroyFile(segid_to_fileid_map[sid]);
-  } else {
-    // Check if the segment need to be flushed
-    if (segid_to_dirtybit_map[sid]) {
-      WriteData(sid);
-      segid_to_dirtybit_map[sid] = false;
-    }
-  }*/
-  
   // Delete the segment from the buffer using Lightning Delete()
   client->Delete(sid, &file_handler);
   file_handler.Close();
@@ -134,18 +140,27 @@ bool ChunkCacheManager::AllocSizeValidityCheck(size_t alloc_size) {
 // Return the size of segment
 size_t ChunkCacheManager::GetSegmentSize(SegmentID sid, std::string file_path) {
   if (file_handler.GetFileID() == -1) {
-    ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), false, true, false, false);
-    assert(rs == NOERROR);
+    exit(-1);
+    //TODO throw exception
+  }
+  return file_handler.GetRequestedSize();
+}
+
+// Return the size of file
+size_t ChunkCacheManager::GetFileSize(SegmentID sid, std::string file_path) {
+  if (file_handler.GetFileID() == -1) {
+    exit(-1);
+    //TODO throw exception
   }
   return file_handler.file_size();
 }
 
-void ChunkCacheManager::ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t segment_size) {
+void ChunkCacheManager::ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t size_to_read) {
   if (file_handler.GetFileID() == -1) {
-    ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), false, true, false, false);
-    assert(rs == NOERROR);
+    exit(-1);
+    //TODO throw exception
   }
-  file_handler.Read(0, (int64_t) segment_size, (char*) *ptr, nullptr, nullptr);
+  file_handler.Read(0, (int64_t) size_to_read, (char*) *ptr, nullptr, nullptr);
   file_handler.WaitForMyIoRequests(true, true);
 }
 
@@ -156,9 +171,23 @@ void ChunkCacheManager::WriteData(SegmentID sid) {
 }
 
 ReturnStatus ChunkCacheManager::CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy) {
-  ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, false);
+  ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, true);
   assert(rs == NOERROR);
-  file_handler.ReserveFileSize(alloc_size);
+  
+  // Compute aligned file size
+  int64_t alloc_file_size = ((alloc_size - 1 + 512) / 512) * 512;
+  
+  file_handler.SetRequestedSize(alloc_size);
+  file_handler.ReserveFileSize(alloc_file_size);
   file_handler.SetCanDestroy(can_destroy);
   return rs;
+}
+
+void ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size) {
+  void* target_ptr = (void*) *ptr;
+  std::align(512, segment_size, target_ptr, required_memory_size);
+  if (target_ptr == nullptr) {
+    exit(-1);
+    // TODO throw exception
+  }
 }

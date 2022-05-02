@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
   ChunkCacheManager::ccm = new ChunkCacheManager();
 
   // Run Catch Test
-  int result = Catch::Session().run(argc, argv);                               
-  return 0; 
+  int result = Catch::Session().run(argc, argv);
+                  
+  return 0;
 }

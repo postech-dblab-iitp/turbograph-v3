@@ -28,9 +28,11 @@ public:
   bool SidValidityCheck(SegmentID sid);
   bool AllocSizeValidityCheck(size_t alloc_size);
   size_t GetSegmentSize(SegmentID sid, std::string file_path); // sid가 필요한지?
-  void ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t segment_size);
+  size_t GetFileSize(SegmentID sid, std::string file_path); // sid가 필요한지?
+  void ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t size_to_read);
   void WriteData(SegmentID sid);
   ReturnStatus CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy);
+  void MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size);
 
 public:
   // Member Variables
