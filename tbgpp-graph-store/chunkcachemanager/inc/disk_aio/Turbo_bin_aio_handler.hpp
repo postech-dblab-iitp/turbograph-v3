@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "../common.h"
 #include "disk_aio_factory.hpp"
 
 #define MAX_IO_SIZE_PER_RW (64*1024*1024L)
@@ -21,12 +22,12 @@ inline bool check_file_exists (const std::string& name) {
 class Turbo_bin_aio_handler {
   public:
 
-  Turbo_bin_aio_handler() : file_descriptor(-1), is_reserved(false) {
+  Turbo_bin_aio_handler() : file_descriptor(-1), is_reserved(false), delete_when_close(false) {
     file_mmap = NULL;
   }
 
   Turbo_bin_aio_handler(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false)
-    : file_descriptor(-1), is_reserved(false) {
+    : file_descriptor(-1), is_reserved(false), delete_when_close(false) {
         OpenFile(file_name, create_if_not_exist, write_enabled, delete_if_exist, o_direct);
   }
 
@@ -140,9 +141,16 @@ class Turbo_bin_aio_handler {
       DiskAioFactory::GetPtr()->CloseAioFile(file_id);
       file_id = -1;
     }
-    if (rm && check_file_exists(file_path)) {
-      int status = remove(file_path.c_str());
-      assert(status == 0);
+    if (delete_when_close) {
+      if (check_file_exists(file_path)) {
+        int status = remove(file_path.c_str());
+        assert(status == 0);
+      }
+    } else {
+      if (rm && check_file_exists(file_path)) {
+        int status = remove(file_path.c_str());
+        assert(status == 0);
+      }
     }
   }
 
@@ -158,12 +166,13 @@ class Turbo_bin_aio_handler {
     return file_path;
   }
 
-  void OpenFile(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false) {
+  ReturnStatus OpenFile(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false) {
     int flag = O_RDWR | O_CREAT;
     if (o_direct) flag = flag | O_DIRECT;
     file_id = DiskAioFactory::GetPtr()->OpenAioFile(file_name, flag);
     if (file_id < 0) {
       fprintf(stdout, "[Turbo_bin_aio_handler::OpenFile] Fail to open file %s\n", file_name);
+      // TODO throw Exception
     }
     assert(file_id >= 0);
     file_size_ = DiskAioFactory::GetPtr()->GetAioFileSize(file_id);
@@ -173,6 +182,8 @@ class Turbo_bin_aio_handler {
     //OpenFileTemp(file_name, false, false, false, o_direct);
     file_path = std::string(file_name);
     assert(file_id >= 0);
+    
+    return NOERROR;
   }
   
   /*void OpenFileTemp(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false) {
@@ -323,6 +334,10 @@ class Turbo_bin_aio_handler {
   int fdval() {
     return file_descriptor;
   }
+
+  int GetFileID() {
+    return file_id;
+  }
       
   static void WaitForMyIoRequests(bool read, bool write) {
     InitializeIoInterface();
@@ -350,6 +365,10 @@ class Turbo_bin_aio_handler {
 
   bool IsReserved() {
     return is_reserved;
+  }
+
+  void SetCanDestroy(bool can_destroy) {
+    delete_when_close = can_destroy;
   }
 
 
