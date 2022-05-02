@@ -223,7 +223,7 @@ class Turbo_bin_aio_handler {
     InitializeIoInterface();
     assert(size_to_append % 512 == 0);
     assert(file_size() % 512 == 0);
-    //assert(((uintptr_t)data) % 512 == 0);
+    assert(((uintptr_t)data) % 512 == 0);
     diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
     AioRequest req;
     req.buf = data;
@@ -253,7 +253,7 @@ class Turbo_bin_aio_handler {
     assert (size_to_read > 0);
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
-    //assert (((uintptr_t)data) % 512 == 0);
+    assert (((uintptr_t)data) % 512 == 0);
 
     AioRequest req;
     req.buf = data;
@@ -278,7 +278,7 @@ class Turbo_bin_aio_handler {
     InitializeIoInterface();
     assert(size_to_write % 512 == 0);
     assert(file_size() % 512 == 0);
-    //assert(((uintptr_t)data) % 512 == 0);
+    assert(((uintptr_t)data) % 512 == 0);
     diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
     AioRequest req;
     req.buf = data;
@@ -331,6 +331,14 @@ class Turbo_bin_aio_handler {
     return file_size_;
   }
 
+  int64_t GetRequestedSize() {
+    return requested_size_;
+  }
+
+  void SetRequestedSize(int64_t requested_size) {
+    requested_size_ = requested_size;
+  }
+
   int fdval() {
     return file_descriptor;
   }
@@ -380,6 +388,7 @@ private:
   char* file_mmap;
   std::string file_path;
   int64_t file_size_;
+  int64_t requested_size_;
   static per_thread_lazy<diskaio::DiskAioInterface*> per_thread_aio_interface_read;
   static per_thread_lazy<diskaio::DiskAioInterface*> per_thread_aio_interface_write;
   static int64_t core_counts_;
