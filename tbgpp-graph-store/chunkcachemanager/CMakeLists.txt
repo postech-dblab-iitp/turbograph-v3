@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Lightning)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
@@ -41,6 +41,7 @@ target_link_libraries(store lightning)
 
 file(GLOB TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/test_single_thread.cc"
+  "${PROJECT_SOURCE_DIR}/test/test_multi_thread.cc"
 )
 
 find_package(Catch2 REQUIRED)

@@ -856,3 +856,32 @@ int LightningClient::Subscribe(uint64_t object_id) {
   mpk_lock();
   return status;
 }
+
+int LightningClient::get_refcount_internal(uint64_t object_id) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    // object not found
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    // object is not sealed yet
+    return -1;
+  }
+
+  return object_entry->ref_count;
+}
+
+int LightningClient::GetRefCount(uint64_t object_id) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = get_refcount_internal(object_id);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
