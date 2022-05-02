@@ -21,7 +21,7 @@ bool helper_check_file_exists (const std::string& name) {
     return (stat (name.c_str(), &buffer) == 0); 
 }
 
-TEST_CASE ("Client connection and Create, Pin, UnPin Segment test", "[chunkcachemanager]") {
+TEST_CASE ("Create, Pin, UnPin Segment test", "[chunkcachemanager]") {
   std::string file_path = "/home/tslee/data/seg";
   int64_t* buf_ptr;
   size_t buf_size;
@@ -64,8 +64,6 @@ TEST_CASE ("Pin, Read Data, Unpin Segment test", "[chunkcachemanager]") {
 
 TEST_CASE ("Destroy Segment test", "[chunkcachemanager]") {
   std::string file_path = "/home/tslee/data/seg";
-  int64_t* buf_ptr;
-  size_t buf_size;
 
   REQUIRE(ChunkCacheManager::ccm->DestroySegment(0) == NOERROR);
   REQUIRE(!helper_check_file_exists(file_path + std::to_string(0)));
@@ -87,6 +85,6 @@ int main(int argc, char **argv) {
 
   // Run Catch Test
   int result = Catch::Session().run(argc, argv);
-                  
+
   return 0;
 }

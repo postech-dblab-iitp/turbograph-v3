@@ -7,7 +7,8 @@
 #include "client.h"
 #include "Turbo_bin_aio_handler.hpp"
 
-typedef int16_t SegmentID;
+typedef uint16_t SegmentID;
+#define NUM_MAX_SEGMENTS 65536
 
 class ChunkCacheManager {
 public:
@@ -24,6 +25,9 @@ public:
   ReturnStatus CreateSegment(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy);
   ReturnStatus DestroySegment(SegmentID sid);
 
+  // APIs for Debugging purpose
+  int GetRefCount(SegmentID sid);
+
   // ChunkCacheManager Internal Functions
   bool SidValidityCheck(SegmentID sid);
   bool AllocSizeValidityCheck(size_t alloc_size);
@@ -37,7 +41,8 @@ public:
 public:
   // Member Variables
   LightningClient* client;
-  Turbo_bin_aio_handler file_handler;
+  Turbo_bin_aio_handler* file_handlers[NUM_MAX_SEGMENTS];
+  //Turbo_bin_aio_handler file_handler;
 };
 
 #endif // CHUNK_CACHE_MANAGER_H

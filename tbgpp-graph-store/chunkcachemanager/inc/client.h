@@ -42,6 +42,9 @@ public:
 
   int Subscribe(uint64_t object_id);
 
+  // tslee added for debugging purpose
+  int GetRefCount(uint64_t object_id);
+
 private:
   int store_conn_;
   int store_fd_;
@@ -59,6 +62,7 @@ private:
   int get_internal(uint64_t object_id, sm_offset *ptr, size_t *size);
   int seal_internal(uint64_t object_id);
   int set_dirty_internal(uint64_t object_id);
+  int get_refcount_internal(uint64_t object_id);
   int delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
   int subscribe_internal(uint64_t object_id, sem_t **sem, bool *wait);
   void init_mpk();

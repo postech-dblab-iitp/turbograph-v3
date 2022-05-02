@@ -10,6 +10,9 @@ ChunkCacheManager* ChunkCacheManager::ccm;
 ChunkCacheManager::ChunkCacheManager() {
   // Init LightningClient
   client = new LightningClient("/tmp/lightning", "password");
+
+  // Initialize file_handlers as nullptr
+  for (int i = 0; i < NUM_MAX_SEGMENTS; i++) file_handlers[i] = nullptr;
 }
 
 ChunkCacheManager::~ChunkCacheManager() {
@@ -60,7 +63,7 @@ ReturnStatus ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path,
     }
     return NOERROR;
   }
-
+  
   // Get() success. Align memory & adjust size
   MemAlign(ptr, segment_size, required_memory_size);
   *size = segment_size;
@@ -118,10 +121,16 @@ ReturnStatus ChunkCacheManager::DestroySegment(SegmentID sid) {
   // If the count > 0, we cannot destroy the segment
   
   // Delete the segment from the buffer using Lightning Delete()
-  client->Delete(sid, &file_handler);
-  file_handler.Close();
+  assert(file_handlers[sid] != nullptr);
+  client->Delete(sid, file_handlers[sid]);
+  file_handlers[sid]->Close();
+  file_handlers[sid] = nullptr;
   //AdjustMemoryUsage(-GetSegmentSize(sid)); // need type casting
   return NOERROR;
+}
+
+int ChunkCacheManager::GetRefCount(SegmentID sid) {
+  return client->GetRefCount(sid);
 }
 
 // Return true if the given SegmentID is not valid
@@ -139,29 +148,31 @@ bool ChunkCacheManager::AllocSizeValidityCheck(size_t alloc_size) {
 
 // Return the size of segment
 size_t ChunkCacheManager::GetSegmentSize(SegmentID sid, std::string file_path) {
-  if (file_handler.GetFileID() == -1) {
+  assert(file_handlers[sid] != nullptr);
+  if (file_handlers[sid]->GetFileID() == -1) {
     exit(-1);
     //TODO throw exception
   }
-  return file_handler.GetRequestedSize();
+  return file_handlers[sid]->GetRequestedSize();
 }
 
 // Return the size of file
 size_t ChunkCacheManager::GetFileSize(SegmentID sid, std::string file_path) {
-  if (file_handler.GetFileID() == -1) {
+  assert(file_handlers[sid] != nullptr);
+  if (file_handlers[sid]->GetFileID() == -1) {
     exit(-1);
     //TODO throw exception
   }
-  return file_handler.file_size();
+  return file_handlers[sid]->file_size();
 }
 
 void ChunkCacheManager::ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t size_to_read) {
-  if (file_handler.GetFileID() == -1) {
+  if (file_handlers[sid]->GetFileID() == -1) {
     exit(-1);
     //TODO throw exception
   }
-  file_handler.Read(0, (int64_t) size_to_read, (char*) *ptr, nullptr, nullptr);
-  file_handler.WaitForMyIoRequests(true, true);
+  file_handlers[sid]->Read(0, (int64_t) size_to_read, (char*) *ptr, nullptr, nullptr);
+  file_handlers[sid]->WaitForMyIoRequests(true, true);
 }
 
 void ChunkCacheManager::WriteData(SegmentID sid) {
@@ -171,15 +182,17 @@ void ChunkCacheManager::WriteData(SegmentID sid) {
 }
 
 ReturnStatus ChunkCacheManager::CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy) {
-  ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, true);
+  assert(file_handlers[sid] == nullptr);
+  file_handlers[sid] = new Turbo_bin_aio_handler();
+  ReturnStatus rs = file_handlers[sid]->OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, true);
   assert(rs == NOERROR);
   
   // Compute aligned file size
   int64_t alloc_file_size = ((alloc_size - 1 + 512) / 512) * 512;
   
-  file_handler.SetRequestedSize(alloc_size);
-  file_handler.ReserveFileSize(alloc_file_size);
-  file_handler.SetCanDestroy(can_destroy);
+  file_handlers[sid]->SetRequestedSize(alloc_size);
+  file_handlers[sid]->ReserveFileSize(alloc_file_size);
+  file_handlers[sid]->SetCanDestroy(can_destroy);
   return rs;
 }
 
