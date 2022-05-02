@@ -40,7 +40,7 @@ target_link_libraries(store lightning)
 #endforeach(test_file ${TEST_SRC})
 
 file(GLOB TEST_SRC
-  "${PROJECT_SOURCE_DIR}/test/test_chunk_cache_manager.cc"
+  "${PROJECT_SOURCE_DIR}/test/test_single_thread.cc"
 )
 
 find_package(Catch2 REQUIRED)

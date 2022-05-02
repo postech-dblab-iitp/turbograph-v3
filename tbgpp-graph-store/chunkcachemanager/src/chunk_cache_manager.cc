@@ -5,6 +5,8 @@
 #include "chunk_cache_manager.h"
 #include "Turbo_bin_aio_handler.hpp"
 
+ChunkCacheManager* ChunkCacheManager::ccm;
+
 ChunkCacheManager::ChunkCacheManager() {
   // Init LightningClient
   client = new LightningClient("/tmp/lightning", "password");
@@ -13,16 +15,15 @@ ChunkCacheManager::ChunkCacheManager() {
 ChunkCacheManager::~ChunkCacheManager() {
 }
 
-void ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path, uint8_t** ptr, size_t* size) {
+ReturnStatus ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path, uint8_t** ptr, size_t* size) {
   // Check validity of given SegmentID
   if (SidValidityCheck(sid))
     exit(-1);
-    //TODO exception 추가
+    //TODO: exception 추가
     //throw InvalidInputException("[PinSegment] invalid sid");
 
   // Pin Segment using Lightning Get()
   if (client->Get(sid, ptr, size) != 0) {
-    fprintf(stdout, "Get Fail\n");
     // Get fail: 1) object not found, 2) object is not sealed yet
     // TODO: Check if there is enough memory space
     size_t segment_size = GetSegmentSize(sid, file_path);
@@ -33,23 +34,23 @@ void ChunkCacheManager::PinSegment(SegmentID sid, std::string file_path, uint8_t
     //}
 
     if (client->Create(sid, ptr, segment_size) == 0) {
-      fprintf(stdout, "Create Success\n");
-      // Memory usage should be controlled in Lightning Create
+      // TODO: Memory usage should be controlled in Lightning Create
 
       // Read data & Seal object
       ReadData(sid, file_path, ptr, segment_size);
-      fprintf(stdout, "Read Success sid = %d, segment_size = %ld\n", sid, (int64_t) segment_size);
       client->Seal(sid);
       *size = segment_size;
     } else {
       // Create fail -> Subscribe object
       client->Subscribe(sid);
-      client->Get(sid, ptr, size);
+      int status = client->Get(sid, ptr, size);
+      assert(status == 0);
     }
   }
+  return NOERROR;
 }
 
-void ChunkCacheManager::UnPinSegment(SegmentID sid) {
+ReturnStatus ChunkCacheManager::UnPinSegment(SegmentID sid) {
   // Check validity of given SegmentID
   if (SidValidityCheck(sid))
     exit(-1);
@@ -58,9 +59,10 @@ void ChunkCacheManager::UnPinSegment(SegmentID sid) {
 
   // Unpin Segment using Lightning Release()
   client->Release(sid);
+  return NOERROR;
 }
 
-void ChunkCacheManager::SetDirty(SegmentID sid) {
+ReturnStatus ChunkCacheManager::SetDirty(SegmentID sid) {
   // Check validity of given SegmentID
   if (SidValidityCheck(sid))
     exit(-1);
@@ -72,9 +74,10 @@ void ChunkCacheManager::SetDirty(SegmentID sid) {
     // TODO: exception handling
     exit(-1);
   }
+  return NOERROR;
 }
 
-void ChunkCacheManager::CreateSegment(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy) {
+ReturnStatus ChunkCacheManager::CreateSegment(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy) {
   // Check validity of given alloc_size
   // It fails if 1) the storage runs out of space, 2) the alloc_size exceeds the limit size (if it exists)
   if (AllocSizeValidityCheck(alloc_size))
@@ -83,10 +86,10 @@ void ChunkCacheManager::CreateSegment(SegmentID sid, std::string file_path, size
     //throw InvalidInputException("[CreateSegment] invalid alloc_size");
 
   // Create file for the segment
-  CreateNewFile(sid, file_path, alloc_size);
+  return CreateNewFile(sid, file_path, alloc_size, can_destroy);
 }
 
-void ChunkCacheManager::DestroySegment(SegmentID sid) {
+ReturnStatus ChunkCacheManager::DestroySegment(SegmentID sid) {
   // Check validity of given SegmentID
   if (SidValidityCheck(sid))
     exit(-1);
@@ -110,8 +113,9 @@ void ChunkCacheManager::DestroySegment(SegmentID sid) {
   
   // Delete the segment from the buffer using Lightning Delete()
   client->Delete(sid, &file_handler);
-  file_handler.WaitForMyIoRequests(true, true);
+  file_handler.Close();
   //AdjustMemoryUsage(-GetSegmentSize(sid)); // need type casting
+  return NOERROR;
 }
 
 // Return true if the given SegmentID is not valid
@@ -129,10 +133,18 @@ bool ChunkCacheManager::AllocSizeValidityCheck(size_t alloc_size) {
 
 // Return the size of segment
 size_t ChunkCacheManager::GetSegmentSize(SegmentID sid, std::string file_path) {
+  if (file_handler.GetFileID() == -1) {
+    ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), false, true, false, false);
+    assert(rs == NOERROR);
+  }
   return file_handler.file_size();
 }
 
 void ChunkCacheManager::ReadData(SegmentID sid, std::string file_path, uint8_t** ptr, size_t segment_size) {
+  if (file_handler.GetFileID() == -1) {
+    ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), false, true, false, false);
+    assert(rs == NOERROR);
+  }
   file_handler.Read(0, (int64_t) segment_size, (char*) *ptr, nullptr, nullptr);
   file_handler.WaitForMyIoRequests(true, true);
 }
@@ -143,7 +155,10 @@ void ChunkCacheManager::WriteData(SegmentID sid) {
   return;
 }
 
-void ChunkCacheManager::CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size) {
-  file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, false);
+ReturnStatus ChunkCacheManager::CreateNewFile(SegmentID sid, std::string file_path, size_t alloc_size, bool can_destroy) {
+  ReturnStatus rs = file_handler.OpenFile((file_path + std::to_string(sid)).c_str(), true, true, true, false);
+  assert(rs == NOERROR);
   file_handler.ReserveFileSize(alloc_size);
+  file_handler.SetCanDestroy(can_destroy);
+  return rs;
 }
