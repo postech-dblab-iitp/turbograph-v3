@@ -9,7 +9,8 @@
 #include "main/client_context.hpp"
 #include "main/client_data.hpp"
 #include "main/database.hpp"
-#include "parser/expression/function_expression.hpp"
+//#include "parser/expression/function_expression.hpp"
+/*
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
@@ -22,6 +23,7 @@
 #include "parser/parsed_data/create_table_function_info.hpp"
 #include "parser/parsed_data/create_type_info.hpp"
 #include "parser/parsed_data/create_view_info.hpp"
+*/
 #include "parser/parsed_data/drop_info.hpp"
 #include "planner/parsed_data/bound_create_table_info.hpp"
 #include "planner/binder.hpp"
@@ -42,8 +44,12 @@ Catalog::Catalog(DatabaseInstance &db)
 Catalog::~Catalog() {
 }
 
-Catalog &Catalog::GetCatalog(ClientContext &context) {
+/*Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
+}*/
+
+Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
+	return db.GetCatalog();
 }
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {

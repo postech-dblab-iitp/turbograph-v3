@@ -1,10 +1,10 @@
-#include "duckdb/catalog/catalog_search_path.hpp"
+#include "catalog/catalog_search_path.hpp"
 
-#include "duckdb/common/constants.hpp"
-#include "duckdb/common/exception.hpp"
-#include "duckdb/common/string_util.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/catalog/catalog.hpp"
+#include "common/constants.hpp"
+#include "common/exception.hpp"
+#include "common/string_util.hpp"
+#include "main/client_context.hpp"
+#include "catalog/catalog.hpp"
 
 namespace duckdb {
 

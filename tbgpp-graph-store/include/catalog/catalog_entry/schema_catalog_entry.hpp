@@ -10,7 +10,7 @@
 
 #include "catalog/catalog_entry.hpp"
 #include "catalog/catalog_set.hpp"
-#include "parser/query_error_context.hpp"
+//#include "parser/query_error_context.hpp"
 
 namespace duckdb {
 class ClientContext;
