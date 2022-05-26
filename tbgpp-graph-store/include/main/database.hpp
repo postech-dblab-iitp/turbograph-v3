@@ -45,7 +45,7 @@ public:
 	DUCKDB_API static DatabaseInstance &GetDatabase(ClientContext &context);
 
 private:
-	void Initialize(const char *path, DBConfig *config);
+	void Initialize(const char *path);//, DBConfig *config);
 
 	//void Configure(DBConfig &config);
 
@@ -63,8 +63,8 @@ private:
 //! database-specific meta information.
 class DuckDB {
 public:
-	DUCKDB_API explicit DuckDB(const char *path = nullptr, DBConfig *config = nullptr);
-	DUCKDB_API explicit DuckDB(const string &path, DBConfig *config = nullptr);
+	//DUCKDB_API explicit DuckDB(const char *path = nullptr, DBConfig *config = nullptr);
+	//DUCKDB_API explicit DuckDB(const string &path, DBConfig *config = nullptr);
 	DUCKDB_API explicit DuckDB(DatabaseInstance &instance);
 
 	DUCKDB_API ~DuckDB();

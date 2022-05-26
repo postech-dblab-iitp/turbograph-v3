@@ -1,15 +1,15 @@
-#include "duckdb/catalog/catalog_set.hpp"
+#include "catalog/catalog_set.hpp"
 
-#include "duckdb/catalog/catalog.hpp"
-#include "duckdb/common/exception.hpp"
-#include "duckdb/transaction/transaction_manager.hpp"
-#include "duckdb/transaction/transaction.hpp"
-#include "duckdb/common/serializer/buffered_serializer.hpp"
-#include "duckdb/parser/parsed_data/alter_table_info.hpp"
-#include "duckdb/catalog/dependency_manager.hpp"
-#include "duckdb/common/string_util.hpp"
-#include "duckdb/parser/column_definition.hpp"
-#include "duckdb/parser/expression/constant_expression.hpp"
+#include "catalog/catalog.hpp"
+#include "common/exception.hpp"
+#include "transaction/transaction_manager.hpp"
+#include "transaction/transaction.hpp"
+#include "common/serializer/buffered_serializer.hpp"
+#include "parser/parsed_data/alter_table_info.hpp"
+#include "catalog/dependency_manager.hpp"
+#include "common/string_util.hpp"
+#include "parser/column_definition.hpp"
+#include "parser/expression/constant_expression.hpp"
 
 namespace duckdb {
 

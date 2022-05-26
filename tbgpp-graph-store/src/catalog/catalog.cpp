@@ -10,23 +10,28 @@
 #include "main/client_data.hpp"
 #include "main/database.hpp"
 //#include "parser/expression/function_expression.hpp"
-/*
+
 #include "parser/parsed_data/alter_table_info.hpp"
+/*
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
 #include "parser/parsed_data/create_copy_function_info.hpp"
 #include "parser/parsed_data/create_index_info.hpp"
 #include "parser/parsed_data/create_pragma_function_info.hpp"
 #include "parser/parsed_data/create_scalar_function_info.hpp"
+*/
 #include "parser/parsed_data/create_schema_info.hpp"
+/*
 #include "parser/parsed_data/create_sequence_info.hpp"
 #include "parser/parsed_data/create_table_function_info.hpp"
 #include "parser/parsed_data/create_type_info.hpp"
 #include "parser/parsed_data/create_view_info.hpp"
 */
 #include "parser/parsed_data/drop_info.hpp"
-#include "planner/parsed_data/bound_create_table_info.hpp"
-#include "planner/binder.hpp"
+//#include "planner/parsed_data/bound_create_table_info.hpp"
+//#include "planner/binder.hpp"
+
+#include <algorithm>
 
 namespace duckdb {
 
@@ -44,9 +49,9 @@ Catalog::Catalog(DatabaseInstance &db)
 Catalog::~Catalog() {
 }
 
-/*Catalog &Catalog::GetCatalog(ClientContext &context) {
+Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
-}*/
+}
 
 Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
 	return db.GetCatalog();
@@ -197,15 +202,17 @@ CatalogEntry *Catalog::AddFunction(ClientContext &context, SchemaCatalogEntry *s
 	return schema->AddFunction(context, info);
 }*/
 
-SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &schema_name, bool if_exists,
-                                       QueryErrorContext error_context) {
+SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &schema_name, bool if_exists) {
+                                       //QueryErrorContext error_context) {
 	D_ASSERT(!schema_name.empty());
 	if (schema_name == TEMP_SCHEMA) {
+		D_ASSERT(false);
 		return ClientData::Get(context).temporary_objects.get();
 	}
 	auto entry = schemas->GetEntry(context, schema_name);
 	if (!entry && !if_exists) {
-		throw CatalogException(error_context.FormatError("Schema with name %s does not exist!", schema_name));
+		D_ASSERT(false); // TODO exception handling
+		//throw CatalogException(error_context.FormatError("Schema with name %s does not exist!", schema_name));
 	}
 	return (SchemaCatalogEntry *)entry;
 }
@@ -234,9 +241,9 @@ SimilarCatalogEntry Catalog::SimilarEntryInSchemas(ClientContext &context, const
 	return {most_similar.first, most_similar.second, schema_of_most_similar};
 }
 
-CatalogException Catalog::CreateMissingEntryException(ClientContext &context, const string &entry_name,
-                                                      CatalogType type, const vector<SchemaCatalogEntry *> &schemas,
-                                                      QueryErrorContext error_context) {
+/*CatalogException Catalog::CreateMissingEntryException(ClientContext &context, const string &entry_name,
+                                                      CatalogType type, const vector<SchemaCatalogEntry *> &schemas) {
+                                                      //QueryErrorContext error_context) {
 	auto entry = SimilarEntryInSchemas(context, entry_name, type, schemas);
 
 	vector<SchemaCatalogEntry *> unseen_schemas;
@@ -257,12 +264,12 @@ CatalogException Catalog::CreateMissingEntryException(ClientContext &context, co
 
 	return CatalogException(error_context.FormatError("%s with name %s does not exist!%s", CatalogTypeToString(type),
 	                                                  entry_name, did_you_mean));
-}
+}*/
 
 CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type, const string &schema_name,
-                                        const string &name, bool if_exists, QueryErrorContext error_context) {
+                                        const string &name, bool if_exists) { //, QueryErrorContext error_context) {
 	if (!schema_name.empty()) {
-		auto schema = GetSchema(context, schema_name, if_exists, error_context);
+		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
 		if (!schema) {
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
@@ -270,7 +277,8 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
 		if (!entry && !if_exists) {
-			throw CreateMissingEntryException(context, name, type, {schema}, error_context);
+			D_ASSERT(false);
+			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
 		}
 
 		return {schema, entry};
@@ -278,7 +286,8 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 
 	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
 	for (const auto &path : paths) {
-		auto lookup = LookupEntry(context, type, path, name, true, error_context);
+		//auto lookup = LookupEntry(context, type, path, name, true, error_context);
+		auto lookup = LookupEntry(context, type, path, name, true);
 		if (lookup.Found()) {
 			return lookup;
 		}
@@ -293,7 +302,8 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 			}
 		}
 
-		throw CreateMissingEntryException(context, name, type, schemas, error_context);
+		D_ASSERT(false);
+		//throw CreateMissingEntryException(context, name, type, schemas, error_context);
 	}
 
 	return {nullptr, nullptr};
@@ -313,8 +323,9 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema, co
 }
 
 CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const string &schema_name, const string &name,
-                                bool if_exists, QueryErrorContext error_context) {
-	return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
+                                bool if_exists) { //, QueryErrorContext error_context) {
+	//return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
+	return LookupEntry(context, type, schema_name, name, if_exists).entry;
 }
 
 /*
@@ -378,6 +389,7 @@ CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &sch
 */
 
 void Catalog::Alter(ClientContext &context, AlterInfo *info) {
+	D_ASSERT(false);
 	ModifyCatalog();
 	auto lookup = LookupEntry(context, info->GetCatalogType(), info->schema, info->name);
 	D_ASSERT(lookup.Found()); // It must have thrown otherwise.

@@ -47,9 +47,9 @@ struct ClientData;
 //! The ClientContext holds information relevant to the current client session
 //! during execution
 class ClientContext : public std::enable_shared_from_this<ClientContext> {
-	friend class PendingQueryResult;
-	friend class StreamQueryResult;
-	friend class TransactionManager;
+	//friend class PendingQueryResult;
+	//friend class StreamQueryResult;
+	//friend class TransactionManager;
 
 public:
 	DUCKDB_API explicit ClientContext(shared_ptr<DatabaseInstance> db);
@@ -67,7 +67,7 @@ public:
 	//! The client configuration
 	//ClientConfig config;
 	//! The set of client-specific data
-	//unique_ptr<ClientData> client_data;
+	unique_ptr<ClientData> client_data;
 
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {
