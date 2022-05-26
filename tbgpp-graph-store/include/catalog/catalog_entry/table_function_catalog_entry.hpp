@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/function/table_function.hpp"
-#include "duckdb/common/vector.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "function/table_function.hpp"
+#include "common/vector.hpp"
 
 namespace duckdb {
 
@@ -28,3 +28,4 @@ public:
 	vector<TableFunction> functions;
 };
 } // namespace duckdb
+*/

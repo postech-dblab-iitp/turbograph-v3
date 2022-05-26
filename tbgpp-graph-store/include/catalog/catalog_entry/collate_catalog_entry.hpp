@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/function/function.hpp"
-#include "duckdb/parser/parsed_data/create_collation_info.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "function/function.hpp"
+#include "parser/parsed_data/create_collation_info.hpp"
 
 namespace duckdb {
 
@@ -32,3 +32,4 @@ public:
 	bool not_required_for_equality;
 };
 } // namespace duckdb
+*/

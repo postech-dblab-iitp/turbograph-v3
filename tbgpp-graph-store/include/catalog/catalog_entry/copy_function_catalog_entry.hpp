@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/common/unordered_map.hpp"
-#include "duckdb/function/copy_function.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "common/unordered_map.hpp"
+#include "function/copy_function.hpp"
 
 namespace duckdb {
 
@@ -26,3 +26,4 @@ public:
 	CopyFunction function;
 };
 } // namespace duckdb
+*/

@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include "duckdb/catalog/catalog_entry.hpp"
-#include "duckdb/catalog/default/default_generator.hpp"
-#include "duckdb/common/common.hpp"
-#include "duckdb/common/case_insensitive_map.hpp"
-#include "duckdb/common/pair.hpp"
-#include "duckdb/common/unordered_set.hpp"
-#include "duckdb/common/mutex.hpp"
-#include "duckdb/parser/column_definition.hpp"
-#include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
-#include "duckdb/catalog/catalog_entry/sequence_catalog_entry.hpp"
-#include "duckdb/transaction/transaction.hpp"
+#include "catalog_entry.hpp"
+#include "catalog/default/default_generator.hpp"
+#include "common/common.hpp"
+#include "common/case_insensitive_map.hpp"
+#include "common/pair.hpp"
+#include "common/unordered_set.hpp"
+#include "common/mutex.hpp"
+#include "parser/column_definition.hpp"
+#include "catalog/catalog_entry/table_catalog_entry.hpp"
+#include "catalog/catalog_entry/sequence_catalog_entry.hpp"
+//#include "transaction/transaction.hpp"
 #include <functional>
 #include <memory>
 
@@ -57,7 +57,7 @@ public:
 
 	DUCKDB_API bool DropEntry(ClientContext &context, const string &name, bool cascade);
 
-	bool AlterOwnership(ClientContext &context, ChangeOwnershipInfo *info);
+	//bool AlterOwnership(ClientContext &context, ChangeOwnershipInfo *info);
 
 	void CleanupEntry(CatalogEntry *catalog_entry);
 

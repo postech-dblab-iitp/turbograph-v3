@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "duckdb/catalog/catalog_entry.hpp"
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/parser/query_error_context.hpp"
+#include "catalog/catalog_entry.hpp"
+#include "catalog/catalog_set.hpp"
+#include "parser/query_error_context.hpp"
 
 namespace duckdb {
 class ClientContext;
@@ -47,6 +47,13 @@ public:
 	SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal);
 
 private:
+	//! The catalog set holding the graphs
+	CatalogSet graphs;
+	//! The catalog set holding the partitions
+	CatalogSet partitions;
+	//! The catalog set holding the extents
+	CatalogSet extents;
+	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
 	//! The catalog set holding the indexes
@@ -65,6 +72,7 @@ private:
 	CatalogSet collations;
 	//! The catalog set holding the types
 	CatalogSet types;
+	*/
 
 public:
 	//! Scan the specified catalog set, invoking the callback method for every entry
@@ -83,6 +91,7 @@ public:
 	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
 
 private:
+	/*
 	//! Create a scalar or aggregate function within the given schema
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
 	//! Creates a table with the given name in the schema
@@ -101,12 +110,15 @@ private:
 	CatalogEntry *CreateCollation(ClientContext &context, CreateCollationInfo *info);
 	//! Create a enum within the given schema
 	CatalogEntry *CreateType(ClientContext &context, CreateTypeInfo *info);
+	*/
 
 	//! Drops an entry from the schema
 	void DropEntry(ClientContext &context, DropInfo *info);
 
+	/*
 	//! Append a scalar or aggregate function within the given schema
 	CatalogEntry *AddFunction(ClientContext &context, CreateFunctionInfo *info);
+	*/
 
 	//! Alters a catalog entry
 	void Alter(ClientContext &context, AlterInfo *info);

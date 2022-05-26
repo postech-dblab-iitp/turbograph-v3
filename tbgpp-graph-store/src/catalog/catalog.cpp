@@ -1,30 +1,30 @@
-#include "duckdb/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 
-#include "duckdb/catalog/catalog_search_path.hpp"
-#include "duckdb/catalog/catalog_entry/list.hpp"
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/catalog/default/default_schemas.hpp"
-#include "duckdb/catalog/dependency_manager.hpp"
-#include "duckdb/common/exception.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/main/client_data.hpp"
-#include "duckdb/main/database.hpp"
-#include "duckdb/parser/expression/function_expression.hpp"
-#include "duckdb/parser/parsed_data/alter_table_info.hpp"
-#include "duckdb/parser/parsed_data/create_aggregate_function_info.hpp"
-#include "duckdb/parser/parsed_data/create_collation_info.hpp"
-#include "duckdb/parser/parsed_data/create_copy_function_info.hpp"
-#include "duckdb/parser/parsed_data/create_index_info.hpp"
-#include "duckdb/parser/parsed_data/create_pragma_function_info.hpp"
-#include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
-#include "duckdb/parser/parsed_data/create_schema_info.hpp"
-#include "duckdb/parser/parsed_data/create_sequence_info.hpp"
-#include "duckdb/parser/parsed_data/create_table_function_info.hpp"
-#include "duckdb/parser/parsed_data/create_type_info.hpp"
-#include "duckdb/parser/parsed_data/create_view_info.hpp"
-#include "duckdb/parser/parsed_data/drop_info.hpp"
-#include "duckdb/planner/parsed_data/bound_create_table_info.hpp"
-#include "duckdb/planner/binder.hpp"
+#include "catalog/catalog_search_path.hpp"
+#include "catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_set.hpp"
+#include "catalog/default/default_schemas.hpp"
+#include "catalog/dependency_manager.hpp"
+#include "common/exception.hpp"
+#include "main/client_context.hpp"
+#include "main/client_data.hpp"
+#include "main/database.hpp"
+#include "parser/expression/function_expression.hpp"
+#include "parser/parsed_data/alter_table_info.hpp"
+#include "parser/parsed_data/create_aggregate_function_info.hpp"
+#include "parser/parsed_data/create_collation_info.hpp"
+#include "parser/parsed_data/create_copy_function_info.hpp"
+#include "parser/parsed_data/create_index_info.hpp"
+#include "parser/parsed_data/create_pragma_function_info.hpp"
+#include "parser/parsed_data/create_scalar_function_info.hpp"
+#include "parser/parsed_data/create_schema_info.hpp"
+#include "parser/parsed_data/create_sequence_info.hpp"
+#include "parser/parsed_data/create_table_function_info.hpp"
+#include "parser/parsed_data/create_type_info.hpp"
+#include "parser/parsed_data/create_view_info.hpp"
+#include "parser/parsed_data/drop_info.hpp"
+#include "planner/parsed_data/bound_create_table_info.hpp"
+#include "planner/binder.hpp"
 
 namespace duckdb {
 
@@ -46,7 +46,7 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
 }
 
-CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
+/*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
 	auto schema = GetSchema(context, info->base->schema);
 	return CreateTable(context, schema, info);
 }
@@ -134,7 +134,7 @@ CatalogEntry *Catalog::CreateCollation(ClientContext &context, CreateCollationIn
 
 CatalogEntry *Catalog::CreateCollation(ClientContext &context, SchemaCatalogEntry *schema, CreateCollationInfo *info) {
 	return schema->CreateCollation(context, info);
-}
+}*/
 
 CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *info) {
 	D_ASSERT(!info->schema.empty());
@@ -182,14 +182,14 @@ void Catalog::DropEntry(ClientContext &context, DropInfo *info) {
 	lookup.schema->DropEntry(context, info);
 }
 
-CatalogEntry *Catalog::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
+/*CatalogEntry *Catalog::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
 	auto schema = GetSchema(context, info->schema);
 	return AddFunction(context, schema, info);
 }
 
 CatalogEntry *Catalog::AddFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
 	return schema->AddFunction(context, info);
-}
+}*/
 
 SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &schema_name, bool if_exists,
                                        QueryErrorContext error_context) {
@@ -311,6 +311,7 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const 
 	return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
 }
 
+/*
 template <>
 TableCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
                                      bool if_exists, QueryErrorContext error_context) {
@@ -368,6 +369,7 @@ CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &sch
 	return (CollateCatalogEntry *)GetEntry(context, CatalogType::COLLATION_ENTRY, schema_name, name, if_exists,
 	                                       error_context);
 }
+*/
 
 void Catalog::Alter(ClientContext &context, AlterInfo *info) {
 	ModifyCatalog();

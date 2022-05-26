@@ -1,3 +1,4 @@
+/*
 #include "duckdb/catalog/catalog_entry/index_catalog_entry.hpp"
 #include "duckdb/storage/data_table.hpp"
 
@@ -26,3 +27,4 @@ string IndexCatalogEntry::ToSQL() {
 }
 
 } // namespace duckdb
+*/

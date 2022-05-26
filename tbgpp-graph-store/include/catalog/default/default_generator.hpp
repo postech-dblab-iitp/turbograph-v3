@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "duckdb/catalog/catalog_entry.hpp"
-#include "duckdb/common/atomic.hpp"
+#include "catalog/catalog_entry.hpp"
+#include "common/atomic.hpp"
 
 namespace duckdb {
 class ClientContext;

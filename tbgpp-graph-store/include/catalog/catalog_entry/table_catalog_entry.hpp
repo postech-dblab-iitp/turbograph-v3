@@ -8,13 +8,14 @@
 
 #pragma once
 
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/common/unordered_map.hpp"
-#include "duckdb/parser/column_definition.hpp"
-#include "duckdb/parser/constraint.hpp"
-#include "duckdb/planner/bound_constraint.hpp"
-#include "duckdb/planner/expression.hpp"
-#include "duckdb/common/case_insensitive_map.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "common/unordered_map.hpp"
+#include "parser/column_definition.hpp"
+#include "parser/constraint.hpp"
+#include "planner/bound_constraint.hpp"
+#include "planner/expression.hpp"
+#include "common/case_insensitive_map.hpp"
 
 namespace duckdb {
 
@@ -86,3 +87,4 @@ private:
 	unique_ptr<CatalogEntry> SetForeignKeyConstraint(ClientContext &context, AlterForeignKeyInfo &info);
 };
 } // namespace duckdb
+*/

@@ -7,11 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/function/function.hpp"
-#include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "catalog/catalog_set.hpp"
+#include "function/function.hpp"
+#include "parser/parsed_data/create_scalar_function_info.hpp"
 
 namespace duckdb {
 
@@ -26,3 +26,4 @@ public:
 	vector<ScalarFunction> functions;
 };
 } // namespace duckdb
+*/
