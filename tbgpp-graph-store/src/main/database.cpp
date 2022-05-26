@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.hpp"
 //#include "common/virtual_file_system.hpp"
-//#include "main/client_context.hpp"
+#include "main/client_context.hpp"
 //#include "parallel/task_scheduler.hpp"
 //#include "storage/storage_manager.hpp"
 //#include "storage/object_cache.hpp"
@@ -99,7 +99,7 @@ ConnectionManager &ConnectionManager::Get(ClientContext &context) {
 	return ConnectionManager::Get(DatabaseInstance::GetDatabase(context));
 }*/
 
-void DatabaseInstance::Initialize(const char *path, DBConfig *new_config) {
+void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) {
 	/*if (new_config) {
 		// user-supplied configuration
 		Configure(*new_config);

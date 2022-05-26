@@ -10,7 +10,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(CACHE_SRC_DIR "${PROJECT_SOURCE_DIR}/src/cache")
-include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/cache" "${PROJECT_SOURCE_DIR}/include/cache/disk_aio" "${PROJECT_SOURCE_DIR}/include/catalog")
+include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/cache" 
+                    "${PROJECT_SOURCE_DIR}/include/cache/disk_aio" "${PROJECT_SOURCE_DIR}/include/catalog"
+                    "${PROJECT_SOURCE_DIR}/include/common" "${PROJECT_SOURCE_DIR}/include/parser"
+                    "${PROJECT_SOURCE_DIR}/include/main")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)

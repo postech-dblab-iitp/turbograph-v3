@@ -194,8 +194,8 @@ private:
 	                               bool if_exists = false);//, QueryErrorContext error_context = QueryErrorContext());
 
 	//! Return an exception with did-you-mean suggestion.
-	CatalogException CreateMissingEntryException(ClientContext &context, const string &entry_name, CatalogType type,
-	                                             const vector<SchemaCatalogEntry *> &schemas);
+	//CatalogException CreateMissingEntryException(ClientContext &context, const string &entry_name, CatalogType type,
+	//                                             const vector<SchemaCatalogEntry *> &schemas);
 	                                             //QueryErrorContext error_context);
 
 	//! Return the close entry name, the distance and the belonging schema.
