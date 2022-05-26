@@ -7,11 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/parser/parsed_data/create_macro_info.hpp"
-#include "duckdb/catalog/catalog_entry/macro_catalog_entry.hpp"
+/*
+#include "catalog/catalog_set.hpp"
+#include "catalog/standard_entry.hpp"
+#include "parser/parsed_data/create_macro_info.hpp"
+#include "catalog/catalog_entry/macro_catalog_entry.hpp"
 
 namespace duckdb {
 
@@ -27,3 +27,4 @@ public:
 	static unique_ptr<CreateMacroInfo> Deserialize(Deserializer &source);
 };
 } // namespace duckdb
+*/

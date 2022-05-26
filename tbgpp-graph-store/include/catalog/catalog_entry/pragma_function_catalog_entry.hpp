@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/function/pragma_function.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "function/pragma_function.hpp"
 
 namespace duckdb {
 
@@ -25,3 +25,4 @@ public:
 	vector<PragmaFunction> functions;
 };
 } // namespace duckdb
+*/

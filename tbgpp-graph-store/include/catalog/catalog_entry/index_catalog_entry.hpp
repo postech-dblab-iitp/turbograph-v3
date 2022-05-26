@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/parser/parsed_data/create_index_info.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "parser/parsed_data/create_index_info.hpp"
 
 namespace duckdb {
 
@@ -32,3 +32,4 @@ public:
 };
 
 } // namespace duckdb
+*/

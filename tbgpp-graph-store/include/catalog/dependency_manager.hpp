@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "duckdb/catalog/catalog_entry.hpp"
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/catalog/dependency.hpp"
+#include "catalog/catalog_entry.hpp"
+#include "catalog/catalog_set.hpp"
+#include "catalog/dependency.hpp"
 
 #include <functional>
 

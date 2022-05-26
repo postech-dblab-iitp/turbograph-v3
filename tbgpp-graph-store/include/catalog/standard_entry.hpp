@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "duckdb/catalog/catalog_entry.hpp"
+#include "catalog_entry.hpp"
 
 namespace duckdb {
 class SchemaCatalogEntry;

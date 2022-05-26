@@ -7,11 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/catalog_set.hpp"
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/function/macro_function.hpp"
-#include "duckdb/parser/parsed_data/create_macro_info.hpp"
+/*
+#include "catalog/catalog_set.hpp"
+#include "catalog/standard_entry.hpp"
+#include "function/macro_function.hpp"
+#include "parser/parsed_data/create_macro_info.hpp"
 
 namespace duckdb {
 
@@ -28,3 +28,4 @@ public:
 };
 
 } // namespace duckdb
+*/

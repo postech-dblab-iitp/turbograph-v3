@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "duckdb/common/common.hpp"
-#include "duckdb/common/unordered_set.hpp"
+#include "common/common.hpp"
+#include "common/unordered_set.hpp"
 
 namespace duckdb {
 class CatalogEntry;

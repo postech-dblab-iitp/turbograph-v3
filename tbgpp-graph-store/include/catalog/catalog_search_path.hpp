@@ -9,10 +9,10 @@
 #pragma once
 
 #include <functional>
-#include "duckdb/common/enums/catalog_type.hpp"
-#include "duckdb/common/string.hpp"
-#include "duckdb/common/vector.hpp"
-#include "duckdb/common/types/value.hpp"
+#include "common/enums/catalog_type.hpp"
+#include "common/string.hpp"
+#include "common/vector.hpp"
+#include "common/types/value.hpp"
 
 namespace duckdb {
 

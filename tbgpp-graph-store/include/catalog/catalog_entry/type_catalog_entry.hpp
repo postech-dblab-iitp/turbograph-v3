@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/standard_entry.hpp"
-#include "duckdb/common/mutex.hpp"
-#include "duckdb/parser/parsed_data/create_type_info.hpp"
+/*
+#include "catalog/standard_entry.hpp"
+#include "common/mutex.hpp"
+#include "parser/parsed_data/create_type_info.hpp"
 
 namespace duckdb {
 class Serializer;
@@ -33,3 +33,4 @@ public:
 	string ToSQL() override;
 };
 } // namespace duckdb
+*/

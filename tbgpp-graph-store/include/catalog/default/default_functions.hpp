@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-
-#include "duckdb/catalog/default/default_generator.hpp"
-#include "duckdb/parser/parsed_data/create_macro_info.hpp"
+/*
+#include "catalog/default/default_generator.hpp"
+#include "parser/parsed_data/create_macro_info.hpp"
 
 namespace duckdb {
 class SchemaCatalogEntry;
@@ -40,3 +40,4 @@ private:
 };
 
 } // namespace duckdb
+*/
