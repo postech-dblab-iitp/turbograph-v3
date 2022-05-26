@@ -1,11 +1,12 @@
-#include "duckdb/catalog/default/default_functions.hpp"
-#include "duckdb/parser/parser.hpp"
-#include "duckdb/parser/parsed_data/create_macro_info.hpp"
-#include "duckdb/parser/expression/columnref_expression.hpp"
-#include "duckdb/catalog/catalog_entry/scalar_macro_catalog_entry.hpp"
-#include "duckdb/function/table_macro_function.hpp"
+/*
+#include "catalog/default/default_functions.hpp"
+#include "parser/parser.hpp"
+#include "parser/parsed_data/create_macro_info.hpp"
+#include "parser/expression/columnref_expression.hpp"
+#include "catalog/catalog_entry/scalar_macro_catalog_entry.hpp"
+#include "function/table_macro_function.hpp"
 
-#include "duckdb/function/scalar_macro_function.hpp"
+#include "function/scalar_macro_function.hpp"
 
 namespace duckdb {
 
@@ -204,3 +205,4 @@ vector<string> DefaultFunctionGenerator::GetDefaultEntries() {
 }
 
 } // namespace duckdb
+*/

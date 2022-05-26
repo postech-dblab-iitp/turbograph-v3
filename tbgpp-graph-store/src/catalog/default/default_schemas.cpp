@@ -1,6 +1,6 @@
-#include "duckdb/catalog/default/default_schemas.hpp"
-#include "duckdb/catalog/catalog_entry/schema_catalog_entry.hpp"
-#include "duckdb/common/string_util.hpp"
+#include "catalog/default/default_schemas.hpp"
+#include "catalog/catalog_entry/schema_catalog_entry.hpp"
+#include "common/string_util.hpp"
 
 namespace duckdb {
 

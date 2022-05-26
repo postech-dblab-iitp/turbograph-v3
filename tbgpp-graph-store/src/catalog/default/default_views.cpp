@@ -1,3 +1,4 @@
+/*
 #include "duckdb/catalog/default/default_views.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/parser/statement/select_statement.hpp"
@@ -98,3 +99,4 @@ vector<string> DefaultViewGenerator::GetDefaultEntries() {
 }
 
 } // namespace duckdb
+*/
