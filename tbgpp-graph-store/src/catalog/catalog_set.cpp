@@ -148,7 +148,8 @@ bool CatalogSet::AlterOwnership(ClientContext &context, ChangeOwnershipInfo *inf
 }
 
 bool CatalogSet::AlterEntry(ClientContext &context, const string &name, AlterInfo *alter_info) {
-	auto &transaction = Transaction::GetTransaction(context);
+	D_ASSERT(false);
+	/*auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
 
@@ -205,7 +206,7 @@ bool CatalogSet::AlterEntry(ClientContext &context, const string &name, AlterInf
 	transaction.PushCatalogEntry(value->child.get(), serialized_alter.data.get(), serialized_alter.size);
 	entries[entry_index] = move(value);
 
-	return true;
+	return true;*/
 }
 
 void CatalogSet::DropEntryDependencies(ClientContext &context, idx_t entry_index, CatalogEntry &entry, bool cascade) {
@@ -225,7 +226,7 @@ void CatalogSet::DropEntryDependencies(ClientContext &context, idx_t entry_index
 }
 
 void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, CatalogEntry &entry, bool cascade) {
-	auto &transaction = Transaction::GetTransaction(context);
+	//auto &transaction = Transaction::GetTransaction(context);
 
 	DropEntryDependencies(context, entry_index, entry, cascade);
 
@@ -233,14 +234,14 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 	// set the timestamp to the timestamp of the current transaction
 	// and point it at the dummy node
 	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name);
-	value->timestamp = transaction.transaction_id;
+	//value->timestamp = transaction.transaction_id;
 	value->child = move(entries[entry_index]);
 	value->child->parent = value.get();
 	value->set = this;
 	value->deleted = true;
 
 	// push the old entry in the undo buffer for this transaction
-	transaction.PushCatalogEntry(value->child.get());
+	//transaction.PushCatalogEntry(value->child.get());
 
 	entries[entry_index] = move(value);
 }
@@ -317,7 +318,8 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
 	auto entry = mapping.find(name);
 	auto new_value = make_unique<MappingValue>(entry_index);
-	new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
+	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
+	new_value->timestamp = 0;
 	if (entry != mapping.end()) {
 		if (HasConflict(context, entry->second->timestamp)) {
 			throw TransactionException("Catalog write-write conflict on name \"%s\"", name);
@@ -333,14 +335,16 @@ void CatalogSet::DeleteMapping(ClientContext &context, const string &name) {
 	D_ASSERT(entry != mapping.end());
 	auto delete_marker = make_unique<MappingValue>(entry->second->index);
 	delete_marker->deleted = true;
-	delete_marker->timestamp = Transaction::GetTransaction(context).transaction_id;
+	//delete_marker->timestamp = Transaction::GetTransaction(context).transaction_id;
+	delete_marker->timestamp = 0;
 	delete_marker->child = move(entry->second);
 	delete_marker->child->parent = delete_marker.get();
 	mapping[name] = move(delete_marker);
 }
 
 bool CatalogSet::UseTimestamp(ClientContext &context, transaction_t timestamp) {
-	auto &transaction = Transaction::GetTransaction(context);
+	return true;
+	/*auto &transaction = Transaction::GetTransaction(context);
 	if (timestamp == transaction.transaction_id) {
 		// we created this version
 		return true;
@@ -349,7 +353,7 @@ bool CatalogSet::UseTimestamp(ClientContext &context, transaction_t timestamp) {
 		// this version was commited before we started the transaction
 		return true;
 	}
-	return false;
+	return false;*/
 }
 
 CatalogEntry *CatalogSet::GetEntryForTransaction(ClientContext &context, CatalogEntry *current) {
