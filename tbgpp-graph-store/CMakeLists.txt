@@ -9,11 +9,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+#set(THIRD_PARTY_SRC_DIR "${PROJECT_SOURCE_DIR}/third_party")
 set(CACHE_SRC_DIR "${PROJECT_SOURCE_DIR}/src/cache")
 include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/cache" 
                     "${PROJECT_SOURCE_DIR}/include/cache/disk_aio" "${PROJECT_SOURCE_DIR}/include/catalog"
-                    "${PROJECT_SOURCE_DIR}/include/common" "${PROJECT_SOURCE_DIR}/include/parser"
-                    "${PROJECT_SOURCE_DIR}/include/main")
+                    "${PROJECT_SOURCE_DIR}/include/catalog/default" "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
+                    "${PROJECT_SOURCE_DIR}/include/common" "${PROJECT_SOURCE_DIR}/include/common/enums"
+                    "${PROJECT_SOURCE_DIR}/include/common/types" "${PROJECT_SOURCE_DIR}/include/common/operator"
+                    "${PROJECT_SOURCE_DIR}/include/common/value_operations" "${PROJECT_SOURCE_DIR}/include/parser"
+                    "${PROJECT_SOURCE_DIR}/include/parser/parsed_data" "${PROJECT_SOURCE_DIR}/include/main"
+                    "${PROJECT_SOURCE_DIR}/include/third_party/fmt/include" "${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
+                    "${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)

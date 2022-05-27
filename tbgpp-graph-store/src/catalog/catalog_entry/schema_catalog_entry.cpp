@@ -12,27 +12,27 @@
 #include "catalog/catalog_entry/table_catalog_entry.hpp"
 #include "catalog/catalog_entry/table_function_catalog_entry.hpp"
 #include "catalog/catalog_entry/type_catalog_entry.hpp"
-#include "catalog/catalog_entry/view_catalog_entry.hpp"
+//#include "catalog/catalog_entry/view_catalog_entry.hpp"
 #include "catalog/default/default_functions.hpp"
-#include "catalog/default/default_views.hpp"
+//#include "catalog/default/default_views.hpp"
 #include "common/exception.hpp"
 #include "parser/parsed_data/alter_table_info.hpp"
-#include "parser/parsed_data/create_collation_info.hpp"
-#include "parser/parsed_data/create_copy_function_info.hpp"
-#include "parser/parsed_data/create_index_info.hpp"
-#include "parser/parsed_data/create_pragma_function_info.hpp"
-#include "parser/parsed_data/create_scalar_function_info.hpp"
+//#include "parser/parsed_data/create_collation_info.hpp"
+//#include "parser/parsed_data/create_copy_function_info.hpp"
+//#include "parser/parsed_data/create_index_info.hpp"
+//#include "parser/parsed_data/create_pragma_function_info.hpp"
+//#include "parser/parsed_data/create_scalar_function_info.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
-#include "parser/parsed_data/create_sequence_info.hpp"
-#include "parser/parsed_data/create_table_function_info.hpp"
-#include "parser/parsed_data/create_type_info.hpp"
-#include "parser/parsed_data/create_view_info.hpp"
+//#include "parser/parsed_data/create_sequence_info.hpp"
+//#include "parser/parsed_data/create_table_function_info.hpp"
+//#include "parser/parsed_data/create_type_info.hpp"
+//#include "parser/parsed_data/create_view_info.hpp"
 #include "parser/parsed_data/drop_info.hpp"
-#include "planner/parsed_data/bound_create_table_info.hpp"
-#include "storage/data_table.hpp"
-#include "common/field_writer.hpp"
-#include "planner/constraints/bound_foreign_key_constraint.hpp"
-#include "parser/constraints/foreign_key_constraint.hpp"
+//#include "planner/parsed_data/bound_create_table_info.hpp"
+//#include "storage/data_table.hpp"
+//#include "common/field_writer.hpp"
+//#include "planner/constraints/bound_foreign_key_constraint.hpp"
+//#include "parser/constraints/foreign_key_constraint.hpp"
 #include "catalog/catalog_entry/table_macro_catalog_entry.hpp"
 
 #include <algorithm>
@@ -40,7 +40,7 @@
 
 namespace duckdb {
 
-void FindForeignKeyInformation(CatalogEntry *entry, AlterForeignKeyType alter_fk_type,
+/*void FindForeignKeyInformation(CatalogEntry *entry, AlterForeignKeyType alter_fk_type,
                                vector<unique_ptr<AlterForeignKeyInfo>> &fk_arrays) {
 	if (entry->type != CatalogType::TABLE_ENTRY) {
 		return;
@@ -62,14 +62,19 @@ void FindForeignKeyInformation(CatalogEntry *entry, AlterForeignKeyType alter_fk
 			                       fk.info.table);
 		}
 	}
-}
+}*/
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
+/*SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)),
       tables(*catalog, make_unique<DefaultViewGenerator>(*catalog, this)), indexes(*catalog), table_functions(*catalog),
       copy_functions(*catalog), pragma_functions(*catalog),
       functions(*catalog, make_unique<DefaultFunctionGenerator>(*catalog, this)), sequences(*catalog),
       collations(*catalog), types(*catalog) {
+	this->internal = internal;
+}*/
+
+SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)) {
 	this->internal = internal;
 }
 
@@ -115,7 +120,7 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<St
 	unordered_set<CatalogEntry *> dependencies;
 	return AddEntry(context, move(entry), on_conflict, dependencies);
 }
-
+/*
 CatalogEntry *SchemaCatalogEntry::CreateSequence(ClientContext &context, CreateSequenceInfo *info) {
 	auto sequence = make_unique<SequenceCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(sequence), info->on_conflict);
@@ -152,14 +157,16 @@ CatalogEntry *SchemaCatalogEntry::CreateView(ClientContext &context, CreateViewI
 	auto view = make_unique<ViewCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(view), info->on_conflict);
 }
-
+*/
+/*
 CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table) {
 	unordered_set<CatalogEntry *> dependencies;
 	dependencies.insert(table);
 	auto index = make_unique<IndexCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(index), info->on_conflict, dependencies);
 }
-
+*/
+/*
 CatalogEntry *SchemaCatalogEntry::CreateCollation(ClientContext &context, CreateCollationInfo *info) {
 	auto collation = make_unique<CollateCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(collation), info->on_conflict);
@@ -238,7 +245,7 @@ CatalogEntry *SchemaCatalogEntry::AddFunction(ClientContext &context, CreateFunc
 	}
 	return CreateFunction(context, info);
 }
-
+*/
 void SchemaCatalogEntry::DropEntry(ClientContext &context, DropInfo *info) {
 	auto &set = GetCatalogSet(info->type);
 
@@ -255,23 +262,24 @@ void SchemaCatalogEntry::DropEntry(ClientContext &context, DropInfo *info) {
 		                       CatalogTypeToString(existing_entry->type), CatalogTypeToString(info->type));
 	}
 
-	// if there is a foreign key constraint, get that information
-	vector<unique_ptr<AlterForeignKeyInfo>> fk_arrays;
-	FindForeignKeyInformation(existing_entry, AlterForeignKeyType::AFT_DELETE, fk_arrays);
+	//// if there is a foreign key constraint, get that information
+	//vector<unique_ptr<AlterForeignKeyInfo>> fk_arrays;
+	//FindForeignKeyInformation(existing_entry, AlterForeignKeyType::AFT_DELETE, fk_arrays);
 
 	if (!set.DropEntry(context, info->name, info->cascade)) {
 		throw InternalException("Could not drop element because of an internal error");
 	}
 
 	// remove the foreign key constraint in main key table if main key table's name is valid
-	for (idx_t i = 0; i < fk_arrays.size(); i++) {
+	/*for (idx_t i = 0; i < fk_arrays.size(); i++) {
 		// alter primary key tablee
 		Catalog::GetCatalog(context).Alter(context, fk_arrays[i].get());
-	}
+	}*/
 }
 
 void SchemaCatalogEntry::Alter(ClientContext &context, AlterInfo *info) {
-	CatalogType type = info->GetCatalogType();
+	D_ASSERT(false);
+	/*CatalogType type = info->GetCatalogType();
 	auto &set = GetCatalogSet(type);
 	if (info->type == AlterType::CHANGE_OWNERSHIP) {
 		if (!set.AlterOwnership(context, (ChangeOwnershipInfo *)info)) {
@@ -282,7 +290,7 @@ void SchemaCatalogEntry::Alter(ClientContext &context, AlterInfo *info) {
 		if (!set.AlterEntry(context, name, info)) {
 			throw CatalogException("Entry with name \"%s\" does not exist!", name);
 		}
-	}
+	}*/
 }
 
 void SchemaCatalogEntry::Scan(ClientContext &context, CatalogType type,
@@ -297,19 +305,21 @@ void SchemaCatalogEntry::Scan(CatalogType type, const std::function<void(Catalog
 }
 
 void SchemaCatalogEntry::Serialize(Serializer &serializer) {
-	FieldWriter writer(serializer);
-	writer.WriteString(name);
-	writer.Finalize();
+	D_ASSERT(false);
+	//FieldWriter writer(serializer);
+	//writer.WriteString(name);
+	//writer.Finalize();
 }
 
 unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &source) {
-	auto info = make_unique<CreateSchemaInfo>();
+	D_ASSERT(false);
+	//auto info = make_unique<CreateSchemaInfo>();
 
-	FieldReader reader(source);
-	info->schema = reader.ReadRequired<string>();
-	reader.Finalize();
+	//FieldReader reader(source);
+	//info->schema = reader.ReadRequired<string>();
+	//reader.Finalize();
 
-	return info;
+	//return info;
 }
 
 string SchemaCatalogEntry::ToSQL() {
@@ -320,7 +330,7 @@ string SchemaCatalogEntry::ToSQL() {
 
 CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 	switch (type) {
-	case CatalogType::VIEW_ENTRY:
+	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;
 	case CatalogType::INDEX_ENTRY:
@@ -341,7 +351,7 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 	case CatalogType::COLLATION_ENTRY:
 		return collations;
 	case CatalogType::TYPE_ENTRY:
-		return types;
+		return types;*/
 	default:
 		throw InternalException("Unsupported catalog type in schema");
 	}

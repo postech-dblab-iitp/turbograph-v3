@@ -48,11 +48,11 @@ public:
 
 private:
 	//! The catalog set holding the graphs
-	CatalogSet graphs;
+	//CatalogSet graphs;
 	//! The catalog set holding the partitions
-	CatalogSet partitions;
+	//CatalogSet partitions;
 	//! The catalog set holding the extents
-	CatalogSet extents;
+	//CatalogSet extents;
 	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
@@ -88,7 +88,7 @@ public:
 	string ToSQL() override;
 
 	//! Creates an index with the given name in the schema
-	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
+	//CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
 
 private:
 	/*

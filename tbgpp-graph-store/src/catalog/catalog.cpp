@@ -53,10 +53,6 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
 }
 
-Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
-	return db.GetCatalog();
-}
-
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
 	auto schema = GetSchema(context, info->base->schema);
 	return CreateTable(context, schema, info);
