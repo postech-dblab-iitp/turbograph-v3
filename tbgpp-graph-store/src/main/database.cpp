@@ -136,17 +136,17 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// only increase thread count after storage init because we get races on catalog otherwise
 	//scheduler->SetThreads(config.maximum_threads);
 }
-
+/*
 DuckDB::DuckDB(const char *path, DBConfig *new_config) : instance(make_shared<DatabaseInstance>()) {
 	instance->Initialize(path, new_config);
-	/*if (instance->config.load_extensions) {
+	if (instance->config.load_extensions) {
 		ExtensionHelper::LoadAllExtensions(*this);
-	}*/
+	}
 }
 
 DuckDB::DuckDB(const string &path, DBConfig *config) : DuckDB(path.c_str(), config) {
 }
-
+*/
 DuckDB::DuckDB(DatabaseInstance &instance_p) : instance(instance_p.shared_from_this()) {
 }
 

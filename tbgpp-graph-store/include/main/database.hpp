@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/common.hpp" // added
 #include "common/mutex.hpp"
 #include "common/winapi.hpp"
 //#include "main/config.hpp"
@@ -21,6 +22,7 @@ class Catalog;
 //class FileSystem;
 //class TaskScheduler;
 //class ObjectCache;
+class ClientContext; // added
 
 class DatabaseInstance : public std::enable_shared_from_this<DatabaseInstance> {
 	friend class DuckDB;

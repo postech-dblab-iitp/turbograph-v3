@@ -10,7 +10,7 @@
 //#include "execution/physical_plan_generator.hpp"
 #include "main/database.hpp"
 //#include "main/materialized_query_result.hpp"
-//#include "main/client_data.hpp"
+#include "main/client_data.hpp"
 //#include "main/query_result.hpp"
 //#include "main/stream_query_result.hpp"
 //#include "optimizer/optimizer.hpp"
@@ -50,7 +50,7 @@ namespace duckdb {
 };*/
 
 ClientContext::ClientContext(shared_ptr<DatabaseInstance> database)
-    : db(move(database)), transaction(db->GetTransactionManager(), *this), interrupted(false),
+    : db(move(database)), //transaction(db->GetTransactionManager(), *this), interrupted(false),
       client_data(make_unique<ClientData>(*this)) {
 }
 
@@ -60,13 +60,13 @@ ClientContext::~ClientContext() {
 	}
 	// destroy the client context and rollback if there is an active transaction
 	// but only if we are not destroying this client context as part of an exception stack unwind
-	Destroy();
+	//Destroy();
 }
 
 unique_ptr<ClientContextLock> ClientContext::LockContext() {
 	return make_unique<ClientContextLock>(context_lock);
 }
-
+/*
 void ClientContext::Destroy() {
 	auto lock = LockContext();
 	if (transaction.HasActiveTransaction()) {
@@ -1133,5 +1133,5 @@ ParserOptions ClientContext::GetParserOptions() {
 	options.preserve_identifier_case = ClientConfig::GetConfig(*this).preserve_identifier_case;
 	return options;
 }
-
+*/
 } // namespace duckdb

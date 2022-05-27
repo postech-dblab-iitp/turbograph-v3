@@ -2,14 +2,14 @@
 
 #include "catalog/catalog.hpp"
 #include "common/exception.hpp"
-#include "transaction/transaction_manager.hpp"
-#include "transaction/transaction.hpp"
-#include "common/serializer/buffered_serializer.hpp"
+//#include "transaction/transaction_manager.hpp"
+//#include "transaction/transaction.hpp"
+//#include "common/serializer/buffered_serializer.hpp"
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "catalog/dependency_manager.hpp"
 #include "common/string_util.hpp"
 #include "parser/column_definition.hpp"
-#include "parser/expression/constant_expression.hpp"
+//#include "parser/expression/constant_expression.hpp"
 
 namespace duckdb {
 
@@ -47,7 +47,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
                              unordered_set<CatalogEntry *> &dependencies) {
-	auto &transaction = Transaction::GetTransaction(context);
+	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
 	// lock this catalog set to disallow reading
@@ -88,7 +88,8 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 	// create a new entry and replace the currently stored one
 	// set the timestamp to the timestamp of the current transaction
 	// and point it at the dummy node
-	value->timestamp = transaction.transaction_id;
+	//value->timestamp = transaction.transaction_id;
+	value->timestamp = 0;
 	value->set = this;
 
 	// now add the dependency set of this object to the dependency manager
@@ -97,7 +98,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 	value->child = move(entries[entry_index]);
 	value->child->parent = value.get();
 	// push the old entry in the undo buffer for this transaction
-	transaction.PushCatalogEntry(value->child.get());
+	//transaction.PushCatalogEntry(value->child.get());
 	entries[entry_index] = move(value);
 	return true;
 }
@@ -130,7 +131,7 @@ bool CatalogSet::GetEntryInternal(ClientContext &context, const string &name, id
 	return GetEntryInternal(context, entry_index, catalog_entry);
 }
 
-bool CatalogSet::AlterOwnership(ClientContext &context, ChangeOwnershipInfo *info) {
+/*bool CatalogSet::AlterOwnership(ClientContext &context, ChangeOwnershipInfo *info) {
 	idx_t entry_index;
 	CatalogEntry *entry;
 	if (!GetEntryInternal(context, info->name, entry_index, entry)) {
@@ -145,10 +146,11 @@ bool CatalogSet::AlterOwnership(ClientContext &context, ChangeOwnershipInfo *inf
 	catalog.dependency_manager->AddOwnership(context, owner_entry, entry);
 
 	return true;
-}
+}*/
 
 bool CatalogSet::AlterEntry(ClientContext &context, const string &name, AlterInfo *alter_info) {
 	D_ASSERT(false);
+	return true;
 	/*auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -289,9 +291,10 @@ void CatalogSet::CleanupEntry(CatalogEntry *catalog_entry) {
 }
 
 bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
-	auto &transaction = Transaction::GetTransaction(context);
-	return (timestamp >= TRANSACTION_ID_START && timestamp != transaction.transaction_id) ||
-	       (timestamp < TRANSACTION_ID_START && timestamp > transaction.start_time);
+	return false;
+	//auto &transaction = Transaction::GetTransaction(context);
+	//return (timestamp >= TRANSACTION_ID_START && timestamp != transaction.transaction_id) ||
+	//       (timestamp < TRANSACTION_ID_START && timestamp > transaction.start_time);
 }
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
@@ -472,7 +475,7 @@ void CatalogSet::AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &col
 	}
 }
 
-void CatalogSet::AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table, ColumnDefinition &column,
+/*void CatalogSet::AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table, ColumnDefinition &column,
                                   bool remove) {
 	bool found = false;
 	if (column.type.id() == LogicalTypeId::ENUM) {
@@ -486,10 +489,11 @@ void CatalogSet::AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table,
 			AdjustEnumDependency(entry, column, remove);
 		}
 	}
-}
+}*/
 
 void CatalogSet::AdjustTableDependencies(CatalogEntry *entry) {
-	if (entry->type == CatalogType::TABLE_ENTRY && entry->parent->type == CatalogType::TABLE_ENTRY) {
+	D_ASSERT(false);
+	/*if (entry->type == CatalogType::TABLE_ENTRY && entry->parent->type == CatalogType::TABLE_ENTRY) {
 		// If it's a table entry we have to check for possibly removing or adding user type dependencies
 		auto old_table = (TableCatalogEntry *)entry->parent;
 		auto new_table = (TableCatalogEntry *)entry;
@@ -500,7 +504,7 @@ void CatalogSet::AdjustTableDependencies(CatalogEntry *entry) {
 		for (auto &old_column : old_table->columns) {
 			AdjustDependency(entry, new_table, old_column, true);
 		}
-	}
+	}*/
 }
 
 void CatalogSet::Undo(CatalogEntry *entry) {
