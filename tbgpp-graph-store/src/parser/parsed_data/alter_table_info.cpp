@@ -1,5 +1,5 @@
-#include "duckdb/parser/parsed_data/alter_table_info.hpp"
-#include "duckdb/common/field_writer.hpp"
+#include "parser/parsed_data/alter_table_info.hpp"
+//#include "common/field_writer.hpp"
 
 namespace duckdb {
 
@@ -9,7 +9,7 @@ AlterInfo::AlterInfo(AlterType type, string schema_p, string name_p)
 
 AlterInfo::~AlterInfo() {
 }
-
+/*
 void AlterInfo::Serialize(Serializer &serializer) const {
 	FieldWriter writer(serializer);
 	writer.WriteField<AlterType>(type);
@@ -36,7 +36,7 @@ unique_ptr<AlterInfo> AlterInfo::Deserialize(Deserializer &source) {
 
 	return result;
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // ChangeOwnershipInfo
 //===--------------------------------------------------------------------===//
@@ -53,11 +53,11 @@ CatalogType ChangeOwnershipInfo::GetCatalogType() const {
 unique_ptr<AlterInfo> ChangeOwnershipInfo::Copy() const {
 	return make_unique_base<AlterInfo, ChangeOwnershipInfo>(entry_catalog_type, schema, name, owner_schema, owner_name);
 }
-
+/*
 void ChangeOwnershipInfo::Serialize(FieldWriter &writer) const {
 	throw InternalException("ChangeOwnershipInfo cannot be serialized");
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // AlterTableInfo
 //===--------------------------------------------------------------------===//
@@ -70,7 +70,7 @@ AlterTableInfo::~AlterTableInfo() {
 CatalogType AlterTableInfo::GetCatalogType() const {
 	return CatalogType::TABLE_ENTRY;
 }
-
+/*
 void AlterTableInfo::Serialize(FieldWriter &writer) const {
 	writer.WriteField<AlterTableType>(alter_table_type);
 	writer.WriteString(schema);
@@ -102,7 +102,7 @@ unique_ptr<AlterInfo> AlterTableInfo::Deserialize(FieldReader &reader) {
 		throw SerializationException("Unknown alter table type for deserialization!");
 	}
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // RenameColumnInfo
 //===--------------------------------------------------------------------===//
@@ -116,7 +116,7 @@ RenameColumnInfo::~RenameColumnInfo() {
 unique_ptr<AlterInfo> RenameColumnInfo::Copy() const {
 	return make_unique_base<AlterInfo, RenameColumnInfo>(schema, name, old_name, new_name);
 }
-
+/*
 void RenameColumnInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(old_name);
 	writer.WriteString(new_name);
@@ -127,7 +127,7 @@ unique_ptr<AlterInfo> RenameColumnInfo::Deserialize(FieldReader &reader, string 
 	auto new_name = reader.ReadRequired<string>();
 	return make_unique<RenameColumnInfo>(move(schema), move(table), old_name, new_name);
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // RenameTableInfo
 //===--------------------------------------------------------------------===//
@@ -140,7 +140,7 @@ RenameTableInfo::~RenameTableInfo() {
 unique_ptr<AlterInfo> RenameTableInfo::Copy() const {
 	return make_unique_base<AlterInfo, RenameTableInfo>(schema, name, new_table_name);
 }
-
+/*
 void RenameTableInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(new_table_name);
 }
@@ -149,7 +149,7 @@ unique_ptr<AlterInfo> RenameTableInfo::Deserialize(FieldReader &reader, string s
 	auto new_name = reader.ReadRequired<string>();
 	return make_unique<RenameTableInfo>(move(schema), move(table), new_name);
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // AddColumnInfo
 //===--------------------------------------------------------------------===//
@@ -162,7 +162,7 @@ AddColumnInfo::~AddColumnInfo() {
 unique_ptr<AlterInfo> AddColumnInfo::Copy() const {
 	return make_unique_base<AlterInfo, AddColumnInfo>(schema, name, new_column.Copy());
 }
-
+/*
 void AddColumnInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteSerializable(new_column);
 }
@@ -171,7 +171,7 @@ unique_ptr<AlterInfo> AddColumnInfo::Deserialize(FieldReader &reader, string sch
 	auto new_column = reader.ReadRequiredSerializable<ColumnDefinition, ColumnDefinition>();
 	return make_unique<AddColumnInfo>(move(schema), move(table), move(new_column));
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // RemoveColumnInfo
 //===--------------------------------------------------------------------===//
@@ -185,7 +185,7 @@ RemoveColumnInfo::~RemoveColumnInfo() {
 unique_ptr<AlterInfo> RemoveColumnInfo::Copy() const {
 	return make_unique_base<AlterInfo, RemoveColumnInfo>(schema, name, removed_column, if_exists);
 }
-
+/*
 void RemoveColumnInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(removed_column);
 	writer.WriteField<bool>(if_exists);
@@ -196,23 +196,23 @@ unique_ptr<AlterInfo> RemoveColumnInfo::Deserialize(FieldReader &reader, string 
 	auto if_exists = reader.ReadRequired<bool>();
 	return make_unique<RemoveColumnInfo>(move(schema), move(table), new_name, if_exists);
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // ChangeColumnTypeInfo
 //===--------------------------------------------------------------------===//
-ChangeColumnTypeInfo::ChangeColumnTypeInfo(string schema_p, string table_p, string column_name, LogicalType target_type,
-                                           unique_ptr<ParsedExpression> expression)
+ChangeColumnTypeInfo::ChangeColumnTypeInfo(string schema_p, string table_p, string column_name, LogicalType target_type)
+                                           //unique_ptr<ParsedExpression> expression)
     : AlterTableInfo(AlterTableType::ALTER_COLUMN_TYPE, move(schema_p), move(table_p)), column_name(move(column_name)),
-      target_type(move(target_type)), expression(move(expression)) {
+      target_type(move(target_type)){ //, expression(move(expression)) {
 }
 ChangeColumnTypeInfo::~ChangeColumnTypeInfo() {
 }
 
 unique_ptr<AlterInfo> ChangeColumnTypeInfo::Copy() const {
-	return make_unique_base<AlterInfo, ChangeColumnTypeInfo>(schema, name, column_name, target_type,
-	                                                         expression->Copy());
+	//return make_unique_base<AlterInfo, ChangeColumnTypeInfo>(schema, name, column_name, target_type,
+	//                                                         expression->Copy());
 }
-
+/*
 void ChangeColumnTypeInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(column_name);
 	writer.WriteSerializable(target_type);
@@ -226,23 +226,23 @@ unique_ptr<AlterInfo> ChangeColumnTypeInfo::Deserialize(FieldReader &reader, str
 	return make_unique<ChangeColumnTypeInfo>(move(schema), move(table), move(column_name), move(target_type),
 	                                         move(expression));
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // SetDefaultInfo
 //===--------------------------------------------------------------------===//
-SetDefaultInfo::SetDefaultInfo(string schema_p, string table_p, string column_name_p,
-                               unique_ptr<ParsedExpression> new_default)
-    : AlterTableInfo(AlterTableType::SET_DEFAULT, move(schema_p), move(table_p)), column_name(move(column_name_p)),
-      expression(move(new_default)) {
+SetDefaultInfo::SetDefaultInfo(string schema_p, string table_p, string column_name_p)
+                               //unique_ptr<ParsedExpression> new_default)
+    : AlterTableInfo(AlterTableType::SET_DEFAULT, move(schema_p), move(table_p)), column_name(move(column_name_p)) {
+      //expression(move(new_default)) {
 }
 SetDefaultInfo::~SetDefaultInfo() {
 }
 
 unique_ptr<AlterInfo> SetDefaultInfo::Copy() const {
-	return make_unique_base<AlterInfo, SetDefaultInfo>(schema, name, column_name,
-	                                                   expression ? expression->Copy() : nullptr);
+	//return make_unique_base<AlterInfo, SetDefaultInfo>(schema, name, column_name,
+	//                                                   expression ? expression->Copy() : nullptr);
 }
-
+/*
 void SetDefaultInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(column_name);
 	writer.WriteOptional(expression);
@@ -253,7 +253,7 @@ unique_ptr<AlterInfo> SetDefaultInfo::Deserialize(FieldReader &reader, string sc
 	auto new_default = reader.ReadOptional<ParsedExpression>(nullptr);
 	return make_unique<SetDefaultInfo>(move(schema), move(table), move(column_name), move(new_default));
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // AlterForeignKeyInfo
 //===--------------------------------------------------------------------===//
@@ -271,7 +271,7 @@ unique_ptr<AlterInfo> AlterForeignKeyInfo::Copy() const {
 	return make_unique_base<AlterInfo, AlterForeignKeyInfo>(schema, name, fk_table, pk_columns, fk_columns, pk_keys,
 	                                                        fk_keys, type);
 }
-
+/*
 void AlterForeignKeyInfo::SerializeAlterTable(FieldWriter &writer) const {
 	writer.WriteString(fk_table);
 	writer.WriteList<string>(pk_columns);
@@ -291,7 +291,7 @@ unique_ptr<AlterInfo> AlterForeignKeyInfo::Deserialize(FieldReader &reader, stri
 	return make_unique<AlterForeignKeyInfo>(move(schema), move(table), move(fk_table), move(pk_columns),
 	                                        move(fk_columns), move(pk_keys), move(fk_keys), type);
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // Alter View
 //===--------------------------------------------------------------------===//
@@ -304,7 +304,7 @@ AlterViewInfo::~AlterViewInfo() {
 CatalogType AlterViewInfo::GetCatalogType() const {
 	return CatalogType::VIEW_ENTRY;
 }
-
+/*
 void AlterViewInfo::Serialize(FieldWriter &writer) const {
 	writer.WriteField<AlterViewType>(alter_view_type);
 	writer.WriteString(schema);
@@ -324,7 +324,7 @@ unique_ptr<AlterInfo> AlterViewInfo::Deserialize(FieldReader &reader) {
 		throw SerializationException("Unknown alter view type for deserialization!");
 	}
 }
-
+*/
 //===--------------------------------------------------------------------===//
 // RenameViewInfo
 //===--------------------------------------------------------------------===//
@@ -337,7 +337,7 @@ RenameViewInfo::~RenameViewInfo() {
 unique_ptr<AlterInfo> RenameViewInfo::Copy() const {
 	return make_unique_base<AlterInfo, RenameViewInfo>(schema, name, new_view_name);
 }
-
+/*
 void RenameViewInfo::SerializeAlterView(FieldWriter &writer) const {
 	writer.WriteString(new_view_name);
 }
@@ -346,4 +346,5 @@ unique_ptr<AlterInfo> RenameViewInfo::Deserialize(FieldReader &reader, string sc
 	auto new_name = reader.ReadRequired<string>();
 	return make_unique<RenameViewInfo>(move(schema), move(view), new_name);
 }
+*/
 } // namespace duckdb

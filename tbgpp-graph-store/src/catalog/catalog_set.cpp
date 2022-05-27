@@ -372,10 +372,11 @@ CatalogEntry *CatalogSet::GetEntryForTransaction(ClientContext &context, Catalog
 
 CatalogEntry *CatalogSet::GetCommittedEntry(CatalogEntry *current) {
 	while (current->child) {
-		if (current->timestamp < TRANSACTION_ID_START) {
-			// this entry is committed: use it
-			break;
-		}
+		break;
+		//if (current->timestamp < TRANSACTION_ID_START) {
+		//	// this entry is committed: use it
+		//	break;
+		//}
 		current = current->child.get();
 		D_ASSERT(current);
 	}
