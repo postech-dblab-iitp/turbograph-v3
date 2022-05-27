@@ -16,16 +16,27 @@
 //#include "catalog.hpp"
 #include "database.hpp"
 
+using namespace duckdb;
+
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>
 
 bool helper_check_file_exists (const std::string& name) {
-    struct stat buffer;
-    return (stat (name.c_str(), &buffer) == 0); 
+  struct stat buffer;
+  return (stat (name.c_str(), &buffer) == 0); 
 }
 
 TEST_CASE ("Create Catalog Instance", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
   
+  Catalog& cat_instance = database->instance->GetCatalog();
+}
+
+TEST_CASE ("Test2", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
 }
 
 
@@ -41,8 +52,7 @@ int main(int argc, char **argv) {
   core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 */
   // Initialize CatalogManager
-  std::unique_ptr<duckdb::DuckDB> database;
-  database = duckdb::make_unique<duckdb::DuckDB>(nullptr);
+
 
   // Run Catch Test
   int result = Catch::Session().run(argc, argv);
