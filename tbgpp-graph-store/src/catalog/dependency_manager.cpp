@@ -1,11 +1,11 @@
-#include "duckdb/catalog/dependency_manager.hpp"
-#include "duckdb/catalog/catalog_entry/type_catalog_entry.hpp"
-#include "duckdb/catalog/catalog.hpp"
-#include "duckdb/catalog/catalog_entry.hpp"
-#include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/main/database.hpp"
-#include "duckdb/parser/expression/constant_expression.hpp"
+#include "catalog/dependency_manager.hpp"
+#include "catalog/catalog_entry/type_catalog_entry.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry.hpp"
+#include "catalog/catalog_entry/table_catalog_entry.hpp"
+#include "main/client_context.hpp"
+#include "main/database.hpp"
+//#include "parser/expression/constant_expression.hpp"
 
 namespace duckdb {
 
@@ -68,6 +68,7 @@ void DependencyManager::DropObject(ClientContext &context, CatalogEntry *object,
 }
 
 void DependencyManager::AlterObject(ClientContext &context, CatalogEntry *old_obj, CatalogEntry *new_obj) {
+	/*
 	D_ASSERT(dependents_map.find(old_obj) != dependents_map.end());
 	D_ASSERT(dependencies_map.find(old_obj) != dependencies_map.end());
 
@@ -147,6 +148,7 @@ void DependencyManager::AlterObject(ClientContext &context, CatalogEntry *old_ob
 		dependents_map[dependency].insert(Dependency(new_obj, DependencyType::DEPENDENCY_OWNED_BY));
 		dependencies_map[new_obj].insert(dependency);
 	}
+	*/
 }
 
 void DependencyManager::EraseObject(CatalogEntry *object) {

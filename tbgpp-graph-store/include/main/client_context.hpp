@@ -209,9 +209,9 @@ private:
 	unique_ptr<QueryResult> FetchResultInternal(ClientContextLock &lock, PendingQueryResult &pending,
 	                                            bool allow_stream_result);
 	unique_ptr<DataChunk> FetchInternal(ClientContextLock &lock, Executor &executor, BaseQueryResult &result);
-
+	*/
 	unique_ptr<ClientContextLock> LockContext();
-
+	/*
 	bool UpdateFunctionInfoFromEntry(ScalarFunctionCatalogEntry *existing_function, CreateScalarFunctionInfo *new_info);
 
 	void BeginTransactionInternal(ClientContextLock &lock, bool requires_valid_transaction);
