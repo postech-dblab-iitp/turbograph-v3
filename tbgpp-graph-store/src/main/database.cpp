@@ -150,6 +150,10 @@ DuckDB::DuckDB(const string &path, DBConfig *config) : DuckDB(path.c_str(), conf
 DuckDB::DuckDB(DatabaseInstance &instance_p) : instance(instance_p.shared_from_this()) {
 }
 
+DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
+	instance->Initialize(path);
+}
+
 DuckDB::~DuckDB() {
 }
 

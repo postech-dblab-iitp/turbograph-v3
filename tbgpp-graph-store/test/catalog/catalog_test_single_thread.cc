@@ -10,9 +10,11 @@
 #include <unistd.h>
 #include <thread>
 #include <vector>
+#include <memory>
 
 //#include "chunk_cache_manager.h"
-#include "catalog.hpp"
+//#include "catalog.hpp"
+#include "database.hpp"
 
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>
@@ -23,7 +25,7 @@ bool helper_check_file_exists (const std::string& name) {
 }
 
 TEST_CASE ("Create Catalog Instance", "[catalog]") {
-  Catalog cat_instance = new Catalog();
+  
 }
 
 
@@ -39,7 +41,8 @@ int main(int argc, char **argv) {
   core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 */
   // Initialize CatalogManager
-  unique_ptr<Catalog> catalog;
+  std::unique_ptr<duckdb::DuckDB> database;
+  database = duckdb::make_unique<duckdb::DuckDB>(nullptr);
 
   // Run Catch Test
   int result = Catch::Session().run(argc, argv);
