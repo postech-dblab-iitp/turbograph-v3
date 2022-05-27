@@ -66,6 +66,7 @@ private:
 class DuckDB {
 public:
 	//DUCKDB_API explicit DuckDB(const char *path = nullptr, DBConfig *config = nullptr);
+	DUCKDB_API explicit DuckDB(const char *path = nullptr);
 	//DUCKDB_API explicit DuckDB(const string &path, DBConfig *config = nullptr);
 	DUCKDB_API explicit DuckDB(DatabaseInstance &instance);
 
