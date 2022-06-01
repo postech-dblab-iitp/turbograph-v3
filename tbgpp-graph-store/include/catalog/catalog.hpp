@@ -103,6 +103,8 @@ public:
 
 	//! Creates a schema in the catalog.
 	DUCKDB_API CatalogEntry *CreateSchema(ClientContext &context, CreateSchemaInfo *info);
+	//! Creates a graph in the catalog.
+	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, CreateSchemaInfo *info);
 	/*
 	//! Creates a table in the catalog.
 	DUCKDB_API CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);
