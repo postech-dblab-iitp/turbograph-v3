@@ -33,10 +33,24 @@ TEST_CASE ("Create Catalog Instance", "[catalog]") {
   Catalog& cat_instance = database->instance->GetCatalog();
 }
 
-TEST_CASE ("Test2", "[catalog]") {
+TEST_CASE ("Create Graph", "[catalog]") {
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
+
+  cat_instance.CreateGraph(...);
+}
+
+TEST_CASE ("Create Multiple Graphs", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::string graph_name_prefix = "";
+  for (int i = 0; i < 1000; i++) {
+    std::string graph_name =graph_name_prefix + std::to_string(i);
+    cat_instance.CreateGraph(...);
+  }
 }
 
 
