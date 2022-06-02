@@ -37,6 +37,16 @@ string CatalogTypeToString(CatalogType type) {
 		return "Prepared Statement";
 	case CatalogType::SEQUENCE_ENTRY:
 		return "Sequence";
+	case CatalogType::GRAPH_ENTRY:
+		return "Graph";
+	case CatalogType::PARTITION_ENTRY:
+		return "Partition";
+	case CatalogType::PROPERTY_SCHEMA_ENTRY:
+		return "Property Schema";
+	case CatalogType::EXTENT_ENTRY:
+		return "Extent";
+	case CatalogType::CHUNKDEFINITION_ENTRY:
+		return "Chunk Definition";
 	case CatalogType::INVALID:
 	case CatalogType::DELETED_ENTRY:
 	case CatalogType::UPDATED_ENTRY:

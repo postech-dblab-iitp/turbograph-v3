@@ -12,11 +12,13 @@
 #include "catalog/catalog_entry/table_catalog_entry.hpp"
 #include "catalog/catalog_entry/table_function_catalog_entry.hpp"
 #include "catalog/catalog_entry/type_catalog_entry.hpp"
+#include "catalog/catalog_entry/graph_catalog_entry.hpp"
 //#include "catalog/catalog_entry/view_catalog_entry.hpp"
 #include "catalog/default/default_functions.hpp"
 //#include "catalog/default/default_views.hpp"
 #include "common/exception.hpp"
 #include "parser/parsed_data/alter_table_info.hpp"
+#include "parser/parsed_data/create_graph_info.hpp"
 //#include "parser/parsed_data/create_collation_info.hpp"
 //#include "parser/parsed_data/create_copy_function_info.hpp"
 //#include "parser/parsed_data/create_index_info.hpp"
@@ -74,7 +76,7 @@ namespace duckdb {
 }*/
 
 SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)) {
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog) {
 	this->internal = internal;
 }
 
@@ -119,6 +121,11 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<St
                                            OnCreateConflict on_conflict) {
 	unordered_set<CatalogEntry *> dependencies;
 	return AddEntry(context, move(entry), on_conflict, dependencies);
+}
+
+CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
+	auto graph = make_unique<GraphCatalogEntry>(catalog, this, info);
+	return AddEntry(context, move(graph), info->on_conflict);
 }
 /*
 CatalogEntry *SchemaCatalogEntry::CreateSequence(ClientContext &context, CreateSequenceInfo *info) {
@@ -330,6 +337,8 @@ string SchemaCatalogEntry::ToSQL() {
 
 CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 	switch (type) {
+	case CatalogType::GRAPH_ENTRY:
+		return graphs;
 	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;

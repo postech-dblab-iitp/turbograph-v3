@@ -36,6 +36,7 @@ struct CreateSchemaInfo;
 struct CreateTableFunctionInfo;
 struct CreateCopyFunctionInfo;
 struct CreateTypeInfo;
+struct CreateGraphInfo;
 
 struct DropInfo;
 
@@ -48,7 +49,7 @@ public:
 
 private:
 	//! The catalog set holding the graphs
-	//CatalogSet graphs;
+	CatalogSet graphs;
 	//! The catalog set holding the partitions
 	//CatalogSet partitions;
 	//! The catalog set holding the extents
@@ -91,6 +92,8 @@ public:
 	//CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
 
 private:
+	//! Creates a graph with the given name in the schema
+	CatalogEntry *CreateGraph(ClientContext &context, CreateGraphInfo *info);
 	/*
 	//! Create a scalar or aggregate function within the given schema
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
