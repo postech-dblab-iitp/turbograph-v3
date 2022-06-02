@@ -29,6 +29,7 @@ struct CreateSequenceInfo;
 struct CreateCollationInfo;
 struct CreateTypeInfo;
 struct CreateTableInfo;
+struct CreateGraphInfo;
 
 class ClientContext;
 class Transaction;
@@ -104,7 +105,12 @@ public:
 	//! Creates a schema in the catalog.
 	DUCKDB_API CatalogEntry *CreateSchema(ClientContext &context, CreateSchemaInfo *info);
 	//! Creates a graph in the catalog.
-	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, CreateSchemaInfo *info);
+	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, CreateGraphInfo *info);
+
+	//! Creates a graph in the catalog.
+	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
+	                                     CreateGraphInfo *info);
+
 	/*
 	//! Creates a table in the catalog.
 	DUCKDB_API CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);

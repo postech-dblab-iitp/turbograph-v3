@@ -40,8 +40,8 @@ struct CreateInfo : public ParseInfo {
 	bool temporary;
 	//! Whether or not the entry is an internal entry
 	bool internal;
-	//! The SQL string of the CREATE statement
-	string sql;
+	//! The SQL string of the CREATE statement // should be changed to Cypher.. or remove
+	//string sql;
 
 public:
 	virtual unique_ptr<CreateInfo> Copy() const = 0;
@@ -51,7 +51,7 @@ public:
 		other.on_conflict = on_conflict;
 		other.temporary = temporary;
 		other.internal = internal;
-		other.sql = sql;
+		//other.sql = sql;
 	}
 };
 

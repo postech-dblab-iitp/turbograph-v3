@@ -12,6 +12,7 @@
 //#include "parser/expression/function_expression.hpp"
 
 #include "parser/parsed_data/alter_table_info.hpp"
+#include "parser/parsed_data/create_graph_info.hpp"
 /*
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
@@ -51,6 +52,16 @@ Catalog::~Catalog() {
 
 Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
+}
+
+
+CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreateGraph(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreateGraph(ClientContext &context, SchemaCatalogEntry *schema, CreateGraphInfo *info) {
+	return schema->CreateGraph(context, info);
 }
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {

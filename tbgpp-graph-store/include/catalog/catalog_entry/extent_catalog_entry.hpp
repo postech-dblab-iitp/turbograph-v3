@@ -1,30 +1,51 @@
-#pragma once
+//===----------------------------------------------------------------------===//
+//                         DuckDB
+//
+// duckdb/catalog/catalog_entry/table_catalog_entry.hpp
+//
+//
+//===----------------------------------------------------------------------===//
 
+#pragma once
+/*
 
 #include "catalog/standard_entry.hpp"
 
 #include "common/unordered_map.hpp"
 #include "parser/column_definition.hpp"
-//#include "parser/constraint.hpp"
-//#include "planner/bound_constraint.hpp"
-//#include "planner/expression.hpp"
+#include "parser/constraint.hpp"
+#include "planner/bound_constraint.hpp"
+#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 
 namespace duckdb {
 
 class ColumnStatistics;
-struct CreateGraphInfo;
+class DataTable;
+struct CreateTableInfo;
+struct BoundCreateTableInfo;
 
-//! A graph catalog entry
-class GraphCatalogEntry : public StandardEntry {
+struct RenameColumnInfo;
+struct AddColumnInfo;
+struct RemoveColumnInfo;
+struct SetDefaultInfo;
+struct ChangeColumnTypeInfo;
+struct AlterForeignKeyInfo;
+
+//! A extent catalog entry
+class ExtentCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info);
+	ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, BoundCreateTableInfo *info);
 
-	vector<PartitionID> vertex_partitions;
-	vector<PartitionID> edge_partitions;
+	ExtentType extent_type;
+	vector<ChunkDefinitionID> chunks;
+	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
+	
+	//! Returns a list of types of the table
+	vector<LogicalType> GetTypes();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
@@ -32,6 +53,8 @@ public:
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
+
+	void SetAsRoot() override;
 
 	//void CommitAlter(AlterInfo &info);
 	//void CommitDrop();
@@ -44,3 +67,4 @@ public:
 
 };
 } // namespace duckdb
+*/
