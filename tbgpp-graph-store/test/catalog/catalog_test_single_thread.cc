@@ -35,17 +35,19 @@ TEST_CASE ("Create Catalog Instance", "[catalog]") {
   Catalog& cat_instance = database->instance->GetCatalog();
 }
 
-TEST_CASE ("Create a Graph Catalog", "[catalog]") {
+TEST_CASE ("Create a graph catalog", "[catalog]") {
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
 
   std::shared_ptr<ClientContext> client = 
     std::make_shared<ClientContext>(database->instance->shared_from_this());
-
+  
+  CreateGraphInfo graph_info("main", "graph1");
+  cat_instance.CreateGraph(*client.get(), &graph_info);
 }
 
-TEST_CASE ("Create Multiple Graphs", "[catalog]") {
+TEST_CASE ("Create multiple graph catalogs", "[catalog]") {
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -61,6 +63,23 @@ TEST_CASE ("Create Multiple Graphs", "[catalog]") {
   }
 }
 
+TEST_CASE ("Create a graph catalog with a name that already exists", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+
+  CreateGraphInfo graph_info1("main", "graph1");
+  cat_instance.CreateGraph(*client.get(), &graph_info1);
+
+  CreateGraphInfo graph_info2("main", "graph1");
+  cat_instance.CreateGraph(*client.get(), &graph_info2);
+}
+
+TEST_CASE ("Create a partition catalog", "[catalog]") {
+}
 
 int main(int argc, char **argv) {
   // Initialize System Parameters

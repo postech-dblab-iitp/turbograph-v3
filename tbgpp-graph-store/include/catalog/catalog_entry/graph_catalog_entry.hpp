@@ -9,6 +9,8 @@
 //#include "planner/bound_constraint.hpp"
 //#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
+#include "common/enums/graph_component_type.hpp"
+#include "catalog/inverted_index.hpp"
 
 namespace duckdb {
 
@@ -23,8 +25,18 @@ public:
 
 	vector<PartitionID> vertex_partitions;
 	vector<PartitionID> edge_partitions;
+
+	// TODO: change map structure into.. what?
+	unordered_map<string, VertexLabelID> vertexlabel_map;
+	unordered_map<string, EdgeTypeID> edgetype_map;
+	unordered_map<string, PropertyKeyID> propertykey_map;
+
+	inverted_index_t<VertexLabelID, PartitionID> label_to_partition_index;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
+	void AddPartition(ClientContext &context, PartitionID pid);
+
+	PartitionID LookupPartition(ClientContext &context, string key, GraphComponentType graph_component_type);
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

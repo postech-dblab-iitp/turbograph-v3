@@ -26,6 +26,14 @@ unique_ptr<CatalogEntry> GraphCatalogEntry::Copy(ClientContext &context) {
 	return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
 }
 
+void GraphCatalogEntry::AddPartition(ClientContext &context, PartitionID pid) {
+
+}
+
+PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, string key, GraphComponentType graph_component_type) {
+	
+}
+
 } // namespace duckdb
 
 /*
