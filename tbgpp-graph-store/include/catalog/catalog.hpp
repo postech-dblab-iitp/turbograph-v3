@@ -30,6 +30,7 @@ struct CreateCollationInfo;
 struct CreateTypeInfo;
 struct CreateTableInfo;
 struct CreateGraphInfo;
+struct CreatePartitionInfo;
 
 class ClientContext;
 class Transaction;
@@ -106,10 +107,15 @@ public:
 	DUCKDB_API CatalogEntry *CreateSchema(ClientContext &context, CreateSchemaInfo *info);
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, CreateGraphInfo *info);
+	//! Create a partition in the catalog
+	DUCKDB_API CatalogEntry *CreatePartition(ClientContext &context, CreatePartitionInfo *info);
 
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
 	                                     CreateGraphInfo *info);
+	//! Create a partition in the catalog
+	DUCKDB_API CatalogEntry *CreatePartition(ClientContext &context, SchemaCatalogEntry *schema,
+	                                     CreatePartitionInfo *info);
 
 	/*
 	//! Creates a table in the catalog.
