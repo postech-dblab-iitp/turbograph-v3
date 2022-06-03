@@ -11,17 +11,17 @@ namespace duckdb {
 struct CreatePartitionInfo : public CreateInfo {
 	CreatePartitionInfo() : CreateInfo(CatalogType::PARTITION_ENTRY, INVALID_SCHEMA) {
 	}
-	CreatePartitionInfo(string schema, string name) : CreateInfo(CatalogType::PARTITION_ENTRY, schema), graph(name) {
+	CreatePartitionInfo(string schema, string name) : CreateInfo(CatalogType::PARTITION_ENTRY, schema), partition(name) {
 	}
 
-	//! Graph name to insert to
-	string graph;
+	//! Partition name to insert to
+	string partition;
 	//! CREATE GRAPH from QUERY // TODO Cypher needs to be extended to support graph creation
 	//unique_ptr<SelectStatement> query;
 
 public:
 	unique_ptr<CreateInfo> Copy() const override {
-		auto result = make_unique<CreatePartitionInfo>(schema, graph);
+		auto result = make_unique<CreatePartitionInfo>(schema, partition);
 		CopyProperties(*result);
 		//if (query) {
 		//	result->query = unique_ptr_cast<SQLStatement, SelectStatement>(query->Copy());

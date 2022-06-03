@@ -10,4 +10,5 @@
 #include "catalog/catalog_entry/table_catalog_entry.hpp"
 #include "catalog/catalog_entry/table_function_catalog_entry.hpp"
 #include "catalog/catalog_entry/graph_catalog_entry.hpp"
+#include "catalog/catalog_entry/partition_catalog_entry.hpp"
 //#include "catalog/catalog_entry/view_catalog_entry.hpp"
