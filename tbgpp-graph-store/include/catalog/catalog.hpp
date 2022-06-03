@@ -109,12 +109,27 @@ public:
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, CreateGraphInfo *info);
 	//! Create a partition in the catalog
 	DUCKDB_API CatalogEntry *CreatePartition(ClientContext &context, CreatePartitionInfo *info);
+	//! Create a property schema in the catalog
+	DUCKDB_API CatalogEntry *CreatePropertySchema(ClientContext &context, CreatePartitionInfo *info);
+	//! Create a extent in the catalog
+	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, CreatePartitionInfo *info);
+	//! Create a chunk definition in the catalog
+	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, CreatePartitionInfo *info);
 
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
 	                                     CreateGraphInfo *info);
 	//! Create a partition in the catalog
 	DUCKDB_API CatalogEntry *CreatePartition(ClientContext &context, SchemaCatalogEntry *schema,
+	                                     CreatePartitionInfo *info);
+	//! Create a property schema in the catalog
+	DUCKDB_API CatalogEntry *CreatePropertySchema(ClientContext &context, SchemaCatalogEntry *schema,
+	                                     CreatePartitionInfo *info);
+	//! Create a extent in the catalog
+	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, SchemaCatalogEntry *schema,
+	                                     CreatePartitionInfo *info);
+	//! Create a chunk definition in the catalog
+	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, SchemaCatalogEntry *schema,
 	                                     CreatePartitionInfo *info);
 
 	/*
