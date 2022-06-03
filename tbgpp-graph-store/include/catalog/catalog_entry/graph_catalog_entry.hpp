@@ -41,7 +41,7 @@ public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
 	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels);
-	void AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID type_id);
+	void AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID edge_type_id);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, string type);
 
 	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
