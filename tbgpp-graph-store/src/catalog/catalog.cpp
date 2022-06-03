@@ -13,6 +13,7 @@
 
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
+#include "parser/parsed_data/create_partition_info.hpp"
 /*
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
@@ -54,7 +55,6 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 	return context.db->GetCatalog();
 }
 
-
 CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
 	auto schema = GetSchema(context, info->schema);
 	return CreateGraph(context, schema, info);
@@ -63,6 +63,16 @@ CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info
 CatalogEntry *Catalog::CreateGraph(ClientContext &context, SchemaCatalogEntry *schema, CreateGraphInfo *info) {
 	return schema->CreateGraph(context, info);
 }
+
+CatalogEntry *Catalog::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreatePartition(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreatePartition(ClientContext &context, SchemaCatalogEntry *schema, CreatePartitionInfo *info) {
+	return schema->CreatePartition(context, info);
+}
+
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
 	auto schema = GetSchema(context, info->base->schema);
@@ -334,6 +344,19 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const 
 	//return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
 	return LookupEntry(context, type, schema_name, name, if_exists).entry;
 }
+
+template <>
+GraphCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                     bool if_exists) { //, QueryErrorContext error_context) {
+	return (GraphCatalogEntry*) GetEntry(context, CatalogType::GRAPH_ENTRY, schema_name, name, if_exists);
+}
+
+template <>
+PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                     bool if_exists) { //, QueryErrorContext error_context) {
+return (PartitionCatalogEntry*) GetEntry(context, CatalogType::PARTITION_ENTRY, schema_name, name, if_exists);
+}
+
 
 /*
 template <>

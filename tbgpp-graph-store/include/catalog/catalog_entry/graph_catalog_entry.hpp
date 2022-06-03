@@ -16,6 +16,7 @@ namespace duckdb {
 
 class ColumnStatistics;
 struct CreateGraphInfo;
+struct PartitionCatalogEntry;
 
 //! A graph catalog entry
 class GraphCatalogEntry : public StandardEntry {
@@ -33,14 +34,21 @@ public:
 
 	unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	inverted_index_t<VertexLabelID, PartitionID> label_to_partition_index;
+
+	atomic<VertexLabelID> vertex_label_id_version;
+	atomic<EdgeTypeID> edge_type_id_version;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
+	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID type_id);
+	void AddEdgePartition(ClientContext &context, PartitionID pid, string type);
 
 	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 
 	vector<PartitionID> Intersection(vector<VertexLabelID>& label_ids);
+	VertexLabelID GetVertexLabelID();
+	EdgeTypeID GetEdgeTypeID();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

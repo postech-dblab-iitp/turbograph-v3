@@ -44,6 +44,8 @@ class SequenceCatalogEntry;
 class TableFunctionCatalogEntry;
 class CopyFunctionCatalogEntry;
 class PragmaFunctionCatalogEntry;
+class GraphCatalogEntry;
+class PartitionCatalogEntry;
 class CatalogSet;
 class DatabaseInstance;
 class DependencyManager;
@@ -233,6 +235,13 @@ private:
 
 	void DropSchema(ClientContext &context, DropInfo *info);
 };
+
+template <>
+DUCKDB_API GraphCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                                bool if_exists);//, QueryErrorContext error_context);
+template <>
+DUCKDB_API PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
+                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
 
 /*
 template <>

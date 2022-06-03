@@ -1,7 +1,6 @@
 #include "catalog/catalog_entry/list.hpp"
-#include "parser/parsed_data/create_graph_info.hpp"
 #include "catalog/catalog.hpp"
-#include "parser/parsed_data/create_graph_info.hpp"
+#include "parser/parsed_data/create_partition_info.hpp"
 #include "common/enums/graph_component_type.hpp"
 
 #include <memory>
@@ -9,11 +8,9 @@
 
 namespace duckdb {
 
-GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info)
-    : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph) {
+PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info)
+    : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition) {
 	this->temporary = info->temporary;
-	vertex_label_id_version = 0;
-	edge_type_id_version = 0;
 	// add lower case aliases
 	//for (idx_t i = 0; i < columns.size(); i++) {
 	//	D_ASSERT(name_map.find(columns[i].name) == name_map.end());
@@ -25,126 +22,9 @@ GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
 	//}
 }
 
-unique_ptr<CatalogEntry> GraphCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreateGraphInfo>(schema->name, name);
-	return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
-}
-
-// Edge면.. 먼저 edge type id를 얻고.. 할당받은 partition id? 새로운 partition id를 어디선가 받아와야 함
-// 그럼, edge type id to partition id map에 집어넣고.. edge type id는 누가 할당해준거지? 그것도 할당 필요함..
-// 일단 다 할당 받았다고 치면?
-void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID type_id) {
-	auto target_id = type_to_partition_index.find(type_id);
-	if (target_id != type_to_partition_index.end()) {
-		// found
-		
-	} else {
-		// not found
-		type_to_partition_index.insert({type_id, pid});
-	}
-}
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids) {
-	for (size_t i = 0; i < label_ids.size(); i++) {
-		auto target_ids = label_to_partition_index.find(label_ids[i]);
-		if (target_ids != label_to_partition_index.end()) {
-			// found
-			target_ids->second.push_back(pid);
-		} else {
-			// not found
-			vector<PartitionID> tmp_vec;
-			tmp_vec.push_back(pid);
-			label_to_partition_index.insert({label_ids[i], tmp_vec});
-		}
-	}
-}
-
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels) {
-	for (size_t i = 0; i < labels.size(); i++) {
-		VertexLabelID vertex_label_id;
-		auto label_id = vertexlabel_map.find(labels[i]);
-		if (label_id != vertexlabel_map.end()) {
-			// label found in label map
-			vertex_label_id = label_id->second;
-		} else {
-			vertex_label_id = GetVertexLabelID();
-			vertexlabel_map.insert({labels[i], vertex_label_id});
-		}
-		auto target_ids = label_to_partition_index.find(vertex_label_id);
-		if (target_ids != label_to_partition_index.end()) {
-			// found
-			target_ids->second.push_back(pid);
-		} else {
-			// not found
-			vector<PartitionID> tmp_vec;
-			tmp_vec.push_back(pid);
-			label_to_partition_index.insert({vertex_label_id, tmp_vec});
-		}
-	}
-}
-
-vector<PartitionID> GraphCatalogEntry::Intersection(vector<VertexLabelID>& label_ids) {
-	vector<vector<PartitionID>*> partition_id_lists;
-	for (size_t i = 0; i < label_ids.size(); i++) {
-		partition_id_lists.push_back(&label_to_partition_index[label_ids[i]]); // no-copy?
-		std::sort(partition_id_lists[i]->begin(), partition_id_lists[i]->end());
-	}
-
-	auto last_intersection = partition_id_lists[0];
-    std::vector<PartitionID> curr_intersection;
-
-    for (std::size_t i = 1; i < partition_id_lists.size(); ++i) {
-        std::set_intersection(last_intersection->begin(), last_intersection->end(),
-            partition_id_lists[i]->begin(), partition_id_lists[i]->end(),
-            std::back_inserter(curr_intersection));
-        std::swap(*last_intersection, curr_intersection);
-        curr_intersection.clear();
-    }
-    return *last_intersection;
-}
-
-PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
-	if (graph_component_type == GraphComponentType::EDGE) {
-		D_ASSERT(keys.size() == 1);
-		auto target_id = edgetype_map.find(keys[0]);
-		if (target_id != edgetype_map.end()) {
-			// found
-			return type_to_partition_index[target_id->second];
-		} else {
-			// not found
-			//return nullptr;
-			// AddPartition always??
-			return -1; //TODO return another value?.. or throw error?
-		}
-	} else if (graph_component_type == GraphComponentType::VERTEX) {
-		size_t key_len = keys.size();
-		vector<VertexLabelID> label_ids;
-		bool not_found = false;
-		for (size_t i = 0; i < key_len; i++) {
-			auto target_id = vertexlabel_map.find(keys[i]);
-			if (target_id != vertexlabel_map.end()) {
-				label_ids.push_back(target_id->second);
-			} else {
-				//return nullptr;
-				//not_found = true;
-				//break;
-				// not found
-				// AddPartition always??
-				return -1; //TODO return another value?.. or throw error?
-			}
-		}
-		vector<PartitionID> return_pids = Intersection(label_ids);
-		D_ASSERT(return_pids.size() == 1); // this is not true..
-		return return_pids[0];
-	}
-	return -1;
-}
-
-VertexLabelID GraphCatalogEntry::GetVertexLabelID() {
-	return vertex_label_id_version++;
-}
-
-EdgeTypeID GraphCatalogEntry::GetEdgeTypeID() {
-	return edge_type_id_version++;
+unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
+	auto create_info = make_unique<CreatePartitionInfo>(schema->name, name);
+	return make_unique<PartitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
 } // namespace duckdb
