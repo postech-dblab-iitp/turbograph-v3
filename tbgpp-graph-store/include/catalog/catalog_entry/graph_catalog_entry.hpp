@@ -31,12 +31,16 @@ public:
 	unordered_map<string, EdgeTypeID> edgetype_map;
 	unordered_map<string, PropertyKeyID> propertykey_map;
 
+	unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	inverted_index_t<VertexLabelID, PartitionID> label_to_partition_index;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	void AddPartition(ClientContext &context, PartitionID pid);
+	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
+	void AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID type_id);
 
-	PartitionID LookupPartition(ClientContext &context, string key, GraphComponentType graph_component_type);
+	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
+
+	vector<PartitionID> Intersection(vector<VertexLabelID>& label_ids);
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
