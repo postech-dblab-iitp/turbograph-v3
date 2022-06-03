@@ -116,6 +116,24 @@ TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create an edge partition catalog", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  string edge_type = "type1";
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddEdgePartition(*client.get(), 0, edge_type);
 }
 
 TEST_CASE ("Create a property schema catalog", "[catalog]") {

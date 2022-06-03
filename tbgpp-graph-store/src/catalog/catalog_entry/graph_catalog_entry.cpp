@@ -29,18 +29,34 @@ unique_ptr<CatalogEntry> GraphCatalogEntry::Copy(ClientContext &context) {
 	auto create_info = make_unique<CreateGraphInfo>(schema->name, name);
 	return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
 }
-
-// Edge면.. 먼저 edge type id를 얻고.. 할당받은 partition id? 새로운 partition id를 어디선가 받아와야 함
-// 그럼, edge type id to partition id map에 집어넣고.. edge type id는 누가 할당해준거지? 그것도 할당 필요함..
-// 일단 다 할당 받았다고 치면?
-void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID type_id) {
-	auto target_id = type_to_partition_index.find(type_id);
+void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID edge_type_id) {
+	auto target_id = type_to_partition_index.find(edge_type_id);
 	if (target_id != type_to_partition_index.end()) {
-		// found
-		
+		// found ?
+		D_ASSERT(false);
 	} else {
 		// not found
-		type_to_partition_index.insert({type_id, pid});
+		type_to_partition_index.insert({edge_type_id, pid});
+	}
+}
+
+void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, string type) {
+	EdgeTypeID edge_type_id;
+	auto type_id = edgetype_map.find(type);
+	if (type_id != edgetype_map.end()) {
+		// label found in label map
+		edge_type_id = type_id->second;
+	} else {
+		edge_type_id = GetEdgeTypeID();
+		edgetype_map.insert({type, edge_type_id});
+	}
+	auto target_id = type_to_partition_index.find(edge_type_id);
+	if (target_id != type_to_partition_index.end()) {
+		// found ?
+		D_ASSERT(false);
+	} else {
+		// not found
+		type_to_partition_index.insert({edge_type_id, pid});
 	}
 }
 void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids) {
