@@ -53,8 +53,12 @@ private:
 	CatalogSet graphs;
 	//! The catalog set holding the partitions
 	CatalogSet partitions;
+	//! The catalog set holding the propertyschemas
+	CatalogSet propertyschemas;
 	//! The catalog set holding the extents
-	//CatalogSet extents;
+	CatalogSet extents;
+	//! The catalog set holding the chunkdefinitions
+	CatalogSet chunkdefinitions;
 	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
@@ -95,8 +99,14 @@ public:
 private:
 	//! Creates a graph with the given name in the schema
 	CatalogEntry *CreateGraph(ClientContext &context, CreateGraphInfo *info);
-	//! Creates a graph with the given name in the schema
+	//! Creates a partition with the given name in the schema
 	CatalogEntry *CreatePartition(ClientContext &context, CreatePartitionInfo *info);
+	//! Creates a property schema with the given name in the schema
+	CatalogEntry *CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info);
+	//! Creates a extent with the given name in the schema
+	CatalogEntry *CreateExtent(ClientContext &context, CreateExtentInfo *info);
+	//! Creates a chunk definition with the given name in the schema
+	CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
 	/*
 	//! Create a scalar or aggregate function within the given schema
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);

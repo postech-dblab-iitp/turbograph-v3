@@ -22,7 +22,7 @@ namespace duckdb {
 
 class ColumnStatistics;
 class DataTable;
-struct CreateTableInfo;
+struct CreatePropertySchemaInfo;
 struct BoundCreateTableInfo;
 
 struct RenameColumnInfo;
@@ -36,10 +36,10 @@ struct AlterForeignKeyInfo;
 class PropertySchemaCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema);
+	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info);
 
 	vector<PropertyKeyID> property_keys;
-	vector<ExtentID> extent_ids;
+	vector<idx_t> extent_ids;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -53,6 +53,8 @@ public:
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
+
+	void AddExtent(ExtentCatalogEntry* extent_cat);
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:

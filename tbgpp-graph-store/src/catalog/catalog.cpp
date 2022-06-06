@@ -14,6 +14,9 @@
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
+#include "parser/parsed_data/create_property_schema_info.hpp"
+#include "parser/parsed_data/create_extent_info.hpp"
+#include "parser/parsed_data/create_chunkdefinition_info.hpp"
 /*
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
@@ -73,6 +76,32 @@ CatalogEntry *Catalog::CreatePartition(ClientContext &context, SchemaCatalogEntr
 	return schema->CreatePartition(context, info);
 }
 
+CatalogEntry *Catalog::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreatePropertySchema(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreatePropertySchema(ClientContext &context, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info) {
+	return schema->CreatePropertySchema(context, info);
+}
+
+CatalogEntry *Catalog::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreateExtent(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreateExtent(ClientContext &context, SchemaCatalogEntry *schema, CreateExtentInfo *info) {
+	return schema->CreateExtent(context, info);
+}
+
+CatalogEntry *Catalog::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreateChunkDefinition(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreateChunkDefinition(ClientContext &context, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info) {
+	return schema->CreateChunkDefinition(context, info);
+}
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
 	auto schema = GetSchema(context, info->base->schema);

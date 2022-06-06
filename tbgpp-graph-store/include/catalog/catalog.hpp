@@ -31,6 +31,9 @@ struct CreateTypeInfo;
 struct CreateTableInfo;
 struct CreateGraphInfo;
 struct CreatePartitionInfo;
+struct CreatePropertySchemaInfo;
+struct CreateExtentInfo;
+struct CreateChunkDefinitionInfo;
 
 class ClientContext;
 class Transaction;
@@ -112,11 +115,11 @@ public:
 	//! Create a partition in the catalog
 	DUCKDB_API CatalogEntry *CreatePartition(ClientContext &context, CreatePartitionInfo *info);
 	//! Create a property schema in the catalog
-	DUCKDB_API CatalogEntry *CreatePropertySchema(ClientContext &context, CreatePartitionInfo *info);
+	DUCKDB_API CatalogEntry *CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info);
 	//! Create a extent in the catalog
-	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, CreatePartitionInfo *info);
+	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, CreateExtentInfo *info);
 	//! Create a chunk definition in the catalog
-	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, CreatePartitionInfo *info);
+	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
 
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
@@ -126,13 +129,13 @@ public:
 	                                     CreatePartitionInfo *info);
 	//! Create a property schema in the catalog
 	DUCKDB_API CatalogEntry *CreatePropertySchema(ClientContext &context, SchemaCatalogEntry *schema,
-	                                     CreatePartitionInfo *info);
+	                                     CreatePropertySchemaInfo *info);
 	//! Create a extent in the catalog
 	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, SchemaCatalogEntry *schema,
-	                                     CreatePartitionInfo *info);
+	                                     CreateExtentInfo *info);
 	//! Create a chunk definition in the catalog
 	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, SchemaCatalogEntry *schema,
-	                                     CreatePartitionInfo *info);
+	                                     CreateChunkDefinitionInfo *info);
 
 	/*
 	//! Creates a table in the catalog.

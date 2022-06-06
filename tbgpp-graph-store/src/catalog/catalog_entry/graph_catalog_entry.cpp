@@ -155,12 +155,28 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 	return -1;
 }
 
+void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids) {
+	for (int i = 0; i < property_schemas.size(); i++) {
+		auto property_key_id = propertykey_map.find(property_schemas[i]);
+		if (property_key_id != propertykey_map.end()) {
+			property_key_ids.push_back(property_key_id->second);
+		} else {
+			PropertyKeyID new_pkid = GetPropertyKeyID();
+			property_key_ids.push_back(new_pkid);
+		}
+	}
+}
+
 VertexLabelID GraphCatalogEntry::GetVertexLabelID() {
 	return vertex_label_id_version++;
 }
 
 EdgeTypeID GraphCatalogEntry::GetEdgeTypeID() {
 	return edge_type_id_version++;
+}
+
+PropertyKeyID GraphCatalogEntry::GetPropertyKeyID() {
+	return property_key_id_version++;
 }
 
 } // namespace duckdb

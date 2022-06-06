@@ -14,6 +14,7 @@
 #include "catalog/catalog_entry/type_catalog_entry.hpp"
 #include "catalog/catalog_entry/graph_catalog_entry.hpp"
 #include "catalog/catalog_entry/partition_catalog_entry.hpp"
+#include "catalog/catalog_entry/property_schema_catalog_entry.hpp"
 //#include "catalog/catalog_entry/view_catalog_entry.hpp"
 #include "catalog/default/default_functions.hpp"
 //#include "catalog/default/default_views.hpp"
@@ -21,6 +22,9 @@
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
+#include "parser/parsed_data/create_property_schema_info.hpp"
+#include "parser/parsed_data/create_extent_info.hpp"
+#include "parser/parsed_data/create_chunkdefinition_info.hpp"
 //#include "parser/parsed_data/create_collation_info.hpp"
 //#include "parser/parsed_data/create_copy_function_info.hpp"
 //#include "parser/parsed_data/create_index_info.hpp"
@@ -78,7 +82,8 @@ namespace duckdb {
 }*/
 
 SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog), partitions(*catalog) {
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog), partitions(*catalog),
+	propertyschemas(*catalog), extents(*catalog), chunkdefinitions(*catalog) {
 	this->internal = internal;
 }
 
@@ -133,6 +138,11 @@ CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGrap
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	auto partition = make_unique<PartitionCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(partition), info->on_conflict);
+}
+
+CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
+	auto propertyschema = make_unique<PropertySchemaCatalogEntry>(catalog, this, info);
+	return AddEntry(context, move(propertyschema), info->on_conflict);
 }
 
 /*
