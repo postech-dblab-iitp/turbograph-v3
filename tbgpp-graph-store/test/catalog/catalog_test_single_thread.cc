@@ -306,8 +306,8 @@ TEST_CASE ("Create an chunk definition catalogs", "[catalog]") {
     LogicalTypeId::LIST,
     LogicalTypeId::MAP,
     LogicalTypeId::TABLE,
-    LogicalTypeId::ENUM,
-    LogicalTypeId::AGGREGATE_STATE
+    //LogicalTypeId::ENUM, // currently not allowed
+    LogicalTypeId::AGGREGATE_STATE,
   };
 
   int chunk_definition_idx = 0;

@@ -15,6 +15,8 @@
 #include "catalog/catalog_entry/graph_catalog_entry.hpp"
 #include "catalog/catalog_entry/partition_catalog_entry.hpp"
 #include "catalog/catalog_entry/property_schema_catalog_entry.hpp"
+#include "catalog/catalog_entry/extent_catalog_entry.hpp"
+#include "catalog/catalog_entry/chunkdefinition_catalog_entry.hpp"
 //#include "catalog/catalog_entry/view_catalog_entry.hpp"
 #include "catalog/default/default_functions.hpp"
 //#include "catalog/default/default_views.hpp"
@@ -143,6 +145,16 @@ CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, Create
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	auto propertyschema = make_unique<PropertySchemaCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(propertyschema), info->on_conflict);
+}
+
+CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
+	auto extent = make_unique<ExtentCatalogEntry>(catalog, this, info);
+	return AddEntry(context, move(extent), info->on_conflict);
+}
+
+CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
+	auto chunkdefinition = make_unique<ChunkDefinitionCatalogEntry>(catalog, this, info);
+	return AddEntry(context, move(chunkdefinition), info->on_conflict);
 }
 
 /*
@@ -359,6 +371,12 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 		return graphs;
 	case CatalogType::PARTITION_ENTRY:
 		return partitions;
+	case CatalogType::PROPERTY_SCHEMA_ENTRY:
+		return propertyschemas;
+	case CatalogType::EXTENT_ENTRY:
+		return extents;
+	case CatalogType::CHUNKDEFINITION_ENTRY:
+		return chunkdefinitions;
 	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;

@@ -2,6 +2,7 @@
 
 #include "parser/parsed_data/create_info.hpp"
 #include "common/unordered_set.hpp"
+#include "common/enums/extent_type.hpp"
 
 namespace duckdb {
 
@@ -18,7 +19,7 @@ struct CreateExtentInfo : public CreateInfo {
 
 public:
 	unique_ptr<CreateInfo> Copy() const override {
-		auto result = make_unique<CreateExtentInfo>(schema, extent);
+		auto result = make_unique<CreateExtentInfo>(schema, extent, extent_type, eid);
 		CopyProperties(*result);
 		return move(result);
 	}

@@ -15,7 +15,7 @@ ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, Schem
 }
 
 unique_ptr<CatalogEntry> ChunkDefinitionCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreateChunkDefinitionInfo>(schema->name, name);
+	auto create_info = make_unique<CreateChunkDefinitionInfo>(schema->name, name, type);
 	return make_unique<ChunkDefinitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
