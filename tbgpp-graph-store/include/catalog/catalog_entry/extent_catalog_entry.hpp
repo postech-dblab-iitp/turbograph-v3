@@ -7,22 +7,23 @@
 //===----------------------------------------------------------------------===//
 
 #pragma once
-/*
+
 
 #include "catalog/standard_entry.hpp"
 
 #include "common/unordered_map.hpp"
-#include "parser/column_definition.hpp"
-#include "parser/constraint.hpp"
-#include "planner/bound_constraint.hpp"
-#include "planner/expression.hpp"
+#include "common/enums/extent_type.hpp"
+//#include "parser/column_definition.hpp"
+//#include "parser/constraint.hpp"
+//#include "planner/bound_constraint.hpp"
+//#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 
 namespace duckdb {
 
 class ColumnStatistics;
 class DataTable;
-struct CreateTableInfo;
+struct CreateExtentInfo;
 struct BoundCreateTableInfo;
 
 struct RenameColumnInfo;
@@ -36,8 +37,9 @@ struct AlterForeignKeyInfo;
 class ExtentCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, BoundCreateTableInfo *info);
+	ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info);
 
+	ExtentID eid;
 	ExtentType extent_type;
 	vector<ChunkDefinitionID> chunks;
 	
@@ -54,17 +56,6 @@ public:
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
-	void SetAsRoot() override;
-
-	//void CommitAlter(AlterInfo &info);
-	//void CommitDrop();
-
-	//! Returns the column index of the specified column name.
-	//! If the column does not exist:
-	//! If if_exists is true, returns DConstants::INVALID_INDEX
-	//! If if_exists is false, throws an exception
-	//idx_t GetColumnIndex(string &name, bool if_exists = false);
-
+	void SetExtentType(ExtentType extent_type_);
 };
 } // namespace duckdb
-*/

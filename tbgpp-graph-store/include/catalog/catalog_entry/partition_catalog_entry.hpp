@@ -39,14 +39,15 @@ public:
 	//! Create a real PartitionCatalogEntry
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info);
 
-	inverted_index_t<PropertyKeyID, PropertySchemaID>* index;
+	inverted_index_t<PropertyKeyID, PropertySchemaID> property_schema_index;
 	//vector<Constraints> constraints;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	
+	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> property_schemas);
+
 	//! Returns a list of types of the table
-	vector<LogicalType> GetTypes();
+	//vector<LogicalType> GetTypes();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

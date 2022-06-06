@@ -11,4 +11,7 @@
 #include "catalog/catalog_entry/table_function_catalog_entry.hpp"
 #include "catalog/catalog_entry/graph_catalog_entry.hpp"
 #include "catalog/catalog_entry/partition_catalog_entry.hpp"
+#include "catalog/catalog_entry/property_schema_catalog_entry.hpp"
+#include "catalog/catalog_entry/extent_catalog_entry.hpp"
+#include "catalog/catalog_entry/chunkdefinition_catalog_entry.hpp"
 //#include "catalog/catalog_entry/view_catalog_entry.hpp"

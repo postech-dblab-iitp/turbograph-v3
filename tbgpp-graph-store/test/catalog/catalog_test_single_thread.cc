@@ -16,9 +16,12 @@
 #include "catalog.hpp"
 #include "database.hpp"
 #include "client_context.hpp"
-#include "create_schema_info.hpp"
-#include "create_graph_info.hpp"
-#include "create_partition_info.hpp"
+#include "parser/parsed_data/create_schema_info.hpp"
+#include "parser/parsed_data/create_graph_info.hpp"
+#include "parser/parsed_data/create_partition_info.hpp"
+#include "parser/parsed_data/create_property_schema_info.hpp"
+#include "parser/parsed_data/create_extent_info.hpp"
+#include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
 using namespace duckdb;
@@ -137,22 +140,259 @@ TEST_CASE ("Create an edge partition catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create a property schema catalog", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  vector<string> property_keys = {"attribute1", "attrubute2"};
+  CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
+  PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+  vector<PropertyKeyID> property_key_ids;
+  graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+  partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 }
 
 TEST_CASE ("Create multiple property schemas in a partition catalog", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  for (int i = 0; i < 100; i++) {
+    vector<string> property_keys;
+    for (int j = 0; j <= i; j++) {
+      property_keys.push_back(std::string("attribute") + std::to_string(j));
+    }
+    string property_schema_name = "propertyschema" + std::to_string(i);
+    CreatePropertySchemaInfo propertyschema_info("main", property_schema_name);
+    PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+    vector<PropertyKeyID> property_key_ids;
+    graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+    partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+  }
 }
 
 TEST_CASE ("Create an extent catalog", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  vector<string> property_keys = {"attribute1", "attrubute2"};
+  CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
+  PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+  vector<PropertyKeyID> property_key_ids;
+  graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+  partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+
+  CreateExtentInfo extent_info("main", "extent1", ExtentType::DELTA, 0);
+  ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.CreateExtent(*client.get(), &extent_info);
 }
 
 TEST_CASE ("Create an chunk definition catalogs", "[catalog]") {
   // Create chunk definitions for each type
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  vector<string> property_keys = {"attribute1", "attrubute2"};
+  CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
+  PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+  vector<PropertyKeyID> property_key_ids;
+  graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+  partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+
+  CreateExtentInfo extent_info("main", "extent1", ExtentType::DELTA, 0);
+  ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.CreateExtent(*client.get(), &extent_info);
+
+  static const LogicalTypeId AllType[] = { 
+    LogicalTypeId::SQLNULL,
+    LogicalTypeId::UNKNOWN,
+    LogicalTypeId::ANY,
+    LogicalTypeId::USER,
+    LogicalTypeId::BOOLEAN,
+    LogicalTypeId::TINYINT,
+    LogicalTypeId::SMALLINT,
+    LogicalTypeId::INTEGER,
+    LogicalTypeId::BIGINT,
+    LogicalTypeId::DATE,
+    LogicalTypeId::TIME,
+    LogicalTypeId::TIMESTAMP_SEC,
+    LogicalTypeId::TIMESTAMP_MS,
+    LogicalTypeId::TIMESTAMP,
+    LogicalTypeId::TIMESTAMP_NS,
+    LogicalTypeId::DECIMAL,
+    LogicalTypeId::FLOAT,
+    LogicalTypeId::DOUBLE,
+    LogicalTypeId::CHAR,
+    LogicalTypeId::VARCHAR,
+    LogicalTypeId::BLOB,
+    LogicalTypeId::INTERVAL,
+    LogicalTypeId::UTINYINT,
+    LogicalTypeId::USMALLINT,
+    LogicalTypeId::UINTEGER,
+    LogicalTypeId::UBIGINT,
+    LogicalTypeId::TIMESTAMP_TZ,
+    LogicalTypeId::TIME_TZ,
+    LogicalTypeId::JSON,
+    LogicalTypeId::HUGEINT,
+    LogicalTypeId::POINTER,
+    LogicalTypeId::HASH,
+    LogicalTypeId::VALIDITY,
+    LogicalTypeId::UUID,
+    LogicalTypeId::STRUCT,
+    LogicalTypeId::LIST,
+    LogicalTypeId::MAP,
+    LogicalTypeId::TABLE,
+    LogicalTypeId::ENUM,
+    LogicalTypeId::AGGREGATE_STATE
+  };
+
+  int chunk_definition_idx = 0;
+  for ( const auto l_type_id : AllType ) {
+    LogicalType l_type(l_type_id);
+    string chunkdefinition_name = "chunkdefinition" + std::to_string(chunk_definition_idx);
+    CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
+    ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(*client.get(), &chunkdefinition_info);
+    chunk_definition_idx++;
+  }
 }
 
 TEST_CASE ("Get extent catalog", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  vector<string> property_keys = {"attribute1", "attrubute2"};
+  CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
+  PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+  vector<PropertyKeyID> property_key_ids;
+  graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+  partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+
+  for (int i = 0; i < 100; i++) {
+    string extent_name = "extent" + std::to_string(i);
+    CreateExtentInfo extent_info("main", extent_name, ExtentType::DELTA, i);
+    ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.CreateExtent(*client.get(), &extent_info);
+  }
+  for (int i = 0; i < 100; i++) {
+    string extent_name = "extent" + std::to_string(i);
+    ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::EXTENT_ENTRY, "main", extent_name);
+  }
 }
 
 TEST_CASE ("Change delta store to extent store", "[catalog]") {
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+  
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  vector<string> vertex_labels = {"label1"};
+  CreatePartitionInfo partition_info("main", "partition1");
+  PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+  
+  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+
+  vector<string> property_keys = {"attribute1", "attrubute2"};
+  CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
+  PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+
+  vector<PropertyKeyID> property_key_ids;
+  graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
+  partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+
+  string extent_name = "extent" + std::to_string(0);
+  CreateExtentInfo extent_info("main", extent_name, ExtentType::DELTA, 0);
+  ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.CreateExtent(*client.get(), &extent_info);
+  property_schema_cat->AddExtent(extent_cat);
+
+  extent_cat->SetExtentType(ExtentType::EXTENT);
 }
 
 TEST_CASE ("Create vertex and edge extents", "[catalog]") {

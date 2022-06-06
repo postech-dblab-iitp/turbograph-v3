@@ -77,6 +77,7 @@ extern const row_t MAX_ROW_ID;
 // ID types for graph catalog
 typedef uint16_t PartitionID;
 typedef uint32_t ExtentID;
+typedef uint32_t ChunkDefinitionID;
 typedef idx_t PropertyKeyID;
 typedef idx_t PropertySchemaID;
 typedef idx_t VertexLabelID;

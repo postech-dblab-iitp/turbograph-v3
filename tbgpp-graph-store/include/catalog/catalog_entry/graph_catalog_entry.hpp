@@ -37,6 +37,7 @@ public:
 
 	atomic<VertexLabelID> vertex_label_id_version;
 	atomic<EdgeTypeID> edge_type_id_version;
+	atomic<PropertyKeyID> property_key_id_version;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
@@ -45,10 +46,12 @@ public:
 	void AddEdgePartition(ClientContext &context, PartitionID pid, string type);
 
 	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
+	void GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids);
 
 	vector<PartitionID> Intersection(vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();
 	EdgeTypeID GetEdgeTypeID();
+	PropertyKeyID GetPropertyKeyID();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

@@ -13,9 +13,9 @@
 
 #include "common/unordered_map.hpp"
 #include "parser/column_definition.hpp"
-#include "parser/constraint.hpp"
-#include "planner/bound_constraint.hpp"
-#include "planner/expression.hpp"
+//#include "parser/constraint.hpp"
+//#include "planner/bound_constraint.hpp"
+//#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 
 namespace duckdb {
@@ -24,6 +24,7 @@ class ColumnStatistics;
 class DataTable;
 struct CreateTableInfo;
 struct BoundCreateTableInfo;
+struct CreateChunkDefinitionInfo;
 
 struct RenameColumnInfo;
 struct AddColumnInfo;
@@ -36,14 +37,11 @@ struct AlterForeignKeyInfo;
 class ChunkDefinitionCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, BoundCreateTableInfo *info);
+	ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info);
 
-	
+	LogicalType type;
+	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
 public:
-	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	
-	//! Returns a list of types of the table
-	vector<LogicalType> GetTypes();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
@@ -51,11 +49,6 @@ public:
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
-
-	void SetAsRoot() override;
-
-	//void CommitAlter(AlterInfo &info);
-	//void CommitDrop();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:
