@@ -24,6 +24,7 @@ class ColumnStatistics;
 class DataTable;
 struct CreatePropertySchemaInfo;
 struct BoundCreateTableInfo;
+struct ExtentCatalogEntry;
 
 struct RenameColumnInfo;
 struct AddColumnInfo;

@@ -16,7 +16,7 @@ struct CreateChunkDefinitionInfo : public CreateInfo {
 
 public:
 	unique_ptr<CreateInfo> Copy() const override {
-		auto result = make_unique<CreateChunkDefinitionInfo>(schema, chunkdefinition);
+		auto result = make_unique<CreateChunkDefinitionInfo>(schema, chunkdefinition, type);
 		CopyProperties(*result);
 		return move(result);
 	}

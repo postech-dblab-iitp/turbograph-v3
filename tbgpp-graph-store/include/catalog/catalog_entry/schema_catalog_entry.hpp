@@ -38,6 +38,9 @@ struct CreateCopyFunctionInfo;
 struct CreateTypeInfo;
 struct CreateGraphInfo;
 struct CreatePartitionInfo;
+struct CreatePropertySchemaInfo;
+struct CreateExtentInfo;
+struct CreateChunkDefinitionInfo;
 
 struct DropInfo;
 
