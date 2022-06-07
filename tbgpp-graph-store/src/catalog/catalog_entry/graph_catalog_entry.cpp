@@ -102,7 +102,7 @@ vector<PartitionID> GraphCatalogEntry::Intersection(vector<VertexLabelID>& label
 	vector<vector<PartitionID>*> partition_id_lists;
 	for (size_t i = 0; i < label_ids.size(); i++) {
 		partition_id_lists.push_back(&label_to_partition_index[label_ids[i]]); // no-copy?
-		std::sort(partition_id_lists[i]->begin(), partition_id_lists[i]->end());
+		//std::sort(partition_id_lists[i]->begin(), partition_id_lists[i]->end());
 	}
 
 	auto last_intersection = partition_id_lists[0];
