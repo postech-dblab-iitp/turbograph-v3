@@ -93,6 +93,8 @@ public:
 	unique_ptr<DependencyManager> dependency_manager;
 	//! Write lock for the catalog
 	mutex write_lock;
+	// Shared memory manager
+	managed_shared_memory *catalog_segment;
 
 public:
 	//! Get the ClientContext from the Catalog

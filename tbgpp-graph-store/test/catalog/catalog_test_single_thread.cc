@@ -42,16 +42,12 @@ TEST_CASE ("Create Catalog Instance", "[catalog]") {
 }
 
 TEST_CASE ("Create a graph catalog", "[catalog]") {
-  REQUIRE(true);
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
-  REQUIRE(true);
   Catalog& cat_instance = database->instance->GetCatalog();
-  REQUIRE(true);
 
   std::shared_ptr<ClientContext> client = 
     std::make_shared<ClientContext>(database->instance->shared_from_this());
-  REQUIRE(true);
 
   CreateSchemaInfo schema_info;
   cat_instance.CreateSchema(*client.get(), &schema_info);
