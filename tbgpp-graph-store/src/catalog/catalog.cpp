@@ -6,7 +6,6 @@
 #include "catalog/default/default_schemas.hpp"
 #include "catalog/dependency_manager.hpp"
 #include "common/exception.hpp"
-#include "common/boost.hpp"
 #include "main/client_context.hpp"
 #include "main/client_data.hpp"
 #include "main/database.hpp"
@@ -48,12 +47,12 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 }
 
 Catalog::Catalog(DatabaseInstance &db)
-    : db(db), schemas(make_unique<CatalogSet>(*this, make_unique<DefaultSchemaGenerator>(*this))),
+    : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment, make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
 
 	// Connect to shared memory
-	catalog_segment = new managed_shared_memory(open_only, "iTurboGraph_Catalog_SHM");
+	catalog_segment = new boost::interprocess::managed_shared_memory(open_only, "iTurboGraph_Catalog_SHM");
 }
 Catalog::~Catalog() {
 }

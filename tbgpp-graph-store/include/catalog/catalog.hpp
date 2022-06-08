@@ -14,6 +14,7 @@
 
 #include <functional>
 #include "common/atomic.hpp"
+#include "common/boost.hpp"
 
 namespace duckdb {
 struct CreateSchemaInfo;
@@ -81,6 +82,9 @@ struct SimilarCatalogEntry {
 
 //! The Catalog object represents the catalog of the database.
 class Catalog {
+	typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
+	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
+	
 public:
 	explicit Catalog(DatabaseInstance &db);
 	~Catalog();
@@ -94,7 +98,7 @@ public:
 	//! Write lock for the catalog
 	mutex write_lock;
 	// Shared memory manager
-	managed_shared_memory *catalog_segment;
+	boost::interprocess::managed_shared_memory *catalog_segment;
 
 public:
 	//! Get the ClientContext from the Catalog

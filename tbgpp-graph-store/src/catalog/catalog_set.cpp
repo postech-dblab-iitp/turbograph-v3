@@ -41,8 +41,8 @@ private:
 	idx_t entry_index;
 };
 
-CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
-    : catalog(catalog), defaults(move(defaults)) {
+CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, unique_ptr<DefaultGenerator> defaults)
+    : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
 }
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,

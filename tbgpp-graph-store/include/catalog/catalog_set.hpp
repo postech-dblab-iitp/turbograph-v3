@@ -15,6 +15,7 @@
 #include "common/pair.hpp"
 #include "common/unordered_set.hpp"
 #include "common/mutex.hpp"
+#include "common/boost.hpp"
 #include "parser/column_definition.hpp"
 #include "catalog/catalog_entry/table_catalog_entry.hpp"
 #include "catalog/catalog_entry/sequence_catalog_entry.hpp"
@@ -45,8 +46,14 @@ class CatalogSet {
 	friend class DependencyManager;
 	friend class EntryDropper;
 
+	typedef std::pair<idx_t, unique_ptr<CatalogEntry>> ValueType;
+	typedef boost::interprocess::allocator<ValueType, boost::interprocess::managed_shared_memory::segment_manager> ShmemAllocator;
+	typedef boost::unordered_map< idx_t, unique_ptr<CatalogEntry>
+								, boost::hash<idx_t>, std::equal_to<idx_t>
+								, ShmemAllocator> EntriesHashMap;
+
 public:
-	DUCKDB_API explicit CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
+	DUCKDB_API explicit CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *&catalog_segment_, unique_ptr<DefaultGenerator> defaults = nullptr);
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
@@ -117,10 +124,13 @@ private:
 	//! Mapping of string to catalog entry
 	case_insensitive_map_t<unique_ptr<MappingValue>> mapping;
 	//! The set of catalog entries
-	unordered_map<idx_t, unique_ptr<CatalogEntry>> entries;
+	//unordered_map<idx_t, unique_ptr<CatalogEntry>> entries;
+	EntriesHashMap entries;
 	//! The current catalog entry index
 	idx_t current_entry = 0;
 	//! The generator used to generate default internal entries
 	unique_ptr<DefaultGenerator> defaults;
+	// Shared memory manager
+	boost::interprocess::managed_shared_memory *catalog_segment;
 };
 } // namespace duckdb
