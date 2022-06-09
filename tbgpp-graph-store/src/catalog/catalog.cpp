@@ -52,7 +52,7 @@ Catalog::Catalog(DatabaseInstance &db)
 	catalog_version = 0;
 
 	// Connect to shared memory
-	catalog_segment = new boost::interprocess::managed_shared_memory(open_only, "iTurboGraph_Catalog_SHM");
+	catalog_segment = new boost::interprocess::managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
 }
 Catalog::~Catalog() {
 }

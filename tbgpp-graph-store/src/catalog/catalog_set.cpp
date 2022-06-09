@@ -10,6 +10,7 @@
 #include "common/string_util.hpp"
 #include "parser/column_definition.hpp"
 //#include "parser/expression/constant_expression.hpp"
+#include <sys/fcntl.h>
 
 namespace duckdb {
 
@@ -25,11 +26,11 @@ public:
 	//! Both constructor and destructor are privates because they should only be called by DropEntryDependencies
 	explicit EntryDropper(CatalogSet &catalog_set, idx_t entry_index)
 	    : catalog_set(catalog_set), entry_index(entry_index) {
-		old_deleted = catalog_set.entries[entry_index].get()->deleted;
+		//old_deleted = (*catalog_set.entries)[entry_index].get()->deleted;
 	}
 
 	~EntryDropper() {
-		catalog_set.entries[entry_index].get()->deleted = old_deleted;
+		//(*catalog_set.entries)[entry_index].get()->deleted = old_deleted;
 	}
 
 private:
@@ -41,8 +42,18 @@ private:
 	idx_t entry_index;
 };
 
+CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
+    : catalog(catalog), defaults(move(defaults)) {
+	current_entry = new idx_t;
+	*current_entry = 0;
+}
+
 CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
+	entries = catalog_segment->construct<EntriesHashMap>("entries")
+		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
+		catalog_segment->get_allocator<ValueType>());
+	current_entry = catalog_segment->construct<idx_t>("current_entry")(0);
 }
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -62,17 +73,20 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 		// first create a dummy deleted entry for this entry
 		// so transactions started before the commit of this transaction don't
 		// see it yet
-		entry_index = current_entry++;
-		auto dummy_node = make_unique<CatalogEntry>(CatalogType::INVALID, value->catalog, name);
-		dummy_node->timestamp = 0;
-		dummy_node->deleted = true;
-		dummy_node->set = this;
+		entry_index = *current_entry;
+		*current_entry = entry_index + 1;
+		ValueType dummy_node = ValueType(entry_index, 
+			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment));
+		dummy_node.second->timestamp = 0;
+		dummy_node.second->deleted = true;
+		dummy_node.second->set = this;
 
-		entries[entry_index] = move(dummy_node);
+		//entries->insert(dummy_node); //TODO
+		//entries->insert_or_assign(entry_index, dummy_node.second);
 		PutMapping(context, name, entry_index);
 	} else {
 		entry_index = mapping_value->index;
-		auto &current = *entries[entry_index];
+		auto &current = *entries->at(entry_index);
 		// if it does, we have to check version numbers
 		if (HasConflict(context, current.timestamp)) {
 			// current version has been written to by a currently active
@@ -95,16 +109,16 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 	// now add the dependency set of this object to the dependency manager
 	catalog.dependency_manager->AddObject(context, value.get(), dependencies);
 
-	value->child = move(entries[entry_index]);
+	//value->child = move(entries[entry_index]); //TODO
 	value->child->parent = value.get();
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
-	entries[entry_index] = move(value);
+	//entries[entry_index] = move(value); //TODO
 	return true;
 }
 
 bool CatalogSet::GetEntryInternal(ClientContext &context, idx_t entry_index, CatalogEntry *&catalog_entry) {
-	catalog_entry = entries[entry_index].get();
+	catalog_entry = boost::interprocess::to_raw_pointer(entries->at(entry_index).get());
 	// if it does: we have to retrieve the entry and to check version numbers
 	if (HasConflict(context, catalog_entry->timestamp)) {
 		// current version has been written to by a currently active
@@ -217,7 +231,7 @@ void CatalogSet::DropEntryDependencies(ClientContext &context, idx_t entry_index
 	EntryDropper dropper(*this, entry_index);
 
 	// To correctly delete the object and its dependencies, it temporarily is set to deleted.
-	entries[entry_index].get()->deleted = true;
+	entries->at(entry_index)->deleted = true;
 
 	// check any dependencies of this object
 	entry.catalog->dependency_manager->DropObject(context, &entry, cascade);
@@ -237,7 +251,7 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 	// and point it at the dummy node
 	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name);
 	//value->timestamp = transaction.transaction_id;
-	value->child = move(entries[entry_index]);
+	//value->child = move(entries[entry_index]); //TODO
 	value->child->parent = value.get();
 	value->set = this;
 	value->deleted = true;
@@ -245,7 +259,7 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
 
-	entries[entry_index] = move(value);
+	//entries[entry_index] = move(value); //TODO
 }
 
 bool CatalogSet::DropEntry(ClientContext &context, const string &name, bool cascade) {
@@ -280,11 +294,11 @@ void CatalogSet::CleanupEntry(CatalogEntry *catalog_entry) {
 			auto mapping_entry = mapping.find(parent->name);
 			D_ASSERT(mapping_entry != mapping.end());
 			auto index = mapping_entry->second->index;
-			auto entry = entries.find(index);
-			D_ASSERT(entry != entries.end());
+			auto entry = entries->find(index);
+			D_ASSERT(entry != entries->end());
 			if (entry->second.get() == parent) {
 				mapping.erase(mapping_entry);
-				entries.erase(entry);
+				entries->erase(entry);
 			}
 		}
 	}
@@ -406,14 +420,15 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 		return nullptr;
 	}
 	auto &name = entry->name;
-	auto entry_index = current_entry++;
+	auto entry_index = *current_entry;
+	*current_entry = entry_index + 1;
 	auto catalog_entry = entry.get();
 
 	entry->timestamp = 0;
 
 	PutMapping(context, name, entry_index);
 	mapping[name]->timestamp = 0;
-	entries[entry_index] = move(entry);
+	//entries[entry_index] = move(entry); //TODO
 	return catalog_entry;
 }
 
@@ -424,7 +439,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		// we found an entry for this name
 		// check the version numbers
 
-		auto catalog_entry = entries[mapping_value->index].get();
+		auto catalog_entry = boost::interprocess::to_raw_pointer(entries->at(mapping_value->index).get());
 		CatalogEntry *current = GetEntryForTransaction(context, catalog_entry);
 		if (current->deleted || (current->name != name && !UseTimestamp(context, mapping_value->timestamp))) {
 			return nullptr;
@@ -544,7 +559,7 @@ void CatalogSet::Undo(CatalogEntry *entry) {
 		// otherwise we need to update the base entry tables
 		auto &name = entry->name;
 		to_be_removed_node->child->SetAsRoot();
-		entries[mapping[name]->index] = move(to_be_removed_node->child);
+		//entries[mapping[name]->index] = move(to_be_removed_node->child); //TODO
 		entry->parent = nullptr;
 	}
 
@@ -582,8 +597,8 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 		}
 		defaults->created_all_entries = true;
 	}
-	for (auto &kv : entries) {
-		auto entry = kv.second.get();
+	for (auto &kv : *entries) {
+		auto entry = boost::interprocess::to_raw_pointer(kv.second.get());
 		entry = GetEntryForTransaction(context, entry);
 		if (!entry->deleted) {
 			callback(entry);
@@ -594,8 +609,8 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 void CatalogSet::Scan(const std::function<void(CatalogEntry *)> &callback) {
 	// lock the catalog set
 	lock_guard<mutex> lock(catalog_lock);
-	for (auto &kv : entries) {
-		auto entry = kv.second.get();
+	for (auto &kv : *entries) {
+		auto entry = boost::interprocess::to_raw_pointer(kv.second.get());
 		entry = GetCommittedEntry(entry);
 		if (!entry->deleted) {
 			callback(entry);

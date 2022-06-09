@@ -13,7 +13,7 @@ CatalogServer::CatalogServer() {
   } remover;
 
   //Create shared memory
-  boost::interprocess::managed_shared_memory segment(create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
+  boost::interprocess::managed_shared_memory segment(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
 }
 
 void CatalogServer::listener() {

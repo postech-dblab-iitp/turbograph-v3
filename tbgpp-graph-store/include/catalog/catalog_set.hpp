@@ -30,7 +30,25 @@ class ClientContext;
 
 typedef unordered_map<CatalogSet *, unique_lock<mutex>> set_lock_map_t;
 
+typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
+typedef boost::interprocess::allocator<transaction_t, segment_manager_t> transaction_t_allocator;
+typedef boost::interprocess::allocator<bool, segment_manager_t> bool_allocator;
+typedef boost::interprocess::allocator<idx_t, segment_manager_t> idx_t_allocator;
+typedef boost::interprocess::allocator<char, segment_manager_t> char_allocator;
+typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
+
+typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type unique_ptr_type;
+typedef	boost::interprocess::deleter<CatalogEntry, segment_manager_t> deleter_type;
+typedef std::pair<const idx_t, unique_ptr_type> ValueType;
+typedef boost::interprocess::allocator<ValueType, segment_manager_t> ShmemAllocator;
+typedef boost::unordered_map< idx_t, unique_ptr_type
+			, boost::hash<idx_t>, std::equal_to<idx_t>
+			, ShmemAllocator> 
+EntriesHashMap;
+
 struct MappingValue {
+	//typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
+	
 	explicit MappingValue(idx_t index_) : index(index_), timestamp(0), deleted(false), parent(nullptr) {
 	}
 
@@ -38,21 +56,25 @@ struct MappingValue {
 	transaction_t timestamp;
 	bool deleted;
 	unique_ptr<MappingValue> child;
+	//MappingValue_unique_ptr_type child2;
 	MappingValue *parent;
 };
+
+//typedef std::pair<const char_string, MappingValue> map_value_type;
+//typedef std::pair<char_string, MappingValue> movable_to_map_value_type;
+//typedef boost::interprocess::allocator<map_value_type, segment_manager_t> map_value_type_allocator;
+// typedef unordered_map< char_string, MappingValue
+//         	, CaseInsensitiveStringHashFunction, CaseInsensitiveStringEquality, 
+// 			map_value_type_allocator>
+// complex_map_type;
 
 //! The Catalog Set stores (key, value) map of a set of CatalogEntries
 class CatalogSet {
 	friend class DependencyManager;
 	friend class EntryDropper;
 
-	typedef std::pair<idx_t, unique_ptr<CatalogEntry>> ValueType;
-	typedef boost::interprocess::allocator<ValueType, boost::interprocess::managed_shared_memory::segment_manager> ShmemAllocator;
-	typedef boost::unordered_map< idx_t, unique_ptr<CatalogEntry>
-								, boost::hash<idx_t>, std::equal_to<idx_t>
-								, ShmemAllocator> EntriesHashMap;
-
 public:
+	DUCKDB_API explicit CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
 	DUCKDB_API explicit CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *&catalog_segment_, unique_ptr<DefaultGenerator> defaults = nullptr);
 
 	//! Create an entry in the catalog set. Returns whether or not it was
@@ -125,9 +147,9 @@ private:
 	case_insensitive_map_t<unique_ptr<MappingValue>> mapping;
 	//! The set of catalog entries
 	//unordered_map<idx_t, unique_ptr<CatalogEntry>> entries;
-	EntriesHashMap entries;
+	EntriesHashMap *entries;
 	//! The current catalog entry index
-	idx_t current_entry = 0;
+	idx_t *current_entry;
 	//! The generator used to generate default internal entries
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager

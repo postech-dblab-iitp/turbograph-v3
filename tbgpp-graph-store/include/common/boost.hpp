@@ -2,6 +2,9 @@
 
 #include <boost/unordered_map.hpp>
 #include <boost/functional/hash.hpp>
+#include <boost/interprocess/smart_ptr/shared_ptr.hpp>
+#include <boost/interprocess/smart_ptr/unique_ptr.hpp>
+#include <boost/interprocess/smart_ptr/deleter.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
 #include <boost/interprocess/allocators/node_allocator.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
@@ -20,6 +23,6 @@
 #include <boost/interprocess/containers/flat_map.hpp>
 #include <boost/interprocess/containers/string.hpp>
 
-namespace duckdb {
-using namespace boost::interprocess;
-}
+//namespace duckdb {
+//using namespace boost::interprocess;
+//}

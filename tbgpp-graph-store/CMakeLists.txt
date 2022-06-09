@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(tbgpp-graph-store)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
@@ -32,6 +32,8 @@ SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 
 add_library(lightning STATIC ${CACHE_LIB_SRC})
 target_link_libraries(lightning "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
+
+link_libraries(pthread aio numa rt hwloc tbb)
 
 add_library(tbgpp-system-lib ${TBGPP_SYSTEM_SOURCES})
 target_compile_options(tbgpp-system-lib PRIVATE ${CXX_FLAGS})
