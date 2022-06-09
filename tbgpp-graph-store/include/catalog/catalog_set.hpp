@@ -44,10 +44,10 @@ typedef boost::interprocess::allocator<ValueType, segment_manager_t> ShmemAlloca
 typedef boost::unordered_map< idx_t, unique_ptr_type
 			, boost::hash<idx_t>, std::equal_to<idx_t>
 			, ShmemAllocator> 
-EntriesHashMap;
+EntriesUnorderedMap;
 
 struct MappingValue {
-	//typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
 	
 	explicit MappingValue(idx_t index_) : index(index_), timestamp(0), deleted(false), parent(nullptr) {
 	}
@@ -55,18 +55,36 @@ struct MappingValue {
 	idx_t index;
 	transaction_t timestamp;
 	bool deleted;
-	unique_ptr<MappingValue> child;
-	//MappingValue_unique_ptr_type child2;
+	//unique_ptr<MappingValue> child;
+	MappingValue_unique_ptr_type *child; // TODO deleter problem..
 	MappingValue *parent;
 };
 
-//typedef std::pair<const char_string, MappingValue> map_value_type;
-//typedef std::pair<char_string, MappingValue> movable_to_map_value_type;
-//typedef boost::interprocess::allocator<map_value_type, segment_manager_t> map_value_type_allocator;
-// typedef unordered_map< char_string, MappingValue
-//         	, CaseInsensitiveStringHashFunction, CaseInsensitiveStringEquality, 
+struct SHM_CaseInsensitiveStringHashFunction {
+	uint64_t operator()(const char_string &str) const {
+		std::hash<string> hasher;
+		return hasher(StringUtil::Lower(str.c_str()));
+	}
+};
+
+struct SHM_CaseInsensitiveStringEquality {
+	bool operator()(const char_string &a, const char_string &b) const {
+		return StringUtil::Lower(a.c_str()) == StringUtil::Lower(b.c_str());
+	}
+};
+
+typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
+typedef std::pair<const char_string, MappingValue_unique_ptr_type> map_value_type;
+typedef std::pair<char_string, MappingValue_unique_ptr_type> movable_to_map_value_type;
+typedef boost::interprocess::allocator<map_value_type, segment_manager_t> map_value_type_allocator;
+// typedef boost::unordered_map< char_string, MappingValue_unique_ptr_type
+//        	, boost::hash<char_string>, std::equal_to<std::string>, 
 // 			map_value_type_allocator>
-// complex_map_type;
+// MappingUnorderedMap;
+typedef boost::unordered_map< char_string, MappingValue_unique_ptr_type
+       	, SHM_CaseInsensitiveStringHashFunction, SHM_CaseInsensitiveStringEquality, 
+			map_value_type_allocator>
+MappingUnorderedMap;
 
 //! The Catalog Set stores (key, value) map of a set of CatalogEntries
 class CatalogSet {
@@ -144,10 +162,11 @@ private:
 	//! The catalog lock is used to make changes to the data
 	mutex catalog_lock;
 	//! Mapping of string to catalog entry
-	case_insensitive_map_t<unique_ptr<MappingValue>> mapping;
+	//case_insensitive_map_t<unique_ptr<MappingValue>> mapping;
+	MappingUnorderedMap *mapping;
 	//! The set of catalog entries
 	//unordered_map<idx_t, unique_ptr<CatalogEntry>> entries;
-	EntriesHashMap *entries;
+	EntriesUnorderedMap *entries;
 	//! The current catalog entry index
 	idx_t *current_entry;
 	//! The generator used to generate default internal entries
