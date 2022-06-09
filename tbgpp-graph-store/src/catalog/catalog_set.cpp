@@ -81,8 +81,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 		dummy_node.second->deleted = true;
 		dummy_node.second->set = this;
 
-		//entries->insert(dummy_node); //TODO
-		//entries->insert_or_assign(entry_index, dummy_node.second);
+		entries->insert_or_assign(entry_index, move(dummy_node.second));
 		PutMapping(context, name, entry_index);
 	} else {
 		entry_index = mapping_value->index;
