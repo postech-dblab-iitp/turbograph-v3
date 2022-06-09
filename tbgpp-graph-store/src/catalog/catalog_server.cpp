@@ -8,12 +8,12 @@ CatalogServer::CatalogServer() {
   //Remove shared memory on construction and destruction
   struct shm_remove
   {
-    shm_remove() { shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-    ~shm_remove(){ shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+    shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+    ~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
   } remover;
 
   //Create shared memory
-  managed_shared_memory segment(create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
+  boost::interprocess::managed_shared_memory segment(create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
 }
 
 void CatalogServer::listener() {

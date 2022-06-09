@@ -83,9 +83,9 @@ namespace duckdb {
 	this->internal = internal;
 }*/
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog), partitions(*catalog),
-	propertyschemas(*catalog), extents(*catalog), chunkdefinitions(*catalog) {
+SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, boost::interprocess::managed_shared_memory *&catalog_segment)
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog, catalog_segment), partitions(*catalog, catalog_segment),
+	propertyschemas(*catalog, catalog_segment), extents(*catalog, catalog_segment), chunkdefinitions(*catalog, catalog_segment) {
 	this->internal = internal;
 }
 

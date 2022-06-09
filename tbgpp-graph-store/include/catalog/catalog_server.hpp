@@ -9,6 +9,8 @@
 #include "config.h"
 #include "malloc.h"
 
+namespace duckdb {
+
 class CatalogServer {
 public:
   CatalogServer();
@@ -19,4 +21,6 @@ private:
   void listener();
 };
 
-#endif // STORE_H
+} // namespace duckdb
+
+#endif // CATALOG_SERVER_H

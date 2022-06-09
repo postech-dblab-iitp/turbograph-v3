@@ -203,7 +203,7 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 	}
 
 	unordered_set<CatalogEntry *> dependencies;
-	auto entry = make_unique<SchemaCatalogEntry>(this, info->schema, info->internal);
+	auto entry = make_unique<SchemaCatalogEntry>(this, info->schema, info->internal, this->catalog_segment);
 	auto result = entry.get();
 	if (!schemas->CreateEntry(context, info->schema, move(entry), dependencies)) {
 		if (info->on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
