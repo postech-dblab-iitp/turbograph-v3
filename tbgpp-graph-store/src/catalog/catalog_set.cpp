@@ -50,7 +50,10 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
-	entries = catalog_segment->construct<EntriesHashMap>("entries")
+	mapping = catalog_segment->construct<MappingUnorderedMap>("mapping")
+		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
+		catalog_segment->get_allocator<map_value_type>());
+	entries = catalog_segment->construct<EntriesUnorderedMap>("entries")
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
 		catalog_segment->get_allocator<ValueType>());
 	current_entry = catalog_segment->construct<idx_t>("current_entry")(0);
@@ -290,13 +293,13 @@ void CatalogSet::CleanupEntry(CatalogEntry *catalog_entry) {
 		auto parent = catalog_entry->parent;
 		parent->child = move(catalog_entry->child);
 		if (parent->deleted && !parent->child && !parent->parent) {
-			auto mapping_entry = mapping.find(parent->name);
-			D_ASSERT(mapping_entry != mapping.end());
+			auto mapping_entry = mapping->find(parent->name.c_str());
+			D_ASSERT(mapping_entry != mapping->end());
 			auto index = mapping_entry->second->index;
 			auto entry = entries->find(index);
 			D_ASSERT(entry != entries->end());
 			if (entry->second.get() == parent) {
-				mapping.erase(mapping_entry);
+				mapping->erase(mapping_entry);
 				entries->erase(entry);
 			}
 		}
@@ -312,9 +315,9 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
 	MappingValue *mapping_value;
-	auto entry = mapping.find(name);
-	if (entry != mapping.end()) {
-		mapping_value = entry->second.get();
+	auto entry = mapping->find(name.c_str());
+	if (entry != mapping->end()) {
+		mapping_value = boost::interprocess::to_raw_pointer(entry->second.get());
 	} else {
 		return nullptr;
 	}
@@ -325,37 +328,45 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 		if (UseTimestamp(context, mapping_value->timestamp)) {
 			break;
 		}
-		mapping_value = mapping_value->child.get();
+		mapping_value = boost::interprocess::to_raw_pointer(mapping_value->child->get());
 		D_ASSERT(mapping_value);
 	}
 	return mapping_value;
 }
 
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
-	auto entry = mapping.find(name);
-	auto new_value = make_unique<MappingValue>(entry_index);
+	auto entry = mapping->find(name.c_str());
+	string new_value_name = "MappingValue" + std::to_string(entry_index);
+	auto new_value = boost::interprocess::make_managed_unique_ptr(
+		catalog_segment->construct<MappingValue>(new_value_name.c_str())(entry_index),
+		*catalog_segment);
+	//auto new_value = make_unique<MappingValue>(entry_index);
 	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
 	new_value->timestamp = 0;
-	if (entry != mapping.end()) {
+	if (entry != mapping->end()) {
 		if (HasConflict(context, entry->second->timestamp)) {
 			throw TransactionException("Catalog write-write conflict on name \"%s\"", name);
 		}
-		new_value->child = move(entry->second);
-		new_value->child->parent = new_value.get();
+		(*new_value->child) = move(entry->second);
+		(*new_value->child)->parent = boost::interprocess::to_raw_pointer(new_value.get());
 	}
-	mapping[name] = move(new_value);
+	mapping->insert(map_value_type(name.c_str(), move(new_value)));
+	//mapping->insert_or_assign(name.c_str(), move(new_value));
+	//mapping[name] = move(new_value);
 }
 
 void CatalogSet::DeleteMapping(ClientContext &context, const string &name) {
-	auto entry = mapping.find(name);
-	D_ASSERT(entry != mapping.end());
+	D_ASSERT(false);
+	/*auto entry = mapping->find(name.c_str());
+	D_ASSERT(entry != mapping->end());
 	auto delete_marker = make_unique<MappingValue>(entry->second->index);
 	delete_marker->deleted = true;
 	//delete_marker->timestamp = Transaction::GetTransaction(context).transaction_id;
 	delete_marker->timestamp = 0;
 	delete_marker->child = move(entry->second);
 	delete_marker->child->parent = delete_marker.get();
-	mapping[name] = move(delete_marker);
+	//mapping->at(name.c_str()) = move(delete_marker);
+	mapping[name] = move(delete_marker);*/
 }
 
 bool CatalogSet::UseTimestamp(ClientContext &context, transaction_t timestamp) {
@@ -401,13 +412,13 @@ pair<string, idx_t> CatalogSet::SimilarEntry(ClientContext &context, const strin
 
 	string result;
 	idx_t current_score = (idx_t)-1;
-	for (auto &kv : mapping) {
-		auto mapping_value = GetMapping(context, kv.first);
+	for (auto &kv : *mapping) {
+		auto mapping_value = GetMapping(context, kv.first.c_str());
 		if (mapping_value && !mapping_value->deleted) {
-			auto ldist = StringUtil::LevenshteinDistance(kv.first, name);
+			auto ldist = StringUtil::LevenshteinDistance(kv.first.c_str(), name);
 			if (ldist < current_score) {
 				current_score = ldist;
-				result = kv.first;
+				result = kv.first.c_str();
 			}
 		}
 	}
@@ -415,7 +426,7 @@ pair<string, idx_t> CatalogSet::SimilarEntry(ClientContext &context, const strin
 }
 
 CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr<CatalogEntry> entry) {
-	if (mapping.find(entry->name) != mapping.end()) {
+	if (mapping->find(entry->name.c_str()) != mapping->end()) {
 		return nullptr;
 	}
 	auto &name = entry->name;
@@ -426,7 +437,8 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 	entry->timestamp = 0;
 
 	PutMapping(context, name, entry_index);
-	mapping[name]->timestamp = 0;
+	mapping->at(name.c_str())->timestamp = 0;
+	//mapping[name]->timestamp = 0;
 	//entries[entry_index] = move(entry); //TODO
 	return catalog_entry;
 }
@@ -474,7 +486,8 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 
 void CatalogSet::UpdateTimestamp(CatalogEntry *entry, transaction_t timestamp) {
 	entry->timestamp = timestamp;
-	mapping[entry->name]->timestamp = timestamp;
+	mapping->at(entry->name.c_str())->timestamp = timestamp;
+	//mapping[entry->name]->timestamp = timestamp;
 }
 
 void CatalogSet::AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &column, bool remove) {
@@ -523,6 +536,8 @@ void CatalogSet::AdjustTableDependencies(CatalogEntry *entry) {
 }
 
 void CatalogSet::Undo(CatalogEntry *entry) {
+	D_ASSERT(false);
+	/*
 	lock_guard<mutex> write_lock(catalog.write_lock);
 
 	lock_guard<mutex> lock(catalog_lock);
@@ -541,12 +556,12 @@ void CatalogSet::Undo(CatalogEntry *entry) {
 	}
 	if (entry->name != to_be_removed_node->name) {
 		// rename: clean up the new name when the rename is rolled back
-		auto removed_entry = mapping.find(to_be_removed_node->name);
+		auto removed_entry = mapping->find(to_be_removed_node->name.c_str());
 		if (removed_entry->second->child) {
 			removed_entry->second->child->parent = nullptr;
 			mapping[to_be_removed_node->name] = move(removed_entry->second->child);
 		} else {
-			mapping.erase(removed_entry);
+			mapping->erase(removed_entry);
 		}
 	}
 	if (to_be_removed_node->parent) {
@@ -563,17 +578,18 @@ void CatalogSet::Undo(CatalogEntry *entry) {
 	}
 
 	// restore the name if it was deleted
-	auto restored_entry = mapping.find(entry->name);
+	auto restored_entry = mapping->find(entry->name.c_str());
 	if (restored_entry->second->deleted || entry->type == CatalogType::INVALID) {
 		if (restored_entry->second->child) {
 			restored_entry->second->child->parent = nullptr;
 			mapping[entry->name] = move(restored_entry->second->child);
 		} else {
-			mapping.erase(restored_entry);
+			mapping->erase(restored_entry);
 		}
 	}
 	// we mark the catalog as being modified, since this action can lead to e.g. tables being dropped
 	entry->catalog->ModifyCatalog();
+	*/
 }
 
 void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEntry *)> &callback) {
@@ -583,8 +599,8 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 		// this catalog set has a default set defined:
 		auto default_entries = defaults->GetDefaultEntries();
 		for (auto &default_entry : default_entries) {
-			auto map_entry = mapping.find(default_entry);
-			if (map_entry == mapping.end()) {
+			auto map_entry = mapping->find(default_entry.c_str());
+			if (map_entry == mapping->end()) {
 				// we unlock during the CreateEntry, since it might reference other catalog sets...
 				// specifically for views this can happen since the view will be bound
 				lock.unlock();
