@@ -49,7 +49,7 @@ class SchemaCatalogEntry : public CatalogEntry {
 	friend class Catalog;
 
 public:
-	SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal);
+	SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal, boost::interprocess::managed_shared_memory *&catalog_segment);
 
 private:
 	//! The catalog set holding the graphs
