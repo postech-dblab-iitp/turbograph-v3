@@ -170,7 +170,8 @@ private:
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 	ChunkDefinitionCatalogEntry *AddChunkDefinitionEntry(ClientContext &context, chunkdefinition_unique_ptr_type entry,
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-
+	bool AddEntryInternal(ClientContext &context, boost::interprocess::offset_ptr<CatalogEntry> entry, string &entry_name, CatalogType &entry_type,
+                                           OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 
 	//! Get the catalog set for the specified type
 	CatalogSet &GetCatalogSet(CatalogType type);

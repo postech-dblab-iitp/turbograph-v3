@@ -39,7 +39,7 @@ public:
 	//! Create a real GraphCatalogEntry
 	ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info);
 
-	LogicalType type;
+	LogicalType data_type;
 	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
 public:
 

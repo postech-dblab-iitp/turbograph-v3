@@ -79,7 +79,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 		entry_index = *current_entry;
 		*current_entry = entry_index + 1;
 		ValueType dummy_node = ValueType(entry_index, 
-			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment));
+			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node.second->timestamp = 0;
 		dummy_node.second->deleted = true;
 		dummy_node.second->set = this;
@@ -119,8 +119,69 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 	return true;
 }
 
+bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
+                             unordered_set<CatalogEntry *> &dependencies) {
+	//auto &transaction = Transaction::GetTransaction(context);
+	// lock the catalog for writing
+	lock_guard<mutex> write_lock(catalog.write_lock);
+	// lock this catalog set to disallow reading
+	lock_guard<mutex> read_lock(catalog_lock);
+
+	// first check if the entry exists in the unordered set
+	idx_t entry_index;
+	auto mapping_value = GetMapping(context, name);
+	if (mapping_value == nullptr || mapping_value->deleted) {
+		// if it does not: entry has never been created
+
+		// first create a dummy deleted entry for this entry
+		// so transactions started before the commit of this transaction don't
+		// see it yet
+		entry_index = *current_entry;
+		*current_entry = entry_index + 1;
+		ValueType dummy_node = ValueType(entry_index, 
+			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
+		dummy_node.second->timestamp = 0;
+		dummy_node.second->deleted = true;
+		dummy_node.second->set = this;
+
+		entries->insert_or_assign(entry_index, move(dummy_node.second));
+		PutMapping(context, name, entry_index);
+	} else {
+		entry_index = mapping_value->index;
+		auto &current = *entries->at(entry_index);
+		// if it does, we have to check version numbers
+		if (HasConflict(context, current.timestamp)) {
+			// current version has been written to by a currently active
+			// transaction
+			throw TransactionException("Catalog write-write conflict on create with \"%s\"", current.name);
+		}
+		// there is a current version that has been committed
+		// if it has not been deleted there is a conflict
+		if (!current.deleted) {
+			return false;
+		}
+	}
+	// create a new entry and replace the currently stored one
+	// set the timestamp to the timestamp of the current transaction
+	// and point it at the dummy node
+	//value->timestamp = transaction.transaction_id;
+	value->timestamp = 0;
+	value->set = this;
+
+	// now add the dependency set of this object to the dependency manager
+	catalog.dependency_manager->AddObject(context, value.get(), dependencies);
+
+	//value->child = move(entries[entry_index]); //TODO
+	value->child->parent = value.get();
+	// push the old entry in the undo buffer for this transaction
+	//transaction.PushCatalogEntry(value->child.get());
+	//entries[entry_index] = move(value); //TODO
+	entries->insert_or_assign(entry_index, boost::move(value));
+	return true;
+}
+
 bool CatalogSet::GetEntryInternal(ClientContext &context, idx_t entry_index, CatalogEntry *&catalog_entry) {
-	catalog_entry = boost::interprocess::to_raw_pointer(entries->at(entry_index).get());
+	catalog_entry = entries->at(entry_index).get();
 	// if it does: we have to retrieve the entry and to check version numbers
 	if (HasConflict(context, catalog_entry->timestamp)) {
 		// current version has been written to by a currently active
@@ -456,7 +517,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		// we found an entry for this name
 		// check the version numbers
 
-		auto catalog_entry = boost::interprocess::to_raw_pointer(entries->at(mapping_value->index).get());
+		auto catalog_entry = entries->at(mapping_value->index).get();
 		CatalogEntry *current = GetEntryForTransaction(context, catalog_entry);
 		if (current->deleted || (current->name != name && !UseTimestamp(context, mapping_value->timestamp))) {
 			return nullptr;
@@ -622,7 +683,7 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 		defaults->created_all_entries = true;
 	}
 	for (auto &kv : *entries) {
-		auto entry = boost::interprocess::to_raw_pointer(kv.second.get());
+		auto entry = kv.second.get();
 		entry = GetEntryForTransaction(context, entry);
 		if (!entry->deleted) {
 			callback(entry);
@@ -634,7 +695,7 @@ void CatalogSet::Scan(const std::function<void(CatalogEntry *)> &callback) {
 	// lock the catalog set
 	lock_guard<mutex> lock(catalog_lock);
 	for (auto &kv : *entries) {
-		auto entry = boost::interprocess::to_raw_pointer(kv.second.get());
+		auto entry = kv.second.get();
 		entry = GetCommittedEntry(entry);
 		if (!entry->deleted) {
 			callback(entry);
