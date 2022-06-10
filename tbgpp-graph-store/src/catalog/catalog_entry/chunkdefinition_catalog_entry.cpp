@@ -11,11 +11,11 @@ namespace duckdb {
 ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info)
     : StandardEntry(CatalogType::EXTENT_ENTRY, schema, catalog, info->chunkdefinition) {
 	this->temporary = info->temporary;
-	this->type = info->type;
+	this->data_type = info->type;
 }
 
 unique_ptr<CatalogEntry> ChunkDefinitionCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreateChunkDefinitionInfo>(schema->name, name, type);
+	auto create_info = make_unique<CreateChunkDefinitionInfo>(schema->name, name, data_type);
 	return make_unique<ChunkDefinitionCatalogEntry>(catalog, schema, create_info.get());
 }
 

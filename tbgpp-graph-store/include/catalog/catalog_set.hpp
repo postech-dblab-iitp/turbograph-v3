@@ -38,10 +38,11 @@ typedef boost::interprocess::allocator<char, segment_manager_t> char_allocator;
 typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
 
 typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type unique_ptr_type;
+typedef boost::interprocess::offset_ptr<CatalogEntry> catalog_entry_offset_ptr;
 typedef	boost::interprocess::deleter<CatalogEntry, segment_manager_t> deleter_type;
-typedef std::pair<const idx_t, unique_ptr_type> ValueType;
+typedef std::pair<const idx_t, catalog_entry_offset_ptr> ValueType;
 typedef boost::interprocess::allocator<ValueType, segment_manager_t> ShmemAllocator;
-typedef boost::unordered_map< idx_t, unique_ptr_type
+typedef boost::unordered_map< idx_t, catalog_entry_offset_ptr
 			, boost::hash<idx_t>, std::equal_to<idx_t>
 			, ShmemAllocator> 
 EntriesUnorderedMap;
@@ -98,6 +99,8 @@ public:
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
 	DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
+	                            unordered_set<CatalogEntry *> &dependencies);
+	DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
 	                            unordered_set<CatalogEntry *> &dependencies);
 
 	DUCKDB_API bool AlterEntry(ClientContext &context, const string &name, AlterInfo *alter_info);
