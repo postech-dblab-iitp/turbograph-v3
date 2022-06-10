@@ -49,6 +49,7 @@ file(GLOB CACHE_TEST_SRC
 
 file(GLOB CATALOG_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_single_thread.cc"
+  "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
 )
 
 find_package(Catch2 REQUIRED)
