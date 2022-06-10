@@ -19,6 +19,11 @@ class StandardEntry;
 class TableCatalogEntry;
 class TableFunctionCatalogEntry;
 class SequenceCatalogEntry;
+class GraphCatalogEntry;
+class PartitionCatalogEntry;
+class PropertySchemaCatalogEntry;
+class ExtentCatalogEntry;
+class ChunkDefinitionCatalogEntry;
 class Serializer;
 class Deserializer;
 
@@ -46,6 +51,12 @@ struct DropInfo;
 
 //! A schema in the catalog
 class SchemaCatalogEntry : public CatalogEntry {
+	typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<GraphCatalogEntry, boost::interprocess::managed_shared_memory>::type graph_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<PartitionCatalogEntry, boost::interprocess::managed_shared_memory>::type partition_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<PropertySchemaCatalogEntry, boost::interprocess::managed_shared_memory>::type propertyschema_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<ExtentCatalogEntry, boost::interprocess::managed_shared_memory>::type extent_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<ChunkDefinitionCatalogEntry, boost::interprocess::managed_shared_memory>::type chunkdefinition_unique_ptr_type;
 	friend class Catalog;
 
 public:
@@ -83,6 +94,7 @@ private:
 	//! The catalog set holding the types
 	CatalogSet types;
 	*/
+	boost::interprocess::managed_shared_memory *catalog_segment;
 
 public:
 	//! Scan the specified catalog set, invoking the callback method for every entry
@@ -148,6 +160,17 @@ private:
 	//! Add a catalog entry to this schema
 	CatalogEntry *AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry, OnCreateConflict on_conflict,
 	                       unordered_set<CatalogEntry *> dependencies);
+	GraphCatalogEntry *AddGraphEntry(ClientContext &context, graph_unique_ptr_type entry,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
+	PartitionCatalogEntry *AddPartitionEntry(ClientContext &context, partition_unique_ptr_type entry,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
+	PropertySchemaCatalogEntry *AddPropertySchemaEntry(ClientContext &context, propertyschema_unique_ptr_type entry,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
+	ExtentCatalogEntry *AddExtentEntry(ClientContext &context, extent_unique_ptr_type entry,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
+	ChunkDefinitionCatalogEntry *AddChunkDefinitionEntry(ClientContext &context, chunkdefinition_unique_ptr_type entry,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
+
 
 	//! Get the catalog set for the specified type
 	CatalogSet &GetCatalogSet(CatalogType type);

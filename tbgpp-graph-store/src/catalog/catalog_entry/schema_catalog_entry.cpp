@@ -93,6 +93,7 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog, catalog_segment), partitions(*catalog, catalog_segment),
 	propertyschemas(*catalog, catalog_segment), extents(*catalog, catalog_segment), chunkdefinitions(*catalog, catalog_segment) {
 	this->internal = internal;
+	this->catalog_segment = catalog_segment;
 }
 
 CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry,
@@ -138,29 +139,71 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<St
 	return AddEntry(context, move(entry), on_conflict, dependencies);
 }
 
+GraphCatalogEntry *SchemaCatalogEntry::AddGraphEntry(ClientContext &context, graph_unique_ptr_type entry,
+                                           OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies) {
+	auto entry_name = entry->name;
+	auto entry_type = entry->type;
+	auto result = entry.get();
+
+	// first find the set for this entry
+	auto &set = GetCatalogSet(entry_type);
+
+	if (name != TEMP_SCHEMA) {
+		dependencies.insert(this);
+	} else {
+		entry->temporary = true;
+	}
+	if (on_conflict == OnCreateConflict::REPLACE_ON_CONFLICT) {
+		// CREATE OR REPLACE: first try to drop the entry
+		auto old_entry = set.GetEntry(context, entry_name);
+		if (old_entry) {
+			if (old_entry->type != entry_type) {
+				throw CatalogException("Existing object %s is of type %s, trying to replace with type %s", entry_name,
+				                       CatalogTypeToString(old_entry->type), CatalogTypeToString(entry_type));
+			}
+			(void)set.DropEntry(context, entry_name, false);
+		}
+	}
+	// now try to add the entry
+	if (!set.CreateEntry(context, entry_name, move(entry), dependencies)) {
+		// entry already exists!
+		if (on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
+			throw CatalogException("%s with name \"%s\" already exists!", CatalogTypeToString(entry_type), entry_name);
+		} else {
+			return nullptr;
+		}
+	}
+	return result;
+}
+
+
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
-	auto graph = make_unique<GraphCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(graph), info->on_conflict);
+	unordered_set<CatalogEntry *> dependencies;
+	auto graph = boost::interprocess::make_managed_unique_ptr(
+		catalog_segment->construct<GraphCatalogEntry>("")(catalog, this, info),
+		*catalog_segment);
+	//auto graph = make_unique<GraphCatalogEntry>(catalog, this, info);
+	return AddGraphEntry(context, move(graph), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	auto partition = make_unique<PartitionCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(partition), info->on_conflict);
+	return AddPartitionEntry(context, move(partition), info->on_conflict);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	auto propertyschema = make_unique<PropertySchemaCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(propertyschema), info->on_conflict);
+	return AddPropertySchemaEntry(context, move(propertyschema), info->on_conflict);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	auto extent = make_unique<ExtentCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(extent), info->on_conflict);
+	return AddExtentEntry(context, move(extent), info->on_conflict);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	auto chunkdefinition = make_unique<ChunkDefinitionCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(chunkdefinition), info->on_conflict);
+	return AddChunkDefinitionEntry(context, move(chunkdefinition), info->on_conflict);
 }
 
 /*

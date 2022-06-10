@@ -293,7 +293,7 @@ void CatalogSet::CleanupEntry(CatalogEntry *catalog_entry) {
 		auto parent = catalog_entry->parent;
 		parent->child = move(catalog_entry->child);
 		if (parent->deleted && !parent->child && !parent->parent) {
-			auto mapping_entry = mapping->find(parent->name.c_str());
+			/*auto mapping_entry = mapping->find(parent->name.c_str());
 			D_ASSERT(mapping_entry != mapping->end());
 			auto index = mapping_entry->second->index;
 			auto entry = entries->find(index);
@@ -301,7 +301,7 @@ void CatalogSet::CleanupEntry(CatalogEntry *catalog_entry) {
 			if (entry->second.get() == parent) {
 				mapping->erase(mapping_entry);
 				entries->erase(entry);
-			}
+			}*/
 		}
 	}
 }
@@ -315,7 +315,10 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
 	MappingValue *mapping_value;
-	auto entry = mapping->find(name.c_str());
+	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+	char_string name_(temp_charallocator);
+	name_ = name.c_str();
+	auto entry = mapping->find(name_);
 	if (entry != mapping->end()) {
 		mapping_value = boost::interprocess::to_raw_pointer(entry->second.get());
 	} else {
@@ -335,7 +338,10 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 }
 
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
-	auto entry = mapping->find(name.c_str());
+	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+	char_string name_(temp_charallocator);
+	name_ = name.c_str();
+	auto entry = mapping->find(name_);
 	string new_value_name = "MappingValue" + std::to_string(entry_index);
 	auto new_value = boost::interprocess::make_managed_unique_ptr(
 		catalog_segment->construct<MappingValue>(new_value_name.c_str())(entry_index),
@@ -350,7 +356,7 @@ void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t en
 		(*new_value->child) = move(entry->second);
 		(*new_value->child)->parent = boost::interprocess::to_raw_pointer(new_value.get());
 	}
-	mapping->insert(map_value_type(name.c_str(), move(new_value)));
+	mapping->insert(map_value_type(name_, move(new_value)));
 	//mapping->insert_or_assign(name.c_str(), move(new_value));
 	//mapping[name] = move(new_value);
 }
@@ -426,9 +432,9 @@ pair<string, idx_t> CatalogSet::SimilarEntry(ClientContext &context, const strin
 }
 
 CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr<CatalogEntry> entry) {
-	if (mapping->find(entry->name.c_str()) != mapping->end()) {
+	/*if (mapping->find(entry->name.c_str()) != mapping->end()) {
 		return nullptr;
-	}
+	}*/
 	auto &name = entry->name;
 	auto entry_index = *current_entry;
 	*current_entry = entry_index + 1;
@@ -437,7 +443,7 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 	entry->timestamp = 0;
 
 	PutMapping(context, name, entry_index);
-	mapping->at(name.c_str())->timestamp = 0;
+	//mapping->at(name.c_str())->timestamp = 0;
 	//mapping[name]->timestamp = 0;
 	//entries[entry_index] = move(entry); //TODO
 	return catalog_entry;
@@ -486,7 +492,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 
 void CatalogSet::UpdateTimestamp(CatalogEntry *entry, transaction_t timestamp) {
 	entry->timestamp = timestamp;
-	mapping->at(entry->name.c_str())->timestamp = timestamp;
+	//mapping->at(entry->name.c_str())->timestamp = timestamp;
 	//mapping[entry->name]->timestamp = timestamp;
 }
 
@@ -598,8 +604,11 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 	if (defaults && !defaults->created_all_entries) {
 		// this catalog set has a default set defined:
 		auto default_entries = defaults->GetDefaultEntries();
+		char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+		char_string default_entry_(temp_charallocator);
 		for (auto &default_entry : default_entries) {
-			auto map_entry = mapping->find(default_entry.c_str());
+			default_entry_ = default_entry.c_str();
+			auto map_entry = mapping->find(default_entry_);
 			if (map_entry == mapping->end()) {
 				// we unlock during the CreateEntry, since it might reference other catalog sets...
 				// specifically for views this can happen since the view will be bound
