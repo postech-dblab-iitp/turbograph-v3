@@ -46,13 +46,14 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 	return schema->name + "." + name;
 }
 
-Catalog::Catalog(DatabaseInstance &db)
-    : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment, make_unique<DefaultSchemaGenerator>(*this))),
+Catalog::Catalog(DatabaseInstance &db, boost::interprocess::managed_shared_memory *&catalog_segment_)
+    : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
 
 	// Connect to shared memory
-	catalog_segment = new boost::interprocess::managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
+	catalog_segment = catalog_segment_;
+	//catalog_segment = new boost::interprocess::managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
 }
 Catalog::~Catalog() {
 }
@@ -202,10 +203,15 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 		throw CatalogException("Cannot create built-in schema \"%s\"", info->schema);
 	}
 
+	fprintf(stdout, "FUCK12\n");
 	unordered_set<CatalogEntry *> dependencies;
-	auto entry = make_unique<SchemaCatalogEntry>(this, info->schema, info->internal, this->catalog_segment);
-	auto result = entry.get();
-	if (!schemas->CreateEntry(context, info->schema, move(entry), dependencies)) {
+	string schema_cat_name_in_shm = "schemacatalogentry" + info->schema;
+	auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
+			(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
+	fprintf(stdout, "FUCK13\n");
+	auto result = boost::interprocess::to_raw_pointer(entry.get());
+	fprintf(stdout, "FUCK14\n");
+	if (!schemas->CreateEntry(context, info->schema, move(entry.get()), dependencies)) {
 		if (info->on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
 			throw CatalogException("Schema with name %s already exists!", info->schema);
 		} else {
@@ -213,6 +219,7 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 		}
 		return nullptr;
 	}
+	fprintf(stdout, "FUCK15\n");
 	return result;
 }
 
