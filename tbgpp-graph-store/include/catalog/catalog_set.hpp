@@ -176,5 +176,6 @@ private:
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager
 	boost::interprocess::managed_shared_memory *catalog_segment;
+	string catalog_set_name;
 };
 } // namespace duckdb

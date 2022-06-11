@@ -10,6 +10,7 @@
 //#include "main/connection_manager.hpp"
 //#include "function/compression_function.hpp"
 //#include "main/extension_helper.hpp"
+#include "common/boost.hpp"
 
 #ifndef DUCKDB_NO_THREADS
 #include "common/thread.hpp"
@@ -124,7 +125,14 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 
 	//storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
-	catalog = make_unique<Catalog>(*this);
+	fprintf(stdout, "FUFUCK\n");
+	struct shm_remove
+   	{
+    	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+    	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+   	} remover;
+	boost::interprocess::managed_shared_memory *catalog_shm = new boost::interprocess::managed_shared_memory(boost::interprocess::open_or_create, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
+	catalog = make_unique<Catalog>(*this, catalog_shm);
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);
 	//object_cache = make_unique<ObjectCache>();

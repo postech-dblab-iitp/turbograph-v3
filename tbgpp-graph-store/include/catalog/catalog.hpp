@@ -86,7 +86,7 @@ class Catalog {
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
 	
 public:
-	explicit Catalog(DatabaseInstance &db);
+	explicit Catalog(DatabaseInstance &db, boost::interprocess::managed_shared_memory *&catalog_segment);
 	~Catalog();
 
 	//! Reference to the database

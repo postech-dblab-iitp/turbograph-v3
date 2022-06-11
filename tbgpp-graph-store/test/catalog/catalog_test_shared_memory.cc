@@ -49,13 +49,16 @@ TEST_CASE ("Create a graph catalog", "[catalog]") {
   std::shared_ptr<ClientContext> client = 
     std::make_shared<ClientContext>(database->instance->shared_from_this());
 
+  fprintf(stdout, "FUCK1111111\n");
   CreateSchemaInfo schema_info;
   cat_instance.CreateSchema(*client.get(), &schema_info);
 
+  fprintf(stdout, "FUCK1111112\n");
   CreateGraphInfo graph_info("main", "graph1");
   cat_instance.CreateGraph(*client.get(), &graph_info);
+  fprintf(stdout, "FUCK1111113\n");
 }
-
+/*
 TEST_CASE ("Create multiple graph catalogs", "[catalog]") {
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
@@ -390,7 +393,7 @@ TEST_CASE ("Change delta store to extent store", "[catalog]") {
 
   extent_cat->SetExtentType(ExtentType::EXTENT);
 }
-
+*/
 TEST_CASE ("Create vertex and edge extents", "[catalog]") {
 }
 
