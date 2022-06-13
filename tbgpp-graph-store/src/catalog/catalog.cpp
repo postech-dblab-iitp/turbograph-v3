@@ -47,7 +47,7 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 }
 
 Catalog::Catalog(DatabaseInstance &db, boost::interprocess::managed_shared_memory *&catalog_segment_)
-    : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, make_unique<DefaultSchemaGenerator>(*this))),
+    : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
 
@@ -205,7 +205,8 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 
 	fprintf(stdout, "FUCK12\n");
 	unordered_set<CatalogEntry *> dependencies;
-	string schema_cat_name_in_shm = "schemacatalogentry" + info->schema;
+	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
+	fprintf(stdout, "Name = %s\n", schema_cat_name_in_shm.c_str());
 	auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
 			(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
 	fprintf(stdout, "FUCK13\n");

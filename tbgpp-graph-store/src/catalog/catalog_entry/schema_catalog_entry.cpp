@@ -90,8 +90,8 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 }
 
 SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, boost::interprocess::managed_shared_memory *&catalog_segment)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog, catalog_segment), partitions(*catalog, catalog_segment),
-	propertyschemas(*catalog, catalog_segment), extents(*catalog, catalog_segment), chunkdefinitions(*catalog, catalog_segment) {
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog, catalog_segment, this->name + "_graphs"), partitions(*catalog, catalog_segment, this->name + "_partitions"),
+	propertyschemas(*catalog, catalog_segment, this->name + "_propertyschemas"), extents(*catalog, catalog_segment, this->name + "_extents"), chunkdefinitions(*catalog, catalog_segment, this->name + "_chunkdefinitions") {
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
 }
@@ -226,7 +226,7 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	auto graph = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<GraphCatalogEntry>("")(catalog, this, info),
+		catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
 		*catalog_segment);
 	return AddGraphEntry(context, move(graph), info->on_conflict, dependencies);
 }
@@ -234,7 +234,7 @@ CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGrap
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	auto partition = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<PartitionCatalogEntry>("")(catalog, this, info),
+		catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
 		*catalog_segment);
 	return AddPartitionEntry(context, move(partition), info->on_conflict, dependencies);
 }
@@ -242,7 +242,7 @@ CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, Create
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	auto propertyschema = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<PropertySchemaCatalogEntry>("")(catalog, this, info),
+		catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
 		*catalog_segment);
 	return AddPropertySchemaEntry(context, move(propertyschema), info->on_conflict, dependencies);
 }
@@ -250,7 +250,7 @@ CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, C
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	auto extent = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<ExtentCatalogEntry>("")(catalog, this, info),
+		catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
 		*catalog_segment);
 	return AddExtentEntry(context, move(extent), info->on_conflict, dependencies);
 }
@@ -258,7 +258,7 @@ CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExt
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<ChunkDefinitionCatalogEntry>("")(catalog, this, info),
+		catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
 		*catalog_segment);
 	return AddChunkDefinitionEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
 }

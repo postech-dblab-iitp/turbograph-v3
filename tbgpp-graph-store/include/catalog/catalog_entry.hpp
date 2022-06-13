@@ -12,6 +12,7 @@
 #include "common/enums/catalog_type.hpp"
 #include "common/exception.hpp"
 #include "common/atomic.hpp"
+#include "common/boost.hpp"
 
 #include <memory>
 
@@ -46,9 +47,11 @@ public:
 	//! Timestamp at which the catalog entry was created
 	atomic<transaction_t> timestamp;
 	//! Child entry
-	unique_ptr<CatalogEntry> child;
+	//unique_ptr<CatalogEntry> child;
+	boost::interprocess::offset_ptr<CatalogEntry> child;
 	//! Parent entry (the node that dependents_map this node)
-	CatalogEntry *parent;
+	//CatalogEntry *parent;
+	boost::interprocess::offset_ptr<CatalogEntry> parent;
 
 public:
 	virtual unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info);
