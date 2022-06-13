@@ -125,7 +125,6 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 
 	//storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
-	fprintf(stdout, "FUFUCK\n");
 	struct shm_remove
    	{
     	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }

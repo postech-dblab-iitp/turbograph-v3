@@ -94,7 +94,7 @@ class CatalogSet {
 
 public:
 	DUCKDB_API explicit CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
-	DUCKDB_API explicit CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *&catalog_segment_, unique_ptr<DefaultGenerator> defaults = nullptr);
+	DUCKDB_API explicit CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.

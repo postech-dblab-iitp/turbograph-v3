@@ -48,15 +48,19 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 	*current_entry = 0;
 }
 
-CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, unique_ptr<DefaultGenerator> defaults)
+CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
-	mapping = catalog_segment->construct<MappingUnorderedMap>("mapping")
+	this->catalog_set_name = catalog_set_name_;
+	string mapping_name = catalog_set_name_ + "_mapping";
+	mapping = catalog_segment->construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
 		catalog_segment->get_allocator<map_value_type>());
-	entries = catalog_segment->construct<EntriesUnorderedMap>("entries")
+	string entries_name = catalog_set_name_ + "_entries";
+	entries = catalog_segment->construct<EntriesUnorderedMap>(entries_name.c_str())
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
 		catalog_segment->get_allocator<ValueType>());
-	current_entry = catalog_segment->construct<idx_t>("current_entry")(0);
+	string current_entry_name = catalog_set_name_ + "_current_entry";
+	current_entry = catalog_segment->construct<idx_t>(current_entry_name.c_str())(0);
 }
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -78,8 +82,10 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 		// see it yet
 		entry_index = *current_entry;
 		*current_entry = entry_index + 1;
+
+		string dummy_name = "dummy" + std::to_string(entry_index);
 		ValueType dummy_node = ValueType(entry_index, 
-			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
+			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node.second->timestamp = 0;
 		dummy_node.second->deleted = true;
 		dummy_node.second->set = this;
@@ -138,8 +144,10 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::
 		// see it yet
 		entry_index = *current_entry;
 		*current_entry = entry_index + 1;
+
+		string dummy_name = "dummy" + std::to_string(entry_index);
 		ValueType dummy_node = ValueType(entry_index, 
-			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>("")(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
+			boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node.second->timestamp = 0;
 		dummy_node.second->deleted = true;
 		dummy_node.second->set = this;
@@ -172,6 +180,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::
 	catalog.dependency_manager->AddObject(context, value.get(), dependencies);
 
 	//value->child = move(entries[entry_index]); //TODO
+	value->child = move(entries->at(entry_index).get());
 	value->child->parent = value.get();
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
@@ -558,7 +567,8 @@ void CatalogSet::UpdateTimestamp(CatalogEntry *entry, transaction_t timestamp) {
 }
 
 void CatalogSet::AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &column, bool remove) {
-	CatalogEntry *enum_type_catalog = (CatalogEntry *)EnumType::GetCatalog(column.type);
+	D_ASSERT(false);
+	/*CatalogEntry *enum_type_catalog = (CatalogEntry *)EnumType::GetCatalog(column.type);
 	if (enum_type_catalog) {
 		if (remove) {
 			catalog.dependency_manager->dependents_map[enum_type_catalog].erase(entry->parent);
@@ -567,7 +577,7 @@ void CatalogSet::AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &col
 			catalog.dependency_manager->dependents_map[enum_type_catalog].insert(entry);
 			catalog.dependency_manager->dependencies_map[entry].insert(enum_type_catalog);
 		}
-	}
+	}*/
 }
 
 /*void CatalogSet::AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table, ColumnDefinition &column,
