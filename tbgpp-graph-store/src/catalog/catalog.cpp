@@ -63,8 +63,6 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 }
 
 CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
-	fprintf(stdout, "Catalog::CreateGraph Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
-
 	/*const_named_it named_beg = catalog_segment->named_begin();
 	const_named_it named_end = catalog_segment->named_end();
 	fprintf(stdout, "All named object list\n");
@@ -208,7 +206,6 @@ CatalogEntry *Catalog::CreateCollation(ClientContext &context, SchemaCatalogEntr
 }*/
 
 CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *info) {
-	fprintf(stdout, "CreateSchema Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	D_ASSERT(!info->schema.empty());
 	if (info->schema == TEMP_SCHEMA) {
 		throw CatalogException("Cannot create built-in schema \"%s\"", info->schema);
@@ -216,7 +213,6 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
-	fprintf(stdout, "Name = %s\n", schema_cat_name_in_shm.c_str());
 	auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, info->schema, info->internal, this->catalog_segment);
 	auto result = (CatalogEntry*) entry;
 	//auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
@@ -231,7 +227,6 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 		}
 		return nullptr;
 	}
-	fprintf(stdout, "CreateSchema After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return result;
 }
 

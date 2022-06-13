@@ -50,7 +50,6 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
-	fprintf(stdout, "CatalogSet Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->construct<MappingUnorderedMap>(mapping_name.c_str())
@@ -62,12 +61,10 @@ CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_mem
 		catalog_segment->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment->construct<idx_t>(current_entry_name.c_str())(0);
-	fprintf(stdout, "CatalogSet After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
                              unordered_set<CatalogEntry *> &dependencies) {
-	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -126,13 +123,11 @@ CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_mem
 	//transaction.PushCatalogEntry(value->child.get());
 	//entries[entry_index] = move(value); //TODO
 	D_ASSERT(false);
-	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return true;
 }*/
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
                              unordered_set<CatalogEntry *> &dependencies) {
-	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -191,13 +186,11 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
 	entries->at(entry_index) = move(value);
-	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return true;
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
                              unordered_set<CatalogEntry *> &dependencies) {
-	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -257,7 +250,6 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 	//transaction.PushCatalogEntry(value->child.get());
 	//entries[entry_index] = move(value); //TODO
 	entries->insert_or_assign(entry_index, boost::move(value));
-	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return true;
 }*/
 
@@ -480,7 +472,6 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 }
 
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
-	fprintf(stdout, "PutMapping Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
 	char_string name_(temp_charallocator);
 	name_ = name.c_str();
@@ -500,7 +491,6 @@ void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t en
 	mapping->insert(map_value_type(name_, move(new_value)));
 	//mapping->insert_or_assign(name.c_str(), move(new_value));
 	//mapping[name] = move(new_value);
-	fprintf(stdout, "PutMapping After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 }
 
 void CatalogSet::DeleteMapping(ClientContext &context, const string &name) {

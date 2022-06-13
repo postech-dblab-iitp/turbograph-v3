@@ -224,13 +224,11 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 }*/
 
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
-	fprintf(stdout, "CreateGraph Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	unordered_set<CatalogEntry *> dependencies;
 	auto graph = catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info);
 	//auto graph = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
 	//	*catalog_segment);
-	fprintf(stdout, "CreateGraph After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return AddEntry(context, move(graph), info->on_conflict, dependencies);
 }
 

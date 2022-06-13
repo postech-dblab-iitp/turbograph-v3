@@ -7,15 +7,17 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <thread>
 #include <vector>
 #include <memory>
 
 //#include "chunk_cache_manager.h"
-#include "catalog.hpp"
-#include "database.hpp"
-#include "client_context.hpp"
+#include "catalog/catalog.hpp"
+#include "main/database.hpp"
+#include "main/client_context.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
@@ -29,19 +31,60 @@ using namespace duckdb;
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>
 
+typedef boost::interprocess::managed_shared_memory::const_named_iterator const_named_it;
+
+void helper_deallocate_objects_in_shared_memory () {
+  string server_socket = "/tmp/catalog_server";
+  // setup unix domain socket with storage
+  int server_conn_ = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (server_conn_ < 0) {
+    perror("cannot socket");
+    exit(-1);
+  }
+
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  strncpy(addr.sun_path, server_socket.c_str(), server_socket.size());
+  addr.sun_family = AF_UNIX;
+  int status = connect(server_conn_, (struct sockaddr *)&addr, sizeof(addr));
+  if (status < 0) {
+    perror("cannot connect to the store");
+    exit(-1);
+  }
+
+  bool reinitialize_done = false;
+
+  int nbytes_recv = recv(server_conn_, &reinitialize_done, sizeof(bool), 0);
+  if (nbytes_recv != sizeof(bool)) {
+    perror("error receiving the reinitialize_done bit");
+    exit(-1);
+  }
+
+  if (!reinitialize_done) {
+    std::cerr << "Re-initialize failure!" << std::endl;
+    exit(-1);
+  }
+
+  fprintf(stdout, "Re-initialize shared memory\n");
+}
+
 bool helper_check_file_exists (const std::string& name) {
   struct stat buffer;
   return (stat (name.c_str(), &buffer) == 0); 
 }
 
-/*TEST_CASE ("Create Catalog Instance", "[catalog]") {
+TEST_CASE ("Create Catalog Instance", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   
   Catalog& cat_instance = database->instance->GetCatalog();
-}*/
+}
 
 TEST_CASE ("Create a graph catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -55,8 +98,10 @@ TEST_CASE ("Create a graph catalog", "[catalog]") {
   CreateGraphInfo graph_info("main", "graph1");
   cat_instance.CreateGraph(*client.get(), &graph_info);
 }
-/*
+
 TEST_CASE ("Create multiple graph catalogs", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -76,6 +121,8 @@ TEST_CASE ("Create multiple graph catalogs", "[catalog]") {
 }
 
 TEST_CASE ("Create a graph catalog with a name that already exists", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -94,6 +141,8 @@ TEST_CASE ("Create a graph catalog with a name that already exists", "[catalog]"
 }
 
 TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -115,6 +164,8 @@ TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create an edge partition catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -136,6 +187,8 @@ TEST_CASE ("Create an edge partition catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create a property schema catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -165,6 +218,8 @@ TEST_CASE ("Create a property schema catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create multiple property schemas in a partition catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -200,6 +255,8 @@ TEST_CASE ("Create multiple property schemas in a partition catalog", "[catalog]
 }
 
 TEST_CASE ("Create an extent catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -232,6 +289,8 @@ TEST_CASE ("Create an extent catalog", "[catalog]") {
 }
 
 TEST_CASE ("Create an chunk definition catalogs", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   // Create chunk definitions for each type
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
@@ -317,6 +376,8 @@ TEST_CASE ("Create an chunk definition catalogs", "[catalog]") {
 }
 
 TEST_CASE ("Get extent catalog", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -356,6 +417,8 @@ TEST_CASE ("Get extent catalog", "[catalog]") {
 }
 
 TEST_CASE ("Change delta store to extent store", "[catalog]") {
+  helper_deallocate_objects_in_shared_memory();
+
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -390,7 +453,7 @@ TEST_CASE ("Change delta store to extent store", "[catalog]") {
 
   extent_cat->SetExtentType(ExtentType::EXTENT);
 }
-*/
+
 TEST_CASE ("Create vertex and edge extents", "[catalog]") {
 }
 

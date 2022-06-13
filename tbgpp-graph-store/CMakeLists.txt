@@ -39,8 +39,8 @@ add_library(tbgpp-system-lib ${TBGPP_SYSTEM_SOURCES})
 target_compile_options(tbgpp-system-lib PRIVATE ${CXX_FLAGS})
 target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
 
-add_executable(store "${CACHE_SRC_DIR}/store.cc")
-target_link_libraries(store lightning)
+#add_executable(store "${CACHE_SRC_DIR}/store.cc")
+#target_link_libraries(store lightning)
 
 file(GLOB CACHE_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/cache/cache_test_single_thread.cc"
@@ -50,6 +50,7 @@ file(GLOB CACHE_TEST_SRC
 file(GLOB CATALOG_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_single_thread.cc"
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
+  "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
 )
 
 find_package(Catch2 REQUIRED)

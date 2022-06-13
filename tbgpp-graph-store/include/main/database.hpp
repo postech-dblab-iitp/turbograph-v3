@@ -11,6 +11,7 @@
 #include "common/common.hpp" // added
 #include "common/mutex.hpp"
 #include "common/winapi.hpp"
+#include "common/boost.hpp"
 //#include "main/config.hpp"
 //#include "main/extension.hpp"
 
@@ -59,6 +60,7 @@ private:
 	//unique_ptr<ObjectCache> object_cache;
 	//unique_ptr<ConnectionManager> connection_manager;
 	//unordered_set<std::string> loaded_extensions;
+	boost::interprocess::managed_shared_memory *catalog_shm;
 };
 
 //! The database object. This object holds the catalog and all the
