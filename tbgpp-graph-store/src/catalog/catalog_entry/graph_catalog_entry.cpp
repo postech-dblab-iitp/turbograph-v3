@@ -3,14 +3,17 @@
 #include "catalog/catalog.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "common/enums/graph_component_type.hpp"
+#include "main/client_context.hpp"
+#include "main/database.hpp"
 
 #include <memory>
 #include <algorithm>
 
 namespace duckdb {
 
-GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info)
-    : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph) {
+GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc)
+    : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph)
+	, vertexlabel_map(void_alloc), edgetype_map(void_alloc), propertykey_map(void_alloc) {
 	this->temporary = info->temporary;
 	vertex_label_id_version = 0;
 	edge_type_id_version = 0;
@@ -26,8 +29,9 @@ GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
 }
 
 unique_ptr<CatalogEntry> GraphCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreateGraphInfo>(schema->name, name);
-	return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
+	D_ASSERT(false);
+	//auto create_info = make_unique<CreateGraphInfo>(schema->name, name);
+	//return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
 }
 void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID edge_type_id) {
 	auto target_id = type_to_partition_index.find(edge_type_id);
@@ -41,14 +45,17 @@ void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid
 }
 
 void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, string type) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string type_(temp_charallocator);
+	type_ = type.c_str();
 	EdgeTypeID edge_type_id;
-	auto type_id = edgetype_map.find(type);
+	auto type_id = edgetype_map.find(type_);
 	if (type_id != edgetype_map.end()) {
 		// label found in label map
 		edge_type_id = type_id->second;
 	} else {
 		edge_type_id = GetEdgeTypeID();
-		edgetype_map.insert({type, edge_type_id});
+		edgetype_map.insert({type_, edge_type_id});
 	}
 	auto target_id = type_to_partition_index.find(edge_type_id);
 	if (target_id != type_to_partition_index.end()) {
@@ -75,15 +82,19 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 }
 
 void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string label_(temp_charallocator);
+	
 	for (size_t i = 0; i < labels.size(); i++) {
 		VertexLabelID vertex_label_id;
-		auto label_id = vertexlabel_map.find(labels[i]);
+		label_ = labels[i].c_str();
+		auto label_id = vertexlabel_map.find(label_);
 		if (label_id != vertexlabel_map.end()) {
 			// label found in label map
 			vertex_label_id = label_id->second;
 		} else {
 			vertex_label_id = GetVertexLabelID();
-			vertexlabel_map.insert({labels[i], vertex_label_id});
+			vertexlabel_map.insert({label_, vertex_label_id});
 		}
 		auto target_ids = label_to_partition_index.find(vertex_label_id);
 		if (target_ids != label_to_partition_index.end()) {
@@ -119,9 +130,13 @@ vector<PartitionID> GraphCatalogEntry::Intersection(vector<VertexLabelID>& label
 }
 
 PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string key_(temp_charallocator);
+
 	if (graph_component_type == GraphComponentType::EDGE) {
 		D_ASSERT(keys.size() == 1);
-		auto target_id = edgetype_map.find(keys[0]);
+		key_ = keys[0].c_str();
+		auto target_id = edgetype_map.find(key_);
 		if (target_id != edgetype_map.end()) {
 			// found
 			return type_to_partition_index[target_id->second];
@@ -136,7 +151,8 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 		vector<VertexLabelID> label_ids;
 		bool not_found = false;
 		for (size_t i = 0; i < key_len; i++) {
-			auto target_id = vertexlabel_map.find(keys[i]);
+			key_ = keys[i].c_str();
+			auto target_id = vertexlabel_map.find(key_);
 			if (target_id != vertexlabel_map.end()) {
 				label_ids.push_back(target_id->second);
 			} else {
@@ -156,8 +172,12 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 }
 
 void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string property_schema_(temp_charallocator);
+	
 	for (int i = 0; i < property_schemas.size(); i++) {
-		auto property_key_id = propertykey_map.find(property_schemas[i]);
+		property_schema_ = property_schemas[i].c_str();
+		auto property_key_id = propertykey_map.find(property_schema_);
 		if (property_key_id != propertykey_map.end()) {
 			property_key_ids.push_back(property_key_id->second);
 		} else {

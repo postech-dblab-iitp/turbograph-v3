@@ -225,7 +225,8 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto graph = catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto graph = catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info, alloc_inst);
 	//auto graph = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
 	//	*catalog_segment);
