@@ -125,12 +125,12 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 
 	//storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
-	struct shm_remove
-   	{
-    	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-    	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-   	} remover;
-	boost::interprocess::managed_shared_memory *catalog_shm = new boost::interprocess::managed_shared_memory(boost::interprocess::open_or_create, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024);
+	// struct shm_remove
+   	// {
+    // 	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+    // 	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
+   	// } remover;
+	catalog_shm = new boost::interprocess::managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
 	catalog = make_unique<Catalog>(*this, catalog_shm);
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);
