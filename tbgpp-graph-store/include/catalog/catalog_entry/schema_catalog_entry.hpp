@@ -51,6 +51,7 @@ struct DropInfo;
 
 //! A schema in the catalog
 class SchemaCatalogEntry : public CatalogEntry {
+	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
 	typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type unique_ptr_type;
 	typedef boost::interprocess::managed_unique_ptr<GraphCatalogEntry, boost::interprocess::managed_shared_memory>::type graph_unique_ptr_type;
 	typedef boost::interprocess::managed_unique_ptr<PartitionCatalogEntry, boost::interprocess::managed_shared_memory>::type partition_unique_ptr_type;

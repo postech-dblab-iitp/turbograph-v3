@@ -50,6 +50,7 @@ file(GLOB CACHE_TEST_SRC
 file(GLOB CATALOG_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_single_thread.cc"
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
+  "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory2.cc"
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
 )
 

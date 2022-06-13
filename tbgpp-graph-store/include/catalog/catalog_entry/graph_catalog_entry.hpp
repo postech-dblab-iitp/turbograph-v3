@@ -20,17 +20,36 @@ struct PartitionCatalogEntry;
 
 //! A graph catalog entry
 class GraphCatalogEntry : public StandardEntry {
+	typedef std::pair<const char_string, VertexLabelID> vertexlabel_id_map_value_type;
+	typedef std::pair<const char_string, EdgeTypeID> edgetype_id_map_value_type;
+	typedef std::pair<const char_string, PropertyKeyID> propertykey_id_map_value_type;
+	typedef boost::interprocess::allocator<vertexlabel_id_map_value_type, segment_manager_t> vertexlabel_id_map_value_type_allocator;
+	typedef boost::interprocess::allocator<edgetype_id_map_value_type, segment_manager_t> edgetype_id_map_value_type_allocator;
+	typedef boost::interprocess::allocator<propertykey_id_map_value_type, segment_manager_t> propertykey_id_map_value_type_allocator;
+	typedef boost::unordered_map< char_string, VertexLabelID
+       	, boost::hash<char_string>, std::equal_to<char_string>
+		, vertexlabel_id_map_value_type_allocator>
+	VertexLabelIDUnorderedMap;
+	typedef boost::unordered_map< char_string, EdgeTypeID
+       	, boost::hash<char_string>, std::equal_to<char_string>
+		, edgetype_id_map_value_type_allocator>
+	EdgeTypeIDUnorderedMap;
+	typedef boost::unordered_map< char_string, PropertyKeyID
+       	, boost::hash<char_string>, std::equal_to<char_string>
+		, propertykey_id_map_value_type_allocator>
+	PropertyKeyIDUnorderedMap;
+
 public:
 	//! Create a real GraphCatalogEntry
-	GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info);
+	GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc);
 
 	vector<PartitionID> vertex_partitions;
 	vector<PartitionID> edge_partitions;
 
 	// TODO: change map structure into.. what?
-	unordered_map<string, VertexLabelID> vertexlabel_map;
-	unordered_map<string, EdgeTypeID> edgetype_map;
-	unordered_map<string, PropertyKeyID> propertykey_map;
+	VertexLabelIDUnorderedMap vertexlabel_map;
+	EdgeTypeIDUnorderedMap edgetype_map;
+	PropertyKeyIDUnorderedMap propertykey_map;
 
 	unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	inverted_index_t<VertexLabelID, PartitionID> label_to_partition_index;
