@@ -35,16 +35,20 @@ struct AlterForeignKeyInfo;
 
 //! A partition catalog entry
 class PartitionCatalogEntry : public StandardEntry {
+	typedef boost::unordered_map< PropertyKeyID, PropertySchemaID_vector
+       	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
+		, property_to_propertyschemavec_map_value_type_allocator>
+	PropertyToPropertySchemaVecUnorderedMap;
 public:
 	//! Create a real PartitionCatalogEntry
-	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info);
+	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
-	inverted_index_t<PropertyKeyID, PropertySchemaID> property_schema_index;
+	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
 	//vector<Constraints> constraints;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> property_schemas);
+	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();

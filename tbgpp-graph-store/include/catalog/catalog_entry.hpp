@@ -13,6 +13,7 @@
 #include "common/exception.hpp"
 #include "common/atomic.hpp"
 #include "common/boost.hpp"
+#include "common/boost_typedefs.hpp"
 
 #include <memory>
 

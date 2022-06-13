@@ -37,11 +37,11 @@ struct AlterForeignKeyInfo;
 class ExtentCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info);
+	ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info, const void_allocator &void_alloc);
 
 	ExtentID eid;
 	ExtentType extent_type;
-	vector<ChunkDefinitionID> chunks;
+	ChunkDefinitionID_vector chunks;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
