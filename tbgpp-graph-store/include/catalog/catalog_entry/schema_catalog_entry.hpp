@@ -156,21 +156,21 @@ private:
 	void Alter(ClientContext &context, AlterInfo *info);
 
 	//! Add a catalog entry to this schema
-	CatalogEntry *AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry, OnCreateConflict on_conflict);
+	CatalogEntry *AddEntry(ClientContext &context, StandardEntry *entry, OnCreateConflict on_conflict);
 	//! Add a catalog entry to this schema
-	CatalogEntry *AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry, OnCreateConflict on_conflict,
+	CatalogEntry *AddEntry(ClientContext &context, StandardEntry *entry, OnCreateConflict on_conflict,
 	                       unordered_set<CatalogEntry *> dependencies);
-	GraphCatalogEntry *AddGraphEntry(ClientContext &context, graph_unique_ptr_type entry,
+	/*GraphCatalogEntry *AddGraphEntry(ClientContext &context, GraphCatalogEntry *entry,
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	PartitionCatalogEntry *AddPartitionEntry(ClientContext &context, partition_unique_ptr_type entry,
+	PartitionCatalogEntry *AddPartitionEntry(ClientContext &context, PartitionCatalogEntry entry,
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 	PropertySchemaCatalogEntry *AddPropertySchemaEntry(ClientContext &context, propertyschema_unique_ptr_type entry,
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 	ExtentCatalogEntry *AddExtentEntry(ClientContext &context, extent_unique_ptr_type entry,
 							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 	ChunkDefinitionCatalogEntry *AddChunkDefinitionEntry(ClientContext &context, chunkdefinition_unique_ptr_type entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	bool AddEntryInternal(ClientContext &context, boost::interprocess::offset_ptr<CatalogEntry> entry, string &entry_name, CatalogType &entry_type,
+							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);*/
+	bool AddEntryInternal(ClientContext &context, CatalogEntry *entry, string &entry_name, CatalogType &entry_type,
                                            OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 
 	//! Get the catalog set for the specified type

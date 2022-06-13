@@ -96,11 +96,11 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 	this->catalog_segment = catalog_segment;
 }
 
-CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry,
+CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, StandardEntry *entry,
                                            OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies) {
 	auto entry_name = entry->name;
 	auto entry_type = entry->type;
-	auto result = entry.get();
+	auto result = entry;
 
 	// first find the set for this entry
 	auto &set = GetCatalogSet(entry_type);
@@ -133,13 +133,13 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<St
 	return result;
 }
 
-CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, unique_ptr<StandardEntry> entry,
+CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, StandardEntry *entry,
                                            OnCreateConflict on_conflict) {
 	unordered_set<CatalogEntry *> dependencies;
 	return AddEntry(context, move(entry), on_conflict, dependencies);
 }
 
-bool SchemaCatalogEntry::AddEntryInternal(ClientContext &context, boost::interprocess::offset_ptr<CatalogEntry> entry, string &entry_name, CatalogType &entry_type,
+bool SchemaCatalogEntry::AddEntryInternal(ClientContext &context, CatalogEntry *entry, string &entry_name, CatalogType &entry_type,
                                            OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies) {
 											   // first find the set for this entry
 	auto &set = GetCatalogSet(entry_type);
@@ -173,7 +173,7 @@ bool SchemaCatalogEntry::AddEntryInternal(ClientContext &context, boost::interpr
 	return true;
 }
 
-GraphCatalogEntry *SchemaCatalogEntry::AddGraphEntry(ClientContext &context, graph_unique_ptr_type entry,
+/*GraphCatalogEntry *SchemaCatalogEntry::AddGraphEntry(ClientContext &context, graph_unique_ptr_type entry,
                                            OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies) {
 	auto entry_name = entry->name;
 	auto entry_type = entry->type;
@@ -221,46 +221,53 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 
 	if (!AddEntryInternal(context, move(entry.get()), entry_name, entry_type, on_conflict, dependencies)) return nullptr;
 	else return result;
-}
+}*/
 
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
+	fprintf(stdout, "CreateGraph Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	unordered_set<CatalogEntry *> dependencies;
-	auto graph = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
-		*catalog_segment);
-	return AddGraphEntry(context, move(graph), info->on_conflict, dependencies);
+	auto graph = catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info);
+	//auto graph = boost::interprocess::make_managed_unique_ptr(
+	//	catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
+	//	*catalog_segment);
+	fprintf(stdout, "CreateGraph After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
+	return AddEntry(context, move(graph), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto partition = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
-		*catalog_segment);
-	return AddPartitionEntry(context, move(partition), info->on_conflict, dependencies);
+	auto partition = catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info);
+	//auto partition = boost::interprocess::make_managed_unique_ptr(
+	//	catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
+	//	*catalog_segment);
+	return AddEntry(context, move(partition), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto propertyschema = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
-		*catalog_segment);
-	return AddPropertySchemaEntry(context, move(propertyschema), info->on_conflict, dependencies);
+	auto propertyschema = catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info);
+	//auto propertyschema = boost::interprocess::make_managed_unique_ptr(
+	//	catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
+	//	*catalog_segment);
+	return AddEntry(context, move(propertyschema), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto extent = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
-		*catalog_segment);
-	return AddExtentEntry(context, move(extent), info->on_conflict, dependencies);
+	auto extent = catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info);
+	//auto extent = boost::interprocess::make_managed_unique_ptr(
+	//	catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
+	//	*catalog_segment);
+	return AddEntry(context, move(extent), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
-		*catalog_segment);
-	return AddChunkDefinitionEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
+	auto chunkdefinition = catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info);
+	//auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
+	//	catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
+	//	*catalog_segment);
+	return AddEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
 }
 
 /*
