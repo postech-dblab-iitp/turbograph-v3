@@ -50,6 +50,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
+	fprintf(stdout, "CatalogSet Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->construct<MappingUnorderedMap>(mapping_name.c_str())
@@ -61,10 +62,12 @@ CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_mem
 		catalog_segment->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment->construct<idx_t>(current_entry_name.c_str())(0);
+	fprintf(stdout, "CatalogSet After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 }
 
-bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
+/*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
                              unordered_set<CatalogEntry *> &dependencies) {
+	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -122,11 +125,79 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
 	//entries[entry_index] = move(value); //TODO
+	D_ASSERT(false);
+	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
+	return true;
+}*/
+
+bool CatalogSet::CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
+                             unordered_set<CatalogEntry *> &dependencies) {
+	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
+	//auto &transaction = Transaction::GetTransaction(context);
+	// lock the catalog for writing
+	lock_guard<mutex> write_lock(catalog.write_lock);
+	// lock this catalog set to disallow reading
+	lock_guard<mutex> read_lock(catalog_lock);
+
+	// first check if the entry exists in the unordered set
+	idx_t entry_index;
+	auto mapping_value = GetMapping(context, name);
+	if (mapping_value == nullptr || mapping_value->deleted) {
+		// if it does not: entry has never been created
+
+		// first create a dummy deleted entry for this entry
+		// so transactions started before the commit of this transaction don't
+		// see it yet
+		entry_index = *current_entry;
+		*current_entry = entry_index + 1;
+
+		string dummy_name = name + "_dummy" + std::to_string(entry_index);
+		auto dummy_node = catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name);
+		//ValueType dummy_node = ValueType(entry_index, 
+		//	boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
+		dummy_node->timestamp = 0;
+		dummy_node->deleted = true;
+		dummy_node->set = this;
+
+		entries->insert_or_assign(entry_index, move(dummy_node));
+		PutMapping(context, name, entry_index);
+	} else {
+		entry_index = mapping_value->index;
+		auto &current = *entries->at(entry_index);
+		// if it does, we have to check version numbers
+		if (HasConflict(context, current.timestamp)) {
+			// current version has been written to by a currently active
+			// transaction
+			throw TransactionException("Catalog write-write conflict on create with \"%s\"", current.name);
+		}
+		// there is a current version that has been committed
+		// if it has not been deleted there is a conflict
+		if (!current.deleted) {
+			return false;
+		}
+	}
+	// create a new entry and replace the currently stored one
+	// set the timestamp to the timestamp of the current transaction
+	// and point it at the dummy node
+	//value->timestamp = transaction.transaction_id;
+	value->timestamp = 0;
+	value->set = this;
+
+	// now add the dependency set of this object to the dependency manager
+	catalog.dependency_manager->AddObject(context, value, dependencies);
+
+	value->child = move(entries->at(entry_index));
+	value->child->parent = value;
+	// push the old entry in the undo buffer for this transaction
+	//transaction.PushCatalogEntry(value->child.get());
+	entries->at(entry_index) = move(value);
+	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return true;
 }
 
-bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
+/*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
                              unordered_set<CatalogEntry *> &dependencies) {
+	fprintf(stdout, "CreateEntry Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
 	lock_guard<mutex> write_lock(catalog.write_lock);
@@ -186,11 +257,12 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, boost::
 	//transaction.PushCatalogEntry(value->child.get());
 	//entries[entry_index] = move(value); //TODO
 	entries->insert_or_assign(entry_index, boost::move(value));
+	fprintf(stdout, "CreateEntry After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return true;
-}
+}*/
 
 bool CatalogSet::GetEntryInternal(ClientContext &context, idx_t entry_index, CatalogEntry *&catalog_entry) {
-	catalog_entry = entries->at(entry_index).get();
+	catalog_entry = entries->at(entry_index);
 	// if it does: we have to retrieve the entry and to check version numbers
 	if (HasConflict(context, catalog_entry->timestamp)) {
 		// current version has been written to by a currently active
@@ -390,7 +462,7 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 	name_ = name.c_str();
 	auto entry = mapping->find(name_);
 	if (entry != mapping->end()) {
-		mapping_value = boost::interprocess::to_raw_pointer(entry->second.get());
+		mapping_value = entry->second;
 	} else {
 		return nullptr;
 	}
@@ -401,21 +473,20 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 		if (UseTimestamp(context, mapping_value->timestamp)) {
 			break;
 		}
-		mapping_value = boost::interprocess::to_raw_pointer(mapping_value->child->get());
+		mapping_value = mapping_value->child;
 		D_ASSERT(mapping_value);
 	}
 	return mapping_value;
 }
 
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
+	fprintf(stdout, "PutMapping Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
 	char_string name_(temp_charallocator);
 	name_ = name.c_str();
 	auto entry = mapping->find(name_);
-	string new_value_name = "MappingValue" + std::to_string(entry_index);
-	auto new_value = boost::interprocess::make_managed_unique_ptr(
-		catalog_segment->construct<MappingValue>(new_value_name.c_str())(entry_index),
-		*catalog_segment);
+	string new_value_name = name + "_mapval" + std::to_string(entry_index);
+	auto new_value = catalog_segment->construct<MappingValue>(new_value_name.c_str())(entry_index);
 	//auto new_value = make_unique<MappingValue>(entry_index);
 	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
 	new_value->timestamp = 0;
@@ -423,12 +494,13 @@ void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t en
 		if (HasConflict(context, entry->second->timestamp)) {
 			throw TransactionException("Catalog write-write conflict on name \"%s\"", name);
 		}
-		(*new_value->child) = move(entry->second);
-		(*new_value->child)->parent = boost::interprocess::to_raw_pointer(new_value.get());
+		new_value->child = move(entry->second);
+		new_value->child->parent = new_value;
 	}
 	mapping->insert(map_value_type(name_, move(new_value)));
 	//mapping->insert_or_assign(name.c_str(), move(new_value));
 	//mapping[name] = move(new_value);
+	fprintf(stdout, "PutMapping After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 }
 
 void CatalogSet::DeleteMapping(ClientContext &context, const string &name) {
@@ -526,7 +598,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		// we found an entry for this name
 		// check the version numbers
 
-		auto catalog_entry = entries->at(mapping_value->index).get();
+		auto catalog_entry = entries->at(mapping_value->index);
 		CatalogEntry *current = GetEntryForTransaction(context, catalog_entry);
 		if (current->deleted || (current->name != name && !UseTimestamp(context, mapping_value->timestamp))) {
 			return nullptr;
@@ -693,7 +765,7 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 		defaults->created_all_entries = true;
 	}
 	for (auto &kv : *entries) {
-		auto entry = kv.second.get();
+		auto entry = kv.second;
 		entry = GetEntryForTransaction(context, entry);
 		if (!entry->deleted) {
 			callback(entry);
@@ -705,7 +777,7 @@ void CatalogSet::Scan(const std::function<void(CatalogEntry *)> &callback) {
 	// lock the catalog set
 	lock_guard<mutex> lock(catalog_lock);
 	for (auto &kv : *entries) {
-		auto entry = kv.second.get();
+		auto entry = kv.second;
 		entry = GetCommittedEntry(entry);
 		if (!entry->deleted) {
 			callback(entry);

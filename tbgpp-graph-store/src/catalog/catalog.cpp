@@ -63,6 +63,16 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 }
 
 CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
+	fprintf(stdout, "Catalog::CreateGraph Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
+
+	/*const_named_it named_beg = catalog_segment->named_begin();
+	const_named_it named_end = catalog_segment->named_end();
+	fprintf(stdout, "All named object list\n");
+	for(; named_beg != named_end; ++named_beg){
+		//A pointer to the name of the named object
+		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		fprintf(stdout, "\t%s\n", name);
+	}*/
 	auto schema = GetSchema(context, info->schema);
 	return CreateGraph(context, schema, info);
 }
@@ -198,21 +208,22 @@ CatalogEntry *Catalog::CreateCollation(ClientContext &context, SchemaCatalogEntr
 }*/
 
 CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *info) {
+	fprintf(stdout, "CreateSchema Before Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	D_ASSERT(!info->schema.empty());
 	if (info->schema == TEMP_SCHEMA) {
 		throw CatalogException("Cannot create built-in schema \"%s\"", info->schema);
 	}
 
-	fprintf(stdout, "FUCK12\n");
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
 	fprintf(stdout, "Name = %s\n", schema_cat_name_in_shm.c_str());
-	auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
-			(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
-	fprintf(stdout, "FUCK13\n");
-	auto result = boost::interprocess::to_raw_pointer(entry.get());
-	fprintf(stdout, "FUCK14\n");
-	if (!schemas->CreateEntry(context, info->schema, move(entry.get()), dependencies)) {
+	auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, info->schema, info->internal, this->catalog_segment);
+	auto result = (CatalogEntry*) entry;
+	//auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
+	//		(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
+	//auto result = boost::interprocess::to_raw_pointer(entry.get());
+	//if (!schemas->CreateEntry(context, info->schema, move(entry.get()), dependencies)) {
+	if (!schemas->CreateEntry(context, info->schema, move(entry), dependencies)) {
 		if (info->on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
 			throw CatalogException("Schema with name %s already exists!", info->schema);
 		} else {
@@ -220,7 +231,7 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 		}
 		return nullptr;
 	}
-	fprintf(stdout, "FUCK15\n");
+	fprintf(stdout, "CreateSchema After Free mem = %ld, num_named_obj = %ld\n", catalog_segment->get_free_memory(), catalog_segment->get_num_named_objects());
 	return result;
 }
 
