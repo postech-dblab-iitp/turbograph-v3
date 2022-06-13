@@ -94,6 +94,8 @@ TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
   for (auto &kv : graph_cat->vertexlabel_map) {
     fprintf(stdout, "%s : %lu\n", kv.first.c_str(), kv.second);
   }
+  int x;
+  std::cin >> x;
 }
 
 int main(int argc, char **argv) {

@@ -235,7 +235,8 @@ CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGrap
 
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto partition = catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto partition = catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
 	//auto partition = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -244,7 +245,8 @@ CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, Create
 
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto propertyschema = catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto propertyschema = catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
 	//auto propertyschema = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -253,7 +255,8 @@ CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, C
 
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto extent = catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto extent = catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
 	//auto extent = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -262,7 +265,8 @@ CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExt
 
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	auto chunkdefinition = catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto chunkdefinition = catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
 	//auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
 	//	*catalog_segment);

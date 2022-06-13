@@ -8,16 +8,17 @@
 
 namespace duckdb {
 
-ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info)
-    : StandardEntry(CatalogType::EXTENT_ENTRY, schema, catalog, info->extent) {
+ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info, const void_allocator &void_alloc)
+    : StandardEntry(CatalogType::EXTENT_ENTRY, schema, catalog, info->extent), chunks(void_alloc) {
 	this->temporary = info->temporary;
 	this->extent_type = info->extent_type;
 	this->eid = info->eid;
 }
 
 unique_ptr<CatalogEntry> ExtentCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreateExtentInfo>(schema->name, name, extent_type, eid);
-	return make_unique<ExtentCatalogEntry>(catalog, schema, create_info.get());
+	D_ASSERT(false);
+	//auto create_info = make_unique<CreateExtentInfo>(schema->name, name, extent_type, eid);
+	//return make_unique<ExtentCatalogEntry>(catalog, schema, create_info.get());
 }
 
 void ExtentCatalogEntry::SetExtentType(ExtentType extent_type_) {

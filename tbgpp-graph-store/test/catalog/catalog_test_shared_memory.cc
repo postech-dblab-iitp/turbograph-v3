@@ -161,9 +161,9 @@ TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
   graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
-  for (auto &kv : graph_cat->vertexlabel_map) {
-    fprintf(stdout, "%s : %lu\n", kv.first.c_str(), kv.second);
-  }
+  //for (auto &kv : graph_cat->vertexlabel_map) {
+  //  fprintf(stdout, "%s : %lu\n", kv.first.c_str(), kv.second);
+  //}
   int x;
   std::cin >> x;
 }

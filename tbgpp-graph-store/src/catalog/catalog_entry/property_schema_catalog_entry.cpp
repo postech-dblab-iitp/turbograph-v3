@@ -7,14 +7,16 @@
 
 namespace duckdb {
 
-PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info)
-    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema) {
+PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
+    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
+	, property_keys(void_alloc), extent_ids(void_alloc) {
 	this->temporary = info->temporary;
 }
 
 unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context) {
-	auto create_info = make_unique<CreatePropertySchemaInfo>(schema->name, name);
-	return make_unique<PropertySchemaCatalogEntry>(catalog, schema, create_info.get());
+	D_ASSERT(false);
+	//auto create_info = make_unique<CreatePropertySchemaInfo>(schema->name, name);
+	//return make_unique<PropertySchemaCatalogEntry>(catalog, schema, create_info.get());
 }
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {

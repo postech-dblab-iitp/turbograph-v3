@@ -37,10 +37,10 @@ struct AlterForeignKeyInfo;
 class PropertySchemaCatalogEntry : public StandardEntry {
 public:
 	//! Create a real GraphCatalogEntry
-	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info);
+	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
-	vector<PropertyKeyID> property_keys;
-	vector<idx_t> extent_ids;
+	PropertyKeyID_vector property_keys;
+	idx_t_vector extent_ids;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;

@@ -11,6 +11,7 @@
 #include "common/case_insensitive_map.hpp"
 #include "common/enums/graph_component_type.hpp"
 #include "catalog/inverted_index.hpp"
+#include "common/boost_typedefs.hpp"
 
 namespace duckdb {
 
@@ -20,12 +21,6 @@ struct PartitionCatalogEntry;
 
 //! A graph catalog entry
 class GraphCatalogEntry : public StandardEntry {
-	typedef std::pair<const char_string, VertexLabelID> vertexlabel_id_map_value_type;
-	typedef std::pair<const char_string, EdgeTypeID> edgetype_id_map_value_type;
-	typedef std::pair<const char_string, PropertyKeyID> propertykey_id_map_value_type;
-	typedef boost::interprocess::allocator<vertexlabel_id_map_value_type, segment_manager_t> vertexlabel_id_map_value_type_allocator;
-	typedef boost::interprocess::allocator<edgetype_id_map_value_type, segment_manager_t> edgetype_id_map_value_type_allocator;
-	typedef boost::interprocess::allocator<propertykey_id_map_value_type, segment_manager_t> propertykey_id_map_value_type_allocator;
 	typedef boost::unordered_map< char_string, VertexLabelID
        	, boost::hash<char_string>, std::equal_to<char_string>
 		, vertexlabel_id_map_value_type_allocator>
@@ -38,21 +33,30 @@ class GraphCatalogEntry : public StandardEntry {
        	, boost::hash<char_string>, std::equal_to<char_string>
 		, propertykey_id_map_value_type_allocator>
 	PropertyKeyIDUnorderedMap;
+	typedef boost::unordered_map< EdgeTypeID, PartitionID
+       	, boost::hash<EdgeTypeID>, std::equal_to<EdgeTypeID>
+		, type_to_partition_map_value_type_allocator>
+	EdgeTypeToPartitionUnorderedMap;
+	typedef boost::unordered_map< VertexLabelID, PartitionID_vector
+       	, boost::hash<VertexLabelID>, std::equal_to<VertexLabelID>
+		, label_to_partitionvec_map_value_type_allocator>
+	VertexLabelToPartitionVecUnorderedMap;
 
 public:
 	//! Create a real GraphCatalogEntry
 	GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc);
 
-	vector<PartitionID> vertex_partitions;
-	vector<PartitionID> edge_partitions;
+	PartitionID_vector vertex_partitions;
+	PartitionID_vector edge_partitions;
 
 	// TODO: change map structure into.. what?
 	VertexLabelIDUnorderedMap vertexlabel_map;
 	EdgeTypeIDUnorderedMap edgetype_map;
 	PropertyKeyIDUnorderedMap propertykey_map;
 
-	unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
-	inverted_index_t<VertexLabelID, PartitionID> label_to_partition_index;
+	//unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
+	EdgeTypeToPartitionUnorderedMap type_to_partition_index;
+	VertexLabelToPartitionVecUnorderedMap label_to_partition_index;
 
 	atomic<VertexLabelID> vertex_label_id_version;
 	atomic<EdgeTypeID> edge_type_id_version;
@@ -67,7 +71,7 @@ public:
 	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 	void GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids);
 
-	vector<PartitionID> Intersection(vector<VertexLabelID>& label_ids);
+	PartitionID_vector Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();
 	EdgeTypeID GetEdgeTypeID();
 	PropertyKeyID GetPropertyKeyID();

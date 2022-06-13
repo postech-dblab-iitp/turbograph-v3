@@ -1,10 +1,9 @@
-#include "catalog/catalog_entry/list.hpp"
-#include "parser/parsed_data/create_graph_info.hpp"
-#include "catalog/catalog.hpp"
-#include "parser/parsed_data/create_graph_info.hpp"
-#include "common/enums/graph_component_type.hpp"
-#include "main/client_context.hpp"
 #include "main/database.hpp"
+#include "main/client_context.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
+#include "common/enums/graph_component_type.hpp"
+#include "parser/parsed_data/create_graph_info.hpp"
 
 #include <memory>
 #include <algorithm>
@@ -13,7 +12,9 @@ namespace duckdb {
 
 GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph)
-	, vertexlabel_map(void_alloc), edgetype_map(void_alloc), propertykey_map(void_alloc) {
+	, vertex_partitions(void_alloc), edge_partitions(void_alloc)
+	, vertexlabel_map(void_alloc), edgetype_map(void_alloc), propertykey_map(void_alloc)
+	, type_to_partition_index(void_alloc), label_to_partition_index(void_alloc) {
 	this->temporary = info->temporary;
 	vertex_label_id_version = 0;
 	edge_type_id_version = 0;
@@ -74,7 +75,8 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 			target_ids->second.push_back(pid);
 		} else {
 			// not found
-			vector<PartitionID> tmp_vec;
+			void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
+			PartitionID_vector tmp_vec(void_alloc);
 			tmp_vec.push_back(pid);
 			label_to_partition_index.insert({label_ids[i], tmp_vec});
 		}
@@ -102,31 +104,29 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 			target_ids->second.push_back(pid);
 		} else {
 			// not found
-			vector<PartitionID> tmp_vec;
-			tmp_vec.push_back(pid);
+			void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
+			PartitionID_vector tmp_vec(void_alloc);
 			label_to_partition_index.insert({vertex_label_id, tmp_vec});
 		}
 	}
 }
 
-vector<PartitionID> GraphCatalogEntry::Intersection(vector<VertexLabelID>& label_ids) {
-	vector<vector<PartitionID>*> partition_id_lists;
-	for (size_t i = 0; i < label_ids.size(); i++) {
-		partition_id_lists.push_back(&label_to_partition_index[label_ids[i]]); // no-copy?
-		//std::sort(partition_id_lists[i]->begin(), partition_id_lists[i]->end());
-	}
+PartitionID_vector GraphCatalogEntry::Intersection(ClientContext &context, vector<VertexLabelID>& label_ids) {
+	void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
+    PartitionID_vector curr_intersection(void_alloc);
+	PartitionID_vector last_intersection(label_to_partition_index.at(label_ids[0]), void_alloc); // copy
+	//for (std::size_t i = 0; i < label_to_partition_index.at(label_ids[0]).size(); i++) {
+	//	last_intersection.push_back(label_to_partition_index.at(label_ids[0])[i]);
+	//}
 
-	auto last_intersection = partition_id_lists[0];
-    std::vector<PartitionID> curr_intersection;
-
-    for (std::size_t i = 1; i < partition_id_lists.size(); ++i) {
-        std::set_intersection(last_intersection->begin(), last_intersection->end(),
-            partition_id_lists[i]->begin(), partition_id_lists[i]->end(),
+    for (std::size_t i = 1; i < label_ids.size(); ++i) {
+        std::set_intersection(last_intersection.begin(), last_intersection.end(),
+            label_to_partition_index.at(label_ids[i]).begin(), label_to_partition_index.at(label_ids[i]).end(),
             std::back_inserter(curr_intersection));
-        std::swap(*last_intersection, curr_intersection);
+        std::swap(last_intersection, curr_intersection);
         curr_intersection.clear();
     }
-    return *last_intersection;
+    return last_intersection;
 }
 
 PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
@@ -164,7 +164,7 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 				return -1; //TODO return another value?.. or throw error?
 			}
 		}
-		vector<PartitionID> return_pids = Intersection(label_ids);
+		PartitionID_vector return_pids = Intersection(context, label_ids);
 		D_ASSERT(return_pids.size() == 1); // this is not true..
 		return return_pids[0];
 	}
