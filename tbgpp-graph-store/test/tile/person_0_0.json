@@ -1,0 +1,25 @@
+{ "vertices": 
+[
+  {
+   "id": 8796093022220,
+   "firstName": "Jose",
+   "lastName": "Alonso",
+   "gender": "female",
+   "birthday": "1987-09-18",
+   "creationDate": "2010-09-16T06:54:00.602+0000",
+   "locationIP": "196.1.135.241",
+   "browserUsed": "Internet Explorer",
+   "place": 1073
+  },
+  {
+   "id": 4398046511192,
+   "firstName": "Chong",
+   "lastName": "Zhang",
+   "gender": "male",
+   "birthday": "1983-01-20",
+   "creationDate": "2010-06-13T12:14:32.690+0000",
+   "locationIP": "1.4.40.92",
+   "browserUsed": "Chrome",
+   "place": 314
+  }
+]}
