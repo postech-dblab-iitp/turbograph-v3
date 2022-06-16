@@ -14,7 +14,6 @@
 #include "common/types/string_type.hpp"
 
 namespace duckdb {
-/*
 //! StringCast
 class Vector;
 
@@ -74,5 +73,4 @@ template <>
 duckdb::string_t StringCastTZ::Operation(dtime_t input, Vector &result);
 template <>
 duckdb::string_t StringCastTZ::Operation(timestamp_t input, Vector &result);
-*/
 } // namespace duckdb

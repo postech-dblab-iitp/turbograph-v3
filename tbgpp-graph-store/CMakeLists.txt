@@ -16,7 +16,8 @@ include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/inclu
                     "${PROJECT_SOURCE_DIR}/include/catalog/default" "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
                     "${PROJECT_SOURCE_DIR}/include/common" "${PROJECT_SOURCE_DIR}/include/common/enums"
                     "${PROJECT_SOURCE_DIR}/include/common/types" "${PROJECT_SOURCE_DIR}/include/common/operator"
-                    "${PROJECT_SOURCE_DIR}/include/common/value_operations" "${PROJECT_SOURCE_DIR}/include/parser"
+                    "${PROJECT_SOURCE_DIR}/include/common/value_operations" "${PROJECT_SOURCE_DIR}/include/common/vector_operations"
+                    "${PROJECT_SOURCE_DIR}/include/parser"
                     "${PROJECT_SOURCE_DIR}/include/parser/parsed_data" "${PROJECT_SOURCE_DIR}/include/main"
                     "${PROJECT_SOURCE_DIR}/include/third_party/fmt/include" "${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
                     "${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include")
@@ -54,8 +55,13 @@ file(GLOB CATALOG_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
 )
 
+file(GLOB TILE_TEST_SRC
+  "${PROJECT_SOURCE_DIR}/test/tile/tile_test_json_reader.cc"
+)
+
 find_package(Catch2 REQUIRED)
 
+if (FALSE)
 foreach(test_file ${CACHE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
   add_executable(${prog_name} "${CACHE_SRC_DIR}/chunk_cache_manager.cc" "${CACHE_SRC_DIR}/client.cc" ${test_file})
@@ -69,3 +75,12 @@ foreach(test_file ${CATALOG_TEST_SRC})
 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_link_libraries(${prog_name} PRIVATE tbgpp-system-lib Catch2::Catch2WithMain)
 endforeach(test_file ${CATALOG_TEST_SRC})
+endif()
+
+foreach(test_file ${TILE_TEST_SRC})
+  get_filename_component(prog_name ${test_file} NAME_WE)
+  add_executable(${prog_name} ${test_file})
+  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
+	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
+  target_link_libraries(${prog_name} PRIVATE tbgpp-system-lib Catch2::Catch2WithMain)
+endforeach(test_file ${TILE_TEST_SRC})
