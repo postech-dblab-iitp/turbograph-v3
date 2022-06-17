@@ -7,7 +7,7 @@
 #include "common/operator/cast_operators.hpp"
 #include "common/operator/comparison_operators.hpp"
 
-//#include "utf8proc_wrapper.hpp"
+#include "third_party/utf8proc/utf8proc_wrapper.hpp"
 //#include "common/operator/numeric_binary_operators.hpp"
 //#include "common/printer.hpp"
 //#include "common/field_writer.hpp"
@@ -350,8 +350,8 @@ bool Value::IsFinite(double input) {
 }
 
 bool Value::StringIsValid(const char *str, idx_t length) {
-	//auto utf_type = Utf8Proc::Analyze(str, length);
-	//return utf_type != UnicodeType::INVALID;
+	auto utf_type = Utf8Proc::Analyze(str, length);
+	return utf_type != UnicodeType::INVALID;
 }
 
 Value Value::DECIMAL(int16_t value, uint8_t width, uint8_t scale) {

@@ -3,7 +3,7 @@
 #include "common/types/string_type.hpp"
 #include "common/algorithm.hpp"
 #include "common/exception.hpp"
-//#include "utf8proc_wrapper.hpp"
+#include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
 #include <cstring>
 
@@ -15,7 +15,7 @@ StringHeap::StringHeap() : tail(nullptr) {
 }
 
 string_t StringHeap::AddString(const char *data, idx_t len) {
-	//D_ASSERT(Utf8Proc::Analyze(data, len) != UnicodeType::INVALID);
+	D_ASSERT(Utf8Proc::Analyze(data, len) != UnicodeType::INVALID);
 	return AddBlob(data, len);
 }
 
