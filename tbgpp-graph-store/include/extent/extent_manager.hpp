@@ -7,6 +7,8 @@
 namespace duckdb {
 
 class DataChunk;
+class ClientContext;
+class PropertySchemaCatalogEntry;
 
 class ExtentManager {
 
@@ -15,7 +17,7 @@ public:
     ~ExtentManager();
 
     // for bulk loading
-    vector<SegmentID> CreateVertexExtents(DataChunk &input);
+    vector<ExtentID> CreateVertexExtents(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry);
 
 /*  
     TileID CreateVertexTile(DBInstance &db, VLabels label_set, Schema &schema, bool is_temporary) ;

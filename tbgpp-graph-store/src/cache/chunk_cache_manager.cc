@@ -5,6 +5,8 @@
 #include "chunk_cache_manager.h"
 #include "Turbo_bin_aio_handler.hpp"
 
+using namespace duckdb {
+
 ChunkCacheManager* ChunkCacheManager::ccm;
 
 ChunkCacheManager::ChunkCacheManager() {
@@ -203,4 +205,6 @@ void ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t requ
     exit(-1);
     // TODO throw exception
   }
+}
+
 }
