@@ -8,10 +8,10 @@ using namespace duckdb;
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>
 
-TEST_CASE ("Json Reader Open File Test", "[tile]") {
+TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   GraphJsonFileReader reader;
   
-  reader.InitJsonFile("/home/tslee/turbograph-v3/tbgpp-graph-store/test/tile/person_0_0.json", GraphComponentType::VERTEX);
+  reader.InitJsonFile("/home/tslee/turbograph-v3/tbgpp-graph-store/test/tile/person_0_0.json.original", GraphComponentType::VERTEX);
   
   // Assume types are given
   DataChunk output;
@@ -19,7 +19,12 @@ TEST_CASE ("Json Reader Open File Test", "[tile]") {
   output.Initialize(types);
   vector<string> key_names = {"id", "firstName", "lastName", "gender"};
 
-  reader.ReadJsonFile(output);
+  while (!reader.ReadJsonFile(key_names, types, output)) {
+    fprintf(stdout, "Read JSON File Ongoing..\n");
+    fprintf(stdout, "%s", output.ToString().c_str());
+  }
+  fprintf(stdout, "Read JSON File DONE\n");
+  fprintf(stdout, "%s", output.ToString().c_str());
   // tile manager Create Vertex Tiles
 }
 

@@ -1,7 +1,7 @@
 #include "common/types/string_type.hpp"
 #include "common/types/value.hpp"
 #include "common/algorithm.hpp"
-//#include "utf8proc_wrapper.hpp"
+#include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
 namespace duckdb {
 
@@ -11,8 +11,8 @@ void string_t::Verify() {
 	D_ASSERT(dataptr);
 
 #ifdef DEBUG
-	//auto utf_type = Utf8Proc::Analyze(dataptr, GetSize());
-	//D_ASSERT(utf_type != UnicodeType::INVALID);
+	auto utf_type = Utf8Proc::Analyze(dataptr, GetSize());
+	D_ASSERT(utf_type != UnicodeType::INVALID);
 #endif
 
 	// verify that the prefix contains the first four characters of the string
