@@ -8,11 +8,11 @@ namespace duckdb {
 
 class DataChunk;
 
-class TileManager {
+class ExtentManager {
 
 public:
-    TileManager();
-    ~TileManager();
+    ExtentManager();
+    ~ExtentManager();
 
     // for bulk loading
     vector<SegmentID> CreateVertexExtents(DataChunk &input);
