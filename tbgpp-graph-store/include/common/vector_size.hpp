@@ -14,7 +14,8 @@ namespace duckdb {
 
 //! The vector size used in the execution engine
 #ifndef STANDARD_VECTOR_SIZE
-#define STANDARD_VECTOR_SIZE 1024
+//#define STANDARD_VECTOR_SIZE 1024
+#define STANDARD_VECTOR_SIZE 1048576 // 1M
 #endif
 
 #if ((STANDARD_VECTOR_SIZE & (STANDARD_VECTOR_SIZE - 1)) != 0)
