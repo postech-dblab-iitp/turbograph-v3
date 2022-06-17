@@ -39,6 +39,7 @@ public:
 	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
+	PartitionID pid; // foreign key
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
 	
