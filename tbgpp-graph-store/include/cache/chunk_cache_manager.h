@@ -3,11 +3,13 @@
 
 #include <string>
 
-#include "common.h"
-#include "client.h"
-#include "Turbo_bin_aio_handler.hpp"
+#include "common/constants.hpp"
+#include "cache/common.h"
+#include "cache/client.h"
+#include "cache/disk_aio/Turbo_bin_aio_handler.hpp"
 
-typedef uint16_t SegmentID;
+namespace duckdb {
+
 #define NUM_MAX_SEGMENTS 65536
 
 class ChunkCacheManager {
@@ -47,3 +49,4 @@ public:
 
 #endif // CHUNK_CACHE_MANAGER_H
 
+}

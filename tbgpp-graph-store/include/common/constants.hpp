@@ -83,6 +83,8 @@ typedef idx_t PropertySchemaID;
 typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 
+typedef uint16_t SegmentID;
+
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;
 extern const transaction_t MAXIMUM_QUERY_ID;
