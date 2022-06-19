@@ -27,7 +27,8 @@ Thumbs.db
 
 # Cmake cache
 CMakeCache.txt
-CmakeFiles/
+CMakeFiles/
+test*.cmake
 
 # Vim swap files
 *.swp
