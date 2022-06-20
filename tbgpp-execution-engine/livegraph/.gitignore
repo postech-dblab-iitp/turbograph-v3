@@ -11,3 +11,6 @@ CTestTestfile.cmake
 _deps
 build
 .ycm_extra_conf.py
+
+tests
+
