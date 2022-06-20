@@ -427,6 +427,36 @@ int LightningClient::SetDirty(uint64_t object_id) {
   return status;
 }
 
+int LightningClient::get_dirty_internal(uint64_t object_id, bool& is_dirty) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    // object not found
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    // object is not sealed yet
+    return -1;
+  }
+  
+  is_dirty = object_entry->dirty_bit;
+  return 0;
+}
+
+int LightningClient::GetDirty(uint64_t object_id, bool& is_dirty) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = get_dirty_internal(object_id, is_dirty);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
 int LightningClient::get_internal(uint64_t object_id, sm_offset *offset_ptr,
                                   size_t *size) {
   int64_t object_index = find_object(object_id);
@@ -576,6 +606,34 @@ int LightningClient::Delete(uint64_t object_id, Turbo_bin_aio_handler* file_hand
   LOCK;
   disk_->BeginTx();
   int status = delete_internal(object_id, file_handler);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
+int LightningClient::flush_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+  int64_t object_index = find_object(object_id);
+  assert(object_index >= 0);
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+  assert(object_entry->sealed);
+  if (object_entry->dirty_bit == 1) { // tslee: We don't need this logic maybe.. 
+    assert(file_handler);
+    if (file_handler->IsReserved())
+      file_handler->Write(0, object_entry->size, (char*) &base_[object_entry->offset]);
+      //file_handler->Append(object_entry->size, (char*) &base_[object_entry->offset], nullptr);
+    else
+      exit(-1);
+  }
+  return 0;
+}
+
+int LightningClient::Flush(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = flush_internal(object_id, file_handler);
   disk_->CommitTx();
   UNLOCK;
   mpk_lock();

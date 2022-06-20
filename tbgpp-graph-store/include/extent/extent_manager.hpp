@@ -14,7 +14,7 @@ class ExtentManager {
 
 public:
     ExtentManager();
-    ~ExtentManager();
+    ~ExtentManager() {}
 
     // for bulk loading
     vector<ExtentID> CreateVertexExtents(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry);

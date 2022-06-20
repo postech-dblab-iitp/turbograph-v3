@@ -77,13 +77,15 @@ extern const row_t MAX_ROW_ID;
 // ID types for graph catalog
 typedef uint16_t PartitionID;
 typedef uint32_t ExtentID;
-typedef uint32_t ChunkDefinitionID;
+typedef uint16_t LocalExtentID;
+typedef uint32_t LocalChunkDefinitionID;
+typedef uint64_t ChunkDefinitionID;
 typedef idx_t PropertyKeyID;
 typedef idx_t PropertySchemaID;
 typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 
-typedef uint16_t SegmentID;
+typedef uint64_t ChunkID;
 
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;

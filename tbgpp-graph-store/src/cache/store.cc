@@ -8,6 +8,7 @@
 #include <string>
 #include <sys/mman.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -21,10 +22,11 @@
 #include "store.h"
 
 const char *name = "lightning";
+static volatile sig_atomic_t got_signal = 0;
 
 void signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
-  exit(0);
+  got_signal = 1;
 }
 
 int send_fd(int unix_sock, int fd) {
@@ -113,6 +115,20 @@ LightningStore::LightningStore(const std::string &unix_socket, int size)
   for (int i = 0; i < HASHMAP_SIZE; i++) {
     store_header_->hashmap.hash_entries[i].object_list = -1;
   }
+}
+
+LightningStore::~LightningStore() {
+  fprintf(stdout, "Call Destructor\n");
+  /*for (int i = 0; i < HASHMAP_SIZE; i++) {
+    int64_t idx = store_header_->hashmap.hash_entries[i].object_list;
+    while (idx >= 0) {
+      ObjectEntry *entry = store_header_->object_entries[idx];
+
+    }
+    if (store_header_->hashmap.hash_entries[i].object_list > 0) {
+      ObjectEntry *entry = store_header_->object_entries[]
+    }
+  }*/
 }
 
 int64_t LightningStore::find_object(uint64_t object_id) {
@@ -234,7 +250,7 @@ void get_processes(std::unordered_set<pid_t> *processes) {
 }
 
 void LightningStore::monitor() {
-  while (true) {
+  while (!got_signal) {
     {
       // scan the set of clients to find crashed ones
       std::lock_guard<std::mutex> guard(client_lock_);
@@ -444,7 +460,21 @@ void LightningStore::listener() {
 
   std::cout << "Store is ready!" << std::endl;
 
+  int timeout;
+  struct pollfd fds[200];
+  int nfds = 1, current_size = 0, i, j;
+  
+  memset(fds, 0 , sizeof(fds));
+  fds[0].fd = server_fd;
+  fds[0].events = POLLIN;
+  timeout = (3 * 1000); // timeout = 3 seconds
+
   while (true) {
+    if (got_signal) break;
+    status = poll(fds, nfds, timeout);
+    if (status <= 0) continue; // poll fail or timeout
+    assert(nfds == 1); // TODO, process only 1 events now
+
     int client_fd = accept(server_fd, nullptr, nullptr);
     if (client_fd < 0) {
       perror("cannot accept");
@@ -500,9 +530,20 @@ void LightningStore::listener() {
   }
 }
 
+void LightningStore::finalize() {
+  while (true) {
+    if (got_signal == 1) {
+      break;
+    }
+    usleep(10000);
+  }
+}
+
 void LightningStore::Run() {
   std::thread monitor_thread = std::thread(&LightningStore::monitor, this);
   std::thread listener_thread = std::thread(&LightningStore::listener, this);
+  std::thread finalize_thread = std::thread(&LightningStore::finalize, this);
+  finalize_thread.join();
   listener_thread.join();
   monitor_thread.join();
 }
@@ -513,8 +554,8 @@ int main() {
     exit(-1);
   }
 
-  LightningStore store("/tmp/lightning", 1024 * 1024 * 1024);
-  store.Run();
+  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 1024 * 1024 * 1024);
+  store->Run();
 
   return 0;
 }
