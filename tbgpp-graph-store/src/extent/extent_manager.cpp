@@ -35,7 +35,7 @@ vector<ExtentID> ExtentManager::CreateVertexExtents(ClientContext &context, Data
         uint8_t* buf_ptr;
         size_t buf_size;
         size_t alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
-        string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+        string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &buf_ptr, &buf_size);
 
