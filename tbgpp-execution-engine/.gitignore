@@ -1,5 +1,7 @@
 cmake_install.cmake
 Makefile
 
+*.out
 
-dataset/
+data/
+bin/

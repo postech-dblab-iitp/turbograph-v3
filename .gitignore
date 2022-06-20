@@ -13,6 +13,8 @@ tmp/
 *.lo
 *.o
 *.obj
+*.so
+*.a
 
 # Python
 __pycache__/
@@ -32,3 +34,6 @@ test*.cmake
 
 # Vim swap files
 *.swp
+
+# vscode directory
+.vscode/
