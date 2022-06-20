@@ -84,12 +84,6 @@ TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   output.Initialize(types);
   vector<string> key_names = {"id", "firstName", "lastName", "gender"};
 
-  while (!reader.ReadJsonFile(key_names, types, output)) {
-    fprintf(stdout, "Read JSON File Ongoing..\n");
-  }
-  fprintf(stdout, "Read JSON File DONE\n");
-  //fprintf(stdout, "%s", output.ToString().c_str());
-  
   // tile manager Create Vertex Tiles
 
   ExtentManager ext_mng;
@@ -121,9 +115,14 @@ TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   vector<PropertyKeyID> property_key_ids;
   graph_cat->GetPropertyKeyIDs(*client.get(), property_keys, property_key_ids);
   partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
-
-  // Create Vertex Extent
-  ext_mng.CreateVertexExtents(*client.get(), output, *property_schema_cat);
+  
+  while (!reader.ReadJsonFile(key_names, types, output)) {
+    fprintf(stdout, "Read JSON File Ongoing..\n");
+    // Create Vertex Extent
+    ext_mng.CreateVertexExtents(*client.get(), output, *property_schema_cat);
+  }
+  fprintf(stdout, "Read JSON File DONE\n");
+  //fprintf(stdout, "%s", output.ToString().c_str());
 }
 
 int main(int argc, char **argv) {
