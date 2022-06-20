@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "TypeDef.hpp"
+#include "cache/disk_aio/TypeDef.hpp"
 
 // padded, aligned primitives
 template <typename T>

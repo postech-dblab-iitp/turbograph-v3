@@ -9,7 +9,7 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
-	, property_keys(void_alloc), extent_ids(void_alloc) {
+	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0) {
 	this->temporary = info->temporary;
 }
 
@@ -21,6 +21,12 @@ unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
 	extent_ids.push_back(extent_cat->oid);
+}
+
+ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
+	ExtentID new_eid = pid;
+	new_eid = new_eid << 16;
+	return new_eid + local_extent_id_version++;
 }
 
 } // namespace duckdb

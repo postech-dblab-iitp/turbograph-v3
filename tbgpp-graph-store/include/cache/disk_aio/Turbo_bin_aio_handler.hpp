@@ -9,8 +9,8 @@
 #include <algorithm>
 #include <iterator>
 
-#include "../common.h"
-#include "disk_aio_factory.hpp"
+#include "cache/common.h"
+#include "cache/disk_aio/disk_aio_factory.hpp"
 
 #define MAX_IO_SIZE_PER_RW (64*1024*1024L)
 
@@ -296,6 +296,28 @@ class Turbo_bin_aio_handler {
     }
   }
 
+  void FlushAll() {
+    InitializeIoInterface();
+    assert(file_size() % 512 == 0);
+    assert(((uintptr_t)aligned_data_ptr) % 512 == 0);
+    diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
+    AioRequest req;
+    req.buf = (char*) aligned_data_ptr;
+    req.start_pos = 0; 
+    req.io_size = file_size();
+    req.user_info.file_id = file_id;
+    //req.user_info.do_user_cb = true;
+    req.user_info.caller = NULL;
+    
+    bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
+
+    if (is_reserved) {
+      is_reserved = false;
+    } else {
+    }
+  }
+
+
   char* CreateMmap(bool write_enabled) {
     assert (file_mmap == NULL);
     assert (file_descriptor != -1);
@@ -379,6 +401,9 @@ class Turbo_bin_aio_handler {
     delete_when_close = can_destroy;
   }
 
+  void SetDataPtr(uint8_t* data_ptr_) {
+    aligned_data_ptr = data_ptr_;
+  }
 
 private:
   int file_descriptor;
@@ -386,6 +411,7 @@ private:
   bool is_reserved;
   bool delete_when_close;
   char* file_mmap;
+  uint8_t* aligned_data_ptr;
   std::string file_path;
   int64_t file_size_;
   int64_t requested_size_;

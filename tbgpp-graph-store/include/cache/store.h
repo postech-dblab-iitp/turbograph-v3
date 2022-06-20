@@ -12,11 +12,13 @@
 class LightningStore {
 public:
   LightningStore(const std::string &unix_socket, int size);
+  ~LightningStore();
   void Run();
 
 private:
   void monitor();
   void listener();
+  void finalize();
 
   void recover(uint8_t *sm, uint8_t *log, uint8_t *object_log, pid_t pid);
 

@@ -42,6 +42,7 @@ public:
 	PartitionID pid; // foreign key
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
+	atomic<ExtentID> local_extent_id_version;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -57,6 +58,7 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
+	ExtentID GetNewExtentID();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:
