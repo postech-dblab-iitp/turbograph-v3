@@ -10,8 +10,13 @@ void LiveGraphCatalog::printCatalog() {
 	for( auto item :this->vertexLabelSetToLGRangeMapping ){
 		std::cout << item.first << ": (" << item.second.first << ", " << item.second.second << ")" << std::endl;
 	}
+	
+	std::cout << std::endl << std::endl;
 
-	// TODO for edges
+	std::cout << "[EdgeLabelSetToLiveGraphEdgeLabelMapping]" << std::endl << std::endl;
+	for( auto item: this->edgeLabelSetToLGEdgeLabelMapping ) {
+		std::cout << item.first << ": " << item.second << std::endl;
+	}
 
 	std::cout << std::endl << std::endl;
 

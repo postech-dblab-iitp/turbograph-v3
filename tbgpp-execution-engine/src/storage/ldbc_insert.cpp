@@ -63,8 +63,6 @@ void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string
 	for (const auto& entry: fs::directory_iterator(stat_path))
 		filepaths.push_back(entry.path().u8string());
 	
-	// TODO add mapping
-
 	// insert vertex first.
 	std::map<std::string, std::map<long,long>*> labelMap;	// temporary here
 
@@ -191,7 +189,7 @@ void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string
 
 	// insert edges
 	int currentEdgeLabelId = 0;
-
+	long edgeInsertCnt = 0;
 	for (auto filepath: filepaths) {
 		std::string filename = fs::path(filepath).stem();
 		// based on filetype, parse content
@@ -213,19 +211,64 @@ void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string
 		
 		LabelSet edgeLabelSet;
 		edgeLabelSet.insert(edgeLabel);
-		catalog.edgeLabelSetToLGEdgeLabelMapping.push_back(
-			std::pair(edgeLabelSet, currentEdgeLabelId)	
-		);
+		//check if same label exists
+		bool dupFound = false;
+		long dupId = -1;
+		for(auto item: catalog.edgeLabelSetToLGEdgeLabelMapping) {
+			if(item.first == edgeLabelSet) {
+				dupFound = true;
+				dupId = item.second;
+				break;
+			}
+		}
+		if(!dupFound) {
+			catalog.edgeLabelSetToLGEdgeLabelMapping.push_back(
+				std::pair(edgeLabelSet, currentEdgeLabelId)	
+			);
+		}
+		long labelIdToUse = dupFound ? dupId : currentEdgeLabelId;
+		std::ifstream file(filepath);
+		if(file.is_open()) {
+			std::string line;
+			bool headerBypassed = 0;
+			while(std::getline(file, line)) {
+				if( !headerBypassed ) {
+					headerBypassed = true;
+					continue;
+				}
+				// get srcid/dstid
+				long srcLdbcId = std::stol(line.substr(0, line.find("|")));
+				int nextSepIdx = line.find("|", line.find("|")+1);
+				long dstLdbcId;
+				std::string edgeLabelData("");
 
-		// increment
-		currentEdgeLabelId++;
+				if( nextSepIdx == std::string::npos ) { // no property
+					dstLdbcId = std::stol(line.substr(line.find("|")+1, line.length()));
+					//std::cout << line << " " << srcLdbcId << " " << dstLdbcId << " "  << edgeLabelData << std::endl;
+				} else { // yes property
+					// these have edge properties
+					// likes, hasmember, workat, studyat, knows
+					dstLdbcId = std::stol(line.substr(line.find("|")+1, nextSepIdx - line.find("|")-1) );
+					edgeLabelData = line.substr(nextSepIdx+1, line.length());
+					//std::cout << line << " " << srcLdbcId << " " << dstLdbcId << " "  << edgeLabelData << std::endl;
+				}
+				// insert using labelIdToUse
+				long liveSrcId = labelMap[srcLabel]->at(srcLdbcId);
+				long liveDstId = labelMap[dstLabel]->at(dstLdbcId);
+				
+				edgeInsertCnt++;
+				txn.put_edge(liveSrcId, labelIdToUse, liveDstId, std::string_view(edgeLabelData));
+			}
+		}
+		// increment for next id
+		if(!dupFound){
+			currentEdgeLabelId++;
+		}
 	}
 
 	// end transaction
 	txn.commit(true);
 
-
-	// TODO print graph size
-	// check there is correct sizes.
+	std::cout << graph.get_max_vertex_id() << " nodes and " << edgeInsertCnt << " edges bulk inserted.\n\n";
 	
 }

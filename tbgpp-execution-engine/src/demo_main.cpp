@@ -2,12 +2,15 @@
 #include <cassert> 
 #include <filesystem>
 
-#include "typedef.hpp"
-
 #include "livegraph.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
+
+#include "duckdb/common/types/chunk_collection.hpp"
+
+#include "typedef.hpp"
+
 
 int main(int argc, char** argv) {
 
@@ -20,11 +23,22 @@ int main(int argc, char** argv) {
 
 	catalog.printCatalog();
 
-
 	// make a storage using livegraph and its catalog
-	//LiveGraphStore graphstore(graph, catalog);
+		// copy prohibit
+	LiveGraphStore graphstore(graph, catalog);
 
+	// TODO generate chunk collection for each scan, and call storage API when first calling..
 	
+	auto fooCC = duckdb::ChunkCollection();
+	auto fooadjopt = LoadAdjListOption::NONE;
+
+	auto foopp = PropertyKeys();
+	auto aa = LabelSet();
+
+	// TODO test.
+	//graphstore.doScan(fooCC, aa, fooadjopt, foopp);
+
+
 	// generate plans and run on storage
 
 }
