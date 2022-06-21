@@ -66,23 +66,20 @@ public:
 		}
 		
 		type = type_;
+		
+		yyjson_val *root = yyjson_doc_get_root(doc);
+		yyjson_obj_iter iter;
+		yyjson_obj_iter_init(root, &iter);
+		yyjson_val *key, *arr;
 
-		if (type == GraphComponentType::VERTEX) {
-			yyjson_val *root = yyjson_doc_get_root(doc);
-			yyjson_obj_iter iter;
-			yyjson_obj_iter_init(root, &iter);
-			yyjson_val *key, *arr;
+		key = yyjson_obj_iter_next(&iter);
+		if (type == GraphComponentType::VERTEX) D_ASSERT(std::strncmp(yyjson_get_str(key), "vertices", 8) == 0);
+		else if (type == GraphComponentType::EDGE)D_ASSERT(std::strncmp(yyjson_get_str(key), "edges", 5) == 0);
 
-			key = yyjson_obj_iter_next(&iter);
-			D_ASSERT(std::strncmp(yyjson_get_str(key), "vertices", 8) == 0);
+		arr = yyjson_obj_iter_get_val(key);
+		D_ASSERT(yyjson_is_arr(arr));
 
-			arr = yyjson_obj_iter_get_val(key);
-			D_ASSERT(yyjson_is_arr(arr));
-
-			yyjson_arr_iter_init(arr, &arr_iter);
-		} else {
-			throw NotImplementedException("Not implemented yet");
-		}
+		yyjson_arr_iter_init(arr, &arr_iter);
 	}
 
 	bool ReadJsonFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
@@ -123,8 +120,31 @@ public:
 		else return false;
 	}
 
+	// Same Logic as ReadVertexJsonFile
 	bool ReadEdgeJsonFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
-		return true;
+		// Assume the input json file follows GraphSon Format
+		idx_t current_index = 0;
+		yyjson_val *val;
+
+		while ((val = yyjson_arr_iter_next(&arr_iter))) {
+			// val = a vertex
+			yyjson_val *vertex_attr_key, *vertex_attr_val;
+			yyjson_obj_iter vertex_attr_iter;
+			yyjson_obj_iter_init(val, &vertex_attr_iter);
+			for (int i = 0; i < key_names.size(); i++) {
+				yyjson_val *attr = yyjson_obj_iter_get(&vertex_attr_iter, key_names[i].c_str());
+				output.SetValue(i, current_index, JsonValToValue(attr, types[i]));
+			}
+			
+			if (++current_index == STANDARD_VECTOR_SIZE) break;
+			/*while ((vertex_attr_key = yyjson_obj_iter_next(&vertex_attr_iter))) {
+				vertex_attr_val = yyjson_obj_iter_get_val(vertex_attr_key);
+				printf("%s: %s\n", yyjson_get_str(vertex_attr_key), yyjson_get_type_desc(vertex_attr_val));
+			}*/
+		}
+		output.SetCardinality(current_index);
+		if (arr_iter.max == arr_iter.idx) return true;
+		else return false;
 	}
 
 public:

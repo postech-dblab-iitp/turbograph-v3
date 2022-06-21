@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
+#include <boost/program_options.hpp>
 
 #include "common/json_reader.hpp"
 #include "common/types/data_chunk.hpp"
@@ -32,11 +33,15 @@
 #include "cache/chunk_cache_manager.h"
 
 using namespace duckdb;
+namespace po = boost::program_options;
 
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>
 
 typedef boost::interprocess::managed_shared_memory::const_named_iterator const_named_it;
+
+vector<std::pair<string, string>> vertex_files;
+vector<std::pair<string, string>> edge_files;
 
 void helper_deallocate_objects_in_shared_memory () {
   string server_socket = "/tmp/catalog_server";
@@ -73,7 +78,55 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
-TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
+TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
+  // Maybe we need some preprocessing..
+
+  // Initialize Database
+  helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+  std::unique_ptr<DuckDB> database;
+  database = make_unique<DuckDB>(nullptr);
+  Catalog& cat_instance = database->instance->GetCatalog();
+
+  // Initialize ClientContext
+  std::shared_ptr<ClientContext> client = 
+    std::make_shared<ClientContext>(database->instance->shared_from_this());
+
+  // Initialize Catalog Informations
+  // Create Schema, Graph
+  CreateSchemaInfo schema_info;
+  cat_instance.CreateSchema(*client.get(), &schema_info);
+
+  CreateGraphInfo graph_info("main", "graph1");
+  GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+
+  // Read Vertex JSON File & CreateVertexExtents
+  for (auto vertex_file: vertex_files) {
+    // Create Partition for each vertex (partitioned by label)
+    
+    // Initialize Property Schema Info using Schema of the vertex
+
+    // Read JSON File into DataChunk
+
+    // CreateVertexExtent by extent manager
+
+    // Build Logical Vid To Physical Vid Mapping (= LVID_TO_PVID_MAP)
+  }
+
+  // Read Edge JSON File & CreateEdgeExtents & Append Adj.List to VertexExtents
+  for (auto edge_file: edge_files) {
+    // Create Partition for each edge (partitioned by edge type)
+
+    // Initialize Property Schema Info using Schema of the edge
+
+    // Read JSON File into DataChunk
+
+    // Convert Logical Vid to Physical Vid using LVID_TO_PVID_MAP
+
+    // CreateEdgeExtent by extent manager
+  }
+}
+
+/*TEST_CASE ("Old", "[tile]") {
   GraphJsonFileReader reader;
   
   reader.InitJsonFile("/home/tslee/turbograph-v3/tbgpp-graph-store/test/extent/person_0_0.json.original", GraphComponentType::VERTEX);
@@ -123,9 +176,49 @@ TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   }
   fprintf(stdout, "Read JSON File DONE\n");
   //fprintf(stdout, "%s", output.ToString().c_str());
-}
+}*/
+
+class InputParser{
+  public:
+    InputParser (int &argc, char **argv){
+      for (int i=1; i < argc; ++i) {
+        this->tokens.push_back(std::string(argv[i]));
+      }
+    }
+    void getCmdOption() const {
+      std::vector<std::string>::const_iterator itr;
+      for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
+        std::string current_str = *itr;
+        if (std::strncmp(current_str.c_str(), "--nodes:", 8) == 0) {
+          std::pair<std::string, std::string> pair_to_insert;
+          pair_to_insert.first = std::string(*itr).substr(8);
+          itr++;
+          pair_to_insert.second = *itr;
+          vertex_files.push_back(pair_to_insert);
+        } else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
+          std::pair<std::string, std::string> pair_to_insert;
+          pair_to_insert.first = std::string(*itr).substr(16);
+          itr++;
+          pair_to_insert.second = *itr;
+          edge_files.push_back(pair_to_insert);
+        }
+      }
+    }
+  private:
+    std::vector <std::string> tokens;
+};
 
 int main(int argc, char **argv) {
+  InputParser input(argc, argv);
+  input.getCmdOption();
+  for (int i = 0; i < vertex_files.size(); i++) {
+    fprintf(stdout, "%s: %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
+  }
+  for (int i = 0; i < edge_files.size(); i++) {
+    fprintf(stdout, "%s: %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
+  }
+  return 0;
+
   // Initialize System Parameters
   DiskAioParameters::NUM_THREADS = 1;
   DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;

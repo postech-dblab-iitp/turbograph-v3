@@ -317,6 +317,9 @@ enum class PhysicalType : uint8_t {
 	/// Boolean as 1 bit, LSB bit-packed ordering
 	BIT = 206,
 
+	/// iTurboGraph Extensions
+	ADJLIST = 207,
+
 	INVALID = 255
 };
 
@@ -366,7 +369,8 @@ enum class LogicalTypeId : uint8_t {
 	MAP = 102,
 	TABLE = 103,
 	ENUM = 104,
-	AGGREGATE_STATE = 105
+	AGGREGATE_STATE = 105,
+	ADJLIST = 106,
 };
 
 struct ExtraTypeInfo;

@@ -42,6 +42,7 @@ public:
 	ExtentID eid;
 	ExtentType extent_type;
 	ChunkDefinitionID_vector chunks;
+	atomic<LocalChunkDefinitionID> local_chunkdefinition_id_version;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -57,5 +58,6 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void SetExtentType(ExtentType extent_type_);
+	LocalChunkDefinitionID GetNextChunkDefinitionID();
 };
 } // namespace duckdb
