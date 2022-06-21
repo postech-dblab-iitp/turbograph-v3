@@ -12,7 +12,7 @@ namespace duckdb {
 
 ExtentManager::ExtentManager() {}
 
-vector<ExtentID> ExtentManager::CreateVertexExtents(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry) {
+ExtentID ExtentManager::CreateVertexExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry) {
     // Create New Extent in Catalog
     ExtentID new_eid = prop_schema_cat_entry.GetNewExtentID();
     Catalog& cat_instance = context.db->GetCatalog();
@@ -20,11 +20,11 @@ vector<ExtentID> ExtentManager::CreateVertexExtents(ClientContext &context, Data
     CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid);
     ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
 
-    LocalChunkDefinitionID chunk_definition_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
         // For each Vector in DataChunk create new chunk definition
+        LocalChunkDefinitionID chunk_definition_idx = extent_cat->GetNextChunkDefinitionID();
         ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
         string chunkdefinition_name = "chunkdefinition" + std::to_string(cdf_id);
         CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
@@ -45,9 +45,43 @@ vector<ExtentID> ExtentManager::CreateVertexExtents(ClientContext &context, Data
         // Set Dirty & Unpin Segment & Flush //
         ChunkCacheManager::ccm->SetDirty(cdf_id);
         ChunkCacheManager::ccm->UnPinSegment(cdf_id);
-
-        chunk_definition_idx++;
     }
+    return new_eid;
+}
+
+ExtentID ExtentManager::CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry) {
+}
+
+void ExtentManager::AppendChunkToExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry, ExtentID eid) {
+    Catalog& cat_instance = context.db->GetCatalog();
+    ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "extent" + std::to_string(eid));
+
+    ChunkDefinitionID cdf_id_base = eid;
+    cdf_id_base << 32;
+    for (auto &l_type : input.GetTypes()) {
+        // For each Vector in DataChunk create new chunk definition
+        LocalChunkDefinitionID chunk_definition_idx = extent_cat->GetNextChunkDefinitionID();
+        ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
+        string chunkdefinition_name = "chunkdefinition" + std::to_string(cdf_id);
+        CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
+        ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
+
+        // Get Buffer from Cache Manager
+        // Cache Object ID: 64bit = ChunkDefinitionID
+        uint8_t* buf_ptr;
+        size_t buf_size;
+        size_t alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
+        string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_");
+        ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path, alloc_buf_size, false);
+        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &buf_ptr, &buf_size);
+
+        // Copy (or Compress and Copy) DataChunk
+        memcpy(buf_ptr, input.data[chunk_definition_idx].GetData(), alloc_buf_size);
+
+        // Set Dirty & Unpin Segment & Flush //
+        ChunkCacheManager::ccm->SetDirty(cdf_id);
+        ChunkCacheManager::ccm->UnPinSegment(cdf_id);
+    }  
 }
 
 } // namespace duckdb

@@ -13,6 +13,7 @@ ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *sch
 	this->temporary = info->temporary;
 	this->extent_type = info->extent_type;
 	this->eid = info->eid;
+	this->local_chunkdefinition_id_version = 0;
 }
 
 unique_ptr<CatalogEntry> ExtentCatalogEntry::Copy(ClientContext &context) {
@@ -23,6 +24,10 @@ unique_ptr<CatalogEntry> ExtentCatalogEntry::Copy(ClientContext &context) {
 
 void ExtentCatalogEntry::SetExtentType(ExtentType extent_type_) {
 	extent_type = extent_type_;
+}
+
+LocalChunkDefinitionID ExtentCatalogEntry::GetNextChunkDefinitionID() {
+	return local_chunkdefinition_id_version++;
 }
 
 } // namespace duckdb
