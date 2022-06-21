@@ -25,6 +25,14 @@ include_directories(${TBB_INCLUDE_DIRS})
 link_directories(${TBB_LIBRARY_DIRS})
 link_libraries(${TBB_LIBRARIES})
 
+# dependencies - boost
+set(Boost_DEBUG 1)
+include(cmake/FindBoost.cmake)
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
+link_libraries(${Boost_LIBRARIES})
+
 # add system code
 include_directories( "${SRC_DIR}" )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
@@ -84,3 +92,4 @@ add_executable( demo_main.out ${SOURCES} )
 
 # link
 target_link_libraries( demo_main.out PRIVATE livegraph "-ldl -pthread" )
+

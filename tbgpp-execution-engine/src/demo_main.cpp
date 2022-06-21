@@ -18,7 +18,8 @@ int main(int argc, char** argv) {
 	LiveGraphCatalog catalog;
 
 	// parse and insert LDBC data to graph
-	std::string ldbc_path = "/home/jhko/dev/ldbc-benchmark/ldbc_snb_interactive_impls/cypher/test-data/converted";
+	std::string ldbc_path = "/home/jhko/dev/ldbc-benchmark/ldbc_snb_datagen_neo4j_SF1/converted";
+	//std::string ldbc_path = "/home/jhko/dev/ldbc-benchmark/ldbc_snb_interactive_impls/cypher/test-data/converted";
 	LDBCInsert(graph, catalog, ldbc_path);
 
 	catalog.printCatalog();
@@ -29,15 +30,30 @@ int main(int argc, char** argv) {
 
 	// TODO generate chunk collection for each scan, and call storage API when first calling..
 	
-	auto fooCC = duckdb::ChunkCollection();
 	auto fooadjopt = LoadAdjListOption::NONE;
 
-	auto foopp = PropertyKeys();
+	PropertyKeys foopp;
+	foopp.push_back("url");
+	foopp.push_back("name");
+	foopp.push_back("id");
+
 	auto aa = LabelSet();
+	aa.insert("Country");
+	aa.insert("Place");
 
-	// TODO test.
-	//graphstore.doScan(fooCC, aa, fooadjopt, foopp);
+	auto fooCC = duckdb::ChunkCollection();
 
+	// define scan chunk schema
+	std::vector<duckdb::LogicalType> scanSchema;
+	scanSchema.push_back(duckdb::LogicalType::UBIGINT); // pid
+	// TODO need to write for adjlist when needed.
+	scanSchema.push_back(duckdb::LogicalType::VARCHAR); // url
+	scanSchema.push_back(duckdb::LogicalType::VARCHAR); // name
+	scanSchema.push_back(duckdb::LogicalType::BIGINT); // id
+
+	// call scan API
+	graphstore.doScan(fooCC, aa, fooadjopt, foopp, scanSchema);
+	// when card = 0, fooCC have no type at all.
 
 	// generate plans and run on storage
 
