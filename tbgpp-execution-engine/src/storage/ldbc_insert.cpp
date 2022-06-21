@@ -47,7 +47,7 @@ void strConvertToEdgeLabelFormat(std::string& input) {
 	
 }
 
-void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string ldbc_path) { // TODO insert ldbc directory
+void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string ldbc_path) {
 
 	// start transaction
 	livegraph::Transaction txn = graph.begin_batch_loader();

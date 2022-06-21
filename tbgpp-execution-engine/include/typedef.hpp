@@ -24,14 +24,15 @@ enum class LoadAdjListOption {
 
 
 class LabelSet {
-	// TODO need to improve search performance
 
 public:
 	LabelSet() {}
 	void insert(std::string input);
-	
-	bool contains(const LabelSet& elem);
-	// TODO contains
+	// TODO support multiple insert at once by supporting variadic template
+
+	bool isSupersetOf(const LabelSet& elem);
+	bool contains(const std::string st);
+	size_t size() { return this->data.size(); }
 
 	friend bool operator==(const LabelSet lhs, const LabelSet rhs);
 	friend std::ostream& operator<<(std::ostream& os, const LabelSet& obj);

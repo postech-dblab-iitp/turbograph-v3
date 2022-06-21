@@ -1,13 +1,26 @@
 #include "typedef.hpp"
 #include <iostream>
+#include <algorithm>
 
 void LabelSet::insert(std::string input) {
 	this->data.insert(input);
 }
 
-bool LabelSet::contains(const LabelSet& elem) {
-	return true;
+bool LabelSet::isSupersetOf(const LabelSet& elem) {
 
+	// if size bigger, always false
+	if( elem.data.size() > this->data.size() ) return false;
+	// if same or small, check if all members exist.
+	for( const auto& item: elem.data ) {
+		if( this->data.find(item) == this->data.end() ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool LabelSet::contains(const std::string st) {
+	return this->data.find(st) != this->data.end();
 }
 
 std::ostream& operator<<(std::ostream& os, const LabelSet& obj) {

@@ -15,7 +15,7 @@ public:
 	// TODO further need to be re-defined upon discussion
 
 	// ! Scan used by scan operators
-	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
+	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
 	// TODO ! Scan with storage predicate
 	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
 
@@ -34,7 +34,7 @@ public:
 
 public:
 	// APIs
-	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
+	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
 
 	StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
 	StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
