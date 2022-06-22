@@ -20,7 +20,13 @@ unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context
 }
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
+	D_ASSERT(false);
 	extent_ids.push_back(extent_cat->oid);
+}
+
+void PropertySchemaCatalogEntry::AddExtent(ExtentID eid) {
+	// Can we perform this logic in GetNewExtentID??
+	extent_ids.push_back(eid);
 }
 
 ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {

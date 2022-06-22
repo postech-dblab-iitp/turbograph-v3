@@ -1,13 +1,15 @@
-#ifndef TILE_MANAGER_H
-#define TILE_MANAGER_H
+#ifndef EXTENT_MANAGER_H
+#define EXTENT_MANAGER_H
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
 
 namespace duckdb {
 
+class Catalog;
 class DataChunk;
 class ClientContext;
+class ExtentCatalogEntry;
 class PropertySchemaCatalogEntry;
 
 class ExtentManager {
@@ -17,11 +19,14 @@ public:
     ~ExtentManager() {}
 
     // for bulk loading
-    ExtentID CreateVertexExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry);
-    ExtentID CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry);
-    void CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID new_eid);
+    ExtentID CreateExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry);
+    //ExtentID CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry);
+    void CreateExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID new_eid);
 
-    void AppendChunkToExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid);
+    void AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid);
+
+private:
+    void _AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog &cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, ExtentID eid);
 
 /*  
     TileID CreateVertexTile(DBInstance &db, VLabels label_set, Schema &schema, bool is_temporary) ;

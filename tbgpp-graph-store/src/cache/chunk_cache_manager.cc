@@ -33,7 +33,7 @@ ChunkCacheManager::~ChunkCacheManager() {
   }
 }
 
-ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size) {
+ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async) {
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);
@@ -64,8 +64,8 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       MemAlign(ptr, segment_size, required_memory_size, file_handler);
       
       // Read data & Seal object
-      ReadData(cid, file_path, ptr, file_size);
-      client->Seal(cid);
+      ReadData(cid, file_path, ptr, file_size, read_data_async);
+      if (!read_data_async) client->Seal(cid);
       *size = segment_size - sizeof(size_t);
     } else {
       // Create fail -> Subscribe object
@@ -145,6 +145,11 @@ ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
   return NOERROR;
 }
 
+ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
+  file_handlers[cid]->WaitForMyIoRequests(read, write);
+  return NOERROR;
+}
+
 int ChunkCacheManager::GetRefCount(ChunkID cid) {
   return client->GetRefCount(cid);
 }
@@ -193,13 +198,13 @@ Turbo_bin_aio_handler* ChunkCacheManager::GetFileHandler(ChunkID cid) {
   return file_handler->second;
 }
 
-void ChunkCacheManager::ReadData(ChunkID cid, std::string file_path, uint8_t** ptr, size_t size_to_read) {
+void ChunkCacheManager::ReadData(ChunkID cid, std::string file_path, uint8_t** ptr, size_t size_to_read, bool read_data_async) {
   if (file_handlers[cid]->GetFileID() == -1) {
     exit(-1);
     //TODO throw exception
   }
   file_handlers[cid]->Read(0, (int64_t) size_to_read, (char*) *ptr, nullptr, nullptr);
-  file_handlers[cid]->WaitForMyIoRequests(true, true);
+  if (!read_data_async) file_handlers[cid]->WaitForMyIoRequests(true, true);
 }
 
 void ChunkCacheManager::WriteData(ChunkID cid) {

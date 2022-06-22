@@ -30,4 +30,8 @@ LocalChunkDefinitionID ExtentCatalogEntry::GetNextChunkDefinitionID() {
 	return local_chunkdefinition_id_version++;
 }
 
+void ExtentCatalogEntry::AddChunkDefinitionID(ChunkDefinitionID cdf_id) {
+	chunks.push_back(cdf_id);
+}
+
 } // namespace duckdb
