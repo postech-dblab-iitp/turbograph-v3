@@ -19,6 +19,7 @@
 #include "common/json_reader.hpp"
 #include "common/types/data_chunk.hpp"
 #include "extent/extent_manager.hpp"
+#include "extent/extent_iterator.hpp"
 
 #include "catalog/catalog.hpp"
 #include "main/database.hpp"
@@ -144,7 +145,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     while (!reader.ReadJsonFile(key_names, types, data)) {
     fprintf(stdout, "Read JSON File Ongoing..\n");
       // Create Vertex Extent by Extent Manager
-      ExtentID new_eid = ext_mng.CreateVertexExtent(*client.get(), data, *property_schema_cat);
+      ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+      property_schema_cat->AddExtent(new_eid);
       
       // Initialize pid base
       idx_t pid_base = (idx_t) new_eid;
@@ -209,12 +211,18 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<idx_t> offset_buffer;
     vector<idx_t> adj_list_buffer;
 
+    // Initialize Extent Iterator
+    ExtentIterator ext_it;
+    PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), "main", "vps_" + src_column_name);
+    ext_it.Initialize(*client.get(), vertex_ps_cat_entry);
+
     // Initialize Min & Max Vertex ID in Src Vertex Extent
-    idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX;
-    idx_t vertex_seqno;
+    idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX, vertex_seqno;
     idx_t *vertex_id_column;
+    vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
     DataChunk vertex_id_chunk;
-    vertex_id_chunk.Initialize(LogicalType::UBIGINT);
+    vertex_id_chunk.Initialize(vertex_id_type);
 
     // Read JSON File into DataChunk & CreateEdgeExtent
     while (!reader.ReadJsonFile(key_names, types, data)) {
@@ -326,7 +334,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       }
 
       // Create Edge Extent by Extent Manager
-      ext_mng.CreateEdgeExtent(*client.get(), data, *property_schema_cat, new_eid);
+      ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
+      property_schema_cat->AddExtent(new_eid);
     }
     
     // Process remaining adjlist

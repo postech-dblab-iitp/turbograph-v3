@@ -22,11 +22,12 @@ public:
   ~ChunkCacheManager();
 
   // ChunkCacheManager APIs
-  ReturnStatus PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size);
+  ReturnStatus PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async=false);
   ReturnStatus UnPinSegment(ChunkID cid);
   ReturnStatus SetDirty(ChunkID cid);
   ReturnStatus CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
   ReturnStatus DestroySegment(ChunkID cid);
+  ReturnStatus FinalizeIO(ChunkID cid, bool read=true, bool write=true);
 
   // APIs for Debugging purpose
   int GetRefCount(ChunkID cid);
@@ -37,7 +38,7 @@ public:
   size_t GetSegmentSize(ChunkID cid, std::string file_path); // sid가 필요한지?
   size_t GetFileSize(ChunkID cid, std::string file_path); // sid가 필요한지?
   Turbo_bin_aio_handler* GetFileHandler(ChunkID cid);
-  void ReadData(ChunkID cid, std::string file_path, uint8_t** ptr, size_t size_to_read);
+  void ReadData(ChunkID cid, std::string file_path, uint8_t** ptr, size_t size_to_read, bool read_data_async);
   void WriteData(ChunkID cid);
   ReturnStatus CreateNewFile(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
   void MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);

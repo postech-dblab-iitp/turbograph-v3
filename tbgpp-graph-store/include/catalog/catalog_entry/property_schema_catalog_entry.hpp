@@ -58,6 +58,7 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
+	void AddExtent(ExtentID eid);
 	ExtentID GetNewExtentID();
 
 	//! Returns the column index of the specified column name.
