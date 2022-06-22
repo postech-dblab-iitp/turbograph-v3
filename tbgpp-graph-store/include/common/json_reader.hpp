@@ -82,6 +82,24 @@ public:
 		yyjson_arr_iter_init(arr, &arr_iter);
 	}
 
+	bool GetSchemaFromHeader(vector<string> &key_names, vector<LogicalType> &types) {
+		return true;
+	}
+
+	int64_t GetKeyColumnIndexFromHeader() {
+		return -1;
+	}
+
+	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
+		src_column_idx = -1;
+		return;
+	}
+
+	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
+		dst_column_idx = -1;
+		return;
+	}
+
 	bool ReadJsonFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
 		D_ASSERT(key_names.size() == types.size());
 		D_ASSERT(key_names.size() == output.ColumnCount());

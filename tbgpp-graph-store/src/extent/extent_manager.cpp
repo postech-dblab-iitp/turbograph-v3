@@ -52,6 +52,9 @@ ExtentID ExtentManager::CreateVertexExtent(ClientContext &context, DataChunk &in
 ExtentID ExtentManager::CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry) {
 }
 
+void ExtentManager::CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry, ExtentID new_eid) {
+}
+
 void ExtentManager::AppendChunkToExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry & prop_schema_cat_entry, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat = (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "extent" + std::to_string(eid));

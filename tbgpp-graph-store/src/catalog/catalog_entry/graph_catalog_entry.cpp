@@ -18,6 +18,8 @@ GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
 	this->temporary = info->temporary;
 	vertex_label_id_version = 0;
 	edge_type_id_version = 0;
+	property_key_id_version = 0;
+	partition_id_version = 0;
 	// add lower case aliases
 	//for (idx_t i = 0; i < columns.size(); i++) {
 	//	D_ASSERT(name_map.find(columns[i].name) == name_map.end());
@@ -197,6 +199,10 @@ EdgeTypeID GraphCatalogEntry::GetEdgeTypeID() {
 
 PropertyKeyID GraphCatalogEntry::GetPropertyKeyID() {
 	return property_key_id_version++;
+}
+
+PartitionID GraphCatalogEntry::GetNewPartitionID() {
+	return partition_id_version++;
 }
 
 } // namespace duckdb
