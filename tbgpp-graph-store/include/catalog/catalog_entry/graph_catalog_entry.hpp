@@ -61,6 +61,7 @@ public:
 	atomic<VertexLabelID> vertex_label_id_version;
 	atomic<EdgeTypeID> edge_type_id_version;
 	atomic<PropertyKeyID> property_key_id_version;
+	atomic<PartitionID> partition_id_version;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
@@ -75,6 +76,7 @@ public:
 	VertexLabelID GetVertexLabelID();
 	EdgeTypeID GetEdgeTypeID();
 	PropertyKeyID GetPropertyKeyID();
+	PartitionID GetNewPartitionID();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
