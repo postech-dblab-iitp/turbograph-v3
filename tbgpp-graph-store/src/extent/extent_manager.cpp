@@ -41,6 +41,7 @@ void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChun
 }
 
 void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, ExtentID new_eid) {
+    idx_t input_chunk_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
@@ -55,7 +56,13 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         // Cache Object ID: 64bit = ChunkDefinitionID
         uint8_t* buf_ptr;
         size_t buf_size;
-        size_t alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
+        size_t alloc_buf_size;
+        if (l_type == LogicalType::ADJLIST) {
+            idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+        } else {
+            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
+        }
         string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &buf_ptr, &buf_size);
@@ -66,6 +73,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         // Set Dirty & Unpin Segment & Flush
         ChunkCacheManager::ccm->SetDirty(cdf_id);
         ChunkCacheManager::ccm->UnPinSegment(cdf_id);
+        input_chunk_idx++;
     }
 }
 

@@ -65,7 +65,8 @@ file(GLOB CATALOG_TEST_SRC
 
 file(GLOB TILE_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_json_reader.cc"
-  "${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
+  "${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
+  #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
 )
 
 find_package(Catch2 REQUIRED)

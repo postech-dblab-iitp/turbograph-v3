@@ -181,6 +181,8 @@ constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 // TODO these are incomplete and should maybe not exist as such
 constexpr const LogicalTypeId LogicalType::TABLE;
 
+constexpr const LogicalTypeId LogicalType::ADJLIST;
+
 constexpr const LogicalTypeId LogicalType::ANY;
 
 const vector<LogicalType> LogicalType::Numeric() {
