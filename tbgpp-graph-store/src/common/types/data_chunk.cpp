@@ -47,6 +47,15 @@ void DataChunk::Initialize(const vector<LogicalType> &types) {
 	}
 }
 
+void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas) {
+	capacity = STANDARD_VECTOR_SIZE;
+	D_ASSERT(data.empty());   // can only be initialized once
+	D_ASSERT(!types.empty()); // empty chunk not allowed
+	for (idx_t i = 0; i < types.size(); i++) {
+		data.emplace_back(Vector(types[i], datas[i]));
+	}
+}
+
 void DataChunk::Reset() {
 	if (data.empty()) {
 		return;

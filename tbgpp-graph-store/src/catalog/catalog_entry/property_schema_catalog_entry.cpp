@@ -35,4 +35,19 @@ ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
 	return new_eid + local_extent_id_version++;
 }
 
+vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
+	vector<LogicalType> types;
+	for (auto &it : this->property_types) {
+		types.push_back(it);
+	}
+	return types;
+}
+
+void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
+	D_ASSERT(property_types.empty());
+	for (auto &it : types) {
+		property_types.push_back(it);
+	}
+}
+
 } // namespace duckdb

@@ -129,9 +129,11 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     string property_schema_name = "vps_" + vertex_file.first;
     CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str());
     PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+    
     vector<PropertyKeyID> property_key_ids;
     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
     partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+    property_schema_cat->SetTypes(types);
 
     // Initialize DataChunk
     DataChunk data;
@@ -203,6 +205,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<PropertyKeyID> property_key_ids;
     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
     partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+    property_schema_cat->SetTypes(types);
 
     // Initialize DataChunk
     DataChunk data;
@@ -215,14 +218,14 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), "main", "vps_" + src_column_name);
-    ext_it.Initialize(*client.get(), vertex_ps_cat_entry);
-
-    // Initialize Min & Max Vertex ID in Src Vertex Extent
-    idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX, vertex_seqno;
-    idx_t *vertex_id_column;
+    vector<idx_t> src_column_idxs = {src_column_idx};
     vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
-    DataChunk vertex_id_chunk;
-    vertex_id_chunk.Initialize(vertex_id_type);
+    ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+
+    // Initialize variables related to vertex extent
+    idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX, vertex_seqno;
+    idx_t *vertex_id_column;    
+    DataChunk *vertex_id_chunk;
 
     // Read JSON File into DataChunk & CreateEdgeExtent
     while (!reader.ReadJsonFile(key_names, types, data)) {
@@ -253,21 +256,22 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
       src_key_column[src_seqno] = cur_src_pid;
 
-      // Check if we need to load Correspind ID column of Src Vertex Extent
-      if (min_id == ULLONG_MAX) {
-        // TODO Read Corresponding ID column of Src Vertex Extent
-
+      // Get First Vertex Extent
+      while (true) {
+        if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk)) break;
+        
         // TODO Initialize min & max id
-
-        // Initialize vertex_seqno
-        vertex_seqno = 0;
-        vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
-        while (vertex_id_column[vertex_seqno] < cur_src_id) {
-          vertex_seqno++;
-          offset_buffer.push_back(0);
-        }
-        D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
+        if (cur_src_id >= min_id && cur_src_id <= max_id) break;
       }
+
+      // Initialize vertex_seqno
+      vertex_seqno = 0;
+      vertex_id_column = (idx_t*) vertex_id_chunk->data[0].GetData();
+      while (vertex_id_column[vertex_seqno] < cur_src_id) {
+        vertex_seqno++;
+        offset_buffer.push_back(0);
+      }
+      D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
 
       src_seqno++;
       while(src_seqno < max_seqno) {
@@ -298,13 +302,18 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             offset_buffer.clear();
             adj_list_buffer.clear();
 
-            // TODO Read corresponding ID column of Src Vertex Extent
-
-            // TODO Initialize min & max id
-
+            // Read corresponding ID column of Src Vertex Extent
+            while (true) {
+              if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk)) break;
+        
+              // TODO Initialize min & max id
+              if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+            }
+            // if (!(cur_src_id >= min_id && cur_src_id <= max_id)) break; // TODO terminal condition
+            
             // Initialize vertex_seqno
             vertex_seqno = 0;
-            vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
+            vertex_id_column = (idx_t*) vertex_id_chunk->data[0].GetData();
             while (vertex_id_column[vertex_seqno] < cur_src_id) {
               vertex_seqno++;
               offset_buffer.push_back(0);
