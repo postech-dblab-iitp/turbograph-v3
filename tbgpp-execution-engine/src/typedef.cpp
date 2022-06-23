@@ -1,6 +1,7 @@
 #include "typedef.hpp"
 #include <iostream>
 #include <algorithm>
+#include <map>
 
 void LabelSet::insert(std::string input) {
 	this->data.insert(input);
@@ -35,4 +36,33 @@ std::ostream& operator<<(std::ostream& os, const LabelSet& obj) {
 bool operator==(const LabelSet lhs, const LabelSet rhs) {
 	// This is a comparison between 'unordered' sets, thus different ordering will return true.
 	return lhs.data == rhs.data;
+}
+
+std::vector<duckdb::LogicalType> CypherSchema::getTypes() {
+	std::vector<duckdb::LogicalType> result;
+	for( auto& attr: attrs) {
+		auto name = std::get<0>(attr);
+		auto cypherType = std::get<1>(attr);
+		switch( cypherType ) {
+			case CypherValueType::DATA:
+			case CypherValueType::ID:
+			case CypherValueType::ADJLIST: {
+				result.push_back( std::get<2>(attr) );
+				break;
+			}
+			case CypherValueType::NODE:
+			case CypherValueType::EDGE:
+			case CypherValueType::PATH: {
+				// recursive seek
+				std::vector<duckdb::LogicalType> innerResult = nestedAttrs[name].getTypes();
+				for( auto& r: innerResult ) {
+					result.push_back(r);
+				}
+			}
+			default: {
+				assert( 0 && "wrong type");
+			}	
+		}
+	}
+	return result;
 }
