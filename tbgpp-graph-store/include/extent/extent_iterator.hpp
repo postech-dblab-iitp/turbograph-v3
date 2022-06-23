@@ -24,7 +24,7 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types, vector<idx_t> &target_idxs);
 
-    bool GetNextExtent(ClientContext &context, DataChunk *output);
+    bool GetNextExtent(ClientContext &context, DataChunk *&output, ExtentID &output_eid);
 
 private:
     bool _CheckIsMemoryEnough();

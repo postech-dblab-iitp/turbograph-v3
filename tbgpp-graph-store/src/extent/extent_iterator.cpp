@@ -90,7 +90,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 // Get Next Extent with all properties
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk *&output) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk *&output, ExtentID &output_eid) {
     // We should avoid data copy here
     
     // Keep previous values
@@ -131,7 +131,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk *&output) {
     // Initialize DataChunk using cached buffer
     data_chunks[prev_toggle]->Destroy();
     data_chunks[prev_toggle]->Initialize(ext_property_types, io_requested_buf_ptrs[prev_toggle]);
+    data_chunks[prev_toggle]->SetCardinality(io_requested_buf_sizes[prev_toggle][0] / GetTypeIdSize(ext_property_types[0].InternalType()));
     output = data_chunks[prev_toggle];
+    output_eid = ext_ids_to_iterate[previous_idx];
     return true;
 }
 
