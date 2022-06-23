@@ -73,6 +73,7 @@ public:
 	//! types list. The vector will be referencing vector to the data owned by
 	//! the DataChunk.
 	DUCKDB_API void Initialize(const vector<LogicalType> &types);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas);
 	//! Initializes an empty DataChunk with the given types. The vectors will *not* have any data allocated for them.
 	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types);
 	//! Append the other DataChunk to this one. The column count and types of

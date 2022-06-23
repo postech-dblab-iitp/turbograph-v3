@@ -7,6 +7,7 @@
 namespace duckdb {
 
 class DataChunk;
+class LogicalType;
 class ClientContext;
 class PropertySchemaCatalogEntry;
 
@@ -21,6 +22,7 @@ public:
 
     // Iterate all extents related to the PropertySchemaCatalogEntry
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types, vector<idx_t> &target_idxs);
 
     bool GetNextExtent(ClientContext &context, DataChunk *output);
 
@@ -33,6 +35,8 @@ private:
     vector<ChunkDefinitionID> io_requested_cdf_ids[MAX_NUM_DATA_CHUNKS];
     vector<uint8_t*> io_requested_buf_ptrs[MAX_NUM_DATA_CHUNKS];
     vector<size_t> io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
+    vector<LogicalType> ext_property_types;
+    vector<idx_t> target_idxs;
     idx_t current_idx;
     idx_t max_idx;
     int num_data_chunks;
