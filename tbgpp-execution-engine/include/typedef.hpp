@@ -4,6 +4,10 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <tuple>
+#include <map>
+
+#include "duckdb/common/types.hpp"
 
 enum class StoreAPIResult {
 	OK,
@@ -21,7 +25,6 @@ enum class LoadAdjListOption {
 	INCOMING,
 	BOTH
 };
-
 
 class LabelSet {
 
@@ -41,3 +44,25 @@ private:
 	std::unordered_set<std::string> data;
 };
 
+enum class CypherValueType {
+	// non-nested
+	DATA,	// TODO need to be specified more
+	ID,
+	ADJLIST,
+	// nested
+	NODE,
+	EDGE,
+	PATH
+};
+
+class CypherSchema{
+
+public:
+	std::vector<duckdb::LogicalType> getTypes();
+	// TODO add print function.
+	// TODO add insert function.
+
+private:
+	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
+	std::map<std::string, CypherSchema> nestedAttrs;
+};

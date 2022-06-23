@@ -1,3 +1,5 @@
+#pragma once
+
 #include "livegraph.hpp"
 #include "storage/livegraph_catalog.hpp"
 
@@ -15,7 +17,7 @@ public:
 	// TODO further need to be re-defined upon discussion
 
 	// ! Scan used by scan operators
-	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
 	// TODO ! Scan with storage predicate
 	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
 
@@ -34,7 +36,9 @@ public:
 
 public:
 	// APIs
-	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+
+	//! | vid | adj-ls1-in | adj-ls2-in | ... | adj-ls1-out | adj-ls2-out | prop1 | prop2 | ...
+	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
 
 	StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
 	StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);

@@ -89,7 +89,8 @@ add_definitions(-DDUCKDB_VERSION="\""1"\"")
 
 # set executable
 add_executable( demo_main.out ${SOURCES} )
+add_executable( livegraph-test tmp/_insert_graph.cpp )
 
 # link
 target_link_libraries( demo_main.out PRIVATE livegraph "-ldl -pthread" )
-
+target_link_libraries( livegraph-test PRIVATE livegraph "-ldl -pthread")
