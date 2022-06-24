@@ -1,22 +1,30 @@
 #pragma once
 
-#include "duckdb/common/constants.hpp"
+// #include "duckdb/common/common.hpp"
+// #include "duckdb/catalog/catalog.hpp"
+// #include "duckdb/common/enums/physical_operator_type.hpp"
+
+#include "duckdb/common/types/data_chunk.hpp"
+#include "duckdb/common/enums/operator_result_type.hpp"
+// #include "duckdb/common/constants.hpp"
+
 #include "duckdb/execution/physical_operator.hpp"
+
 #include "storage/graph_store.hpp"
 
 #include "typedef.hpp"
 #include "storage/graph_store.hpp"
 
+#include "duckdb/common/common.hpp"
+
 using namespace duckdb;
 
-class CypherPhysicalOperator: public duckdb::PhysicalOperator {
+class CypherPhysicalOperator {
 
 public:
-	// TODO caredest disabled. 
-	// TODO physical operator type disabled. do it later.
 
-	CypherPhysicalOperator( CypherSchema schema ) :
-		duckdb::PhysicalOperator(duckdb::PhysicalOperatorType::INVALID, schema.getTypes(), 0), schema(schema){};
+	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {}
+	virtual ~CypherPhysicalOperator() { }
 
 	virtual void GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &lstate) const;
 	virtual unique_ptr<LocalSourceState> GetLocalSourceState() const;
@@ -27,12 +35,16 @@ public:
 	virtual OperatorResultType Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState() const;
 
-	// TODO execute
+	const vector<LogicalType> &GetTypes()  {
+		return types;
+	}
+
+	virtual std::string ParamsToString() const { return ""; }
 
 private:
-	// TODO additional members
 
 	// operator metadata
 	CypherSchema schema;
+	vector<duckdb::LogicalType> types;
 	
 };

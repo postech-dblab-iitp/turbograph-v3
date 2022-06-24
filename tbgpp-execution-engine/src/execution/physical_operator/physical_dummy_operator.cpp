@@ -15,15 +15,16 @@ public:
 	explicit DummyOperatorState() {}
 public:
 
-	
 };
 
-PhysicalDummyOperator::PhysicalDummyOperator(CypherSchema& schema): CypherPhysicalOperator(schema) {}
+//PhysicalDummyOperator::PhysicalDummyOperator(CypherSchema& sch): CypherPhysicalOperator(sch) {}
 
-OperatorResultType PhysicalDummyOperator::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
-                                               GlobalOperatorState &gstate, OperatorState &state_p) const {
-	auto &state = (DummyOperatorState &)state_p;
-	// TODO do something
+OperatorResultType PhysicalDummyOperator::Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const {
+	auto &lstate = (DummyOperatorState &)state;
+	
+	// doing nothing. just project with no schema alteration.
+	chunk.Reference(input);
+
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 

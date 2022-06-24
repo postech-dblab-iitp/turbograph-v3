@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cassert>
-#include <vector>
+// #include <vector>
 
-#include "duckdb/common/unordered_set.hpp"
-#include "duckdb/function/table_function.hpp"
-#include "duckdb/parallel/task_scheduler.hpp"
-#include "duckdb/common/atomic.hpp"
+// #include "duckdb/common/unordered_set.hpp"
+// #include "duckdb/execution/physical_operator.hpp"
+// #include "duckdb/function/table_function.hpp"
+// #include "duckdb/parallel/task_scheduler.hpp"
+// #include "duckdb/common/atomic.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
