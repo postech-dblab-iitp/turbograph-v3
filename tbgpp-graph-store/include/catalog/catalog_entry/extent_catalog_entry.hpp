@@ -41,6 +41,7 @@ public:
 
 	ExtentID eid;
 	ExtentType extent_type;
+	PartitionID pid; // foreign key
 	ChunkDefinitionID_vector chunks;
 	atomic<LocalChunkDefinitionID> local_chunkdefinition_id_version;
 	

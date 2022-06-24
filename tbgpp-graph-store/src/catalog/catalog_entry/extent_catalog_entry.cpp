@@ -14,6 +14,7 @@ ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *sch
 	this->extent_type = info->extent_type;
 	this->eid = info->eid;
 	this->local_chunkdefinition_id_version = 0;
+	this->pid = info->pid;
 }
 
 unique_ptr<CatalogEntry> ExtentCatalogEntry::Copy(ClientContext &context) {

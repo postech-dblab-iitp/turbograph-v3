@@ -4,6 +4,8 @@
 #include "catalog/catalog_entry/list.hpp"
 #include "common/enums/graph_component_type.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
+#include "cache/disk_aio/TypeDef.hpp"
+#include "common/directory_helper.hpp"
 
 #include <memory>
 #include <algorithm>
@@ -45,6 +47,8 @@ void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid
 		// not found
 		type_to_partition_index.insert({edge_type_id, pid});
 	}
+	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
+	MkDir(partition_dir_path, true);
 }
 
 void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, string type) {
@@ -68,6 +72,8 @@ void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid
 		// not found
 		type_to_partition_index.insert({edge_type_id, pid});
 	}
+	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
+	MkDir(partition_dir_path, true);
 }
 void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids) {
 	for (size_t i = 0; i < label_ids.size(); i++) {
@@ -83,6 +89,8 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 			label_to_partition_index.insert({label_ids[i], tmp_vec});
 		}
 	}
+	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
+	MkDir(partition_dir_path, true);
 }
 
 void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels) {
@@ -108,9 +116,12 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 			// not found
 			void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
 			PartitionID_vector tmp_vec(void_alloc);
+			tmp_vec.push_back(pid);
 			label_to_partition_index.insert({vertex_label_id, tmp_vec});
 		}
 	}
+	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
+	MkDir(partition_dir_path, true);
 }
 
 PartitionID_vector GraphCatalogEntry::Intersection(ClientContext &context, vector<VertexLabelID>& label_ids) {

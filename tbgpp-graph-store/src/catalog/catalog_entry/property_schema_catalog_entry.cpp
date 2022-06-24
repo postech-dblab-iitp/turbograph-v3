@@ -11,6 +11,7 @@ PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaC
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
 	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0) {
 	this->temporary = info->temporary;
+	this->pid = info->pid;
 }
 
 unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context) {
@@ -48,6 +49,10 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	for (auto &it : types) {
 		property_types.push_back(it);
 	}
+}
+
+PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
+	return pid;
 }
 
 } // namespace duckdb

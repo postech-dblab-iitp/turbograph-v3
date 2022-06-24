@@ -62,6 +62,7 @@ public:
 	void AddExtent(ExtentCatalogEntry* extent_cat);
 	void AddExtent(ExtentID eid);
 	ExtentID GetNewExtentID();
+	PartitionID GetPartitionID();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:

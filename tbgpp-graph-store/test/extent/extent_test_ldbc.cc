@@ -130,7 +130,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     int64_t key_column_idx = reader.GetKeyColumnIndexFromHeader();
     
     string property_schema_name = "vps_" + vertex_file.first;
-    CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str());
+    CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
     PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
     
     vector<PropertyKeyID> property_key_ids;
@@ -210,7 +210,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
     string property_schema_name = "eps_" + edge_file.first;
-    CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str());
+    CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
     PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
     vector<PropertyKeyID> property_key_ids;
     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);

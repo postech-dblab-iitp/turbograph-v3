@@ -8,14 +8,16 @@ namespace duckdb {
 struct CreatePropertySchemaInfo : public CreateInfo {
 	CreatePropertySchemaInfo() : CreateInfo(CatalogType::PROPERTY_SCHEMA_ENTRY, INVALID_SCHEMA) {
 	}
-	CreatePropertySchemaInfo(string schema, string name) : CreateInfo(CatalogType::PROPERTY_SCHEMA_ENTRY, schema), propertyschema(name) {
+	CreatePropertySchemaInfo(string schema, string name, PartitionID pid) : CreateInfo(CatalogType::PROPERTY_SCHEMA_ENTRY, schema),
+		propertyschema(name), pid(pid) {
 	}
 
 	string propertyschema;
+	PartitionID pid;
 
 public:
 	unique_ptr<CreateInfo> Copy() const override {
-		auto result = make_unique<CreatePropertySchemaInfo>(schema, propertyschema);
+		auto result = make_unique<CreatePropertySchemaInfo>(schema, propertyschema, pid);
 		CopyProperties(*result);
 		return move(result);
 	}
