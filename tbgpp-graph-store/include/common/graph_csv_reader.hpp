@@ -1,85 +1,196 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "third_party/csv-parser/csv.hpp"
-#include "common/enums/graph_component_type.hpp"
 #include "common/assert.hpp"
+#include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
+#include "common/enums/graph_component_type.hpp"
+#include "third_party/csv-parser/csv.hpp"
 
 namespace duckdb {
-    
+
+inline Value CSVValToValue(csv::CSVField &val, LogicalType &type) {
+	switch (type.id()) {
+		case LogicalTypeId::BOOLEAN:
+			return Value::BOOLEAN(val.get<bool>());
+		case LogicalTypeId::TINYINT:
+			return Value::TINYINT(val.get<int8_t>());
+		case LogicalTypeId::SMALLINT:
+			return Value::SMALLINT(val.get<int16_t>());
+		case LogicalTypeId::INTEGER:
+			return Value::INTEGER(val.get<int32_t>());
+		case LogicalTypeId::BIGINT:
+			return Value::BIGINT(val.get<int64_t>());
+		case LogicalTypeId::UTINYINT:
+			return Value::UTINYINT(val.get<uint8_t>());
+		case LogicalTypeId::USMALLINT:
+			return Value::USMALLINT(val.get<uint16_t>());
+		case LogicalTypeId::UINTEGER:
+			return Value::UINTEGER(val.get<uint32_t>());
+		case LogicalTypeId::UBIGINT:
+			return Value::UBIGINT(val.get<uint64_t>());
+		case LogicalTypeId::HUGEINT:
+			throw NotImplementedException("Do not support HugeInt");
+		case LogicalTypeId::DECIMAL:
+			throw NotImplementedException("Do not support Decimal");
+		case LogicalTypeId::FLOAT:
+			return Value::FLOAT(val.get<float>());
+		case LogicalTypeId::DOUBLE:
+			return Value::DOUBLE(val.get<double>());
+		case LogicalTypeId::VARCHAR:
+			return Value(val.get<>());
+		default:
+			throw NotImplementedException("Unsupported type");
+	}
+}
+
 class GraphCSVFileReader {
 
 public:
     GraphCSVFileReader() {}
     ~GraphCSVFileReader() {}
 
-    void InitCSVFile(const char *csv_file_path, GraphComponentType type_) {
+    void InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
         type = type_;
 
         // Initialize CSV Reader & iterator
-        reader = new csv::CSVReader(csv_file_path);
+        csv::CSVFormat csv_form;
+        csv_form.delimiter('|')
+                .header_row(0);
+        reader = new csv::CSVReader(csv_file_path, csv_form);
         csv_it = reader->begin();
 
+		// Parse header
         vector<string> col_names = move(reader->get_col_names());
-        for (size_t i = 0; i < col_names; i++)
-            fprintf(stdout, "%s, ", col_names[i]);
-        fprintf(stdout, "\n");
+        for (size_t i = 0; i < col_names.size(); i++) {
+            // Assume each element in the header column is of format 'key:type'
+            std::string key_and_type = col_names[i]; 
+            size_t delim_pos = key_and_type.find(':');
+            if (delim_pos == std::string::npos) throw InvalidInputException("");
+            std::string key = key_and_type.substr(0, delim_pos);
+			std::string type_name = key_and_type.substr(delim_pos + 1);
+            LogicalType type = StringToLogicalType(type_name, i);
+            key_names.push_back(move(key));
+			key_types.push_back(move(type));
+        }
     }
 
-	bool GetSchemaFromHeader(vector<string> &key_names, vector<LogicalType> &types) {
-		// TODO
+	bool GetSchemaFromHeader(vector<string> &names, vector<LogicalType> &types) {
+		D_ASSERT(names.empty() && types.empty());
+		names.resize(key_names.size());
+		types.resize(key_types.size());
+		std::copy(key_names.begin(), key_names.end(), names.begin());
+		std::copy(key_types.begin(), key_types.end(), types.begin());
 		return true;
 	}
 
 	int64_t GetKeyColumnIndexFromHeader() {
-		// TODO
-		return -1;
+		D_ASSERT(type == GraphComponentType::VERTEX);
+		return key_column;
 	}
 
 	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
-		// TODO
-		src_column_idx = -1;
+		D_ASSERT(type == GraphComponentType::EDGE);
+		src_column_idx = src_column;
+		src_column_name = key_names[src_column];
 		return;
 	}
 
 	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
-		// TODO
-		dst_column_idx = -1;
+		D_ASSERT(type == GraphComponentType::EDGE);
+		dst_column_idx = dst_column;
+		dst_column_name = key_names[dst_column];
 		return;
 	}
 
-	bool ReadCSVFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
-		D_ASSERT(key_names.size() == types.size());
-		D_ASSERT(key_names.size() == output.ColumnCount());
+	bool ReadCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
+		D_ASSERT(required_keys.size() == types.size());
+		D_ASSERT(required_keys.size() == output.ColumnCount());
 
 		if (type == GraphComponentType::VERTEX) {
-			return ReadVertexCSVFile(key_names, types, output);
+			return ReadVertexCSVFile(required_keys, types, output);
 		} else if (type == GraphComponentType::EDGE) {
-			return ReadEdgeCSVFile(key_names, types, output);
+			return ReadEdgeCSVFile(required_keys, types, output);
 		}
 		return true;
 	}
 
-	bool ReadVertexCSVFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
-		//idx_t current_index = 0;
+	bool ReadVertexCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
+		auto iter_end = reader->end();
+		if (csv_it == iter_end) return true;
+
+		idx_t current_index = 0;
+		vector<idx_t> required_key_column_idxs;
+		for (auto &key: required_keys) {
+			// Find keys in the schema and extract idxs
+			auto key_it = std::find(key_names.begin(), key_names.end(), key);
+			if (key_it != key_names.end()) {
+				idx_t key_idx = key_it - key_names.begin();
+				required_key_column_idxs.push_back(key_idx);
+			} else {
+				throw InvalidInputException("");
+			}
+		}
+		for (; csv_it != iter_end; csv_it++) {
+			if (current_index == STANDARD_VECTOR_SIZE) break;
+			auto &row = *csv_it;
+			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
+				csv::CSVField csv_field = row[required_key_column_idxs[i]];
+				output.SetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+			}
+			current_index++;
+		}
 		
-		//output.SetCardinality(current_index);
-		
+		output.SetCardinality(current_index);
+		return false;
 	}
 
 	// Same Logic as ReadVertexJsonFile
-	bool ReadEdgeCSVFile(vector<string> &key_names, vector<LogicalType> &types, DataChunk &output) {
+	bool ReadEdgeCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
 		//idx_t current_index = 0;
 		
 		//output.SetCardinality(current_index);
 	}
+private:
+    LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
+		const auto end = m.end();
+		auto it = m.find(type_name);
+		if (it != end) {
+			return it->second;
+		} else {
+			if (type_name.find("ID") != std::string::npos) {
+				// ID Column
+				if (type == GraphComponentType::VERTEX) {
+					D_ASSERT(key_column == -1);
+					key_column = column_idx;
+				} else { // type == GraphComponentType::EDGE
+					D_ASSERT((src_column == -1) || (dst_column == -1));
+					if (src_column == -1) src_column = column_idx;
+					else dst_column = column_idx;
+				}
+				return LogicalType::UBIGINT;
+			} else {
+				throw InvalidInputException("");
+			}
+		}
+    }
 
 private:
     GraphComponentType type;
     csv::CSVReader *reader;
     csv::CSVReader::iterator csv_it;
     csv::CSVFormat csv_format;
+    vector<string> key_names;
+    vector<LogicalType> key_types;
+	int64_t key_column = -1;
+	int64_t src_column = -1;
+	int64_t dst_column = -1;
+
+	const unordered_map<string, LogicalType> m {
+		{"STRING", LogicalType::VARCHAR},
+		{"INT"   , LogicalType::INTEGER},
+		{"LONG"  , LogicalType::BIGINT},
+	};
 };
 
 } // namespace duckdb

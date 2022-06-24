@@ -49,7 +49,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_) {
-    D_ASSERT(target_types.size() == target_idxs.size());
+    D_ASSERT(target_types_.size() == target_idxs_.size());
 
     if (_CheckIsMemoryEnough()) {
         support_double_buffering = true;

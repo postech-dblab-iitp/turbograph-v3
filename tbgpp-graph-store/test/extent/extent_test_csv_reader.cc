@@ -76,7 +76,7 @@ void helper_deallocate_objects_in_shared_memory () {
 TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   GraphCSVFileReader reader;
   
-  reader.InitCSVFile("/home/tslee/turbograph-v3/tbgpp-graph-store/test/extent/person_0_0.json.original", GraphComponentType::VERTEX);
+  reader.InitCSVFile("/home/tslee/turbograph-v3/tbgpp-graph-store/test/extent/comment_0_0.csv", GraphComponentType::VERTEX, '|');
   /*
   // Assume types are given
   DataChunk output;
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 
   // Initialize ChunkCacheManager
-  ChunkCacheManager::ccm = new ChunkCacheManager();
+  //ChunkCacheManager::ccm = new ChunkCacheManager();
 
   // Run Catch Test
   int result = Catch::Session().run(argc, argv);

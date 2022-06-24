@@ -136,6 +136,8 @@ PhysicalType LogicalType::GetInternalType() {
 		return PhysicalType::UNKNOWN;
 	case LogicalTypeId::AGGREGATE_STATE:
 		return PhysicalType::VARCHAR;
+	case LogicalTypeId::ADJLIST:
+		return PhysicalType::ADJLIST;
 	default:
 		throw InternalException("Invalid LogicalType %s", ToString());
 	}

@@ -104,8 +104,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   CreateGraphInfo graph_info("main", "graph1");
   GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
-  // Read Vertex JSON File & CreateVertexExtents
+  // Read Vertex CSV File & CreateVertexExtents
   for (auto vertex_file: vertex_files) {
+    fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
     // Create Partition for each vertex (partitioned by label)
     vector<string> vertex_labels = {vertex_file.first};
     string partition_name = "vpart_" + vertex_file.first;
@@ -114,9 +115,10 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     PartitionID new_pid = graph_cat->GetNewPartitionID();
     graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
     
-    // Initialize GraphJsonFileReader
-    GraphJsonFileReader reader;
-    reader.InitJsonFile(vertex_file.second.c_str(), GraphComponentType::VERTEX);
+    fprintf(stderr, "Init GraphCSVFile\n");
+    // Initialize GraphCSVFileReader
+    GraphCSVFileReader reader;
+    reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 
     // Initialize Property Schema Catalog Entry using Schema of the vertex
     vector<string> key_names;
@@ -124,7 +126,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     if (!reader.GetSchemaFromHeader(key_names, types)) {
       throw InvalidInputException("");
     }
-
+    
     int64_t key_column_idx = reader.GetKeyColumnIndexFromHeader();
     
     string property_schema_name = "vps_" + vertex_file.first;
@@ -135,7 +137,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
     partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
     property_schema_cat->SetTypes(types);
-
+    
     // Initialize DataChunk
     DataChunk data;
     data.Initialize(types);
@@ -144,26 +146,33 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
     unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
 
-    // Read JSON File into DataChunk & CreateVertexExtent
-    while (!reader.ReadJsonFile(key_names, types, data)) {
-    fprintf(stdout, "Read JSON File Ongoing..\n");
+    // Read CSV File into DataChunk & CreateVertexExtent
+    while (!reader.ReadCSVFile(key_names, types, data)) {
+      fprintf(stderr, "Read CSV File Ongoing..\n");
+      fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
       ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+      fprintf(stderr, "D\n");
       property_schema_cat->AddExtent(new_eid);
       
+      fprintf(stderr, "A\n");
       // Initialize pid base
       idx_t pid_base = (idx_t) new_eid;
       pid_base << 32;
 
+      fprintf(stderr, "B\n");
       // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
       if (key_column_idx < 0) continue;
       idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
       for (idx_t seqno = 0; seqno < data.size(); seqno++)
         lid_to_pid_map_instance.emplace(key_column[seqno], pid_base + seqno);
+      fprintf(stderr, "C\n");
     }
   }
 
-  // Read Edge JSON File & CreateEdgeExtents & Append Adj.List to VertexExtents
+  fprintf(stderr, "Vertex File Loading Done\n");
+
+  // Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
   for (auto edge_file: edge_files) {
     // Create Partition for each edge (partitioned by edge type)
     string edge_type = edge_file.first;
@@ -173,9 +182,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     PartitionID new_pid = graph_cat->GetNewPartitionID();
     graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
 
-    // Initialize GraphJsonFileReader
-    GraphJsonFileReader reader;
-    reader.InitJsonFile(edge_file.second.c_str(), GraphComponentType::EDGE);
+    // Initialize GraphCSVFileReader
+    GraphCSVFileReader reader;
+    reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
 
     // Initialize Property Schema Info using Schema of the edge
     vector<string> key_names;
@@ -230,9 +239,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     DataChunk *vertex_id_chunk;
     ExtentID current_vertex_eid;
 
-    // Read JSON File into DataChunk & CreateEdgeExtent
-    while (!reader.ReadJsonFile(key_names, types, data)) {
-      fprintf(stdout, "Read JSON File Ongoing..\n");      
+    // Read CSV File into DataChunk & CreateEdgeExtent
+    while (!reader.ReadCSVFile(key_names, types, data)) {
+      fprintf(stdout, "Read CSV File Ongoing..\n");   
 
       // Get New ExtentID for this chunk
       ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -416,13 +425,14 @@ class InputParser{
 int main(int argc, char **argv) {
   InputParser input(argc, argv);
   input.getCmdOption();
-  fprintf(stdout, "Load Following Nodes\n");
+  fprintf(stdout, "\nLoad Following Nodes\n");
   for (int i = 0; i < vertex_files.size(); i++)
-    fprintf(stdout, "%s: %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
-  fprintf(stdout, "Load Following Relationships\n");
+    fprintf(stdout, "\t%s : %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
+  fprintf(stdout, "\nLoad Following Relationships\n");
   for (int i = 0; i < edge_files.size(); i++)
-    fprintf(stdout, "%s: %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
+    fprintf(stdout, "\t%s : %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
 
+  fprintf(stdout, "\nInitialize DiskAioParameters\n");
   // Initialize System Parameters
   DiskAioParameters::NUM_THREADS = 1;
   DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
@@ -438,6 +448,8 @@ int main(int argc, char **argv) {
   ChunkCacheManager::ccm = new ChunkCacheManager();
 
   // Run Catch Test
+  fprintf(stdout, "\nTest Case Start!!\n");
+  argc = 1;
   int result = Catch::Session().run(argc, argv);
 
   // Destruct ChunkCacheManager
