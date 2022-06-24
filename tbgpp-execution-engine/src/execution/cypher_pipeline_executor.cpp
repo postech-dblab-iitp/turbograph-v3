@@ -1,13 +1,15 @@
+
 #include "execution/cypher_pipeline_executor.hpp"
+
+#include "duckdb/execution/physical_operator.hpp"
+
+
 #include "duckdb/common/limits.hpp"
-#include "execution/cypher_pipeline.hpp"
 #include "storage/graph_store.hpp"
 #include "livegraph.hpp"
 
 #include <cassert>
-#include <stack>
 
-using namespace std;
 using namespace duckdb;
 
 CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore* g) {
@@ -19,9 +21,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore*
 	for( int i = 0; i < pipe->pipelineLength - 1; i++) {	// from source to operators ; not sink.
 		auto opOutputChunk = std::make_unique<DataChunk>();
 		opOutputChunk->Initialize(pipe->GetIdxOperator(i)->GetTypes());
-		opOutputChunks.push_back(std::move(opOutputChunk));
+		opOutputChunks.push_back(move(opOutputChunk));
 	}
-
 
 	assert( opOutputChunks.size() == (pipe->pipelineLength - 1) );
 	// generate global states for each operator
@@ -29,7 +30,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore*
 	// Manage local states
 	local_source_state = pipeline->source->GetLocalSourceState();
 	local_sink_state = pipeline->sink->GetLocalSinkState();
-		for( auto op: pipeline->GetOperators() ) {
+	for( auto op: pipeline->GetOperators() ) {
 		local_operator_states.push_back(op->GetOperatorState());
 	}
 }
@@ -101,7 +102,8 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			pipeline->GetIdxOperator(current_idx) == pipeline->GetSink();
 		if( isCurrentSink ) { break; }
 
-		auto& current_output_chunk = *opOutputChunks[current_idx]; // connect result when at last operator
+		auto& current_output_chunk =
+			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
 		auto& prev_output_chunk = *opOutputChunks[current_idx-1];
 		current_output_chunk.Reset();
 
@@ -116,12 +118,10 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			in_process_operators.push(current_idx);
 		}
 		// what is chunk cache for?
-
 		// increment
 		current_idx += 1;
 	}
 	// pipe done as we reached the sink
-	result = *opOutputChunks[pipeline->pipelineLength-1];
 	return in_process_operators.empty() ?
 		OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;
 }

@@ -9,7 +9,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 # dependencies - livegraph
 add_library(livegraph SHARED IMPORTED)
-set_property(TARGET livegraph PROPERTY IMPORTED_LOCATION "livegraph/liblivegraph.so")
+set_property(TARGET livegraph PROPERTY IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/livegraph/liblivegraph.so")
 target_include_directories(livegraph INTERFACE "${PROJECT_SOURCE_DIR}/livegraph/bind")
 target_include_directories(livegraph INTERFACE "${PROJECT_SOURCE_DIR}/livegraph/core")
 
@@ -89,8 +89,8 @@ add_definitions(-DDUCKDB_VERSION="\""1"\"")
 
 # set executable
 add_executable( demo_main.out ${SOURCES} )
-add_executable( livegraph-test tmp/_insert_graph.cpp )
+#add_executable( livegraph-test tmp/_insert_graph.cpp )
 
 # link
 target_link_libraries( demo_main.out PRIVATE livegraph "-ldl -pthread" )
-target_link_libraries( livegraph-test PRIVATE livegraph "-ldl -pthread")
+#target_link_libraries( livegraph-test PRIVATE livegraph "-ldl -pthread")

@@ -12,10 +12,18 @@
 
 #include "typedef.hpp"
 
+#include "execution/cypher_pipeline.hpp"
+#include "execution/cypher_pipeline_executor.hpp"
+
+#include "execution/physical_operator/node_scan.hpp"
+#include "execution/physical_operator/physical_dummy_operator.hpp"
+#include "execution/physical_operator/produce_results.hpp"
 
 int main(int argc, char** argv) {
 
-	livegraph::Graph graph = livegraph::Graph("data/storage/block", "data/storage/wal");
+	// TODO change hard coding
+	livegraph::Graph graph = livegraph::Graph("/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/block",
+		"/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/wal");
 	LiveGraphCatalog catalog;
 
 	// parse and insert LDBC data to graph
@@ -30,12 +38,30 @@ int main(int argc, char** argv) {
 
 	// load plans
 	std::cout << "load plans" << std::endl;
-	auto queryPlans = QueryPlanSuite();
+	//auto queryPlans = QueryPlanSuite();
 	// get vector of pipelines
 
 	// execute query
 	std::cout << "execute query" << std::endl;
 	// TODO call executequery
+	
+	CypherSchema schema;
+	vector<CypherPhysicalOperator *> ops;
+	ops.push_back(new NodeScan());
+	ops.push_back(new PhysicalDummyOperator());
+	ops.push_back(new PhysicalDummyOperator());
+	ops.push_back(new ProduceResults());
+
+	CypherPipeline pipeline(ops);
+	CypherPipelineExecutor executor(&pipeline, &graph);
+
+	executor.ExecutePipeline();
+
+
+
+
+
+
 	
 
 }

@@ -1,24 +1,24 @@
 #pragma once
 
+
+#include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-#include "duckdb/parallel/thread_context.hpp"
+#include "livegraph.hpp"
+#include "storage/graph_store.hpp"
+
+#include "duckdb/execution/physical_operator.hpp"
+
+#include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/common/stack.hpp"
 
 #include <functional>
 
-#include "execution/cypher_pipeline.hpp"
-#include "storage/graph_store.hpp"
-
-#include "livegraph.hpp"
 
 // JHKO Copied directly from duckdb
 
 class Executor;
 
-
-using namespace std;
 using namespace duckdb;
-
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
@@ -85,8 +85,6 @@ private:
 
 
 private:
-	void StartOperator(PhysicalOperator *op);
-	void EndOperator(PhysicalOperator *op, DataChunk *chunk);
 
 	//! Reset the operator index to the first operator
 	void GoToSource(idx_t &current_idx, idx_t initial_idx);
@@ -95,6 +93,7 @@ private:
 	void FinishProcessing(int32_t operator_idx = -1);
 	bool IsFinished();
 
+	void ExecutePipeline();
 	OperatorResultType ProcessSingleSourceChunk(DataChunk &input, idx_t initial_idx = 0);
 	//! Pushes a chunk through the pipeline and returns a single result chunk
 	//! Returns whether or not a new input chunk is needed, or whether or not we are finished
