@@ -57,7 +57,7 @@ void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChun
 void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
     idx_t input_chunk_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
-    cdf_id_base << 32;
+    cdf_id_base = cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
         // For each Vector in DataChunk create new chunk definition
         LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
