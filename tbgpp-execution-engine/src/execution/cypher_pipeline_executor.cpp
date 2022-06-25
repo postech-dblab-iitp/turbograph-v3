@@ -53,9 +53,8 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
-	// TODO but we still need to do combine for sink.
-	std::cout << "calling combine for sink (doing nothing yet)" << std::endl;
-		// maybe combine is not necessary RN
+	std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
+	pipeline->GetSink()->Combine(*local_sink_state);
 
 }
 
@@ -63,11 +62,13 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 	std::cout << "starting (source) operator" << std::endl;
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
+	std::cout << "done (source) operator" << std::endl;
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
 
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
+	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;
 	while(true) {
 		final_chunk.Reset();
@@ -79,6 +80,10 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		auto sinkResult = pipeline->GetSink()->Sink(
 			source, *local_sink_state
 		);
+		// break when pipes for single chunk finishes
+		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) {
+			break;
+		}
 	}
 	// clear pipeline states.
 	in_process_operators = stack<idx_t>();

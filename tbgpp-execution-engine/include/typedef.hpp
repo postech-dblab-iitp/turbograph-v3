@@ -59,10 +59,15 @@ class CypherSchema{
 
 public:
 	std::vector<duckdb::LogicalType> getTypes();
-	// TODO add print function.
-	// TODO add insert function.
 
-private:
+	void addNode(std::string name, LoadAdjListOption adjOption);
+	void addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type);
+	void addColumn(std::string attrName, duckdb::LogicalType type);
+	
+	// TODO add insert edge
+
+	std::string toString();
+	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
 	std::map<std::string, CypherSchema> nestedAttrs;
 };

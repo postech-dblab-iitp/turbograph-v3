@@ -12,9 +12,9 @@
 
 #include "duckdb/common/vector_size.hpp"
 
-LiveGraphStore::LiveGraphStore(livegraph::Graph& graph, LiveGraphCatalog& catalog) {
-	this->graph = &graph;
-	this->catalog = &catalog;
+LiveGraphStore::LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog) {
+	this->graph = graph;
+	this->catalog = catalog;
 }
 
 // This should be eliminated anytime soon.
@@ -77,11 +77,11 @@ std::vector<int> getLDBCPropertyIndices(LabelSet labels, PropertyKeys properties
 
 // APIs
 StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
-
 	// assert if given chunkcollection is empty
 	assert( output.Count() == 0 && "");	
 	// start r.o. transaction
 	auto txn = this->graph->begin_read_only_transaction();
+
 	// offset shift function
 	auto getAttrOffsetShift = [&]{
 		int result;
@@ -90,7 +90,6 @@ StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet 
 		else { result =  1 + edgeLabels.size(); }
 		return result;
 	};
-
 	// access catalog and find all ranges satisfying labels
 	std::vector<std::pair<long, long>> rangesToScan;
 	for( auto& item: this->catalog->vertexLabelSetToLGRangeMapping ) {

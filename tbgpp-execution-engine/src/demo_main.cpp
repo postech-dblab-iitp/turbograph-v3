@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 	catalog.printCatalog();
 
 	// make a storage using livegraph and its catalog
-	LiveGraphStore graphstore(graph, catalog);
+	LiveGraphStore graphstore(&graph, &catalog);
 
 	// load plans
 	std::cout << "load plans" << std::endl;
@@ -46,20 +46,24 @@ int main(int argc, char** argv) {
 	// TODO call executequery
 	
 	CypherSchema schema;
+	schema.addNode("n", LoadAdjListOption::OUTGOING);
+	std::cout << "scan schema is :" << schema.toString() << std::endl;
+	// gettypes
+
 	vector<CypherPhysicalOperator *> ops;
-	ops.push_back(new NodeScan());
-	ops.push_back(new PhysicalDummyOperator());
-	ops.push_back(new PhysicalDummyOperator());
-	ops.push_back(new ProduceResults());
+	ops.push_back(new NodeScan(schema));
+	ops.push_back(new PhysicalDummyOperator(schema));
+	ops.push_back(new PhysicalDummyOperator(schema));
+	ops.push_back(new ProduceResults(schema));
 
+	std::cout << "gen pipeline" <<  std::endl;
 	CypherPipeline pipeline(ops);
-	CypherPipelineExecutor executor(&pipeline, &graph);
+	std::cout << "executor" <<  std::endl;
+	CypherPipelineExecutor executor(&pipeline, (GraphStore*)&graphstore);
 
+	// execute and finally sink
+	std::cout << "execute" <<  std::endl;
 	executor.ExecutePipeline();
-
-
-
-
 
 
 	

@@ -32,7 +32,7 @@ class LiveGraphStore: GraphStore {
 
 public:
 
-	LiveGraphStore(livegraph::Graph& graph, LiveGraphCatalog& catalog);
+	LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog);
 
 public:
 	// APIs

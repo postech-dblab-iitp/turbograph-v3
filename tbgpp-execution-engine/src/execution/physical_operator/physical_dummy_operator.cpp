@@ -1,7 +1,6 @@
 
 #include "typedef.hpp"
 
-#include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 
 
@@ -18,6 +17,10 @@ public:
 };
 
 //PhysicalDummyOperator::PhysicalDummyOperator(CypherSchema& sch): CypherPhysicalOperator(sch) {}
+
+unique_ptr<OperatorState> PhysicalDummyOperator::GetOperatorState() const {
+	return make_unique<DummyOperatorState>();
+}
 
 OperatorResultType PhysicalDummyOperator::Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const {
 	auto &lstate = (DummyOperatorState &)state;

@@ -17,16 +17,16 @@ class CypherPipeline {
 
 public:
 	CypherPipeline(vector<CypherPhysicalOperator *> ops) {
-		assert( ops.size() > 2 && "too few operators");
+		assert( ops.size() >= 2 && "too few operators");
 
 		source = ops.front();
 		sink = ops.back();
+		pipelineLength = ops.size();
 
 		ops.erase(ops.begin());
-		ops.erase(ops.end());
+		ops.pop_back();
 		operators = ops;
 
-		pipelineLength = ops.size();
 	}
 
 	std::vector<CypherPhysicalOperator *> GetOperators() {

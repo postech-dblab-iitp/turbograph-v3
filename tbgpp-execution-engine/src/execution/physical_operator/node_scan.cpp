@@ -26,7 +26,7 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 
 	// TODO change when using different storage.
 	auto livegraph = (LiveGraphStore*)graph; 
-
+	
 	if( state.chunkIdxToScan == -1 ) {
 		state.chunkIdxToScan +=1;
 		auto scanAPIResult =
