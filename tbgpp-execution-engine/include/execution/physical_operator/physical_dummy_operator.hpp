@@ -2,7 +2,10 @@
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
+
 using namespace duckdb;
+using namespace std;
+
 
 class PhysicalDummyOperator: public CypherPhysicalOperator {
 

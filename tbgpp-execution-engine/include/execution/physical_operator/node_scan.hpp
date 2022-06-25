@@ -3,6 +3,8 @@
 #include "storage/graph_store.hpp"
 
 
+#pragma once
+
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include <vector>
 

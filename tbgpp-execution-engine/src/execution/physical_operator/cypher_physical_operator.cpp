@@ -17,6 +17,9 @@ SinkResultType CypherPhysicalOperator::Sink(DataChunk &input, LocalSinkState &ls
 unique_ptr<LocalSinkState> CypherPhysicalOperator::GetLocalSinkState() const{
 	return make_unique<LocalSinkState>();
 }
+void CypherPhysicalOperator::Combine(LocalSinkState& lstate) const {
+	// nothing
+}
 
 OperatorResultType CypherPhysicalOperator::Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const {
 	throw InternalException("Calling Execute on a node that is not an operator!");
