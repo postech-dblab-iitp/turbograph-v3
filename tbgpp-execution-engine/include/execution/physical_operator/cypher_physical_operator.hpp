@@ -23,6 +23,7 @@ class CypherPhysicalOperator {
 
 public:
 
+	CypherPhysicalOperator() {} // sink does not define types
 	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {}
 	virtual ~CypherPhysicalOperator() { }
 
@@ -41,8 +42,6 @@ public:
 	}
 
 	virtual std::string ParamsToString() const { return ""; }
-
-private:
 
 	// operator metadata
 	CypherSchema schema;

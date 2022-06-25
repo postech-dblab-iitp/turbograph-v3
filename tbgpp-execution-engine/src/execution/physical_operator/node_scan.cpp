@@ -30,7 +30,7 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 	if( state.chunkIdxToScan == -1 ) {
 		state.chunkIdxToScan +=1;
 		auto scanAPIResult =
-			livegraph->doScan(state.chunks, labels, edgeLabelSet, loadAdjOpt, propertyKeys, scanSchema);
+			livegraph->doScan(state.chunks, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 
 		if( state.chunks.ChunkCount() == 0) { return; }	// return empty chunk
 	}

@@ -38,7 +38,7 @@ bool operator==(const LabelSet lhs, const LabelSet rhs) {
 	return lhs.data == rhs.data;
 }
 
-std::vector<duckdb::LogicalType> CypherSchema::getTypes() {
+std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 	std::vector<duckdb::LogicalType> result;
 	for( auto& attr: attrs) {
 		auto name = std::get<0>(attr);
@@ -54,7 +54,7 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() {
 			case CypherValueType::EDGE:
 			case CypherValueType::PATH: {
 				// recursive seek
-				std::vector<duckdb::LogicalType> innerResult = nestedAttrs[name].getTypes();
+				std::vector<duckdb::LogicalType> innerResult = nestedAttrs.find(name)->second.getTypes();
 				for( auto& r: innerResult ) {
 					result.push_back(r);
 				}

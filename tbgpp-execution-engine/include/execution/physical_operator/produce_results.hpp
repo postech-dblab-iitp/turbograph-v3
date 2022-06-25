@@ -10,7 +10,7 @@ class ProduceResults: public CypherPhysicalOperator {
 
 public:
 	// TODO actually, sink does not have output schema. what then?
-	ProduceResults(CypherSchema& sch): CypherPhysicalOperator(sch) { }
+	ProduceResults() { }
 	~ProduceResults() { }
 
 public:
