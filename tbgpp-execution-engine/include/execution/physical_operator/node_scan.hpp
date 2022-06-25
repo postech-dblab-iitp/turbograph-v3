@@ -13,24 +13,8 @@ using namespace duckdb;
 class NodeScan: public CypherPhysicalOperator {
 
 public:
-	NodeScan(CypherSchema& sch): CypherPhysicalOperator(sch) {
-		// TODO needs to be set by parameter
-		// labels
-		labels.insert("Person");
-		// adj option
-		loadAdjOpt = LoadAdjListOption::OUTGOING;
-		// edge labelset
-		auto e1 = LabelSet();
-		e1.insert("KNOWS");
-		edgeLabelSet.push_back(e1);
-		// property keys
-		// foopp.push_back("url");
-		// foopp.push_back("name");
-		// foopp.push_back("id");
-
-		// scan schema
-		scanSchema.push_back(duckdb::LogicalType::UBIGINT);
-		scanSchema.push_back(duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT));
+	NodeScan(CypherSchema& sch, LabelSet l, std::vector<LabelSet> els, LoadAdjListOption ljo,  PropertyKeys pk):
+		CypherPhysicalOperator(sch), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk)  {
 
 	}
 	~NodeScan() { }

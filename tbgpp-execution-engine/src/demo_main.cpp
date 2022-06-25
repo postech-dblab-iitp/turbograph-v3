@@ -37,35 +37,14 @@ int main(int argc, char** argv) {
 	LiveGraphStore graphstore(&graph, &catalog);
 
 	// load plans
-	std::cout << "load plans" << std::endl;
-	//auto queryPlans = QueryPlanSuite();
-	// get vector of pipelines
+	std::cout << "load plan suite" << std::endl;
+	auto suite = QueryPlanSuite((GraphStore*)&graphstore);
 
 	// execute query
 	std::cout << "execute query" << std::endl;
-	// TODO call executequery
-	
-	CypherSchema schema;
-	schema.addNode("n", LoadAdjListOption::OUTGOING);
-	std::cout << "scan schema is :" << schema.toString() << std::endl;
-	// gettypes
 
-	vector<CypherPhysicalOperator *> ops;
-	ops.push_back(new NodeScan(schema));
-	ops.push_back(new PhysicalDummyOperator(schema));
-	ops.push_back(new PhysicalDummyOperator(schema));
-	ops.push_back(new ProduceResults(schema));
+	// Run q1
+	auto q1_executors = suite.Test1();
+	for( auto exec : q1_executors ) { exec->ExecutePipeline(); }
 
-	std::cout << "gen pipeline" <<  std::endl;
-	CypherPipeline pipeline(ops);
-	std::cout << "executor" <<  std::endl;
-	CypherPipelineExecutor executor(&pipeline, (GraphStore*)&graphstore);
-
-	// execute and finally sink
-	std::cout << "execute" <<  std::endl;
-	executor.ExecutePipeline();
-
-
-	
-
-}
+}	

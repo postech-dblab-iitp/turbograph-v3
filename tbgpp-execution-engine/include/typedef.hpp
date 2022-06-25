@@ -58,14 +58,13 @@ enum class CypherValueType {
 class CypherSchema{
 
 public:
-	std::vector<duckdb::LogicalType> getTypes();
+	std::vector<duckdb::LogicalType> getTypes() const;
 
 	void addNode(std::string name, LoadAdjListOption adjOption);
 	void addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type);
 	void addColumn(std::string attrName, duckdb::LogicalType type);
 	
 	// TODO add insert edge
-
 	std::string toString();
 	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;

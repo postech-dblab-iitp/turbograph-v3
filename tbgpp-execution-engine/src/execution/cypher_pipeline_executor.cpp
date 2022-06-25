@@ -62,7 +62,6 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 	std::cout << "starting (source) operator" << std::endl;
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
-	std::cout << "done (source) operator" << std::endl;
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {

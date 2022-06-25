@@ -5,16 +5,21 @@
 #include "duckdb/parallel/pipeline.hpp"
 #include "duckdb/execution/executor.hpp"
 
+#include "storage/graph_store.hpp"
+
+#include "execution/cypher_pipeline_executor.hpp"
+
 class QueryPlanSuite{
 
 public:
-	QueryPlanSuite();
+	QueryPlanSuite(GraphStore* graphstore);
 
 	// returns root pipeline
-	duckdb::Pipeline* getLDBCShort1();
+	std::vector<CypherPipelineExecutor*> Test1();
+	//std::vector<duckdb::Pipeline*> LDBCShort1();
 
 private:
-	// std::shared_ptr<duckdb::DatabaseInstance> nullDB;
-	// duckdb::ClientContext* nullClient;
-	// duckdb::Executor* nullExecutor;
+
+	GraphStore* graphstore;
+
 };
