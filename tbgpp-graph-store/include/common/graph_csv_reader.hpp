@@ -188,6 +188,7 @@ private:
 
 	const unordered_map<string, LogicalType> m {
 		{"STRING", LogicalType::VARCHAR},
+		{"STRING[]", LogicalType::VARCHAR},
 		{"INT"   , LogicalType::INTEGER},
 		{"LONG"  , LogicalType::BIGINT},
 	};

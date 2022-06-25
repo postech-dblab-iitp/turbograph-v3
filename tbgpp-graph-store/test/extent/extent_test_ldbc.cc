@@ -149,24 +149,20 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     // Read CSV File into DataChunk & CreateVertexExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
       fprintf(stderr, "Read CSV File Ongoing..\n");
-      fprintf(stderr, "%s\n", data.ToString().c_str());
+      //fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
       ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
-      fprintf(stderr, "D\n");
       property_schema_cat->AddExtent(new_eid);
       
-      fprintf(stderr, "A\n");
       // Initialize pid base
       idx_t pid_base = (idx_t) new_eid;
       pid_base << 32;
 
-      fprintf(stderr, "B\n");
       // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
       if (key_column_idx < 0) continue;
       idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
       for (idx_t seqno = 0; seqno < data.size(); seqno++)
         lid_to_pid_map_instance.emplace(key_column[seqno], pid_base + seqno);
-      fprintf(stderr, "C\n");
     }
   }
 
