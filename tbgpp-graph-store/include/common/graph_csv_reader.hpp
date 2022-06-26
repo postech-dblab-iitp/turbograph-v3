@@ -92,14 +92,14 @@ public:
 	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		src_column_idx = src_column;
-		src_column_name = key_names[src_column];
+		src_column_name = src_key_name;
 		return;
 	}
 
 	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		dst_column_idx = dst_column;
-		dst_column_name = key_names[dst_column];
+		dst_column_name = dst_key_name;
 		return;
 	}
 
@@ -147,9 +147,33 @@ public:
 
 	// Same Logic as ReadVertexJsonFile
 	bool ReadEdgeCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
-		//idx_t current_index = 0;
+		auto iter_end = reader->end();
+		if (csv_it == iter_end) return true;
+
+		idx_t current_index = 0;
+		vector<idx_t> required_key_column_idxs;
+		for (auto &key: required_keys) {
+			// Find keys in the schema and extract idxs
+			auto key_it = std::find(key_names.begin(), key_names.end(), key);
+			if (key_it != key_names.end()) {
+				idx_t key_idx = key_it - key_names.begin();
+				required_key_column_idxs.push_back(key_idx);
+			} else {
+				throw InvalidInputException("");
+			}
+		}
+		for (; csv_it != iter_end; csv_it++) {
+			if (current_index == STANDARD_VECTOR_SIZE) break;
+			auto &row = *csv_it;
+			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
+				csv::CSVField csv_field = row[required_key_column_idxs[i]];
+				output.SetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+			}
+			current_index++;
+		}
 		
-		//output.SetCardinality(current_index);
+		output.SetCardinality(current_index);
+		return false;
 	}
 private:
     LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
@@ -165,8 +189,16 @@ private:
 					key_column = column_idx;
 				} else { // type == GraphComponentType::EDGE
 					D_ASSERT((src_column == -1) || (dst_column == -1));
-					if (src_column == -1) src_column = column_idx;
-					else dst_column = column_idx;
+					auto first_pos = type_name.find_first_of('(');
+					auto last_pos = type_name.find_last_of(')');
+					string label_name = type_name.substr(first_pos + 1, last_pos - first_pos - 1);
+					if (src_column == -1) {
+						src_key_name = move(label_name);
+						src_column = column_idx;
+					} else {
+						dst_key_name = move(label_name);
+						dst_column = column_idx;
+					}
 				}
 				return LogicalType::UBIGINT;
 			} else {
@@ -181,6 +213,8 @@ private:
     csv::CSVReader::iterator csv_it;
     csv::CSVFormat csv_format;
     vector<string> key_names;
+	string src_key_name;
+	string dst_key_name;
     vector<LogicalType> key_types;
 	int64_t key_column = -1;
 	int64_t src_column = -1;

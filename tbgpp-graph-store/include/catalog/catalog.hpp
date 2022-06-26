@@ -50,6 +50,9 @@ class CopyFunctionCatalogEntry;
 class PragmaFunctionCatalogEntry;
 class GraphCatalogEntry;
 class PartitionCatalogEntry;
+class PropertySchemaCatalogEntry;
+class ExtentCatalogEntry;
+class ChunkDefinitionCatalogEntry;
 class CatalogSet;
 class DatabaseInstance;
 class DependencyManager;
@@ -251,6 +254,15 @@ DUCKDB_API GraphCatalogEntry *Catalog::GetEntry(ClientContext &context, const st
                                                 bool if_exists);//, QueryErrorContext error_context);
 template <>
 DUCKDB_API PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
+                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+template <>
+DUCKDB_API PropertySchemaCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
+                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+template <>
+DUCKDB_API ExtentCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
+                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+template <>
+DUCKDB_API ChunkDefinitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
                                                    const string &name, bool if_exists);//, QueryErrorContext error_context);
 
 /*
