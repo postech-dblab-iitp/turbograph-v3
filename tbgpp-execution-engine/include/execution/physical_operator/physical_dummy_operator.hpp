@@ -16,7 +16,7 @@ public:
 public:
 	
 	unique_ptr<OperatorState> GetOperatorState() const override;
-	OperatorResultType Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
+	OperatorResultType Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
 
 	std::string ParamsToString() const override;
 };

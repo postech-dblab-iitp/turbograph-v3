@@ -117,8 +117,17 @@ void CypherSchema::addColumn(std::string attrName, duckdb::LogicalType type) {
 	attrs.push_back( std::make_tuple(attrName, CypherValueType::DATA, type) );
 }
 
+int CypherSchema::getNodeColIdx(std::string name) const {
+
+	// TODO FIXME fix immediately!!! write here.
+	// TODO DINNER
+
+	return 0;
+
+}
+
 std::string CypherSchema::toString() {
-	// TODO do nested types, and showtype option.
+
 	std::string result;
 	result += "(";
 	for( auto& attr: attrs) {

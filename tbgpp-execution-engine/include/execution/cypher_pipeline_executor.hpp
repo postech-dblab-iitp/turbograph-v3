@@ -67,8 +67,6 @@ private:
 	unique_ptr<LocalSourceState> local_source_state;
 	unique_ptr<LocalSinkState> local_sink_state;
 
-	//! The final chunk used for moving data into the sink
-	DataChunk final_chunk;
 
 	//! The operators that are not yet finished executing and have data remaining
 	//! If the stack of in_process_operators is empty, we fetch from the source instead

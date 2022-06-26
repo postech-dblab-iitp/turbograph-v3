@@ -22,7 +22,7 @@ unique_ptr<OperatorState> PhysicalDummyOperator::GetOperatorState() const {
 	return make_unique<DummyOperatorState>();
 }
 
-OperatorResultType PhysicalDummyOperator::Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const {
+OperatorResultType PhysicalDummyOperator::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const {
 	auto &lstate = (DummyOperatorState &)state;
 	
 	// doing nothing. just project with no schema alteration.
