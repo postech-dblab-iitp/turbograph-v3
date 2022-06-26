@@ -18,6 +18,8 @@ public:
 
 	// ! Scan used by scan operators
 	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+	StoreAPIResult doIndexSeek(duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+	bool isNodeInLabelset(u_int64_t id, LabelSet labels);
 	// TODO ! Scan with storage predicate
 	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
 
@@ -40,12 +42,14 @@ public:
 
 	//! | vid | adj-ls1-in | adj-ls2-in | ... | adj-ls1-out | adj-ls2-out | prop1 | prop2 | ...
 	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+	StoreAPIResult doIndexSeek(duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
+	bool isNodeInLabelset(u_int64_t id, LabelSet labels);
 
-	StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
-	StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
+	// StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
+	// StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
 
-	StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
-	StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
+	// StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
+	// StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
 
 
 private:

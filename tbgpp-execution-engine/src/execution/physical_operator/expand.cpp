@@ -23,11 +23,22 @@ unique_ptr<OperatorState> Expand::GetOperatorState() const {
 
 OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (ExpandState &)lstate;
-	std::cout << "expand execute" << input.ColumnCount() << chunk.ColumnCount() << std::endl;
-	std::cout << " - inputssize: " << input.size() << std::endl;
+
+	// TODO change when using different storage.
+	auto livegraph = (LiveGraphStore*)graph; 
+	
 	// check directionality and access edgelist
 	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx 
 	int adjColIdx = nodeColIdx + 1;
+
+	// target tuple chunk
+	auto targetTypes = schema.getNodeTypes( std::get<0>(schema.attrs.back()) );
+	bool fetchTarget = targetTypes.size() != 0;
+	DataChunk targetTupleChunk;
+	if( fetchTarget ) {
+		targetTupleChunk.Initialize(targetTypes);
+
+	}
 
 	int numProducedTuples = 0;
 	bool isHaveMoreOutput = false;
@@ -52,20 +63,31 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 				isSeekPointReached = (state.pointToStartSeek.first <= srcIdx) && (state.pointToStartSeek.second <= adjIdx);
 				if( !isSeekPointReached ) continue;
 			}
-			// produce
-			// TODO DINNER call storage api
-			// add lhs
+			duckdb::Value v = adjList[adjIdx];
+			uint64_t tgtId = duckdb::UBigIntValue::Get(v) ;
+			// check target labelset predicate
+			if( ! livegraph->isNodeInLabelset(tgtId, tgtLabelSet) ) { continue; }
+			
+			// now, produce
+			// add source 
+				// TODO note that src can also not be loaded when trying to exppand
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
-			// TODO DINNER add edge I presume? ; not available since no edge id given.
-			// add rhs
-			int rhsOffset = input.ColumnCount();
-			for (idx_t colId = 0; colId < 1; colId++) { // TODO DINNER fix hardcoding. 
-				chunk.SetValue(colId+rhsOffset, numProducedTuples, adjList[adjIdx] );
+			// add target
+				// TODO also rhs can not be loaded. based on the operator parameter.
+			livegraph->doIndexSeek(targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes);
+			assert( targetTupleChunk.size() == 1 && "did not fetch well");
+
+			int columnOffset = input.ColumnCount();
+			for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
+				chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );
 			}
+			// add edge I presume? ; TODO// not available since no edge id given.
+
 			// post-produce
 			numProducedTuples +=1;
+			targetTupleChunk.Reset();
 		}
 	}
 breakLoop:
@@ -73,7 +95,6 @@ breakLoop:
 	
 	// set chunk cardinality
 	chunk.SetCardinality(numProducedTuples);
-	std::cout << "done expand execute" << std::endl;
 	if( isHaveMoreOutput ) {
 		// save state
 		state.pointToStartSeek.first = srcIdx;

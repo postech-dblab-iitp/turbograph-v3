@@ -68,20 +68,19 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	/*
-		MATCH (p:Person)-[:LIKES]->(m) RETURN p.id, id(m);
-		// person likes comment and post
+		MATCH (p:Person)-[:LIKES]->(m:Comment) RETURN p.id, id(m);
 		
 		+--------------------+
 		| p.id          | id(m) |
 		+--------------------+
-		should output 1383 tuples // TODO tuples
+		should output 624 tuples // TODO tuples
 	*/
 	
 	// SCAN
 		// schema
 	CypherSchema schema1;
-	schema1.addNode("n", LoadAdjListOption::OUTGOING);
-	schema1.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema1.addNode("p", LoadAdjListOption::OUTGOING);
+	schema1.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
 		// parameters
 	LabelSet scan_labels;
 	std::vector<LabelSet> scan_edegLabelSets;
@@ -97,11 +96,12 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	// Expand
 		// schema
 	CypherSchema schema2 = schema1;
-	schema2.addColumn("id(m)", duckdb::LogicalType::UBIGINT); // TODO fixme
+	schema2.addNode("m", LoadAdjListOption::NONE);
 		// params
 	LabelSet tgt_labels;
+	tgt_labels.insert("Comment");
 	std::vector<LabelSet> tgt_edgeLabelSets;
-	LoadAdjListOption tgt_loadAdjOpt;
+	LoadAdjListOption tgt_loadAdjOpt = LoadAdjListOption::NONE;
 	PropertyKeys tgt_propertyKeys;
 
 	// pipe 1
@@ -118,3 +118,61 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	return result;
 }
 
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
+	/*
+		MATCH (p:Person)-[:LIKES]->(m:Post) RETURN p.firstName, p.lastName, m.browserUsedid;
+		
+		+------------------------------------------+
+		| p.firstName | p.lastName | m.browserUsed |
+		+------------------------------------------+
+		| "Jose"      | "Alonso"   | "Firefox"     |
+		+------------------------------------------+
+		should output 759 tuples // TODO tuples
+	*/
+	
+	// SCAN
+		// schema
+	CypherSchema schema1;
+	schema1.addNode("p", LoadAdjListOption::OUTGOING);
+	schema1.addPropertyIntoNode("p", "firstName", duckdb::LogicalType::VARCHAR);
+	schema1.addPropertyIntoNode("p", "lastName", duckdb::LogicalType::VARCHAR);
+		// parameters
+	LabelSet scan_labels;
+	std::vector<LabelSet> scan_edegLabelSets;
+	LoadAdjListOption scan_loadAdjOpt;
+	PropertyKeys scan_propertyKeys;
+	scan_labels.insert("Person");
+	auto e1 = LabelSet();
+	e1.insert("LIKES");
+	scan_edegLabelSets.push_back(e1);
+	scan_loadAdjOpt = LoadAdjListOption::OUTGOING;
+	scan_propertyKeys.push_back("firstName");
+	scan_propertyKeys.push_back("lastName");
+	
+	// Expand
+		// schema
+	CypherSchema schema2 = schema1;
+	schema2.addNode("m", LoadAdjListOption::NONE);
+	schema2.addPropertyIntoNode("m", "browserUsed", duckdb::LogicalType::VARCHAR);
+		// params
+	LabelSet tgt_labels;
+	tgt_labels.insert("Post");
+	std::vector<LabelSet> tgt_edgeLabelSets;
+	LoadAdjListOption tgt_loadAdjOpt = LoadAdjListOption::NONE;
+	PropertyKeys tgt_propertyKeys;
+	tgt_propertyKeys.push_back("browserUsed");
+
+	// pipe 1
+	std::vector<CypherPhysicalOperator *> ops;
+	ops.push_back(new NodeScan(schema1, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new Expand(schema2, "p", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
+	ops.push_back(new ProduceResults());
+	auto pipe1 = new CypherPipeline(ops);
+	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
+	
+	// wrap pipeline into vector
+	std::vector<CypherPipelineExecutor*> result;
+	result.push_back(pipeexec1);
+	return result;
+
+}
