@@ -42,6 +42,7 @@ public:
 	}
 
 	virtual std::string ParamsToString() const { return ""; }
+	virtual std::string ToString() const { return ""; }
 
 	// operator metadata
 	CypherSchema schema;

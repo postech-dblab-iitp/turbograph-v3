@@ -19,4 +19,5 @@ public:
 	OperatorResultType Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
 
 	std::string ParamsToString() const override;
+	std::string ToString() const override;
 };

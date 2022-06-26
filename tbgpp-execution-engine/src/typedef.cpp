@@ -140,6 +140,7 @@ int CypherSchema::getNodeColIdx(std::string query) const {
 				} else {
 					result += nestedAttrs.find(name)->second.attrs.size();
 				}
+				break;
 			default:
 				result += 1;
 		}
@@ -191,5 +192,42 @@ std::string CypherSchema::toString() const{
 	}
 	result.pop_back(); result.pop_back(); // delete last comma
 	result += ")";
+	return result;
+}
+
+std::vector<int> CypherSchema::getColumnIndicesForResultSet() const {
+
+	std::vector<int> result;
+	int curIdx = 0;
+	for( auto& attr: attrs) {
+		auto name = std::get<0>(attr);
+		auto cypherType = std::get<1>(attr);
+		switch( cypherType ) {
+			case CypherValueType::NODE:
+			case CypherValueType::PATH:
+			case CypherValueType::EDGE:
+				for( auto& in_attr: nestedAttrs.find(name)->second.attrs) {
+					auto in_type = std::get<1>(in_attr);
+					switch( in_type ) {
+						case CypherValueType::DATA: {
+							result.push_back(curIdx);
+							break;
+						}
+						default:	// in 2nd level, rest are all invalid.
+							break;
+					}
+					curIdx += 1;
+				}
+				curIdx -= 1;
+				break;
+			case CypherValueType::DATA:
+				result.push_back(curIdx);
+				break;
+			default:
+				// abaondon
+				break;
+		}
+		curIdx += 1;
+	}
 	return result;
 }

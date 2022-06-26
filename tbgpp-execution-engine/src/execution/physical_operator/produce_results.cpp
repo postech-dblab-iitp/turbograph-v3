@@ -34,7 +34,6 @@ SinkResultType ProduceResults::Sink(DataChunk &input, LocalSinkState &lstate) co
 void ProduceResults::Combine(LocalSinkState& lstate) const {
 	auto& state = (ProduceResultsState &) lstate;
 
-	// TODO need to improve
 	int LIMIT = 10;
 	std::cout << "===================================================" << std::endl;
 	std::cout << "[ResultSetSummary] Total " <<  state.resultChunks.Count() << " tuples. Showing top " << LIMIT <<":" << std::endl;
@@ -42,8 +41,8 @@ void ProduceResults::Combine(LocalSinkState& lstate) const {
 	LIMIT = std::min( (int)(firstchunk.size()), LIMIT);
 	// TODO print column schema
 	for( int idx = 0 ; idx < LIMIT ; idx++) {
-		for( int colidx = 0 ; colidx < firstchunk.ColumnCount() ; colidx++) {
-			std::cout << "\t" << firstchunk.GetValue(colidx, idx).ToString();
+		for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+			std::cout << "\t" << firstchunk.GetValue(colIdx, idx).ToString();
 		}
 		std::cout << std::endl;
 	}
@@ -55,4 +54,8 @@ void ProduceResults::Combine(LocalSinkState& lstate) const {
 
 std::string ProduceResults::ParamsToString() const {
 	return "getresults-param";
+}
+
+std::string ProduceResults::ToString() const {
+	return "ProduceResults";
 }

@@ -47,3 +47,7 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 std::string NodeScan::ParamsToString() const {
 	return "nodescan-param";
 }
+
+std::string NodeScan::ToString() const {
+	return "NodeScan";
+}

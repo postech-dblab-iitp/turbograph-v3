@@ -112,3 +112,7 @@ breakLoop:
 std::string Expand::ParamsToString() const {
 	return "expand-params-TODO";
 }
+
+std::string Expand::ToString() const {
+	return "Expand";
+}
