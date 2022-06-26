@@ -3,6 +3,7 @@
 
 #include "duckdb/execution/physical_operator.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 class ProduceResultsState : public LocalSinkState {
@@ -38,6 +39,7 @@ void ProduceResults::Combine(LocalSinkState& lstate) const {
 	std::cout << "===================================================" << std::endl;
 	std::cout << "[ResultSetSummary] Total " <<  state.resultChunks.Count() << " tuples. Showing top " << LIMIT <<":" << std::endl;
 	auto& firstchunk = state.resultChunks.GetChunk(0);
+	LIMIT = std::min( (int)(firstchunk.size()), LIMIT);
 	// TODO print column schema
 	for( int idx = 0 ; idx < LIMIT ; idx++) {
 		for( int colidx = 0 ; colidx < firstchunk.ColumnCount() ; colidx++) {

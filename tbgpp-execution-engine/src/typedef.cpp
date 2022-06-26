@@ -7,6 +7,7 @@ void LabelSet::insert(std::string input) {
 	this->data.insert(input);
 }
 
+//! when a is superset of b, a contains all elems of b, which leads to smaller intersection in label hierarchy
 bool LabelSet::isSupersetOf(const LabelSet& elem) {
 
 	// if size bigger, always false
@@ -117,16 +118,37 @@ void CypherSchema::addColumn(std::string attrName, duckdb::LogicalType type) {
 	attrs.push_back( std::make_tuple(attrName, CypherValueType::DATA, type) );
 }
 
-int CypherSchema::getNodeColIdx(std::string name) const {
-
-	// TODO FIXME fix immediately!!! write here.
-	// TODO DINNER
-
-	return 0;
-
+std::vector<duckdb::LogicalType> CypherSchema::getNodeTypes(std::string name) const {
+	if( nestedAttrs.find(name) != nestedAttrs.end()) {
+ 		return nestedAttrs.find(name)->second.getTypes();
+	}
+	return std::vector<duckdb::LogicalType>();
 }
 
-std::string CypherSchema::toString() {
+int CypherSchema::getNodeColIdx(std::string query) const {
+
+	int result = 0;
+	for( auto& attr: attrs) {
+		auto name = std::get<0>(attr);
+		auto cypherType = std::get<1>(attr);
+		switch( cypherType ) {
+			case CypherValueType::NODE:
+			case CypherValueType::PATH:
+			case CypherValueType::EDGE:
+				if( name.compare(query) == 0 ) {
+					return result;
+				} else {
+					result += nestedAttrs.find(name)->second.attrs.size();
+				}
+			default:
+				result += 1;
+		}
+	}
+	// should never be here
+	assert(0);
+}
+
+std::string CypherSchema::toString() const{
 
 	std::string result;
 	result += "(";
@@ -152,12 +174,12 @@ std::string CypherSchema::toString() {
 			}
 			case CypherValueType::NODE: {
 				result += "NODE";
-				result += nestedAttrs[name].toString();
+				result += nestedAttrs.find(name)->second.toString();
 				break;
 			}
 			case CypherValueType::EDGE: {
 				result += "EDGE";
-				result += nestedAttrs[name].toString();
+				result += nestedAttrs.find(name)->second.toString();
 				break;
 			}
 			case CypherValueType::PATH: {

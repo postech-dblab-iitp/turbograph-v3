@@ -100,7 +100,6 @@ StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet 
 	}
 	// return if nothing to scan
 	if( rangesToScan.size() == 0 ) { return StoreAPIResult::OK; }
-
 	// insert vids
 	duckdb::DataChunk* currentChunk;
 	long rowIdx = 0 ;
@@ -124,7 +123,7 @@ StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet 
 	// finally append last chunk
 	currentChunk->SetCardinality( (rowIdx) % 1024 );
 	output.Append(*currentChunk);
-	
+
 	// materialize adjlist
 	if( loadAdj != LoadAdjListOption::NONE ) { 
 		std::vector<long> livegraphEdgeLabels;
@@ -182,7 +181,6 @@ StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet 
 			}
 		}
 	}
-
 	// access properties and select indices
 	if( properties.size() >= 0 ) {
 		// assert there should be label
@@ -217,4 +215,112 @@ StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet 
 	}
 
 	return StoreAPIResult::OK;
+}
+
+StoreAPIResult LiveGraphStore::doIndexSeek(duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema){
+
+	assert( output.size() == 0 && "");	
+	auto txn = this->graph->begin_read_only_transaction();
+
+	// offset shift function
+	auto getAttrOffsetShift = [&]{
+		int result;
+		if (loadAdj == LoadAdjListOption::NONE) { result = 1; }
+		else if (loadAdj == LoadAdjListOption::BOTH) { result = 1 + int(edgeLabels.size())*2; }
+		else { result =  1 + edgeLabels.size(); }
+		return result;
+	};
+	// add vid
+	output.SetValue(0, 0, duckdb::Value::UBIGINT(vid) );
+	// add adj
+	if( loadAdj != LoadAdjListOption::NONE ) { 
+		std::vector<long> livegraphEdgeLabels;
+		for( auto& el: edgeLabels ) {
+			assert( (el.size() == 1) && "Currently support one edge labels" ) ; 
+			for( auto& item: catalog->edgeLabelSetToLGEdgeLabelMapping ) {
+				if( el == item.first) {
+					livegraphEdgeLabels.push_back(item.second);
+					break;
+				}
+			}
+		}
+		assert( livegraphEdgeLabels.size() == edgeLabels.size());
+		for( int adjIdx = 0; adjIdx < livegraphEdgeLabels.size(); adjIdx++) {
+
+			livegraph::EdgeIterator outgoingEdgeIt = txn.get_edges(vid, livegraphEdgeLabels[adjIdx], false); // outgoing
+			// TODO need to find reverse adjacency list
+			// The reverse option does not mean it is incoming or outgoing, just iterator ordering
+			assert( (loadAdj != LoadAdjListOption::INCOMING) && "+need to build incoming adjlist" );
+			assert( (loadAdj != LoadAdjListOption::BOTH) && "+need to build incoming adjlist" );
+			// 
+			livegraph::EdgeIterator incomingEdgeIt = txn.get_edges(vid, livegraphEdgeLabels[adjIdx], true); // incoming
+			// make list of edges
+			std::vector<duckdb::Value> outgoingEdges;
+			std::vector<duckdb::Value> incomingEdges;
+			// iterate
+			while( outgoingEdgeIt.valid() ) {
+				outgoingEdges.push_back( duckdb::Value::UBIGINT(outgoingEdgeIt.dst_id()) );
+				outgoingEdgeIt.next();
+			}
+			while( incomingEdgeIt.valid() ) {
+				incomingEdges.push_back( duckdb::Value::UBIGINT(incomingEdgeIt.dst_id()) );
+				incomingEdgeIt.next();
+			}
+			
+			switch( loadAdj ) {
+				case LoadAdjListOption::OUTGOING:
+					output.SetValue( 1 + adjIdx, 0, duckdb::Value::LIST(duckdb::LogicalType::UBIGINT, outgoingEdges) );
+					break;
+				case LoadAdjListOption::INCOMING:
+					output.SetValue( 1 + adjIdx, 0, duckdb::Value::LIST(duckdb::LogicalType::UBIGINT, incomingEdges) );
+					break;
+				case LoadAdjListOption::BOTH:
+					output.SetValue( 1 + adjIdx, 0, duckdb::Value::LIST(duckdb::LogicalType::UBIGINT, outgoingEdges) );
+					output.SetValue( 1 + livegraphEdgeLabels.size() + adjIdx, 0, duckdb::Value::LIST(duckdb::LogicalType::UBIGINT, outgoingEdges) );
+					break;
+			}
+		}	
+	}
+	// add properties
+	if( properties.size() >= 0 ) {
+		// assert there should be label
+		assert( labels.size() > 0 && "label should be specified when accessing properties");
+		std::vector<int> propertyIndices = getLDBCPropertyIndices(labels, properties);
+	
+		int attrOffsetShift = getAttrOffsetShift();
+
+		std::string rawVertexProp = std::string(txn.get_vertex(vid));
+		std::vector<std::string> props;
+		boost::split( props, rawVertexProp, boost::is_any_of("|") );
+
+		for( int attrIdx = 0; attrIdx < propertyIndices.size(); attrIdx++) {
+			auto propType = scanSchema[attrIdx+attrOffsetShift];
+			auto propIdx = propertyIndices[attrIdx];
+			assert(propIdx < props.size());
+
+			if( propType == duckdb::LogicalType::BIGINT) {
+				output.SetValue(attrIdx+attrOffsetShift, 0, duckdb::Value::BIGINT(std::stol(props[propIdx])) );
+			} else if ( propType == duckdb::LogicalType::VARCHAR) {
+				output.SetValue(attrIdx+attrOffsetShift, 0, duckdb::Value(props[propIdx]) );
+			} else {
+				assert( false && "unsupported property type");
+			}		
+		}
+	}
+	output.SetCardinality(1);
+	return StoreAPIResult::OK;
+}
+
+bool LiveGraphStore::isNodeInLabelset(uint64_t vid, LabelSet labels) {
+	// if input is superset of ls, check id range and return true.
+	for( auto& item: this->catalog->vertexLabelSetToLGRangeMapping ) {
+		auto ls = item.first;
+		if(ls.isSupersetOf(labels)) {
+			// find range
+			if( item.second.first <= vid && item.second.second >= vid) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
