@@ -49,7 +49,7 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Prope
 
 void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "ext_" + std::to_string(eid));
+    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
     PartitionID pid = prop_schema_cat_entry.GetPartitionID();
     _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
 }
@@ -65,6 +65,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         string chunkdefinition_name = "cdf_" + std::to_string(cdf_id);
         CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
         ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
+        extent_cat_entry.AddChunkDefinitionID(cdf_id);
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
@@ -83,7 +84,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
 
         // Copy (or Compress and Copy) DataChunk
-        memcpy(buf_ptr, input.data[chunk_definition_idx].GetData(), alloc_buf_size);
+        memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
 
         // Set Dirty & Unpin Segment & Flush
         ChunkCacheManager::ccm->SetDirty(cdf_id);

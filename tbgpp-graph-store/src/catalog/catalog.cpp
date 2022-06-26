@@ -373,6 +373,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 }
 
 CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema, const string &name) {
+	D_ASSERT(false);
 	vector<CatalogType> entry_types {CatalogType::TABLE_ENTRY, CatalogType::SEQUENCE_ENTRY};
 
 	for (auto entry_type : entry_types) {
@@ -401,6 +402,24 @@ template <>
 PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
                                      bool if_exists) { //, QueryErrorContext error_context) {
 return (PartitionCatalogEntry*) GetEntry(context, CatalogType::PARTITION_ENTRY, schema_name, name, if_exists);
+}
+
+template <>
+PropertySchemaCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                     bool if_exists) { //, QueryErrorContext error_context) {
+return (PropertySchemaCatalogEntry*) GetEntry(context, CatalogType::PROPERTY_SCHEMA_ENTRY, schema_name, name, if_exists);
+}
+
+template <>
+ExtentCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                     bool if_exists) { //, QueryErrorContext error_context) {
+return (ExtentCatalogEntry*) GetEntry(context, CatalogType::EXTENT_ENTRY, schema_name, name, if_exists);
+}
+
+template <>
+ChunkDefinitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
+                                     bool if_exists) { //, QueryErrorContext error_context) {
+return (ChunkDefinitionCatalogEntry*) GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, schema_name, name, if_exists);
 }
 
 

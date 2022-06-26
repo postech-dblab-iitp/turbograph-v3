@@ -15,9 +15,14 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     if (_CheckIsMemoryEnough()) {
         support_double_buffering = true;
         num_data_chunks = MAX_NUM_DATA_CHUNKS;
+        // Initialize Data Chunks
+        for (int i = 0; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = new DataChunk();
     } else {
         support_double_buffering = false;
         num_data_chunks = 1;
+        // Initialize Data Chunks
+        data_chunks[0] = new DataChunk();
+        for (int i = 1; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = nullptr;
     }
 
     toggle = 0;
@@ -32,7 +37,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = extent_cat_entry->chunks.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -54,10 +59,14 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     if (_CheckIsMemoryEnough()) {
         support_double_buffering = true;
         num_data_chunks = MAX_NUM_DATA_CHUNKS;
+        // Initialize Data Chunks
+        for (int i = 0; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = new DataChunk();
     } else {
         support_double_buffering = false;
         num_data_chunks = 1;
-        data_chunks[1] = nullptr;
+        // Initialize Data Chunks
+        data_chunks[0] = new DataChunk();
+        for (int i = 1; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = nullptr;
     }
 
     toggle = 0;
@@ -73,9 +82,9 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
-        size_t chunk_size = target_idxs_.size();
+        size_t chunk_size = target_idxs.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
@@ -103,7 +112,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk *&output, E
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         // Unpin previous chunks
         if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);

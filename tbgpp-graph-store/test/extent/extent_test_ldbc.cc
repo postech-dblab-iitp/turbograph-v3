@@ -130,6 +130,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     int64_t key_column_idx = reader.GetKeyColumnIndexFromHeader();
     
     string property_schema_name = "vps_" + vertex_file.first;
+    fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
     CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
     PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
     
@@ -223,7 +224,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     // Initialize Extent Iterator
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), "main", "vps_" + src_column_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
     vector<idx_t> src_column_idxs = {(idx_t) src_column_idx};
     vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
     ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
@@ -237,7 +238,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      fprintf(stdout, "Read CSV File Ongoing..\n");   
+      fprintf(stdout, "Read CSV File Ongoing..\n");
 
       // Get New ExtentID for this chunk
       ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -383,7 +384,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<data_ptr_t> adj_list_datas(1);
     adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
     adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *property_schema_cat, current_vertex_eid);
+    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
     adj_list_chunk.Destroy();
   }
 }
