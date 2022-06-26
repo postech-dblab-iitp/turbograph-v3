@@ -2,6 +2,7 @@
 
 #include <cassert>
 // #include <vector>
+#include <string>
 
 // #include "duckdb/common/unordered_set.hpp"
 // #include "duckdb/execution/physical_operator.hpp"
@@ -52,6 +53,28 @@ public:
 		return operators[idx - 1];
 	}
 
+	std::string toString() {
+		
+		std::string result;
+		// sink
+		result += sink->ToString() + "(" + sink->ParamsToString() + ")\n";
+		// operators - reversed
+		for (auto op = operators.rbegin(); op != operators.rend(); ++op) {
+			result += "\t|\n";
+			result += "    " + (*op)->schema.toString() + "\n";
+			result += "\t|\n";
+			result += (*op)->ToString() + "(" + (*op)->ParamsToString() + ")\n";
+		}
+		// source
+		result += "\t|\n";
+		result += "    " + source->schema.toString() + "\n";
+		result += "\t|\n";
+		result += source->ToString() + "(" + source->ParamsToString() + ")\n";
+
+		return result;
+	}
+
+	// members
 	int pipelineLength;
 
 	//! The source of this pipeline

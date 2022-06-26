@@ -9,8 +9,8 @@ using namespace duckdb;
 class ProduceResults: public CypherPhysicalOperator {
 
 public:
-	// TODO actually, sink does not have output schema. what then?
-	ProduceResults() { }
+	// TODO actually, sink does not have output schema. we need sch for hiding adj and id. but we need more general, universal logic further.
+	ProduceResults(CypherSchema& sch): CypherPhysicalOperator(sch) { }
 	~ProduceResults() { }
 
 public:
@@ -20,5 +20,6 @@ public:
 	void Combine(LocalSinkState& lstate) const override;
 
 	std::string ParamsToString() const override;
+	std::string ToString() const override;
 
 };	

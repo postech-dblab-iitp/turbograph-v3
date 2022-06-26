@@ -74,6 +74,7 @@ public:
 	std::vector<duckdb::LogicalType> getTypes() const;
 	std::vector<duckdb::LogicalType> getNodeTypes(std::string name) const;
 	int getNodeColIdx(std::string name) const;
+	std::vector<int> getColumnIndicesForResultSet() const;
 	std::string toString() const;
 	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;

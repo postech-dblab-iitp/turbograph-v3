@@ -34,3 +34,7 @@ OperatorResultType PhysicalDummyOperator::Execute(GraphStore* graph, DataChunk &
 std::string PhysicalDummyOperator::ParamsToString() const {
 	return "dummy-no-param";
 }
+
+std::string PhysicalDummyOperator::ToString() const {
+	return "PhysicalDummyOperator";
+}

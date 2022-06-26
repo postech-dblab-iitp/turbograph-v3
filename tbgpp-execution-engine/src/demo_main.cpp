@@ -45,14 +45,26 @@ int main(int argc, char** argv) {
 
 	// Run q1
 	auto q1_executors = suite.Test1();
-	for( auto exec : q1_executors ) { exec->ExecutePipeline(); }
+	for( auto exec : q1_executors ) { 
+		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
+		std::cout << exec->pipeline->toString() << std::endl;
+		exec->ExecutePipeline();
+	}
 
 	// Run q2
 	auto q2_executors = suite.Test2();
-	for( auto exec : q2_executors ) { exec->ExecutePipeline(); }
+	for( auto exec : q2_executors ) { 
+		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
+		std::cout << exec->pipeline->toString() << std::endl;
+		exec->ExecutePipeline();
+	}
 
 	// Run q3
 	auto q3_executors = suite.Test3();
-	for( auto exec : q3_executors ) { exec->ExecutePipeline(); }
+	for( auto exec : q2_executors ) { 
+		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
+		std::cout << exec->pipeline->toString() << std::endl;
+		exec->ExecutePipeline();
+	}
 
 }	

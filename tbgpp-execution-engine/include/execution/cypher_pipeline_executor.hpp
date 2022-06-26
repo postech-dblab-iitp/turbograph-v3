@@ -43,8 +43,6 @@ public:
 	//void InitializeChunk(DataChunk &chunk);
 
 
-private:
-
 	//! The pipeline to process
 	CypherPipeline* pipeline;
 	// Graph

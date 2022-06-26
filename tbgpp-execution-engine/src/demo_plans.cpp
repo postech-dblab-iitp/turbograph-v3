@@ -25,7 +25,7 @@ QueryPlanSuite::QueryPlanSuite(GraphStore* graphstore): graphstore(graphstore) {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	/*
-		MATCH (n:Organisation) RETURN n;
+		MATCH (n:Organisation) RETURN n.name, n.id, n.url;
 		+----------------------------------------------------------------------------------------------+
 		| n                                                                                            |
 		+----------------------------------------------------------------------------------------------+
@@ -36,9 +36,9 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	// scan schema
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
-	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
 	std::vector<LabelSet> scan_edegLabelSet;
@@ -46,9 +46,9 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	PropertyKeys scan_propertyKeys;
 	scan_labels.insert("Organisation");
 	scan_loadAdjOpt = LoadAdjListOption::NONE;
-	scan_propertyKeys.push_back("url");
 	scan_propertyKeys.push_back("name");
 	scan_propertyKeys.push_back("id");
+	scan_propertyKeys.push_back("url");
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
@@ -56,7 +56,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 		//operators
 		
 		// sink
-	ops.push_back(new ProduceResults());
+	ops.push_back(new ProduceResults(schema));
 	auto pipe1 = new CypherPipeline(ops);
 	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
 	
@@ -68,10 +68,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	/*
-		MATCH (p:Person)-[:LIKES]->(m:Comment) RETURN p.id, id(m);
+		MATCH (p:Person)-[:LIKES]->(m:Comment) RETURN p.id;
 		
 		+--------------------+
-		| p.id          | id(m) |
+		| p.id          |
 		+--------------------+
 		should output 624 tuples // TODO tuples
 	*/
@@ -108,7 +108,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	std::vector<CypherPhysicalOperator *> ops;
 	ops.push_back(new NodeScan(schema1, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 	ops.push_back(new Expand(schema2, "p", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
-	ops.push_back(new ProduceResults());
+	ops.push_back(new ProduceResults(schema2));
 	auto pipe1 = new CypherPipeline(ops);
 	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
 	
@@ -166,7 +166,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	std::vector<CypherPhysicalOperator *> ops;
 	ops.push_back(new NodeScan(schema1, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 	ops.push_back(new Expand(schema2, "p", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
-	ops.push_back(new ProduceResults());
+	ops.push_back(new ProduceResults(schema2));
 	auto pipe1 = new CypherPipeline(ops);
 	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
 	

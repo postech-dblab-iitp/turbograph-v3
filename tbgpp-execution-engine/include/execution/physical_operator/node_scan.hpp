@@ -27,6 +27,7 @@ public:
 	unique_ptr<LocalSourceState> GetLocalSourceState() const override;
 
 	std::string ParamsToString() const override;
+	std::string ToString() const override;
 
 	// operator parameters
 	LabelSet labels;
