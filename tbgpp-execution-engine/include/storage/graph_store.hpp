@@ -21,11 +21,12 @@ public:
 	// TODO ! Scan with storage predicate
 	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
 
-	StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
-	StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
+	// StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
+	// StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
 
-	StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
-	StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
+	// StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
+	// StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
+
 };
 
 class LiveGraphStore: GraphStore {

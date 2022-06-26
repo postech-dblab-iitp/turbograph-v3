@@ -26,6 +26,12 @@ enum class LoadAdjListOption {
 	BOTH
 };
 
+enum class ExpandDirection {
+	OUTGOING,
+	INCOMING,
+	BOTH
+};
+
 class LabelSet {
 
 public:
@@ -63,8 +69,9 @@ public:
 	void addNode(std::string name, LoadAdjListOption adjOption);
 	void addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type);
 	void addColumn(std::string attrName, duckdb::LogicalType type);
-	
 	// TODO add insert edge
+
+	int getNodeColIdx(std::string name) const;
 	std::string toString();
 	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;

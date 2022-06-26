@@ -34,7 +34,7 @@ public:
 	virtual unique_ptr<LocalSinkState> GetLocalSinkState() const;
 	virtual void Combine(LocalSinkState& lstate) const;
 
-	virtual OperatorResultType Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const;
+	virtual OperatorResultType Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState() const;
 
 	const vector<LogicalType> &GetTypes()  {

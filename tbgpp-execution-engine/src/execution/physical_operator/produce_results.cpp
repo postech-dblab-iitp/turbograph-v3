@@ -20,8 +20,12 @@ unique_ptr<LocalSinkState> ProduceResults::GetLocalSinkState() const {
 
 SinkResultType ProduceResults::Sink(DataChunk &input, LocalSinkState &lstate) const {
 	auto &state = (ProduceResultsState &)lstate;
+	std::cout << "sinked tuples: " << input.size() << std::endl;
 
-	state.resultChunks.Append(input);
+	auto copyChunk = new DataChunk();
+	copyChunk->Initialize( input.GetTypes() );
+	input.Copy(*copyChunk, 0);
+	state.resultChunks.Append(*copyChunk);
 
 	return SinkResultType::NEED_MORE_INPUT;
 }
@@ -29,7 +33,20 @@ SinkResultType ProduceResults::Sink(DataChunk &input, LocalSinkState &lstate) co
 void ProduceResults::Combine(LocalSinkState& lstate) const {
 	auto& state = (ProduceResultsState &) lstate;
 
-	state.resultChunks.Print();
+	// TODO need to improve
+	int LIMIT = 10;
+	std::cout << "===================================================" << std::endl;
+	std::cout << "[ResultSetSummary] Total " <<  state.resultChunks.Count() << " tuples. Showing top " << LIMIT <<":" << std::endl;
+	auto& firstchunk = state.resultChunks.GetChunk(0);
+	// TODO print column schema
+	for( int idx = 0 ; idx < LIMIT ; idx++) {
+		for( int colidx = 0 ; colidx < firstchunk.ColumnCount() ; colidx++) {
+			std::cout << "\t" << firstchunk.GetValue(colidx, idx).ToString();
+		}
+		std::cout << std::endl;
+	}
+	std::cout << "===================================================" << std::endl;
+
 	return;
 }
 

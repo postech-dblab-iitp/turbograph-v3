@@ -47,4 +47,9 @@ int main(int argc, char** argv) {
 	auto q1_executors = suite.Test1();
 	for( auto exec : q1_executors ) { exec->ExecutePipeline(); }
 
+	// Run q2
+	auto q2_executors = suite.Test2();
+	for( auto exec : q2_executors ) { exec->ExecutePipeline(); }
+
+
 }	

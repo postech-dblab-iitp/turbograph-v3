@@ -21,7 +21,7 @@ void CypherPhysicalOperator::Combine(LocalSinkState& lstate) const {
 	// nothing
 }
 
-OperatorResultType CypherPhysicalOperator::Execute(DataChunk &input, DataChunk &chunk, OperatorState &state) const {
+OperatorResultType CypherPhysicalOperator::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const {
 	throw InternalException("Calling Execute on a node that is not an operator!");
 }
 unique_ptr<OperatorState> CypherPhysicalOperator::GetOperatorState() const{

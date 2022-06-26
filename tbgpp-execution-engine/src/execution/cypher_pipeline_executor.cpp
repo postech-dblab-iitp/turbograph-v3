@@ -70,17 +70,17 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;
 	while(true) {
-		final_chunk.Reset();
+		//pipeOutputChunk->Reset(); // TODO huh?
 		
 		// call execute pipe
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 		std::cout << "starting (sink) operator" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
-			source, *local_sink_state
+			*pipeOutputChunk, *local_sink_state
 		);
 		// break when pipes for single chunk finishes
-		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) {
+		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 
 			break;
 		}
 	}
@@ -99,6 +99,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		in_process_operators.pop();
 	}
 	assert( current_idx > 0 && "cannot designate a source operator (idx=0)" );
+	if( pipeline->pipelineLength == 2) { // nothing passes through pipe.
+		result.Reference(input);
+	}
 
 	// start pipe from current_idx;
 	for(;;) {
@@ -115,7 +118,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		std::cout << "starting (interm) operator" << std::endl;
 		// give interm as input and interm as output
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
+			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
 		// if result needs more output, push index to stack
 		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
