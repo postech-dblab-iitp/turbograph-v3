@@ -3,22 +3,23 @@
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 #include "storage/graph_store.hpp"
 
-#include "duckdb/execution/physical_operator.hpp"
+#include "execution/physical_operator.hpp"
 
-#include "duckdb/common/types/data_chunk.hpp"
-#include "duckdb/common/stack.hpp"
+#include "common/types/data_chunk.hpp"
+#include "common/stack.hpp"
 
 #include <functional>
 
 
 // JHKO Copied directly from duckdb
 
-class Executor;
+namespace duckdb {
 
-using namespace duckdb;
+struct LogicalType;
+class Executor;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
@@ -97,3 +98,4 @@ private:
 	static bool CanCacheType(const LogicalType &type);
 	void CacheChunk(DataChunk &input, idx_t operator_idx);
 };
+}

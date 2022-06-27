@@ -1,11 +1,11 @@
 #pragma once
 
 #include "typedef.hpp"
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 
 #include <vector>
 #include <map>
-
+namespace duckdb {
 class LiveGraphCatalog {
 
 public:
@@ -16,3 +16,4 @@ public:
 	std::vector<std::pair<LabelSet, std::pair<long, long>>> vertexLabelSetToLGRangeMapping;	// (Person) -> <1000, 1010>
 
 };
+}

@@ -9,7 +9,7 @@
 #include <vector>
 #include <cassert>
 
-using namespace duckdb;
+namespace duckdb {
 
 class NodeScan: public CypherPhysicalOperator {
 
@@ -36,3 +36,5 @@ public:
 	PropertyKeys propertyKeys;
 	std::vector<duckdb::LogicalType> scanSchema;
 };	
+
+}

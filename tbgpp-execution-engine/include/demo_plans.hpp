@@ -1,14 +1,15 @@
 
-#include "duckdb/main/database.hpp"
-#include "duckdb/main/client_context.hpp"
+#include "main/database.hpp"
+#include "main/client_context.hpp"
 
-#include "duckdb/parallel/pipeline.hpp"
-#include "duckdb/execution/executor.hpp"
+//#include "parallel/pipeline.hpp"
+//#include "execution/executor.hpp"
 
 #include "storage/graph_store.hpp"
 
 #include "execution/cypher_pipeline_executor.hpp"
 
+namespace duckdb {
 class QueryPlanSuite{
 
 public:
@@ -26,3 +27,4 @@ private:
 	GraphStore* graphstore;
 
 };
+}

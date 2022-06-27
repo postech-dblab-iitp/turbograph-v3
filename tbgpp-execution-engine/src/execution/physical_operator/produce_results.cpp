@@ -1,18 +1,18 @@
 #include "execution/physical_operator/produce_results.hpp"
-#include "duckdb/common/types/chunk_collection.hpp"
+//#include "common/types/chunk_collection.hpp"
 
-#include "duckdb/execution/physical_operator.hpp"
+#include "execution/physical_operator.hpp"
 
 #include <algorithm>
 #include <cassert>
-
+namespace duckdb {
 class ProduceResultsState : public LocalSinkState {
 public:
 	explicit ProduceResultsState() {
 	}
 	
 public:
-	duckdb::ChunkCollection resultChunks;
+	//duckdb::ChunkCollection resultChunks;
 };
 
 unique_ptr<LocalSinkState> ProduceResults::GetLocalSinkState() const {
@@ -26,7 +26,7 @@ SinkResultType ProduceResults::Sink(DataChunk &input, LocalSinkState &lstate) co
 	auto copyChunk = new DataChunk();
 	copyChunk->Initialize( input.GetTypes() );
 	input.Copy(*copyChunk, 0);
-	state.resultChunks.Append(*copyChunk);
+	//state.resultChunks.Append(*copyChunk);
 
 	return SinkResultType::NEED_MORE_INPUT;
 }
@@ -36,17 +36,17 @@ void ProduceResults::Combine(LocalSinkState& lstate) const {
 
 	int LIMIT = 10;
 	std::cout << "===================================================" << std::endl;
-	std::cout << "[ResultSetSummary] Total " <<  state.resultChunks.Count() << " tuples. Showing top " << LIMIT <<":" << std::endl;
-	auto& firstchunk = state.resultChunks.GetChunk(0);
-	LIMIT = std::min( (int)(firstchunk.size()), LIMIT);
-	// TODO print column schema
-	for( int idx = 0 ; idx < LIMIT ; idx++) {
-		for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
-			std::cout << "\t" << firstchunk.GetValue(colIdx, idx).ToString();
-		}
-		std::cout << std::endl;
-	}
-	std::cout << "===================================================" << std::endl;
+	// std::cout << "[ResultSetSummary] Total " <<  state.resultChunks.Count() << " tuples. Showing top " << LIMIT <<":" << std::endl;
+	// auto& firstchunk = state.resultChunks.GetChunk(0);
+	// LIMIT = std::min( (int)(firstchunk.size()), LIMIT);
+	// // TODO print column schema
+	// for( int idx = 0 ; idx < LIMIT ; idx++) {
+	// 	for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+	// 		std::cout << "\t" << firstchunk.GetValue(colIdx, idx).ToString();
+	// 	}
+	// 	std::cout << std::endl;
+	// }
+	// std::cout << "===================================================" << std::endl;
 
 	return;
 }
@@ -58,4 +58,5 @@ std::string ProduceResults::ParamsToString() const {
 
 std::string ProduceResults::ToString() const {
 	return "ProduceResults";
+}
 }

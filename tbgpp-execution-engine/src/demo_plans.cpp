@@ -1,8 +1,8 @@
 #include "demo_plans.hpp"
 
-#include "duckdb/main/database.hpp"
-#include "duckdb/parallel/pipeline.hpp"
-#include "duckdb/execution/executor.hpp"
+#include "main/database.hpp"
+//#include "parallel/pipeline.hpp"
+//#include "execution/executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-
+namespace duckdb {
 QueryPlanSuite::QueryPlanSuite(GraphStore* graphstore): graphstore(graphstore) {  }
 
 
@@ -175,4 +175,5 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	result.push_back(pipeexec1);
 	return result;
 
+}
 }

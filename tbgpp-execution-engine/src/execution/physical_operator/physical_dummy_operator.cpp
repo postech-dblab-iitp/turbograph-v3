@@ -6,8 +6,8 @@
 
 #include <string>
 
-using namespace duckdb;
 using namespace std;
+namespace duckdb {
 
 class DummyOperatorState : public OperatorState {
 public:
@@ -37,4 +37,5 @@ std::string PhysicalDummyOperator::ParamsToString() const {
 
 std::string PhysicalDummyOperator::ToString() const {
 	return "PhysicalDummyOperator";
+}
 }

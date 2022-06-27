@@ -1,16 +1,17 @@
 
 #include "execution/cypher_pipeline_executor.hpp"
 
-#include "duckdb/execution/physical_operator.hpp"
+#include "execution/physical_operator.hpp"
 
 
-#include "duckdb/common/limits.hpp"
+#include "common/limits.hpp"
 #include "storage/graph_store.hpp"
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
+#include "common/types.hpp"
 
 #include <cassert>
 
-using namespace duckdb;
+namespace duckdb {
 
 CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore* g) {
 
@@ -131,4 +132,5 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 	// pipe done as we reached the sink
 	return in_process_operators.empty() ?
 		OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;
+}
 }

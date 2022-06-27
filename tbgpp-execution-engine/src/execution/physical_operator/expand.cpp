@@ -4,8 +4,8 @@
 
 #include <cassert>
 
-using namespace duckdb;
 using namespace std;
+namespace duckdb {
 
 class ExpandState : public OperatorState {
 public:
@@ -25,7 +25,8 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	auto &state = (ExpandState &)lstate;
 
 	// TODO change when using different storage.
-	auto livegraph = (LiveGraphStore*)graph; 
+	//auto livegraph = (LiveGraphStore*)graph; 
+	auto livegraph = graph;
 	
 	// check directionality and access edgelist
 	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx 
@@ -115,4 +116,5 @@ std::string Expand::ParamsToString() const {
 
 std::string Expand::ToString() const {
 	return "Expand";
+}
 }

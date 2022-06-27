@@ -1,15 +1,15 @@
 #pragma once
 
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 #include "storage/livegraph_catalog.hpp"
 
 #include "typedef.hpp"
 
-#include "duckdb/common/common.hpp"
-#include "duckdb/common/vector.hpp"
-#include "duckdb/common/types/data_chunk.hpp"
-#include "duckdb/common/types/chunk_collection.hpp"
-
+#include "common/common.hpp"
+#include "common/vector.hpp"
+#include "common/types/data_chunk.hpp"
+//#include "common/types/chunk_collection.hpp"
+namespace duckdb {
 class GraphStore { 
 
 public:
@@ -17,9 +17,9 @@ public:
 	// TODO further need to be re-defined upon discussion
 
 	// ! Scan used by scan operators
-	StoreAPIResult doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
-	StoreAPIResult doIndexSeek(duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
-	bool isNodeInLabelset(u_int64_t id, LabelSet labels);
+	StoreAPIResult doScan(duckdb::DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) { return StoreAPIResult::OK; }
+	StoreAPIResult doIndexSeek(duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) { return StoreAPIResult::OK; }
+	bool isNodeInLabelset(u_int64_t id, LabelSet labels) { return true; }
 	// TODO ! Scan with storage predicate
 	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
 
@@ -30,7 +30,7 @@ public:
 	// StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
 
 };
-
+/*
 class LiveGraphStore: GraphStore {
 
 public:
@@ -56,4 +56,5 @@ private:
 	livegraph::Graph* graph;
 	LiveGraphCatalog* catalog;
 
-};	
+};	*/
+}

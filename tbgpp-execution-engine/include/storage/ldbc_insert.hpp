@@ -1,4 +1,4 @@
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 
 #include <iostream>
 #include <cassert> 
@@ -7,4 +7,4 @@
 #include "storage/livegraph_catalog.hpp"
 
 
-void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog, std::string ldbc_path);
+//void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog, std::string ldbc_path);
