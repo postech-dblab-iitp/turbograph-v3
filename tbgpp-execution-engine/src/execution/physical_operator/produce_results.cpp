@@ -21,7 +21,7 @@ unique_ptr<LocalSinkState> ProduceResults::GetLocalSinkState() const {
 
 SinkResultType ProduceResults::Sink(DataChunk &input, LocalSinkState &lstate) const {
 	auto &state = (ProduceResultsState &)lstate;
-	std::cout << "sinked tuples: " << input.size() << std::endl;
+	//std::cout << "sinked tuples: " << input.size() << std::endl;
 
 	auto copyChunk = new DataChunk();
 	copyChunk->Initialize( input.GetTypes() );
