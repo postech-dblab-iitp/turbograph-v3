@@ -1,0 +1,25 @@
+add_library_unity(
+  duckdb_bind_statement
+  OBJECT
+  bind_call.cpp
+  bind_copy.cpp
+  bind_create.cpp
+  bind_create_table.cpp
+  bind_delete.cpp
+  bind_drop.cpp
+  bind_explain.cpp
+  bind_export.cpp
+  bind_insert.cpp
+  bind_load.cpp
+  bind_pragma.cpp
+  bind_relation.cpp
+  bind_select.cpp
+  bind_set.cpp
+  bind_simple.cpp
+  bind_summarize.cpp
+  bind_update.cpp
+  bind_vacuum.cpp
+  bind_show.cpp)
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:duckdb_bind_statement>
+    PARENT_SCOPE)

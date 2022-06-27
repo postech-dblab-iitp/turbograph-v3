@@ -1,0 +1,51 @@
+//===----------------------------------------------------------------------===//
+//                         DuckDB
+//
+// duckdb/planner/operator/logical_insert.hpp
+//
+//
+//===----------------------------------------------------------------------===//
+
+#pragma once
+
+#include "duckdb/planner/logical_operator.hpp"
+
+namespace duckdb {
+
+//! LogicalInsert represents an insertion of data into a base table
+class LogicalInsert : public LogicalOperator {
+public:
+	explicit LogicalInsert(TableCatalogEntry *table)
+	    : LogicalOperator(LogicalOperatorType::LOGICAL_INSERT), table(table), table_index(0), return_chunk(false) {
+	}
+
+	vector<vector<unique_ptr<Expression>>> insert_values;
+	//! The insertion map ([table_index -> index in result, or DConstants::INVALID_INDEX if not specified])
+	vector<idx_t> column_index_map;
+	//! The expected types for the INSERT statement (obtained from the column types)
+	vector<LogicalType> expected_types;
+	//! The base table to insert into
+	TableCatalogEntry *table;
+	idx_t table_index;
+	//! if returning option is used, return actual chunk to projection
+	bool return_chunk;
+	//! The default statements used by the table
+	vector<unique_ptr<Expression>> bound_defaults;
+
+protected:
+	vector<ColumnBinding> GetColumnBindings() override {
+		if (return_chunk) {
+			return GenerateColumnBindings(table_index, table->columns.size());
+		}
+		return {ColumnBinding(0, 0)};
+	}
+
+	void ResolveTypes() override {
+		if (return_chunk) {
+			types = table->GetTypes();
+		} else {
+			types.emplace_back(LogicalType::BIGINT);
+		}
+	}
+};
+} // namespace duckdb
