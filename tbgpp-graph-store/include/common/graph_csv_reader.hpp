@@ -72,8 +72,8 @@ public:
 				// special case
 				std::string type_name = key_and_type.substr(delim_pos + 1);
 				LogicalType type = StringToLogicalType(type_name, i);
-				if (dst_column == -1) key_names.push_back(src_key_name);
-				else key_names.push_back(dst_key_name);
+				if (dst_column == -1) key_names.push_back(src_key_name + "_src");
+				else key_names.push_back(dst_key_name + "_dst");
 				key_types.push_back(move(type));
 			} else {
 				std::string type_name = key_and_type.substr(delim_pos + 1);

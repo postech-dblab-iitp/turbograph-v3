@@ -519,6 +519,16 @@ Value Vector::GetValue(idx_t index) const {
 		}
 		return Value::LIST(ListType::GetChildType(GetType()), move(children));
 	}
+	case LogicalTypeId::ADJLIST: {
+		D_ASSERT(index >= 0);
+		auto start_offset = index == 0 ? STANDARD_VECTOR_SIZE : ((idx_t *)data)[index-1];
+		auto end_offset = ((idx_t *)data)[index];
+		vector<Value> children;
+		for (idx_t i = start_offset; i < end_offset; i++) {
+			children.push_back(Value::UBIGINT(((uint64_t *)data)[i]));
+		}
+		return Value::LIST(LogicalType::UBIGINT, move(children));
+	}
 	default:
 		throw InternalException("Unimplemented type for value access");
 	}
@@ -566,6 +576,7 @@ string Vector::ToString(idx_t count) const {
 		break;
 	}
 	retval += "]";
+	//fprintf(stdout, "%s\n", retval.c_str());
 	return retval;
 }
 

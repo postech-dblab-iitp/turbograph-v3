@@ -286,7 +286,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
         vertex_seqno = 0;
         vertex_id_column = (idx_t*) vertex_id_chunk->data[0].GetData();
         while (vertex_id_column[vertex_seqno] < cur_src_id) {
-          adj_list_buffer[vertex_seqno++] = 0;
+          adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
         }
         D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
       }
@@ -347,7 +347,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             vertex_seqno = 0;
             vertex_id_column = (idx_t*) vertex_id_chunk->data[0].GetData();
             while (vertex_id_column[vertex_seqno] < cur_src_id) {
-              adj_list_buffer[vertex_seqno++] = 0;
+              adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
             }
             D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
           } else {
@@ -403,6 +403,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + vertex_file.first);
     vector<LogicalType> column_types = move(vertex_ps_cat_entry->GetTypes());
     vector<idx_t> column_idxs;
+    
     column_idxs.resize(column_types.size());
     for (int i = 0; i < column_idxs.size(); i++) column_idxs[i] = i;
     ext_it.Initialize(*client.get(), vertex_ps_cat_entry, column_types, column_idxs);
@@ -414,7 +415,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ext_it.GetNextExtent(*client.get(), data, output_eid);
     
     // Print DataChunk
-    fprintf(stdout, "%s\n", data->ToString(10).c_str());
+    fprintf(stdout, "%s\n", data->ToString(2).c_str());
   }
 
   for (auto &edge_file : edge_files) {

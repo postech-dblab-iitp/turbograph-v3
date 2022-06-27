@@ -51,6 +51,7 @@ void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChun
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
     PartitionID pid = prop_schema_cat_entry.GetPartitionID();
+    for (auto &l_type : input.GetTypes()) prop_schema_cat_entry.AppendType(l_type);
     _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
 }
 
@@ -75,6 +76,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         if (l_type == LogicalType::ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+            fprintf(stdout, "adj_list_buffer[0] = %ld, adj_list_buffer[1] = %ld\n", adj_list_buffer[0], adj_list_buffer[1]);
         } else {
             alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
         }
