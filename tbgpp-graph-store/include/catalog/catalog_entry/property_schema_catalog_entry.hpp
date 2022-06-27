@@ -39,12 +39,16 @@ public:
 	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
+	PartitionID pid; // foreign key
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
+	atomic<ExtentID> local_extent_id_version;
+	vector<LogicalType> property_types; // TODO SHM
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
+	void SetTypes(vector<LogicalType> &types);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
 
@@ -56,6 +60,9 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
+	void AddExtent(ExtentID eid);
+	ExtentID GetNewExtentID();
+	PartitionID GetPartitionID();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:

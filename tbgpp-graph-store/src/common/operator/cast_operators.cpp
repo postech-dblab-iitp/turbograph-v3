@@ -15,7 +15,7 @@
 #include "common/types/interval.hpp"
 #include "common/types/time.hpp"
 #include "common/types/timestamp.hpp"
-//#include "common/types/vector.hpp"
+#include "common/types/vector.hpp"
 #include "fast_float/fast_float.h"
 #include "fmt/format.h"
 
@@ -1106,7 +1106,7 @@ bool TryCast::Operation(interval_t input, interval_t &result, bool strict) {
 //===--------------------------------------------------------------------===//
 // Non-Standard Timestamps
 //===--------------------------------------------------------------------===//
-/*template <>
+template <>
 duckdb::string_t CastFromTimestampNS::Operation(duckdb::timestamp_t input, Vector &result) {
 	return StringCast::Operation<timestamp_t>(Timestamp::FromEpochNanoSeconds(input.value), result);
 }
@@ -1117,7 +1117,7 @@ duckdb::string_t CastFromTimestampMS::Operation(duckdb::timestamp_t input, Vecto
 template <>
 duckdb::string_t CastFromTimestampSec::Operation(duckdb::timestamp_t input, Vector &result) {
 	return StringCast::Operation<timestamp_t>(Timestamp::FromEpochSeconds(input.value), result);
-}*/
+}
 
 template <>
 timestamp_t CastTimestampUsToMs::Operation(timestamp_t input) {
@@ -1184,7 +1184,7 @@ bool TryCastToTimestampSec::Operation(string_t input, timestamp_t &result, bool 
 //===--------------------------------------------------------------------===//
 // Cast From Blob
 //===--------------------------------------------------------------------===//
-/*template <>
+template <>
 string_t CastFromBlob::Operation(string_t input, Vector &vector) {
 	idx_t result_size = Blob::GetStringSize(input);
 
@@ -1192,12 +1192,12 @@ string_t CastFromBlob::Operation(string_t input, Vector &vector) {
 	Blob::ToString(input, result.GetDataWriteable());
 	result.Finalize();
 	return result;
-}*/
+}
 
 //===--------------------------------------------------------------------===//
 // Cast To Blob
 //===--------------------------------------------------------------------===//
-/*template <>
+template <>
 bool TryCastToBlob::Operation(string_t input, string_t &result, Vector &result_vector, string *error_message,
                               bool strict) {
 	idx_t result_size;
@@ -1209,27 +1209,27 @@ bool TryCastToBlob::Operation(string_t input, string_t &result, Vector &result_v
 	Blob::ToBlob(input, (data_ptr_t)result.GetDataWriteable());
 	result.Finalize();
 	return true;
-}*/
+}
 
 //===--------------------------------------------------------------------===//
 // Cast From UUID
 //===--------------------------------------------------------------------===//
-/*template <>
+template <>
 string_t CastFromUUID::Operation(hugeint_t input, Vector &vector) {
 	string_t result = StringVector::EmptyString(vector, 36);
 	UUID::ToString(input, result.GetDataWriteable());
 	result.Finalize();
 	return result;
-}*/
+}
 
 //===--------------------------------------------------------------------===//
 // Cast To UUID
 //===--------------------------------------------------------------------===//
-/*template <>
+template <>
 bool TryCastToUUID::Operation(string_t input, hugeint_t &result, Vector &result_vector, string *error_message,
                               bool strict) {
 	return UUID::FromString(input.GetString(), result);
-}*/
+}
 
 //===--------------------------------------------------------------------===//
 // Cast To Date

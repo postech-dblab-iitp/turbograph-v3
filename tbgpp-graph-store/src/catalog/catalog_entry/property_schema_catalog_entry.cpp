@@ -9,8 +9,9 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
-	, property_keys(void_alloc), extent_ids(void_alloc) {
+	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0) {
 	this->temporary = info->temporary;
+	this->pid = info->pid;
 }
 
 unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context) {
@@ -20,7 +21,38 @@ unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context
 }
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
+	D_ASSERT(false);
 	extent_ids.push_back(extent_cat->oid);
+}
+
+void PropertySchemaCatalogEntry::AddExtent(ExtentID eid) {
+	// Can we perform this logic in GetNewExtentID??
+	extent_ids.push_back(eid);
+}
+
+ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
+	ExtentID new_eid = pid;
+	new_eid = new_eid << 16;
+	return new_eid + local_extent_id_version++;
+}
+
+vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
+	vector<LogicalType> types;
+	for (auto &it : this->property_types) {
+		types.push_back(it);
+	}
+	return types;
+}
+
+void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
+	D_ASSERT(property_types.empty());
+	for (auto &it : types) {
+		property_types.push_back(it);
+	}
+}
+
+PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
+	return pid;
 }
 
 } // namespace duckdb

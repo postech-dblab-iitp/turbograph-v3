@@ -41,13 +41,14 @@ public:
 
 	ExtentID eid;
 	ExtentType extent_type;
+	PartitionID pid; // foreign key
 	ChunkDefinitionID_vector chunks;
+	atomic<LocalChunkDefinitionID> local_chunkdefinition_id_version;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
 	//! Returns a list of types of the table
-	vector<LogicalType> GetTypes();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
@@ -57,5 +58,7 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void SetExtentType(ExtentType extent_type_);
+	LocalChunkDefinitionID GetNextChunkDefinitionID();
+	void AddChunkDefinitionID(ChunkDefinitionID cdf_id);
 };
 } // namespace duckdb
