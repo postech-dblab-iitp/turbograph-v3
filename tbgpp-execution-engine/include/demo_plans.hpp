@@ -20,7 +20,8 @@ public:
 	std::vector<CypherPipelineExecutor*> Test2();
 	std::vector<CypherPipelineExecutor*> Test3();
 	std::vector<CypherPipelineExecutor*> Test4();
-	//std::vector<duckdb::Pipeline*> LDBCShort1();
+	
+	std::vector<duckdb::Pipeline*> LDBCShort1();
 
 private:
 
