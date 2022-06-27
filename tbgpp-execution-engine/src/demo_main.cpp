@@ -2,13 +2,13 @@
 #include <cassert> 
 #include <filesystem>
 
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 #include "demo_plans.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
 
-#include "duckdb/common/types/chunk_collection.hpp"
+//#include "common/types/chunk_collection.hpp"
 
 #include "typedef.hpp"
 
@@ -22,7 +22,7 @@
 int main(int argc, char** argv) {
 
 	// TODO change hard coding
-	livegraph::Graph graph = livegraph::Graph("/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/block",
+	/*livegraph::Graph graph = livegraph::Graph("/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/block",
 		"/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/wal");
 	LiveGraphCatalog catalog;
 
@@ -65,6 +65,6 @@ int main(int argc, char** argv) {
 		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
 		std::cout << exec->pipeline->toString() << std::endl;
 		exec->ExecutePipeline();
-	}
+	}*/
 
 }	

@@ -2,8 +2,8 @@
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-using namespace duckdb;
 using namespace std;
+namespace duckdb {
 
 class Expand: public CypherPhysicalOperator {
 
@@ -39,3 +39,4 @@ public:
 	LoadAdjListOption tgtLoadAdjOpt;
 	PropertyKeys tgtPropertyKeys;
 };
+}

@@ -3,9 +3,9 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
 
-using namespace duckdb;
-using namespace std;
 
+using namespace std;
+namespace duckdb {
 
 class PhysicalDummyOperator: public CypherPhysicalOperator {
 
@@ -21,3 +21,4 @@ public:
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 };
+}

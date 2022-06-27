@@ -1,8 +1,9 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-#include "duckdb/common/exception.hpp"
+#include "common/exception.hpp"
 
-#include "duckdb/common/enums/operator_result_type.hpp"
+#include "common/enums/operator_result_type.hpp"
 
+namespace duckdb {
 
 void CypherPhysicalOperator::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &lstate) const {
 	throw InternalException("Calling GetData on a node that is not a source!");
@@ -26,4 +27,10 @@ OperatorResultType CypherPhysicalOperator::Execute(GraphStore* graph, DataChunk 
 }
 unique_ptr<OperatorState> CypherPhysicalOperator::GetOperatorState() const{
 	return make_unique<OperatorState>();
+}
+
+const vector<LogicalType>& CypherPhysicalOperator::GetTypes()  {
+	return types;
+}
+
 }

@@ -10,13 +10,13 @@
 
 #include "typedef.hpp"
 
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
 
 
 namespace fs = std::filesystem;
-
+/*
 void strConvertToVertexLabelFormat(std::string& input) {
 
 	// first, all letters to lower
@@ -271,4 +271,4 @@ void LDBCInsert(livegraph::Graph& graph, LiveGraphCatalog& catalog,  std::string
 
 	std::cout << graph.get_max_vertex_id() << " nodes and " << edgeInsertCnt << " edges bulk inserted.\n\n";
 	
-}
+}*/

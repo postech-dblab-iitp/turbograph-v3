@@ -4,7 +4,7 @@
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-using namespace duckdb;
+namespace duckdb {
 
 class ProduceResults: public CypherPhysicalOperator {
 
@@ -23,3 +23,5 @@ public:
 	std::string ToString() const override;
 
 };	
+
+}

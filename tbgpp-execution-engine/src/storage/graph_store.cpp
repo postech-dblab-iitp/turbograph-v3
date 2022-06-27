@@ -7,15 +7,15 @@
 
 #include "storage/graph_store.hpp"
 
-#include "livegraph.hpp"
+//#include "livegraph.hpp"
 #include "storage/livegraph_catalog.hpp"
 
-#include "duckdb/common/vector_size.hpp"
-
-LiveGraphStore::LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog) {
+#include "common/vector_size.hpp"
+namespace duckdb {
+/*LiveGraphStore::LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog) {
 	this->graph = graph;
 	this->catalog = catalog;
-}
+}*/
 
 // This should be eliminated anytime soon.
 std::vector<int> getLDBCPropertyIndices(LabelSet labels, PropertyKeys properties) {
@@ -76,7 +76,7 @@ std::vector<int> getLDBCPropertyIndices(LabelSet labels, PropertyKeys properties
 }
 
 // APIs
-StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+/*StoreAPIResult LiveGraphStore::doScan(duckdb::ChunkCollection& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
 	// assert if given chunkcollection is empty
 	assert( output.Count() == 0 && "");	
 	// start r.o. transaction
@@ -323,4 +323,5 @@ bool LiveGraphStore::isNodeInLabelset(uint64_t vid, LabelSet labels) {
 		}
 	}
 	return false;
+}*/
 }

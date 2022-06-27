@@ -14,6 +14,8 @@
 
 using namespace std;
 
+namespace duckdb {
+	
 class CypherPipeline {
 
 public:
@@ -88,3 +90,5 @@ public:
 	// when the pipelines have hierarchy.
 
 };
+
+}

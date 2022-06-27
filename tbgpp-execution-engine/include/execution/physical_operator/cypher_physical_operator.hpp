@@ -4,20 +4,21 @@
 // #include "duckdb/catalog/catalog.hpp"
 // #include "duckdb/common/enums/physical_operator_type.hpp"
 
-#include "duckdb/common/types/data_chunk.hpp"
-#include "duckdb/common/enums/operator_result_type.hpp"
+#include "common/types/data_chunk.hpp"
+#include "common/enums/operator_result_type.hpp"
 // #include "duckdb/common/constants.hpp"
 
-#include "duckdb/execution/physical_operator.hpp"
+#include "execution/physical_operator.hpp"
 
 #include "storage/graph_store.hpp"
 
 #include "typedef.hpp"
 #include "storage/graph_store.hpp"
 
-#include "duckdb/common/common.hpp"
+#include "common/common.hpp"
 
-using namespace duckdb;
+namespace duckdb {
+struct LogicalType;
 
 class CypherPhysicalOperator {
 
@@ -37,15 +38,14 @@ public:
 	virtual OperatorResultType Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState() const;
 
-	const vector<LogicalType> &GetTypes()  {
-		return types;
-	}
+	const vector<LogicalType> &GetTypes();
 
 	virtual std::string ParamsToString() const { return ""; }
 	virtual std::string ToString() const { return ""; }
 
 	// operator metadata
 	CypherSchema schema;
-	vector<duckdb::LogicalType> types;
+	vector<LogicalType> types;
 	
 };
+}

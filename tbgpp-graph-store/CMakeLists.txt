@@ -44,9 +44,12 @@ endif()
 
 link_libraries(pthread aio numa rt hwloc tbb)
 
-add_library(tbgpp-system-lib ${TBGPP_SYSTEM_SOURCES})
-target_compile_options(tbgpp-system-lib PRIVATE ${CXX_FLAGS})
-target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
+add_library(tbgpp-system-lib STATIC ${TBGPP_SYSTEM_SOURCES})
+target_compile_options(tbgpp-system-lib PUBLIC ${CXX_FLAGS})
+target_compile_definitions(tbgpp-system-lib PUBLIC ${CXX_DEFINITION})
+target_include_directories(tbgpp-system-lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
+#target_compile_options(tbgpp-system-lib PRIVATE ${CXX_FLAGS})
+#target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
 
 add_executable(store "${CACHE_SRC_DIR}/store.cc")
 target_link_libraries(store lightning)

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <map>
 
+#include "common/types.hpp"
+namespace duckdb {
 void LabelSet::insert(std::string input) {
 	this->data.insert(input);
 }
@@ -72,8 +74,9 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 	
 	CypherSchema nodeSchema;
+	LogicalType ubigint_type(LogicalTypeId::UBIGINT);
 	nodeSchema.attrs.push_back(
-		std::make_tuple("_id", CypherValueType::ID, duckdb::LogicalType::UBIGINT)
+		std::make_tuple("_id", CypherValueType::ID, ubigint_type)
 	);
 	switch(adjOption) {
 		case LoadAdjListOption::NONE:
@@ -103,7 +106,8 @@ void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 		}
 	}
 	// set node info on attrs
-	attrs.push_back( std::make_tuple(name, CypherValueType::NODE, duckdb::LogicalType::INVALID) );
+	LogicalType invalid_type(LogicalTypeId::INVALID);
+	attrs.push_back( std::make_tuple(name, CypherValueType::NODE, invalid_type) );
 	// set node details
 	nestedAttrs[name] = nodeSchema;
 }
@@ -230,4 +234,5 @@ std::vector<int> CypherSchema::getColumnIndicesForResultSet() const {
 		curIdx += 1;
 	}
 	return result;
+}
 }

@@ -7,7 +7,8 @@
 #include <tuple>
 #include <map>
 
-#include "duckdb/common/types.hpp"
+namespace duckdb {
+struct LogicalType;
 
 enum class StoreAPIResult {
 	OK,
@@ -80,3 +81,4 @@ public:
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
 	std::map<std::string, CypherSchema> nestedAttrs;
 };
+}
