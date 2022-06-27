@@ -2,6 +2,7 @@
 #define TYPEDEF_H
 
 #include <stdint.h>
+#include <string>
 
 #define MAX_NUM_PER_THREAD_DATASTRUCTURE 64
 #define PER_THREAD_MAXIMUM_ONGOING_DISK_AIO 512
@@ -25,6 +26,7 @@ struct DiskAioParameters {
   static int64_t NUM_TOTAL_CPU_CORES;
   static int64_t NUM_CPU_SOCKETS;
   static int64_t NUM_DISK_AIO_THREADS;
+  static std::string WORKSPACE;
 };
 
 enum IOMode {

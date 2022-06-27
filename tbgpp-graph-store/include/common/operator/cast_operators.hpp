@@ -534,24 +534,24 @@ DUCKDB_API bool TryCastToTimestampSec::Operation(string_t input, timestamp_t &re
 //===--------------------------------------------------------------------===//
 
 struct CastFromTimestampNS {
-	/*template <class SRC>
+	template <class SRC>
 	static inline string_t Operation(SRC input, Vector &result) {
 		throw duckdb::NotImplementedException("Cast to timestamp could not be performed!");
-	}*/
+	}
 };
 
 struct CastFromTimestampMS {
-	/*template <class SRC>
+	template <class SRC>
 	static inline string_t Operation(SRC input, Vector &result) {
 		throw duckdb::NotImplementedException("Cast to timestamp could not be performed!");
-	}*/
+	}
 };
 
 struct CastFromTimestampSec {
-	/*template <class SRC>
+	template <class SRC>
 	static inline string_t Operation(SRC input, Vector &result) {
 		throw duckdb::NotImplementedException("Cast to timestamp could not be performed!");
-	}*/
+	}
 };
 
 struct CastTimestampUsToMs {
@@ -608,60 +608,60 @@ template <>
 duckdb::timestamp_t CastTimestampNsToUs::Operation(duckdb::timestamp_t input);
 template <>
 duckdb::timestamp_t CastTimestampSecToUs::Operation(duckdb::timestamp_t input);
-/*
+
 template <>
 duckdb::string_t CastFromTimestampNS::Operation(duckdb::timestamp_t input, Vector &result);
 template <>
 duckdb::string_t CastFromTimestampMS::Operation(duckdb::timestamp_t input, Vector &result);
 template <>
 duckdb::string_t CastFromTimestampSec::Operation(duckdb::timestamp_t input, Vector &result);
-*/
+
 //===--------------------------------------------------------------------===//
 // Blobs
 //===--------------------------------------------------------------------===//
 struct CastFromBlob {
-	/*template <class SRC>
+	template <class SRC>
 	static inline string_t Operation(SRC input, Vector &result) {
 		throw duckdb::NotImplementedException("Cast from blob could not be performed!");
-	}*/
+	}
 };
-//template <>
-//duckdb::string_t CastFromBlob::Operation(duckdb::string_t input, Vector &vector);
+template <>
+duckdb::string_t CastFromBlob::Operation(duckdb::string_t input, Vector &vector);
 
 struct TryCastToBlob {
-	/*template <class SRC, class DST>
+	template <class SRC, class DST>
 	static inline bool Operation(SRC input, DST &result, Vector &result_vector, string *error_message,
 	                             bool strict = false) {
 		throw InternalException("Unsupported type for try cast to blob");
-	}*/
+	}
 };
 
-//template <>
-//bool TryCastToBlob::Operation(string_t input, string_t &result, Vector &result_vector, string *error_message,
-//                              bool strict);
+template <>
+bool TryCastToBlob::Operation(string_t input, string_t &result, Vector &result_vector, string *error_message,
+                              bool strict);
 
 //===--------------------------------------------------------------------===//
 // UUID
 //===--------------------------------------------------------------------===//
 struct CastFromUUID {
-	/*template <class SRC>
+	template <class SRC>
 	static inline string_t Operation(SRC input, Vector &result) {
 		throw duckdb::NotImplementedException("Cast from uuid could not be performed!");
-	}*/
+	}
 };
-//template <>
-//duckdb::string_t CastFromUUID::Operation(duckdb::hugeint_t input, Vector &vector);
+template <>
+duckdb::string_t CastFromUUID::Operation(duckdb::hugeint_t input, Vector &vector);
 
 struct TryCastToUUID {
-	/*template <class SRC, class DST>
+	template <class SRC, class DST>
 	DUCKDB_API static inline bool Operation(SRC input, DST &result, Vector &result_vector, string *error_message,
 	                                        bool strict = false) {
 		throw InternalException("Unsupported type for try cast to uuid");
-	}*/
+	}
 };
 
-//template <>
-//DUCKDB_API bool TryCastToUUID::Operation(string_t input, hugeint_t &result, Vector &result_vector,
-//                                         string *error_message, bool strict);
+template <>
+DUCKDB_API bool TryCastToUUID::Operation(string_t input, hugeint_t &result, Vector &result_vector,
+                                         string *error_message, bool strict);
 
 } // namespace duckdb

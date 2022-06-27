@@ -317,6 +317,9 @@ enum class PhysicalType : uint8_t {
 	/// Boolean as 1 bit, LSB bit-packed ordering
 	BIT = 206,
 
+	/// iTurboGraph Extensions
+	ADJLIST = 207,
+
 	INVALID = 255
 };
 
@@ -366,7 +369,8 @@ enum class LogicalTypeId : uint8_t {
 	MAP = 102,
 	TABLE = 103,
 	ENUM = 104,
-	AGGREGATE_STATE = 105
+	AGGREGATE_STATE = 105,
+	ADJLIST = 106,
 };
 
 struct ExtraTypeInfo;
@@ -471,6 +475,7 @@ public:
 	static constexpr const LogicalTypeId INVALID = LogicalTypeId::INVALID;
 	static constexpr const LogicalTypeId JSON = LogicalTypeId::JSON;
 	static constexpr const LogicalTypeId ROW_TYPE = LogicalTypeId::BIGINT;
+	static constexpr const LogicalTypeId ADJLIST = LogicalTypeId::ADJLIST;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
 	DUCKDB_API static LogicalType DECIMAL(int width, int scale);                 // NOLINT

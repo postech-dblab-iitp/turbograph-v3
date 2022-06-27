@@ -1,6 +1,6 @@
 #include "common/types/cast_helpers.hpp"
 #include "common/operator/string_cast.hpp"
-//#include "common/types/vector.hpp"
+#include "common/types/vector.hpp"
 #include "common/types/cast_helpers.hpp"
 #include "common/types/date.hpp"
 #include "common/types/decimal.hpp"
@@ -10,7 +10,7 @@
 #include "common/types/timestamp.hpp"
 
 namespace duckdb {
-/*
+
 //===--------------------------------------------------------------------===//
 // Cast Numeric -> String
 //===--------------------------------------------------------------------===//
@@ -209,5 +209,5 @@ string_t StringCastTZ::Operation(timestamp_t input, Vector &vector) {
 	result.Finalize();
 	return result;
 }
-*/
+
 } // namespace duckdb
