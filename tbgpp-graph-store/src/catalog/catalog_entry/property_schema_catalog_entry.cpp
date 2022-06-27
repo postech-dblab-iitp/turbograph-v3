@@ -51,6 +51,10 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	}
 }
 
+void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
+	property_types.push_back(move(type));
+}
+
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
 	return pid;
 }

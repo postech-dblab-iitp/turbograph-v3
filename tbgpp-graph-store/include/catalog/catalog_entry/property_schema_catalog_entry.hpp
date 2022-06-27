@@ -49,6 +49,7 @@ public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
 	void SetTypes(vector<LogicalType> &types);
+	void AppendType(LogicalType type);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
 
