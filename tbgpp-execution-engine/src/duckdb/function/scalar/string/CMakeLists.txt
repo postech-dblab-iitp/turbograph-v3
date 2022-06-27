@@ -1,0 +1,32 @@
+add_library_unity(
+  duckdb_func_string
+  OBJECT
+  ascii.cpp
+  chr.cpp
+  reverse.cpp
+  caseconvert.cpp
+  concat.cpp
+  length.cpp
+  like.cpp
+  md5.cpp
+  nfc_normalize.cpp
+  printf.cpp
+  regexp.cpp
+  substring.cpp
+  instr.cpp
+  pad.cpp
+  prefix.cpp
+  repeat.cpp
+  replace.cpp
+  strip_accents.cpp
+  suffix.cpp
+  trim.cpp
+  left_right.cpp
+  contains.cpp
+  string_split.cpp
+  mismatches.cpp
+  levenshtein.cpp
+  jaccard.cpp)
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:duckdb_func_string>
+    PARENT_SCOPE)

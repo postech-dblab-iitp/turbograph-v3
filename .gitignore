@@ -1,3 +1,5 @@
+# Refer to https://github.com/github/gitignore for useful templates
+
 # Basic rules
 tmp/
 *.log
@@ -11,6 +13,8 @@ tmp/
 *.lo
 *.o
 *.obj
+*.so
+*.a
 
 # Python
 __pycache__/
@@ -22,3 +26,14 @@ __pycache__/
 .DS_Store
 ._*
 Thumbs.db
+
+# Cmake cache
+CMakeCache.txt
+CMakeFiles/
+test*.cmake
+
+# Vim swap files
+*.swp
+
+# vscode directory
+.vscode/
