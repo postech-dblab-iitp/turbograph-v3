@@ -122,6 +122,7 @@ public:
 
 	//! Converts this DataChunk to a printable string representation
 	DUCKDB_API string ToString() const;
+	DUCKDB_API string ToString(size_t size_to_print) const;
 	//DUCKDB_API void Print();
 
 	DataChunk(const DataChunk &) = delete;

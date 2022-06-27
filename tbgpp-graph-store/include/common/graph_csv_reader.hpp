@@ -68,10 +68,19 @@ public:
             size_t delim_pos = key_and_type.find(':');
             if (delim_pos == std::string::npos) throw InvalidInputException("");
             std::string key = key_and_type.substr(0, delim_pos);
-			std::string type_name = key_and_type.substr(delim_pos + 1);
-            LogicalType type = StringToLogicalType(type_name, i);
-            key_names.push_back(move(key));
-			key_types.push_back(move(type));
+			if (key == "") {
+				// special case
+				std::string type_name = key_and_type.substr(delim_pos + 1);
+				LogicalType type = StringToLogicalType(type_name, i);
+				if (dst_column == -1) key_names.push_back(src_key_name);
+				else key_names.push_back(dst_key_name);
+				key_types.push_back(move(type));
+			} else {
+				std::string type_name = key_and_type.substr(delim_pos + 1);
+				LogicalType type = StringToLogicalType(type_name, i);
+				key_names.push_back(move(key));
+				key_types.push_back(move(type));
+			}
         }
     }
 
