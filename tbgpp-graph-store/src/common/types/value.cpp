@@ -350,8 +350,9 @@ bool Value::IsFinite(double input) {
 }
 
 bool Value::StringIsValid(const char *str, idx_t length) {
-	auto utf_type = Utf8Proc::Analyze(str, length);
-	return utf_type != UnicodeType::INVALID;
+	return true;
+	//auto utf_type = Utf8Proc::Analyze(str, length);
+	//return utf_type != UnicodeType::INVALID;
 }
 
 Value Value::DECIMAL(int16_t value, uint8_t width, uint8_t scale) {

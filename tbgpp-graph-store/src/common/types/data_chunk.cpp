@@ -205,6 +205,14 @@ string DataChunk::ToString() const {
 	return retval;
 }
 
+string DataChunk::ToString(size_t size_to_print) const {
+	string retval = "Chunk - [" + to_string(ColumnCount()) + " Columns]\n";
+	for (idx_t i = 0; i < ColumnCount(); i++) {
+		retval += "- " + data[i].ToString(size_to_print) + "\n";
+	}
+	return retval;
+}
+
 /*void DataChunk::Serialize(Serializer &serializer) {
 	// write the count
 	serializer.Write<sel_t>(size());

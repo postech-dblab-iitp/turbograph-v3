@@ -105,7 +105,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
   // Read Vertex CSV File & CreateVertexExtents
-  for (auto vertex_file: vertex_files) {
+  for (auto &vertex_file: vertex_files) {
     fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
     // Create Partition for each vertex (partitioned by label)
     vector<string> vertex_labels = {vertex_file.first};
@@ -149,7 +149,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
     // Read CSV File into DataChunk & CreateVertexExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      fprintf(stderr, "Read CSV File Ongoing..\n");
+      //fprintf(stderr, "Read CSV File Ongoing..\n");
       //fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
       ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
@@ -170,7 +170,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   fprintf(stderr, "Vertex File Loading Done\n");
 
   // Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
-  for (auto edge_file: edge_files) {
+  for (auto &edge_file: edge_files) {
+    fprintf(stderr, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
     // Create Partition for each edge (partitioned by edge type)
     string edge_type = edge_file.first;
     string partition_name = "epart_" + edge_file.first;
@@ -187,23 +188,24 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<string> key_names;
     vector<LogicalType> types;
     if (!reader.GetSchemaFromHeader(key_names, types)) {
-      throw InvalidInputException("");
+      throw InvalidInputException("A");
     }
 
     int64_t src_column_idx, dst_column_idx;
     string src_column_name, dst_column_name;
     reader.GetSrcColumnIndexFromHeader(src_column_idx, src_column_name);
     reader.GetDstColumnIndexFromHeader(dst_column_idx, dst_column_name);
-    if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("");
+    if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("B");
+    fprintf(stderr, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
 
     auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
       [&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
-    if (src_it == lid_to_pid_map.end()) throw InvalidInputException("");
+    if (src_it == lid_to_pid_map.end()) throw InvalidInputException("C");
     unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
     auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
       [&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
-    if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("");
+    if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("D");
     unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
     string property_schema_name = "eps_" + edge_file.first;
@@ -238,7 +240,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      fprintf(stdout, "Read CSV File Ongoing..\n");
+      //fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
       // Get New ExtentID for this chunk
       ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -270,7 +272,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
         while (true) {
           if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
             // We do not allow this case
-            throw InvalidInputException(""); 
+            throw InvalidInputException("E"); 
           }
           
           // Initialize min & max id
@@ -291,12 +293,16 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       
       while(src_seqno < max_seqno) {
         cur_src_id = src_key_column[src_seqno];
+        cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+        src_key_column[src_seqno] = cur_src_pid;
         if (cur_src_id == prev_id) {
-          src_key_column[src_seqno] = cur_src_pid;
           src_seqno++;
         } else {
           end_idx = src_seqno;
           for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+            if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+              fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+            }
             D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
             cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
             dst_key_column[dst_seqno] = cur_dst_pid;
@@ -317,7 +323,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             vector<data_ptr_t> adj_list_datas(1);
             adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
             adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *property_schema_cat, current_vertex_eid);
+            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
             adj_list_chunk.Destroy();
 
             // Re-initialize adjlist buffer for next Extent
@@ -327,7 +333,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             while (true) {
               if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
                 // We do not allow this case
-                throw InvalidInputException("");
+                throw InvalidInputException("F");
               }
         
               // Initialize min & max id
@@ -386,6 +392,50 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
     ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
     adj_list_chunk.Destroy();
+  }
+
+  // Loading Done. Iterate vertex & edge files
+  fprintf(stdout, "\nLoading Done! Scan Vertex Extents\n");
+  for (auto &vertex_file : vertex_files) {
+    fprintf(stdout, "Scan Vertex Extents %s\n", vertex_file.first.c_str());
+    ExtentIterator ext_it;
+    PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + vertex_file.first);
+    vector<LogicalType> column_types = move(vertex_ps_cat_entry->GetTypes());
+    vector<idx_t> column_idxs;
+    column_idxs.resize(column_types.size());
+    for (int i = 0; i < column_idxs.size(); i++) column_idxs[i] = i;
+    ext_it.Initialize(*client.get(), vertex_ps_cat_entry, column_types, column_idxs);
+
+    // Initialize DataChunk
+    DataChunk *data;
+    ExtentID output_eid;
+
+    ext_it.GetNextExtent(*client.get(), data, output_eid);
+    
+    // Print DataChunk
+    fprintf(stdout, "%s\n", data->ToString(10).c_str());
+  }
+
+  for (auto &edge_file : edge_files) {
+    fprintf(stdout, "Scan Edge Extents %s\n", edge_file.first.c_str());
+    ExtentIterator ext_it;
+    PropertySchemaCatalogEntry* edge_ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "eps_" + edge_file.first);
+    vector<LogicalType> column_types = move(edge_ps_cat_entry->GetTypes());
+    vector<idx_t> column_idxs;
+    column_idxs.resize(column_types.size());
+    for (int i = 0; i < column_idxs.size(); i++) column_idxs[i] = i;
+    ext_it.Initialize(*client.get(), edge_ps_cat_entry, column_types, column_idxs);
+
+    // Initialize DataChunk
+    DataChunk *data;
+    ExtentID output_eid;
+
+    ext_it.GetNextExtent(*client.get(), data, output_eid);
+
+    // Print DataChunk
+    fprintf(stdout, "%s\n", data->ToString(10).c_str());
   }
 }
 
