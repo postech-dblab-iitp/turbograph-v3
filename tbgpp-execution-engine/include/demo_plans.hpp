@@ -10,10 +10,13 @@
 #include "execution/cypher_pipeline_executor.hpp"
 
 namespace duckdb {
+
+class ClientContext;
+
 class QueryPlanSuite{
 
 public:
-	QueryPlanSuite(GraphStore* graphstore);
+	QueryPlanSuite(GraphStore* graphstore, ClientContext& context);
 
 	// returns root pipeline
 	std::vector<CypherPipelineExecutor*> Test1();
@@ -21,11 +24,12 @@ public:
 	std::vector<CypherPipelineExecutor*> Test3();
 	std::vector<CypherPipelineExecutor*> Test4();
 	
-	std::vector<duckdb::Pipeline*> LDBCShort1();
+	std::vector<CypherPipelineExecutor*> LDBCShort1();
 
 private:
 
-	GraphStore* graphstore;
+	GraphStore *graphstore;
+	ClientContext &context;
 
 };
 }

@@ -51,7 +51,8 @@ target_include_directories(tbgpp-system-lib PUBLIC ${PROJECT_SOURCE_DIR}/include
 #target_compile_options(tbgpp-system-lib PRIVATE ${CXX_FLAGS})
 #target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
 
-add_executable(store "${CACHE_SRC_DIR}/store.cc")
+#add_executable(store "${CACHE_SRC_DIR}/store.cc")
+add_executable(store "${PROJECT_SOURCE_DIR}/test/cache/test_store.cc")
 target_link_libraries(store lightning)
 
 file(GLOB CACHE_TEST_SRC

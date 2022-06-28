@@ -11,11 +11,61 @@
 #include "storage/livegraph_catalog.hpp"
 
 #include "common/vector_size.hpp"
+#include "main/database.hpp"
+#include "main/client_context.hpp"
+#include "catalog/catalog.hpp"
+#include "extent/extent_iterator.hpp"
+#include "catalog/catalog_entry/list.hpp"
+
 namespace duckdb {
 /*LiveGraphStore::LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog) {
 	this->graph = graph;
 	this->catalog = catalog;
 }*/
+
+iTbgppGraphStore::iTbgppGraphStore(ClientContext &client) : client(client) {
+
+}
+
+StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+	Catalog &cat_instance = client.db->GetCatalog();
+	D_ASSERT(labels.size() == 1); // XXX Temporary
+	string entry_name = "vps_";
+	for (auto &it : labels.data) entry_name += it;
+	PropertySchemaCatalogEntry* ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
+	vector<string> properties_temp;
+	for (size_t i = 0; i < edgeLabels.size(); i++) {
+		for (auto &it : edgeLabels[i].data) properties_temp.push_back(it);
+	}
+	for (auto &it : properties) properties_temp.push_back(it);
+	vector<idx_t> column_idxs;
+	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
+
+	ext_it = new ExtentIterator();
+	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs);
+	return StoreAPIResult::OK;
+}
+
+StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+	ExtentID current_eid;
+	fprintf(stdout, "X\n");
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid);
+	fprintf(stdout, "Y\n");
+	if (scan_ongoing) {
+		//output.Reference(*output_);
+		return StoreAPIResult::OK;
+	} else return StoreAPIResult::DONE;
+}
+
+StoreAPIResult iTbgppGraphStore::doIndexSeek(ExtentIterator *&ext_it, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+
+}
+
+bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
+	return true;
+}
 
 // This should be eliminated anytime soon.
 std::vector<int> getLDBCPropertyIndices(LabelSet labels, PropertyKeys properties) {

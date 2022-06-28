@@ -2,19 +2,19 @@
 //#include "common/types/chunk_collection.hpp"
 
 #include "storage/graph_store.hpp"
+#include "extent/extent_iterator.hpp"
 
 #include <cassert>
 namespace duckdb {
 class NodeScanState : public LocalSourceState {
 public:
 	explicit NodeScanState() {
-		chunkIdxToScan = -1;
-		//chunks = duckdb::ChunkCollection();
+		first_time_here = true;
 	}
 	
 public:
-	int chunkIdxToScan;
-	//duckdb::ChunkCollection chunks; //XXX
+	bool first_time_here;
+	ExtentIterator *ext_it;
 };
 
 unique_ptr<LocalSourceState> NodeScan::GetLocalSourceState() const {
@@ -25,13 +25,29 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 	auto &state = (NodeScanState &)lstate;
 
 	// TODO change when using different storage.
-	//auto livegraph = (LiveGraphStore*)graph;
-	auto livegraph = graph;
+	auto itbgpp_graph = (iTbgppGraphStore*)graph;
+
+	// If first time here, call doScan and get iterator from iTbgppGraphStore
+	if (state.first_time_here) {
+		state.first_time_here = false;
+		fprintf(stdout, "A\n");
+		auto initializeAPIResult =
+			itbgpp_graph->InitializeScan(state.ext_it, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
+		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); // ??zz
+		fprintf(stdout, "B\n");
+		auto scanAPIResult =
+			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
+		fprintf(stdout, "C\n");
+	} else {
+		D_ASSERT(state.ext_it != nullptr);
+		auto scanAPIResult =
+			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
+	}
 	
-	if( state.chunkIdxToScan == -1 ) {
+	/*if( state.chunkIdxToScan == -1 ) {
 		state.chunkIdxToScan +=1;
-		//auto scanAPIResult =
-		//	livegraph->doScan(state.chunks, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
+		auto scanAPIResult =
+			itbgpp_graph->doScan(state.chunks, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 
 		//if( state.chunks.ChunkCount() == 0) { return; }	// return empty chunk
 	}
@@ -41,7 +57,7 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 	//	return;
 	//}
 	//chunk.Reference(state.chunks.GetChunk(state.chunkIdxToScan));
-	state.chunkIdxToScan += 1;
+	state.chunkIdxToScan += 1;*/
 	
 }
 

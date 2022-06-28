@@ -47,11 +47,12 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Prope
     _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
 }
 
-void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid) {
+void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid, vector<string> append_keys) {
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
     PartitionID pid = prop_schema_cat_entry.GetPartitionID();
     for (auto &l_type : input.GetTypes()) prop_schema_cat_entry.AppendType(l_type);
+    for (auto &key : append_keys) prop_schema_cat_entry.AppendKey(key);
     _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
 }
 
@@ -76,17 +77,46 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         if (l_type == LogicalType::ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
-            fprintf(stdout, "adj_list_buffer[0] = %ld, adj_list_buffer[1] = %ld\n", adj_list_buffer[0], adj_list_buffer[1]);
+        } else if (l_type == LogicalType::VARCHAR) {
+            size_t string_len_total = 0;
+            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+            for (size_t i = 0; i < input.size(); i++) {
+                string_len_total += sizeof(uint32_t); // size of len field
+                string_len_total += string_buffer[i].GetSize();
+            }
+            alloc_buf_size = string_len_total + sizeof(uint64_t);
         } else {
-            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType());
+            D_ASSERT(TypeIsConstantSize(l_type.InternalType()));
+            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType()) + sizeof(uint64_t);
         }
+        //fprintf(stdout, "cdf %ld Alloc_buf_size = %ld\n", cdf_id, alloc_buf_size);
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
 
         // Copy (or Compress and Copy) DataChunk
-        memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
+        if (l_type == LogicalType::VARCHAR) {
+            size_t offset = 0;
+            size_t input_size = input.size();
+            memcpy(buf_ptr + offset, &input_size, sizeof(uint64_t));
+            offset += sizeof(uint64_t);
+            uint32_t string_len;
+            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+            for (size_t i = 0; i < input.size(); i++) {
+                string_len = string_buffer[i].GetSize();
+                memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
+                offset += sizeof(uint32_t);
+                memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
+                offset += string_len;
+            }
+        } else if (l_type == LogicalType::ADJLIST) {
+            memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
+        } else {
+            size_t input_size = input.size();
+            memcpy(buf_ptr, &input_size, sizeof(uint64_t));
+            memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
+        }
 
         // Set Dirty & Unpin Segment & Flush
         ChunkCacheManager::ccm->SetDirty(cdf_id);

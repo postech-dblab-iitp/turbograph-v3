@@ -74,10 +74,9 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 	
 	CypherSchema nodeSchema;
-	LogicalType ubigint_type(LogicalTypeId::UBIGINT);
-	nodeSchema.attrs.push_back(
-		std::make_tuple("_id", CypherValueType::ID, ubigint_type)
-	);
+	// nodeSchema.attrs.push_back(
+	// 	std::make_tuple("_id", CypherValueType::ID, LogicalType(LogicalTypeId::UBIGINT))
+	// );
 	switch(adjOption) {
 		case LoadAdjListOption::NONE:
 			break;
@@ -100,14 +99,16 @@ void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 		}
 		case LoadAdjListOption::OUTGOING: {
 			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_out", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
+				std::make_tuple("_adj_out", CypherValueType::ADJLIST, LogicalType(LogicalTypeId::ADJLIST))
 			);
+			// nodeSchema.attrs.push_back(
+			// 	std::make_tuple("_adj_out", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
+			// );
 			break;
 		}
 	}
 	// set node info on attrs
-	LogicalType invalid_type(LogicalTypeId::INVALID);
-	attrs.push_back( std::make_tuple(name, CypherValueType::NODE, invalid_type) );
+	attrs.push_back( std::make_tuple(name, CypherValueType::NODE, LogicalType(LogicalTypeId::INVALID)) );
 	// set node details
 	nestedAttrs[name] = nodeSchema;
 }
@@ -194,7 +195,7 @@ std::string CypherSchema::toString() const{
 		}
 		result += ", ";
 	}
-	result.pop_back(); result.pop_back(); // delete last comma
+	result.pop_back(); result.pop_back(); // delete last comma // XXX bad_alloc bug here
 	result += ")";
 	return result;
 }

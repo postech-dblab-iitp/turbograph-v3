@@ -5,8 +5,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace duckdb {
 
 class SimpleFilterState : public OperatorState {

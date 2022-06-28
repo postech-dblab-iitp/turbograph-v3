@@ -1,12 +1,11 @@
+#pragma once
 #include "typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
 #include <vector>
 
-using namespace std;
-
-namespace dudkdb {
+namespace duckdb {
 
 class SimpleProjection: public CypherPhysicalOperator {
 

@@ -4,7 +4,6 @@
 
 #include <cassert>
 
-using namespace std;
 namespace duckdb {
 
 class ExpandState : public OperatorState {
@@ -25,8 +24,7 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	auto &state = (ExpandState &)lstate;
 
 	// TODO change when using different storage.
-	//auto livegraph = (LiveGraphStore*)graph; 
-	auto livegraph = graph;
+	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
 	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx 
@@ -45,16 +43,17 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	bool isHaveMoreOutput = false;
 	bool isSeekPointReached = false;
 	int srcIdx; int adjIdx;
-	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
+	fprintf(stdout, "%s\n", input.ToString(2).c_str());
+	/*for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// TODO need to fix when traversing "BOTH"
 		std::vector<duckdb::Value> adjList = duckdb::ListValue::GetChildren(input.GetValue(adjColIdx, srcIdx));
 		int numAdjs = adjList.size();
 		//std::cout << "srcidx " << srcIdx << " numADj " << numAdjs << std::endl;
 		for( adjIdx = 0 ; adjIdx < numAdjs; adjIdx++ ){
 			// check have more output
-			if( numProducedTuples == 1024 ) {
+			if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
 				// output full, but we have more output.
-				// when current output size is exactly 1024, this area is never accessed.
+				// when current output size is exactly STANDARD_VECTOR_SIZE, this area is never accessed.
 				isHaveMoreOutput = true;
 				goto breakLoop;
 			}
@@ -90,12 +89,12 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 			numProducedTuples +=1;
 			targetTupleChunk.Reset();
 		}
-	}
-breakLoop:
+	}*/
+//breakLoop:
 	// postprocess
 	
 	// set chunk cardinality
-	chunk.SetCardinality(numProducedTuples);
+	/*chunk.SetCardinality(numProducedTuples);
 	if( isHaveMoreOutput ) {
 		// save state
 		state.pointToStartSeek.first = srcIdx;
@@ -107,7 +106,7 @@ breakLoop:
 		state.pointToStartSeek.first = 0;
 		state.pointToStartSeek.second = 0;
 		return OperatorResultType::NEED_MORE_INPUT;
-	}
+	}*/
 }
 
 std::string Expand::ParamsToString() const {

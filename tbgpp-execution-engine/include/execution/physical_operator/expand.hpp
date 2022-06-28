@@ -1,8 +1,8 @@
+#pragma once
 #include "typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-using namespace std;
 namespace duckdb {
 
 class Expand: public CypherPhysicalOperator {

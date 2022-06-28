@@ -6,7 +6,6 @@
 
 #include <string>
 
-using namespace std;
 namespace duckdb {
 
 class DummyOperatorState : public OperatorState {

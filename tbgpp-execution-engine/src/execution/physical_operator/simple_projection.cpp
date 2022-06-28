@@ -4,8 +4,6 @@
 
 #include <cassert>
 
-using namespace std;
-
 namespace duckdb {
 
 class SimpleProjectionState : public OperatorState {

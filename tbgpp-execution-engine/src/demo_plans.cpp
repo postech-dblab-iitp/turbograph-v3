@@ -1,6 +1,7 @@
 #include "demo_plans.hpp"
 
 #include "main/database.hpp"
+#include "main/client_context.hpp"
 //#include "parallel/pipeline.hpp"
 //#include "execution/executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
@@ -11,6 +12,8 @@
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 #include "execution/physical_operator/produce_results.hpp"
 #include "execution/physical_operator/expand.hpp"
+#include "execution/physical_operator/simple_filter.hpp"
+#include "execution/physical_operator/simple_projection.hpp"
 
 #include "storage/graph_store.hpp"
 
@@ -20,7 +23,7 @@
 #include <iostream>
 
 namespace duckdb {
-QueryPlanSuite::QueryPlanSuite(GraphStore* graphstore): graphstore(graphstore) {  }
+QueryPlanSuite::QueryPlanSuite(GraphStore* graphstore, ClientContext &context): graphstore(graphstore), context(context) {  }
 
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
@@ -52,7 +55,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
 		
 		// sink
@@ -92,7 +95,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	scan_edegLabelSets.push_back(e1);
 	scan_loadAdjOpt = LoadAdjListOption::OUTGOING;
 	scan_propertyKeys.push_back("id");
-	
+
 	// Expand
 		// schema
 	CypherSchema schema2 = schema1;
@@ -106,7 +109,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
-	ops.push_back(new NodeScan(schema1, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema1, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 	ops.push_back(new Expand(schema2, "p", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
 	ops.push_back(new ProduceResults(schema2));
 	auto pipe1 = new CypherPipeline(ops);
@@ -164,7 +167,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
-	ops.push_back(new NodeScan(schema1, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema1, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 	ops.push_back(new Expand(schema2, "p", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
 	ops.push_back(new ProduceResults(schema2));
 	auto pipe1 = new CypherPipeline(ops);
@@ -263,7 +266,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
 	ops.push_back(new Expand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
