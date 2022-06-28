@@ -40,7 +40,6 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	
 	// init source chunk
 	while(true) {
-		
 		auto& source_chunk = *opOutputChunks[0];
 		source_chunk.Reset();
 		FetchFromSource(source_chunk);
@@ -54,14 +53,14 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
-//std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
+std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*local_sink_state);
 
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
-//std::cout << "starting (source) operator" << std::endl;
+std::cout << "starting (source) operator" << std::endl;
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
 }
 
@@ -76,7 +75,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// call execute pipe
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
-//std::cout << "starting (sink) operator" << std::endl;
+std::cout << "starting (sink) operator" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
@@ -116,7 +115,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		current_output_chunk.Reset();
 
 		// start current operator
-//std::cout << "starting (interm) operator" << std::endl;
+std::cout << "starting (interm) operator" << std::endl;
 		// give interm as input and interm as output
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]

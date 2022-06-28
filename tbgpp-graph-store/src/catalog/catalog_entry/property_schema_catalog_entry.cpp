@@ -44,6 +44,21 @@ vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
 	return types;
 }
 
+vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property_keys) {
+	vector<idx_t> column_idxs;
+	for (auto &it : this->property_key_names) {
+		fprintf(stdout, "Property %s\n", it.c_str());
+	}
+	for (auto &it : property_keys) {
+		fprintf(stdout, "Find %s\n", it.c_str());
+		auto idx = std::find(this->property_key_names.begin(), this->property_key_names.end(), it);
+		if (idx == this->property_key_names.end()) throw InvalidInputException("");
+		fprintf(stdout, "push_back %ld\n", idx - this->property_key_names.begin());
+		column_idxs.push_back(idx - this->property_key_names.begin());
+	}
+	return column_idxs;
+}
+
 void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(property_types.empty());
 	for (auto &it : types) {
@@ -51,8 +66,19 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	}
 }
 
+void PropertySchemaCatalogEntry::SetKeys(vector<string> &key_names) {
+	D_ASSERT(property_key_names.empty());
+	for (auto &it : key_names) {
+		property_key_names.push_back(it);
+	}
+}
+
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
 	property_types.push_back(move(type));
+}
+
+void PropertySchemaCatalogEntry::AppendKey(string key) {
+	property_key_names.push_back(move(key));
 }
 
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {

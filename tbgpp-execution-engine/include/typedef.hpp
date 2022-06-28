@@ -12,6 +12,7 @@ struct LogicalType;
 
 enum class StoreAPIResult {
 	OK,
+	DONE,
 	ERROR
 };
 
@@ -47,7 +48,7 @@ public:
 	friend bool operator==(const LabelSet lhs, const LabelSet rhs);
 	friend std::ostream& operator<<(std::ostream& os, const LabelSet& obj);
 
-private:
+public:
 	std::unordered_set<std::string> data;
 };
 

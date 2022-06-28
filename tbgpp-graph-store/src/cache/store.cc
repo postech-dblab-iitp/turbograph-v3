@@ -547,15 +547,3 @@ void LightningStore::Run() {
   listener_thread.join();
   monitor_thread.join();
 }
-
-int main() {
-  if (signal(SIGINT, signal_handler) == SIG_ERR) {
-    std::cerr << "cannot register signal handler!" << std::endl;
-    exit(-1);
-  }
-
-  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 1.5 * 1024 * 1024 * 1024);
-  store->Run();
-
-  return 0;
-}

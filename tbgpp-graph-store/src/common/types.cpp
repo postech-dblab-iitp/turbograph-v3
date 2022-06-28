@@ -336,6 +336,8 @@ idx_t GetTypeIdSize(PhysicalType type) {
 		return 0; // no own payload
 	case PhysicalType::LIST:
 		return sizeof(list_entry_t); // offset + len
+	case PhysicalType::ADJLIST:
+		return sizeof(uint64_t);
 	default:
 		throw InternalException("Invalid PhysicalType for GetTypeIdSize");
 	}

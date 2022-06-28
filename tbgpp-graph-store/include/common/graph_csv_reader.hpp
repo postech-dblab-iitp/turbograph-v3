@@ -229,11 +229,11 @@ private:
 	int64_t src_column = -1;
 	int64_t dst_column = -1;
 
-	const unordered_map<string, LogicalType> m {
-		{"STRING", LogicalType::VARCHAR},
-		{"STRING[]", LogicalType::VARCHAR},
-		{"INT"   , LogicalType::INTEGER},
-		{"LONG"  , LogicalType::BIGINT},
+	unordered_map<string, LogicalType> m {
+		{"STRING", LogicalType(LogicalTypeId::VARCHAR)},
+		{"STRING[]", LogicalType(LogicalTypeId::VARCHAR)},
+		{"INT"   , LogicalType(LogicalTypeId::INTEGER)},
+		{"LONG"  , LogicalType(LogicalTypeId::BIGINT)},
 	};
 };
 

@@ -1,10 +1,9 @@
+#pragma once
 #include "typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-#include "duckdb/common/types/value.hpp"
-
-using namespace std;
+#include "common/types/value.hpp"
 
 namespace duckdb {
 

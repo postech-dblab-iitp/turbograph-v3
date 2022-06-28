@@ -1,6 +1,8 @@
+#pragma once
 #include "typedef.hpp"
 
 #include "storage/graph_store.hpp"
+#include "main/client_context.hpp"
 
 
 #pragma once
@@ -14,8 +16,8 @@ namespace duckdb {
 class NodeScan: public CypherPhysicalOperator {
 
 public:
-	NodeScan(CypherSchema& sch, LabelSet l, std::vector<LabelSet> els, LoadAdjListOption ljo,  PropertyKeys pk):
-		CypherPhysicalOperator(sch), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk)  {
+	NodeScan(CypherSchema& sch, ClientContext &ctxt, LabelSet l, std::vector<LabelSet> els, LoadAdjListOption ljo,  PropertyKeys pk):
+		CypherPhysicalOperator(sch), context(ctxt), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk)  {
 		
 		assert( edgeLabelSet.size() <= 1 && "wrong nodescan interface implementation leads to limitation in ELS size");
 	}
@@ -35,6 +37,7 @@ public:
 	LoadAdjListOption loadAdjOpt;
 	PropertyKeys propertyKeys;
 	std::vector<duckdb::LogicalType> scanSchema;
+	ClientContext &context;
 };	
 
 }

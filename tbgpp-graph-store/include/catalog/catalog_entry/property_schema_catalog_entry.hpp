@@ -44,14 +44,18 @@ public:
 	idx_t_vector extent_ids;
 	atomic<ExtentID> local_extent_id_version;
 	vector<LogicalType> property_types; // TODO SHM
+	vector<string> property_key_names; // Temporary
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
 	void SetTypes(vector<LogicalType> &types);
+	void SetKeys(vector<string> &key_names);
 	void AppendType(LogicalType type);
+	void AppendKey(string key_name);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
+	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
