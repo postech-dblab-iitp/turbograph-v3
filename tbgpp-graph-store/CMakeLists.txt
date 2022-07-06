@@ -75,6 +75,8 @@ file(GLOB TILE_TEST_SRC
 
 find_package(Catch2 REQUIRED)
 
+add_subdirectory(third_party)
+
 if (FALSE)
 foreach(test_file ${CACHE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
