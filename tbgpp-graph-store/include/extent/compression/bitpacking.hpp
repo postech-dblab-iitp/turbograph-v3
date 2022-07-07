@@ -9,14 +9,15 @@
 #pragma once
 
 #include "bitpackinghelpers.h"
-#include "duckdb/common/assert.hpp"
-#include "duckdb/common/exception.hpp"
-#include "duckdb/common/helper.hpp"
-#include "duckdb/common/limits.hpp"
+#include "common/assert.hpp"
+#include "common/exception.hpp"
+#include "common/helper.hpp"
+#include "common/limits.hpp"
 
 namespace duckdb {
 
 using bitpacking_width_t = uint8_t;
+static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 16384;
 
 class BitpackingPrimitives {
 
@@ -24,6 +25,23 @@ public:
 	static constexpr const idx_t BITPACKING_ALGORITHM_GROUP_SIZE = 32;
 	static constexpr const idx_t BITPACKING_HEADER_SIZE = sizeof(uint64_t);
 	static constexpr const bool BYTE_ALIGNED = false;
+
+	static bool TypeIsSupported(PhysicalType type) {
+	switch (type) {
+		case PhysicalType::BOOL:
+		case PhysicalType::INT8:
+		case PhysicalType::INT16:
+		case PhysicalType::INT32:
+		case PhysicalType::INT64:
+		case PhysicalType::UINT8:
+		case PhysicalType::UINT16:
+		case PhysicalType::UINT32:
+		case PhysicalType::UINT64:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	// To ensure enough data is available, use GetRequiredSize() to determine the correct size for dst buffer
 	// Note: input should be aligned to BITPACKING_ALGORITHM_GROUP_SIZE for good performance.

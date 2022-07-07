@@ -27,6 +27,7 @@ public:
 
 private:
     void _AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog &cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID eid);
+    void _AppendChunkToExtentWithCompression(ClientContext &context, DataChunk &input, Catalog &cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID eid);
 
 /*  
     TileID CreateVertexTile(DBInstance &db, VLabels label_set, Schema &schema, bool is_temporary) ;

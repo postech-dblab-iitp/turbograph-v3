@@ -21,6 +21,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/inclu
                     "${PROJECT_SOURCE_DIR}/include/parser/parsed_data" "${PROJECT_SOURCE_DIR}/include/main"
                     "${PROJECT_SOURCE_DIR}/include/third_party/fmt/include" "${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
                     "${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include")
+include_directories("${PROJECT_SOURCE_DIR}/third_party/fastpforlib")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)

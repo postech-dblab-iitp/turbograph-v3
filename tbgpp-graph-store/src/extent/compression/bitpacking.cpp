@@ -1,14 +1,14 @@
-#include "duckdb/common/bitpacking.hpp"
+#include "extent/compression/bitpacking.hpp"
 
-#include "duckdb/common/limits.hpp"
-#include "duckdb/common/types/null_value.hpp"
-#include "duckdb/function/compression/compression.hpp"
-#include "duckdb/function/compression_function.hpp"
-#include "duckdb/main/config.hpp"
-#include "duckdb/storage/buffer_manager.hpp"
-#include "duckdb/storage/statistics/numeric_statistics.hpp"
-#include "duckdb/storage/table/column_data_checkpointer.hpp"
-#include "duckdb/storage/table/column_segment.hpp"
+#include "common/limits.hpp"
+#include "common/types/null_value.hpp"
+// #include "function/compression/compression.hpp"
+// #include "function/compression_function.hpp"
+// #include "main/config.hpp"
+// #include "storage/buffer_manager.hpp"
+// #include "storage/statistics/numeric_statistics.hpp"
+// #include "storage/table/column_data_checkpointer.hpp"
+// #include "storage/table/column_segment.hpp"
 
 #include <functional>
 
@@ -16,7 +16,7 @@ namespace duckdb {
 
 // Note that optimizations in scanning only work if this value is equal to STANDARD_VECTOR_SIZE, however we keep them
 // separated to prevent the code from break on lower vector sizes
-static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 1024;
+//static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 1024;
 
 struct EmptyBitpackingWriter {
 	template <class T>
@@ -67,6 +67,12 @@ public:
 //===--------------------------------------------------------------------===//
 // Analyze
 //===--------------------------------------------------------------------===//
+
+/*struct AnalyzeState {
+	virtual ~AnalyzeState() {
+	}
+};
+
 template <class T>
 struct BitpackingAnalyzeState : public AnalyzeState {
 	BitpackingState<T> state;
@@ -97,11 +103,16 @@ idx_t BitpackingFinalAnalyze(AnalyzeState &state) {
 	auto &bitpacking_state = (BitpackingAnalyzeState<T> &)state;
 	bitpacking_state.state.template Flush<EmptyBitpackingWriter>();
 	return bitpacking_state.state.total_size;
-}
+}*/
 
 //===--------------------------------------------------------------------===//
 // Compress
 //===--------------------------------------------------------------------===//
+struct CompressionState {
+	virtual ~CompressionState() {
+	}
+};
+
 template <class T>
 struct BitpackingCompressState : public CompressionState {
 public:
@@ -233,7 +244,7 @@ void BitpackingFinalizeCompress(CompressionState &state_p) {
 	auto &state = (BitpackingCompressState<T> &)state_p;
 	state.Finalize();
 }
-
+/*
 //===--------------------------------------------------------------------===//
 // Scan
 //===--------------------------------------------------------------------===//
@@ -448,23 +459,6 @@ CompressionFunction BitpackingFun::GetFunction(PhysicalType type) {
 	default:
 		throw InternalException("Unsupported type for Bitpacking");
 	}
-}
-
-bool BitpackingFun::TypeIsSupported(PhysicalType type) {
-	switch (type) {
-	case PhysicalType::BOOL:
-	case PhysicalType::INT8:
-	case PhysicalType::INT16:
-	case PhysicalType::INT32:
-	case PhysicalType::INT64:
-	case PhysicalType::UINT8:
-	case PhysicalType::UINT16:
-	case PhysicalType::UINT32:
-	case PhysicalType::UINT64:
-		return true;
-	default:
-		return false;
-	}
-}
+}*/
 
 } // namespace duckdb
