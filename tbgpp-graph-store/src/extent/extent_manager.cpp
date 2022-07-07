@@ -8,6 +8,7 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "common/directory_helper.hpp"
+#include "extent/compression/bitpacking.hpp"
 
 namespace duckdb {
 
@@ -116,6 +117,90 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
             size_t input_size = input.size();
             memcpy(buf_ptr, &input_size, sizeof(uint64_t));
             memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
+        }
+
+        // Set Dirty & Unpin Segment & Flush
+        ChunkCacheManager::ccm->SetDirty(cdf_id);
+        ChunkCacheManager::ccm->UnPinSegment(cdf_id);
+        input_chunk_idx++;
+    }
+}
+
+void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
+    idx_t input_chunk_idx = 0;
+    ChunkDefinitionID cdf_id_base = new_eid;
+    cdf_id_base = cdf_id_base << 32;
+    for (auto &l_type : input.GetTypes()) {
+        // For each Vector in DataChunk create new chunk definition
+        LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
+        ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
+        string chunkdefinition_name = "cdf_" + std::to_string(cdf_id);
+        CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
+        ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
+        extent_cat_entry.AddChunkDefinitionID(cdf_id);
+
+        // Analyze compression to find best compression method
+
+        // Get Buffer from Cache Manager
+        // Cache Object ID: 64bit = ChunkDefinitionID
+        uint8_t* buf_ptr;
+        size_t buf_size;
+        size_t alloc_buf_size;
+        if (l_type == LogicalType::ADJLIST) {
+            idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+        } else if (l_type == LogicalType::VARCHAR) {
+            size_t string_len_total = 0;
+            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+            for (size_t i = 0; i < input.size(); i++) {
+                string_len_total += sizeof(uint32_t); // size of len field
+                string_len_total += string_buffer[i].GetSize();
+            }
+            alloc_buf_size = string_len_total + sizeof(uint64_t);
+        } else {
+            D_ASSERT(TypeIsConstantSize(l_type.InternalType()));
+            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType()) + sizeof(uint64_t);
+        }
+        
+        string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
+            + std::to_string(new_eid) + std::string("/chunk_");
+        ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
+        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
+
+        // Copy (or Compress and Copy) DataChunk
+        if (l_type == LogicalType::VARCHAR) {
+            size_t offset = 0;
+            size_t input_size = input.size();
+            memcpy(buf_ptr + offset, &input_size, sizeof(uint64_t));
+            offset += sizeof(uint64_t);
+            uint32_t string_len;
+            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+            for (size_t i = 0; i < input.size(); i++) {
+                string_len = string_buffer[i].GetSize();
+                memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
+                offset += sizeof(uint32_t);
+                memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
+                offset += string_len;
+            }
+        } else if (l_type == LogicalType::ADJLIST) {
+            memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
+        } else {
+            if (BitpackingPrimitives::TypeIsSupported(l_type.InternalType())) {
+                // Compress
+                size_t remain_size = input.size();
+                size_t compression_size;
+                while (remain_size > 0) {
+                    // Compute size to compress
+                    compression_size = remain_size > BITPACKING_WIDTH_GROUP_SIZE ? BITPACKING_WIDTH_GROUP_SIZE : remain_size;
+                    BitpackingPrimitives::PackBuffer<T, false>();
+                    
+                    remain_size -= compression_size;
+                }
+            } else {
+                size_t input_size = input.size();
+                memcpy(buf_ptr, &input_size, sizeof(uint64_t));
+                memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
+            }
         }
 
         // Set Dirty & Unpin Segment & Flush
