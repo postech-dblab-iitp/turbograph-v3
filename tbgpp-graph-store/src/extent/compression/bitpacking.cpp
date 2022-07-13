@@ -18,7 +18,7 @@ namespace duckdb {
 // separated to prevent the code from break on lower vector sizes
 //static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 1024;
 
-struct EmptyBitpackingWriter {
+/*struct EmptyBitpackingWriter {
 	template <class T>
 	static void Operation(T *values, bool *validity, bitpacking_width_t width, idx_t count, void *data_ptr) {
 	}
@@ -62,7 +62,7 @@ public:
 			Flush<OP>();
 		}
 	}
-};
+};*/
 
 //===--------------------------------------------------------------------===//
 // Analyze
@@ -108,7 +108,7 @@ idx_t BitpackingFinalAnalyze(AnalyzeState &state) {
 //===--------------------------------------------------------------------===//
 // Compress
 //===--------------------------------------------------------------------===//
-struct CompressionState {
+/*struct CompressionState {
 	virtual ~CompressionState() {
 	}
 };
@@ -243,7 +243,7 @@ template <class T>
 void BitpackingFinalizeCompress(CompressionState &state_p) {
 	auto &state = (BitpackingCompressState<T> &)state_p;
 	state.Finalize();
-}
+}*/
 /*
 //===--------------------------------------------------------------------===//
 // Scan
