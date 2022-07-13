@@ -8,7 +8,7 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "common/directory_helper.hpp"
-#include "extent/compression/bitpacking.hpp"
+#include "extent/compression/compression_function.hpp"
 
 namespace duckdb {
 
@@ -142,10 +142,11 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         extent_cat_entry.AddChunkDefinitionID(cdf_id);
 
         // Analyze compression to find best compression method
+        CompressionFunctionType best_compression_function;
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
-        uint8_t* buf_ptr;
+        uint8_t *buf_ptr;
         size_t buf_size;
         size_t alloc_buf_size;
         if (l_type == LogicalType::ADJLIST) {
@@ -187,9 +188,10 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else if (l_type == LogicalType::ADJLIST) {
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
+            // TODO type support check should be done by CompressionFunction
             if (BitpackingPrimitives::TypeIsSupported(l_type.InternalType())) {
                 // Get Compression Function
-                CompressionFunction<p_type, BITPACKING> comp_func;
+                CompressionFunction comp_func = GetCompressionFunction(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress
                 size_t remain_size = input.size();
                 size_t compression_size;
@@ -197,8 +199,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 while (remain_size > 0) {
                     // Compute size to compress
                     compression_size = remain_size > BITPACKING_WIDTH_GROUP_SIZE ? BITPACKING_WIDTH_GROUP_SIZE : remain_size;
-                    bitpacking_width_t width = BitpackingPrimitives::MinimumBitWidth<T>(data_to_compress, compression_size);
-                    BitpackingPrimitives::PackBuffer<T, false>(); //<class T, bool ASSUME_INPUT_ALIGNED = false> (data_ptr_t dst, T *src, idx_t count, bitpacking_width_t width)
+                    comp_func.Compress(buf_ptr, data_to_compress, compression_size);
                     
                     remain_size -= compression_size;
                     data_to_compress += compression_size;
