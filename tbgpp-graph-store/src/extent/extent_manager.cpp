@@ -131,6 +131,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base = cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
+        // Get Physical Type
+        const PhysicalType p_type = l_type.InternalType();
         // For each Vector in DataChunk create new chunk definition
         LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
         ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
@@ -158,8 +160,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             }
             alloc_buf_size = string_len_total + sizeof(uint64_t);
         } else {
-            D_ASSERT(TypeIsConstantSize(l_type.InternalType()));
-            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType()) + sizeof(uint64_t);
+            D_ASSERT(TypeIsConstantSize(p_type));
+            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + sizeof(uint64_t);
         }
         
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
@@ -186,15 +188,20 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
             if (BitpackingPrimitives::TypeIsSupported(l_type.InternalType())) {
+                // Get Compression Function
+                CompressionFunction<p_type, BITPACKING> comp_func;
                 // Compress
                 size_t remain_size = input.size();
                 size_t compression_size;
+                data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
                 while (remain_size > 0) {
                     // Compute size to compress
                     compression_size = remain_size > BITPACKING_WIDTH_GROUP_SIZE ? BITPACKING_WIDTH_GROUP_SIZE : remain_size;
-                    BitpackingPrimitives::PackBuffer<T, false>();
+                    bitpacking_width_t width = BitpackingPrimitives::MinimumBitWidth<T>(data_to_compress, compression_size);
+                    BitpackingPrimitives::PackBuffer<T, false>(); //<class T, bool ASSUME_INPUT_ALIGNED = false> (data_ptr_t dst, T *src, idx_t count, bitpacking_width_t width)
                     
                     remain_size -= compression_size;
+                    data_to_compress += compression_size;
                 }
             } else {
                 size_t input_size = input.size();

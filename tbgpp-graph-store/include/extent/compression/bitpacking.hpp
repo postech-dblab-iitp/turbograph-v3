@@ -13,11 +13,17 @@
 #include "common/exception.hpp"
 #include "common/helper.hpp"
 #include "common/limits.hpp"
+#include "extent/compression/compression_function.hpp"
 
 namespace duckdb {
 
 using bitpacking_width_t = uint8_t;
 static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 16384;
+
+template <typename T>
+class BitpackingCompressionFunction : public CompressionFunction {
+
+};
 
 class BitpackingPrimitives {
 
