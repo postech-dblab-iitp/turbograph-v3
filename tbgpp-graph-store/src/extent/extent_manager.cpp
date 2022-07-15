@@ -28,7 +28,8 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
     MkDir(extent_dir_path, true);
 
     // Append Chunk
-    _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
     return new_eid;
 }
 
@@ -45,7 +46,8 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Prope
     MkDir(extent_dir_path, true);
 
     // Append Chunk
-    _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
 }
 
 void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid, vector<string> append_keys) {
@@ -132,7 +134,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
     cdf_id_base = cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
         // Get Physical Type
-        const PhysicalType p_type = l_type.InternalType();
+        PhysicalType p_type = l_type.InternalType();
         // For each Vector in DataChunk create new chunk definition
         LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
         ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
@@ -143,6 +145,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function;
+        best_compression_function = BITPACKING;
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
@@ -159,10 +162,10 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 string_len_total += sizeof(uint32_t); // size of len field
                 string_len_total += string_buffer[i].GetSize();
             }
-            alloc_buf_size = string_len_total + sizeof(uint64_t);
+            alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
-            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + sizeof(uint64_t);
+            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + sizeof(CompressionHeader);
         }
         
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
@@ -174,8 +177,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         if (l_type == LogicalType::VARCHAR) {
             size_t offset = 0;
             size_t input_size = input.size();
-            memcpy(buf_ptr + offset, &input_size, sizeof(uint64_t));
-            offset += sizeof(uint64_t);
+            CompressionHeader comp_header(UNCOMPRESSED, input_size);
+            memcpy(buf_ptr + offset, &comp_header, sizeof(CompressionHeader));
+            offset += sizeof(CompressionHeader);
             uint32_t string_len;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
             for (size_t i = 0; i < input.size(); i++) {
@@ -189,25 +193,20 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
             // TODO type support check should be done by CompressionFunction
-            if (BitpackingPrimitives::TypeIsSupported(l_type.InternalType())) {
-                // Get Compression Function
-                CompressionFunction comp_func = GetCompressionFunction(best_compression_function, p_type); // best_compression_function = BITPACKING
+            if (BitpackingPrimitives::TypeIsSupported(p_type)) {
+                // Set Compression Function
+                CompressionFunction comp_func(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress
-                size_t remain_size = input.size();
-                size_t compression_size;
+                size_t input_size = input.size();
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
-                while (remain_size > 0) {
-                    // Compute size to compress
-                    compression_size = remain_size > BITPACKING_WIDTH_GROUP_SIZE ? BITPACKING_WIDTH_GROUP_SIZE : remain_size;
-                    comp_func.Compress(buf_ptr, data_to_compress, compression_size);
-                    
-                    remain_size -= compression_size;
-                    data_to_compress += compression_size;
-                }
+                CompressionHeader comp_header(BITPACKING, input_size);
+                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
+                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size, data_to_compress, input_size);
             } else {
                 size_t input_size = input.size();
-                memcpy(buf_ptr, &input_size, sizeof(uint64_t));
-                memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
+                CompressionHeader comp_header(UNCOMPRESSED, input_size);
+                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
+                memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
             }
         }
 

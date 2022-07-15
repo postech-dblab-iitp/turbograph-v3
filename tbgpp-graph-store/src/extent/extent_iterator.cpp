@@ -6,6 +6,7 @@
 #include "main/client_context.hpp"
 #include "catalog/catalog.hpp"
 #include "common/types/data_chunk.hpp"
+#include "extent/compression/compression_function.hpp"
 
 namespace duckdb {
 
@@ -103,17 +104,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // We should avoid data copy here.. but copy for demo temporarliy
     
     // Keep previous values
-    // fprintf(stdout, "Z\n");
+    fprintf(stdout, "Z\n");
     int prev_toggle = toggle;
     idx_t previous_idx = current_idx++;
     toggle = (toggle + 1) % num_data_chunks;
     if (current_idx > max_idx) return false;
 
-    // fprintf(stdout, "K\n");
+    fprintf(stdout, "K\n");
     // Request I/O to the next extent if we can support double buffering
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
-        // fprintf(stdout, "Q\n");
+        fprintf(stdout, "Q\n");
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -136,7 +137,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 
-    // fprintf(stdout, "W\n");
+    fprintf(stdout, "W\n");
     // Request chunk cache manager to finalize I/O
     for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
@@ -148,40 +149,40 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output = data_chunks[prev_toggle];*/
 
     // Initialize output DataChunk & copy each column
-    // fprintf(stdout, "E\n");
+    fprintf(stdout, "E\n");
     output.Destroy();
     output.Initialize(ext_property_types);
     int idx_for_cardinality = -1;
-    size_t output_cardinality = 0;
+    CompressionHeader comp_header;
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] == LogicalType::VARCHAR) {
-            memcpy(&output_cardinality, io_requested_buf_ptrs[prev_toggle][i], sizeof(size_t));
+            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             idx_for_cardinality = i;
             break;
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             continue;
         } else {
-            memcpy(&output_cardinality, io_requested_buf_ptrs[prev_toggle][i], sizeof(size_t));
+            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             idx_for_cardinality = i;
             break;
         }
     }
-    // fprintf(stdout, "R\n");
+    fprintf(stdout, "R\n");
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");
     } else {
-        output.SetCardinality(output_cardinality);
+        output.SetCardinality(comp_header.data_len);
     }
-    // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
+    fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        // fprintf(stdout, "i = %ld\n", i);
+        fprintf(stdout, "i = %ld\n", i);
         if (ext_property_types[i] == LogicalType::VARCHAR) {
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld\n", i, io_requested_cdf_ids[prev_toggle][i], output.size(), output_cardinality, io_requested_buf_sizes[prev_toggle][i]);
+            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld\n", i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, io_requested_buf_sizes[prev_toggle][i]);
             auto strings = FlatVector::GetData<string_t>(output.data[i]);
             uint32_t string_len;
-            size_t offset = sizeof(size_t);
+            size_t offset = sizeof(CompressionHeader);
             size_t output_idx = 0;
-            for (; output_idx < output_cardinality; output_idx++) {
+            for (; output_idx < comp_header.data_len; output_idx++) {
                 //if (i == 1) fprintf(stderr, "Copy idx %ld, offset = %ld\n", output_idx, offset);
                 memcpy(&string_len, io_requested_buf_ptrs[prev_toggle][i] + offset, sizeof(uint32_t));
                 offset += sizeof(uint32_t);
@@ -198,14 +199,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 offset += string_len;
                 D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
             }
-            // fprintf(stdout, "Load Column %ld, size = %ld Done\n", i, output.size());
+            fprintf(stdout, "Load Column %ld, size = %ld Done\n", i, output.size());
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
         } else {
-            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(size_t), io_requested_buf_sizes[prev_toggle][i]);
+            if (comp_header.comp_type == BITPACKING) {
+
+            } else {
+                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i]);
+            }
         }
     }
-    // fprintf(stdout, "U\n");
+    fprintf(stdout, "U\n");
 
     output_eid = ext_ids_to_iterate[previous_idx];
     return true;
