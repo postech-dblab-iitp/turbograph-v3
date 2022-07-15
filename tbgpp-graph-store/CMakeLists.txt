@@ -35,8 +35,9 @@ SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 add_library(lightning STATIC ${CACHE_LIB_SRC})
 target_link_libraries(lightning "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 
-
 find_package(OpenMP REQUIRED)
+find_package(Catch2 REQUIRED)
+
 if (OPENMP_FOUND)
 	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -45,7 +46,14 @@ endif()
 
 link_libraries(pthread aio numa rt hwloc tbb)
 
+add_subdirectory(third_party)
+
+#set(DUCKDB_LINK_LIBS
+#      ${DUCKDB_SYSTEM_LIBS}
+#      duckdb_fastpforlib)
+
 add_library(tbgpp-system-lib STATIC ${TBGPP_SYSTEM_SOURCES})
+target_link_libraries(tbgpp-system-lib duckdb_fastpforlib)
 target_compile_options(tbgpp-system-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-system-lib PUBLIC ${CXX_DEFINITION})
 target_include_directories(tbgpp-system-lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
@@ -73,10 +81,6 @@ file(GLOB TILE_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
   "${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
 )
-
-find_package(Catch2 REQUIRED)
-
-add_subdirectory(third_party)
 
 if (FALSE)
 foreach(test_file ${CACHE_TEST_SRC})
