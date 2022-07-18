@@ -204,7 +204,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
         } else {
             if (comp_header.comp_type == BITPACKING) {
-
+                fprintf(stdout, "I'm here\n");
+                PhysicalType p_type = ext_property_types[i].InternalType();
+                DeCompressionFunction decomp_func(BITPACKING, p_type);
+                decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
+                                       output.data[i].GetData(), comp_header.data_len);
+                //data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size
             } else {
                 memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i]);
             }
