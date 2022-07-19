@@ -1,8 +1,12 @@
-#pragma once
+#ifndef COMPRESSION_FUNCTION_HPP
+#define COMPRESSION_FUNCTION_HPP
 
 #include "common/types.hpp"
 #include "common/common.hpp"
+#include "common/unordered_map.hpp"
+#include "common/types/hash.hpp"
 #include "common/types/null_value.hpp"
+#include "common/operator/comparison_operators.hpp"
 #include "extent/compression/bitpacking.hpp"
 
 namespace duckdb {
@@ -140,100 +144,15 @@ struct StringCompare {
 	}
 };
 
-bool LookupString(string_t str, std::unordered_map<string_t, uint32_t, StringHash, StringCompare> &current_string_map, uint32_t &latest_lookup_result) {
-    auto search = current_string_map.find(str);
-    auto has_result = search != current_string_map.end();
+bool LookupString(string_t str, std::unordered_map<string_t, uint32_t, StringHash, StringCompare> &current_string_map, uint32_t &latest_lookup_result);
 
-    if (has_result) {
-        latest_lookup_result = search->second;
-    }
-    return has_result;
-}
+bool HasEnoughSpace(bool new_string, size_t string_size, std::vector<uint32_t> &index_buffer, bitpacking_width_t &next_width);
 
-bool HasEnoughSpace(bool new_string, size_t string_size, std::vector<uint32_t> &index_buffer, bitpacking_width_t &next_width) {
-    if (new_string) {
-        next_width = BitpackingPrimitives::MinimumBitWidth(index_buffer.size() - 1 + new_string);
-    }
-    return true; // We use variable sized page.. so maybe we always have enough space
-    /*    next_width = BitpackingPrimitives::MinimumBitWidth(index_buffer.size() - 1 + new_string);
-        return DictionaryCompressionStorage::HasEnoughSpace(current_segment->count.load() + 1,
-                                                            index_buffer.size() + 1,
-                                                            current_dictionary.size + string_size, next_width);
-    } else {
-        return DictionaryCompressionStorage::HasEnoughSpace(current_segment->count.load() + 1, index_buffer.size(),
-                                                            current_dictionary.size, current_width);
-    }*/
-}
+void AddNewString(string_t &str, data_ptr_t &string_data_pointer, idx_t &string_data_pos, std::vector<uint32_t> &index_buffer,
+                  std::unordered_map<string_t, uint32_t, StringHash, StringCompare> &current_string_map);
+void Verify();
 
-void AddNewString(string_t &str, data_ptr_t &string_data_pointer, idx_t &string_data_pos) {
-    // UncompressedStringStorage::UpdateStringStats(current_segment->stats, str);
-
-    // Copy string to dict
-    idx_t string_size = str.GetSize();
-    memcpy(string_data_pointer, str.GetDataUnsafe(), string_size);
-    string_data_pointer += string_size;
-    string_data_pos += string_size;
-
-    // Update buffers and map
-    index_buffer.push_back(string_data_pos);
-    // selection_buffer.push_back(index_buffer.size() - 1);
-    current_string_map.insert({str, index_buffer.size() - 1});
-    DictionaryCompressionStorage::SetDictionary(*current_segment, *current_handle, current_dictionary);
-
-    current_width = next_width;
-}
-
-void Verify() {
-}
-
-void DictionaryCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size) {
-    auto data = (string_t *)data_to_compress;
-    data_ptr_t string_data_pointer = data_to_compress + data_size * sizeof(uint32_t);
-    idx_t string_data_pos = data_size * sizeof(uint32_t);
-
-    // Buffers and map for current segment
-	std::unordered_map<string_t, uint32_t, StringHash, StringCompare> current_string_map;
-	std::vector<uint32_t> index_buffer;
-
-    bitpacking_width_t current_width = 0;
-	bitpacking_width_t next_width = 0;
-
-    uint32_t latest_lookup_result;
-
-    for (idx_t i = 0; i < data_size; i++) {
-        //auto idx = vdata.sel->get_index(i);
-        size_t string_size = 0;
-        bool new_string = false;
-        //auto row_is_valid = vdata.validity.RowIsValid(idx);
-
-        string_size = data[i].GetSize();
-        if (string_size >= StringUncompressed::STRING_BLOCK_LIMIT) {
-            // Big strings not implemented for dictionary compression
-            //return false;
-            return;
-        }
-        new_string = !LookupString(data[i], current_string_map, latest_lookup_result);
-
-        bool fits = HasEnoughSpace(new_string, string_size, index_buffer, next_width);
-        if (!fits) {
-            D_ASSERT(false);
-            // Flush();
-            // new_string = true;
-            // D_ASSERT(HasEnoughSpace(new_string, string_size));
-        }
-
-        //if (!row_is_valid) {
-        //    AddNull();
-        if (new_string) {
-            AddNewString(data[i]);
-        } else {
-            //AddLastLookup();
-            selection_buffer.push_back(latest_lookup_result);
-        }
-
-        Verify();
-    }
-}
+void DictionaryCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size);
 
 class CompressionFunction {
 typedef void (*compression_compress_data_t)(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size);
@@ -306,7 +225,7 @@ public:
         } else if (func_type == DICTIONARY) {
             switch (p_type) {
             case PhysicalType::VARCHAR:
-                compress = DictionaryCompression::DictionaryCompress;
+                compress = DictionaryCompress;
             default:
                 throw InternalException("Unsupported type for Dictionary");
             }
@@ -319,13 +238,14 @@ public:
 };
 
 template <typename T>
-void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size_t data_size) {
+void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size) {
     data_ptr_t current_width_group_ptr;
     data_ptr_t bitpacking_width_ptr;
     bitpacking_width_t current_width;
     idx_t position_in_group = 0;
     size_t remaining_data_to_scan = data_size;
-    T *current_output_ptr = (T*) output;
+    data_ptr_t output_pointer = output.GetData();
+    T *current_output_ptr = (T*) output_pointer;
     T decompression_buffer[BitpackingPrimitives::BITPACKING_ALGORITHM_GROUP_SIZE]; // Temporary buffer for the tail
     bool skip_sign_extend = std::is_signed<T>::value;// && nstats.min >= 0;
 
@@ -370,11 +290,12 @@ void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, data_ptr_t outpu
 }
 
 template <typename T>
-void RLEDecompress (data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size_t data_size) {
-	auto data_pointer = (T *)(buf_ptr);// + RLEConstants::RLE_HEADER_SIZE);
+void RLEDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size) {
+    auto output_pointer = output.GetData();
+    auto data_pointer = (T *)(buf_ptr);// + RLEConstants::RLE_HEADER_SIZE);
 	auto index_pointer = (rle_count_t *)(buf_ptr + data_size * sizeof(T));
 
-	auto result_data = (T *)output;
+	auto result_data = (T *)output_pointer;
 
     idx_t entry_pos = 0;
 	idx_t position_in_entry = 0;
@@ -393,10 +314,10 @@ void RLEDecompress (data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size
 	}
 }
 
-void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size_t data_size) {}
+void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size);
 
 class DeCompressionFunction {
-typedef void (*compression_decompress_data_t)(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size_t data_size);
+typedef void (*compression_decompress_data_t)(data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size);
 
 public:
     DeCompressionFunction() {}
@@ -406,7 +327,7 @@ public:
         SetDeCompressionFunction(func_type, p_type);
     }
 
-    virtual void DeCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t output, size_t data_size) {
+    virtual void DeCompress(data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size) {
         decompress(buf_ptr, buf_size, output, data_size);
     }
 
@@ -479,3 +400,5 @@ public:
 };
 
 }
+
+#endif

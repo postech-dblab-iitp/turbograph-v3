@@ -178,38 +178,40 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         fprintf(stdout, "i = %ld\n", i);
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld\n", i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, io_requested_buf_sizes[prev_toggle][i]);
-            auto strings = FlatVector::GetData<string_t>(output.data[i]);
-            uint32_t string_len;
-            size_t offset = sizeof(CompressionHeader);
-            size_t output_idx = 0;
-            for (; output_idx < comp_header.data_len; output_idx++) {
-                //if (i == 1) fprintf(stderr, "Copy idx %ld, offset = %ld\n", output_idx, offset);
-                memcpy(&string_len, io_requested_buf_ptrs[prev_toggle][i] + offset, sizeof(uint32_t));
-                offset += sizeof(uint32_t);
-                //if (i == 1) fprintf(stderr, "Copy idx %ld, offset = %ld\n", output_idx, offset);
-                //auto buffer = unique_ptr<data_t[]>(new data_t[string_len]);
-                string string_val((char*)(io_requested_buf_ptrs[prev_toggle][i] + offset), string_len);
-                //Value str_val = Value::BLOB_RAW(string_val);
-                //memcpy(buffer.get(), io_requested_buf_ptrs[prev_toggle][i] + offset, string_len);
-                
-                //std::string temp((char*)buffer.get(), string_len);
-                //if (i == 1) fprintf(stderr, "Copy idx %ld, offset = %ld, %s\n", output_idx, offset, string_val.c_str());
-                //output.data[i].SetValue(output_idx, str_val);
-                strings[output_idx] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + offset), string_len);
-                offset += string_len;
-                D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
+            if (comp_header.comp_type == DICTIONARY) {
+                PhysicalType p_type = ext_property_types[i].InternalType();
+                DeCompressionFunction decomp_func(DICTIONARY, p_type);
+                decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
+                                       output.data[i], comp_header.data_len);
+            } else {
+                auto strings = FlatVector::GetData<string_t>(output.data[i]);
+                uint32_t string_len;
+                size_t offset = sizeof(CompressionHeader);
+                size_t output_idx = 0;
+                for (; output_idx < comp_header.data_len; output_idx++) {
+                    memcpy(&string_len, io_requested_buf_ptrs[prev_toggle][i] + offset, sizeof(uint32_t));
+                    offset += sizeof(uint32_t);
+                    //auto buffer = unique_ptr<data_t[]>(new data_t[string_len]);
+                    string string_val((char*)(io_requested_buf_ptrs[prev_toggle][i] + offset), string_len);
+                    //Value str_val = Value::BLOB_RAW(string_val);
+                    //memcpy(buffer.get(), io_requested_buf_ptrs[prev_toggle][i] + offset, string_len);
+                    
+                    //std::string temp((char*)buffer.get(), string_len);
+                    //output.data[i].SetValue(output_idx, str_val);
+                    strings[output_idx] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + offset), string_len);
+                    offset += string_len;
+                    D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
+                }
             }
             fprintf(stdout, "Load Column %ld, size = %ld Done\n", i, output.size());
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
         } else {
             if (comp_header.comp_type == BITPACKING) {
-                fprintf(stdout, "I'm here\n");
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
-                                       output.data[i].GetData(), comp_header.data_len);
-                //data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size
+                                       output.data[i], comp_header.data_len);
             } else {
                 memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i]);
             }
