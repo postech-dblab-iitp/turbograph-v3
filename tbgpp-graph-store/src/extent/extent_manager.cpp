@@ -145,7 +145,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function;
-        best_compression_function = BITPACKING;
+        if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
@@ -159,9 +159,12 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
             for (size_t i = 0; i < input.size(); i++) {
-                string_len_total += sizeof(uint32_t); // size of len field
                 string_len_total += string_buffer[i].GetSize();
             }
+            if (best_compression_function == DICTIONARY)
+                string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
+            else
+                string_len_total += (input.size() * sizeof(uint32_t)); // string len field
             alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
@@ -180,18 +183,30 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             CompressionHeader comp_header(UNCOMPRESSED, input_size);
             memcpy(buf_ptr + offset, &comp_header, sizeof(CompressionHeader));
             offset += sizeof(CompressionHeader);
-            uint32_t string_len;
-            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) {
-                string_len = string_buffer[i].GetSize();
-                memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
-                offset += sizeof(uint32_t);
-                memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
-                offset += string_len;
+            if (best_compression_function == DICTIONARY) {
+                // Set Compression Function
+                CompressionFunction comp_func(best_compression_function, p_type);
+                // Compress
+                size_t input_size = input.size();
+                data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
+                CompressionHeader comp_header(DICTIONARY, input_size);
+                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
+                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size, data_to_compress, input_size);
+            } else {
+                uint32_t string_len;
+                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+                for (size_t i = 0; i < input.size(); i++) {
+                    string_len = string_buffer[i].GetSize();
+                    memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
+                    offset += sizeof(uint32_t);
+                    memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
+                    offset += string_len;
+                }
             }
         } else if (l_type == LogicalType::ADJLIST) {
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
+            best_compression_function = BITPACKING;
             // TODO type support check should be done by CompressionFunction
             if (BitpackingPrimitives::TypeIsSupported(p_type)) {
                 // Set Compression Function
