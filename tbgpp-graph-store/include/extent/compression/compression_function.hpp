@@ -39,7 +39,6 @@ bitpacking_width_t _BitPackingCompress(data_ptr_t dst, data_ptr_t data_to_compre
 
 template <typename T>
 void BitPackingCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_compress, size_t data_size) {
-    fprintf(stdout, "Bitpacking Compress Start!\n");
     size_t original_size, total_size;
     original_size = data_size * sizeof(T); // For debugging
     total_size = 0;
@@ -198,34 +197,34 @@ public:
             switch (p_type) {
             case PhysicalType::BOOL:
             case PhysicalType::INT8:
-                compress = RLECompress<int8_t>;
+                compress = RLECompress<int8_t>; break;
             case PhysicalType::INT16:
-                compress = RLECompress<int16_t>;
+                compress = RLECompress<int16_t>; break;
             case PhysicalType::INT32:
-                compress = RLECompress<int32_t>;
+                compress = RLECompress<int32_t>; break;
             case PhysicalType::INT64:
-                compress = RLECompress<int64_t>;
+                compress = RLECompress<int64_t>; break;
             case PhysicalType::INT128:
-                compress = RLECompress<hugeint_t>;
+                compress = RLECompress<hugeint_t>; break;
             case PhysicalType::UINT8:
-                compress = RLECompress<uint8_t>;
+                compress = RLECompress<uint8_t>; break;
             case PhysicalType::UINT16:
-                compress = RLECompress<uint16_t>;
+                compress = RLECompress<uint16_t>; break;
             case PhysicalType::UINT32:
-                compress = RLECompress<uint32_t>;
+                compress = RLECompress<uint32_t>; break;
             case PhysicalType::UINT64:
-                compress = RLECompress<uint64_t>;
+                compress = RLECompress<uint64_t>; break;
             case PhysicalType::FLOAT:
-                compress = RLECompress<float>;
+                compress = RLECompress<float>; break;
             case PhysicalType::DOUBLE:
-                compress = RLECompress<double>;
+                compress = RLECompress<double>; break;
             default:
                 throw InternalException("Unsupported type for RLE");
             }
         } else if (func_type == DICTIONARY) {
             switch (p_type) {
             case PhysicalType::VARCHAR:
-                compress = DictionaryCompress;
+                compress = DictionaryCompress; break;
             default:
                 throw InternalException("Unsupported type for Dictionary");
             }
@@ -272,6 +271,8 @@ void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
 		    current_width_group_ptr + position_in_group * current_width / 8;
 		data_ptr_t decompression_group_start_pointer =
 		    current_position_ptr - offset_in_compression_group * current_width / 8;
+        // fprintf(stdout, "to_scan %ld, offset_in_compression_group %ld, remaining_data_to_scan %ld, current_position_ptr %p, decompression_group_start_pointer %p, current_width %d, position_in_group %ld\n",
+        //                 to_scan, offset_in_compression_group, remaining_data_to_scan, current_position_ptr, decompression_group_start_pointer, current_width, position_in_group);
         
         if (to_scan == BitpackingPrimitives::BITPACKING_ALGORITHM_GROUP_SIZE && offset_in_compression_group == 0) {
             BitpackingPrimitives::UnPackBlock<T>((data_ptr_t)current_output_ptr, decompression_group_start_pointer,
@@ -360,23 +361,23 @@ public:
             switch (p_type) {
             case PhysicalType::BOOL:
             case PhysicalType::INT8:
-                decompress = RLEDecompress<int8_t>;
+                decompress = RLEDecompress<int8_t>; break;
             case PhysicalType::INT16:
-                decompress = RLEDecompress<int16_t>;
+                decompress = RLEDecompress<int16_t>; break;
             case PhysicalType::INT32:
-                decompress = RLEDecompress<int32_t>;
+                decompress = RLEDecompress<int32_t>; break;
             case PhysicalType::INT64:
-                decompress = RLEDecompress<int64_t>;
+                decompress = RLEDecompress<int64_t>; break;
             case PhysicalType::INT128:
-                decompress = RLEDecompress<hugeint_t>;
+                decompress = RLEDecompress<hugeint_t>; break;
             case PhysicalType::UINT8:
-                decompress = RLEDecompress<uint8_t>;
+                decompress = RLEDecompress<uint8_t>; break;
             case PhysicalType::UINT16:
-                decompress = RLEDecompress<uint16_t>;
+                decompress = RLEDecompress<uint16_t>; break;
             case PhysicalType::UINT32:
-                decompress = RLEDecompress<uint32_t>;
+                decompress = RLEDecompress<uint32_t>; break;
             case PhysicalType::UINT64:
-                decompress = RLEDecompress<uint64_t>;
+                decompress = RLEDecompress<uint64_t>; break;
             case PhysicalType::FLOAT:
                 decompress = RLEDecompress<float>;
             case PhysicalType::DOUBLE:
@@ -387,7 +388,7 @@ public:
         } else if (func_type == DICTIONARY) {
             switch (p_type) {
             case PhysicalType::VARCHAR:
-                decompress = DictionaryDecompress;
+                decompress = DictionaryDecompress; break;
             default:
                 throw InternalException("Unsupported type for Dictionary");
             }

@@ -146,6 +146,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function;
         if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
+        // TODO Create CompressionHeader Here
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
@@ -158,9 +159,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else if (l_type == LogicalType::VARCHAR) {
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) {
+            for (size_t i = 0; i < input.size(); i++) // Accumulate the length of all strings
                 string_len_total += string_buffer[i].GetSize();
-            }
             if (best_compression_function == DICTIONARY)
                 string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
@@ -178,11 +178,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         // Copy (or Compress and Copy) DataChunk
         if (l_type == LogicalType::VARCHAR) {
-            size_t offset = 0;
-            size_t input_size = input.size();
-            CompressionHeader comp_header(UNCOMPRESSED, input_size);
-            memcpy(buf_ptr + offset, &comp_header, sizeof(CompressionHeader));
-            offset += sizeof(CompressionHeader);
             if (best_compression_function == DICTIONARY) {
                 // Set Compression Function
                 CompressionFunction comp_func(best_compression_function, p_type);
@@ -191,10 +186,19 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
                 CompressionHeader comp_header(DICTIONARY, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size, data_to_compress, input_size);
+                fprintf(stdout, "%p\n", buf_ptr);
+                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
+                // Copy CompressionHeader
+                size_t offset = 0;
+                size_t input_size = input.size();
+                CompressionHeader comp_header(UNCOMPRESSED, input_size);
+                memcpy(buf_ptr + offset, &comp_header, sizeof(CompressionHeader));
+                offset += sizeof(CompressionHeader);
+
                 uint32_t string_len;
                 string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+
                 for (size_t i = 0; i < input.size(); i++) {
                     string_len = string_buffer[i].GetSize();
                     memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
@@ -216,7 +220,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
                 CompressionHeader comp_header(BITPACKING, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size, data_to_compress, input_size);
+                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
                 size_t input_size = input.size();
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);

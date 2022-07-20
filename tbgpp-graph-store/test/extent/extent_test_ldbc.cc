@@ -419,7 +419,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ext_it.GetNextExtent(*client.get(), data, output_eid);
     
     // Print DataChunk
-    fprintf(stdout, "%s\n", data.ToString(2).c_str());
+    fprintf(stdout, "%s\n", data.ToString(10).c_str());
   }
 
   for (auto &edge_file : edge_files) {
