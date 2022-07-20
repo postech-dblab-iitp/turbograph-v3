@@ -103,9 +103,10 @@ void DictionaryCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_
 
         Verify();
     }
+    fprintf(stdout, "Dictionary Compress Done! %ld -> %ld, compression_ratio = %.3f%%\n", buf_size, string_data_pos, (double)(100 * string_data_pos) / buf_size);
 }
 
-void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size) {}
+void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, size_t data_size) {
     auto strings = FlatVector::GetData<string_t>(output);
     uint32_t string_len;
     size_t offset = 0;
@@ -114,24 +115,28 @@ void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
     uint32_t *index_buffer = (uint32_t *)(buf_ptr + data_size * sizeof(uint32_t));
     data_ptr_t string_data_pointer = buf_ptr + data_size * 2 * sizeof(uint32_t);
     idx_t base_string_pos = data_size * 2 * sizeof(uint32_t);
-    idx_t cur_string_pos;
+    idx_t cur_string_start;
+    idx_t cur_string_end;
+    // fprintf(stdout, "selection_buffer = %ld, index_buffer = %ld\n", (data_ptr_t)selection_buffer - buf_ptr, (data_ptr_t)index_buffer - buf_ptr);
 
     for (output_idx = 0; output_idx < data_size; output_idx++) {
         idx_t index_pos = selection_buffer[output_idx];
-        cur_string_pos = index_buffer[index_pos];
-        D_ASSERT(cur_string_pos >= base_string_pos);
-        string_len = index_pos == 0 ? cur_string_pos - base_string_pos : cur_string_pos - index_buffer[index_pos - 1];
+        cur_string_start = index_pos == 0 ? base_string_pos : index_buffer[index_pos - 1];
+        cur_string_end = index_buffer[index_pos];
+        D_ASSERT(cur_string_end >= base_string_pos);
+        string_len = cur_string_end - cur_string_start;
+        //fprintf(stdout, "output_idx = %ld, index_pos = %ld, cur_string_start = %ld, cur_string_end = %ld, string_len = %d\n", output_idx, index_pos, cur_string_start, cur_string_end, string_len);
         //memcpy(&string_len, buf_ptr + offset, sizeof(uint32_t));
         //offset += sizeof(uint32_t);
         //auto buffer = unique_ptr<data_t[]>(new data_t[string_len]);
-        string string_val((char*)(buf_ptr + cur_string_pos), string_len);
+        string string_val((char*)(buf_ptr + cur_string_start), string_len);
         //Value str_val = Value::BLOB_RAW(string_val);
         //memcpy(buffer.get(), io_requested_buf_ptrs[prev_toggle][i] + offset, string_len);
         
         //std::string temp((char*)buffer.get(), string_len);
         //output.data[i].SetValue(output_idx, str_val);
-        strings[output_idx] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + offset), string_len);
-        offset += string_len;
-        D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
+        strings[output_idx] = StringVector::AddString(output, (char*)(buf_ptr + cur_string_start), string_len);
     }
 }
+
+} // namespace duckdb
