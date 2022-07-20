@@ -587,7 +587,7 @@ if (NOT Boost_NO_BOOST_CMAKE)
   if(BOOST_ROOT AND NOT Boost_ROOT)
     # Honor BOOST_ROOT by setting Boost_ROOT with CMP0074 NEW behavior.
     cmake_policy(PUSH)
-    cmake_policy(SET CMP0074 NEW)
+    # cmake_policy(SET CMP0074 NEW)
     set(Boost_ROOT "${BOOST_ROOT}")
     set(_Boost_ROOT_FOR_CONFIG 1)
   endif()
@@ -1693,13 +1693,13 @@ _Boost_DEBUG_PRINT_VAR("${CMAKE_CURRENT_LIST_FILE}" "${CMAKE_CURRENT_LIST_LINE}"
 _Boost_DEBUG_PRINT_VAR("${CMAKE_CURRENT_LIST_FILE}" "${CMAKE_CURRENT_LIST_LINE}" "Boost_ADDITIONAL_VERSIONS")
 _Boost_DEBUG_PRINT_VAR("${CMAKE_CURRENT_LIST_FILE}" "${CMAKE_CURRENT_LIST_LINE}" "Boost_NO_SYSTEM_PATHS")
 
-cmake_policy(GET CMP0074 _Boost_CMP0074)
-if(NOT "x${_Boost_CMP0074}x" STREQUAL "xNEWx")
-  _Boost_CHECK_SPELLING(Boost_ROOT)
-endif()
-unset(_Boost_CMP0074)
-_Boost_CHECK_SPELLING(Boost_LIBRARYDIR)
-_Boost_CHECK_SPELLING(Boost_INCLUDEDIR)
+# cmake_policy(GET CMP0074 _Boost_CMP0074)
+# if(NOT "x${_Boost_CMP0074}x" STREQUAL "xNEWx")
+#   _Boost_CHECK_SPELLING(Boost_ROOT)
+# endif()
+# unset(_Boost_CMP0074)
+# _Boost_CHECK_SPELLING(Boost_LIBRARYDIR)
+# _Boost_CHECK_SPELLING(Boost_INCLUDEDIR)
 
 # Collect environment variable inputs as hints.  Do not consider changes.
 foreach(v BOOSTROOT BOOST_ROOT BOOST_INCLUDEDIR BOOST_LIBRARYDIR)
@@ -1846,9 +1846,9 @@ if(Boost_INCLUDE_DIR)
   set(Boost_VERSION_STRING "${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}.${Boost_VERSION_PATCH}")
 
   # Define final Boost_VERSION
-  cmake_policy(GET CMP0093 _Boost_CMP0093
-    PARENT_SCOPE # undocumented, do not use outside of CMake
-  )
+  # cmake_policy(GET CMP0093 _Boost_CMP0093
+  #   PARENT_SCOPE # undocumented, do not use outside of CMake
+  # )
   if("x${_Boost_CMP0093}x" STREQUAL "xNEWx")
     set(Boost_VERSION ${Boost_VERSION_STRING})
   else()

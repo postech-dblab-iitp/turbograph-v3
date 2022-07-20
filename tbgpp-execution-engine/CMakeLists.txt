@@ -15,6 +15,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 #include_directories("${PROJECT_SOURCE_DIR}/livegraph/core")
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 # dependencies - tbb
 include(cmake/FindTBB.cmake)
 find_package(Threads REQUIRED)
