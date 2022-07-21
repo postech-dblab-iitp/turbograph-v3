@@ -66,7 +66,7 @@ int64_t MemAllocator::create_block(sm_offset start, size_t size) {
   LOGGED_WRITE(entry->next, -1, header_, disk_);
   // entry->next = -1;
 
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 64; i++) {
     LOGGED_WRITE(entry->buddy[i], -1, header_, disk_);
     // entry->buddy[i] = -1;
   }
@@ -148,7 +148,7 @@ int64_t MemAllocator::create_block_nolog(sm_offset start, size_t size) {
   entry->size = size;
   entry->prev = -1;
   entry->next = -1;
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 64; i++) {
     entry->buddy[i] = -1;
   }
 
@@ -200,7 +200,7 @@ void MemAllocator::split_memory_to_free_lists(sm_offset offset, size_t size) {
 
 void MemAllocator::Init(sm_offset offset, size_t size) {
   // initialize free lists
-  for (int i = 0; i <= 32; i++) {
+  for (int i = 0; i <= 64; i++) {
     free_list_->free_list_head[i] = -1;
   }
 
@@ -502,7 +502,7 @@ void MemAllocator::FreeShared(sm_offset offset) {
 }
 
 void MemAllocator::PrintAvalaibleMemory() {
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 64; i++) {
     if (free_list_->free_list_head[i] > 0) {
 
       int64_t mem_entry_index = free_list_->free_list_head[i];

@@ -6,7 +6,7 @@
 
 // #define MINIMAL_BLOCK_SIZE_LOG 10
 // #define MAXIMUM_BLOCK_SIZE_LOG 30
-#define MINIMAL_BLOCK_SIZE_LOG 17
+#define MINIMAL_BLOCK_SIZE_LOG 10
 #define MAXIMUM_BLOCK_SIZE_LOG 62
 // #define HASHMAP_SIZE 65536
 #define HASHMAP_SIZE 262144
@@ -22,7 +22,7 @@ struct MemoryEntry {
   size_t size;
   int64_t prev;
   int64_t next;
-  int64_t buddy[32];
+  int64_t buddy[64];
 };
 
 struct MemoryHeader {
@@ -30,7 +30,7 @@ struct MemoryHeader {
 };
 
 struct FreeList {
-  int64_t free_list_head[32];
+  int64_t free_list_head[64];
 };
 
 struct ObjectEntry {
