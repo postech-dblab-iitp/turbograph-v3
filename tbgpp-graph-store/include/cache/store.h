@@ -11,7 +11,7 @@
 
 class LightningStore {
 public:
-  LightningStore(const std::string &unix_socket, int size);
+  LightningStore(const std::string &unix_socket, size_t size);
   ~LightningStore();
   void Run();
 

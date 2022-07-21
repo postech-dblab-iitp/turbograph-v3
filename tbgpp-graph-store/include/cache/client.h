@@ -55,7 +55,7 @@ private:
   int log_fd_;
 
   LightningStoreHeader *header_;
-  int size_;
+  size_t size_;
   MemAllocator *allocator_;
 
   int64_t alloc_object_entry();

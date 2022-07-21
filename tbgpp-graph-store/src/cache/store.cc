@@ -72,10 +72,10 @@ int send_fd(int unix_sock, int fd) {
   return size;
 }
 
-LightningStore::LightningStore(const std::string &unix_socket, int size)
+LightningStore::LightningStore(const std::string &unix_socket, size_t size)
     : unix_socket_(unix_socket), size_(size) {
   store_fd_ = shm_open(name, O_CREAT | O_RDWR, 0666);
-  int status = ftruncate(store_fd_, size);
+  int status = ftruncate64(store_fd_, size);
   if (status < 0) {
     perror("cannot ftruncate");
     exit(-1);
