@@ -54,6 +54,7 @@ void BitPackingCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_
         
         // Write width
         memcpy(width_ptr, &width, sizeof(bitpacking_width_t));
+        fprintf(stdout, "Bitpacking Compress current_width = %d at %p\n", width, width_ptr);
         
         // Adjust Size & Pointer
         remain_count -= compression_count;
@@ -251,7 +252,7 @@ void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
     current_width_group_ptr = buf_ptr;
     bitpacking_width_ptr = buf_ptr + buf_size - sizeof(bitpacking_width_t);
     memcpy(&current_width, bitpacking_width_ptr, sizeof(bitpacking_width_t));
-    fprintf(stdout, "Bitpacking Decompress current_width = %d\n", current_width);
+    fprintf(stdout, "Bitpacking Decompress current_width = %d at %p\n", current_width, bitpacking_width_ptr);
 
     while (remaining_data_to_scan > 0) {
         if (position_in_group >= BITPACKING_WIDTH_GROUP_SIZE) {
@@ -259,6 +260,7 @@ void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
             bitpacking_width_ptr -= sizeof(bitpacking_width_t);
             current_width_group_ptr += (current_width * BITPACKING_WIDTH_GROUP_SIZE) / 8;
             memcpy(&current_width, bitpacking_width_ptr, sizeof(bitpacking_width_t));
+            fprintf(stdout, "Bitpacking Decompress current_width = %d at %p\n", current_width, bitpacking_width_ptr);
         }
 
         idx_t offset_in_compression_group =
