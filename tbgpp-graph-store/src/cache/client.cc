@@ -238,7 +238,7 @@ int LightningClient::Create(uint64_t object_id, uint8_t **ptr, size_t size) {
 
 int64_t LightningClient::find_object(uint64_t object_id) {
   int64_t head_index =
-      header_->hashmap.hash_entries[object_id % 65536].object_list;
+      header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
   int64_t current_index = head_index;
 
   while (current_index >= 0) {
@@ -330,7 +330,7 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
   // new_object->sealed = false;
 
   int64_t head_index =
-      header_->hashmap.hash_entries[object_id % 65536].object_list;
+      header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
   ObjectEntry *head = &header_->object_entries[head_index];
 
   LOGGED_WRITE(new_object->next, head_index, header_, disk_);
@@ -344,10 +344,10 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
     // head->prev = new_object_index;
   }
 
-  LOGGED_WRITE(header_->hashmap.hash_entries[object_id % 65536].object_list,
+  LOGGED_WRITE(header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list,
                new_object_index, header_,
                disk_); // header_->hashmap.hash_entries[object_id %
-                       // 65536].object_list = new_object_index;
+                       // HASHMAP_SIZE].object_list = new_object_index;
 
   *offset_ptr = object_buffer_offset;
 
@@ -529,9 +529,9 @@ int LightningClient::Release(uint64_t object_id) {
         // next->prev = -1;
       }
 
-      LOGGED_WRITE(header_->hashmap.hash_entries[object_id % 65536].object_list,
+      LOGGED_WRITE(header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list,
                    next_object_index, header_, disk_);
-      // header_->hashmap.hash_entries[object_id % 65536].object_list =
+      // header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
       //     next_object_index;
     } else {
       ObjectEntry *prev = &header_->object_entries[prev_object_index];
@@ -577,10 +577,10 @@ int LightningClient::delete_internal(uint64_t object_id, Turbo_bin_aio_handler* 
       LOGGED_WRITE(next->prev, -1, header_, disk_);
       // next->prev = -1;
     }
-    LOGGED_WRITE(header_->hashmap.hash_entries[object_id % 65536].object_list,
+    LOGGED_WRITE(header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list,
                  next_object_index, header_, disk_);
     /*
-    header_->hashmap.hash_entries[object_id % 65536].object_list =
+    header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
         next_object_index;
     */
   } else {
@@ -857,7 +857,7 @@ int LightningClient::subscribe_internal(uint64_t object_id, sem_t **sem,
     // new_object->num_waiters = 1;
 
     int64_t head_index =
-        header_->hashmap.hash_entries[object_id % 65536].object_list;
+        header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
     ObjectEntry *head = &header_->object_entries[head_index];
 
     LOGGED_WRITE(new_object->next, head_index, header_, disk_);
@@ -871,9 +871,9 @@ int LightningClient::subscribe_internal(uint64_t object_id, sem_t **sem,
       // head->prev = new_object_index;
     }
 
-    LOGGED_WRITE(header_->hashmap.hash_entries[object_id % 65536].object_list,
+    LOGGED_WRITE(header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list,
                  new_object_index, header_, disk_);
-    // header_->hashmap.hash_entries[object_id % 65536].object_list =
+    // header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
     //     new_object_index;
 
     *sem = &new_object->sem;

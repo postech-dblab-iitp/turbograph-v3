@@ -23,7 +23,7 @@ private:
   void recover(uint8_t *sm, uint8_t *log, uint8_t *object_log, pid_t pid);
 
   std::string unix_socket_;
-  int size_;
+  size_t size_;
   int store_fd_;
   LightningStoreHeader *store_header_;
 

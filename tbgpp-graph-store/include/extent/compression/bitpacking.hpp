@@ -17,7 +17,8 @@
 namespace duckdb {
 
 using bitpacking_width_t = uint8_t;
-static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 16384;
+//static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 16384; // 16K
+static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 1048576;
 
 class BitpackingPrimitives {
 

@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
   DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
   DiskAioParameters::NUM_CPU_SOCKETS = 1;
   DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-  DiskAioParameters::WORKSPACE = "/home/tslee/turbograph-v3/tbgpp-graph-store/test/extent/data/";
+  DiskAioParameters::WORKSPACE = "/data/data/"; // TODO get this from arguments
   
   int res;
   DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);

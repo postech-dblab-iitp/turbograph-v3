@@ -251,6 +251,7 @@ void BitPackingDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
     current_width_group_ptr = buf_ptr;
     bitpacking_width_ptr = buf_ptr + buf_size - sizeof(bitpacking_width_t);
     memcpy(&current_width, bitpacking_width_ptr, sizeof(bitpacking_width_t));
+    fprintf(stdout, "Bitpacking Decompress current_width = %d\n", current_width);
 
     while (remaining_data_to_scan > 0) {
         if (position_in_group >= BITPACKING_WIDTH_GROUP_SIZE) {
