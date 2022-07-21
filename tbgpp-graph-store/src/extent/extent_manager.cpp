@@ -133,6 +133,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base = cdf_id_base << 32;
     for (auto &l_type : input.GetTypes()) {
+        auto append_chunk_start = std::chrono::high_resolution_clock::now();
         // Get Physical Type
         PhysicalType p_type = l_type.InternalType();
         // For each Vector in DataChunk create new chunk definition
@@ -178,6 +179,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         fprintf(stdout, "[ChunkCacheManager] Get size %ld buffer\n", buf_size);
 
         // Copy (or Compress and Copy) DataChunk
+        auto chunk_compression_start = std::chrono::high_resolution_clock::now();
         if (l_type == LogicalType::VARCHAR) {
             if (best_compression_function == DICTIONARY) {
                 // Set Compression Function
@@ -228,11 +230,17 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
             }
         }
+        auto chunk_compression_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> chunk_compression_duration = chunk_compression_end - chunk_compression_start;
 
         // Set Dirty & Unpin Segment & Flush
         ChunkCacheManager::ccm->SetDirty(cdf_id);
         ChunkCacheManager::ccm->UnPinSegment(cdf_id);
         input_chunk_idx++;
+
+        auto append_chunk_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
+        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
     }
 }
 

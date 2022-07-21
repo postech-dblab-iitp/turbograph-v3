@@ -106,6 +106,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
   // Read Vertex CSV File & CreateVertexExtents
   for (auto &vertex_file: vertex_files) {
+    auto vertex_file_start = std::chrono::high_resolution_clock::now();
     fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
     // Create Partition for each vertex (partitioned by label)
     vector<string> vertex_labels = {vertex_file.first};
@@ -149,11 +150,19 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
 
     // Read CSV File into DataChunk & CreateVertexExtent
+    auto read_chunk_start = std::chrono::high_resolution_clock::now();
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      //fprintf(stderr, "Read CSV File Ongoing..\n");
+      auto read_chunk_end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
+      fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+      continue;
       //fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
+      auto create_extent_start = std::chrono::high_resolution_clock::now();
       ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+      auto create_extent_end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
+      fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
       property_schema_cat->AddExtent(new_eid);
       
       // Initialize pid base
@@ -161,11 +170,20 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       pid_base << 32;
 
       // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
+      auto map_build_start = std::chrono::high_resolution_clock::now();
       if (key_column_idx < 0) continue;
       idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
       for (idx_t seqno = 0; seqno < data.size(); seqno++)
         lid_to_pid_map_instance.emplace(key_column[seqno], pid_base + seqno);
+      auto map_build_end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+      fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+      read_chunk_start = std::chrono::high_resolution_clock::now();
     }
+    auto vertex_file_end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
+
+    fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
   }
 
   fprintf(stderr, "Vertex File Loading Done\n");
