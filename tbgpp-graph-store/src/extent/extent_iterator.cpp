@@ -177,9 +177,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-        //                 i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-        //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+                        i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+                        io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();

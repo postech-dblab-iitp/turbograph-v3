@@ -186,7 +186,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
                 CompressionHeader comp_header(DICTIONARY, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                fprintf(stdout, "%p\n", buf_ptr);
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
                 // Copy CompressionHeader
