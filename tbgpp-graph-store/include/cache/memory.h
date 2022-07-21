@@ -4,11 +4,14 @@
 #include <atomic>
 #include <semaphore.h>
 
-#define MINIMAL_BLOCK_SIZE_LOG 10
-#define MAXIMUM_BLOCK_SIZE_LOG 30
-#define HASHMAP_SIZE 65536
-
-#define MAX_NUM_OBJECTS 100000
+// #define MINIMAL_BLOCK_SIZE_LOG 10
+// #define MAXIMUM_BLOCK_SIZE_LOG 30
+#define MINIMAL_BLOCK_SIZE_LOG 17
+#define MAXIMUM_BLOCK_SIZE_LOG 62
+// #define HASHMAP_SIZE 65536
+#define HASHMAP_SIZE 262144
+// #define MAX_NUM_OBJECTS 100000
+#define MAX_NUM_OBJECTS 524288
 
 typedef int64_t sm_offset;
 
