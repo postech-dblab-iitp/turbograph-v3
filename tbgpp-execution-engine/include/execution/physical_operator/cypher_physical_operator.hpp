@@ -17,6 +17,8 @@
 
 #include "common/common.hpp"
 
+#include <boost/timer/timer.hpp>
+
 namespace duckdb {
 struct LogicalType;
 
@@ -25,7 +27,9 @@ class CypherPhysicalOperator {
 public:
 
 	CypherPhysicalOperator() {} // sink does not define types
-	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {}
+	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {
+		timer_started = false;
+	}
 	virtual ~CypherPhysicalOperator() { }
 
 	virtual void GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &lstate) const;
@@ -46,6 +50,12 @@ public:
 	// operator metadata
 	CypherSchema schema;
 	vector<LogicalType> types;
+
+	// operator statistics
+	boost::timer::cpu_timer op_timer;
+	bool timer_started;
+	int64_t exec_time;
+	int64_t processed_tuples;
 	
 };
 }

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iterator>
 #include <cassert> 
 #include <filesystem>
 #include <string>
@@ -17,6 +18,14 @@
 #include <thread>
 #include <vector>
 #include <memory>
+#include <boost/timer/timer.hpp>
+#include <boost/date_time.hpp>
+#include <boost/filesystem.hpp>
+
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 
 //#include "livegraph.hpp"
 #include "demo_plans.hpp"
@@ -89,6 +98,8 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, int exec_time);
+
 class InputParser{
   public:
     InputParser (int &argc, char **argv){
@@ -136,7 +147,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/home/tslee/turbograph-v3/tbgpp-graph-store/test/extent/data/";
+	DiskAioParameters::WORKSPACE = "/data/";
 	
 	int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
@@ -470,78 +481,108 @@ int main(int argc, char** argv) {
 	auto suite = QueryPlanSuite((GraphStore*)&graphstore, *client.get());
 
 	// execute query
-	std::cout << "execute query" << std::endl;
+	std::cout << "start receiving query" << std::endl;
 
-	// Run q1
-	auto q1_executors = suite.Test1();
-	for( auto exec : q1_executors ) { 
-		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-		std::cout << exec->pipeline->toString() << std::endl;
-		exec->ExecutePipeline();
+	// run queries by query name
+	std::string query_str;
+	std::vector<CypherPipelineExecutor*> executors;
+	while(true) {
+		std::cout << ">> "; std::getline(std::cin, query_str);
+		
+		if( query_str.compare("t1") == 0 ) {
+			executors = suite.Test1();
+		} else if( query_str.compare("t2") == 0 ) {
+			executors = suite.Test2();
+		} else if( query_str.compare("t3") == 0 ) {
+			executors = suite.Test3();
+		} 
+		// TODO add
+		else {
+			std::cout << "WRONG INPUT!" << std::endl;
+			continue;
+		}
+		// Execute
+
+		// start_timer
+		boost::timer::cpu_timer query_timer;
+		int idx=0;
+		for( auto exec : executors ) { 
+			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			std::cout << exec->pipeline->toString() << std::endl;
+			exec->ExecutePipeline();
+		}
+		// end_timer
+		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+
+		// Print result plan
+		exportQueryPlanVisualizer(executors, query_exec_time_ms);
 	}
 
-	// Run q2
-	// auto q2_executors = suite.Test2();
-	// for( auto exec : q2_executors ) { 
-	// 	std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-	// 	std::cout << exec->pipeline->toString() << std::endl;
-	// 	exec->ExecutePipeline();
-	// }
-
-	// Run q3
-	// auto q3_executors = suite.Test3();
-	// for( auto exec : q3_executors ) { 
-	// 	std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-	// 	std::cout << exec->pipeline->toString() << std::endl;
-	// 	exec->ExecutePipeline();
-	// }
-
-	// TODO change hard coding
-	/*livegraph::Graph graph = livegraph::Graph("/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/block",
-		"/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/wal");
-	LiveGraphCatalog catalog;
-
-	// parse and insert LDBC data to graph
-	//std::string ldbc_path = "/home/jhko/dev/ldbc-benchmark/ldbc_snb_datagen_neo4j_SF1/converted";
-	std::string ldbc_path = "/home/jhko/dev/ldbc-benchmark/ldbc_snb_interactive_impls/cypher/test-data/converted";
-	LDBCInsert(graph, catalog, ldbc_path);
-
-	catalog.printCatalog();
-
-	// make a storage using livegraph and its catalog
-	LiveGraphStore graphstore(&graph);
-
-	// load plans
-	std::cout << "load plan suite" << std::endl;
-	auto suite = QueryPlanSuite((GraphStore*)&graphstore);
-
-	// execute query
-	std::cout << "execute query" << std::endl;
-
-	// Run q1
-	auto q1_executors = suite.Test1();
-	for( auto exec : q1_executors ) { 
-		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-		std::cout << exec->pipeline->toString() << std::endl;
-		exec->ExecutePipeline();
-	}
-
-	// Run q2
-	auto q2_executors = suite.Test2();
-	for( auto exec : q2_executors ) { 
-		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-		std::cout << exec->pipeline->toString() << std::endl;
-		exec->ExecutePipeline();
-	}
-
-	// Run q3
-	auto q3_executors = suite.Test3();
-	for( auto exec : q2_executors ) { 
-		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-		std::cout << exec->pipeline->toString() << std::endl;
-		exec->ExecutePipeline();
-	}*/
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
 	return 0;
+}
+
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root);
+
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, int query_exec_time_ms) {
+
+	// output file
+	std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
+	std::replace( curtime.begin(), curtime.end(), ' ', '_');
+	boost::filesystem::create_directories("tmp/tbgpp-vislog/");
+	std::cout << "saving query visualization in : " << "tmp/tbgpp-vislog/" << curtime << ".html" << std::endl;
+	std::ofstream file( "tmp/tbgpp-vislog/" + curtime + ".html" );
+
+	// TODO currently supports only linear query plan.
+	
+	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
+	std::string html_1 = "<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
+	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n</script>\n";
+
+	json j = json::array( { json({}), } );
+	j[0]["Execution Time"] = query_exec_time_ms;
+
+	// reverse-iterate executors
+	json* current_root = &(j[0]);
+	bool isRootOp = true;
+	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
+  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+		// sink first
+		current_root = operatorToVisualizerJSON( current_root, pipeline->sink, isRootOp ); // TODO is not j
+		isRootOp = false;
+		// reverse operator
+		// TODO write here
+		// source
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+	}
+
+	file << html_1;
+	file << j.dump(4);
+	file << html_2;
+
+	// close file
+	file.close();
+}
+
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root) {
+
+	json* content;
+	if( is_root ) {
+		(*j)["Plan"] = json({});
+		content = &((*j)["Plan"]);
+	} else {
+		(*j)["Plans"] = json::array( { json({}), } );
+		content = &((*j)["Plans"][0]);
+	}
+	(*content)["Node Type"] = op->ToString();
+	// timing
+
+	// TODO need understanding about the logics of timing in psql
+	(*content)["Actual Startup Time"] = 0.0;	
+	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
+	(*content)["Actual Rows"] = 1; // TODO fix
+	(*content)["Actual Loops"] = 1; // meaningless
+
+	return content;
 }
