@@ -61,7 +61,16 @@ std::cout << "calling combine for sink (which is printing out the result)" << st
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 std::cout << "starting (source) operator" << std::endl;
+	// timer start
+	if( pipeline->GetSource()->timer_started ){
+		pipeline->GetSource()->op_timer.start();
+		pipeline->GetSource()->timer_started = true;
+	} else {
+		pipeline->GetSource()->op_timer.resume();
+	}
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
+	// timer stop
+	pipeline->GetSource()->op_timer.stop();
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
@@ -75,10 +84,18 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// call execute pipe
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
-std::cout << "starting (sink) operator" << std::endl;
+			// timer start
+		if( pipeline->GetSink()->timer_started ){
+			pipeline->GetSink()->op_timer.start();
+			pipeline->GetSink()->timer_started = true;
+		} else {
+			pipeline->GetSink()->op_timer.resume();
+		}
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
+			// timer stop
+		pipeline->GetSink()->op_timer.stop();
 		// break when pipes for single chunk finishes
 		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 
 			break;
@@ -117,9 +134,18 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		// start current operator
 std::cout << "starting (interm) operator" << std::endl;
 		// give interm as input and interm as output
+			// timer start
+		if( pipeline->GetIdxOperator(current_idx)->timer_started ){
+			pipeline->GetIdxOperator(current_idx)->op_timer.start();
+			pipeline->GetIdxOperator(current_idx)->timer_started = true;
+		} else {
+			pipeline->GetIdxOperator(current_idx)->op_timer.resume();
+		}
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
+			// timer stop
+		pipeline->GetIdxOperator(current_idx)->op_timer.stop();
 		// if result needs more output, push index to stack
 		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
 			in_process_operators.push(current_idx);
