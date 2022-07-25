@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
+# SET CPP version 
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
+set (CMAKE_CXX_STANDARD 17)
+
 project(turbograph-v3)
 
 add_subdirectory(tbgpp-graph-store)
