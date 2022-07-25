@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert> 
-#include <filesystem>
+
 #include <algorithm>
 #include <fstream>
 #include <string>
@@ -14,8 +14,6 @@
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
 
-
-namespace fs = std::filesystem;
 /*
 void strConvertToVertexLabelFormat(std::string& input) {
 
