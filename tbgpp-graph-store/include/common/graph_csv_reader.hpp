@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/stat.h>
 #include "common/common.hpp"
 #include "common/assert.hpp"
 #include "common/unordered_map.hpp"
@@ -8,6 +9,52 @@
 #include "third_party/csv-parser/csv.hpp"
 
 namespace duckdb {
+
+inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t current_index, csv::CSVField &val) {
+	auto data_ptr = output.data[i].GetData();
+	switch (type.id()) {
+		case LogicalTypeId::BOOLEAN:
+			((bool *)data_ptr)[current_index] = val.get<bool>(); break;
+		case LogicalTypeId::TINYINT:
+			((int8_t *)data_ptr)[current_index] = val.get<int8_t>(); break;
+		case LogicalTypeId::SMALLINT:
+			((int16_t *)data_ptr)[current_index] = val.get<int16_t>(); break;
+		case LogicalTypeId::INTEGER:
+			((int32_t *)data_ptr)[current_index] = val.get<int32_t>(); break;
+		case LogicalTypeId::BIGINT:
+			((int64_t *)data_ptr)[current_index] = val.get<int64_t>(); break;
+		case LogicalTypeId::UTINYINT:
+			((uint8_t *)data_ptr)[current_index] = val.get<uint8_t>(); break;
+		case LogicalTypeId::USMALLINT:
+			((uint16_t *)data_ptr)[current_index] = val.get<uint16_t>(); break;
+		case LogicalTypeId::UINTEGER:
+			((uint32_t *)data_ptr)[current_index] = val.get<uint32_t>(); break;
+		case LogicalTypeId::UBIGINT:
+			((uint64_t *)data_ptr)[current_index] = val.get<uint64_t>(); break;
+		case LogicalTypeId::HUGEINT:
+			throw NotImplementedException("Do not support HugeInt"); break;
+		case LogicalTypeId::DECIMAL:
+			throw NotImplementedException("Do not support Decimal"); break;
+		case LogicalTypeId::FLOAT:
+			((float *)data_ptr)[current_index] = val.get<float>(); break;
+		case LogicalTypeId::DOUBLE:
+			((double *)data_ptr)[current_index] = val.get<double>(); break;
+		case LogicalTypeId::VARCHAR:
+			((string_t *)data_ptr)[current_index] = StringVector::AddStringOrBlob(output.data[i], val.get<>()); break;
+		default:
+			throw NotImplementedException("Unsupported type");
+	}
+}
+
+// template <> inline void SetValueFromCSV<LogicalTypeId::BOOLEAN>(DataChunk &output, size_t i, idx_t current_index, csv::CSVField &val) {
+// 	auto data_ptr = output.data[i].GetData();
+// 	((bool *)data_ptr)[current_index] = val.get<bool>();
+// }
+
+// template <> inline void SetValueFromCSV<LogicalTypeId::TINYINT>(DataChunk &output, size_t i, idx_t current_index, csv::CSVField &val) {
+// 	auto data_ptr = output.data[i].GetData();
+// 	((bool *)data_ptr)[current_index] = val.get<bool>();
+// }
 
 inline Value CSVValToValue(csv::CSVField &val, LogicalType &type) {
 	switch (type.id()) {
@@ -50,7 +97,7 @@ public:
     GraphCSVFileReader() {}
     ~GraphCSVFileReader() {}
 
-    void InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
+    size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
         type = type_;
 
         // Initialize CSV Reader & iterator
@@ -61,6 +108,7 @@ public:
         csv_it = reader->begin();
 
 		// Parse header
+		size_t approximated_size_of_a_row = 0;
         vector<string> col_names = move(reader->get_col_names());
         for (size_t i = 0; i < col_names.size(); i++) {
             // Assume each element in the header column is of format 'key:type'
@@ -75,13 +123,24 @@ public:
 				if (dst_column == -1) key_names.push_back(src_key_name + "_src");
 				else key_names.push_back(dst_key_name + "_dst");
 				key_types.push_back(move(type));
+				approximated_size_of_a_row += GetTypeIdSize(type.InternalType());
 			} else {
 				std::string type_name = key_and_type.substr(delim_pos + 1);
 				LogicalType type = StringToLogicalType(type_name, i);
 				key_names.push_back(move(key));
 				key_types.push_back(move(type));
+				approximated_size_of_a_row += GetTypeIdSize(type.InternalType());
 			}
         }
+
+		// Estimate number of rows
+		struct stat stat_buf;
+		int rc = stat(csv_file_path, &stat_buf);
+		D_ASSERT(rc != 0);
+		size_t file_size = rc == 0 ? stat_buf.st_size : -1;
+		fprintf(stdout, "file_size = %ld, approximated_size = %ld, approximated_num_rows = %ld\n", file_size, approximated_size_of_a_row,
+						file_size / approximated_size_of_a_row);
+		return file_size / approximated_size_of_a_row;
     }
 
 	bool GetSchemaFromHeader(vector<string> &names, vector<LogicalType> &types) {
@@ -145,7 +204,9 @@ public:
 			auto &row = *csv_it;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
 				csv::CSVField csv_field = row[required_key_column_idxs[i]];
-				output.SetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+				//output.SetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+				// output.SimpleSetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+				SetValueFromCSV(types[i], output, i, current_index, csv_field);
 			}
 			current_index++;
 		}
@@ -175,8 +236,10 @@ public:
 			if (current_index == STANDARD_VECTOR_SIZE) break;
 			auto &row = *csv_it;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-				csv::CSVField csv_field = row[required_key_column_idxs[i]];
-				output.SetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+				csv::CSVField csv_field = move(row[required_key_column_idxs[i]]);
+				output.SimpleSetValue(i, current_index, CSVValToValue(csv_field, types[i]));
+				// SetValueFromCSV(types[i], output, i, current_index, csv_field);
+				//output.SimpleSetValue<types[i]>(i, current_index, csv_field);
 			}
 			current_index++;
 		}

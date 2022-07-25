@@ -33,6 +33,7 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "cache/chunk_cache_manager.h"
+#include "common/robin_hood.h"
 
 using namespace duckdb;
 namespace po = boost::program_options;
@@ -119,7 +120,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     fprintf(stderr, "Init GraphCSVFile\n");
     // Initialize GraphCSVFileReader
     GraphCSVFileReader reader;
-    reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+    size_t approximated_num_rows;
+    approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 
     // Initialize Property Schema Catalog Entry using Schema of the vertex
     vector<string> key_names;
@@ -148,6 +150,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     // Initialize LID_TO_PID_MAP
     lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
     unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
+    lid_to_pid_map_instance.reserve(approximated_num_rows);
 
     // Read CSV File into DataChunk & CreateVertexExtent
     auto read_chunk_start = std::chrono::high_resolution_clock::now();
@@ -155,7 +158,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       auto read_chunk_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
       fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
-      continue;
+      //continue;
       //fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
       auto create_extent_start = std::chrono::high_resolution_clock::now();
