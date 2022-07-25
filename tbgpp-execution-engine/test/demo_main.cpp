@@ -549,12 +549,14 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
 		// sink first
-		current_root = operatorToVisualizerJSON( current_root, pipeline->sink, isRootOp ); // TODO is not j
+		current_root = operatorToVisualizerJSON( current_root, pipeline->sink, isRootOp );
 		isRootOp = false;
 		// reverse operator
-		// TODO write here
+		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
+			current_root = operatorToVisualizerJSON( current_root, *it2, false );
+		}
 		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, false );
 	}
 
 	file << html_1;
@@ -576,7 +578,6 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		content = &((*j)["Plans"][0]);
 	}
 	(*content)["Node Type"] = op->ToString();
-	// timing
 
 	// TODO need understanding about the logics of timing in psql
 	(*content)["Actual Startup Time"] = 0.0;	
