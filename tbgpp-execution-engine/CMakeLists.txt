@@ -109,9 +109,9 @@ foreach(test_file ${ENGINE_TEST_SRC})
 endforeach(test_file ${TILE_TEST_SRC})
 
 # set executable
-#add_executable( demo_main.out ${SOURCES} )
+add_executable( demo_main.out ${SOURCES} )
 #add_executable( livegraph-test tmp/_insert_graph.cpp )
 
 # link
-#target_link_libraries( demo_main.out PRIVATE tbgpp-system-lib "-ldl -pthread" )
+target_link_libraries( demo_main.out PRIVATE tbgpp-system-lib "-ldl -pthread" )
 #target_link_libraries( livegraph-test PRIVATE livegraph "-ldl -pthread")
