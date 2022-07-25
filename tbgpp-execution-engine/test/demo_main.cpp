@@ -473,12 +473,12 @@ int main(int argc, char** argv) {
 	std::cout << "execute query" << std::endl;
 
 	// Run q1
-	// auto q1_executors = suite.Test1();
-	// for( auto exec : q1_executors ) { 
-	// 	std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-	// 	std::cout << exec->pipeline->toString() << std::endl;
-	// 	exec->ExecutePipeline();
-	// }
+	auto q1_executors = suite.Test1();
+	for( auto exec : q1_executors ) { 
+		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
+		std::cout << exec->pipeline->toString() << std::endl;
+		exec->ExecutePipeline();
+	}
 
 	// Run q2
 	// auto q2_executors = suite.Test2();
@@ -489,12 +489,12 @@ int main(int argc, char** argv) {
 	// }
 
 	// Run q3
-	auto q3_executors = suite.Test3();
-	for( auto exec : q3_executors ) { 
-		std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
-		std::cout << exec->pipeline->toString() << std::endl;
-		exec->ExecutePipeline();
-	}
+	// auto q3_executors = suite.Test3();
+	// for( auto exec : q3_executors ) { 
+	// 	std::cout << "[Pipeline 1]" << std::endl;	// only 1 pipe. so ok
+	// 	std::cout << exec->pipeline->toString() << std::endl;
+	// 	exec->ExecutePipeline();
+	// }
 
 	// TODO change hard coding
 	/*livegraph::Graph graph = livegraph::Graph("/home/jhko/dev/turbograph-v3/tbgpp-execution-engine/data/storage/block",

@@ -92,7 +92,6 @@ include_directories( "${PROJECT_SOURCE_DIR}/include" )
 #include_directories( "${PROJECT_SOURCE_DIR}/include/duckdb/third_party/sqlite")
 #include_directories( "${PROJECT_SOURCE_DIR}/include/duckdb/third_party/thrift")
 
-
 add_definitions(-DDUCKDB_SOURCE_ID="\""1"\"")
 add_definitions(-DDUCKDB_VERSION="\""1"\"")
 
@@ -107,11 +106,3 @@ foreach(test_file ${ENGINE_TEST_SRC})
 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_link_libraries(${prog_name} PRIVATE tbgpp-system-lib "-ldl -pthread" )
 endforeach(test_file ${TILE_TEST_SRC})
-
-# set executable
-add_executable( demo_main.out ${SOURCES} )
-#add_executable( livegraph-test tmp/_insert_graph.cpp )
-
-# link
-target_link_libraries( demo_main.out PRIVATE tbgpp-system-lib "-ldl -pthread" )
-#target_link_libraries( livegraph-test PRIVATE livegraph "-ldl -pthread")
