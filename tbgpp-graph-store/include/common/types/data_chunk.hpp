@@ -62,6 +62,7 @@ public:
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);
+	DUCKDB_API void SimpleSetValue(idx_t col_idx, idx_t index, const Value &val);
 
 	//! Set the DataChunk to reference another data chunk
 	DUCKDB_API void Reference(DataChunk &chunk);

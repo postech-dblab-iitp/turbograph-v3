@@ -86,6 +86,10 @@ void DataChunk::SetValue(idx_t col_idx, idx_t index, const Value &val) {
 	data[col_idx].SetValue(index, val);
 }
 
+void DataChunk::SimpleSetValue(idx_t col_idx, idx_t index, const Value &val) {
+	data[col_idx].SimpleSetValue(index, val);
+}
+
 void DataChunk::Reference(DataChunk &chunk) {
 	D_ASSERT(chunk.ColumnCount() <= ColumnCount());
 	SetCardinality(chunk);
