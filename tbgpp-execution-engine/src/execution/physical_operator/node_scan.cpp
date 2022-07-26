@@ -34,15 +34,10 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 		auto initializeAPIResult =
 			itbgpp_graph->InitializeScan(state.ext_it, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); // ??zz
-		fprintf(stdout, "B\n");
-		auto scanAPIResult =
-			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
-		fprintf(stdout, "C\n");
-	} else {
-		D_ASSERT(state.ext_it != nullptr);
-		auto scanAPIResult =
-			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 	}
+	D_ASSERT(state.ext_it != nullptr);
+	auto scanAPIResult =
+		itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 	
 	/*if( state.chunkIdxToScan == -1 ) {
 		state.chunkIdxToScan +=1;
