@@ -2,6 +2,7 @@
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_subdirectory(fastpforlib)
+add_subdirectory(simdcsv)
 #if(NOT AMALGAMATION_BUILD)
 #  add_subdirectory(fmt)
   #add_subdirectory(libpg_query)
