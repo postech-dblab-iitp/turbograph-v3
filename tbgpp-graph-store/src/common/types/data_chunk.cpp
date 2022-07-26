@@ -41,11 +41,11 @@ void DataChunk::Initialize(const vector<LogicalType> &types) {
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	capacity = STANDARD_VECTOR_SIZE;
 	for (idx_t i = 0; i < types.size(); i++) {
-		if (types[i] == LogicalType::ADJLIST) {
-			data.emplace_back(Vector(types[i], nullptr));
-			VectorCache cache; // empty cache
-			vector_caches.push_back(move(cache));
-		} // will be initialized later
+		// if (types[i] == LogicalType::ADJLIST) {
+		// 	data.emplace_back(Vector(types[i], nullptr));
+		// 	VectorCache cache; // empty cache
+		// 	vector_caches.push_back(move(cache));
+		// } // will be initialized later
 		VectorCache cache(types[i]);
 		data.emplace_back(cache);
 		vector_caches.push_back(move(cache));

@@ -253,9 +253,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             // TODO we need to allocate buffer for adjlist
             idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
-            size_t adj_list_size = adjListBase[STANDARD_VECTOR_SIZE - 1];
-            output.InitializeAdjListColumn(i, adj_list_size);
-            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
+            size_t adj_list_size = adjListBase[STANDARD_VECTOR_SIZE - 1] - STANDARD_VECTOR_SIZE;
+            // output.InitializeAdjListColumn(i, adj_list_size);
+            // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
+            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], STANDARD_VECTOR_SIZE * sizeof(idx_t));
+            memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STANDARD_VECTOR_SIZE * sizeof(idx_t), 
+                   adj_list_size * sizeof(idx_t));
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -366,9 +369,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
             idx_t end_offset = adjListBase[target_seqno];
             size_t adj_list_size = end_offset - start_offset;
-            output.InitializeAdjListColumn(i, adj_list_size);
+            // output.InitializeAdjListColumn(i, adj_list_size);
             memcpy(output.data[i].GetData(), &adj_list_size, sizeof(size_t));
-            memcpy(output.data[i].GetData() + sizeof(size_t), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
+            memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
