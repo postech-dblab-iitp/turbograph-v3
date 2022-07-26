@@ -145,8 +145,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         extent_cat_entry.AddChunkDefinitionID(cdf_id);
 
         // Analyze compression to find best compression method
-        CompressionFunctionType best_compression_function;
-        if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
+        CompressionFunctionType best_compression_function = UNCOMPRESSED;
+        //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // TODO Create CompressionHeader Here
 
         // Get Buffer from Cache Manager
@@ -212,9 +212,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else if (l_type == LogicalType::ADJLIST) {
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
-            best_compression_function = BITPACKING;
+            //best_compression_function = BITPACKING;
             // TODO type support check should be done by CompressionFunction
-            if (BitpackingPrimitives::TypeIsSupported(p_type)) {
+            if (best_compression_function == BITPACKING && BitpackingPrimitives::TypeIsSupported(p_type)) {
                 // Set Compression Function
                 CompressionFunction comp_func(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress

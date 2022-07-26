@@ -59,12 +59,50 @@ StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& outp
 	} else return StoreAPIResult::DONE;
 }
 
-StoreAPIResult iTbgppGraphStore::doIndexSeek(ExtentIterator *&ext_it, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+StoreAPIResult iTbgppGraphStore::doIndexSeek(ExtentIterator *&ext_it, DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+	Catalog &cat_instance = client.db->GetCatalog();
+	D_ASSERT(labels.size() == 1); // XXX Temporary
+	string entry_name = "vps_";
+	for (auto &it : labels.data) entry_name += it;
+	PropertySchemaCatalogEntry* ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
+	vector<string> properties_temp;
+	for (size_t i = 0; i < edgeLabels.size(); i++) {
+		for (auto &it : edgeLabels[i].data) properties_temp.push_back(it);
+	}
+	for (auto &it : properties) properties_temp.push_back(it);
+	vector<idx_t> column_idxs;
+	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
 
+	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID
+	ext_it = new ExtentIterator();
+	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs);
+
+	ExtentID current_eid;
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_seqno);
+	D_ASSERT(scan_ongoing == false);
+	D_ASSERT(current_eid == target_eid);
+	return StoreAPIResult::OK;
 }
 
 bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 	return true;
+}
+
+void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
+	Catalog &cat_instance = client.db->GetCatalog();
+	D_ASSERT(labels.size() == 1); // XXX Temporary
+	string entry_name = "vps_";
+	for (auto &it : labels.data) entry_name += it;
+	PropertySchemaCatalogEntry* ps_cat_entry = 
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+	
+	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
+	for (int i = 0; i < l_types.size(); i++) {
+		if (l_types[i] == LogicalType::ADJLIST) adjColIdxs.push_back(i);
+	}
 }
 
 // This should be eliminated anytime soon.

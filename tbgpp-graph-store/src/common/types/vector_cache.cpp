@@ -5,10 +5,14 @@ namespace duckdb {
 
 class VectorCacheBuffer : public VectorBuffer {
 public:
-	explicit VectorCacheBuffer(const LogicalType &type_p)
+	explicit VectorCacheBuffer(const LogicalType &type_p, size_t size = STANDARD_VECTOR_SIZE)
 	    : VectorBuffer(VectorBufferType::OPAQUE_BUFFER), type(type_p) {
 		auto internal_type = type.InternalType();
 		switch (internal_type) {
+		case PhysicalType::ADJLIST: {
+			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+			break;
+		}
 		case PhysicalType::LIST: {
 			D_ASSERT(false); // not supported currently
 			// memory for the list offsets
@@ -101,6 +105,10 @@ void VectorCache::ResetFromCache(Vector &result) const {
 	D_ASSERT(buffer);
 	auto &vcache = (VectorCacheBuffer &)*buffer;
 	vcache.ResetFromCache(result, buffer);
+}
+
+void VectorCache::AllocateBuffer(const LogicalType &type, size_t size) {
+	buffer = make_unique<VectorCacheBuffer>(type);
 }
 
 const LogicalType &VectorCache::GetType() const {
