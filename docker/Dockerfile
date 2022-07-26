@@ -7,7 +7,9 @@ WORKDIR /root/
 # Versions
 ENV LLVM_RELEASE=14
 ENV CMAKE_VERSION=3.16.0-0kitware1
-ENV GCC_VERSION=9
+ENV GCC_VERSION=11
+ENV BOOST_MAIN_VERSION=1
+ENV BOOST_SUB_VERSION=78
 	# TODO Add more
 
 # Pre-configuration
@@ -18,7 +20,10 @@ RUN curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-
 	&& echo "deb [arch=amd64 signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
 RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && \
 	echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-	# for gcc version update
+RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+	| gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null \
+	&& echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+# for gcc version update
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
 	&& apt-get -qq update \
 	&& apt-get -qq --fix-broken install \
@@ -32,7 +37,7 @@ RUN apt-get install -y \
 		cmake=${CMAKE_VERSION} \
 		cmake-data=${CMAKE_VERSION} \
 		ninja-build \
-	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 50 --slave /usr/bin/g++ g++ /usr/bin/g++-9 \
+	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} \
 	&& git clone https://github.com/catchorg/Catch2.git && cd Catch2 && cmake -Bbuild -H. -DBUILD_TESTING=OFF && cmake --build build/ --target install
 	
 # LLVM-related
@@ -44,7 +49,21 @@ RUN apt-get install -y \
 		libtbb-dev \
 		libaio-dev \
 		numactl \
-		libboost-all-dev
+		intel-basekit
+# (boost)
+RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSION}.${BOOST_SUB_VERSION}.0/boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+  && tar xfz boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+  && rm boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+  && cd boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0 \
+  && ./bootstrap.sh --prefix=/usr/local --with-libraries=program_options \
+  && ./b2 install \
+  && cd .. \
+  && rm -rf boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0
+
+#### For developers # TODO further separate
+RUN apt-get install -y \
+	vim \
+	dstat 
 
 # TODO huh?
 RUN git config --global --add safe.directory /turbograph-v3
