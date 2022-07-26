@@ -50,12 +50,13 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	bool isHaveMoreOutput = false;
 	bool isSeekPointReached = false;
 	int srcIdx; int adjIdx;
+	idx_t *indexBase = (idx_t *)input.data[adjColIdxs[0]].GetData();
 	idx_t *adjListBase = (idx_t *)input.data[adjColIdxs[0]].GetAuxiliary()->GetData();
 	fprintf(stdout, "%s\n", input.ToString(2).c_str());
 	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// TODO need to fix when traversing "BOTH"
-		idx_t start_offset = srcIdx == 0 ? 0 : adjListBase[srcIdx - 1] - STANDARD_VECTOR_SIZE;
-		idx_t end_offset = adjListBase[srcIdx] - STANDARD_VECTOR_SIZE;
+		idx_t start_offset = srcIdx == 0 ? 0 : indexBase[srcIdx - 1] - STANDARD_VECTOR_SIZE;
+		idx_t end_offset = indexBase[srcIdx] - STANDARD_VECTOR_SIZE;
 		D_ASSERT(end_offset >= start_offset);
 		
 		//std::vector<duckdb::Value> adjList = duckdb::ListValue::GetChildren(input.GetValue(adjColIdx, srcIdx)); // TODO
