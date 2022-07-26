@@ -18,6 +18,7 @@
 
 #include "common/json_reader.hpp"
 #include "common/graph_csv_reader.hpp"
+#include "common/graph_simdcsv_parser.hpp"
 #include "common/types/data_chunk.hpp"
 #include "extent/extent_manager.hpp"
 #include "extent/extent_iterator.hpp"
@@ -105,6 +106,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   CreateGraphInfo graph_info("main", "graph1");
   GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
+  int aaa;
+  std::cin >> aaa;
   // Read Vertex CSV File & CreateVertexExtents
   for (auto &vertex_file: vertex_files) {
     auto vertex_file_start = std::chrono::high_resolution_clock::now();
@@ -118,8 +121,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
     
     fprintf(stderr, "Init GraphCSVFile\n");
-    // Initialize GraphCSVFileReader
-    GraphCSVFileReader reader;
+    // Initialize CSVFileReader
+    GraphSIMDCSVFileParser reader;
     size_t approximated_num_rows;
     approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 
@@ -202,8 +205,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     PartitionID new_pid = graph_cat->GetNewPartitionID();
     graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
 
-    // Initialize GraphCSVFileReader
-    GraphCSVFileReader reader;
+    // Initialize CSVFileReader
+    GraphSIMDCSVFileParser reader;
     reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
 
     // Initialize Property Schema Info using Schema of the edge
