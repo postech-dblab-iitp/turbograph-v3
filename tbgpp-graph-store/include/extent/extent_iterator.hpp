@@ -22,9 +22,11 @@ public:
 
     // Iterate all extents related to the PropertySchemaCatalogEntry
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
-    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types, vector<idx_t> &target_idxs);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
 
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno);
 
 private:
     bool _CheckIsMemoryEnough();
