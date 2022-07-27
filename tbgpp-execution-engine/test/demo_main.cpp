@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
 			
 			// Initialize pid base
 			idx_t pid_base = (idx_t) new_eid;
-			pid_base << 32;
+			pid_base = pid_base << 32;
 
 			// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
 			if (key_column_idx < 0) continue;
@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
 
 		// Initialize epid base
 		idx_t epid_base = (idx_t) new_eid;
-		epid_base << 32;
+		epid_base = epid_base << 32;
 
 		// Convert lid to pid using LID_TO_PID_MAP
 		idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
@@ -508,7 +508,8 @@ int main(int argc, char** argv) {
 		int idx=0;
 		for( auto exec : executors ) { 
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-			std::cout << exec->pipeline->toString() << std::endl;
+			//std::cout << exec->pipeline->toString() << std::endl;
+			std::cout << "starting!!" << std::endl;
 			exec->ExecutePipeline();
 		}
 		// end_timer

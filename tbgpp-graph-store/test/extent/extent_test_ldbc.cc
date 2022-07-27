@@ -167,7 +167,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       
       // Initialize pid base
       idx_t pid_base = (idx_t) new_eid;
-      pid_base << 32;
+      pid_base = pid_base << 32;
 
       // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
       auto map_build_start = std::chrono::high_resolution_clock::now();
@@ -267,7 +267,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
       // Initialize epid base
       idx_t epid_base = (idx_t) new_eid;
-      epid_base << 32;
+      epid_base = epid_base << 32;
 
       // Convert lid to pid using LID_TO_PID_MAP
       idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();

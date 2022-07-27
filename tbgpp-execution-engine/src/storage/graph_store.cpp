@@ -78,12 +78,13 @@ StoreAPIResult iTbgppGraphStore::doIndexSeek(ExtentIterator *&ext_it, DataChunk&
 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID
 	ext_it = new ExtentIterator();
-	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs);
+	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs, target_eid);
 
 	ExtentID current_eid;
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_seqno);
-	D_ASSERT(scan_ongoing == false);
 	D_ASSERT(current_eid == target_eid);
+	scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_seqno);
+	D_ASSERT(scan_ongoing == false);
 	return StoreAPIResult::OK;
 }
 
