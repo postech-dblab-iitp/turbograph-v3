@@ -51,8 +51,11 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	bool isSeekPointReached = false;
 	int srcIdx; int adjIdx;
 	idx_t *indexBase = (idx_t *)input.data[adjColIdxs[0]].GetData();
-	idx_t *adjListBase = (idx_t *)input.data[adjColIdxs[0]].GetAuxiliary()->GetData();
-	fprintf(stdout, "%s\n", input.ToString(2).c_str());
+	//idx_t *adjListBase = (idx_t *)input.data[adjColIdxs[0]].GetAuxiliary()->GetData();
+	VectorListBuffer &child_buffer = (VectorListBuffer &)*input.data[adjColIdxs[0]].GetAuxiliary();
+	idx_t *adjListBase = (idx_t *)child_buffer.GetChild().GetData();
+	// fprintf(stdout, "%ld\n", child_buffer.size);
+	// fprintf(stdout, "%s\n", input.ToString(2).c_str());
 	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// TODO need to fix when traversing "BOTH"
 		idx_t start_offset = srcIdx == 0 ? 0 : indexBase[srcIdx - 1] - STANDARD_VECTOR_SIZE;
@@ -64,7 +67,7 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 		idx_t *adjList = adjListBase + start_offset;
 		int numAdjs = end_offset - start_offset;
 		//std::cout << "srcidx " << srcIdx << " numADj " << numAdjs << std::endl;
-		for( adjIdx = 0 ; adjIdx < numAdjs; adjIdx++ ){
+		for( adjIdx = 0 ; adjIdx < numAdjs; adjIdx += 2 ){
 			// check have more output
 			if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
 				// output full, but we have more output.
@@ -78,6 +81,8 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 				isSeekPointReached = (state.pointToStartSeek.first <= srcIdx) && (state.pointToStartSeek.second <= adjIdx);
 				if( !isSeekPointReached ) continue;
 			}
+			// std::cout << adjIdx << " "<<  start_offset << " " << end_offset <<  std::endl;
+			// std::cout << adjList[adjIdx] << " " << adjList[adjIdx+1] << std::endl;
 			uint64_t tgtId = adjList[adjIdx];
 			// duckdb::Value v = adjList[adjIdx];
 			// uint64_t tgtId = duckdb::UBigIntValue::Get(v) ;
@@ -88,13 +93,16 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 			// add source 
 				// TODO note that src can also not be loaded when trying to exppand
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+				if (input.GetTypes()[colId] == LogicalType::ADJLIST) {
+					chunk.SetValue(colId, numProducedTuples, Value::EMPTYLIST(LogicalType::UBIGINT));
+					continue;
+				}
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
 			// add target
 				// TODO also rhs can not be loaded. based on the operator parameter.
 			itbgpp_graph->doIndexSeek(state.ext_it, targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes); // TODO
 			assert( targetTupleChunk.size() == 1 && "did not fetch well");
-
 			int columnOffset = input.ColumnCount();
 			for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
 				chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );

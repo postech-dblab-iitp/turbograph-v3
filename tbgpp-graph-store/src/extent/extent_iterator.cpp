@@ -117,7 +117,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
     toggle = 0;
     current_idx = 0;
-    max_idx = property_schema_cat_entry->extent_ids.size();
+    max_idx = 1;
     ext_property_types = move(target_types_);
     target_idxs = move(target_idxs_);
 
@@ -379,7 +379,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             for (idx_t adj_list_idx = start_offset; adj_list_idx < end_offset; adj_list_idx++) {
                 adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
             }
-            memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
+            // memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
