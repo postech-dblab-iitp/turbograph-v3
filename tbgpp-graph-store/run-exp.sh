@@ -2,8 +2,8 @@
 
 SCALE=100
 
-dynamic_vertices=(Post)
-#dynamic_vertices=(Forum Person Post Comment)
+dynamic_vertices=(Comment)
+#dynamic_vertices=(Person Forum Post Comment)
 static_vertices=(Organisation Place Tag TagClass)
 
 for i in ${dynamic_vertices[@]}; do
