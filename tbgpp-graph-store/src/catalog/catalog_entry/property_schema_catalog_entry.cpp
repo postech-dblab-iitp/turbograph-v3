@@ -52,7 +52,7 @@ vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property
 	for (auto &it : property_keys) {
 		fprintf(stdout, "Find %s\n", it.c_str());
 		auto idx = std::find(this->property_key_names.begin(), this->property_key_names.end(), it);
-		if (idx == this->property_key_names.end()) throw InvalidInputException("");
+		if (idx == this->property_key_names.end()) throw InvalidInputException("PropertySchemaCatalogEntry");
 		fprintf(stdout, "push_back %ld\n", idx - this->property_key_names.begin());
 		column_idxs.push_back(idx - this->property_key_names.begin());
 	}

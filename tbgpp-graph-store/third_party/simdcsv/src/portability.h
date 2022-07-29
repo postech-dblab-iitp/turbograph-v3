@@ -72,7 +72,7 @@ static inline int leadingzeroes(uint64_t  input_num) {
 }
 
 /* result might be undefined when input_num is zero */
-static inline int hamming(uint64_t input_num) {
+static inline uint64_t hamming(uint64_t input_num) {
 #ifdef __POPCOUNT__
 	return _popcnt64(input_num);
 #else
