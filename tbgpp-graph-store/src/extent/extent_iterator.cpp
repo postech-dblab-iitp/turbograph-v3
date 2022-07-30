@@ -369,16 +369,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 }
             }
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
-            idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
-            idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
-            idx_t end_offset = adjListBase[target_seqno];
-            size_t adj_list_size = end_offset - start_offset;
-            // output.InitializeAdjListColumn(i, adj_list_size);
-            memcpy(output.data[i].GetData(), &adj_list_size, sizeof(size_t));
-            VectorListBuffer &adj_list_buffer = (VectorListBuffer &)*output.data[i].GetAuxiliary();
-            for (idx_t adj_list_idx = start_offset; adj_list_idx < end_offset; adj_list_idx++) {
-                adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
-            }
+            // TODO
+            // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
+            // idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
+            // idx_t end_offset = adjListBase[target_seqno];
+            // size_t adj_list_size = end_offset - start_offset;
+            // // output.InitializeAdjListColumn(i, adj_list_size);
+            // memcpy(output.data[i].GetData(), &adj_list_size, sizeof(size_t));
+            // VectorListBuffer &adj_list_buffer = (VectorListBuffer &)*output.data[i].GetAuxiliary();
+            // for (idx_t adj_list_idx = start_offset; adj_list_idx < end_offset; adj_list_idx++) {
+            //     adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
+            // }
             // memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
         } else {
             if (comp_header.comp_type == BITPACKING) {
@@ -398,6 +399,29 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     return true;
 }
 
+bool ExtentIterator::GetExtent(data_ptr_t chunk_ptr) {
+    D_ASSERT(ext_property_types[0] == LogicalType::ADJLIST); // Only for ADJLIIST now..
+    // Keep previous values
+    int prev_toggle = toggle;
+    if (current_idx > max_idx) return false;
+
+    // Request chunk cache manager to finalize I/O
+    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
+        ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+
+    CompressionHeader comp_header;
+    
+    D_ASSERT(ext_property_types.size() == 1);
+    for (size_t i = 0; i < ext_property_types.size(); i++) {
+        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
+        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+                        i, io_requested_cdf_ids[prev_toggle][i], comp_header.data_len, 
+                        io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        chunk_ptr = (data_ptr_t)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
+    }
+    return true;
+}
+
 
 bool ExtentIterator::_CheckIsMemoryEnough() {
     // TODO check memory.. if possible, use double buffering
@@ -405,6 +429,36 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
     bool enough = true;
 
     return enough;
+}
+
+void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid) {
+    ExtentID target_eid = vid >> 32;
+    if (is_initialized && target_eid == cur_eid) return;
+
+    vector<LogicalType> target_types { LogicalType::ADJLIST };
+	vector<idx_t> target_idxs { (idx_t)adjColIdx };
+    ext_it = new ExtentIterator();
+    ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
+}
+
+void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {
+    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+    data_ptr_t adj_list;
+    ext_it->GetExtent(adj_list);
+    idx_t *adjListBase = (idx_t *)adj_list;
+    *start_idx = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
+    *end_idx = adjListBase[target_seqno];
+}
+
+void AdjacencyListIterator::getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
+    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+    data_ptr_t adj_list;
+    ext_it->GetExtent(adj_list);
+    idx_t *adjListBase = (idx_t *)adj_list;
+    idx_t start_idx = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
+    idx_t end_idx = adjListBase[target_seqno];
+    start_ptr = adjListBase + start_idx;
+    end_ptr = adjListBase + end_idx;
 }
 
 }

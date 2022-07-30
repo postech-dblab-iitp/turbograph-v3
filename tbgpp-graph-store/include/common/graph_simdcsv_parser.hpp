@@ -458,6 +458,7 @@ public:
     for (size_t i = 0; i < col_names.size(); i++) {
       // Assume each element in the header column is of format 'key:type'
       std::string key_and_type = col_names[i]; 
+      std::cout << key_and_type << std::endl;
       size_t delim_pos = key_and_type.find(':');
       if (delim_pos == std::string::npos) throw InvalidInputException("D");
       std::string key = key_and_type.substr(0, delim_pos);
