@@ -221,7 +221,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
                         i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
                         io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         if (ext_property_types[i] == LogicalType::VARCHAR) {
@@ -252,17 +252,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             // TODO we need to allocate buffer for adjlist
-            idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
-            size_t adj_list_end = adjListBase[STANDARD_VECTOR_SIZE - 1];
-            // output.InitializeAdjListColumn(i, adj_list_size);
-            // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
-            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], STANDARD_VECTOR_SIZE * sizeof(idx_t));
-            VectorListBuffer &adj_list_buffer = (VectorListBuffer &)*output.data[i].GetAuxiliary();
-            for (idx_t adj_list_idx = STANDARD_VECTOR_SIZE; adj_list_idx < adj_list_end; adj_list_idx++) {
-                adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
-            }
-            // memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STANDARD_VECTOR_SIZE * sizeof(idx_t), 
-            //        adj_list_size * sizeof(idx_t));
+            // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
+            // size_t adj_list_end = adjListBase[STANDARD_VECTOR_SIZE - 1];
+            // // output.InitializeAdjListColumn(i, adj_list_size);
+            // // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], io_requested_buf_sizes[prev_toggle][i]);
+            // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i], STANDARD_VECTOR_SIZE * sizeof(idx_t));
+            // VectorListBuffer &adj_list_buffer = (VectorListBuffer &)*output.data[i].GetAuxiliary();
+            // for (idx_t adj_list_idx = STANDARD_VECTOR_SIZE; adj_list_idx < adj_list_end; adj_list_idx++) {
+            //     adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
+            // }
+            // // memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STANDARD_VECTOR_SIZE * sizeof(idx_t), 
+            // //        adj_list_size * sizeof(idx_t));
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 PhysicalType p_type = ext_property_types[i].InternalType();

@@ -18,6 +18,7 @@
 
 #include "common/json_reader.hpp"
 #include "common/graph_csv_reader.hpp"
+#include "common/graph_simdcsv_parser.hpp"
 #include "common/types/data_chunk.hpp"
 #include "extent/extent_manager.hpp"
 #include "extent/extent_iterator.hpp"
@@ -33,6 +34,7 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "cache/chunk_cache_manager.h"
+#include "common/robin_hood.h"
 
 using namespace duckdb;
 namespace po = boost::program_options;
@@ -104,10 +106,12 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   CreateGraphInfo graph_info("main", "graph1");
   GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
+  int aaa;
+  // std::cin >> aaa;
   // Read Vertex CSV File & CreateVertexExtents
   for (auto &vertex_file: vertex_files) {
     auto vertex_file_start = std::chrono::high_resolution_clock::now();
-    fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
+    fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
     // Create Partition for each vertex (partitioned by label)
     vector<string> vertex_labels = {vertex_file.first};
     string partition_name = "vpart_" + vertex_file.first;
@@ -116,10 +120,15 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     PartitionID new_pid = graph_cat->GetNewPartitionID();
     graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
     
-    fprintf(stderr, "Init GraphCSVFile\n");
-    // Initialize GraphCSVFileReader
-    GraphCSVFileReader reader;
-    reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+    fprintf(stdout, "Init GraphCSVFile\n");
+    auto init_csv_start = std::chrono::high_resolution_clock::now();
+    // Initialize CSVFileReader
+    GraphSIMDCSVFileParser reader;
+    size_t approximated_num_rows;
+    approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+    auto init_csv_end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
+    fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
 
     // Initialize Property Schema Catalog Entry using Schema of the vertex
     vector<string> key_names;
@@ -148,6 +157,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     // Initialize LID_TO_PID_MAP
     lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
     unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
+    lid_to_pid_map_instance.reserve(approximated_num_rows);
 
     // Read CSV File into DataChunk & CreateVertexExtent
     auto read_chunk_start = std::chrono::high_resolution_clock::now();
@@ -155,7 +165,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       auto read_chunk_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
       fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
-      continue;
+      //continue;
       //fprintf(stderr, "%s\n", data.ToString().c_str());
       // Create Vertex Extent by Extent Manager
       auto create_extent_start = std::chrono::high_resolution_clock::now();
@@ -173,8 +183,12 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       auto map_build_start = std::chrono::high_resolution_clock::now();
       if (key_column_idx < 0) continue;
       idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
-      for (idx_t seqno = 0; seqno < data.size(); seqno++)
+      for (idx_t seqno = 0; seqno < data.size(); seqno++) {
         lid_to_pid_map_instance.emplace(key_column[seqno], pid_base + seqno);
+        // if (new_eid >= 65536 + 55 && new_eid <= 65536 + 57) {
+        //std::cout << key_column[seqno] << " inserted at seqno: " << seqno << ", pid = " << pid_base + seqno << std::endl;
+        // }
+      }
       auto map_build_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
       fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
@@ -186,11 +200,12 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
   }
 
-  fprintf(stderr, "Vertex File Loading Done\n");
+  fprintf(stdout, "Vertex File Loading Done\n");
 
   // Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
   for (auto &edge_file: edge_files) {
-    fprintf(stderr, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
+    auto edge_file_start = std::chrono::high_resolution_clock::now();
+    fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
     // Create Partition for each edge (partitioned by edge type)
     string edge_type = edge_file.first;
     string partition_name = "epart_" + edge_file.first;
@@ -199,8 +214,8 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     PartitionID new_pid = graph_cat->GetNewPartitionID();
     graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
 
-    // Initialize GraphCSVFileReader
-    GraphCSVFileReader reader;
+    // Initialize CSVFileReader
+    GraphSIMDCSVFileParser reader;
     reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
 
     // Initialize Property Schema Info using Schema of the edge
@@ -215,7 +230,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     reader.GetSrcColumnIndexFromHeader(src_column_idx, src_column_name);
     reader.GetDstColumnIndexFromHeader(dst_column_idx, dst_column_name);
     if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("B");
-    fprintf(stderr, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
+    fprintf(stdout, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
 
     auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
       [&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
@@ -414,6 +429,11 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
     ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
     adj_list_chunk.Destroy();
+
+    auto edge_file_end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = edge_file_end - edge_file_start;
+
+    fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
   }
 
   // Loading Done. Iterate vertex & edge files
@@ -437,6 +457,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ext_it.GetNextExtent(*client.get(), data, output_eid);
     
     // Print DataChunk
+    fprintf(stdout, "Print Vertex Data %s\n", vertex_file.first.c_str());
     fprintf(stdout, "%s\n", data.ToString(10).c_str());
   }
 
