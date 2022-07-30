@@ -93,7 +93,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	auto e1 = LabelSet();
 	e1.insert("LIKES");
 	scan_edegLabelSets.push_back(e1);
-	scan_loadAdjOpt = LoadAdjListOption::OUTGOING;
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
 	scan_propertyKeys.push_back("id");
 
 	// Expand

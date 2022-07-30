@@ -154,6 +154,7 @@ int main(int argc, char** argv) {
 	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 
 	// Initialize ChunkCacheManager
+	fprintf(stdout, "\nInitialize ChunkCacheManager\n");
 	ChunkCacheManager::ccm = new ChunkCacheManager();
 
 	// Run Catch Test
@@ -511,6 +512,7 @@ int main(int argc, char** argv) {
 			//std::cout << exec->pipeline->toString() << std::endl;
 			std::cout << "starting!!" << std::endl;
 			exec->ExecutePipeline();
+			std::cout << "done pipeline execution!!" << std::endl;
 		}
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
