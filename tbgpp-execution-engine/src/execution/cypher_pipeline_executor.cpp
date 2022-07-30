@@ -161,6 +161,7 @@ std::cout << "starting (interm) operator" << std::endl;
 		current_idx += 1;
 	}
 	// pipe done as we reached the sink
+	// TODO need to add one more case : terminate pipe for e.g. for LIMIT query.
 	return in_process_operators.empty() ?
 		OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;
 }
