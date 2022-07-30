@@ -12,6 +12,7 @@
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 #include "execution/physical_operator/produce_results.hpp"
 #include "execution/physical_operator/expand.hpp"
+#include "execution/physical_operator/naive_expand.hpp"
 #include "execution/physical_operator/simple_filter.hpp"
 #include "execution/physical_operator/simple_projection.hpp"
 
@@ -202,7 +203,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	*/
 	// scan schema
 	CypherSchema schema;
-	schema.addNode("n", LoadAdjListOption::OUTGOING);
+	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "birthday", duckdb::LogicalType::BIGINT);
 	schema.addPropertyIntoNode("n", "firstName", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "lastName", duckdb::LogicalType::VARCHAR);
@@ -247,7 +248,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	LoadAdjListOption tgt_loadAdjOpt = LoadAdjListOption::NONE;
 	PropertyKeys tgt_propertyKeys;
 	tgt_propertyKeys.push_back("id");
-		// 0 . / . 1  /  2-9   / 10  / 11
+		// 0 . / . 1  /  1-8   / 9  / 10
 		// nid / nadj / nttr-8 / pid / pattr-1
 	
 	// Project
@@ -261,7 +262,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	project_schema.addColumn("gender", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
 
-	std::vector<int> project_ordering({3, 4, 2, 7, 6, 11, 5, 8});
+	std::vector<int> project_ordering({2, 3, 1, 6, 5, 10, 4, 7});
 
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
@@ -269,7 +270,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
-	ops.push_back(new Expand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
+	ops.push_back(new NaiveExpand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
 	ops.push_back(new SimpleProjection(project_schema, project_ordering));
 		// sink
 	ops.push_back(new ProduceResults(project_schema));
@@ -286,4 +287,3 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 
 
 
-}
