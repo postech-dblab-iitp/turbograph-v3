@@ -30,7 +30,7 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
 	if (state.first_time_here) {
 		state.first_time_here = false;
-		fprintf(stdout, "A\n");
+		// fprintf(stdout, "A\n");
 		auto initializeAPIResult =
 			itbgpp_graph->InitializeScan(state.ext_it, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); // ??zz

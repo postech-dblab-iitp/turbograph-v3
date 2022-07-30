@@ -21,6 +21,8 @@
 #include "object_log.h"
 #include "store.h"
 
+#include <memory>
+
 int main() {
   // if (signal(SIGINT, signal_handler) == SIG_ERR) {
   //   std::cerr << "cannot register signal handler!" << std::endl;
