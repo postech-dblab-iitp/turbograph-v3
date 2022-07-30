@@ -57,6 +57,7 @@ using json = nlohmann::json;
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "common/graph_csv_reader.hpp"
+#include "common/graph_simdcsv_parser.hpp"
 
 using namespace duckdb;
 
@@ -194,7 +195,7 @@ int main(int argc, char** argv) {
 		
 		fprintf(stderr, "Init GraphCSVFile\n");
 		// Initialize GraphCSVFileReader
-		GraphCSVFileReader reader;
+		GraphSIMDCSVFileParser reader;
 		reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 
 		// Initialize Property Schema Catalog Entry using Schema of the vertex
@@ -259,7 +260,7 @@ int main(int argc, char** argv) {
 		graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
 
 		// Initialize GraphCSVFileReader
-		GraphCSVFileReader reader;
+		GraphSIMDCSVFileParser reader;
 		reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
 
 		// Initialize Property Schema Info using Schema of the edge
