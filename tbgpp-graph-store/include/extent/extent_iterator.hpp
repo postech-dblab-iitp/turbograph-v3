@@ -27,6 +27,7 @@ public:
 
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno);
+    bool GetExtent(data_ptr_t chunk_ptr);
 
 private:
     bool _CheckIsMemoryEnough();
@@ -44,6 +45,21 @@ private:
     int num_data_chunks;
     int toggle;
     bool support_double_buffering;
+};
+
+class AdjacencyListIterator {
+public:
+    AdjacencyListIterator() {}
+    ~AdjacencyListIterator() {}
+
+    void Initialize(ClientContext &context, int adjColIdx, uint64_t vid);
+    void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
+    void getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr);
+
+private:
+    bool is_initialized = false;
+    ExtentIterator *ext_it;
+    ExtentID cur_eid;
 };
 
 } // namespace duckdb

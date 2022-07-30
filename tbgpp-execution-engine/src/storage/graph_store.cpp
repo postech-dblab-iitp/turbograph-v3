@@ -106,6 +106,24 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
 	}
 }
 
+StoreAPIResult iTbgppGraphStore::getAdjListRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t* start_idx, uint64_t* end_idx) {
+	adj_iter.Initialize(client, adjColIdx, vid);
+	adj_iter.getAdjListRange(vid, start_idx, end_idx);
+	return StoreAPIResult::OK; 
+}
+
+StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase) {
+	adj_iter.Initialize(client, adjColIdx, vid);
+	// adj_iter.getAdjListRange(vid, start_idx, end_idx);
+	return StoreAPIResult::OK;
+}
+
+StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
+	adj_iter.Initialize(client, adjColIdx, vid);
+	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr);
+	return StoreAPIResult::OK;
+}
+
 // This should be eliminated anytime soon.
 std::vector<int> getLDBCPropertyIndices(LabelSet labels, PropertyKeys properties) {
 
