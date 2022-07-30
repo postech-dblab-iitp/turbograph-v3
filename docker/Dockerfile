@@ -49,6 +49,7 @@ RUN apt-get install -y \
 		libtbb-dev \
 		libaio-dev \
 		numactl \
+		libnuma-dev \
 		intel-basekit
 # (boost)
 RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSION}.${BOOST_SUB_VERSION}.0/boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \

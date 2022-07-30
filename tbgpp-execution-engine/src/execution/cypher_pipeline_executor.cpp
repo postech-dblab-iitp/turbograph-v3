@@ -44,7 +44,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
 		// std::cout << "why?!!" << std::endl;
-		//source_chunk.Reset();
+		source_chunk.Reset();
 		FetchFromSource(source_chunk);
 		// std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
