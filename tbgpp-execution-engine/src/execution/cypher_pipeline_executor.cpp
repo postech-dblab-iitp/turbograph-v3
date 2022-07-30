@@ -47,7 +47,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		//source_chunk.Reset();
 		FetchFromSource(source_chunk);
 		// std::cout << "fetched!!" << std::endl;
-		//if( source_chunk.size() == 0 ) { break; }
+		if( source_chunk.size() == 0 ) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
 			// this will always result NEED_MORE_INPUT;
