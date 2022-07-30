@@ -26,14 +26,6 @@ public:
 	StoreAPIResult doIndexSeek(ExtentIterator *&ext_it, duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) { return StoreAPIResult::OK; }
 	bool isNodeInLabelset(u_int64_t id, LabelSet labels) { return true; }
 	void getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {}
-	// TODO ! Scan with storage predicate
-	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
-
-	// StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
-	// StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
-
-	// StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
-	// StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
 
 };
 
@@ -48,6 +40,10 @@ public:
 	StoreAPIResult doIndexSeek(ExtentIterator *&ext_it, duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema);
 	bool isNodeInLabelset(u_int64_t id, LabelSet labels);
 	void getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs);
+
+	// operator definition for getAdjListRange
+	StoreAPIResult getAdjListRange(uint64_t vid, uint64_t* start_idx, uint64_t* end_idx);
+	StoreAPIResult getAdjListFromRange(uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output );
 
 private:
 	ClientContext &client;

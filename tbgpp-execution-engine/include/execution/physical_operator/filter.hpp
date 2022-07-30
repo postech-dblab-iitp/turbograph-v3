@@ -2,17 +2,18 @@
 #include "typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-
 #include "common/types/value.hpp"
+
+#include "execution/expression_executor.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
 
 namespace duckdb {
 
-class SimpleFilter: public CypherPhysicalOperator {
+class Filter: public CypherPhysicalOperator {
 
 public:
-	SimpleFilter(CypherSchema& sch, int targetColumn, duckdb::Value predicateValue)
-		: CypherPhysicalOperator(sch), targetColumn(targetColumn), predicateValue(predicateValue) { }
-	~SimpleFilter() {}
+	Filter(CypherSchema& sch, vector<unique_ptr<Expression>> select_list);
+	~Filter() {}
 
 public:
 
@@ -22,8 +23,7 @@ public:
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
-	int targetColumn;
-	duckdb::Value predicateValue;
+	std::unique_ptr<Expression> expression;
 
 };
 
