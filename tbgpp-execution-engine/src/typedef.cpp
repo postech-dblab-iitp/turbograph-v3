@@ -74,6 +74,7 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 	
 	CypherSchema nodeSchema;
+	// TODO need to be restored.
 	// nodeSchema.attrs.push_back(
 	// 	std::make_tuple("_id", CypherValueType::ID, LogicalType(LogicalTypeId::UBIGINT))
 	// );

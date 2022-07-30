@@ -119,7 +119,9 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_
 }
 
 StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
+	std::cout << "go init" << std::endl;
 	adj_iter.Initialize(client, adjColIdx, vid);
+
 	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr);
 	return StoreAPIResult::OK;
 }

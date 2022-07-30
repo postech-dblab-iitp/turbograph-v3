@@ -21,6 +21,7 @@ public:
 	// returns root pipeline
 	std::vector<CypherPipelineExecutor*> Test1();
 	std::vector<CypherPipelineExecutor*> Test1_1();
+	std::vector<CypherPipelineExecutor*> Test1_2();
 	std::vector<CypherPipelineExecutor*> Test2();
 	std::vector<CypherPipelineExecutor*> Test3();
 	std::vector<CypherPipelineExecutor*> Test4();

@@ -493,11 +493,15 @@ int main(int argc, char** argv) {
 		
 		if( query_str.compare("t1") == 0 ) {
 			executors = suite.Test1();
+		} else if( query_str.compare("t1_1") == 0 ) {
+			executors = suite.Test1_1();
+		} else if( query_str.compare("t1_2") == 0 ) {
+			executors = suite.Test1_2();
 		} else if( query_str.compare("t2") == 0 ) {
 			executors = suite.Test2();
 		} else if( query_str.compare("t3") == 0 ) {
 			executors = suite.Test3();
-		} else if( query_str.compare("ldbc-s1") == 0 ) {
+		} else if( query_str.compare("s1") == 0 ) {
 			executors = suite.LDBCShort1();
 		} 
 
