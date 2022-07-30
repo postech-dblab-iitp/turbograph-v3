@@ -21,13 +21,19 @@ OperatorResultType SimpleProjection::Execute(GraphStore* graph, DataChunk &input
 	//auto &state = (SimpleFilterState &)state;
 	// state not necessary
 
+	// int newIdx = 0;
+	// for( int srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
+	// 	for( auto oldIdx: colOrdering) {
+	// 		chunk.SetValue(newIdx, srcIdx, input.GetValue(oldIdx, srcIdx) );
+	// 		newIdx +=1;
+	// 	}
+	// 	newIdx = 0;
+	// }
+
 	int newIdx = 0;
-	for( int srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
-		for( auto oldIdx: colOrdering) {
-			chunk.SetValue(newIdx, srcIdx, input.GetValue(oldIdx, srcIdx) );
-			newIdx +=1;
-		}
-		newIdx = 0;
+	for(auto oldIdx: colOrdering) {
+		chunk.data[newIdx].Reference( input.data[oldIdx] );
+		newIdx += 1;
 	}
 	chunk.SetCardinality( input.size() );
 
@@ -40,7 +46,7 @@ std::string SimpleProjection::ParamsToString() const {
 }
 
 std::string SimpleProjection::ToString() const {
-	return "SimpleProjection";
+	return "SProjection";
 }
 
 

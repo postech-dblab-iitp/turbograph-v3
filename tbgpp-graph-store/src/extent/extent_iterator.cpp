@@ -123,19 +123,23 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
     ext_ids_to_iterate.push_back(target_eid);
 
+    std::cout<< "AA" << std::endl;
+
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
-        
+        std::cout<< "BB" << std::endl;
         size_t chunk_size = target_idxs.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
-
+std::cout<< "CC" << chunk_size << target_idxs[0] << extent_cat_entry->chunks.size() <<  std::endl;
         for (int i = 0; i < chunk_size; i++) {
+            std::cout<< "CCC " << target_idxs[i] << extent_cat_entry->chunks.size() << std::endl;
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
+            std::cout<< "DD" << std::endl;
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
@@ -433,12 +437,16 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
 
 void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid) {
     ExtentID target_eid = vid >> 32;
+
     if (is_initialized && target_eid == cur_eid) return;
 
     vector<LogicalType> target_types { LogicalType::ADJLIST };
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
+    
     ext_it = new ExtentIterator();
+    std::cout << "extend init" << std::endl;
     ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
+    std::cout << "extend init done" << std::endl;
 }
 
 void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {

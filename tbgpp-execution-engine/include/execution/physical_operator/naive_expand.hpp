@@ -2,6 +2,7 @@
 #include "typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "storage/graph_store.hpp"
 
 namespace duckdb {
 
