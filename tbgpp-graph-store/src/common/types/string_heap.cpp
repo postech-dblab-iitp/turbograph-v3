@@ -9,7 +9,8 @@
 
 namespace duckdb {
 
-#define MINIMUM_HEAP_SIZE 4096
+//#define MINIMUM_HEAP_SIZE 4096
+#define MINIMUM_HEAP_SIZE 1073741824
 
 StringHeap::StringHeap() : tail(nullptr) {
 }

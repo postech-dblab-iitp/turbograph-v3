@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.10)
 project(tbgpp-graph-store)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt -lpthread -ltbb -fopenmp -laio -lnuma")
+#set(CMAKE_CXX_FLAGS                  "-std=c++17 -march=native -Wall -Wextra")
+set(CMAKE_CXX_FLAGS                  "-std=c++17 -march=native -mavx2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
@@ -22,6 +24,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/inclu
                     "${PROJECT_SOURCE_DIR}/include/third_party/fmt/include" "${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
                     "${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include")
 include_directories("${PROJECT_SOURCE_DIR}/third_party/fastpforlib")
+include_directories("${PROJECT_SOURCE_DIR}/third_party/simdcsv/src")
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
@@ -54,6 +57,7 @@ add_subdirectory(third_party)
 
 add_library(tbgpp-system-lib STATIC ${TBGPP_SYSTEM_SOURCES})
 target_link_libraries(tbgpp-system-lib duckdb_fastpforlib)
+target_link_libraries(tbgpp-system-lib turbograph_simdcsv)
 target_compile_options(tbgpp-system-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-system-lib PUBLIC ${CXX_DEFINITION})
 target_include_directories(tbgpp-system-lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
@@ -107,3 +111,4 @@ foreach(test_file ${TILE_TEST_SRC})
 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_link_libraries(${prog_name} PRIVATE tbgpp-system-lib Catch2::Catch2WithMain)
 endforeach(test_file ${TILE_TEST_SRC})
+MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )

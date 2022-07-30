@@ -56,7 +56,7 @@ void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChun
     PartitionID pid = prop_schema_cat_entry.GetPartitionID();
     for (auto &l_type : input.GetTypes()) prop_schema_cat_entry.AppendType(l_type);
     for (auto &key : append_keys) prop_schema_cat_entry.AppendKey(key);
-    _AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
 }
 
 void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
@@ -156,7 +156,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         size_t alloc_buf_size;
         if (l_type == LogicalType::ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
         } else if (l_type == LogicalType::VARCHAR) {
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
@@ -210,7 +210,11 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 }
             }
         } else if (l_type == LogicalType::ADJLIST) {
-            memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
+            idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
+            size_t input_size = adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+            CompressionHeader comp_header(UNCOMPRESSED, input_size);
+            memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
+            memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
         } else {
             //best_compression_function = BITPACKING;
             // TODO type support check should be done by CompressionFunction

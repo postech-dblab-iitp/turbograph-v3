@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <unordered_set>
 #include <vector>
+#include <memory>
 
 #include "log_disk.h"
 #include "object_log.h"

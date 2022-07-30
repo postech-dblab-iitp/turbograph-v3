@@ -75,7 +75,7 @@ void DictionaryCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_
         string_size = data[i].GetSize();
         //if (string_size >= StringUncompressed::STRING_BLOCK_LIMIT) {
         if (string_size >= 4096U) {
-            throw InvalidInputException("");
+            throw InvalidInputException("Dictionary Compression");
             // Big strings not implemented for dictionary compression
             //return false;
             return;
