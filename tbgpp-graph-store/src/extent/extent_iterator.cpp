@@ -127,13 +127,8 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     {
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
-<<<<<<< HEAD
-        std::cout<< "BB" << std::endl;
-        size_t chunk_size = target_idxs.size();
-=======
         
         size_t chunk_size = ext_property_types.size();
->>>>>>> dev/demo2207-tslee
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
