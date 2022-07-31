@@ -515,7 +515,9 @@ int main(int argc, char** argv) {
 		// }
 		else if( query_str.compare("s1") == 0 ) {
 			executors = suite.LDBCShort1();
-		} 
+		} else if( query_str.compare("s5") == 0 ) {
+			executors = suite.LDBCShort5();
+		}
 
 		// TODO add
 		else {
