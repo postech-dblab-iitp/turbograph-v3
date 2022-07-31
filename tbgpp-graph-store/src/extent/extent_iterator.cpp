@@ -134,11 +134,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         io_requested_buf_sizes[toggle].resize(chunk_size);
 std::cout<< "CC" << chunk_size << target_idxs[0] << extent_cat_entry->chunks.size() <<  std::endl;
         for (int i = 0; i < chunk_size; i++) {
-<<<<<<< HEAD
-            std::cout<< "CCC " << target_idxs[i] << extent_cat_entry->chunks.size() << std::endl;
-=======
             if (ext_property_types[i] == LogicalType::ID) continue;
->>>>>>> dev/demo2207-tslee
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
             std::cout<< "DD" << std::endl;
             io_requested_cdf_ids[toggle][i] = cdf_id;
@@ -358,7 +354,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types != LogicalType::ID) {
+        if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
                             i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
