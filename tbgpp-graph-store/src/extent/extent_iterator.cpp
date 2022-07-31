@@ -73,7 +73,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     max_idx = property_schema_cat_entry->extent_ids.size();
     ext_property_types = move(target_types_);
     target_idxs = move(target_idxs_);
-
     for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
 
@@ -88,9 +87,10 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
 
+        int j = 0;
         for (int i = 0; i < chunk_size; i++) {
             if (ext_property_types[i] == LogicalType::ID) continue;
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
@@ -120,8 +120,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
     ext_ids_to_iterate.push_back(target_eid);
 
-    std::cout<< "AA" << std::endl;
-
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
     {
@@ -132,11 +130,11 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
-std::cout<< "CC" << chunk_size << target_idxs[0] << extent_cat_entry->chunks.size() <<  std::endl;
+
+        int j = 0;
         for (int i = 0; i < chunk_size; i++) {
             if (ext_property_types[i] == LogicalType::ID) continue;
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
-            std::cout<< "DD" << std::endl;
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
@@ -183,7 +181,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 
-    // fprintf(stdout, "W\n");
+    fprintf(stdout, "W\n");
     // Request chunk cache manager to finalize I/O
     for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
@@ -231,6 +229,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
                             i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        } else {
+            fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -299,17 +299,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // We should avoid data copy here.. but copy for demo temporarliy
     
     // Keep previous values
-    // fprintf(stdout, "Z\n");
+    fprintf(stdout, "Z\n");
     int prev_toggle = toggle;
     idx_t previous_idx = current_idx++;
     toggle = (toggle + 1) % num_data_chunks;
     if (current_idx > max_idx) return false;
 
-    // fprintf(stdout, "K\n");
+    fprintf(stdout, "K\n");
     // Request I/O to the next extent if we can support double buffering
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
-        // fprintf(stdout, "Q\n");
+        fprintf(stdout, "Q\n");
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -333,7 +333,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 
-    // fprintf(stdout, "W\n");
+    fprintf(stdout, "W\n");
     // Request chunk cache manager to finalize I/O
     for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
@@ -345,22 +345,22 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output = data_chunks[prev_toggle];*/
 
     // Initialize output DataChunk & copy each column
-    fprintf(stdout, "E1\n");
     output.Destroy();
-     fprintf(stdout, "EEEEE1\n");
     output.Initialize(ext_property_types);
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
     output.SetCardinality(1);
     output_eid = ext_ids_to_iterate[previous_idx];
 
-    // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
+    fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
                             i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        } else {
+            fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
