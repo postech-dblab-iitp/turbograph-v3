@@ -43,8 +43,8 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	while(true) {
 		std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
-		std::cout << "why?!!" << std::endl;
-		//source_chunk.Reset();
+		// std::cout << "why?!!" << std::endl;
+		source_chunk.Reset();
 		FetchFromSource(source_chunk);
 		std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
@@ -161,6 +161,7 @@ std::cout << "starting (interm) operator" << std::endl;
 		current_idx += 1;
 	}
 	// pipe done as we reached the sink
+	// TODO need to add one more case : terminate pipe for e.g. for LIMIT query.
 	return in_process_operators.empty() ?
 		OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;
 }

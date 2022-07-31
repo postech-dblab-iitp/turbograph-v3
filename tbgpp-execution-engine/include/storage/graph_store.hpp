@@ -56,6 +56,10 @@ public:
 	StoreAPIResult getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase);
 	StoreAPIResult getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr);
 
+	// operator definition for getAdjListRange
+	StoreAPIResult getAdjListRange(uint64_t vid, uint64_t* start_idx, uint64_t* end_idx);
+	StoreAPIResult getAdjListFromRange(uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output );
+
 private:
 	ClientContext &client;
 };
