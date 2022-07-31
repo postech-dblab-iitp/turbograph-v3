@@ -497,6 +497,8 @@ int main(int argc, char** argv) {
 			executors = suite.Test1_1();
 		} else if( query_str.compare("t1_2") == 0 ) {
 			executors = suite.Test1_2();
+		} else if( query_str.compare("t1_3") == 0 ) {
+			executors = suite.Test1_3();
 		} else if( query_str.compare("t2") == 0 ) {
 			executors = suite.Test2();
 		} else if( query_str.compare("t3") == 0 ) {
