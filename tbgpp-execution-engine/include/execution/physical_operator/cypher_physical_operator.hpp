@@ -29,6 +29,7 @@ public:
 	CypherPhysicalOperator() {} // sink does not define types
 	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {
 		timer_started = false;
+		processed_tuples = 0;
 	}
 	virtual ~CypherPhysicalOperator() { }
 
@@ -52,9 +53,12 @@ public:
 	vector<LogicalType> types;
 
 	// operator statistics
+		// TODO make this into timer struct with some functions
 	boost::timer::cpu_timer op_timer;
 	bool timer_started;
 	int64_t exec_time;
+
+	
 	int64_t processed_tuples;
 	
 };

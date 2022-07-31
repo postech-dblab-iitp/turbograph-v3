@@ -43,6 +43,9 @@ using json = nlohmann::json;
 #include "execution/physical_operator/node_scan.hpp"
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 #include "execution/physical_operator/produce_results.hpp"
+#include "execution/physical_operator/naive_expand.hpp"
+
+
 #include "main/database.hpp"
 #include "main/client_context.hpp"
 #include "extent/extent_manager.hpp"
@@ -503,7 +506,13 @@ int main(int argc, char** argv) {
 			executors = suite.Test2();
 		} else if( query_str.compare("t3") == 0 ) {
 			executors = suite.Test3();
-		} else if( query_str.compare("s1") == 0 ) {
+		} else if( query_str.compare("t5") == 0 ) {
+			executors = suite.Test5();
+		}
+		// else if( query_str.compare("t5") == 0 ) {
+		// 	executors = suite.Test3();
+		// }
+		else if( query_str.compare("s1") == 0 ) {
 			executors = suite.LDBCShort1();
 		} 
 
@@ -526,6 +535,7 @@ int main(int argc, char** argv) {
 		}
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+		std::cout << "\ndone query exec in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
 		// Print result plan
 		exportQueryPlanVisualizer(executors, query_exec_time_ms);
@@ -595,8 +605,15 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	// TODO need understanding about the logics of timing in psql
 	(*content)["Actual Startup Time"] = 0.0;	
 	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
-	(*content)["Actual Rows"] = 1; // TODO fix
+	(*content)["Actual Rows"] = op->processed_tuples; // TODO fix
 	(*content)["Actual Loops"] = 1; // meaningless
+
+	// TODO add operator-speciic
+	if( op->ToString() == "NaiveExpand" ) {
+		(*content)["AdjFetch Time"] = ((NaiveExpand*) op)->adjfetch_time;
+		(*content)["TgtFetch Time"] = ((NaiveExpand*) op)->tgtfetch_time;
+	}
+
 
 	return content;
 }
