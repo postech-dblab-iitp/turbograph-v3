@@ -50,9 +50,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 
 StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
 	ExtentID current_eid;
-	//fprintf(stdout, "X\n");
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid);
-	//fprintf(stdout, "Y\n");
 	if (scan_ongoing) {
 		//output.Reference(*output_);
 		return StoreAPIResult::OK;
@@ -95,6 +93,9 @@ bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(labels.size() == 1); // XXX Temporary
+	if( labels.size()!= 1 ) {
+		throw InvalidInputException("demo08 invalid!");
+	}
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
@@ -119,7 +120,6 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_
 }
 
 StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
-	std::cout << "go init" << std::endl;
 	adj_iter.Initialize(client, adjColIdx, vid);
 
 	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr);

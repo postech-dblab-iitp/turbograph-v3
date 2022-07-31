@@ -53,19 +53,24 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 	uint64_t* adj_start;
 	uint64_t* adj_end;
 
-	std::cout << input.ToString(10) << std::endl;
+	// std::cout << input.ToString(10) << std::endl;
+	vector<int> adjColIdxs;
+	itbgpp_graph->getAdjColIdxs(srcLabelSet, adjColIdxs);
 
+	uint64_t *src_column = (uint64_t *)input.data[nodeColIdx].GetData();
 	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
-
-		// FIXME what is adjColIdx
-		//uint64_t vid = duckdb::UBigIntValue::Get(input.GetValue(nodeColIdx, srcIdx));
-		uint64_t vid = 0; // TODO there is no vid column!
+		uint64_t vid = src_column[srcIdx];
+		// uint64_t vid = duckdb::UBigIntValue::Get(input.GetValue(nodeColIdx, srcIdx));
 		
-		itbgpp_graph->getAdjListFromVid(*state.adj_it, 9, vid, adj_start, adj_end );
-		std::cout << "pass adjlist call" << std::endl;
+		itbgpp_graph->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end );
+		//std::cout << "pass adjlist call" << std::endl;
 
-		for( uint64_t adjPtr = *adj_start ; adjPtr < *adj_end ; adjPtr++) {
-			std::cout << "val" << std::endl;
+		// std::cout << adj_end - adj_start << std::endl;
+		size_t adjListSize = adj_end - adj_start;
+		
+		for (idx_t adj_idx = 0; adj_idx < adjListSize; adj_idx+=2) {
+			//std::cout << "val" << std::endl;
+			uint64_t tgtId = adj_start[adj_idx];
 
 			if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
 				// output full, but we have more output.
@@ -80,20 +85,24 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 				if( !isSeekPointReached ) continue;
 			}
 			// produce
+			//std::cout << input.ToString(0) << std::endl;
+			//std::cout << chunk.ToString(0) << std::endl;
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+				//std::cout << colId <<   std::endl;
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
 			// fetch
 			// call API
 			// FIXME write here
-			// itbgpp_graph->doIndexSeek(state.ext_it, targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes); // TODO
-			// assert( targetTupleChunk.size() == 1 && "did not fetch well");
-			// int columnOffset = input.ColumnCount();
-			// for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
-			// 	chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );
-			// }
+			itbgpp_graph->doIndexSeek(state.ext_it, targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes); // TODO
+			assert( targetTupleChunk.size() == 1 && "did not fetch well");
+			int columnOffset = input.ColumnCount();
+			for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
+				chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );
+			}
 			
 			// post-produce
+			// TODO here
 			numProducedTuples +=1;
 			targetTupleChunk.Reset();
 		}

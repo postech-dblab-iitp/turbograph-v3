@@ -26,7 +26,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore*
 	}
 
 	assert( opOutputChunks.size() == (pipe->pipelineLength - 1) );
-	std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
+	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
 	// generate global states for each operator
 		// no global states for this demo!
 	// Manage local states
@@ -41,12 +41,12 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	
 	// init source chunk
 	while(true) {
-		std::cout << "fetching!!" << std::endl;
+		// std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
 		// std::cout << "why?!!" << std::endl;
 		source_chunk.Reset();
 		FetchFromSource(source_chunk);
-		std::cout << "fetched!!" << std::endl;
+		// std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
@@ -57,14 +57,14 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
-std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
+// std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*local_sink_state);
 
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
-std::cout << "starting (source) operator" << std::endl;
+// std::cout << "starting (source) operator" << std::endl;
 	// timer start
 	if( pipeline->GetSource()->timer_started ){
 		pipeline->GetSource()->op_timer.start();
@@ -74,7 +74,7 @@ std::cout << "starting (source) operator" << std::endl;
 	}
 	// call
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
-	//pipeline->GetSource()->processed_tuples += result.size();
+	pipeline->GetSource()->processed_tuples += result.size();
 	// timer stop
 	pipeline->GetSource()->op_timer.stop();
 }
@@ -88,7 +88,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		//pipeOutputChunk->Reset(); // TODO huh?
 		
 		// call execute pipe
-		std::cout << "call execute pipe!!" << std::endl;
+		// std::cout << "call execute pipe!!" << std::endl;
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 			// timer start
@@ -98,7 +98,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		} else {
 			pipeline->GetSink()->op_timer.resume();
 		}
-		std::cout << "call sink!!" << std::endl;
+		// std::cout << "call sink!!" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
@@ -141,7 +141,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		current_output_chunk.Reset();
 
 		// start current operator
-std::cout << "starting (interm) operator" << std::endl;
+// std::cout << "starting (interm) operator" << std::endl;
 		// give interm as input and interm as output
 			// timer start
 		if( pipeline->GetIdxOperator(current_idx)->timer_started ){

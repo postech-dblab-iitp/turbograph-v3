@@ -143,7 +143,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 // Get Next Extent with all properties
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
     
     // Keep previous values
@@ -171,17 +171,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
         
+        int j = 0;
         for (int i = 0; i < chunk_size; i++) {
             if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
             ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[i]];
+                extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
     }
 
-    fprintf(stdout, "W\n");
+    // fprintf(stdout, "W\n");
     // Request chunk cache manager to finalize I/O
     for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
@@ -194,9 +195,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // Initialize output DataChunk & copy each column
     //fprintf(stdout, "E\n");
-    //output.Destroy();
-    //fprintf(stdout, "EE\n");
-    //output.Initialize(ext_property_types);
+    if (!is_output_chunk_initialized) {
+        output.Reset();
+        //fprintf(stdout, "EE\n");
+        output.Initialize(ext_property_types);
+    }
     int idx_for_cardinality = -1;
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
@@ -226,11 +229,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+            //                 i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         } else {
-            fprintf(stdout, "Load Column %ld\n", i);
+            // fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -284,7 +287,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i]);
+                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] - sizeof(CompressionHeader));
             }
         }
     }
@@ -295,21 +298,21 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 // For Seek Operator
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
     
     // Keep previous values
-    fprintf(stdout, "Z\n");
+    // fprintf(stdout, "Z\n");
     int prev_toggle = toggle;
     idx_t previous_idx = current_idx++;
     toggle = (toggle + 1) % num_data_chunks;
     if (current_idx > max_idx) return false;
 
-    fprintf(stdout, "K\n");
+    // fprintf(stdout, "K\n");
     // Request I/O to the next extent if we can support double buffering
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
-        fprintf(stdout, "Q\n");
+        // fprintf(stdout, "Q\n");
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -333,7 +336,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 
-    fprintf(stdout, "W\n");
+    // fprintf(stdout, "W\n");
     // Request chunk cache manager to finalize I/O
     for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
@@ -345,22 +348,24 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output = data_chunks[prev_toggle];*/
 
     // Initialize output DataChunk & copy each column
-    output.Destroy();
-    output.Initialize(ext_property_types);
+    if (!is_output_chunk_initialized) {
+        output.Reset();
+        output.Initialize(ext_property_types);
+    }
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
     output.SetCardinality(1);
     output_eid = ext_ids_to_iterate[previous_idx];
 
-    fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
+    // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+            //                 i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         } else {
-            fprintf(stdout, "Load Column %ld\n", i);
+            // fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -422,7 +427,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     return true;
 }
 
-bool ExtentIterator::GetExtent(data_ptr_t chunk_ptr) {
+bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
     D_ASSERT(ext_property_types[0] == LogicalType::ADJLIST); // Only for ADJLIIST now..
     // Keep previous values
     int prev_toggle = toggle;
@@ -436,10 +441,10 @@ bool ExtentIterator::GetExtent(data_ptr_t chunk_ptr) {
     
     D_ASSERT(ext_property_types.size() == 1);
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-                        i, io_requested_cdf_ids[prev_toggle][i], comp_header.data_len, 
-                        io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        //memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
+        // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+        //                 i, io_requested_cdf_ids[prev_toggle][i], comp_header.data_len, 
+        //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         chunk_ptr = (data_ptr_t)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
     }
     return true;
@@ -463,9 +468,7 @@ void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ui
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
     
     ext_it = new ExtentIterator();
-    std::cout << "extend init" << std::endl;
     ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
-    std::cout << "extend init done" << std::endl;
 }
 
 void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {

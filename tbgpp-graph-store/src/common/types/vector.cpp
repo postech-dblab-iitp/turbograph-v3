@@ -507,6 +507,7 @@ Value Vector::GetValue(idx_t index) const {
 	case LogicalTypeId::UINTEGER:
 		return Value::UINTEGER(((uint32_t *)data)[index]);
 	case LogicalTypeId::UBIGINT:
+	case LogicalTypeId::ID:
 		return Value::UBIGINT(((uint64_t *)data)[index]);
 	case LogicalTypeId::TIMESTAMP:
 		return Value::TIMESTAMP(((timestamp_t *)data)[index]);
