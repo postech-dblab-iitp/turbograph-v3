@@ -137,7 +137,9 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::AGGREGATE_STATE:
 		return PhysicalType::VARCHAR;
 	case LogicalTypeId::ADJLIST:
-		return PhysicalType::ADJLIST;
+		return PhysicalType::ADJLIST;	
+	case LogicalTypeId::ID:
+		return PhysicalType::UINT64;
 	default:
 		throw InternalException("Invalid LogicalType %s", ToString());
 	}
@@ -183,7 +185,9 @@ constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 // TODO these are incomplete and should maybe not exist as such
 constexpr const LogicalTypeId LogicalType::TABLE;
 
+// TBGPP-specific
 constexpr const LogicalTypeId LogicalType::ADJLIST;
+constexpr const LogicalTypeId LogicalType::ID;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -191,14 +195,20 @@ const vector<LogicalType> LogicalType::Numeric() {
 	vector<LogicalType> types = {LogicalType::TINYINT,   LogicalType::SMALLINT,  LogicalType::INTEGER,
 	                             LogicalType::BIGINT,    LogicalType::HUGEINT,   LogicalType::FLOAT,
 	                             LogicalType::DOUBLE,    LogicalTypeId::DECIMAL, LogicalType::UTINYINT,
-	                             LogicalType::USMALLINT, LogicalType::UINTEGER,  LogicalType::UBIGINT};
+	                             LogicalType::USMALLINT, LogicalType::UINTEGER,  LogicalType::UBIGINT,
+								 
+								 LogicalType::ID
+								 };
 	return types;
 }
 
 const vector<LogicalType> LogicalType::Integral() {
 	vector<LogicalType> types = {LogicalType::TINYINT,   LogicalType::SMALLINT, LogicalType::INTEGER,
 	                             LogicalType::BIGINT,    LogicalType::HUGEINT,  LogicalType::UTINYINT,
-	                             LogicalType::USMALLINT, LogicalType::UINTEGER, LogicalType::UBIGINT};
+	                             LogicalType::USMALLINT, LogicalType::UINTEGER, LogicalType::UBIGINT,
+								 
+								 LogicalType::ID
+								 };
 	return types;
 }
 
@@ -210,7 +220,10 @@ const vector<LogicalType> LogicalType::AllTypes() {
 	    LogicalType::HUGEINT,  LogicalTypeId::DECIMAL, LogicalType::UTINYINT,     LogicalType::USMALLINT,
 	    LogicalType::UINTEGER, LogicalType::UBIGINT,   LogicalType::TIME,         LogicalTypeId::LIST,
 	    LogicalTypeId::STRUCT, LogicalType::TIME_TZ,   LogicalType::TIMESTAMP_TZ, LogicalTypeId::MAP,
-	    LogicalType::UUID,     LogicalType::JSON};
+	    LogicalType::UUID,     LogicalType::JSON,
+		
+		
+		};
 	return types;
 }
 
@@ -443,6 +456,9 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 		return "USER";
 	case LogicalTypeId::JSON:
 		return "JSON";
+	// TBGPP!
+	case LogicalTypeId::ID:
+		return "ID";
 	}
 	return "UNDEFINED";
 }

@@ -36,7 +36,7 @@ OperatorResultType SimpleFilter::Execute(GraphStore* graph, DataChunk &input, Da
 			numProducedTuples += 1;
 		}
 	}
-	std::cout << numProducedTuples << std::endl;
+	//std::cout << numProducedTuples << std::endl;
 	chunk.Slice(input, state.sel, numProducedTuples);
 
 	// clear sel for next chunk

@@ -16,6 +16,7 @@
 #include "execution/physical_operator/simple_filter.hpp"
 #include "execution/physical_operator/simple_projection.hpp"
 //#include "execution/physical_operator/projection.hpp"
+#include "execution/physical_operator/limit.hpp"
 
 #include "storage/graph_store.hpp"
 
@@ -197,25 +198,15 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_3() {
 	scan_propertyKeys.push_back("name");
 	scan_propertyKeys.push_back("id");
 	scan_propertyKeys.push_back("url");
-	// filter
-	CypherSchema filter_schema = schema;
-	int filter_colnum = 1; // id
-	auto filter_value = duckdb::Value::BIGINT(5);
-
-	// projections
-	CypherSchema project_schema;
-	project_schema.addColumn("url", duckdb::LogicalType::VARCHAR);
-	std::vector<int> project_ordering({2,});
 
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
 	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
-	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
-	ops.push_back(new SimpleProjection(project_schema, project_ordering));
+	ops.push_back(new Limit(schema, 5));
 		// sink
-	ops.push_back(new ProduceResults(project_schema));
+	ops.push_back(new ProduceResults(schema));
 	auto pipe1 = new CypherPipeline(ops);
 	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
 	

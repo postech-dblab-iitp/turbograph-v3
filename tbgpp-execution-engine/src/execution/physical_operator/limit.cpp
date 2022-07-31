@@ -1,44 +1,54 @@
-// #include "typedef.hpp"
+#include "typedef.hpp"
 
-// #include "execution/physical_operator/limit.hpp"
+#include "execution/physical_operator/limit.hpp"
 
-// #include <cassert>
+#include <cassert>
+#include <algorithm>
 
-// namespace duckdb {
+// TODO Limit is meant to be sink operator, but can work as long its 
 
-// class LimitState : public OperatorState {
-// public:
-// 	explicit LimitState(): current_count(0) {}
-// public:
-// 	uint64_t current_count;
-// };
+namespace duckdb {
 
-// unique_ptr<OperatorState> Limit::GetOperatorState() const {
-// 	return make_unique<LimitState>();
-// }
+class LimitState : public OperatorState {
+public:
+	explicit LimitState(uint64_t count): current_count(count), sel(STANDARD_VECTOR_SIZE) {}
+public:
+	SelectionVector sel;
+	uint64_t current_count;
+};
 
-// OperatorResultType Limit::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-// 	auto &state = (LimitState &)lstate;
+unique_ptr<OperatorState> Limit::GetOperatorState() const {
+	return make_unique<LimitState>(count);
+}
 
-// 	uint64_t numTuplesToBeProduced = 0;
+OperatorResultType Limit::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+	auto &state = (LimitState &)lstate;
 
+	uint64_t numTuplesToBeProduced = std::min( input.size(), state.current_count );
+	D_ASSERT(numTuplesToBeProduced <= STANDARD_VECTOR_SIZE );
+	std::cout << numTuplesToBeProduced << " tups to be produced" << std::endl;
 
+	for( int64_t srcIdx=0 ; srcIdx < numTuplesToBeProduced; srcIdx++) {
+		state.sel.set_index( srcIdx, srcIdx );
+	}
+	chunk.Slice(input, state.sel, numTuplesToBeProduced );
 
-// 	// update state
-// 	state.current_count -= numTuplesToBeProduced;
-// 	D_ASSERT(state.current_count >= 0);
+	// update state
+	state.current_count -= numTuplesToBeProduced;
+	D_ASSERT(state.current_count >= 0);
+	state.sel.Initialize(state.sel);
 		
-// 	// TODO need to be fixed.
-// 	return OperatorResultType::NEED_MORE_INPUT;
-// }
+	// TODO need to be fixed.
+	return OperatorResultType::NEED_MORE_INPUT;
+}
 
-// std::string Limit::ParamsToString() const {
-// 	return std::to_string(count);
-// }
+std::string Limit::ParamsToString() const {
+	return std::to_string(count);
+}
 
-// std::string Limit::ToString() const {
-// 	return "Limit";
-// }
+std::string Limit::ToString() const {
+	return "Limit";
+}
 
 
-// } // namespace duckdb
+} // namespace duckdb
