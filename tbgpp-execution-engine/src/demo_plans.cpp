@@ -369,11 +369,6 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 }
 
 
-
-
-
-
-
 /* 
  * 
  * LDBC Plan Implementations
@@ -421,8 +416,8 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	scan_labels.insert("Person");
 	scan_loadAdjOpt = LoadAdjListOption::NONE;
 	auto e1 = LabelSet();
-	// e1.insert("IS_LOCATED_IN");
-	// scan_edegLabelSets.push_back(e1);
+	e1.insert("IS_LOCATED_IN");
+	//scan_edegLabelSets.push_back(e1);
 	scan_propertyKeys.push_back("birthday");
 	scan_propertyKeys.push_back("firstName");
 	scan_propertyKeys.push_back("lastName");
@@ -434,8 +429,9 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	
 	// Filter
 	CypherSchema filter_schema = schema;
-	int filter_colnum = 9; // id
-	auto filter_value = duckdb::Value::BIGINT(4398046511333);
+	int filter_colnum = 8; // id
+		//sf1, 10, 100
+	auto filter_value = duckdb::Value::BIGINT(14);
 
 	// Expand
 	CypherSchema expandschema = filter_schema;
@@ -443,7 +439,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
 		// params
 	LabelSet tgt_labels;
-	tgt_labels.insert("City");
+	tgt_labels.insert("Place");
 	std::vector<LabelSet> tgt_edgeLabelSets;
 	LoadAdjListOption tgt_loadAdjOpt = LoadAdjListOption::NONE;
 	PropertyKeys tgt_propertyKeys;
@@ -470,8 +466,8 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
 	// FIXME add me again!
-	//ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
-	ops.push_back(new NaiveExpand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
+	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
+	ops.push_back(new NaiveExpand(expandschema, "n", scan_labels, e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
 	ops.push_back(new SimpleProjection(project_schema, project_ordering));
 		// sink
 	ops.push_back(new ProduceResults(project_schema));

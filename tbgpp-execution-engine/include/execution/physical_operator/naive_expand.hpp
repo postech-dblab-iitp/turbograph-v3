@@ -12,9 +12,9 @@ class NaiveExpand: public CypherPhysicalOperator {
 
 public:
 	NaiveExpand(CypherSchema& sch,
-		std::string srcName, LabelSet srcEdgeLabelSet, ExpandDirection expandDir, std::string edgeName, LabelSet tgtLabelSet, std::vector<LabelSet> tgtEdgeLabelSets, LoadAdjListOption tgtLoadAdjOpt, PropertyKeys tgtPropertyKeys)
+		std::string srcName, LabelSet srcLabelSet, LabelSet srcEdgeLabelSet, ExpandDirection expandDir, std::string edgeName, LabelSet tgtLabelSet, std::vector<LabelSet> tgtEdgeLabelSets, LoadAdjListOption tgtLoadAdjOpt, PropertyKeys tgtPropertyKeys)
 		: CypherPhysicalOperator(sch),
-		srcName(srcName), srcEdgeLabelSet(srcEdgeLabelSet), expandDir(expandDir), edgeName(edgeName), tgtLabelSet(tgtLabelSet), tgtEdgeLabelSets(tgtEdgeLabelSets), tgtLoadAdjOpt(tgtLoadAdjOpt), tgtPropertyKeys(tgtPropertyKeys)
+		srcName(srcName), srcLabelSet(srcLabelSet), srcEdgeLabelSet(srcEdgeLabelSet), expandDir(expandDir), edgeName(edgeName), tgtLabelSet(tgtLabelSet), tgtEdgeLabelSets(tgtEdgeLabelSets), tgtLoadAdjOpt(tgtLoadAdjOpt), tgtPropertyKeys(tgtPropertyKeys)
 		 {
 
 		assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index");
@@ -31,6 +31,7 @@ public:
 
 	// operator parameters
 		// src
+	LabelSet srcLabelSet; // TODO wrong this should not be kept
 	std::string srcName;
 	LabelSet srcEdgeLabelSet;	// not meaningful currently
 	ExpandDirection expandDir;

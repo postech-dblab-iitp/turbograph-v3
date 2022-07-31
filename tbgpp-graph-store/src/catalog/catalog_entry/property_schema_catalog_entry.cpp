@@ -3,6 +3,7 @@
 #include "parser/parsed_data/create_property_schema_info.hpp"
 
 #include <memory>
+#include <iostream>
 #include <algorithm>
 
 namespace duckdb {

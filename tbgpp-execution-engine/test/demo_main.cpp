@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Init GraphCSVFile\n");
 		// Initialize GraphCSVFileReader
 		GraphSIMDCSVFileParser reader;
-		reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 
 		// Initialize Property Schema Catalog Entry using Schema of the vertex
 		vector<string> key_names;
@@ -228,6 +228,7 @@ int main(int argc, char** argv) {
 		// Initialize LID_TO_PID_MAP
 		lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
 		unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
+		lid_to_pid_map_instance.reserve(approximated_num_rows);
 
 		// Read CSV File into DataChunk & CreateVertexExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -353,7 +354,7 @@ int main(int argc, char** argv) {
 		if (min_id == ULLONG_MAX) {
 			// Get First Vertex Extent
 			while (true) {
-			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
 				// We do not allow this case
 				throw InvalidInputException("E"); 
 			}
@@ -415,7 +416,7 @@ int main(int argc, char** argv) {
 
 				// Read corresponding ID column of Src Vertex Extent
 				while (true) {
-				if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+				if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
 					// We do not allow this case
 					throw InvalidInputException("F");
 				}
