@@ -480,7 +480,7 @@ public:
 
 	// TBGPP-specific
 	static constexpr const LogicalTypeId ADJLIST = LogicalTypeId::ADJLIST;
-	static constexpr const LogicalTypeId ID = LogicalTypeId::UBIGINT;
+	static constexpr const LogicalTypeId ID = LogicalTypeId::ID;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
 	DUCKDB_API static LogicalType DECIMAL(int width, int scale);                 // NOLINT
