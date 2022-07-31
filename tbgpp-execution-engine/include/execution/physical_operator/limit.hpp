@@ -3,16 +3,16 @@
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-#include "common/types/value.hpp"
+#include <vector>
 
 namespace duckdb {
 
-class SimpleFilter: public CypherPhysicalOperator {
+class Limit: public CypherPhysicalOperator {
 
 public:
-	SimpleFilter(CypherSchema& sch, int targetColumn, duckdb::Value predicateValue)
-		: CypherPhysicalOperator(sch), targetColumn(targetColumn), predicateValue(predicateValue) { }
-	~SimpleFilter() {}
+	Limit(CypherSchema& sch, uint64_t count)
+		: CypherPhysicalOperator(sch), count(count) { }
+	~Limit() {}
 
 public:
 
@@ -21,9 +21,8 @@ public:
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
-
-	int targetColumn;
-	duckdb::Value predicateValue;
+	
+	uint64_t count;
 
 };
 

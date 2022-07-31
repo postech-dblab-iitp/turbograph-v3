@@ -493,11 +493,20 @@ int main(int argc, char** argv) {
 		
 		if( query_str.compare("t1") == 0 ) {
 			executors = suite.Test1();
+		} else if( query_str.compare("t1_1") == 0 ) {
+			executors = suite.Test1_1();
+		} else if( query_str.compare("t1_2") == 0 ) {
+			executors = suite.Test1_2();
+		} else if( query_str.compare("t1_3") == 0 ) {
+			executors = suite.Test1_3();
 		} else if( query_str.compare("t2") == 0 ) {
 			executors = suite.Test2();
 		} else if( query_str.compare("t3") == 0 ) {
 			executors = suite.Test3();
+		} else if( query_str.compare("s1") == 0 ) {
+			executors = suite.LDBCShort1();
 		} 
+
 		// TODO add
 		else {
 			std::cout << "WRONG INPUT!" << std::endl;
@@ -510,7 +519,7 @@ int main(int argc, char** argv) {
 		int idx=0;
 		for( auto exec : executors ) { 
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-			//std::cout << exec->pipeline->toString() << std::endl;
+			std::cout << exec->pipeline->toString() << std::endl;
 			std::cout << "starting!!" << std::endl;
 			exec->ExecutePipeline();
 			std::cout << "done pipeline execution!!" << std::endl;

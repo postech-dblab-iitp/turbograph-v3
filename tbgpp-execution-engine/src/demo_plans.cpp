@@ -12,8 +12,11 @@
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 #include "execution/physical_operator/produce_results.hpp"
 #include "execution/physical_operator/expand.hpp"
+#include "execution/physical_operator/naive_expand.hpp"
 #include "execution/physical_operator/simple_filter.hpp"
 #include "execution/physical_operator/simple_projection.hpp"
+//#include "execution/physical_operator/projection.hpp"
+#include "execution/physical_operator/limit.hpp"
 
 #include "storage/graph_store.hpp"
 
@@ -23,6 +26,7 @@
 #include <iostream>
 
 namespace duckdb {
+
 QueryPlanSuite::QueryPlanSuite(GraphStore* graphstore, ClientContext &context): graphstore(graphstore), context(context) {  }
 
 
@@ -57,7 +61,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 		// source
 	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
-		
+	
 		// sink
 	ops.push_back(new ProduceResults(schema));
 	auto pipe1 = new CypherPipeline(ops);
@@ -67,6 +71,150 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	std::vector<CypherPipelineExecutor*> result;
 	result.push_back(pipeexec1);
 	return result;
+}
+
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_1() {
+	/*
+		MATCH (n:Organisation) RETURN n.url;
+		+----------------------------------------------------------------------------------------------+
+		| n                                                                                            |
+		+----------------------------------------------------------------------------------------------+
+		| (:Company:Organisation {url: "http://dbpedia.org/resource/Kam_Air"}) |
+		+----------------------------------------------------------------------------------------------+
+		should output 7955 tuples
+	*/
+	// scan schema
+	CypherSchema schema;
+	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	// scan params
+	LabelSet scan_labels;
+	std::vector<LabelSet> scan_edegLabelSet;
+	LoadAdjListOption scan_loadAdjOpt;
+	PropertyKeys scan_propertyKeys;
+	scan_labels.insert("Organisation");
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
+	scan_propertyKeys.push_back("name");
+	scan_propertyKeys.push_back("id");
+	scan_propertyKeys.push_back("url");
+	// projections
+	CypherSchema project_schema;
+	project_schema.addColumn("url", duckdb::LogicalType::VARCHAR);
+	std::vector<int> project_ordering({2,});
+
+	// pipe 1
+	std::vector<CypherPhysicalOperator *> ops;
+		// source
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
+		//operators
+	ops.push_back(new SimpleProjection(project_schema, project_ordering));
+		// sink
+	ops.push_back(new ProduceResults(project_schema));
+	auto pipe1 = new CypherPipeline(ops);
+	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
+	
+	// wrap pipeline into vector
+	std::vector<CypherPipelineExecutor*> result;
+	result.push_back(pipeexec1);
+	return result;
+
+}
+
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_2() {
+	/*
+		MATCH (n:Organisation) WHERE n.id = 5 RETURN n.id;
+		+----------------------------------------------------------------------------------------------+
+		| n                                                                                            |
+		+----------------------------------------------------------------------------------------------+
+		| (:Company:Organisation {url: "http://dbpedia.org/resource/Kam_Air"}) |
+		+----------------------------------------------------------------------------------------------+
+		should output 7955 tuples
+	*/
+	// scan schema
+	CypherSchema schema;
+	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	// scan params
+	LabelSet scan_labels;
+	std::vector<LabelSet> scan_edegLabelSet;
+	LoadAdjListOption scan_loadAdjOpt;
+	PropertyKeys scan_propertyKeys;
+	scan_labels.insert("Organisation");
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
+	scan_propertyKeys.push_back("name");
+	scan_propertyKeys.push_back("id");
+	scan_propertyKeys.push_back("url");
+	// filter
+	CypherSchema filter_schema = schema;
+	int filter_colnum = 1; // id
+	auto filter_value = duckdb::Value::BIGINT(5);
+
+	// projections
+	CypherSchema project_schema;
+	project_schema.addColumn("url", duckdb::LogicalType::VARCHAR);
+	std::vector<int> project_ordering({2,});
+
+	// pipe 1
+	std::vector<CypherPhysicalOperator *> ops;
+		// source
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
+		//operators
+	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
+	ops.push_back(new SimpleProjection(project_schema, project_ordering));
+		// sink
+	ops.push_back(new ProduceResults(project_schema));
+	auto pipe1 = new CypherPipeline(ops);
+	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
+	
+	// wrap pipeline into vector
+	std::vector<CypherPipelineExecutor*> result;
+	result.push_back(pipeexec1);
+	return result;
+
+}
+
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_3() {
+	/*
+		MATCH (n:Organisation) LIMIT 5;
+		should output 5 tuples
+	*/
+	// scan schema
+	CypherSchema schema;
+	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	// scan params
+	LabelSet scan_labels;
+	std::vector<LabelSet> scan_edegLabelSet;
+	LoadAdjListOption scan_loadAdjOpt;
+	PropertyKeys scan_propertyKeys;
+	scan_labels.insert("Organisation");
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
+	scan_propertyKeys.push_back("name");
+	scan_propertyKeys.push_back("id");
+	scan_propertyKeys.push_back("url");
+
+	// pipe 1
+	std::vector<CypherPhysicalOperator *> ops;
+		// source
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
+		//operators
+	ops.push_back(new Limit(schema, 5));
+		// sink
+	ops.push_back(new ProduceResults(schema));
+	auto pipe1 = new CypherPipeline(ops);
+	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
+	
+	// wrap pipeline into vector
+	std::vector<CypherPipelineExecutor*> result;
+	result.push_back(pipeexec1);
+	return result;
+
 }
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
@@ -120,6 +268,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	result.push_back(pipeexec1);
 	return result;
 }
+
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	/*
@@ -198,11 +347,11 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	+------------------------------------------------------------------------------------------------------------+
 	| "Rafael"  | "Fernández" | 334540800000 | "31.24.152.190" | "Chrome"    | 1345   | "female" | 1275959471971 |
 	+------------------------------------------------------------------------------------------------------------+
-	1 rows
+	X rows
 	*/
 	// scan schema
 	CypherSchema schema;
-	schema.addNode("n", LoadAdjListOption::OUTGOING);
+	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "birthday", duckdb::LogicalType::BIGINT);
 	schema.addPropertyIntoNode("n", "firstName", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "lastName", duckdb::LogicalType::VARCHAR);
@@ -218,10 +367,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	LoadAdjListOption scan_loadAdjOpt;
 	PropertyKeys scan_propertyKeys;
 	scan_labels.insert("Person");
-	scan_loadAdjOpt = LoadAdjListOption::OUTGOING;
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
 	auto e1 = LabelSet();
-	e1.insert("IS_LOCATED_IN");
-	scan_edegLabelSets.push_back(e1);
+	// e1.insert("IS_LOCATED_IN");
+	// scan_edegLabelSets.push_back(e1);
 	scan_propertyKeys.push_back("birthday");
 	scan_propertyKeys.push_back("firstName");
 	scan_propertyKeys.push_back("lastName");
@@ -247,7 +396,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	LoadAdjListOption tgt_loadAdjOpt = LoadAdjListOption::NONE;
 	PropertyKeys tgt_propertyKeys;
 	tgt_propertyKeys.push_back("id");
-		// 0 . / . 1  /  2-9   / 10  / 11
+		// 0 . / . 1  /  1-8   / 9  / 10
 		// nid / nadj / nttr-8 / pid / pattr-1
 	
 	// Project
@@ -261,15 +410,16 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	project_schema.addColumn("gender", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
 
-	std::vector<int> project_ordering({3, 4, 2, 7, 6, 11, 5, 8});
+	std::vector<int> project_ordering({2, 3, 1, 6, 5, 10, 4, 7});
 
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
 	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
 		//operators
-	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
-	ops.push_back(new Expand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
+	// FIXME add me again!
+	//ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
+	ops.push_back(new NaiveExpand(expandschema, "n", e1, ExpandDirection::OUTGOING, "", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
 	ops.push_back(new SimpleProjection(project_schema, project_ordering));
 		// sink
 	ops.push_back(new ProduceResults(project_schema));
