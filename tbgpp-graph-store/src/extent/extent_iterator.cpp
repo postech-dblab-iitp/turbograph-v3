@@ -55,8 +55,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_) {
-    D_ASSERT(target_types_.size() == target_idxs_.size());
-
     if (_CheckIsMemoryEnough()) {
         support_double_buffering = true;
         num_data_chunks = MAX_NUM_DATA_CHUNKS;
@@ -85,12 +83,13 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
-        size_t chunk_size = target_idxs.size();
+        size_t chunk_size = ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
 
         for (int i = 0; i < chunk_size; i++) {
+            if (ext_property_types[i] == LogicalType::ID) continue;
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -100,8 +99,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid) {
-    D_ASSERT(target_types_.size() == target_idxs_.size());
-
     if (_CheckIsMemoryEnough()) {
         support_double_buffering = true;
         num_data_chunks = MAX_NUM_DATA_CHUNKS;
@@ -129,12 +126,13 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
-        size_t chunk_size = target_idxs.size();
+        size_t chunk_size = ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
 
         for (int i = 0; i < chunk_size; i++) {
+            if (ext_property_types[i] == LogicalType::ID) continue;
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[i]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -167,12 +165,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
             ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
 
-        size_t chunk_size = target_idxs.empty() ? extent_cat_entry->chunks.size() : target_idxs.size();
+        size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
         
         for (int i = 0; i < chunk_size; i++) {
+            if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
             ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                 extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[i]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
@@ -206,6 +205,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             break;
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             continue;
+        } else if (ext_property_types[i] == LogicalType::ID) {
+            continue;
         } else {
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
@@ -221,10 +222,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output_eid = ext_ids_to_iterate[previous_idx];
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-                        i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                        io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        if (ext_property_types[i] != LogicalType::ID) {
+            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
+            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -311,12 +314,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
             ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
 
-        size_t chunk_size = target_idxs.empty() ? extent_cat_entry->chunks.size() : target_idxs.size();
+        size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
         
         for (int i = 0; i < chunk_size; i++) {
+            if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
             ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                 extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[i]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
@@ -347,10 +351,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-                        i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                        io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        if (ext_property_types != LogicalType::ID) {
+            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
+            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+        }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
