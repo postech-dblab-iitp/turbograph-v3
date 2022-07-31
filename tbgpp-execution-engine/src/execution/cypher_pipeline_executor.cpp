@@ -72,7 +72,9 @@ std::cout << "starting (source) operator" << std::endl;
 	} else {
 		pipeline->GetSource()->op_timer.resume();
 	}
+	// call
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
+	//pipeline->GetSource()->processed_tuples += result.size();
 	// timer stop
 	pipeline->GetSource()->op_timer.stop();
 }
@@ -100,6 +102,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
+		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 			// timer stop
 		pipeline->GetSink()->op_timer.stop();
 		// break when pipes for single chunk finishes
@@ -147,9 +150,11 @@ std::cout << "starting (interm) operator" << std::endl;
 		} else {
 			pipeline->GetIdxOperator(current_idx)->op_timer.resume();
 		}
+			// call operator
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
+		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 			// timer stop
 		pipeline->GetIdxOperator(current_idx)->op_timer.stop();
 		// if result needs more output, push index to stack

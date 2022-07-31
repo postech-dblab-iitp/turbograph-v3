@@ -4,6 +4,8 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "storage/graph_store.hpp"
 
+#include <boost/timer/timer.hpp>
+
 namespace duckdb {
 
 class NaiveExpand: public CypherPhysicalOperator {
@@ -39,6 +41,16 @@ public:
 	std::vector<LabelSet> tgtEdgeLabelSets;
 	LoadAdjListOption tgtLoadAdjOpt;
 	PropertyKeys tgtPropertyKeys;
+
+	// performance counter
+	boost::timer::cpu_timer adjfetch_timer;
+	bool adjfetch_timer_started;
+	int64_t adjfetch_time;
+
+	boost::timer::cpu_timer tgtfetch_timer;
+	bool tgtfetch_timer_started;
+	int64_t tgtfetch_time;
+
 };
 
 }

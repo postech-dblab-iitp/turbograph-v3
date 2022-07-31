@@ -328,6 +328,58 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	return result;
 }
 
+
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
+	/*
+		MATCH (n:Comment) RETURN n.name, n.id, n.url;
+	*/
+	// scan schema
+	CypherSchema schema;
+	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addPropertyIntoNode("n", "creationDate", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "locationIP", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "content", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	// scan params
+	LabelSet scan_labels;
+	std::vector<LabelSet> scan_edegLabelSet;
+	LoadAdjListOption scan_loadAdjOpt;
+	PropertyKeys scan_propertyKeys;
+	scan_labels.insert("Comment");
+	scan_loadAdjOpt = LoadAdjListOption::NONE;
+	scan_propertyKeys.push_back("creationDate");
+	scan_propertyKeys.push_back("locationIP");
+	scan_propertyKeys.push_back("content");
+	scan_propertyKeys.push_back("id");
+	// pipe 1
+	std::vector<CypherPhysicalOperator *> ops;
+		// source
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSet, scan_loadAdjOpt, scan_propertyKeys));
+		//operators
+	
+		// sink
+	ops.push_back(new ProduceResults(schema));
+	auto pipe1 = new CypherPipeline(ops);
+	auto pipeexec1 = new CypherPipelineExecutor(pipe1, graphstore);
+	
+	// wrap pipeline into vector
+	std::vector<CypherPipelineExecutor*> result;
+	result.push_back(pipeexec1);
+	return result;
+}
+
+
+
+
+
+
+
+/* 
+ * 
+ * LDBC Plan Implementations
+ * 
+ */
+
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 
 	/*
