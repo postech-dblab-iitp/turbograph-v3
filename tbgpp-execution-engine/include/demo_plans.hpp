@@ -26,6 +26,9 @@ public:
 	std::vector<CypherPipelineExecutor*> Test2();
 	std::vector<CypherPipelineExecutor*> Test3();
 	std::vector<CypherPipelineExecutor*> Test4();
+
+	std::vector<CypherPipelineExecutor*> Test5();	// Scan Comment
+	std::vector<CypherPipelineExecutor*> Test5_1();	// Scan Comment + Filter + Projection + Limit
 	
 	std::vector<CypherPipelineExecutor*> LDBCShort1();
 

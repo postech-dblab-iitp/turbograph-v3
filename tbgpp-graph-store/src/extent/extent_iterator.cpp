@@ -197,9 +197,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output = data_chunks[prev_toggle];*/
 
     // Initialize output DataChunk & copy each column
-    // fprintf(stdout, "E\n");
-    output.Destroy();
-    output.Initialize(ext_property_types);
+    //fprintf(stdout, "E\n");
+    //output.Destroy();
+    //fprintf(stdout, "EE\n");
+    //output.Initialize(ext_property_types);
     int idx_for_cardinality = -1;
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
@@ -341,8 +342,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output = data_chunks[prev_toggle];*/
 
     // Initialize output DataChunk & copy each column
-    // fprintf(stdout, "E\n");
+    fprintf(stdout, "E1\n");
     output.Destroy();
+     fprintf(stdout, "EEEEE1\n");
     output.Initialize(ext_property_types);
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
