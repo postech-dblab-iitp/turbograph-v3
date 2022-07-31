@@ -218,6 +218,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     } else {
         output.SetCardinality(comp_header.data_len);
     }
+    output_eid = ext_ids_to_iterate[previous_idx];
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
@@ -263,6 +264,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // }
             // // memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STANDARD_VECTOR_SIZE * sizeof(idx_t), 
             // //        adj_list_size * sizeof(idx_t));
+        } else if (ext_property_types[i] == LogicalType::ID) {
+            idx_t physical_id_base = (idx_t)output_eid;
+            physical_id_base = physical_id_base << 32;
+            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            for (size_t seqno = 0; seqno < comp_header.data_len; seqno++)
+                id_column[seqno] = physical_id_base + seqno;
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -276,11 +283,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
     // fprintf(stdout, "U\n");
 
-    output_eid = ext_ids_to_iterate[previous_idx];
+    
     return true;
 }
 
-// Get Next Extent with all properties
+// For Seek Operator
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno) {
     // We should avoid data copy here.. but copy for demo temporarliy
     
@@ -336,7 +343,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
     output.SetCardinality(1);
-    
+    output_eid = ext_ids_to_iterate[previous_idx];
+
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
@@ -381,6 +389,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             //     adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
             // }
             // memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
+        } else if (ext_property_types[i] == LogicalType::ID) {
+            idx_t physical_id_base = (idx_t)output_eid;
+            physical_id_base = physical_id_base << 32;
+            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            id_column[0] = physical_id_base + target_seqno;
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
@@ -389,13 +402,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i]);
+                size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
+                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
             }
         }
     }
     // fprintf(stdout, "U\n");
-
-    output_eid = ext_ids_to_iterate[previous_idx];
     return true;
 }
 
