@@ -51,6 +51,7 @@ public:
 	
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(vector<string> &key_names);
+	vector<string> GetKeys();
 	void AppendType(LogicalType type);
 	void AppendKey(string key_name);
 	//! Returns a list of types of the table

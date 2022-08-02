@@ -118,7 +118,9 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             memcpy(buf_ptr, &input_size, sizeof(uint64_t));
@@ -222,7 +224,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             //best_compression_function = BITPACKING;

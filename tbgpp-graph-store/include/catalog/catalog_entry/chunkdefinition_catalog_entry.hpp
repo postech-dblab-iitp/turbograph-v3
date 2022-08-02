@@ -57,6 +57,7 @@ public:
 	//! Deserializes to a CreateTableInfo
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 	void CreateMinMaxArray(Vector &column, size_t input_size);
+	vector<minmax_t> GetMinMaxArray();
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 

@@ -28,6 +28,7 @@ unique_ptr<OperatorState> NaiveExpand::GetOperatorState() const {
 }
 
 OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+	// std::cout << "Start Expand\n";
 	auto &state = (NaiveExpandState &)lstate;
 
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
@@ -71,6 +72,7 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 		for (idx_t adj_idx = 0; adj_idx < adjListSize; adj_idx+=2) {
 			//std::cout << "val" << std::endl;
 			uint64_t tgtId = adj_start[adj_idx];
+			uint64_t edgeId = adj_start[adj_idx+1];
 
 			if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
 				// output full, but we have more output.
@@ -92,13 +94,19 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
 			// TODO optionally add edge id
-			
+			if( edgeName.compare("") == 1 ) {
+				chunk.SetValue(input.ColumnCount(), numProducedTuples, Value::UBIGINT(edgeId) );
+			}
+
 			// fetch
 			// call API
 			// FIXME write here
 			itbgpp_graph->doIndexSeek(state.ext_it, targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes); // TODO
 			assert( targetTupleChunk.size() == 1 && "did not fetch well");
 			int columnOffset = input.ColumnCount();
+			if( edgeName.compare("") == 1 ) {
+				columnOffset+=1;
+			} 
 			for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
 				chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );
 			}
@@ -113,7 +121,7 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 
 breakLoop:
 	// postprocess
-	
+	// std::cout << "End Expand\n";
 	// set chunk cardinality
 	chunk.SetCardinality(numProducedTuples);
 	if( isHaveMoreOutput ) {

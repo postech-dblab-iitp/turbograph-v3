@@ -30,18 +30,29 @@ void NodeScan::GetData(GraphStore* graph, DataChunk &chunk, LocalSourceState &ls
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
 	if (state.first_time_here) {
 		state.first_time_here = false;
-		fprintf(stdout, "A\n");
+		// fprintf(stdout, "A\n");
 		auto initializeAPIResult =
 			itbgpp_graph->InitializeScan(state.ext_it, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); // ??zz
-		fprintf(stdout, "B\n");
-		auto scanAPIResult =
+		// fprintf(stdout, "B\n");
+		if(filterKey.compare("") == 0 ){
+			auto scanAPIResult =
 			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
-		fprintf(stdout, "C\n");
+		} else {
+			auto scanAPIResult =
+			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes(), filterKey, filterValue);
+		}
+		
+		// fprintf(stdout, "C\n");
 	} else {
 		D_ASSERT(state.ext_it != nullptr);
-		auto scanAPIResult =
+		if(filterKey.compare("") == 0 ){
+			auto scanAPIResult =
 			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes());
+		} else {
+			auto scanAPIResult =
+			itbgpp_graph->doScan(state.ext_it, chunk, labels, edgeLabelSet, loadAdjOpt, propertyKeys, schema.getTypes(), filterKey, filterValue);
+		}
 	}
 }
 

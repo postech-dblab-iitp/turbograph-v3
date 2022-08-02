@@ -46,6 +46,9 @@ vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
 }
 
 vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property_keys) {
+	// for (auto &it : property_key_names) {
+	// 	std::cout << "pk: " << it << std::endl;
+	// }
 	vector<idx_t> column_idxs;
 	for (auto &it : property_keys) {
 		auto idx = std::find(this->property_key_names.begin(), this->property_key_names.end(), it);
@@ -67,6 +70,14 @@ void PropertySchemaCatalogEntry::SetKeys(vector<string> &key_names) {
 	for (auto &it : key_names) {
 		property_key_names.push_back(it);
 	}
+}
+
+vector<string> PropertySchemaCatalogEntry::GetKeys() {
+	vector<string> output;
+	for (auto &it : property_key_names) {
+		output.push_back(it);
+	}
+	return output;
 }
 
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {

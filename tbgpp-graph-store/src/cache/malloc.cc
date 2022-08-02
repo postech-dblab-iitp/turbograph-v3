@@ -81,7 +81,7 @@ void MemAllocator::add_to_free_list(int index, int64_t mem_entry_index) {
   MemoryEntry *entry = &header_->memory_entries[mem_entry_index];
 
   assert(!entry->in_use);
-  assert(1 << index == entry->size);
+  assert(1L << index == entry->size);
 
   if (free_list_->free_list_head[index] > 0) {
     int64_t head_index = free_list_->free_list_head[index];
@@ -162,7 +162,7 @@ void MemAllocator::add_to_free_list_nolog(int index, int64_t mem_entry_index) {
   MemoryEntry *entry = &header_->memory_entries[mem_entry_index];
 
   assert(!entry->in_use);
-  assert(1 << index == entry->size);
+  assert(1L << index == entry->size);
 
   if (free_list_->free_list_head[index] > 0) {
     int64_t head_index = free_list_->free_list_head[index];

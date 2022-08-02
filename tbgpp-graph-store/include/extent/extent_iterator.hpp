@@ -6,6 +6,7 @@
 
 namespace duckdb {
 
+class Value;
 class DataChunk;
 class LogicalType;
 class ClientContext;
@@ -26,6 +27,7 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
 
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, std::string filterKey, Value filterValue, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr);
 
@@ -45,6 +47,7 @@ private:
     int num_data_chunks;
     int toggle;
     bool support_double_buffering;
+    PropertySchemaCatalogEntry *ps_cat_entry;
 };
 
 class AdjacencyListIterator {
