@@ -15,9 +15,11 @@ public:
 		std::string srcName, LabelSet srcLabelSet, LabelSet srcEdgeLabelSet, ExpandDirection expandDir, std::string edgeName, LabelSet tgtLabelSet, std::vector<LabelSet> tgtEdgeLabelSets, LoadAdjListOption tgtLoadAdjOpt, PropertyKeys tgtPropertyKeys)
 		: CypherPhysicalOperator(sch),
 		srcName(srcName), srcLabelSet(srcLabelSet), srcEdgeLabelSet(srcEdgeLabelSet), expandDir(expandDir), edgeName(edgeName), tgtLabelSet(tgtLabelSet), tgtEdgeLabelSets(tgtEdgeLabelSets), tgtLoadAdjOpt(tgtLoadAdjOpt), tgtPropertyKeys(tgtPropertyKeys)
-		 {
-
-		assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index");
+	{
+		// init timers
+		adjfetch_time = 0;
+		tgtfetch_time = 0;	
+		assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index"); // TODO needs support from the storage
 	}
 	~NaiveExpand() {}
 

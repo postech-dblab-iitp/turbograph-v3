@@ -30,8 +30,18 @@ public:
 	std::vector<CypherPipelineExecutor*> Test5();	// Scan Comment
 	std::vector<CypherPipelineExecutor*> Test5_1();	// Scan Comment + Filter + Projection + Limit
 	
-	std::vector<CypherPipelineExecutor*> LDBCShort1();
-	std::vector<CypherPipelineExecutor*> LDBCShort5();
+	std::vector<CypherPipelineExecutor*> LDBCShort1();	// full support
+	std::vector<CypherPipelineExecutor*> LDBCShort3();	// slight mod
+	std::vector<CypherPipelineExecutor*> LDBCShort4();  // 2 plans
+	CypherPipelineExecutor* ldbc_s4_comment();
+	CypherPipelineExecutor* ldbc_s4_post();
+	std::vector<CypherPipelineExecutor*> LDBCShort5();	// 2 plans
+	CypherPipelineExecutor* ldbc_s5_comment();
+	CypherPipelineExecutor* ldbc_s5_post();
+
+	std::vector<CypherPipelineExecutor*> LDBCComplex2();
+
+	std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 
 private:
 
