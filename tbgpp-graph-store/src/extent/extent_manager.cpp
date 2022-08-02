@@ -116,7 +116,11 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         } else if (l_type == LogicalType::ADJLIST) {
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
+            // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
+            chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+
+            // Copy Data Into Cache
             memcpy(buf_ptr, &input_size, sizeof(uint64_t));
             memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
         }
@@ -216,19 +220,22 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
             memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
         } else {
+            // Create MinMaxArray in ChunkDefinitionCatalog
+            size_t input_size = input.size();
+            chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+
+            // Copy Data Into Cache
             //best_compression_function = BITPACKING;
             // TODO type support check should be done by CompressionFunction
             if (best_compression_function == BITPACKING && BitpackingPrimitives::TypeIsSupported(p_type)) {
                 // Set Compression Function
                 CompressionFunction comp_func(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress
-                size_t input_size = input.size();
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
                 CompressionHeader comp_header(BITPACKING, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
-                size_t input_size = input.size();
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
                 memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
