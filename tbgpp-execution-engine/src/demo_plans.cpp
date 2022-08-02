@@ -45,7 +45,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
@@ -88,7 +88,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_1() {
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
@@ -137,7 +137,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_2() {
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
@@ -152,7 +152,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_2() {
 	// filter
 	CypherSchema filter_schema = schema;
 	int filter_colnum = 1; // id
-	auto filter_value = duckdb::Value::BIGINT(5);
+	auto filter_value = duckdb::Value::UBIGINT(5);
 
 	// projections
 	CypherSchema project_schema;
@@ -187,7 +187,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1_3() {
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
@@ -232,7 +232,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 		// schema
 	CypherSchema schema1;
 	schema1.addNode("p", LoadAdjListOption::OUTGOING);
-	schema1.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
+	schema1.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT);
 		// parameters
 	LabelSet scan_labels;
 	std::vector<LabelSet> scan_edegLabelSets;
@@ -340,7 +340,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 	schema.addPropertyIntoNode("n", "creationDate", duckdb::LogicalType::BIGINT);
 	schema.addPropertyIntoNode("n", "locationIP", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "content", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	// scan params
 	LabelSet scan_labels;
 	std::vector<LabelSet> scan_edegLabelSet;
@@ -407,7 +407,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	schema.addPropertyIntoNode("n", "browserUsed", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "locationIP", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "creationDate", duckdb::LogicalType::BIGINT);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -432,12 +432,12 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	CypherSchema filter_schema = schema;
 	int filter_colnum = 8; // id
 		//sf1, 10, 100
-	auto filter_value = duckdb::Value::BIGINT(14);
+	auto filter_value = duckdb::Value::UBIGINT(14);
 
 	// Expand
 	CypherSchema expandschema = filter_schema;
 	expandschema.addNode("p", LoadAdjListOption::NONE);
-	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
+	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT);
 		// params
 	LabelSet tgt_labels;
 	tgt_labels.insert("Place");
@@ -455,7 +455,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	project_schema.addColumn("birthday", duckdb::LogicalType::BIGINT);
 	project_schema.addColumn("locationIP", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("browserUsed", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("cityId", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("cityId", duckdb::LogicalType::UBIGINT);
 	project_schema.addColumn("gender", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
 
@@ -508,27 +508,29 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort3() {
 
 	CypherSchema schema;
 	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 
 	// scan params
 	LabelSet scan_labels;
 	std::vector<LabelSet> scan_edegLabelSets;
 	LoadAdjListOption scan_loadAdjOpt;
 	PropertyKeys scan_propertyKeys;
+	scan_propertyKeys.push_back("id");
 	scan_labels.insert("Person");
 	scan_loadAdjOpt = LoadAdjListOption::NONE;
 
 	// filter
 	CypherSchema filter_schema = schema;
-	int filter_colnum = 8; // id
+	int filter_colnum = 1; // id
 		//sf1, 10, 100
-	auto filter_value = duckdb::Value::BIGINT(14);
+	auto filter_value = duckdb::Value::UBIGINT(14);
 		// TODO change value
 
 	// expand
 	auto expandschema = schema;
 	expandschema.addEdge("r");
 	expandschema.addNode("friend", LoadAdjListOption::NONE);
-	expandschema.addPropertyIntoNode("friend", "id", duckdb::LogicalType::BIGINT);
+	expandschema.addPropertyIntoNode("friend", "id", duckdb::LogicalType::UBIGINT);
 	expandschema.addPropertyIntoNode("friend", "firstName", duckdb::LogicalType::VARCHAR);
 	expandschema.addPropertyIntoNode("friend", "lastName", duckdb::LogicalType::VARCHAR);
 	auto e1 = LabelSet();
@@ -550,12 +552,12 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort3() {
 
 	// projection
 	CypherSchema project_schema;
-	project_schema.addColumn("personId", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("personId", duckdb::LogicalType::UBIGINT);
 	project_schema.addColumn("firstName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("lastName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("friendshipCreationDate", duckdb::LogicalType::BIGINT);
 
-	std::vector<int> project_ordering({ 1, 2, 3, 5});
+	std::vector<int> project_ordering({ 5, 6, 7, 3 });
 	
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
@@ -615,7 +617,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_comment() {
 	// scan schema
 	CypherSchema schema;
 	schema.addNode("m", LoadAdjListOption::NONE);
-	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("m", "content", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("m", "creationDate", duckdb::LogicalType::BIGINT);
 	
@@ -630,6 +632,14 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_comment() {
 	scan_propertyKeys.push_back("id");
 	scan_propertyKeys.push_back("content");
 	scan_propertyKeys.push_back("creationDate");
+
+	CypherSchema filter_schema = schema;
+	int filter_colnum = 1; // id
+		//sf1, 10, 100
+	auto filter_value = duckdb::Value::UBIGINT(57459); // 1
+	// auto filter_value = duckdb::Value::BIGINT(58929); // 10 
+	// auto filter_value = duckdb::Value::BIGINT(19560); // 100
+	// TODO change
 	
 	// Project
 	CypherSchema project_schema;
@@ -641,9 +651,10 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_comment() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	// FIXME add me again!
+	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
 	ops.push_back(new SimpleProjection(project_schema, project_ordering));
 		// sink
 	ops.push_back(new ProduceResults(project_schema));
@@ -658,7 +669,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_post() {
 	// scan schema
 	CypherSchema schema;
 	schema.addNode("m", LoadAdjListOption::NONE);
-	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("m", "content", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("m", "imageFile", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("m", "creationDate", duckdb::LogicalType::BIGINT);
@@ -676,6 +687,11 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_post() {
 	scan_propertyKeys.push_back("content");
 	scan_propertyKeys.push_back("imageFile");
 	scan_propertyKeys.push_back("creationDate");
+
+	CypherSchema filter_schema = schema;
+	int filter_colnum = 1; // id
+		//sf1, 10, 100
+	auto filter_value = duckdb::Value::UBIGINT(0); // 1 10 100 s ;; NO ID
 	
 	// Project
 	CypherSchema project_schema;
@@ -688,9 +704,10 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_post() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	// FIXME add me again!
+	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
 	ops.push_back(new SimpleProjection(project_schema, project_ordering));
 		// sink
 	ops.push_back(new ProduceResults(project_schema));
@@ -725,7 +742,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_comment() {
 
 	CypherSchema schema;
 	schema.addNode("m", LoadAdjListOption::NONE);
-	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -743,14 +760,17 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_comment() {
 	CypherSchema filter_schema = schema;
 	int filter_colnum = 1; // id
 		//sf1
-	//auto filter_value = duckdb::Value::BIGINT(57459);
+	auto filter_value = duckdb::Value::UBIGINT(57459);
 		// sf10
-	auto filter_value = duckdb::Value::BIGINT(58929);
+	//auto filter_value = duckdb::Value::BIGINT(58929);
+		// sf100
+	// 19560
+	
 
 	// Expand
 	CypherSchema expandschema = filter_schema;
 	expandschema.addNode("p", LoadAdjListOption::NONE);
-	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
+	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT);
 	expandschema.addPropertyIntoNode("p", "firstName", duckdb::LogicalType::VARCHAR);
 	expandschema.addPropertyIntoNode("p", "lastName", duckdb::LogicalType::VARCHAR);
 		// params
@@ -767,7 +787,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_comment() {
 	
 	// Project
 	CypherSchema project_schema;
-	project_schema.addColumn("personId", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("personId", duckdb::LogicalType::UBIGINT);
 	project_schema.addColumn("firstName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("lastName", duckdb::LogicalType::VARCHAR);
 
@@ -797,7 +817,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_post() {
 
 	CypherSchema schema;
 	schema.addNode("m", LoadAdjListOption::NONE);
-	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -817,12 +837,13 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_post() {
 		//sf1
 	//auto filter_value = duckdb::Value::BIGINT(57459);
 		// sf10
-	auto filter_value = duckdb::Value::BIGINT(58929);
+	//auto filter_value = duckdb::Value::BIGINT(58929);
+	auto filter_value = duckdb::Value::UBIGINT(0);	
 
 	// Expand
 	CypherSchema expandschema = filter_schema;
 	expandschema.addNode("p", LoadAdjListOption::NONE);
-	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::BIGINT);
+	expandschema.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT);
 	expandschema.addPropertyIntoNode("p", "firstName", duckdb::LogicalType::VARCHAR);
 	expandschema.addPropertyIntoNode("p", "lastName", duckdb::LogicalType::VARCHAR);
 		// params
@@ -839,7 +860,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_post() {
 	
 	// Project
 	CypherSchema project_schema;
-	project_schema.addColumn("personId", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("personId", duckdb::LogicalType::UBIGINT);
 	project_schema.addColumn("firstName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("lastName", duckdb::LogicalType::VARCHAR);
 

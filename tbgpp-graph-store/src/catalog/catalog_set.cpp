@@ -12,6 +12,8 @@
 //#include "parser/expression/constant_expression.hpp"
 #include <sys/fcntl.h>
 
+#include <iostream>
+
 namespace duckdb {
 
 //! Class responsible to keep track of state when removing entries from the catalog.

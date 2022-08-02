@@ -37,6 +37,7 @@
 //#include "planner/binder.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace duckdb {
 

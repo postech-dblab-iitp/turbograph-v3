@@ -43,7 +43,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	while(true) {
 		// std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
-		std::cout << "why?!!" << std::endl;
+		// std::cout << "why?!!" << std::endl;
 		source_chunk.Reset();
 		FetchFromSource(source_chunk);
 		// std::cout << "fetched!!" << std::endl;
@@ -64,7 +64,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
-std::cout << "starting (source) operator" << std::endl;
+// std::cout << "starting (source) operator" << std::endl;
 	// timer start
 	if( pipeline->GetSource()->timer_started ){
 		pipeline->GetSource()->op_timer.start();
@@ -88,7 +88,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		//pipeOutputChunk->Reset(); // TODO huh?
 		
 		// call execute pipe
-		std::cout << "call execute pipe!!" << std::endl;
+		// std::cout << "call execute pipe!!" << std::endl;
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 			// timer start
@@ -98,7 +98,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		} else {
 			pipeline->GetSink()->op_timer.resume();
 		}
-		std::cout << "call sink!!" << std::endl;
+		// std::cout << "call sink!!" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
