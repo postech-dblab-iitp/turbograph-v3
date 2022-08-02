@@ -619,7 +619,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Actual Loops"] = 1; // meaningless
 
 	// TODO add operator-speciic
-	if( op->ToString() == "NaiveExpand" ) {
+	if( op->ToString() == "NExpand" ) {
 		(*content)["AdjFetch Time"] = ((NaiveExpand*) op)->adjfetch_time;
 		(*content)["TgtFetch Time"] = ((NaiveExpand*) op)->tgtfetch_time;
 	}
