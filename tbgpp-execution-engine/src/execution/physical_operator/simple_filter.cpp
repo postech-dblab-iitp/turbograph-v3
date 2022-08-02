@@ -19,7 +19,7 @@ unique_ptr<OperatorState> SimpleFilter::GetOperatorState() const {
 }
 
 OperatorResultType SimpleFilter::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-	std::cout << "Start Filter\n";
+	//std::cout << "Start Filter\n";
 	auto &state = (SimpleFilterState &)lstate;
 
 	// seek input using targetindex.
@@ -28,7 +28,7 @@ OperatorResultType SimpleFilter::Execute(GraphStore* graph, DataChunk &input, Da
 	// compare for BIGINT
 	int numProducedTuples = 0;
 	int srcIdx;
-	fprintf(stdout, "%s\n", input.ToString(1).c_str());
+	//fprintf(stdout, "%s\n", input.ToString(1).c_str());
 	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		duckdb::Value val = input.GetValue(targetColumn, srcIdx);
 		uint64_t lhs = duckdb::UBigIntValue::Get(val);
@@ -46,7 +46,7 @@ OperatorResultType SimpleFilter::Execute(GraphStore* graph, DataChunk &input, Da
 	state.sel.Initialize(state.sel);
 
 	// always return need_more_input
-	std::cout << "End Filter\n";
+	//std::cout << "End Filter\n";
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 

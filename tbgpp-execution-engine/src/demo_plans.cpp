@@ -464,7 +464,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort1() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	// FIXME add me again!
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
@@ -562,7 +562,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBCShort3() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
 	ops.push_back(new NaiveExpand(expandschema, "n", scan_labels, e1, ExpandDirection::OUTGOING, "r", tgt_labels, tgt_edgeLabelSets, tgt_loadAdjOpt, tgt_propertyKeys));
@@ -636,9 +636,9 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s4_comment() {
 	CypherSchema filter_schema = schema;
 	int filter_colnum = 1; // id
 		//sf1, 10, 100
-	auto filter_value = duckdb::Value::UBIGINT(57459); // 1
-	// auto filter_value = duckdb::Value::BIGINT(58929); // 10 
-	// auto filter_value = duckdb::Value::BIGINT(19560); // 100
+	//auto filter_value = duckdb::Value::UBIGINT(57459); // 1
+	//auto filter_value = duckdb::Value::BIGINT(58929); // 10 
+	auto filter_value = duckdb::Value::BIGINT(19560); // 100
 	// TODO change
 	
 	// Project
@@ -760,11 +760,13 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_comment() {
 	CypherSchema filter_schema = schema;
 	int filter_colnum = 1; // id
 		//sf1
-	auto filter_value = duckdb::Value::UBIGINT(57459);
+	//auto filter_value = duckdb::Value::UBIGINT(57459);
 		// sf10
 	//auto filter_value = duckdb::Value::BIGINT(58929);
 		// sf100
-	// 19560
+	auto filter_value = duckdb::Value::BIGINT(19560); // 100
+	// 
+	
 	
 
 	// Expand
@@ -796,7 +798,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_comment() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	// FIXME add me again!
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
@@ -869,7 +871,7 @@ CypherPipelineExecutor* QueryPlanSuite::ldbc_s5_post() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys));
+	ops.push_back(new NodeScan(schema, context, scan_labels, scan_edegLabelSets, scan_loadAdjOpt, scan_propertyKeys, "id", filter_value));
 		//operators
 	// FIXME add me again!
 	ops.push_back(new SimpleFilter(filter_schema, filter_colnum, filter_value));
