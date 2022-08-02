@@ -28,7 +28,7 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
-	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx 
+	int nodeColIdx = schema.getColIdxOfKey( srcName ); // idx 
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
 	vector<int> adjColIdxs;
 	for (int i = 0; i < input_datachunk_types.size(); i++) {
@@ -38,7 +38,7 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	//int adjColIdx = nodeColIdx + 1; // TODO assumption: adj col id = node id col id + 1
 
 	// target tuple chunk
-	auto targetTypes = schema.getNodeTypes( std::get<0>(schema.attrs.back()) );
+	auto targetTypes = schema.getTypesOfKey( std::get<0>(schema.attrs.back()) );
 	bool fetchTarget = targetTypes.size() != 0;
 	DataChunk targetTupleChunk;
 	if( fetchTarget ) {

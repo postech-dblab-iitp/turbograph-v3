@@ -33,12 +33,12 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
-	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx
+	int nodeColIdx = schema.getColIdxOfKey( srcName ); // idx
 	
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
 
 	// target tuple chunk
-	auto targetTypes = schema.getNodeTypes( std::get<0>(schema.attrs.back()) );
+	auto targetTypes = schema.getTypesOfKey( std::get<0>(schema.attrs.back()) );
 	bool fetchTarget = targetTypes.size() != 0;
 	DataChunk targetTupleChunk;
 	if( fetchTarget ) {
@@ -91,6 +91,8 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 				//std::cout << colId <<   std::endl;
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
+			// TODO optionally add edge id
+			
 			// fetch
 			// call API
 			// FIXME write here
@@ -130,11 +132,11 @@ breakLoop:
 }
 
 std::string NaiveExpand::ParamsToString() const {
-	return "NaiveExpand-params-TODO";
+	return "NExpand-params-TODO";
 }
 
 std::string NaiveExpand::ToString() const {
-	return "NaiveExpand";
+	return "NExpand";
 }
 
 }

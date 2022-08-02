@@ -515,7 +515,14 @@ int main(int argc, char** argv) {
 		// }
 		else if( query_str.compare("s1") == 0 ) {
 			executors = suite.LDBCShort1();
-		} else if( query_str.compare("s5") == 0 ) {
+		}
+		else if( query_str.compare("s3") == 0 ) {
+			executors = suite.LDBCShort3();
+		} 
+		else if( query_str.compare("s4") == 0 ) {
+			executors = suite.LDBCShort4();
+		} 
+		 else if( query_str.compare("s5") == 0 ) {
 			executors = suite.LDBCShort5();
 		}
 

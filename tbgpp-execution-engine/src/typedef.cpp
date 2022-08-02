@@ -114,8 +114,26 @@ void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 	nestedAttrs[name] = nodeSchema;
 }
 
+void CypherSchema::addEdge(std::string name) {
+
+	CypherSchema edgeSchema;
+	edgeSchema.attrs.push_back(
+		std::make_tuple("_id", CypherValueType::ID, LogicalType(LogicalTypeId::ID))
+	);
+	// set edges info on attrs
+	attrs.push_back( std::make_tuple(name, CypherValueType::EDGE, LogicalType(LogicalTypeId::INVALID)) );
+	// set node details
+	nestedAttrs[name] = edgeSchema;
+}
+
 void CypherSchema::addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type) {
 	nestedAttrs[nodeName].attrs.push_back(
+		std::make_tuple(propName, CypherValueType::DATA, type)
+	);
+}
+
+void CypherSchema::addPropertyIntoEdge(std::string edgeName, std::string propName, duckdb::LogicalType type) {
+	nestedAttrs[edgeName].attrs.push_back(
 		std::make_tuple(propName, CypherValueType::DATA, type)
 	);
 }
@@ -124,14 +142,14 @@ void CypherSchema::addColumn(std::string attrName, duckdb::LogicalType type) {
 	attrs.push_back( std::make_tuple(attrName, CypherValueType::DATA, type) );
 }
 
-std::vector<duckdb::LogicalType> CypherSchema::getNodeTypes(std::string name) const {
+std::vector<duckdb::LogicalType> CypherSchema::getTypesOfKey(std::string name) const {
 	if( nestedAttrs.find(name) != nestedAttrs.end()) {
  		return nestedAttrs.find(name)->second.getTypes();
 	}
 	return std::vector<duckdb::LogicalType>();
 }
 
-int CypherSchema::getNodeColIdx(std::string query) const {
+int CypherSchema::getColIdxOfKey(std::string key) const {
 
 	int result = 0;
 	for( auto& attr: attrs) {
@@ -141,7 +159,7 @@ int CypherSchema::getNodeColIdx(std::string query) const {
 			case CypherValueType::NODE:
 			case CypherValueType::PATH:
 			case CypherValueType::EDGE:
-				if( name.compare(query) == 0 ) {
+				if( name.compare(key) == 0 ) {
 					return result;
 				} else {
 					result += nestedAttrs.find(name)->second.attrs.size();
