@@ -528,7 +528,6 @@ int main(int argc, char** argv) {
 
 		// TODO add
 		else {
-			std::cout << "WRONG INPUT!" << std::endl;
 			continue;
 		}
 		// Execute
@@ -538,7 +537,7 @@ int main(int argc, char** argv) {
 		int idx=0;
 		for( auto exec : executors ) { 
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-			std::cout << exec->pipeline->toString() << std::endl;
+			//std::cout << exec->pipeline->toString() << std::endl;
 			std::cout << "starting!!" << std::endl;
 			exec->ExecutePipeline();
 			std::cout << "done pipeline execution!!" << std::endl;
