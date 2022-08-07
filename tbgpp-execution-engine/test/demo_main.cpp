@@ -23,9 +23,10 @@
 #include <boost/filesystem.hpp>
 
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json.hpp>	// TODO remove json and use that of boost
 using json = nlohmann::json;
 
+#include <icecream.hpp>
 
 //#include "livegraph.hpp"
 #include "demo_plans.hpp"
@@ -44,7 +45,6 @@ using json = nlohmann::json;
 #include "execution/physical_operator/physical_dummy_operator.hpp"
 #include "execution/physical_operator/produce_results.hpp"
 #include "execution/physical_operator/naive_expand.hpp"
-
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
@@ -562,9 +562,9 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	// output file
 	std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
 	std::replace( curtime.begin(), curtime.end(), ' ', '_');
-	boost::filesystem::create_directories("tmp/tbgpp-vislog/");
-	std::cout << "saving query visualization in : " << "tmp/tbgpp-vislog/" << curtime << ".html" << std::endl;
-	std::ofstream file( "tmp/tbgpp-vislog/" + curtime + ".html" );
+	boost::filesystem::create_directories("execution-log/");
+	std::cout << "saving query visualization in : " << "execution-log/" << curtime << ".html" << std::endl;
+	std::ofstream file( "execution-log/" + curtime + ".html" );
 
 	// TODO currently supports only linear query plan.
 	
