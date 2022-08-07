@@ -37,6 +37,7 @@ RUN apt-get install -y \
 		cmake=${CMAKE_VERSION} \
 		cmake-data=${CMAKE_VERSION} \
 		ninja-build \
+		doxygen \
 	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} \
 	&& git clone https://github.com/catchorg/Catch2.git && cd Catch2 && cmake -Bbuild -H. -DBUILD_TESTING=OFF && cmake --build build/ --target install
 	
@@ -49,8 +50,8 @@ RUN apt-get install -y \
 		libtbb-dev \
 		libaio-dev \
 		numactl \
-		libnuma-dev \
-		intel-basekit
+		libnuma-dev
+
 # (boost)
 RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSION}.${BOOST_SUB_VERSION}.0/boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
   && tar xfz boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
@@ -64,9 +65,10 @@ RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSI
 #### For developers # TODO further separate
 RUN apt-get install -y \
 	vim \
-	dstat 
+	dstat \
+	intel-basekit
 
-# TODO huh?
+# Resolve git issue
 RUN git config --global --add safe.directory /turbograph-v3
 
 # WORKDIR to project repository
