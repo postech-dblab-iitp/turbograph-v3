@@ -483,16 +483,18 @@ int main(int argc, char** argv) {
 	iTbgppGraphStore graphstore(*client.get());
 
 	// load plans
-	std::cout << "load plan suite" << std::endl;
+	IC_( "hellow #X", &graphstore );
 	auto suite = QueryPlanSuite((GraphStore*)&graphstore, *client.get());
 
 	// execute query
-	std::cout << "start receiving query" << std::endl;
+	// IC( *client.get() );
 
 	// run queries by query name
 	std::string query_str;
 	std::vector<CypherPipelineExecutor*> executors;
+	icecream::ic.disable();
 	while(true) {
+		IC();
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		
 		if( query_str.compare("t1") == 0 ) {

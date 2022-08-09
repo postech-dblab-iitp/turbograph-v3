@@ -38,3 +38,4 @@ test*.cmake
 
 # vscode directory
 .vscode/
+*.code-workspace
