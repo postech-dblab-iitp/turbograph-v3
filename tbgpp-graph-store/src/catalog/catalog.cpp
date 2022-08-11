@@ -1,6 +1,6 @@
 #include "catalog/catalog.hpp"
 
-#include "catalog/catalog_search_path.hpp"
+//#include "catalog/catalog_search_path.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "catalog/catalog_set.hpp"
 #include "catalog/default/default_schemas.hpp"
@@ -271,7 +271,7 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 	D_ASSERT(!schema_name.empty());
 	if (schema_name == TEMP_SCHEMA) {
 		D_ASSERT(false);
-		return ClientData::Get(context).temporary_objects.get();
+		//return ClientData::Get(context).temporary_objects.get();
 	}
 	auto entry = schemas->GetEntry(context, schema_name);
 	if (!entry && !if_exists) {
@@ -348,7 +348,8 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 		return {schema, entry};
 	}
 
-	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
+//	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
+	const auto paths = vector<string>();
 	for (const auto &path : paths) {
 		//auto lookup = LookupEntry(context, type, path, name, true, error_context);
 		auto lookup = LookupEntry(context, type, path, name, true);
