@@ -3,17 +3,18 @@
 //#include "main/client_context_file_opener.hpp"
 //#include "main/query_profiler.hpp"
 //#include "common/random_engine.hpp"
-#include "catalog/catalog_entry/schema_catalog_entry.hpp"
-#include "catalog/catalog_search_path.hpp"
-#include "catalog/catalog.hpp"
+//#include "catalog/catalog_entry/schema_catalog_entry.hpp"
+//#include "catalog/catalog_search_path.hpp"
+//#include "catalog/catalog.hpp"
 //#include "common/serializer/buffered_file_writer.hpp"
 
 namespace duckdb {
 
-ClientData::ClientData(ClientContext &context) : catalog_search_path(make_unique<CatalogSearchPath>(context)) {
+//ClientData::ClientData(ClientContext &context) : catalog_search_path(make_unique<CatalogSearchPath>(context)) {
+ClientData::ClientData(ClientContext &context) {
 	//profiler = make_shared<QueryProfiler>(context);
 	//query_profiler_history = make_unique<QueryProfilerHistory>();
-	temporary_objects = make_unique<SchemaCatalogEntry>(&Catalog::GetCatalog(context), TEMP_SCHEMA, true);
+	//temporary_objects = make_unique<SchemaCatalogEntry>(&Catalog::GetCatalog(context), TEMP_SCHEMA, true);
 	//random_engine = make_unique<RandomEngine>();
 	//file_opener = make_unique<ClientContextFileOpener>(context);
 }

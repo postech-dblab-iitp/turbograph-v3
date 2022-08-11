@@ -1,6 +1,6 @@
 #include "common/types.hpp"
 
-#include "catalog/catalog_entry/type_catalog_entry.hpp"
+//#include "catalog/catalog_entry/type_catalog_entry.hpp"
 #include "common/exception.hpp"
 //#include "common/field_writer.hpp"
 #include "common/limits.hpp"

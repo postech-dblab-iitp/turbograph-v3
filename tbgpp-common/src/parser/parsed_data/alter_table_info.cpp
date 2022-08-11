@@ -160,7 +160,7 @@ AddColumnInfo::~AddColumnInfo() {
 }
 
 unique_ptr<AlterInfo> AddColumnInfo::Copy() const {
-	return make_unique_base<AlterInfo, AddColumnInfo>(schema, name, new_column.Copy());
+	return make_unique_base<AlterInfo, AddColumnInfo>(schema, name, new_column); // TODO jhko changed
 }
 /*
 void AddColumnInfo::SerializeAlterTable(FieldWriter &writer) const {

@@ -86,7 +86,7 @@ bool GreaterThanEquals::Operation(double left, double right) {
 	return GreaterThanEqualsFloat<double>(left, right);
 }
 
-/*struct ComparisonSelector {
+struct ComparisonSelector {
 	template <typename OP>
 	static idx_t Select(Vector &left, Vector &right, const SelectionVector *sel, idx_t count, SelectionVector *true_sel,
 	                    SelectionVector *false_sel) {
@@ -135,9 +135,9 @@ inline idx_t ComparisonSelector::Select<duckdb::LessThanEquals>(Vector &left, Ve
                                                                 idx_t count, SelectionVector *true_sel,
                                                                 SelectionVector *false_sel) {
 	return VectorOperations::LessThanEquals(left, right, sel, count, true_sel, false_sel);
-}*/
+}
 
-/*static idx_t ComparesNotNull(ValidityMask &vleft, ValidityMask &vright, ValidityMask &vresult, idx_t count,
+static idx_t ComparesNotNull(ValidityMask &vleft, ValidityMask &vright, ValidityMask &vresult, idx_t count,
                              SelectionVector &not_null) {
 	idx_t valid = 0;
 	for (idx_t i = 0; i < count; ++i) {
@@ -202,7 +202,7 @@ static void NestedComparisonExecutor(Vector &left, Vector &right, Vector &result
 		const auto idx = false_sel.get_index(i);
 		result_data[idx] = false;
 	}
-}*/
+}
 
 struct ComparisonExecutor {
 private:
