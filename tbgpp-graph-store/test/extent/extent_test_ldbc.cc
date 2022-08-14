@@ -22,6 +22,8 @@
 #include "common/types/data_chunk.hpp"
 #include "extent/extent_manager.hpp"
 #include "extent/extent_iterator.hpp"
+#include "index/index.hpp"
+#include "index/art/art.hpp"
 
 #include "catalog/catalog.hpp"
 #include "main/database.hpp"
@@ -109,6 +111,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   int aaa;
   // std::cin >> aaa;
   // Read Vertex CSV File & CreateVertexExtents
+  unique_ptr<Index> index; // Temporary..
   for (auto &vertex_file: vertex_files) {
     auto vertex_file_start = std::chrono::high_resolution_clock::now();
     fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
@@ -158,6 +161,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
     unordered_map<idx_t, idx_t> &lid_to_pid_map_instance = lid_to_pid_map.back().second;
     lid_to_pid_map_instance.reserve(approximated_num_rows);
+    vector<column_t> column_ids;
+    column_ids.push_back(key_column_idx);
+    index = make_unique<ART>(column_ids, IndexConstraintType::NONE);
 
     // Read CSV File into DataChunk & CreateVertexExtent
     auto read_chunk_start = std::chrono::high_resolution_clock::now();
@@ -192,6 +198,23 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       auto map_build_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
       fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+
+      // Build Index
+      // auto index_build_start = std::chrono::high_resolution_clock::now();
+      // Vector row_ids(LogicalType::UBIGINT, true, false, data.size());
+      // for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+      //   row_ids.SetValue(seqno, Value::UBIGINT(pid_base + seqno));
+      // }
+      // DataChunk tmp_chunk;
+      // vector<LogicalType> tmp_types = {LogicalType::UBIGINT};
+      // tmp_chunk.Initialize(tmp_types);
+      // tmp_chunk.data[0].Reference(data.data[key_column_idx]);
+      // IndexLock lock;
+      // index->Insert(lock, tmp_chunk, row_ids);
+      // auto index_build_end = std::chrono::high_resolution_clock::now();
+      // std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
+      // fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
+
       read_chunk_start = std::chrono::high_resolution_clock::now();
     }
     auto vertex_file_end = std::chrono::high_resolution_clock::now();
@@ -454,7 +477,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     DataChunk data;
     ExtentID output_eid;
 
-    ext_it.GetNextExtent(*client.get(), data, output_eid);
+    ext_it.GetNextExtent(*client.get(), data, output_eid, false);
     
     // Print DataChunk
     fprintf(stdout, "Print Vertex Data %s\n", vertex_file.first.c_str());
@@ -476,7 +499,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     DataChunk data;
     ExtentID output_eid;
 
-    ext_it.GetNextExtent(*client.get(), data, output_eid);
+    ext_it.GetNextExtent(*client.get(), data, output_eid, false);
 
     // Print DataChunk
     fprintf(stdout, "%s\n", data.ToString(10).c_str());

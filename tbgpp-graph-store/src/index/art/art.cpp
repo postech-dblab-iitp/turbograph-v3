@@ -17,26 +17,26 @@ ART::ART(const vector<column_t> &column_ids, IndexConstraintType constraint_type
 	tree = nullptr;
 	// expression_result.Initialize(logical_types);
 	is_little_endian = IsLittleEndian();
-	for (idx_t i = 0; i < types.size(); i++) {
-		switch (types[i]) {
-		case PhysicalType::BOOL:
-		case PhysicalType::INT8:
-		case PhysicalType::INT16:
-		case PhysicalType::INT32:
-		case PhysicalType::INT64:
-		case PhysicalType::INT128:
-		case PhysicalType::UINT8:
-		case PhysicalType::UINT16:
-		case PhysicalType::UINT32:
-		case PhysicalType::UINT64:
-		case PhysicalType::FLOAT:
-		case PhysicalType::DOUBLE:
-		case PhysicalType::VARCHAR:
-			break;
-		default:
-			throw InvalidTypeException(logical_types[i], "Invalid type for index");
-		}
-	}
+	// for (idx_t i = 0; i < types.size(); i++) {
+	// 	switch (types[i]) {
+	// 	case PhysicalType::BOOL:
+	// 	case PhysicalType::INT8:
+	// 	case PhysicalType::INT16:
+	// 	case PhysicalType::INT32:
+	// 	case PhysicalType::INT64:
+	// 	case PhysicalType::INT128:
+	// 	case PhysicalType::UINT8:
+	// 	case PhysicalType::UINT16:
+	// 	case PhysicalType::UINT32:
+	// 	case PhysicalType::UINT64:
+	// 	case PhysicalType::FLOAT:
+	// 	case PhysicalType::DOUBLE:
+	// 	case PhysicalType::VARCHAR:
+	// 		break;
+	// 	default:
+	// 		throw InvalidTypeException(logical_types[i], "Invalid type for index");
+	// 	}
+	// }
 }
 
 ART::~ART() {
@@ -211,49 +211,49 @@ void ART::GenerateKeys(DataChunk &input, vector<unique_ptr<Key>> &keys) {
 	}
 }
 
-// bool ART::Insert(IndexLock &lock, DataChunk &input, Vector &row_ids) {
-// 	D_ASSERT(row_ids.GetType().InternalType() == ROW_TYPE);
-// 	D_ASSERT(logical_types[0] == input.data[0].GetType());
+bool ART::Insert(IndexLock &lock, DataChunk &input, Vector &row_ids) {
+	D_ASSERT(row_ids.GetType().InternalType() == ROW_TYPE);
+	D_ASSERT(logical_types[0] == input.data[0].GetType());
 
-// 	// generate the keys for the given input
-// 	vector<unique_ptr<Key>> keys;
-// 	GenerateKeys(input, keys);
+	// generate the keys for the given input
+	vector<unique_ptr<Key>> keys;
+	GenerateKeys(input, keys);
 
-// 	// now insert the elements into the index
-// 	row_ids.Normalify(input.size());
-// 	auto row_identifiers = FlatVector::GetData<row_t>(row_ids);
-// 	idx_t failed_index = DConstants::INVALID_INDEX;
-// 	for (idx_t i = 0; i < input.size(); i++) {
-// 		if (!keys[i]) {
-// 			continue;
-// 		}
+	// now insert the elements into the index
+	row_ids.Normalify(input.size());
+	auto row_identifiers = FlatVector::GetData<row_t>(row_ids);
+	idx_t failed_index = DConstants::INVALID_INDEX;
+	for (idx_t i = 0; i < input.size(); i++) {
+		if (!keys[i]) {
+			continue;
+		}
 
-// 		row_t row_id = row_identifiers[i];
-// 		if (!Insert(tree, move(keys[i]), 0, row_id)) {
-// 			// failed to insert because of constraint violation
-// 			failed_index = i;
-// 			break;
-// 		}
-// 	}
-// 	if (failed_index != DConstants::INVALID_INDEX) {
-// 		// failed to insert because of constraint violation: remove previously inserted entries
-// 		// generate keys again
-// 		keys.clear();
-// 		GenerateKeys(input, keys);
-// 		unique_ptr<Key> key;
+		row_t row_id = row_identifiers[i];
+		if (!Insert(tree, move(keys[i]), 0, row_id)) {
+			// failed to insert because of constraint violation
+			failed_index = i;
+			break;
+		}
+	}
+	if (failed_index != DConstants::INVALID_INDEX) {
+		// failed to insert because of constraint violation: remove previously inserted entries
+		// generate keys again
+		keys.clear();
+		GenerateKeys(input, keys);
+		unique_ptr<Key> key;
 
-// 		// now erase the entries
-// 		for (idx_t i = 0; i < failed_index; i++) {
-// 			if (!keys[i]) {
-// 				continue;
-// 			}
-// 			row_t row_id = row_identifiers[i];
-// 			Erase(tree, *keys[i], 0, row_id);
-// 		}
-// 		return false;
-// 	}
-// 	return true;
-// }
+		// now erase the entries
+		for (idx_t i = 0; i < failed_index; i++) {
+			if (!keys[i]) {
+				continue;
+			}
+			row_t row_id = row_identifiers[i];
+			Erase(tree, *keys[i], 0, row_id);
+		}
+		return false;
+	}
+	return true;
+}
 
 // bool ART::Append(IndexLock &lock, DataChunk &appended_data, Vector &row_identifiers) {
 // 	DataChunk expression_result;

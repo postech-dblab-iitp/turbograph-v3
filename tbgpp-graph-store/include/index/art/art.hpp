@@ -106,8 +106,8 @@ public:
 	// void VerifyDeleteForeignKey(DataChunk &chunk, string *err_msg_ptr) override;
 	// //! Delete entries in the index
 	// void Delete(IndexLock &lock, DataChunk &entries, Vector &row_identifiers) override;
-	// //! Insert data into the index.
-	// bool Insert(IndexLock &lock, DataChunk &data, Vector &row_ids) override;
+	//! Insert data into the index.
+	bool Insert(IndexLock &lock, DataChunk &data, Vector &row_ids) override;
 
 	// bool SearchEqual(ARTIndexScanState *state, idx_t max_count, vector<row_t> &result_ids);
 	// //! Search Equal used for Joins that do not need to fetch data

@@ -1,5 +1,5 @@
-#include "execution/index/art/node.hpp"
-#include "execution/index/art/art.hpp"
+#include "index/art/node.hpp"
+#include "index/art/art.hpp"
 #include "common/exception.hpp"
 
 namespace duckdb {
