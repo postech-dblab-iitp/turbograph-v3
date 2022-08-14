@@ -225,6 +225,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");
     } else {
+        // fprintf(stdout, "Set Cardinality %ld\n", comp_header.data_len);
         output.SetCardinality(comp_header.data_len);
     }
     output_eid = ext_ids_to_iterate[previous_idx];
@@ -239,6 +240,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
+            // fprintf(stdout, "VARCHAR\n");
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
@@ -265,6 +267,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 }
             }
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+            // fprintf(stdout, "ADJLIST\n");
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // size_t adj_list_end = adjListBase[STANDARD_VECTOR_SIZE - 1];
@@ -278,24 +281,27 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // // memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STANDARD_VECTOR_SIZE * sizeof(idx_t), 
             // //        adj_list_size * sizeof(idx_t));
         } else if (ext_property_types[i] == LogicalType::ID) {
+            // fprintf(stdout, "ID\n");
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[i].GetData();
             for (size_t seqno = 0; seqno < comp_header.data_len; seqno++)
                 id_column[seqno] = physical_id_base + seqno;
         } else {
+            // fprintf(stdout, "ELSE\n");
             if (comp_header.comp_type == BITPACKING) {
+                // fprintf(stdout, "ELSE-A\n");
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
+                // fprintf(stdout, "ELSE-B\n");
                 memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] - sizeof(CompressionHeader));
             }
         }
     }
     // fprintf(stdout, "U\n");
-
     
     return true;
 }
@@ -364,18 +370,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     idx_t scan_start_offset, scan_end_offset, scan_length;
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
             (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, "main", "cdf_" + std::to_string(filter_cdf_id));
-    vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
+    // vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
 
-    bool find_block_to_scan = false;
-    for (size_t i = 0; i < minmax.size(); i++) {
-        // if (i == 0)
-            // std::cout << "Min: " << minmax[i].min << ", Max: " << minmax[i].max << std::endl;
-        if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
-            scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
-            scan_end_offset = (i + 1) * MIN_MAX_ARRAY_SIZE;
-            find_block_to_scan = true;
-        }
-    }
+    bool find_block_to_scan = true;
+    // for (size_t i = 0; i < minmax.size(); i++) {
+    //     // if (i == 0)
+    //         // std::cout << "Min: " << minmax[i].min << ", Max: " << minmax[i].max << std::endl;
+    //     if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
+    //         scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
+    //         scan_end_offset = (i + 1) * MIN_MAX_ARRAY_SIZE;
+    //         find_block_to_scan = true;
+    //     }
+    // }
     if (!find_block_to_scan) {
         output.SetCardinality(0);
         return true;

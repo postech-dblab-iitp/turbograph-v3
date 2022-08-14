@@ -9,6 +9,9 @@ namespace duckdb {
 
 Index::Index(IndexType type, const vector<column_t> &column_ids_p, IndexConstraintType constraint_type_p)
     : type(type), column_ids(column_ids_p), constraint_type(constraint_type_p) {
+	// temporary
+	types.push_back(PhysicalType::UINT64);
+	logical_types.push_back(LogicalType::UBIGINT);
 	// for (auto &expr : unbound_expressions) {
 	// 	types.push_back(expr->return_type.InternalType());
 	// 	logical_types.push_back(expr->return_type);
