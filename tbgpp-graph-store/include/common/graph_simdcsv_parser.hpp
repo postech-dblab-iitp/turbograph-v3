@@ -466,8 +466,11 @@ public:
         // special case
         std::string type_name = key_and_type.substr(delim_pos + 1);
         LogicalType type = StringToLogicalType(type_name, i);
-        if (dst_column == -1) key_names.push_back(src_key_name + "_src");
-        else key_names.push_back(dst_key_name + "_dst");
+        if (type_name.find("START_ID") != std::string::npos) {
+          key_names.push_back(src_key_name + "_src");
+        } else {
+          key_names.push_back(dst_key_name + "_dst");
+        }
         key_types.push_back(move(type));
       } else {
         std::string type_name = key_and_type.substr(delim_pos + 1);
@@ -659,7 +662,7 @@ public:
 		return false;
 	}
 private:
-    LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
+  LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
 		const auto end = m.end();
 		auto it = m.find(type_name);
 		if (it != end) {
@@ -675,20 +678,21 @@ private:
 					auto first_pos = type_name.find_first_of('(');
 					auto last_pos = type_name.find_last_of(')');
 					string label_name = type_name.substr(first_pos + 1, last_pos - first_pos - 1);
-					if (src_column == -1) {
-						src_key_name = move(label_name);
+          std::cout << type_name << std::endl;
+          if (type_name.find("START_ID") != std::string::npos) {
+            src_key_name = move(label_name);
 						src_column = column_idx;
-					} else {
-						dst_key_name = move(label_name);
+          } else { // "END_ID"
+            dst_key_name = move(label_name);
 						dst_column = column_idx;
-					}
+          }
 				}
 				return LogicalType::UBIGINT;
 			} else {
 				throw InvalidInputException("C");
 			}
 		}
-    }
+  }
 
 private:
   GraphComponentType type;
