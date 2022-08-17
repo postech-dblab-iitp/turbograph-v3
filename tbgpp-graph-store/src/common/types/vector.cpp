@@ -378,6 +378,86 @@ void Vector::SetValue(idx_t index, const Value &val) {
 	}
 }
 
+void Vector::SimpleSetValue(idx_t index, const Value &val) {
+	switch (GetType().InternalType()) {
+	case PhysicalType::BOOL:
+		((bool *)data)[index] = val.GetValueUnsafe<bool>();
+		break;
+	case PhysicalType::INT8:
+		((int8_t *)data)[index] = val.GetValueUnsafe<int8_t>();
+		break;
+	case PhysicalType::INT16:
+		((int16_t *)data)[index] = val.GetValueUnsafe<int16_t>();
+		break;
+	case PhysicalType::INT32:
+		((int32_t *)data)[index] = val.GetValueUnsafe<int32_t>();
+		break;
+	case PhysicalType::INT64:
+		((int64_t *)data)[index] = val.GetValueUnsafe<int64_t>();
+		break;
+	case PhysicalType::INT128:
+		((hugeint_t *)data)[index] = val.GetValueUnsafe<hugeint_t>();
+		break;
+	case PhysicalType::UINT8:
+		((uint8_t *)data)[index] = val.GetValueUnsafe<uint8_t>();
+		break;
+	case PhysicalType::UINT16:
+		((uint16_t *)data)[index] = val.GetValueUnsafe<uint16_t>();
+		break;
+	case PhysicalType::UINT32:
+		((uint32_t *)data)[index] = val.GetValueUnsafe<uint32_t>();
+		break;
+	case PhysicalType::UINT64:
+		((uint64_t *)data)[index] = val.GetValueUnsafe<uint64_t>();
+		break;
+	case PhysicalType::FLOAT:
+		((float *)data)[index] = val.GetValueUnsafe<float>();
+		break;
+	case PhysicalType::DOUBLE:
+		((double *)data)[index] = val.GetValueUnsafe<double>();
+		break;
+	case PhysicalType::INTERVAL:
+		((interval_t *)data)[index] = val.GetValueUnsafe<interval_t>();
+		break;
+	case PhysicalType::VARCHAR:
+		((string_t *)data)[index] = StringVector::AddStringOrBlob(*this, StringValue::Get(val));
+		break;
+	case PhysicalType::STRUCT: {
+		D_ASSERT(GetVectorType() == VectorType::CONSTANT_VECTOR || GetVectorType() == VectorType::FLAT_VECTOR);
+
+		auto &children = StructVector::GetEntries(*this);
+		auto &val_children = StructValue::GetChildren(val);
+		D_ASSERT(val.IsNull() || children.size() == val_children.size());
+		for (size_t i = 0; i < children.size(); i++) {
+			auto &vec_child = children[i];
+			if (!val.IsNull()) {
+				auto &struct_child = val_children[i];
+				vec_child->SetValue(index, struct_child);
+			} else {
+				vec_child->SetValue(index, Value());
+			}
+		}
+		break;
+	}
+	case PhysicalType::LIST: {
+		auto offset = ListVector::GetListSize(*this);
+		auto &val_children = ListValue::GetChildren(val);
+		if (!val_children.empty()) {
+			for (idx_t i = 0; i < val_children.size(); i++) {
+				ListVector::PushBack(*this, val_children[i]);
+			}
+		}
+		//! now set the pointer
+		auto &entry = ((list_entry_t *)data)[index];
+		entry.length = val_children.size();
+		entry.offset = offset;
+		break;
+	}
+	default:
+		throw InternalException("Unimplemented type for Vector::SetValue");
+	}
+}
+
 Value Vector::GetValue(idx_t index) const {
 	switch (GetVectorType()) {
 	case VectorType::CONSTANT_VECTOR:
@@ -427,6 +507,7 @@ Value Vector::GetValue(idx_t index) const {
 	case LogicalTypeId::UINTEGER:
 		return Value::UINTEGER(((uint32_t *)data)[index]);
 	case LogicalTypeId::UBIGINT:
+	case LogicalTypeId::ID:
 		return Value::UBIGINT(((uint64_t *)data)[index]);
 	case LogicalTypeId::TIMESTAMP:
 		return Value::TIMESTAMP(((timestamp_t *)data)[index]);

@@ -11,7 +11,7 @@
 namespace duckdb {
 
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition), property_schema_index(void_alloc) {
+    : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc), property_schema_index(void_alloc) {
 	this->temporary = info->temporary;
 }
 

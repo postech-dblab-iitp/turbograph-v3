@@ -47,6 +47,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 
 namespace duckdb {
 
@@ -83,15 +84,20 @@ namespace duckdb {
 	this->internal = internal;
 }*/
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog), partitions(*catalog),
-	propertyschemas(*catalog), extents(*catalog), chunkdefinitions(*catalog) {
-	this->internal = internal;
-}
+// SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal)
+//     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog), partitions(*catalog),
+// 	propertyschemas(*catalog), extents(*catalog), chunkdefinitions(*catalog) {
+// 	D_ASSERT(false); // Deprecated
+// 	this->internal = internal;
+// }
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, boost::interprocess::managed_shared_memory *&catalog_segment)
-    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p)), graphs(*catalog, catalog_segment, this->name + "_graphs"), partitions(*catalog, catalog_segment, this->name + "_partitions"),
-	propertyschemas(*catalog, catalog_segment, this->name + "_propertyschemas"), extents(*catalog, catalog_segment, this->name + "_extents"), chunkdefinitions(*catalog, catalog_segment, this->name + "_chunkdefinitions") {
+SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_shared_memory *&catalog_segment)
+    : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p), (void_allocator) catalog_segment->get_segment_manager()), 
+	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")), 
+	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
+	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
+	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
+	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")) {
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
 }
@@ -112,20 +118,20 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, StandardEntry
 	}
 	if (on_conflict == OnCreateConflict::REPLACE_ON_CONFLICT) {
 		// CREATE OR REPLACE: first try to drop the entry
-		auto old_entry = set.GetEntry(context, entry_name);
+		auto old_entry = set.GetEntry(context, std::string(entry_name.data()));
 		if (old_entry) {
 			if (old_entry->type != entry_type) {
-				throw CatalogException("Existing object %s is of type %s, trying to replace with type %s", entry_name,
+				throw CatalogException("Existing object %s is of type %s, trying to replace with type %s", std::string(entry_name.data()),
 				                       CatalogTypeToString(old_entry->type), CatalogTypeToString(entry_type));
 			}
-			(void)set.DropEntry(context, entry_name, false);
+			(void)set.DropEntry(context, std::string(entry_name.data()), false);
 		}
 	}
 	// now try to add the entry
-	if (!set.CreateEntry(context, entry_name, move(entry), dependencies)) {
+	if (!set.CreateEntry(context, std::string(entry_name.data()), move(entry), dependencies)) {
 		// entry already exists!
 		if (on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
-			throw CatalogException("%s with name \"%s\" already exists!", CatalogTypeToString(entry_type), entry_name);
+			throw CatalogException("%s with name \"%s\" already exists!", CatalogTypeToString(entry_type), std::string(entry_name.data()));
 		} else {
 			return nullptr;
 		}

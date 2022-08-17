@@ -41,6 +41,11 @@ void DataChunk::Initialize(const vector<LogicalType> &types) {
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	capacity = STANDARD_VECTOR_SIZE;
 	for (idx_t i = 0; i < types.size(); i++) {
+		// if (types[i] == LogicalType::ADJLIST) {
+		// 	data.emplace_back(Vector(types[i], nullptr));
+		// 	VectorCache cache; // empty cache
+		// 	vector_caches.push_back(move(cache));
+		// } // will be initialized later
 		VectorCache cache(types[i]);
 		data.emplace_back(cache);
 		vector_caches.push_back(move(cache));
@@ -54,6 +59,11 @@ void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> 
 	for (idx_t i = 0; i < types.size(); i++) {
 		data.emplace_back(Vector(types[i], datas[i]));
 	}
+}
+
+void DataChunk::InitializeAdjListColumn(idx_t adj_list_column_idx, size_t adj_list_size) {
+	vector_caches[adj_list_column_idx].AllocateBuffer(LogicalType::ADJLIST, adj_list_size);
+	data[adj_list_column_idx].ResetFromCache(vector_caches[adj_list_column_idx]);
 }
 
 void DataChunk::Reset() {
@@ -84,6 +94,10 @@ Value DataChunk::GetValue(idx_t col_idx, idx_t index) const {
 
 void DataChunk::SetValue(idx_t col_idx, idx_t index, const Value &val) {
 	data[col_idx].SetValue(index, val);
+}
+
+void DataChunk::SimpleSetValue(idx_t col_idx, idx_t index, const Value &val) {
+	data[col_idx].SimpleSetValue(index, val);
 }
 
 void DataChunk::Reference(DataChunk &chunk) {
@@ -208,6 +222,7 @@ string DataChunk::ToString() const {
 string DataChunk::ToString(size_t size_to_print) const {
 	string retval = "Chunk - [" + to_string(ColumnCount()) + " Columns]\n";
 	for (idx_t i = 0; i < ColumnCount(); i++) {
+		if (data[i].GetType() == LogicalType::ADJLIST) continue;
 		retval += "- " + data[i].ToString(size_to_print) + "\n";
 	}
 	return retval;

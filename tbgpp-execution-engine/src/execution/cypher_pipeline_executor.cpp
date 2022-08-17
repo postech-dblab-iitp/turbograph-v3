@@ -26,6 +26,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore*
 	}
 
 	assert( opOutputChunks.size() == (pipe->pipelineLength - 1) );
+	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
 	// generate global states for each operator
 		// no global states for this demo!
 	// Manage local states
@@ -40,9 +41,12 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	
 	// init source chunk
 	while(true) {
-		auto& source_chunk = *opOutputChunks[0];
+		// std::cout << "fetching!!" << std::endl;
+		auto& source_chunk = *(opOutputChunks[0]);
+		// std::cout << "why?!!" << std::endl;
 		source_chunk.Reset();
 		FetchFromSource(source_chunk);
+		// std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
@@ -53,15 +57,26 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
-std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
+// std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*local_sink_state);
 
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
-std::cout << "starting (source) operator" << std::endl;
+// std::cout << "starting (source) operator" << std::endl;
+	// timer start
+	if( pipeline->GetSource()->timer_started ){
+		pipeline->GetSource()->op_timer.start();
+		pipeline->GetSource()->timer_started = true;
+	} else {
+		pipeline->GetSource()->op_timer.resume();
+	}
+	// call
 	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
+	pipeline->GetSource()->processed_tuples += result.size();
+	// timer stop
+	pipeline->GetSource()->op_timer.stop();
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
@@ -73,12 +88,23 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		//pipeOutputChunk->Reset(); // TODO huh?
 		
 		// call execute pipe
+		// std::cout << "call execute pipe!!" << std::endl;
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
-std::cout << "starting (sink) operator" << std::endl;
+			// timer start
+		if( pipeline->GetSink()->timer_started ){
+			pipeline->GetSink()->op_timer.start();
+			pipeline->GetSink()->timer_started = true;
+		} else {
+			pipeline->GetSink()->op_timer.resume();
+		}
+		// std::cout << "call sink!!" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*pipeOutputChunk, *local_sink_state
 		);
+		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
+			// timer stop
+		pipeline->GetSink()->op_timer.stop();
 		// break when pipes for single chunk finishes
 		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 
 			break;
@@ -115,11 +141,22 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		current_output_chunk.Reset();
 
 		// start current operator
-std::cout << "starting (interm) operator" << std::endl;
+// std::cout << "starting (interm) operator" << std::endl;
 		// give interm as input and interm as output
+			// timer start
+		if( pipeline->GetIdxOperator(current_idx)->timer_started ){
+			pipeline->GetIdxOperator(current_idx)->op_timer.start();
+			pipeline->GetIdxOperator(current_idx)->timer_started = true;
+		} else {
+			pipeline->GetIdxOperator(current_idx)->op_timer.resume();
+		}
+			// call operator
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
+		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
+			// timer stop
+		pipeline->GetIdxOperator(current_idx)->op_timer.stop();
 		// if result needs more output, push index to stack
 		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
 			in_process_operators.push(current_idx);
@@ -129,6 +166,7 @@ std::cout << "starting (interm) operator" << std::endl;
 		current_idx += 1;
 	}
 	// pipe done as we reached the sink
+	// TODO need to add one more case : terminate pipe for e.g. for LIMIT query.
 	return in_process_operators.empty() ?
 		OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;
 }

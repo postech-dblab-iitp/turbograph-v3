@@ -16,10 +16,13 @@
 #include <unistd.h>
 #include <unordered_set>
 #include <vector>
+#include <memory>
 
 #include "log_disk.h"
 #include "object_log.h"
 #include "store.h"
+
+#include <memory>
 
 int main() {
   // if (signal(SIGINT, signal_handler) == SIG_ERR) {
@@ -27,7 +30,7 @@ int main() {
   //   exit(-1);
   // }
 
-  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 1.5 * 1024 * 1024 * 1024);
+  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 16 * 1024 * 1024 * 1024L);
   store->Run();
 
   return 0;
