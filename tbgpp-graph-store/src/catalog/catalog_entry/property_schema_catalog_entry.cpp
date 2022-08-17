@@ -9,7 +9,7 @@
 namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
+    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
 	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
@@ -67,9 +67,12 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 
 void PropertySchemaCatalogEntry::SetKeys(vector<string> &key_names) {
 	D_ASSERT(property_key_names.empty());
+	fprintf(stdout, "Set Keys: ");
 	for (auto &it : key_names) {
 		property_key_names.push_back(it);
+		fprintf(stdout, "%s, ", it.c_str());
 	}
+	fprintf(stdout, "\n");
 }
 
 vector<string> PropertySchemaCatalogEntry::GetKeys() {

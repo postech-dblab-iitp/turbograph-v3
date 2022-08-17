@@ -2,7 +2,7 @@
 
 SCALE=100
 
-dynamic_vertices=(Comment)
+dynamic_vertices=(Post)
 #dynamic_vertices=(Person Forum Post Comment)
 static_vertices=(Organisation Place Tag TagClass)
 
@@ -12,7 +12,7 @@ for i in ${dynamic_vertices[@]}; do
 	# Remove Existing DB
 	rm -rf /data/data/*
 	# Run exp
-	build/extent_test_ldbc --nodes:${i} /data/interactive/sf${SCALE}/graphs/csv/interactive/composite-projected-fk/dynamic/${i}.csv > ${i}_Bulkloading.txt
+	build/extent_test_ldbc --nodes:${i} /source-data/sf${SCALE}/graphs/csv/interactive/composite-projected-fk/dynamic/${i}.csv > ${i}_Bulkloading.txt
 done
 
 for i in ${static_vertices[@]}; do
