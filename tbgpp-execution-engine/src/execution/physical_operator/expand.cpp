@@ -14,6 +14,7 @@ public:
 	}
 public:
 	std::pair<int,int> pointToStartSeek;
+	ExtentIterator *ext_it;
 };
 
 unique_ptr<OperatorState> Expand::GetOperatorState() const {
@@ -27,11 +28,17 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
-	int nodeColIdx = schema.getNodeColIdx( srcName ); // idx 
-	int adjColIdx = nodeColIdx + 1;
+	int nodeColIdx = schema.getColIdxOfKey( srcName ); // idx 
+	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
+	vector<int> adjColIdxs;
+	for (int i = 0; i < input_datachunk_types.size(); i++) {
+		if (input_datachunk_types[i] == LogicalType::ADJLIST) adjColIdxs.push_back(i);
+	}
+	D_ASSERT(adjColIdxs.size() == 1); // TODO temporary
+	//int adjColIdx = nodeColIdx + 1; // TODO assumption: adj col id = node id col id + 1
 
 	// target tuple chunk
-	auto targetTypes = schema.getNodeTypes( std::get<0>(schema.attrs.back()) );
+	auto targetTypes = schema.getTypesOfKey( std::get<0>(schema.attrs.back()) );
 	bool fetchTarget = targetTypes.size() != 0;
 	DataChunk targetTupleChunk;
 	if( fetchTarget ) {
@@ -43,13 +50,24 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 	bool isHaveMoreOutput = false;
 	bool isSeekPointReached = false;
 	int srcIdx; int adjIdx;
-	fprintf(stdout, "%s\n", input.ToString(2).c_str());
-	/*for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
+	idx_t *indexBase = (idx_t *)input.data[adjColIdxs[0]].GetData();
+	//idx_t *adjListBase = (idx_t *)input.data[adjColIdxs[0]].GetAuxiliary()->GetData();
+	VectorListBuffer &child_buffer = (VectorListBuffer &)*input.data[adjColIdxs[0]].GetAuxiliary();
+	idx_t *adjListBase = (idx_t *)child_buffer.GetChild().GetData();
+	// fprintf(stdout, "%ld\n", child_buffer.size);
+	// fprintf(stdout, "%s\n", input.ToString(2).c_str());
+	for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// TODO need to fix when traversing "BOTH"
-		std::vector<duckdb::Value> adjList = duckdb::ListValue::GetChildren(input.GetValue(adjColIdx, srcIdx));
-		int numAdjs = adjList.size();
+		idx_t start_offset = srcIdx == 0 ? 0 : indexBase[srcIdx - 1] - STANDARD_VECTOR_SIZE;
+		idx_t end_offset = indexBase[srcIdx] - STANDARD_VECTOR_SIZE;
+		D_ASSERT(end_offset >= start_offset);
+		
+		//std::vector<duckdb::Value> adjList = duckdb::ListValue::GetChildren(input.GetValue(adjColIdx, srcIdx)); // TODO
+		//int numAdjs = adjList.size();
+		idx_t *adjList = adjListBase + start_offset;
+		int numAdjs = end_offset - start_offset;
 		//std::cout << "srcidx " << srcIdx << " numADj " << numAdjs << std::endl;
-		for( adjIdx = 0 ; adjIdx < numAdjs; adjIdx++ ){
+		for( adjIdx = 0 ; adjIdx < numAdjs; adjIdx += 2 ){
 			// check have more output
 			if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
 				// output full, but we have more output.
@@ -63,22 +81,28 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 				isSeekPointReached = (state.pointToStartSeek.first <= srcIdx) && (state.pointToStartSeek.second <= adjIdx);
 				if( !isSeekPointReached ) continue;
 			}
-			duckdb::Value v = adjList[adjIdx];
-			uint64_t tgtId = duckdb::UBigIntValue::Get(v) ;
+			// std::cout << adjIdx << " "<<  start_offset << " " << end_offset <<  std::endl;
+			// std::cout << adjList[adjIdx] << " " << adjList[adjIdx+1] << std::endl;
+			uint64_t tgtId = adjList[adjIdx];
+			// duckdb::Value v = adjList[adjIdx];
+			// uint64_t tgtId = duckdb::UBigIntValue::Get(v) ;
 			// check target labelset predicate
-			if( ! livegraph->isNodeInLabelset(tgtId, tgtLabelSet) ) { continue; }
+			if( ! itbgpp_graph->isNodeInLabelset(tgtId, tgtLabelSet) ) { continue; } // TODO
 			
 			// now, produce
 			// add source 
 				// TODO note that src can also not be loaded when trying to exppand
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+				if (input.GetTypes()[colId] == LogicalType::ADJLIST) {
+					chunk.SetValue(colId, numProducedTuples, Value::EMPTYLIST(LogicalType::UBIGINT));
+					continue;
+				}
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, srcIdx) );
 			}
 			// add target
 				// TODO also rhs can not be loaded. based on the operator parameter.
-			livegraph->doIndexSeek(targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes);
+			itbgpp_graph->doIndexSeek(state.ext_it, targetTupleChunk, tgtId, tgtLabelSet, tgtEdgeLabelSets, tgtLoadAdjOpt, tgtPropertyKeys, targetTypes); // TODO
 			assert( targetTupleChunk.size() == 1 && "did not fetch well");
-
 			int columnOffset = input.ColumnCount();
 			for (idx_t colId = 0; colId < targetTupleChunk.ColumnCount(); colId++) {
 				chunk.SetValue(colId+columnOffset, numProducedTuples, targetTupleChunk.GetValue(colId, 0) );
@@ -89,12 +113,12 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 			numProducedTuples +=1;
 			targetTupleChunk.Reset();
 		}
-	}*/
-//breakLoop:
+	}
+breakLoop:
 	// postprocess
 	
 	// set chunk cardinality
-	/*chunk.SetCardinality(numProducedTuples);
+	chunk.SetCardinality(numProducedTuples);
 	if( isHaveMoreOutput ) {
 		// save state
 		state.pointToStartSeek.first = srcIdx;
@@ -106,7 +130,7 @@ OperatorResultType Expand::Execute(GraphStore* graph, DataChunk &input, DataChun
 		state.pointToStartSeek.first = 0;
 		state.pointToStartSeek.second = 0;
 		return OperatorResultType::NEED_MORE_INPUT;
-	}*/
+	}
 }
 
 std::string Expand::ParamsToString() const {

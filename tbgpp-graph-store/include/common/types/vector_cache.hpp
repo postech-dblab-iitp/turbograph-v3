@@ -19,13 +19,14 @@ class Vector;
 class VectorCache {
 public:
 	//! Instantiate a vector cache with the given type
+	VectorCache() {}
 	explicit VectorCache(const LogicalType &type);
 
 	buffer_ptr<VectorBuffer> buffer;
 
 public:
 	void ResetFromCache(Vector &result) const;
-
+	void AllocateBuffer(const LogicalType &type, size_t size = STANDARD_VECTOR_SIZE);
 	const LogicalType &GetType() const;
 };
 

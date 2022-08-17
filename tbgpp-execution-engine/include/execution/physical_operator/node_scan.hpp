@@ -17,7 +17,12 @@ class NodeScan: public CypherPhysicalOperator {
 
 public:
 	NodeScan(CypherSchema& sch, ClientContext &ctxt, LabelSet l, std::vector<LabelSet> els, LoadAdjListOption ljo,  PropertyKeys pk):
-		CypherPhysicalOperator(sch), context(ctxt), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk)  {
+		CypherPhysicalOperator(sch), context(ctxt), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk), filterKey("")  {
+		
+		assert( edgeLabelSet.size() <= 1 && "wrong nodescan interface implementation leads to limitation in ELS size");
+	}
+	NodeScan(CypherSchema& sch, ClientContext &ctxt, LabelSet l, std::vector<LabelSet> els, LoadAdjListOption ljo,  PropertyKeys pk, std::string fkey, duckdb::Value fval ):
+		CypherPhysicalOperator(sch), context(ctxt), labels(l), edgeLabelSet(els), loadAdjOpt(ljo), propertyKeys(pk), filterKey(fkey), filterValue(fval)  {
 		
 		assert( edgeLabelSet.size() <= 1 && "wrong nodescan interface implementation leads to limitation in ELS size");
 	}
@@ -38,6 +43,10 @@ public:
 	PropertyKeys propertyKeys;
 	std::vector<duckdb::LogicalType> scanSchema;
 	ClientContext &context;
+
+	std::string filterKey;
+	duckdb::Value filterValue;
+
 };	
 
 }

@@ -4,8 +4,13 @@
 
 namespace duckdb {
 
-CatalogEntry::CatalogEntry(CatalogType type, Catalog *catalog_p, string name_p)
-    : oid(catalog_p->ModifyCatalog()), type(type), catalog(catalog_p), set(nullptr), name(move(name_p)), deleted(false),
+// CatalogEntry::CatalogEntry(CatalogType type, Catalog *catalog_p, string name_p) {
+// 	// Deprecated
+// 	D_ASSERT(false);
+// }
+
+CatalogEntry::CatalogEntry(CatalogType type, Catalog *catalog_p, string name_p, const void_allocator &void_alloc)
+    : oid(catalog_p->ModifyCatalog()), type(type), catalog(catalog_p), set(nullptr), name(name_p.c_str(), void_alloc), deleted(false),
       temporary(false), internal(false), parent(nullptr) {
 }
 

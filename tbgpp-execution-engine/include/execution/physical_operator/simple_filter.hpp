@@ -25,7 +25,6 @@ public:
 	int targetColumn;
 	duckdb::Value predicateValue;
 
-
 };
 
 }

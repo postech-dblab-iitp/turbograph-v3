@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unordered_set>
 #include <common/boost.hpp>
+#include "common/boost_typedefs.hpp"
 
 namespace duckdb {
 
@@ -13,6 +14,7 @@ class CatalogServer {
 public:
   CatalogServer(const std::string &unix_socket);
   void Run();
+  void Exit();
 
 private:
   void monitor();
@@ -20,7 +22,7 @@ private:
   bool recreate();
 
   std::string unix_socket_;
-  boost::interprocess::managed_shared_memory *catalog_segment;
+  fixed_managed_shared_memory *catalog_segment;
 };
 
 } // namespace duckdb

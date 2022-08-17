@@ -62,6 +62,7 @@ public:
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);
+	DUCKDB_API void SimpleSetValue(idx_t col_idx, idx_t index, const Value &val);
 
 	//! Set the DataChunk to reference another data chunk
 	DUCKDB_API void Reference(DataChunk &chunk);
@@ -76,6 +77,7 @@ public:
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas);
 	//! Initializes an empty DataChunk with the given types. The vectors will *not* have any data allocated for them.
 	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types);
+	DUCKDB_API void InitializeAdjListColumn(idx_t adj_list_column_idx, size_t adj_list_size);
 	//! Append the other DataChunk to this one. The column count and types of
 	//! the two DataChunks have to match exactly. Throws an exception if there
 	//! is not enough space in the chunk and resize is not allowed.

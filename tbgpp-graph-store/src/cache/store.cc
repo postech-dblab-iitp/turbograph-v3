@@ -72,10 +72,10 @@ int send_fd(int unix_sock, int fd) {
   return size;
 }
 
-LightningStore::LightningStore(const std::string &unix_socket, int size)
+LightningStore::LightningStore(const std::string &unix_socket, size_t size)
     : unix_socket_(unix_socket), size_(size) {
   store_fd_ = shm_open(name, O_CREAT | O_RDWR, 0666);
-  int status = ftruncate(store_fd_, size);
+  int status = ftruncate64(store_fd_, size);
   if (status < 0) {
     perror("cannot ftruncate");
     exit(-1);
@@ -133,7 +133,7 @@ LightningStore::~LightningStore() {
 
 int64_t LightningStore::find_object(uint64_t object_id) {
   int64_t head_index =
-      store_header_->hashmap.hash_entries[object_id % 65536].object_list;
+      store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
   int64_t current_index = head_index;
 
   while (current_index >= 0) {
@@ -165,7 +165,7 @@ int LightningStore::release_object(uint64_t object_id) {
         ObjectEntry *next = &store_header_->object_entries[next_object_index];
         next->prev = -1;
       }
-      store_header_->hashmap.hash_entries[object_id % 65536].object_list =
+      store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
           next_object_index;
     } else {
       ObjectEntry *prev = &store_header_->object_entries[prev_object_index];
@@ -357,7 +357,7 @@ int LightningStore::create_object(uint64_t object_id, sm_offset *offset_ptr,
   new_object->sealed = false;
 
   int64_t head_index =
-      store_header_->hashmap.hash_entries[object_id % 65536].object_list;
+      store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
   ObjectEntry *head = &store_header_->object_entries[head_index];
 
   new_object->next = head_index;
@@ -366,7 +366,7 @@ int LightningStore::create_object(uint64_t object_id, sm_offset *offset_ptr,
   if (head_index >= 0) {
     head->prev = new_object_index;
   }
-  store_header_->hashmap.hash_entries[object_id % 65536].object_list =
+  store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
       new_object_index;
 
   *offset_ptr = object_buffer_offset;
@@ -417,7 +417,7 @@ int LightningStore::delete_object(uint64_t object_id) {
       ObjectEntry *next = &store_header_->object_entries[next_object_index];
       next->prev = -1;
     }
-    store_header_->hashmap.hash_entries[object_id % 65536].object_list =
+    store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
         next_object_index;
   } else {
     ObjectEntry *prev = &store_header_->object_entries[prev_object_index];

@@ -37,16 +37,17 @@
 //#include "planner/binder.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace duckdb {
 
 string SimilarCatalogEntry::GetQualifiedName() const {
 	D_ASSERT(Found());
 
-	return schema->name + "." + name;
+	return std::string(schema->name.data()) + "." + name;
 }
 
-Catalog::Catalog(DatabaseInstance &db, boost::interprocess::managed_shared_memory *&catalog_segment_)
+Catalog::Catalog(DatabaseInstance &db, fixed_managed_shared_memory *&catalog_segment_)
     : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
@@ -214,6 +215,17 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
 	auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, info->schema, info->internal, this->catalog_segment);
+	fprintf(stdout, "Create Schema %s, %p\n", schema_cat_name_in_shm.c_str(), entry);
+	const_named_it named_beg = catalog_segment->named_begin();
+	const_named_it named_end = catalog_segment->named_end();
+	fprintf(stdout, "All named object list\n");
+	for(; named_beg != named_end; ++named_beg){
+		//A pointer to the name of the named object
+		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		fprintf(stdout, "\t%s %p\n", name, named_beg->value());
+	}
+	std::pair<SchemaCatalogEntry *,std::size_t> ret = catalog_segment->find<SchemaCatalogEntry>("schemacatalogentry_main");
+	SchemaCatalogEntry *schema_cat = ret.first;
 	auto result = (CatalogEntry*) entry;
 	//auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
 	//		(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
@@ -277,6 +289,7 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 		D_ASSERT(false); // TODO exception handling
 		//throw CatalogException(error_context.FormatError("Schema with name %s does not exist!", schema_name));
 	}
+	fprintf(stdout, "GetSchema %p\n", entry);
 	return (SchemaCatalogEntry *)entry;
 }
 

@@ -33,6 +33,13 @@ struct SetDefaultInfo;
 struct ChangeColumnTypeInfo;
 struct AlterForeignKeyInfo;
 
+#define MIN_MAX_ARRAY_SIZE 1024
+
+struct minmax_t {
+	idx_t min;
+	idx_t max;
+};
+
 //! A chunk definition catalog entry
 class ChunkDefinitionCatalogEntry : public StandardEntry {
 public:
@@ -41,12 +48,16 @@ public:
 
 	LogicalType data_type;
 	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
+	bool is_min_max_array_exist = false;
+	vector<minmax_t> min_max_array;
 public:
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);
 	//! Deserializes to a CreateTableInfo
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
+	void CreateMinMaxArray(Vector &column, size_t input_size);
+	vector<minmax_t> GetMinMaxArray();
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 

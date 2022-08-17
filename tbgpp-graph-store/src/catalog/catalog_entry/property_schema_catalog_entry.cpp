@@ -3,12 +3,13 @@
 #include "parser/parsed_data/create_property_schema_info.hpp"
 
 #include <memory>
+#include <iostream>
 #include <algorithm>
 
 namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema)
+    : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
 	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
@@ -45,15 +46,13 @@ vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
 }
 
 vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property_keys) {
+	// for (auto &it : property_key_names) {
+	// 	std::cout << "pk: " << it << std::endl;
+	// }
 	vector<idx_t> column_idxs;
-	for (auto &it : this->property_key_names) {
-		fprintf(stdout, "Property %s\n", it.c_str());
-	}
 	for (auto &it : property_keys) {
-		fprintf(stdout, "Find %s\n", it.c_str());
 		auto idx = std::find(this->property_key_names.begin(), this->property_key_names.end(), it);
 		if (idx == this->property_key_names.end()) throw InvalidInputException("");
-		fprintf(stdout, "push_back %ld\n", idx - this->property_key_names.begin());
 		column_idxs.push_back(idx - this->property_key_names.begin());
 	}
 	return column_idxs;
@@ -68,9 +67,20 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 
 void PropertySchemaCatalogEntry::SetKeys(vector<string> &key_names) {
 	D_ASSERT(property_key_names.empty());
+	fprintf(stdout, "Set Keys: ");
 	for (auto &it : key_names) {
 		property_key_names.push_back(it);
+		fprintf(stdout, "%s, ", it.c_str());
 	}
+	fprintf(stdout, "\n");
+}
+
+vector<string> PropertySchemaCatalogEntry::GetKeys() {
+	vector<string> output;
+	for (auto &it : property_key_names) {
+		output.push_back(it);
+	}
+	return output;
 }
 
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {

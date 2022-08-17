@@ -5,10 +5,18 @@ namespace duckdb {
 
 class VectorCacheBuffer : public VectorBuffer {
 public:
-	explicit VectorCacheBuffer(const LogicalType &type_p)
+	explicit VectorCacheBuffer(const LogicalType &type_p, size_t size = STANDARD_VECTOR_SIZE)
 	    : VectorBuffer(VectorBufferType::OPAQUE_BUFFER), type(type_p) {
 		auto internal_type = type.InternalType();
 		switch (internal_type) {
+		case PhysicalType::ADJLIST: {
+			owned_data = unique_ptr<data_t[]>(new data_t[STANDARD_VECTOR_SIZE * GetTypeIdSize(internal_type)]);
+			LogicalType child_type = LogicalType::UBIGINT;
+			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
+			auto child_vector = make_unique<Vector>(child_type, false, false);
+			auxiliary = make_unique<VectorListBuffer>(move(child_vector));
+			break;
+		}
 		case PhysicalType::LIST: {
 			D_ASSERT(false); // not supported currently
 			// memory for the list offsets
@@ -43,6 +51,20 @@ public:
 		AssignSharedPointer(result.buffer, buffer);
 		result.validity.Reset();
 		switch (internal_type) {
+		case PhysicalType::ADJLIST: {
+			result.data = owned_data.get();
+			// reinitialize the VectorListBuffer
+			AssignSharedPointer(result.auxiliary, auxiliary);
+			// propagate through child
+			auto &list_buffer = (VectorListBuffer &)*result.auxiliary;
+			list_buffer.capacity = STANDARD_VECTOR_SIZE;
+			list_buffer.size = 0;
+
+			auto &list_child = list_buffer.GetChild();
+			auto &child_cache = (VectorCacheBuffer &)*child_caches[0];
+			child_cache.ResetFromCache(list_child, child_caches[0]);
+			break;
+		}
 		case PhysicalType::LIST: {
 			result.data = owned_data.get();
 			// reinitialize the VectorListBuffer
@@ -101,6 +123,10 @@ void VectorCache::ResetFromCache(Vector &result) const {
 	D_ASSERT(buffer);
 	auto &vcache = (VectorCacheBuffer &)*buffer;
 	vcache.ResetFromCache(result, buffer);
+}
+
+void VectorCache::AllocateBuffer(const LogicalType &type, size_t size) {
+	buffer = make_unique<VectorCacheBuffer>(type);
 }
 
 const LogicalType &VectorCache::GetType() const {
