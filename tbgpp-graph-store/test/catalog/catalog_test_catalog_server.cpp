@@ -4,8 +4,11 @@
 
 using namespace duckdb;
 
+CatalogServer *cat_server;
+
 void signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
+  cat_server->Exit();
   exit(0);
 }
 
@@ -14,8 +17,8 @@ int main() {
     std::cerr << "cannot register signal handler!" << std::endl;
     exit(-1);
   }
-  CatalogServer cat_server("/tmp/catalog_server");
-  cat_server.Run();
+  cat_server = new CatalogServer("/tmp/catalog_server");
+  cat_server->Run();
 
   fprintf(stdout, "Program exit\n");
   return 0;
