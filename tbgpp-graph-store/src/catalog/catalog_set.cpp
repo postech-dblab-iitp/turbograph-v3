@@ -50,7 +50,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 	*current_entry = 0;
 }
 
-CatalogSet::CatalogSet(Catalog &catalog, boost::interprocess::managed_shared_memory *& catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
+CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_shared_memory *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
@@ -149,7 +149,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 		*current_entry = entry_index + 1;
 
 		string dummy_name = name + "_dummy" + std::to_string(entry_index);
-		auto dummy_node = catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name);
+		auto dummy_node = catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name, (void_allocator) catalog_segment->get_segment_manager());
 		//ValueType dummy_node = ValueType(entry_index, 
 		//	boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node->timestamp = 0;
@@ -165,7 +165,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 		if (HasConflict(context, current.timestamp)) {
 			// current version has been written to by a currently active
 			// transaction
-			throw TransactionException("Catalog write-write conflict on create with \"%s\"", current.name);
+			throw TransactionException("Catalog write-write conflict on create with \"%s\"", std::string(current.name.data()));
 		}
 		// there is a current version that has been committed
 		// if it has not been deleted there is a conflict
@@ -261,7 +261,7 @@ bool CatalogSet::GetEntryInternal(ClientContext &context, idx_t entry_index, Cat
 	if (HasConflict(context, catalog_entry->timestamp)) {
 		// current version has been written to by a currently active
 		// transaction
-		throw TransactionException("Catalog write-write conflict on alter with \"%s\"", catalog_entry->name);
+		throw TransactionException("Catalog write-write conflict on alter with \"%s\"", std::string(catalog_entry->name.data()));
 	}
 	// there is a current version that has been committed by this transaction
 	if (catalog_entry->deleted) {
@@ -387,7 +387,7 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 	// create a new entry and replace the currently stored one
 	// set the timestamp to the timestamp of the current transaction
 	// and point it at the dummy node
-	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name);
+	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name, (void_allocator) catalog_segment->get_segment_manager());
 	//value->timestamp = transaction.transaction_id;
 	//value->child = move(entries[entry_index]); //TODO
 	value->child->parent = value.get();
@@ -410,7 +410,7 @@ bool CatalogSet::DropEntry(ClientContext &context, const string &name, bool casc
 		return false;
 	}
 	if (entry->internal) {
-		throw CatalogException("Cannot drop entry \"%s\" because it is an internal system entry", entry->name);
+		throw CatalogException("Cannot drop entry \"%s\" because it is an internal system entry", std::string(entry->name.data()));
 	}
 
 	DropEntryInternal(context, entry_index, *entry, cascade);
@@ -535,16 +535,17 @@ CatalogEntry *CatalogSet::GetEntryForTransaction(ClientContext &context, Catalog
 }
 
 CatalogEntry *CatalogSet::GetCommittedEntry(CatalogEntry *current) {
-	while (current->child) {
-		break;
-		//if (current->timestamp < TRANSACTION_ID_START) {
-		//	// this entry is committed: use it
-		//	break;
-		//}
-		current = current->child.get();
-		D_ASSERT(current);
-	}
 	return current;
+	// while (current->child) {
+	// 	break;
+	// 	//if (current->timestamp < TRANSACTION_ID_START) {
+	// 	//	// this entry is committed: use it
+	// 	//	break;
+	// 	//}
+	// 	current = current->child.get();
+	// 	D_ASSERT(current);
+	// }
+	// return current;
 }
 
 pair<string, idx_t> CatalogSet::SimilarEntry(ClientContext &context, const string &name) {
@@ -576,7 +577,7 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 
 	entry->timestamp = 0;
 
-	PutMapping(context, name, entry_index);
+	PutMapping(context, std::string(name.data()), entry_index);
 	//mapping->at(name.c_str())->timestamp = 0;
 	//mapping[name]->timestamp = 0;
 	//entries[entry_index] = move(entry); //TODO
@@ -592,7 +593,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 
 		auto catalog_entry = entries->at(mapping_value->index);
 		CatalogEntry *current = GetEntryForTransaction(context, catalog_entry);
-		if (current->deleted || (current->name != name && !UseTimestamp(context, mapping_value->timestamp))) {
+		if (current->deleted || (std::string(current->name.data()) != name && !UseTimestamp(context, mapping_value->timestamp))) {
 			return nullptr;
 		}
 		return current;
