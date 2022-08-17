@@ -96,7 +96,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   // Sort Vertex File & Edge File according to their vid/(src_vid, dst_vid)
 
   // Initialize Database
-  helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+  // helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
   std::unique_ptr<DuckDB> database;
   database = make_unique<DuckDB>(nullptr);
   Catalog& cat_instance = database->instance->GetCatalog();
@@ -302,13 +302,16 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<idx_t> adj_list_buffer;
     adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
 
-    // Initialize Extent Iterator
+    // Initialize Extent Iterator for Vertex Extents
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
-    vector<idx_t> src_column_idxs = {(idx_t) src_column_idx};
-    vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
+    vector<string> key_column_name = { "id" };
+    vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
+    vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
     ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+    vertex_ps_cat_entry->AppendType({ LogicalType::ADJLIST });
+    vertex_ps_cat_entry->AppendKey({ edge_type });
 
     // Initialize variables related to vertex extent
     idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -316,6 +319,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     idx_t *vertex_id_column;
     DataChunk vertex_id_chunk;
     ExtentID current_vertex_eid;
+    vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -349,7 +353,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       if (min_id == ULLONG_MAX) {
         // Get First Vertex Extent
         while (true) {
-          if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+          if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
             // We do not allow this case
             throw InvalidInputException("E"); 
           }
@@ -358,6 +362,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
           vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
           min_id = vertex_id_column[0];
           max_id = vertex_id_column[vertex_id_chunk.size() - 1];
+          fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
           if (cur_src_id >= min_id && cur_src_id <= max_id) break;
         }
 
@@ -403,10 +408,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             DataChunk adj_list_chunk;
             vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
             vector<data_ptr_t> adj_list_datas(1);
-            vector<string> append_keys = { edge_type };
             adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
             adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
             adj_list_chunk.Destroy();
 
             // Re-initialize adjlist buffer for next Extent
@@ -414,7 +418,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
             // Read corresponding ID column of Src Vertex Extent
             while (true) {
-              if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+              if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
                 // We do not allow this case
                 throw InvalidInputException("F");
               }
@@ -474,10 +478,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     DataChunk adj_list_chunk;
     vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
     vector<data_ptr_t> adj_list_datas(1);
-    vector<string> append_keys = { edge_type };
     adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
     adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
     adj_list_chunk.Destroy();
 
     auto edge_file_end = std::chrono::high_resolution_clock::now();
@@ -551,13 +554,16 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     vector<idx_t> adj_list_buffer;
     adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
 
-    // Initialize Extent Iterator
+    // Initialize Extent Iterator for Vertex Extents
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + dst_column_name);
-    vector<idx_t> dst_column_idxs = {(idx_t) dst_column_idx};
-    vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
-    ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, dst_column_idxs);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+    vector<string> key_column_name = { "id" };
+    vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
+    vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
+    ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+    vertex_ps_cat_entry->AppendType({ LogicalType::ADJLIST });
+    vertex_ps_cat_entry->AppendKey({ edge_type });
 
     // Initialize variables related to vertex extent
     idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -565,6 +571,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     idx_t *vertex_id_column;
     DataChunk vertex_id_chunk;
     ExtentID current_vertex_eid;
+    vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -591,7 +598,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       if (min_id == ULLONG_MAX) {
         // Get First Vertex Extent
         while (true) {
-          if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+          if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
             // We do not allow this case
             throw InvalidInputException("E"); 
           }
@@ -600,6 +607,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
           vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
           min_id = vertex_id_column[0];
           max_id = vertex_id_column[vertex_id_chunk.size() - 1];
+          fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
           if (cur_src_id >= min_id && cur_src_id <= max_id) break;
         }
 
@@ -608,6 +616,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
         vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
         while (vertex_id_column[vertex_seqno] < cur_src_id) {
           adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+        }
+        if (vertex_id_column[vertex_seqno] != cur_src_id) {
+          fprintf(stdout, "Error at %ld, %ld != %ld\n", vertex_seqno, vertex_id_column[vertex_seqno], cur_src_id);
         }
         D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
       }
@@ -650,10 +661,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
             DataChunk adj_list_chunk;
             vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
             vector<data_ptr_t> adj_list_datas(1);
-            vector<string> append_keys = { edge_type };
             adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
             adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+            ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
             adj_list_chunk.Destroy();
 
             // Re-initialize adjlist buffer for next Extent
@@ -661,7 +671,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
             // Read corresponding ID column of Src Vertex Extent
             while (true) {
-              if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+              if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
                 // We do not allow this case
                 throw InvalidInputException("F");
               }
@@ -719,10 +729,9 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     DataChunk adj_list_chunk;
     vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
     vector<data_ptr_t> adj_list_datas(1);
-    vector<string> append_keys = { edge_type };
     adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
     adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+    ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
     adj_list_chunk.Destroy();
 
     auto edge_file_end = std::chrono::high_resolution_clock::now();
@@ -776,6 +785,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     // Print DataChunk
     fprintf(stdout, "%s\n", data.ToString(10).c_str());
   }
+  helper_deallocate_objects_in_shared_memory();
 }
 
 class InputParser{

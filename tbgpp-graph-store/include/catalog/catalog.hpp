@@ -87,10 +87,10 @@ struct SimilarCatalogEntry {
 class Catalog {
 	typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
-	typedef boost::interprocess::managed_shared_memory::const_named_iterator const_named_it;
+	typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
 	
 public:
-	explicit Catalog(DatabaseInstance &db, boost::interprocess::managed_shared_memory *&catalog_segment);
+	explicit Catalog(DatabaseInstance &db, fixed_managed_shared_memory *&catalog_segment);
 	~Catalog();
 
 	//! Reference to the database
@@ -102,7 +102,7 @@ public:
 	//! Write lock for the catalog
 	mutex write_lock;
 	// Shared memory manager
-	boost::interprocess::managed_shared_memory *catalog_segment;
+	fixed_managed_shared_memory *catalog_segment;
 
 public:
 	//! Get the ClientContext from the Catalog

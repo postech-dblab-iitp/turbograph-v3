@@ -26,7 +26,8 @@ class ClientContext;
 //! Abstract base class of an entry in the catalog
 class CatalogEntry {
 public:
-	CatalogEntry(CatalogType type, Catalog *catalog, string name);
+	// CatalogEntry(CatalogType type, Catalog *catalog, string name);
+	CatalogEntry(CatalogType type, Catalog *catalog, string name, const void_allocator &void_alloc);
 	virtual ~CatalogEntry();
 
 	//! The oid of the entry
@@ -38,7 +39,7 @@ public:
 	//! Reference to the catalog set this entry is stored in
 	CatalogSet *set;
 	//! The name of the entry
-	string name;
+	char_string name;
 	//! Whether or not the object is deleted
 	bool deleted;
 	//! Whether or not the object is temporary and should not be added to the WAL
