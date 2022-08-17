@@ -16,8 +16,8 @@ class SchemaCatalogEntry;
 //! A StandardEntry is a catalog entry that is a member of a schema
 class StandardEntry : public CatalogEntry {
 public:
-	StandardEntry(CatalogType type, SchemaCatalogEntry *schema, Catalog *catalog, string name)
-	    : CatalogEntry(type, catalog, name), schema(schema) {
+	StandardEntry(CatalogType type, SchemaCatalogEntry *schema, Catalog *catalog, string name, const void_allocator &void_alloc)
+	    : CatalogEntry(type, catalog, name, void_alloc), schema(schema) {
 	}
 	~StandardEntry() override {
 	}

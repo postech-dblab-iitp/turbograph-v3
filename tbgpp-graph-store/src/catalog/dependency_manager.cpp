@@ -18,7 +18,7 @@ void DependencyManager::AddObject(ClientContext &context, CatalogEntry *object,
 	for (auto &dependency : dependencies) {
 		idx_t entry_index;
 		CatalogEntry *catalog_entry;
-		if (!dependency->set->GetEntryInternal(context, dependency->name, entry_index, catalog_entry)) {
+		if (!dependency->set->GetEntryInternal(context, std::string(dependency->name.data()), entry_index, catalog_entry)) {
 			throw InternalException("Dependency has already been deleted?");
 		}
 	}
@@ -42,7 +42,7 @@ void DependencyManager::DropObject(ClientContext &context, CatalogEntry *object,
 	for (auto &dep : dependent_objects) {
 		// look up the entry in the catalog set
 		auto &catalog_set = *dep.entry->set;
-		auto mapping_value = catalog_set.GetMapping(context, dep.entry->name, true /* get_latest */);
+		auto mapping_value = catalog_set.GetMapping(context, std::string(dep.entry->name.data()), true /* get_latest */);
 		if (mapping_value == nullptr) {
 			continue;
 		}
@@ -62,7 +62,7 @@ void DependencyManager::DropObject(ClientContext &context, CatalogEntry *object,
 			// no cascade and there are objects that depend on this object: throw error
 			throw CatalogException("Cannot drop entry \"%s\" because there are entries that "
 			                       "depend on it. Use DROP...CASCADE to drop all dependents.",
-			                       object->name);
+			                       std::string(object->name.data()));
 		}
 	}
 }
@@ -192,7 +192,7 @@ void DependencyManager::AddOwnership(ClientContext &context, CatalogEntry *owner
 	// If the owner is already owned by something else, throw an error
 	for (auto &dep : dependents_map[owner]) {
 		if (dep.dependency_type == DependencyType::DEPENDENCY_OWNED_BY) {
-			throw CatalogException(owner->name + " already owned by " + dep.entry->name);
+			throw CatalogException(std::string(owner->name.data()) + " already owned by " + std::string(dep.entry->name.data()));
 		}
 	}
 
@@ -200,11 +200,11 @@ void DependencyManager::AddOwnership(ClientContext &context, CatalogEntry *owner
 	for (auto &dep : dependents_map[entry]) {
 		// if the entry is already owned, throw error
 		if (dep.entry != owner) {
-			throw CatalogException(entry->name + " already depends on " + dep.entry->name);
+			throw CatalogException(std::string(entry->name.data()) + " already depends on " + std::string(dep.entry->name.data()));
 		}
 		// if the entry owns the owner, throw error
 		if (dep.entry == owner && dep.dependency_type == DependencyType::DEPENDENCY_OWNS) {
-			throw CatalogException(entry->name + " already owns " + owner->name +
+			throw CatalogException(std::string(entry->name.data()) + " already owns " + std::string(owner->name.data()) +
 			                       ". Cannot have circular dependencies");
 		}
 	}
