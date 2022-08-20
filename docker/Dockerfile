@@ -66,7 +66,8 @@ RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSI
 RUN apt-get install -y \
 	vim \
 	dstat \
-	intel-basekit
+	intel-basekit \
+	gdb
 
 # Resolve git issue
 RUN git config --global --add safe.directory /turbograph-v3
