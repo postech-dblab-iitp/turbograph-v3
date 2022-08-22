@@ -9,7 +9,7 @@ namespace duckdb {
 
 class SimpleFilterState : public OperatorState {
 public:
-	explicit SimpleFilterState(): sel(STANDARD_VECTOR_SIZE) {}
+	explicit SimpleFilterState(): sel(EXEC_ENGINE_VECTOR_SIZE) {}
 public:
 	SelectionVector sel;
 };
