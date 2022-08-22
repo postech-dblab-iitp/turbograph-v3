@@ -11,7 +11,7 @@
 namespace duckdb {
 
 ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::CHUNKDEFINITION_ENTRY, schema, catalog, info->chunkdefinition) {
+    : StandardEntry(CatalogType::CHUNKDEFINITION_ENTRY, schema, catalog, info->chunkdefinition, void_alloc) {
 	this->temporary = info->temporary;
 	this->data_type = info->l_type;
 }
