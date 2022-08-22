@@ -30,7 +30,6 @@ unique_ptr<OperatorState> NaiveExpand::GetOperatorState() const {
 OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	// std::cout << "Start Expand\n";
 	auto &state = (NaiveExpandState &)lstate;
-
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
@@ -191,11 +190,11 @@ breakLoop:
 }
 
 std::string NaiveExpand::ParamsToString() const {
-	return "NExpand-params-TODO";
+	return "AdjIdxJoinNaive-params-TODO";
 }
 
 std::string NaiveExpand::ToString() const {
-	return "NExpand";
+	return "AdjIdxJoinNaive";
 }
 
 }

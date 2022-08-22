@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "catalog/catalog_entry/schema_catalog_entry.hpp"
-#include "catalog/catalog_set.hpp"
+//#include "catalog/catalog_entry/schema_catalog_entry.hpp"s
+//#include "catalog/catalog_set.hpp"
 //#include "common/enums/pending_execution_result.hpp"
 //#include "common/deque.hpp"
 #include "common/pair.hpp"
@@ -24,6 +24,9 @@
 #include "common/atomic.hpp"
 //#include "main/client_config.hpp"
 //#include "main/external_dependencies.hpp"
+
+#include "common/mutex.hpp"
+#include "common/types/value.hpp"
 
 namespace duckdb {
 class Appender;
