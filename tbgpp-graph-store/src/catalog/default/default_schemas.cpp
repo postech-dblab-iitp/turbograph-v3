@@ -24,9 +24,10 @@ DefaultSchemaGenerator::DefaultSchemaGenerator(Catalog &catalog) : DefaultGenera
 }
 
 unique_ptr<CatalogEntry> DefaultSchemaGenerator::CreateDefaultEntry(ClientContext &context, const string &entry_name) {
-	if (GetDefaultSchema(entry_name)) {
-		return make_unique_base<CatalogEntry, SchemaCatalogEntry>(&catalog, StringUtil::Lower(entry_name), true);
-	}
+	D_ASSERT(false); // Deprecated
+	// if (GetDefaultSchema(entry_name)) {
+	// 	return make_unique_base<CatalogEntry, SchemaCatalogEntry>(&catalog, StringUtil::Lower(entry_name), true);
+	// }
 	return nullptr;
 }
 

@@ -13,7 +13,7 @@
 namespace duckdb {
 
 GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph)
+    : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph, void_alloc)
 	, vertex_partitions(void_alloc), edge_partitions(void_alloc)
 	, vertexlabel_map(void_alloc), edgetype_map(void_alloc), propertykey_map(void_alloc)
 	, type_to_partition_index(void_alloc), label_to_partition_index(void_alloc) {
