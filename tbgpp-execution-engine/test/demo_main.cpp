@@ -480,11 +480,8 @@ int main(int argc, char** argv) {
 		adj_list_chunk.Destroy();
 	}
 	
-	iTbgppGraphStore graphstore(*client.get());
-
 	// load plans
-	IC_( "hellow #X", &graphstore );
-	auto suite = QueryPlanSuite((GraphStore*)&graphstore, *client.get());
+	auto suite = QueryPlanSuite(*client.get());
 
 	// execute query
 	// IC( *client.get() );
@@ -497,41 +494,40 @@ int main(int argc, char** argv) {
 		IC();
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		
-		if( query_str.compare("t1") == 0 ) {
-			executors = suite.Test1();
-		} else if( query_str.compare("t1_1") == 0 ) {
-			executors = suite.Test1_1();
-		} else if( query_str.compare("t1_2") == 0 ) {
-			executors = suite.Test1_2();
-		} else if( query_str.compare("t1_3") == 0 ) {
-			executors = suite.Test1_3();
-		} else if( query_str.compare("t2") == 0 ) {
-			executors = suite.Test2();
-		} else if( query_str.compare("t3") == 0 ) {
-			executors = suite.Test3();
-		} else if( query_str.compare("t5") == 0 ) {
-			executors = suite.Test5();
-		}
-		// else if( query_str.compare("t5") == 0 ) {
+		
+		// if( query_str.compare("t1") == 0 ) {
+		// 	executors = suite.Test1();
+		// } else if( query_str.compare("t1_1") == 0 ) {
+		// 	executors = suite.Test1_1();
+		// } else if( query_str.compare("t1_2") == 0 ) {
+		// 	executors = suite.Test1_2();
+		// } else if( query_str.compare("t1_3") == 0 ) {
+		// 	executors = suite.Test1_3();
+		// } else if( query_str.compare("t2") == 0 ) {
+		// 	executors = suite.Test2();
+		// } else if( query_str.compare("t3") == 0 ) {
 		// 	executors = suite.Test3();
+		// } else if( query_str.compare("t5") == 0 ) {
+		// 	executors = suite.Test5();
 		// }
-		else if( query_str.compare("s1") == 0 ) {
-			executors = suite.LDBCShort1();
-		}
-		else if( query_str.compare("s3") == 0 ) {
-			executors = suite.LDBCShort3();
-		} 
-		else if( query_str.compare("s4") == 0 ) {
-			executors = suite.LDBCShort4();
-		} 
-		 else if( query_str.compare("s5") == 0 ) {
-			executors = suite.LDBCShort5();
-		}
-
-		// TODO add
-		else {
-			continue;
-		}
+		// // else if( query_str.compare("t5") == 0 ) {
+		// // 	executors = suite.Test3();
+		// // }
+		// else if( query_str.compare("s1") == 0 ) {
+		// 	executors = suite.LDBCShort1();
+		// }
+		// else if( query_str.compare("s3") == 0 ) {
+		// 	executors = suite.LDBCShort3();
+		// } 
+		// else if( query_str.compare("s4") == 0 ) {
+		// 	executors = suite.LDBCShort4();
+		// } 
+		//  else if( query_str.compare("s5") == 0 ) {
+		// 	executors = suite.LDBCShort5();
+		// }
+		// else {
+		// 	continue;
+		// }
 		// Execute
 
 		// start_timer

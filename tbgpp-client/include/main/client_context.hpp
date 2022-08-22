@@ -28,6 +28,9 @@
 #include "common/mutex.hpp"
 #include "common/types/value.hpp"
 
+#include "storage/graph_store.hpp"
+
+
 namespace duckdb {
 class Appender;
 class Catalog;
@@ -60,17 +63,22 @@ public:
 
 	//! The database that this client is connected to
 	shared_ptr<DatabaseInstance> db;
+
+	//! A graph store API that execution engine connects to
+	unique_ptr<iTbgppGraphStore> graph_store;
+
+	//! The set of client-specific data
+	unique_ptr<ClientData> client_data;
+
 	//! Data for the currently running transaction
 	//TransactionContext transaction;
 	//! Whether or not the query is interrupted
 	//atomic<bool> interrupted;
 	//! External Objects (e.g., Python objects) that views depend of
 	//unordered_map<string, vector<shared_ptr<ExternalDependency>>> external_dependencies;
-
 	//! The client configuration
 	//ClientConfig config;
-	//! The set of client-specific data
-	unique_ptr<ClientData> client_data;
+
 
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {

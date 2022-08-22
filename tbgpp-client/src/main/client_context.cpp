@@ -56,7 +56,9 @@ namespace duckdb {
 
 ClientContext::ClientContext(shared_ptr<DatabaseInstance> database)
     : db(move(database)), //transaction(db->GetTransactionManager(), *this), interrupted(false),
-      client_data(make_unique<ClientData>(*this)) {
+      client_data(make_unique<ClientData>(*this)),
+	  graph_store(make_unique<iTbgppGraphStore>(*this))
+		{
 }
 
 ClientContext::~ClientContext() {
