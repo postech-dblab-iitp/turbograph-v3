@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
 				vector<string> append_keys = { edge_type };
 				adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 				adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-				ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+				ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 				adj_list_chunk.Destroy();
 
 				// Re-initialize adjlist buffer for next Extent
@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
 		vector<string> append_keys = { edge_type };
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
-		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid, append_keys);
+		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 		adj_list_chunk.Destroy();
 	}
 	
