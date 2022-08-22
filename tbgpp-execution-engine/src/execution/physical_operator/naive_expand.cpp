@@ -74,9 +74,9 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 				uint64_t tgtId = adj_start[adj_idx];
 				uint64_t edgeId = adj_start[adj_idx+1];
 
-				if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
+				if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) {
 					// output full, but we have more output.
-					// when current output size is exactly STANDARD_VECTOR_SIZE, this area is never accessed.
+					// when current output size is exactly EXEC_ENGINE_VECTOR_SIZE, this area is never accessed.
 					isHaveMoreOutput = true;
 					goto breakLoop;
 				}
@@ -129,9 +129,9 @@ OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, Dat
 				//std::cout << "val" << std::endl;
 				uint64_t tgtId = adj_start[adj_idx];
 
-				if( numProducedTuples == STANDARD_VECTOR_SIZE ) {
+				if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) {
 					// output full, but we have more output.
-					// when current output size is exactly STANDARD_VECTOR_SIZE, this area is never accessed.
+					// when current output size is exactly EXEC_ENGINE_VECTOR_SIZE, this area is never accessed.
 					isHaveMoreOutput = true;
 					goto breakLoop;
 				}

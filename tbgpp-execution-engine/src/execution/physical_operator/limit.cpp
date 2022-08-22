@@ -11,7 +11,7 @@ namespace duckdb {
 
 class LimitState : public OperatorState {
 public:
-	explicit LimitState(uint64_t count): current_count(count), sel(STANDARD_VECTOR_SIZE) {}
+	explicit LimitState(uint64_t count): current_count(count), sel(EXEC_ENGINE_VECTOR_SIZE) {}
 public:
 	SelectionVector sel;
 	uint64_t current_count;
@@ -25,7 +25,7 @@ OperatorResultType Limit::Execute(GraphStore* graph, DataChunk &input, DataChunk
 	auto &state = (LimitState &)lstate;
 
 	uint64_t numTuplesToBeProduced = std::min( input.size(), state.current_count );
-	D_ASSERT(numTuplesToBeProduced <= STANDARD_VECTOR_SIZE );
+	D_ASSERT(numTuplesToBeProduced <= EXEC_ENGINE_VECTOR_SIZE );
 	std::cout << numTuplesToBeProduced << " tups to be produced" << std::endl;
 
 	for( int64_t srcIdx=0 ; srcIdx < numTuplesToBeProduced; srcIdx++) {

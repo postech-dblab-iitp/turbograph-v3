@@ -15,7 +15,7 @@
 // class FilterState : public OperatorState {
 // public:
 // 	explicit FilterState(ExecutionContext &context, Expression &expr)
-// 	    : executor(Allocator::Get(context.client), expr), sel(STANDARD_VECTOR_SIZE) {
+// 	    : executor(Allocator::Get(context.client), expr), sel(EXEC_ENGINE_VECTOR_SIZE) {
 // 	}
 // public:
 
