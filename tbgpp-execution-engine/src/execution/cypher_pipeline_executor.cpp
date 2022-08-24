@@ -3,9 +3,9 @@
 
 #include "execution/physical_operator.hpp"
 
-
 #include "common/limits.hpp"
-#include "storage/graph_store.hpp"
+#include "main/client_context.hpp"
+
 //#include "livegraph.hpp"
 #include "common/types.hpp"
 
@@ -13,11 +13,9 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore* g) {
+CypherPipelineExecutor::CypherPipelineExecutor(ClientContext* cxt, CypherPipeline* pipe)
+	context(cxt), pipeline(pipe) {
 
-	// store pipeline and graph
-	pipeline = pipe;
-	graphstore = g;
 	// initialize interm chunks
 	for( int i = 0; i < pipe->pipelineLength - 1; i++) {	// from source to operators ; not sink.
 		auto opOutputChunk = std::make_unique<DataChunk>();
@@ -73,7 +71,7 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 		pipeline->GetSource()->op_timer.resume();
 	}
 	// call
-	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
+	pipeline->GetSource()->GetData( context, result, *local_source_state );
 	pipeline->GetSource()->processed_tuples += result.size();
 	// timer stop
 	pipeline->GetSource()->op_timer.stop();
@@ -100,7 +98,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		}
 		// std::cout << "call sink!!" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
-			*pipeOutputChunk, *local_sink_state
+			context, *pipeOutputChunk, *local_sink_state
 		);
 		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 			// timer stop
@@ -152,7 +150,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		}
 			// call operator
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
+			 context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 			// timer stop

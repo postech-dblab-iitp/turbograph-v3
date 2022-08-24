@@ -8,11 +8,11 @@
 
 #include "execution/physical_operator.hpp"
 
+
 #include "common/types/data_chunk.hpp"
 #include "common/stack.hpp"
 
 #include <functional>
-
 
 // JHKO Copied directly from duckdb
 
@@ -20,13 +20,14 @@ namespace duckdb {
 
 struct LogicalType;
 class Executor;
+class ClientContext;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
 	static constexpr const idx_t CACHE_THRESHOLD = 64;
 
 public:
-	CypherPipelineExecutor(CypherPipeline* pipeline, GraphStore* graph);
+	CypherPipelineExecutor(ClientContext* context, CypherPipeline* pipeline);
 
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
 	void ExecutePipeline();
@@ -46,8 +47,9 @@ public:
 
 	//! The pipeline to process
 	CypherPipeline* pipeline;
-	// Graph
-	GraphStore* graphstore;
+
+	ExecutionContext context;
+	
 
 	// TODO add statistics reporter.
 
