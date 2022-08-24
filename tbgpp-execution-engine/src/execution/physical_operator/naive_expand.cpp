@@ -9,9 +9,9 @@
 
 namespace duckdb {
 
-class NaiveExpandState : public OperatorState {
+class AdjIdxJoinState : public OperatorState {
 public:
-	explicit NaiveExpandState() {
+	explicit AdjIdxJoinState() {
 		pointToStartSeek.first = 0;
 		pointToStartSeek.second = 0;
 
@@ -23,13 +23,13 @@ public:
 	ExtentIterator* ext_it; // TODO separate this
 };
 
-unique_ptr<OperatorState> NaiveExpand::GetOperatorState() const {
-	return make_unique<NaiveExpandState>();
+unique_ptr<OperatorState> AdjIdxJoin::GetOperatorState() const {
+	return make_unique<AdjIdxJoinState>();
 }
 
-OperatorResultType NaiveExpand::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+OperatorResultType AdjIdxJoin::Execute(GraphStore* graph, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	// std::cout << "Start Expand\n";
-	auto &state = (NaiveExpandState &)lstate;
+	auto &state = (AdjIdxJoinState &)lstate;
 	auto itbgpp_graph = (iTbgppGraphStore*)graph;
 	
 	// check directionality and access edgelist
@@ -189,12 +189,12 @@ breakLoop:
 
 }
 
-std::string NaiveExpand::ParamsToString() const {
-	return "AdjIdxJoinNaive-params-TODO";
+std::string AdjIdxJoin::ParamsToString() const {
+	return "AdjIdxJoin-params-TODO";
 }
 
-std::string NaiveExpand::ToString() const {
-	return "AdjIdxJoinNaive";
+std::string AdjIdxJoin::ToString() const {
+	return "AdjIdxJoin";
 }
 
 }

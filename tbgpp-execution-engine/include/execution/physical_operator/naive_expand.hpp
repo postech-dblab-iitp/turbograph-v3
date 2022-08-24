@@ -8,10 +8,10 @@
 
 namespace duckdb {
 
-class NaiveExpand: public CypherPhysicalOperator {
+class AdjIdxJoin: public CypherPhysicalOperator {
 
 public:
-	NaiveExpand(CypherSchema& sch,
+	AdjIdxJoin(CypherSchema& sch,
 		std::string srcName, LabelSet srcLabelSet, LabelSet srcEdgeLabelSet, ExpandDirection expandDir, std::string edgeName, LabelSet tgtLabelSet, std::vector<LabelSet> tgtEdgeLabelSets, LoadAdjListOption tgtLoadAdjOpt, PropertyKeys tgtPropertyKeys)
 		: CypherPhysicalOperator(sch),
 		srcName(srcName), srcLabelSet(srcLabelSet), srcEdgeLabelSet(srcEdgeLabelSet), expandDir(expandDir), edgeName(edgeName), tgtLabelSet(tgtLabelSet), tgtEdgeLabelSets(tgtEdgeLabelSets), tgtLoadAdjOpt(tgtLoadAdjOpt), tgtPropertyKeys(tgtPropertyKeys)
@@ -21,7 +21,7 @@ public:
 		tgtfetch_time = 0;	
 		assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index"); // TODO needs support from the storage
 	}
-	~NaiveExpand() {}
+	~AdjIdxJoin() {}
 
 public:
 	
