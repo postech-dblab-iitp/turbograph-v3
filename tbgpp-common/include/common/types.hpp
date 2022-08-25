@@ -420,9 +420,9 @@ struct LogicalType {
 	}
 
 	//! Serializes a LogicalType to a stand-alone binary blob
-	DUCKDB_API void Serialize(Serializer &serializer) const;
+	//DUCKDB_API void Serialize(Serializer &serializer) const;
 	//! Deserializes a blob back into an LogicalType
-	DUCKDB_API static LogicalType Deserialize(Deserializer &source);
+	//DUCKDB_API static LogicalType Deserialize(Deserializer &source);
 
 	DUCKDB_API string ToString() const;
 	DUCKDB_API bool IsIntegral() const;
@@ -520,7 +520,7 @@ struct UserType{
 struct EnumType{
 	DUCKDB_API static const string &GetTypeName(const LogicalType &type);
 	DUCKDB_API static int64_t GetPos(const LogicalType &type, const string& key);
-	DUCKDB_API static Vector &GetValuesInsertOrder(const LogicalType &type);
+	// DUCKDB_API static Vector &GetValuesInsertOrder(const LogicalType &type);
 	DUCKDB_API static idx_t GetSize(const LogicalType &type);
 	DUCKDB_API static const string GetValue(const Value &val);
 	DUCKDB_API static void SetCatalog(LogicalType &type, TypeCatalogEntry* catalog_entry);

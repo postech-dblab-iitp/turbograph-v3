@@ -1,12 +1,12 @@
 #pragma once
 
-// #include "duckdb/common/common.hpp"
-// #include "duckdb/catalog/catalog.hpp"
-// #include "duckdb/common/enums/physical_operator_type.hpp"
+// #include "common/common.hpp"
+// #include "catalog/catalog.hpp"
+// #include "common/enums/physical_operator_type.hpp"
 
 #include "common/types/data_chunk.hpp"
 #include "common/enums/operator_result_type.hpp"
-// #include "duckdb/common/constants.hpp"
+// #include "common/constants.hpp"
 
 #include "execution/physical_operator.hpp"
 

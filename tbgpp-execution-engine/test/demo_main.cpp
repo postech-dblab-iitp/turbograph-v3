@@ -41,10 +41,6 @@ using json = nlohmann::json;
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
 
-#include "execution/physical_operator/node_scan.hpp"
-#include "execution/physical_operator/physical_dummy_operator.hpp"
-#include "execution/physical_operator/produce_results.hpp"
-#include "execution/physical_operator/naive_expand.hpp"
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
