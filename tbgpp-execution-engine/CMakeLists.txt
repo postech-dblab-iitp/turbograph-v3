@@ -76,13 +76,20 @@ target_include_directories( tbgpp-execution-engine-lib PUBLIC "${PROJECT_SOURCE_
 target_include_directories( tbgpp-execution-engine-lib PUBLIC
 	# tbgpp-common
   "${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" 
   #"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
   # parser
 	"${PROJECT_SOURCE_DIR}/../include/parser"
-	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data" 
+	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data"
+  "${PROJECT_SOURCE_DIR}/include/parser/constraints"
+	"${PROJECT_SOURCE_DIR}/include/parser/expression"
+	"${PROJECT_SOURCE_DIR}/include/parser/query_node"
+	"${PROJECT_SOURCE_DIR}/include/parser/statement"
+	"${PROJECT_SOURCE_DIR}/include/parser/tableref"
 )
 target_sources( tbgpp-execution-engine-lib PUBLIC "${SRC_DIR}" )
 target_link_libraries( tbgpp-execution-engine-lib tbgpp-common-lib )

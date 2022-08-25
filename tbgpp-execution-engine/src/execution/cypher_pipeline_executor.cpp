@@ -6,6 +6,8 @@
 #include "common/limits.hpp"
 #include "main/client_context.hpp"
 
+#include "execution/execution_context.hpp"
+
 //#include "livegraph.hpp"
 #include "common/types.hpp"
 
@@ -13,17 +15,17 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(ClientContext* cxt, CypherPipeline* pipe)
-	context(cxt), pipeline(pipe) {
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline): 
+	context(context), pipeline(pipeline) {
 
 	// initialize interm chunks
-	for( int i = 0; i < pipe->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+	for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
 		auto opOutputChunk = std::make_unique<DataChunk>();
-		opOutputChunk->Initialize(pipe->GetIdxOperator(i)->GetTypes());
+		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
 		opOutputChunks.push_back(move(opOutputChunk));
 	}
 
-	assert( opOutputChunks.size() == (pipe->pipelineLength - 1) );
+	assert( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
 	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
 	// generate global states for each operator
 		// no global states for this demo!
@@ -58,6 +60,8 @@ void CypherPipelineExecutor::ExecutePipeline() {
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*local_sink_state);
 
+	// TODO delete op-states after pipeline finishes
+
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
@@ -71,7 +75,7 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 		pipeline->GetSource()->op_timer.resume();
 	}
 	// call
-	pipeline->GetSource()->GetData( context, result, *local_source_state );
+	pipeline->GetSource()->GetData( *context, result, *local_source_state );
 	pipeline->GetSource()->processed_tuples += result.size();
 	// timer stop
 	pipeline->GetSource()->op_timer.stop();
@@ -98,7 +102,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		}
 		// std::cout << "call sink!!" << std::endl;
 		auto sinkResult = pipeline->GetSink()->Sink(
-			context, *pipeOutputChunk, *local_sink_state
+			*context, *pipeOutputChunk, *local_sink_state
 		);
 		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 			// timer stop
@@ -150,7 +154,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		}
 			// call operator
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			 context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
+			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 			// timer stop

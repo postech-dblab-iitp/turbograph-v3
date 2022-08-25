@@ -8,7 +8,7 @@
 
 // #pragma once
 
-// // #include "duckdb/main/query_profiler.hpp"
+// // #include "main/query_profiler.hpp"
 
 // namespace duckdb {
 // class ClientContext;

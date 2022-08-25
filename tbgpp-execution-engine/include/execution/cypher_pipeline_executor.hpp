@@ -27,7 +27,7 @@ class CypherPipelineExecutor {
 	static constexpr const idx_t CACHE_THRESHOLD = 64;
 
 public:
-	CypherPipelineExecutor(ClientContext* context, CypherPipeline* pipeline);
+	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline);
 
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
 	void ExecutePipeline();
@@ -46,9 +46,8 @@ public:
 
 
 	//! The pipeline to process
+	ExecutionContext* context;
 	CypherPipeline* pipeline;
-
-	ExecutionContext context;
 	
 
 	// TODO add statistics reporter.
