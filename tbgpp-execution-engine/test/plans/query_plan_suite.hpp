@@ -13,13 +13,13 @@ namespace duckdb {
 
 class ClientContext;
 
-class QueryPlanSuite{
+class QueryPlanSuite {
 
 public:
-	QueryPlanSuite(ClientContext& context);
+	QueryPlanSuite(ClientContext& context): context(context) {};
 
 	// returns root pipeline
-	// std::vector<CypherPipelineExecutor*> Test1();	// NodeScan
+	std::vector<CypherPipelineExecutor*> Test1();	// NodeScan
 	// std::vector<CypherPipelineExecutor*> Test1_1();	// NodeScan + Projection
 	// std::vector<CypherPipelineExecutor*> Test1_2();	// NodeSCan + Filter + Projection
 	// std::vector<CypherPipelineExecutor*> Test1_3();	// NodeScan + Limit

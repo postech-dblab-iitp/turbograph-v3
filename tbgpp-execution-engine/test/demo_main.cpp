@@ -29,7 +29,7 @@ using json = nlohmann::json;
 #include <icecream.hpp>
 
 //#include "livegraph.hpp"
-#include "demo_plans.hpp"
+#include "plans/query_plan_suite.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
@@ -162,14 +162,17 @@ int main(int argc, char** argv) {
 	argc = 1;
 
 	// Initialize Database
+	IC();
 	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(nullptr);
+	IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map;
-
+	
 	// Initialize ClientContext
+	IC();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
@@ -180,7 +183,7 @@ int main(int argc, char** argv) {
 
 	CreateGraphInfo graph_info("main", "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
-
+	IC();
 	// Read Vertex CSV File & CreateVertexExtents
 	for (auto &vertex_file: vertex_files) {
 		fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
@@ -489,7 +492,6 @@ int main(int argc, char** argv) {
 	while(true) {
 		IC();
 		std::cout << ">> "; std::getline(std::cin, query_str);
-		
 		
 		// if( query_str.compare("t1") == 0 ) {
 		// 	executors = suite.Test1();

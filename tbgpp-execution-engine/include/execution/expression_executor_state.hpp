@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/cycle_counter.hpp"
-// #include "function/function.hpp"
+#include "function/function.hpp"
 
 namespace duckdb {
 class Expression;
@@ -36,17 +36,17 @@ public:
 	void Finalize();
 };
 
-// struct ExecuteFunctionState : public ExpressionState {
-// 	ExecuteFunctionState(const Expression &expr, ExpressionExecutorState &root) : ExpressionState(expr, root) {
-// 	}
+struct ExecuteFunctionState : public ExpressionState {
+	ExecuteFunctionState(const Expression &expr, ExpressionExecutorState &root) : ExpressionState(expr, root) {
+	}
 
-// 	unique_ptr<FunctionData> local_state;
+	unique_ptr<FunctionData> local_state;
 
-// public:
-// 	static FunctionData *GetFunctionState(ExpressionState &state) {
-// 		return ((ExecuteFunctionState &)state).local_state.get();
-// 	}
-// };
+public:
+	static FunctionData *GetFunctionState(ExpressionState &state) {
+		return ((ExecuteFunctionState &)state).local_state.get();
+	}
+};
 
 struct ExpressionExecutorState {
 	explicit ExpressionExecutorState(const string &name);

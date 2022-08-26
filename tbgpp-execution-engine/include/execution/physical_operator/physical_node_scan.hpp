@@ -4,9 +4,7 @@
 #include "storage/graph_store.hpp"
 #include "main/client_context.hpp"
 
-
-#pragma once
-
+#include "planner/expression.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
 #include <vector>
@@ -17,8 +15,8 @@ class PhysicalNodeScan: public CypherPhysicalOperator {
 
 public:
 	
-	PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk);
-	PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, vector<unique_ptr<Expression>> storage_predicates);
+	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk);
+	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, vector<unique_ptr<Expression>> storage_predicates);
 	~PhysicalNodeScan();
 
 public:

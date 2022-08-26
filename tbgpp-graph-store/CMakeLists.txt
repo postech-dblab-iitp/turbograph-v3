@@ -68,6 +68,11 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
   "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
+  # tbgpp-client
+  "${PROJECT_SOURCE_DIR}/../tbgpp-client/include/main"
+  # execution-engine
+  "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/execution"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/storage"
 )
 target_link_libraries(tbgpp-graph-store-lib tbgpp-common-lib)
 target_link_libraries(tbgpp-graph-store-lib tbgpp-main)
@@ -124,12 +129,12 @@ target_link_libraries(store tbgpp-common-lib)
 #   "${PROJECT_SOURCE_DIR}/test/cache/cache_test_multi_thread.cc"
 # )
 
-# file(GLOB CATALOG_TEST_SRC
-#   #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_single_thread.cc"
-#   #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
-#   #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory2.cc"
-#   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
-# )
+file(GLOB CATALOG_TEST_SRC
+  #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_single_thread.cc"
+  #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
+  #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory2.cc"
+  "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
+)
 
 # file(GLOB TILE_TEST_SRC
 #   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_json_reader.cc"
@@ -145,15 +150,15 @@ target_link_libraries(store tbgpp-common-lib)
 # endforeach(test_file ${CACHE_TEST_SRC})
 # endif()
 
-# if (TRUE)
-# foreach(test_file ${CATALOG_TEST_SRC})
-#   get_filename_component(prog_name ${test_file} NAME_WE)
-#   add_executable(${prog_name} ${test_file})
-#   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
-# 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
-#   target_link_libraries(${prog_name} PRIVATE tbgpp-common-lib Catch2::Catch2WithMain)
-# endforeach(test_file ${CATALOG_TEST_SRC})
-# endif()
+if (TRUE)
+foreach(test_file ${CATALOG_TEST_SRC})
+  get_filename_component(prog_name ${test_file} NAME_WE)
+  add_executable(${prog_name} ${test_file})
+  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
+	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
+  target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib  Catch2::Catch2WithMain)
+endforeach(test_file ${CATALOG_TEST_SRC})
+endif()
 
 # foreach(test_file ${TILE_TEST_SRC})
 #   get_filename_component(prog_name ${test_file} NAME_WE)

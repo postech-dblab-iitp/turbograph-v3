@@ -72,6 +72,7 @@ add_definitions(-DDUCKDB_VERSION="\""1"\"")
 ####################################################
 set_target_properties(tbgpp-execution-engine-lib PROPERTIES LINKER_LANGUAGE CXX)
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
+file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
 target_include_directories( tbgpp-execution-engine-lib PUBLIC "${PROJECT_SOURCE_DIR}/include" )
 target_include_directories( tbgpp-execution-engine-lib PUBLIC
 	# tbgpp-common
@@ -90,9 +91,15 @@ target_include_directories( tbgpp-execution-engine-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/parser/query_node"
 	"${PROJECT_SOURCE_DIR}/include/parser/statement"
 	"${PROJECT_SOURCE_DIR}/include/parser/tableref"
+  # tbgpp-client
+  "${PROJECT_SOURCE_DIR}/../tbgpp-client/include/main"
 )
-target_sources( tbgpp-execution-engine-lib PUBLIC "${SRC_DIR}" )
-target_link_libraries( tbgpp-execution-engine-lib tbgpp-common-lib )
+target_sources( tbgpp-execution-engine-lib PUBLIC "${SOURCES}" )
+target_link_libraries( tbgpp-execution-engine-lib
+  tbgpp-common-lib
+  tbgpp-main
+  "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
+)
 
 ####################################################
 # TESTS
@@ -101,10 +108,16 @@ file(GLOB ENGINE_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/demo_main.cpp"
 )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
+file (GLOB_RECURSE TEST_SOURCES
+  "${PROECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive"
+  "${PROECT_SOURCE_DIR}/test/plans/simple"
+)
 
 foreach(test_file ${ENGINE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
-  add_executable(${prog_name} ${test_file} ${SOURCES} )
+  add_executable(${prog_name} ${test_file} )
+  target_sources( ${prog_name} PRIVATE ${SOURCES} )
+  target_sources( ${prog_name} PRIVATE ${TEST_SOURCES}  ) 
   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_include_directories( ${prog_name} PUBLIC
@@ -112,8 +125,11 @@ foreach(test_file ${ENGINE_TEST_SRC})
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
-)
+  # test
+  "${PROJECT_SOURCE_DIR}/test/"
+  )
   target_link_libraries(${prog_name} PRIVATE
+    tbgpp-main
     tbgpp-common-lib
     tbgpp-graph-store-lib
     tbgpp-execution-engine-lib

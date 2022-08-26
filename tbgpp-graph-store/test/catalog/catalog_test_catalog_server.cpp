@@ -6,14 +6,14 @@ using namespace duckdb;
 
 CatalogServer *cat_server;
 
-void signal_handler(int sig_number) {
+void cat_signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
   cat_server->Exit();
   exit(0);
 }
 
 int main() {
-  if (signal(SIGINT, signal_handler) == SIG_ERR) {
+  if (signal(SIGINT, cat_signal_handler) == SIG_ERR) {
     std::cerr << "cannot register signal handler!" << std::endl;
     exit(-1);
   }
