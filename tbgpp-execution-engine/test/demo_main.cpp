@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
 
 	// Initialize Database
 	IC();
-	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(nullptr);
 	IC();
