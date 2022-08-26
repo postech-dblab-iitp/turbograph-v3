@@ -120,7 +120,8 @@ unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const Expression
 	case ExpressionClass::BOUND_CASE:
 		return InitializeState((const BoundCaseExpression &)expr, state);
 	case ExpressionClass::BOUND_CAST:
-		return InitializeState((const BoundCastExpression &)expr, state);
+		D_ASSERT(false && "not supporting cast function now");
+		// return InitializeState((const BoundCastExpression &)expr, state);
 	case ExpressionClass::BOUND_COMPARISON:
 		return InitializeState((const BoundComparisonExpression &)expr, state);
 	case ExpressionClass::BOUND_CONJUNCTION:
@@ -128,11 +129,13 @@ unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const Expression
 	case ExpressionClass::BOUND_CONSTANT:
 		return InitializeState((const BoundConstantExpression &)expr, state);
 	case ExpressionClass::BOUND_FUNCTION:
-		return InitializeState((const BoundFunctionExpression &)expr, state);
+		D_ASSERT(false && "not supporting bound function now");
+		// return InitializeState((const BoundFunctionExpression &)expr, state);
 	case ExpressionClass::BOUND_OPERATOR:
 		return InitializeState((const BoundOperatorExpression &)expr, state);
 	case ExpressionClass::BOUND_PARAMETER:
-		return InitializeState((const BoundParameterExpression &)expr, state);
+			D_ASSERT(false && "not supporting bound function now");
+		// return InitializeState((const BoundParameterExpression &)expr, state);
 	default:
 		throw InternalException("Attempting to initialize state of expression of unknown type!");
 	}
@@ -160,7 +163,8 @@ void ExpressionExecutor::Execute(const Expression &expr, ExpressionState *state,
 		Execute((const BoundCaseExpression &)expr, state, sel, count, result);
 		break;
 	case ExpressionClass::BOUND_CAST:
-		Execute((const BoundCastExpression &)expr, state, sel, count, result);
+		// Execute((const BoundCastExpression &)expr, state, sel, count, result);
+		D_ASSERT(false && "not supporting cast now!");
 		break;
 	case ExpressionClass::BOUND_COMPARISON:
 		Execute((const BoundComparisonExpression &)expr, state, sel, count, result);
@@ -172,13 +176,15 @@ void ExpressionExecutor::Execute(const Expression &expr, ExpressionState *state,
 		Execute((const BoundConstantExpression &)expr, state, sel, count, result);
 		break;
 	case ExpressionClass::BOUND_FUNCTION:
-		Execute((const BoundFunctionExpression &)expr, state, sel, count, result);
+		D_ASSERT(false && "not supporting now!");
+		// Execute((const BoundFunctionExpression &)expr, state, sel, count, result);
 		break;
 	case ExpressionClass::BOUND_OPERATOR:
 		Execute((const BoundOperatorExpression &)expr, state, sel, count, result);
 		break;
 	case ExpressionClass::BOUND_PARAMETER:
-		Execute((const BoundParameterExpression &)expr, state, sel, count, result);
+		D_ASSERT(false && "not supporting now!");
+		// Execute((const BoundParameterExpression &)expr, state, sel, count, result);
 		break;
 	default:
 		throw InternalException("Attempting to execute expression of unknown type!");

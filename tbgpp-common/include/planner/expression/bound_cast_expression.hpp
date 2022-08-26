@@ -23,7 +23,7 @@ public:
 
 public:
 	LogicalType source_type() {
-		D_ASSERT(child->return_type.IsValid());
+		// D_ASSERT(child->return_type.IsValid());
 		return child->return_type;
 	}
 
