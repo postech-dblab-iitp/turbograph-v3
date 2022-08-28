@@ -6,7 +6,7 @@ namespace duckdb {
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 
 	CypherSchema schema;
-	schema.addNode("n", LoadAdjListOption::NONE);
+	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
