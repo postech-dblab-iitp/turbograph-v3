@@ -44,6 +44,28 @@ bool operator==(const LabelSet lhs, const LabelSet rhs) {
 	return lhs.data == rhs.data;
 }
 
+CypherValueType CypherSchema::getCypherType(std::string name) const {
+	for( auto& attr: attrs) {
+		auto n = std::get<0>(attr);
+		auto cypherType = std::get<1>(attr);
+		if ( n.compare(name) == 0 ) {
+			return cypherType;
+		}
+	}
+	D_ASSERT(false);
+}
+duckdb::LogicalType CypherSchema::getType(std::string name) const {
+	for( auto& attr: attrs) {
+		auto n = std::get<0>(attr);
+		auto duckDbType = std::get<2>(attr);
+		if ( n.compare(name) == 0 ) {
+			// duckdbtype should not be invalid
+			return duckDbType ;
+		}
+	}
+	D_ASSERT(false);
+}
+
 std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 	std::vector<duckdb::LogicalType> result;
 	for( auto& attr: attrs) {
@@ -56,6 +78,7 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 				break;
 			}
 			case CypherValueType::NODE:
+			case CypherValueType::RANGE:
 			case CypherValueType::EDGE:
 			case CypherValueType::PATH: {
 				// recursive seek
@@ -97,6 +120,21 @@ void CypherSchema::addEdge(std::string name) {
 	nestedAttrs[name] = edgeSchema;
 }
 
+void CypherSchema::addRange(std::string name) {
+
+	CypherSchema rangeSchema;
+	// insert two columns => adj list range : [_sid, _eid) // startid, endid
+	rangeSchema.attrs.push_back(
+		std::make_tuple("_sid", CypherValueType::ID, LogicalType(LogicalTypeId::ID))
+	);
+	rangeSchema.attrs.push_back(
+		std::make_tuple("_eid", CypherValueType::ID, LogicalType(LogicalTypeId::ID))
+	);
+	// set node info on attrs
+	attrs.push_back( std::make_tuple(name, CypherValueType::RANGE, LogicalType(LogicalTypeId::INVALID)) );
+	nestedAttrs[name] = rangeSchema;
+}
+
 void CypherSchema::addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type) {
 	nestedAttrs[nodeName].attrs.push_back(
 		std::make_tuple(propName, CypherValueType::DATA, type)
@@ -120,6 +158,12 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypesOfKey(std::string name) c
 	return std::vector<duckdb::LogicalType>();
 }
 
+CypherSchema CypherSchema::getSubSchemaOfKey(std::string name) const {
+	if( nestedAttrs.find(name) != nestedAttrs.end()) {
+ 		return nestedAttrs.find(name)->second;
+	}
+}
+
 int CypherSchema::getColIdxOfKey(std::string key) const {
 
 	int result = 0;
@@ -127,6 +171,7 @@ int CypherSchema::getColIdxOfKey(std::string key) const {
 		auto name = std::get<0>(attr);
 		auto cypherType = std::get<1>(attr);
 		switch( cypherType ) {
+			case CypherValueType::RANGE:
 			case CypherValueType::NODE:
 			case CypherValueType::PATH:
 			case CypherValueType::EDGE:
@@ -178,6 +223,9 @@ std::string CypherSchema::toString() const{
 				assert(0);
 				result += "PATH"; break;
 			}
+			case CypherValueType::RANGE: {
+				result += "RANGE"; break;
+			}
 		}
 		result += ", ";
 	}
@@ -216,6 +264,7 @@ std::vector<int> CypherSchema::getColumnIndicesForResultSet() const {
 				break;
 			default:
 				// abaondon
+				D_ASSERT(false && "cannot print this type as resulttype");
 				break;
 		}
 		curIdx += 1;

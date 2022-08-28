@@ -17,7 +17,7 @@ namespace duckdb {
 class FilterState : public OperatorState {
 public:
 	explicit FilterState(Expression& expr):
-		executor(expr), sel(EXEC_ENGINE_VECTOR_SIZE) {
+		executor(expr), sel(STANDARD_VECTOR_SIZE) {
 	}
 public:
 	SelectionVector sel;
@@ -31,7 +31,7 @@ unique_ptr<OperatorState> PhysicalFilter::GetOperatorState() const {
 OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	//std::cout << "Start Filter\n";
 	auto &state = (FilterState &)lstate;
-	D_ASSERT( input.size() < EXEC_ENGINE_VECTOR_SIZE ); // TODO release me
+	D_ASSERT( input.size() <= STANDARD_VECTOR_SIZE ); // TODO release me
 	
 	idx_t result_count = state.executor.SelectExpression(input, state.sel);
 	if (result_count == input.size()) {

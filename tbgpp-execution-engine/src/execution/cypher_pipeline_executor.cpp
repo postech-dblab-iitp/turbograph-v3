@@ -11,6 +11,8 @@
 //#include "livegraph.hpp"
 #include "common/types.hpp"
 
+#include "icecream.hpp"
+
 #include <cassert>
 
 namespace duckdb {
@@ -83,6 +85,7 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
 
+	icecream::ic.enable();
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
 	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;
@@ -91,6 +94,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		
 		// call execute pipe
 		// std::cout << "call execute pipe!!" << std::endl;
+		IC();
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 			// timer start
@@ -101,6 +105,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			pipeline->GetSink()->op_timer.resume();
 		}
 		// std::cout << "call sink!!" << std::endl;
+		IC();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
