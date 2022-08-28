@@ -1,0 +1,89 @@
+
+#include "typedef.hpp"
+
+#include "execution/physical_operator/physical_node_id_seek.hpp"
+#include "extent/extent_iterator.hpp"
+
+#include "icecream.hpp"
+
+#include <string>
+
+namespace duckdb {
+
+class NodeIdSeekState : public OperatorState {
+public:
+	explicit NodeIdSeekState() {}
+public:
+	ExtentIterator* ext_it;
+};
+
+unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState() const {
+	return make_unique<NodeIdSeekState>();
+}
+
+OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+
+	auto &state = (NodeIdSeekState &)lstate;
+IC();
+	DataChunk targetTupleChunk;
+	CypherSchema outputNodeSchema = schema.getSubSchemaOfKey( name );
+	
+	idx_t nodeColIdx = schema.getColIdxOfKey( name ); // position of pid
+IC(nodeColIdx);
+	idx_t alreadyExistingCols = outputNodeSchema.getTypes().size() - 1 - propertyKeys.size();
+IC(alreadyExistingCols);
+	idx_t colIdxToStartFetch = nodeColIdx + alreadyExistingCols + 1;
+IC(colIdxToStartFetch);
+
+IC();
+	vector<LogicalType> targetTypes;
+	targetTypes.push_back(LogicalType::ID); // for node ids
+	for( auto& key: propertyKeys ) {
+		targetTypes.push_back( outputNodeSchema.getType(key) );
+	}
+	// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
+	targetTupleChunk.Initialize(targetTypes);
+	D_ASSERT( propertyKeys.size()+1 == targetTypes.size() );
+
+	std::vector<LabelSet> empty_els;
+IC();
+	int numProducedTuples = 0;
+	// for fetched columns, call api 
+	for( u_int64_t srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
+		// fetch value
+		uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, srcIdx));
+		// pass value
+		context.client->graph_store->doIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
+		assert( targetTupleChunk.size() == 1 && "did not fetch well");
+		// set value
+		for (idx_t colId = 1; colId < targetTupleChunk.ColumnCount(); colId++) {	// abandon pid and use only newly added columns
+			chunk.SetValue(colId-1+colIdxToStartFetch, numProducedTuples, targetTupleChunk.GetValue(colId, 0) ); 
+		}
+		targetTupleChunk.Reset();
+		numProducedTuples +=1;
+	}
+IC();
+	// for original ones reference existing columns
+	for(int i = 0; i <= nodeColIdx+alreadyExistingCols; i++) {
+		chunk.data[i].Reference( input.data[i] );
+	}
+	idx_t idxToPutRightOnes = nodeColIdx + outputNodeSchema.getTypes().size();
+	idx_t numAddedColumns = targetTupleChunk.ColumnCount() - 1 - alreadyExistingCols;
+IC( int(numAddedColumns) );
+	for(int i = idxToPutRightOnes ; i < chunk.ColumnCount() ; i++) {
+		chunk.data[i].Reference( input.data[ i-numAddedColumns ] );
+	}
+	chunk.SetCardinality( input.size() );
+IC(chunk.ToString(1));
+	return OperatorResultType::NEED_MORE_INPUT;
+}
+
+std::string PhysicalNodeIdSeek::ParamsToString() const {
+	return "NodeIdSeek-param";
+}
+
+std::string PhysicalNodeIdSeek::ToString() const {
+	return "NodeIdSeek";
+}
+
+}

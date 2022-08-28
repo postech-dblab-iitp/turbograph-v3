@@ -289,7 +289,7 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 		D_ASSERT(false); // TODO exception handling
 		//throw CatalogException(error_context.FormatError("Schema with name %s does not exist!", schema_name));
 	}
-	fprintf(stdout, "GetSchema %p\n", entry);
+	//fprintf(stdout, "GetSchema %p\n", entry);
 	return (SchemaCatalogEntry *)entry;
 }
 
