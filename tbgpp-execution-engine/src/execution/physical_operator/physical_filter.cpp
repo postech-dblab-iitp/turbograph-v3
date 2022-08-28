@@ -1,67 +1,58 @@
 
-// #include "typedef.hpp"
+#include "typedef.hpp"
 
-// #include "execution/physical_operator/physical_filter.hpp"
+#include "execution/physical_operator/physical_filter.hpp"
 
-// #include "execution/expression_executor.hpp"
+#include "execution/expression_executor.hpp"
 
-// #include <string>
+#include <string>
 
-// namespace duckdb {
+#include "execution/physical_operator.hpp"
+#include "common/allocator.hpp"
 
-// class FilterState : public OperatorState {
-// public:
-// 	explicit FilterState():
-// 		executor(Allocator::DEF, expr), sel(EXEC_ENGINE_VECTOR_SIZE) {
-// 	}
-// public:
-// 	SelectionVector sel;
-// 	ExpressionExecutor executor;
-// };
+#include "icecream.hpp"
 
-// unique_ptr<OperatorState> PhysicalFilter::GetOperatorState() const {
-// 	return make_unique<FilterState>();
-// }
+namespace duckdb {
 
-// OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-// 	//std::cout << "Start Filter\n";
-// 	auto &state = (FilterState &)lstate;
+class FilterState : public OperatorState {
+public:
+	explicit FilterState(Expression& expr):
+		executor(expr), sel(EXEC_ENGINE_VECTOR_SIZE) {
+	}
+public:
+	SelectionVector sel;
+	ExpressionExecutor executor;
+};
 
-// 	// // seek input using targetindex.
-// 	// uint64_t rhs = duckdb::UBigIntValue::Get(predicateValue);
+unique_ptr<OperatorState> PhysicalFilter::GetOperatorState() const {
+	return make_unique<FilterState>(*expression);
+}
 
-// 	// // compare for BIGINT
-// 	// int numProducedTuples = 0;
-// 	// int srcIdx;
-// 	// //fprintf(stdout, "%s\n", input.ToString(1).c_str());
-// 	// for( srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
-// 	// 	duckdb::Value val = input.GetValue(targetColumn, srcIdx);
-// 	// 	uint64_t lhs = duckdb::UBigIntValue::Get(val);
-// 	// 	if( lhs == rhs ) {
-// 	// 		// pass predicate
-// 	// 		state.sel.set_index( numProducedTuples, srcIdx );
-// 	// 		numProducedTuples += 1;
-// 	// 	}
-// 	// }
-// 	// //std::cout << numProducedTuples << std::endl;
-// 	// chunk.Slice(input, state.sel, numProducedTuples);
-
-// 	// // clear sel for next chunk
-// 	// // TODO Im not sure about this logic.. maybe need to debug?
-// 	// state.sel.Initialize(state.sel);
-
-// 	// // always return need_more_input
-// 	// //std::cout << "End Filter\n";
-// 	// return OperatorResultType::NEED_MORE_INPUT;
+OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+	//std::cout << "Start Filter\n";
+	auto &state = (FilterState &)lstate;
+	D_ASSERT( input.size() < EXEC_ENGINE_VECTOR_SIZE ); // TODO release me
 	
-// }
+	idx_t result_count = state.executor.SelectExpression(input, state.sel);
+	if (result_count == input.size()) {
+		// nothing was filtered: skip adding any selection vectors
+		chunk.Reference(input);
+	} else {
+		chunk.Slice(input, state.sel, result_count);
+	}
+	
+	icecream::ic.disable();
 
-// std::string PhysicalFilter::ParamsToString() const {
-// 	return "filter-param";
-// }
+	return OperatorResultType::NEED_MORE_INPUT;
+	
+}
 
-// std::string PhysicalFilter::ToString() const {
-// 	return "Filter";
-// }
+std::string PhysicalFilter::ParamsToString() const {
+	return "filter-param";
+}
 
-// }
+std::string PhysicalFilter::ToString() const {
+	return "Filter";
+}
+
+}

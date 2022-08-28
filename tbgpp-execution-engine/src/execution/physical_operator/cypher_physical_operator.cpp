@@ -20,7 +20,7 @@ SinkResultType CypherPhysicalOperator::Sink(ExecutionContext& context, DataChunk
 unique_ptr<LocalSinkState> CypherPhysicalOperator::GetLocalSinkState() const{
 	return make_unique<LocalSinkState>();
 }
-void CypherPhysicalOperator::Combine(LocalSinkState& lstate) const {
+void CypherPhysicalOperator::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	// nothing
 }
 
