@@ -6,40 +6,48 @@
 //#include "execution/executor.hpp"
 
 #include "storage/graph_store.hpp"
+#pragma once
 
+#include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
+
+#include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "execution/physical_operator/physical_node_scan.hpp"
+#include "execution/physical_operator/physical_filter.hpp"
+#include "execution/physical_operator/physical_produce_results.hpp"
+
+#include "planner/expression.hpp"
+#include "planner/expression/bound_reference_expression.hpp"
+#include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_constant_expression.hpp"
 
 namespace duckdb {
 
 class ClientContext;
-
 class QueryPlanSuite {
 
 public:
 	QueryPlanSuite(ClientContext& context): context(context) {};
 
+	std::vector<CypherPipelineExecutor*> getTest(string key) {
+		if( key.compare("t1") == 0 ) { return Test1(); }
+		if( key.compare("t2") == 0 ) { return Test2(); }
+		if( key.compare("t3") == 0 ) { return Test3(); }
+		// if( key.compare("t4") == 0 ) { return Test4(); }
+		// if( key.compare("t5") == 0 ) { return Test5(); }
+		// if( key.compare("t6") == 0 ) { return Test6(); }
+		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
+		else { return std::vector<CypherPipelineExecutor*>(); }
+	}
 	// returns root pipeline
-	std::vector<CypherPipelineExecutor*> Test1();	// NodeScan
-	// std::vector<CypherPipelineExecutor*> Test1_1();	// NodeScan + Projection
-	// std::vector<CypherPipelineExecutor*> Test1_2();	// NodeSCan + Filter + Projection
-	// std::vector<CypherPipelineExecutor*> Test1_3();	// NodeScan + Limit
-	// std::vector<CypherPipelineExecutor*> Test2();
-	// std::vector<CypherPipelineExecutor*> Test3();
-	// std::vector<CypherPipelineExecutor*> Test4();
-
-	// std::vector<CypherPipelineExecutor*> Test5();	// Scan Comment
-	// std::vector<CypherPipelineExecutor*> Test5_1();	// Scan Comment + Filter + Projection + Limit
+	std::vector<CypherPipelineExecutor*> Test1();	// 
+	std::vector<CypherPipelineExecutor*> Test2();	// 
+	std::vector<CypherPipelineExecutor*> Test3();	// 
+	std::vector<CypherPipelineExecutor*> Test4();	// 
+	std::vector<CypherPipelineExecutor*> Test5();	// 
+	std::vector<CypherPipelineExecutor*> Test6();	// 
 	
-	std::vector<CypherPipelineExecutor*> LDBCShort1();	// full support
-	// std::vector<CypherPipelineExecutor*> LDBCShort3();	// slight mod
-	// std::vector<CypherPipelineExecutor*> LDBCShort4();  // 2 plans
-	// CypherPipelineExecutor* ldbc_s4_comment();
-	// CypherPipelineExecutor* ldbc_s4_post();
-	// std::vector<CypherPipelineExecutor*> LDBCShort5();	// 2 plans
-	// CypherPipelineExecutor* ldbc_s5_comment();
-	// CypherPipelineExecutor* ldbc_s5_post();
-
-	// std::vector<CypherPipelineExecutor*> LDBCComplex2();
+	std::vector<CypherPipelineExecutor*> LDBCShort1();
 
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 

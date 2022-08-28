@@ -37,7 +37,7 @@ public:
 
 	virtual SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const;
 	virtual unique_ptr<LocalSinkState> GetLocalSinkState() const;
-	virtual void Combine(LocalSinkState& lstate) const;
+	virtual void Combine(ExecutionContext& context, LocalSinkState& lstate) const;
 
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState() const;

@@ -109,24 +109,23 @@ file(GLOB ENGINE_TEST_SRC
 )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
 file (GLOB_RECURSE TEST_SOURCES
-  "${PROECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive"
-  "${PROECT_SOURCE_DIR}/test/plans/simple"
+  "${PROJECT_SOURCE_DIR}/test/plans/simple/*.cpp"
 )
 
 foreach(test_file ${ENGINE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
   add_executable(${prog_name} ${test_file} )
-  target_sources( ${prog_name} PRIVATE ${SOURCES} )
-  target_sources( ${prog_name} PRIVATE ${TEST_SOURCES}  ) 
+  target_sources( ${prog_name} PUBLIC ${SOURCES} )
+  target_sources( ${prog_name} PUBLIC ${TEST_SOURCES}  ) 
   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_include_directories( ${prog_name} PUBLIC
-	# tbgpp-common
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
-	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
-  # test
-  "${PROJECT_SOURCE_DIR}/test/"
+    # tbgpp-common
+    "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
+    "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
+    "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
+    # test
+    "${PROJECT_SOURCE_DIR}/test/"
   )
   target_link_libraries(${prog_name} PRIVATE
     tbgpp-main

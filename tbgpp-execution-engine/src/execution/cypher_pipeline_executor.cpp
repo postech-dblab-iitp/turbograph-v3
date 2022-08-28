@@ -58,7 +58,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 			// this is an invariant to the main logic when the pipeline is terminated early
 
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
-	pipeline->GetSink()->Combine(*local_sink_state);
+	pipeline->GetSink()->Combine(*context, *local_sink_state);
 
 	// TODO delete op-states after pipeline finishes
 
