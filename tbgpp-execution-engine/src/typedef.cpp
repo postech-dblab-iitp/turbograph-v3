@@ -4,6 +4,9 @@
 #include <map>
 
 #include "common/types.hpp"
+
+#include "icecream.hpp"	
+
 namespace duckdb {
 void LabelSet::insert(std::string input) {
 	this->data.insert(input);
@@ -48,8 +51,7 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 		auto cypherType = std::get<1>(attr);
 		switch( cypherType ) {
 			case CypherValueType::DATA:
-			case CypherValueType::ID:
-			case CypherValueType::ADJLIST: {
+			case CypherValueType::ID: {
 				result.push_back( std::get<2>(attr) );
 				break;
 			}
@@ -71,43 +73,12 @@ std::vector<duckdb::LogicalType> CypherSchema::getTypes() const {
 	return result;
 }
 
-void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
+void CypherSchema::addNode(std::string name) {
 	
 	CypherSchema nodeSchema;
-
 	nodeSchema.attrs.push_back(
 		std::make_tuple("_id", CypherValueType::ID, LogicalType(LogicalTypeId::ID))
 	);
-	switch(adjOption) {
-		case LoadAdjListOption::NONE:
-			break;
-		case LoadAdjListOption::BOTH: {
-			// outgoing first 
-			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_out", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
-			);
-			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_in", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
-			);
-			
-			break;
-		}
-		case LoadAdjListOption::INCOMING: {
-			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_in", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
-			);
-			break;
-		}
-		case LoadAdjListOption::OUTGOING: {
-			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_out", CypherValueType::ADJLIST, LogicalType(LogicalTypeId::ADJLIST))
-			);
-			// nodeSchema.attrs.push_back(
-			// 	std::make_tuple("_adj_out", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))
-			// );
-			break;
-		}
-	}
 	// set node info on attrs
 	attrs.push_back( std::make_tuple(name, CypherValueType::NODE, LogicalType(LogicalTypeId::INVALID)) );
 	// set node details
@@ -191,10 +162,6 @@ std::string CypherSchema::toString() const{
 			}
 			case CypherValueType::ID: {
 				result += "ID";
-				break;
-			}
-			case CypherValueType::ADJLIST: {
-				result += "ADJLIST";
 				break;
 			}
 			case CypherValueType::NODE: {

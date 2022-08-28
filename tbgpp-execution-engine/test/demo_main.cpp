@@ -485,10 +485,12 @@ int main(int argc, char** argv) {
 	// run queries by query name
 	std::string query_str;
 	std::vector<CypherPipelineExecutor*> executors;
-	icecream::ic.disable();
+	// icecream::ic.disable();
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
+		IC();
 		executors = suite.getTest(query_str);
+		IC();
 		
 		// start_timer
 		boost::timer::cpu_timer query_timer;

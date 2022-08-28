@@ -56,7 +56,6 @@ enum class CypherValueType {
 	// non-nested
 	DATA,	// TODO need to be specified more
 	ID,
-	ADJLIST,
 	// nested
 	NODE,
 	EDGE,
@@ -67,7 +66,7 @@ class CypherSchema{
 
 public:
 	// insert
-	void addNode(std::string name, LoadAdjListOption adjOption);
+	void addNode(std::string name);
 	void addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type);
 	void addColumn(std::string attrName, duckdb::LogicalType type);
 	// TODO add insert edge

@@ -14,12 +14,15 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/physical_operator/physical_node_scan.hpp"
 #include "execution/physical_operator/physical_filter.hpp"
+#include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_produce_results.hpp"
 
 #include "planner/expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
+
+#include "icecream.hpp"	
 
 namespace duckdb {
 
@@ -30,6 +33,7 @@ public:
 	QueryPlanSuite(ClientContext& context): context(context) {};
 
 	std::vector<CypherPipelineExecutor*> getTest(string key) {
+		IC();
 		if( key.compare("t1") == 0 ) { return Test1(); }
 		if( key.compare("t2") == 0 ) { return Test2(); }
 		if( key.compare("t3") == 0 ) { return Test3(); }

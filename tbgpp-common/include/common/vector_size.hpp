@@ -32,7 +32,7 @@ namespace duckdb {
 #error Vector size should be a power of two
 #endif
 
-#if ((STANDARD_VECTOR_SIZE / EXEC_ENGINE_VECTOR_SIZE != 0)
+#if ((STANDARD_VECTOR_SIZE % EXEC_ENGINE_VECTOR_SIZE != 0))
 #error STANDARD_VECTOR_SIZE should be divided by EXEC_ENGINE_VECTOR_SIZE
 #endif
 
