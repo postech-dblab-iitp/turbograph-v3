@@ -74,6 +74,9 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
+	# external - client
+	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")

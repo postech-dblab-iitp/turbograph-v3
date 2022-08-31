@@ -118,6 +118,8 @@ target_include_directories(store PUBLIC
 )
 target_link_libraries(store lightning)
 target_link_libraries(store tbgpp-common-lib)
+target_link_libraries(store tbgpp-main)
+
 
 ####################################################
 # TESTS

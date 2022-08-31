@@ -35,7 +35,10 @@ public:
 	idx_t limit;
 	idx_t offset;
 
-}
+	// sharable global states
+	
+
+};
 
 	
 }

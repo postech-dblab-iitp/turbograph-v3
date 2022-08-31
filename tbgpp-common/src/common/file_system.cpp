@@ -35,13 +35,13 @@ namespace duckdb {
 FileSystem::~FileSystem() {
 }
 
-// FileSystem &FileSystem::GetFileSystem(ClientContext &context) {
-// 	return *context.db->config.file_system;
-// }
+FileSystem &FileSystem::GetFileSystem(ClientContext &context) {
+	throw IOException("NOOOOOOOO!");
+}
 
-// FileOpener *FileSystem::GetFileOpener(ClientContext &context) {
-// 	return context.file_opener.get();
-// }
+FileOpener *FileSystem::GetFileOpener(ClientContext &context) {
+	throw IOException("NOOOOOOOO!");
+}
 
 #ifndef _WIN32
 string FileSystem::PathSeparator() {
@@ -221,9 +221,9 @@ void FileSystem::FileSync(FileHandle &handle) {
 	throw NotImplementedException("%s: FileSync is not implemented!", GetName());
 }
 
-// vector<string> FileSystem::Glob(const string &path, FileOpener *opener) {
-// 	throw NotImplementedException("%s: Glob is not implemented!", GetName());
-// }
+vector<string> FileSystem::Glob(const string &path, FileOpener *opener) {
+	throw NotImplementedException("%s: Glob is not implemented!", GetName());
+}
 
 // vector<string> FileSystem::Glob(const string &path, ClientContext &context) {
 // 	return Glob(path, GetFileOpener(context));

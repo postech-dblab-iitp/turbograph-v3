@@ -24,7 +24,7 @@ class Transaction;
 
 class AggregateFunction;
 class AggregateFunctionSet;
-class CopyFunction;
+// class CopyFunction;
 class PragmaFunction;
 class ScalarFunctionSet;
 class ScalarFunction;
@@ -40,19 +40,14 @@ enum class FunctionSideEffects : uint8_t { NO_SIDE_EFFECTS = 0, HAS_SIDE_EFFECTS
 struct FunctionData {
 	DUCKDB_API virtual ~FunctionData();
 
-	DUCKDB_API virtual unique_ptr<FunctionData> Copy() const = 0;
-	DUCKDB_API virtual bool Equals(const FunctionData &other) const = 0;
-	DUCKDB_API static bool Equals(const FunctionData *left, const FunctionData *right);
+	DUCKDB_API virtual unique_ptr<FunctionData> Copy();
+	DUCKDB_API virtual bool Equals(FunctionData &other);
+	DUCKDB_API static bool Equals(FunctionData *left, FunctionData *right);
 };
 
 struct TableFunctionData : public FunctionData {
 	// used to pass on projections to table functions that support them. NB, can contain COLUMN_IDENTIFIER_ROW_ID
 	vector<idx_t> column_ids;
-
-	DUCKDB_API virtual ~TableFunctionData();
-
-	DUCKDB_API unique_ptr<FunctionData> Copy() const override;
-	DUCKDB_API bool Equals(const FunctionData &other) const override;
 };
 
 // struct PyTableFunctionData : public TableFunctionData {
@@ -103,8 +98,8 @@ public:
 	DUCKDB_API static idx_t BindFunction(const string &name, vector<TableFunction> &functions,
 	                                     vector<unique_ptr<Expression>> &arguments, string &error);
 	//! Bind a pragma function from the set of functions and input arguments
-	DUCKDB_API static idx_t BindFunction(const string &name, vector<PragmaFunction> &functions, PragmaInfo &info,
-	                                     string &error);
+	// DUCKDB_API static idx_t BindFunction(const string &name, vector<PragmaFunction> &functions, PragmaInfo &info,
+	//                                      string &error);
 };
 
 class SimpleFunction : public Function {
@@ -142,18 +137,17 @@ public:
 class BaseScalarFunction : public SimpleFunction {
 public:
 	DUCKDB_API BaseScalarFunction(string name, vector<LogicalType> arguments, LogicalType return_type,
-	                              FunctionSideEffects side_effects,
-	                              LogicalType varargs = LogicalType(LogicalTypeId::INVALID),
-	                              FunctionNullHandling null_handling = FunctionNullHandling::DEFAULT_NULL_HANDLING);
+	                              bool has_side_effects, LogicalType varargs = LogicalType(LogicalTypeId::INVALID),
+	                              bool propagates_null_values = false);
 	DUCKDB_API ~BaseScalarFunction() override;
 
 	//! Return type of the function
 	LogicalType return_type;
 	//! Whether or not the function has side effects (e.g. sequence increments, random() functions, NOW()). Functions
 	//! with side-effects cannot be constant-folded.
-	FunctionSideEffects side_effects;
-	//! How this function handles NULL values
-	FunctionNullHandling null_handling;
+	bool has_side_effects;
+	//! Whether or not the function propagates null values
+	bool propagates_null_values;
 
 public:
 	DUCKDB_API hash_t Hash() const;
@@ -164,64 +158,64 @@ public:
 	DUCKDB_API string ToString() override;
 };
 
-class BuiltinFunctions {
-public:
-	BuiltinFunctions(ClientContext &transaction, Catalog &catalog);
+// class BuiltinFunctions {
+// public:
+// 	BuiltinFunctions(ClientContext &transaction, Catalog &catalog);
 
-	//! Initialize a catalog with all built-in functions
-	void Initialize();
+// 	//! Initialize a catalog with all built-in functions
+// 	void Initialize();
 
-public:
-	void AddFunction(AggregateFunctionSet set);
-	void AddFunction(AggregateFunction function);
-	void AddFunction(ScalarFunctionSet set);
-	void AddFunction(PragmaFunction function);
-	void AddFunction(const string &name, vector<PragmaFunction> functions);
-	void AddFunction(ScalarFunction function);
-	void AddFunction(const vector<string> &names, ScalarFunction function);
-	void AddFunction(TableFunctionSet set);
-	void AddFunction(TableFunction function);
-	void AddFunction(CopyFunction function);
+// public:
+// 	void AddFunction(AggregateFunctionSet set);
+// 	void AddFunction(AggregateFunction function);
+// 	void AddFunction(ScalarFunctionSet set);
+// 	// void AddFunction(PragmaFunction function);
+// 	// void AddFunction(const string &name, vector<PragmaFunction> functions);
+// 	void AddFunction(ScalarFunction function);
+// 	void AddFunction(const vector<string> &names, ScalarFunction function);
+// 	void AddFunction(TableFunctionSet set);
+// 	void AddFunction(TableFunction function);
+// 	// void AddFunction(CopyFunction function);
 
-	void AddCollation(string name, ScalarFunction function, bool combinable = false,
-	                  bool not_required_for_equality = false);
+// 	void AddCollation(string name, ScalarFunction function, bool combinable = false,
+// 	                  bool not_required_for_equality = false);
 
-private:
-	ClientContext &context;
-	Catalog &catalog;
+// private:
+// 	ClientContext &context;
+// 	Catalog &catalog;
 
-private:
-	template <class T>
-	void Register() {
-		T::RegisterFunction(*this);
-	}
+// private:
+// 	template <class T>
+// 	void Register() {
+// 		T::RegisterFunction(*this);
+// 	}
 
-	// table-producing functions
-	void RegisterSQLiteFunctions();
-	void RegisterReadFunctions();
-	void RegisterTableFunctions();
-	void RegisterArrowFunctions();
+// 	// table-producing functions
+// 	void RegisterSQLiteFunctions();
+// 	void RegisterReadFunctions();
+// 	void RegisterTableFunctions();
+// 	void RegisterArrowFunctions();
 
-	// aggregates
-	void RegisterAlgebraicAggregates();
-	void RegisterDistributiveAggregates();
-	void RegisterNestedAggregates();
-	void RegisterHolisticAggregates();
-	void RegisterRegressiveAggregates();
+// 	// aggregates
+// 	void RegisterAlgebraicAggregates();
+// 	void RegisterDistributiveAggregates();
+// 	void RegisterNestedAggregates();
+// 	void RegisterHolisticAggregates();
+// 	void RegisterRegressiveAggregates();
 
-	// scalar functions
-	void RegisterDateFunctions();
-	void RegisterEnumFunctions();
-	void RegisterGenericFunctions();
-	void RegisterMathFunctions();
-	void RegisterOperators();
-	void RegisterStringFunctions();
-	void RegisterNestedFunctions();
-	void RegisterSequenceFunctions();
-	void RegisterTrigonometricsFunctions();
+// 	// scalar functions
+// 	void RegisterDateFunctions();
+// 	void RegisterEnumFunctions();
+// 	void RegisterGenericFunctions();
+// 	void RegisterMathFunctions();
+// 	void RegisterOperators();
+// 	void RegisterStringFunctions();
+// 	void RegisterNestedFunctions();
+// 	void RegisterSequenceFunctions();
+// 	void RegisterTrigonometricsFunctions();
 
-	// pragmas
-	void RegisterPragmaFunctions();
-};
+// 	// pragmas
+// 	void RegisterPragmaFunctions();
+// };
 
 } // namespace duckdb
