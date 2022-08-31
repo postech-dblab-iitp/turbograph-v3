@@ -48,7 +48,7 @@ DatabaseInstance::~DatabaseInstance() {
 	}
 }
 
-/*BufferManager &BufferManager::GetBufferManager(DatabaseInstance &db) {
+BufferManager &BufferManager::GetBufferManager(DatabaseInstance &db) {
 	return *db.GetStorageManager().buffer_manager;
 }
 
@@ -58,15 +58,15 @@ BlockManager &BlockManager::GetBlockManager(DatabaseInstance &db) {
 
 BlockManager &BlockManager::GetBlockManager(ClientContext &context) {
 	return BlockManager::GetBlockManager(DatabaseInstance::GetDatabase(context));
-}*/
+}
 
 DatabaseInstance &DatabaseInstance::GetDatabase(ClientContext &context) {
 	return *context.db;
 }
 
-/*StorageManager &StorageManager::GetStorageManager(DatabaseInstance &db) {
+StorageManager &StorageManager::GetStorageManager(DatabaseInstance &db) {
 	return db.GetStorageManager();
-}*/
+}
 
 Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
 	return db.GetCatalog();
@@ -123,8 +123,9 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		config.temporary_directory = string();
 	}*/
 
-	//storage =
+	storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
+	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 	// struct shm_remove
    	// {
     // 	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
@@ -138,7 +139,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	//connection_manager = make_unique<ConnectionManager>();
 
 	// initialize the database
-	//storage->Initialize();
+	storage->Initialize();
 
 	// only increase thread count after storage init because we get races on catalog otherwise
 	//scheduler->SetThreads(config.maximum_threads);
@@ -164,45 +165,46 @@ DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
 DuckDB::~DuckDB() {
 }
 
-/*StorageManager &DatabaseInstance::GetStorageManager() {
+StorageManager &DatabaseInstance::GetStorageManager() {
 	return *storage;
-}*/
+}
 
 Catalog &DatabaseInstance::GetCatalog() {
 	return *catalog;
 }
 
-/*TransactionManager &DatabaseInstance::GetTransactionManager() {
-	return *transaction_manager;
-}
+// TransactionManager &DatabaseInstance::GetTransactionManager() {
+// 	return *transaction_manager;
+// }
 
-TaskScheduler &DatabaseInstance::GetScheduler() {
-	return *scheduler;
-}
+// TaskScheduler &DatabaseInstance::GetScheduler() {
+// 	return *scheduler;
+// }
 
-ObjectCache &DatabaseInstance::GetObjectCache() {
-	return *object_cache;
-}
+// ObjectCache &DatabaseInstance::GetObjectCache() {
+// 	return *object_cache;
+// }
 
 FileSystem &DatabaseInstance::GetFileSystem() {
-	return *config.file_system;
+	return DEFAULT_LOCAL_FILE_SYSTEM;
+	// return *config.file_system;
 }
 
-ConnectionManager &DatabaseInstance::GetConnectionManager() {
-	return *connection_manager;
-}
+// ConnectionManager &DatabaseInstance::GetConnectionManager() {
+// 	return *connection_manager;
+// }
 
 FileSystem &DuckDB::GetFileSystem() {
 	return instance->GetFileSystem();
 }
 
-Allocator &Allocator::Get(ClientContext &context) {
-	return Allocator::Get(*context.db);
-}
+// Allocator &Allocator::Get(ClientContext &context) {
+// 	return Allocator::Get(*context.db);
+// }
 
-Allocator &Allocator::Get(DatabaseInstance &db) {
-	return db.config.allocator;
-}*/
+// Allocator &Allocator::Get(DatabaseInstance &db) {
+// 	return db.config.allocator;
+// }
 
 /*void DatabaseInstance::Configure(DBConfig &new_config) {
 	config.access_mode = AccessMode::READ_WRITE;

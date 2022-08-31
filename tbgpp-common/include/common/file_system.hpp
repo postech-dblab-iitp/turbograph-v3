@@ -101,9 +101,9 @@ public:
 public:
 	DUCKDB_API static constexpr FileLockType DEFAULT_LOCK = FileLockType::NO_LOCK;
 	DUCKDB_API static constexpr FileCompressionType DEFAULT_COMPRESSION = FileCompressionType::UNCOMPRESSED;
-	// DUCKDB_API static FileSystem &GetFileSystem(ClientContext &context);
-	// DUCKDB_API static FileSystem &GetFileSystem(DatabaseInstance &db);
-	// DUCKDB_API static FileOpener *GetFileOpener(ClientContext &context);
+	DUCKDB_API static FileSystem &GetFileSystem(ClientContext &context);
+	DUCKDB_API static FileSystem &GetFileSystem(DatabaseInstance &db);
+	DUCKDB_API static FileOpener *GetFileOpener(ClientContext &context);
 
 	DUCKDB_API virtual unique_ptr<FileHandle> OpenFile(const string &path, uint8_t flags,
 	                                                   FileLockType lock = DEFAULT_LOCK,
@@ -170,7 +170,7 @@ public:
 	DUCKDB_API static string ExtractBaseName(const string &path);
 
 	//! Runs a glob on the file system, returning a list of matching files
-	// DUCKDB_API virtual vector<string> Glob(const string &path, FileOpener *opener = nullptr);
+	DUCKDB_API virtual vector<string> Glob(const string &path, FileOpener *opener = nullptr);
 	// DUCKDB_API virtual vector<string> Glob(const string &path, ClientContext &context);
 
 	//! registers a sub-file system to handle certain file name prefixes, e.g. http:// etc.

@@ -56,7 +56,6 @@ public:
 	boost::timer::cpu_timer op_timer;
 	bool timer_started;
 	int64_t exec_time;
-
 	
 	int64_t processed_tuples;
 	
