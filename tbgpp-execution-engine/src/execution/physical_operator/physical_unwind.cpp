@@ -20,7 +20,7 @@ public:
 	std::pair<u_int64_t,u_int64_t> checkpoint;
 };
 
-unique_ptr<OperatorState> PhysicalUnwind::GetOperatorState() const {
+unique_ptr<OperatorState> PhysicalUnwind::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<UnwindState>();
 }
 

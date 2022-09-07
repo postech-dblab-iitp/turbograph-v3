@@ -24,7 +24,7 @@ public:
 	ExpressionExecutor executor;
 };
 
-unique_ptr<OperatorState> PhysicalFilter::GetOperatorState() const {
+unique_ptr<OperatorState> PhysicalFilter::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<FilterState>(*expression);
 }
 

@@ -20,12 +20,12 @@ public:
 
 	// sink
 	virtual SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const;
-	virtual unique_ptr<LocalSinkState> GetLocalSinkState() const;
+	virtual unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const;
 	virtual void Combine(ExecutionContext& context, LocalSinkState& lstate) const;
 
 	// source
 	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
-	unique_ptr<LocalSourceState> GetLocalSourceState() const override;
+	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
@@ -33,7 +33,7 @@ public:
 	// operator parameters
 	vector<BoundOrderByNode> order_exprs;
 
-}
+};
 
 	
 }

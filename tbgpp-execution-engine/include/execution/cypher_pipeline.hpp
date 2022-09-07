@@ -27,9 +27,7 @@ public:
 		ops.erase(ops.begin());
 		ops.pop_back();
 		operators = ops;
-
 	}
-
 	std::vector<CypherPhysicalOperator *> GetOperators() {
 		return operators;	
 	}
@@ -82,9 +80,6 @@ public:
 	std::vector<CypherPhysicalOperator *> operators;	// TODO name is strange!!!!! need to fix.
 	//! The sink (i.e. destination) for data; this is e.g. a hash table to-be-built
 	CypherPhysicalOperator *sink;
-
-	// TODO need to record parents
-	// when the pipelines have hierarchy.
 
 };
 

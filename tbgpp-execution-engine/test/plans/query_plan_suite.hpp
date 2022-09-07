@@ -16,6 +16,7 @@
 #include "execution/physical_operator/physical_filter.hpp"
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_sort.hpp"
+#include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_node_id_seek.hpp"
 #include "execution/physical_operator/physical_produce_results.hpp"
@@ -23,6 +24,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_case_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
 
 #include "icecream.hpp"	
@@ -39,13 +41,17 @@ public:
 	};
 
 	std::vector<CypherPipelineExecutor*> getTest(string key) {
-		IC();
+		//IC();
+		/* Test queries */
 		if( key.compare("t1") == 0 ) { return Test1(); }		// Scan
 		if( key.compare("t2") == 0 ) { return Test2(); }		// Scan + Filter
 		if( key.compare("t3") == 0 ) { return Test3(); }		// Scan + Projection
 		// if( key.compare("t4") == 0 ) { return Test4(); }
 		if( key.compare("t5") == 0 ) { return Test5(); }		// Scan + NodeIdSeek (adding columns to node where data partially exists)
-		// if( key.compare("t6") == 0 ) { return Test6(); }
+		if( key.compare("t6") == 0 ) { return Test6(); }		// Scan + TopNSort
+		if( key.compare("t7") == 0 ) { return Test7(); }		// Scan + TopNSort (string sort key)
+
+		/* LDBC queries */
 		// if( key.compare("s1") == 0 ) { return LDBC_IS1(); }	// TODO error in the storage
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
 		// if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
@@ -59,6 +65,7 @@ public:
 	std::vector<CypherPipelineExecutor*> Test4();	// 
 	std::vector<CypherPipelineExecutor*> Test5();	// 
 	std::vector<CypherPipelineExecutor*> Test6();	// 
+	std::vector<CypherPipelineExecutor*> Test7();	// 
 	
 	std::vector<CypherPipelineExecutor*> LDBC_IS1();
 	std::vector<CypherPipelineExecutor*> LDBC_IS2();

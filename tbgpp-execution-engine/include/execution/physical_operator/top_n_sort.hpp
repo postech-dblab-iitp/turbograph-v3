@@ -14,6 +14,9 @@
 
 namespace duckdb {
 
+//===--------------------------------------------------------------------===//
+// Heaps
+//===--------------------------------------------------------------------===//
 class TopNHeap;
 
 struct TopNScanState {
@@ -84,5 +87,6 @@ public:
 
 	bool CheckBoundaryValues(DataChunk &sort_chunk, DataChunk &payload);
 };
+
 
 } // namespace duckdb

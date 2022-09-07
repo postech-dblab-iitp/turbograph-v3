@@ -11,6 +11,8 @@
 #include "common/enums/expression_type.hpp"
 #include "common/types.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 struct AggregateObject;

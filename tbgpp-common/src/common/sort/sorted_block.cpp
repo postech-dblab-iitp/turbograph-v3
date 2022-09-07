@@ -6,6 +6,8 @@
 
 #include <numeric>
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 SortedData::SortedData(SortedDataType type, const RowLayout &layout, BufferManager &buffer_manager,
@@ -338,6 +340,8 @@ void PayloadScanner::Scan(DataChunk &chunk) {
 		scanned += next;
 	}
 	D_ASSERT(scanned == count);
+IC(scanned);
+IC(chunk.size());
 	// Deserialize the payload data
 	for (idx_t col_idx = 0; col_idx < sorted_data.layout.ColumnCount(); col_idx++) {
 		const auto col_offset = sorted_data.layout.GetOffsets()[col_idx];
@@ -347,6 +351,8 @@ void PayloadScanner::Scan(DataChunk &chunk) {
 	chunk.SetCardinality(count);
 	chunk.Verify();
 	total_scanned += scanned;
+IC();
+IC(chunk.ToString(3));
 }
 
 } // namespace duckdb

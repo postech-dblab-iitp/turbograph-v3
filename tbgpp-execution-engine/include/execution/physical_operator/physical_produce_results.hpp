@@ -16,7 +16,7 @@ public:
 public:
 	
 	SinkResultType Sink(ExecutionContext& context, DataChunk &input, LocalSinkState &lstate) const override;
-	unique_ptr<LocalSinkState> GetLocalSinkState() const override;
+	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
 	void Combine(ExecutionContext& context, LocalSinkState& lstate) const override;
 
 	std::string ParamsToString() const override;

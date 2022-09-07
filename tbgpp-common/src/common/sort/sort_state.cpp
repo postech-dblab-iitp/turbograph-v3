@@ -102,8 +102,7 @@ SortLayout::SortLayout(const vector<BoundOrderByNode> &orders)
 			if (bytes_to_fill == 0) {
 				break;
 			}
-IC();
-// NO USE STATS
+// NO USE - string aligning
 			// if (logical_types[col_idx].InternalType() == PhysicalType::VARCHAR && stats[col_idx]) {
 			// 	auto &str_stats = (StringStatistics &)*stats[col_idx];
 			// 	idx_t diff = str_stats.max_string_length - prefix_lengths[col_idx];
@@ -124,6 +123,7 @@ IC();
 IC();
 
 	for (idx_t col_idx = 0; col_idx < column_count; col_idx++) {
+		IC(constant_size[col_idx]);
 		all_constant = all_constant && constant_size[col_idx];
 		if (!constant_size[col_idx]) {
 			sorting_to_blob_col[col_idx] = blob_layout_types.size();
@@ -165,6 +165,9 @@ void LocalSortState::Initialize(GlobalSortState &global_sort_state, BufferManage
 }
 
 void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
+IC();
+	// sort : expression-applied columns for sort
+	// payload : actual data
 	D_ASSERT(sort.size() == payload.size());
 	// Build and serialize sorting data to radix sortable rows
 	auto data_pointers = FlatVector::GetData<data_ptr_t>(addresses);
@@ -193,11 +196,15 @@ void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
 		                       sel_ptr, blob_chunk.size());
 	}
 
-	// Finally, serialize payload data
+IC(payload_layout->AllConstant());
+IC(payload_layout->GetRowWidth());
+
+	// Finally, serialize payload data ( = serialize rest of the input based on radix sort result )
 	handles = payload_data->Build(payload.size(), data_pointers, nullptr);
 	auto input_data = payload.Orrify();
-	RowOperations::Scatter(payload, input_data.get(), *payload_layout, addresses, *payload_heap, sel_ptr,
-	                       payload.size());
+	auto payload_heap_ptr = payload_heap.get();
+	RowOperations::Scatter(payload, input_data.get(), *payload_layout, addresses, *payload_heap_ptr, sel_ptr, payload.size());
+IC();
 }
 
 idx_t LocalSortState::SizeInBytes() const {

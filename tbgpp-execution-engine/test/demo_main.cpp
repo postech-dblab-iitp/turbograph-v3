@@ -488,10 +488,8 @@ int main(int argc, char** argv) {
 	// icecream::ic.disable();
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
-		IC();
 		executors = suite.getTest(query_str);
-		IC();
-		
+	
 		// start_timer
 		boost::timer::cpu_timer query_timer;
 		int idx = 0;
@@ -508,6 +506,7 @@ int main(int argc, char** argv) {
 
 		// Print result plan
 		exportQueryPlanVisualizer(executors, query_exec_time_ms);
+
 	}
 
 	// Destruct ChunkCacheManager
