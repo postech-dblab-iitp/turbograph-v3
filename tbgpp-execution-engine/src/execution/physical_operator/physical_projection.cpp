@@ -17,7 +17,7 @@ public:
 	ExpressionExecutor executor;
 };
 
-unique_ptr<OperatorState> PhysicalProjection::GetOperatorState() const {
+unique_ptr<OperatorState> PhysicalProjection::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<ProjectionState>(expressions);
 }
 

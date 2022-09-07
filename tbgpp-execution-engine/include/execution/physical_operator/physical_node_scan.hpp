@@ -22,7 +22,7 @@ public:
 public:
 	
 	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
-	unique_ptr<LocalSourceState> GetLocalSourceState() const override;
+	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

@@ -16,7 +16,7 @@ public:
 	vector<DataChunk*> resultChunks;
 };
 
-unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState() const {
+unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(ExecutionContext &context) const {
 	return make_unique<ProduceResultsState>();
 }
 
@@ -50,6 +50,10 @@ void PhysicalProduceResults::Combine(ExecutionContext& context, LocalSinkState& 
 		auto& firstchunk = state.resultChunks[0];
 		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
 		// TODO print column schema
+		for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+			std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
+		}
+		std::cout << std::endl;
 		for( int idx = 0 ; idx < LIMIT ; idx++) {
 			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
 				std::cout << "\t" << firstchunk->GetValue(colIdx, idx).ToString();

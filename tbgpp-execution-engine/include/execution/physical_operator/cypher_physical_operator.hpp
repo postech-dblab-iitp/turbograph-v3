@@ -32,15 +32,18 @@ public:
 	}
 	virtual ~CypherPhysicalOperator() { }
 
+	// leaf sources (e.g. Scan)
 	virtual void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate) const;
-	virtual unique_ptr<LocalSourceState> GetLocalSourceState() const;
+	// non-leaf sources (e.g. Hash Probe, Sort source)
+	virtual void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
+	virtual unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const;
 
 	virtual SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const;
-	virtual unique_ptr<LocalSinkState> GetLocalSinkState() const;
+	virtual unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const;
 	virtual void Combine(ExecutionContext& context, LocalSinkState& lstate) const;
 
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
-	virtual unique_ptr<OperatorState> GetOperatorState() const;
+	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
 
 	const vector<LogicalType> &GetTypes();
 

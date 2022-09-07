@@ -11,7 +11,7 @@ class PhysicalUnwind: public CypherPhysicalOperator {
 	PhysicalUnwind(CypherSchema& sch, idx_t col_idx);
 	~PhysicalUnwind();
 
-	unique_ptr<OperatorState> GetOperatorState() const override;
+	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	OperatorResultType Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
 
 	std::string ParamsToString() const override;

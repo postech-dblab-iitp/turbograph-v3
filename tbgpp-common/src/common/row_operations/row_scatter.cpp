@@ -13,6 +13,8 @@
 #include "common/types/selection_vector.hpp"
 #include "common/types/vector.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 using ValidityBytes = RowLayout::ValidityBytes;
@@ -93,7 +95,7 @@ static void ScatterNestedVector(Vector &vec, VectorData &col, Vector &rows, data
 	// Store pointers to the data in the row
 	// Do this first because SerializeVector destroys the locations
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
-	data_ptr_t validitymask_locations[STANDARD_VECTOR_SIZE];
+	data_ptr_t validitymask_locations[EXEC_ENGINE_VECTOR_SIZE];
 	for (idx_t i = 0; i < count; i++) {
 		auto idx = sel.get_index(i);
 		auto row = ptrs[idx];
@@ -111,29 +113,33 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 	if (count == 0) {
 		return;
 	}
-
+IC();
 	// Set the validity mask for each row before inserting data
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
+IC();
 	for (idx_t i = 0; i < count; ++i) {
 		auto row_idx = sel.get_index(i);
 		auto row = ptrs[row_idx];
 		ValidityBytes(row).SetAllValid(layout.ColumnCount());
 	}
-
+IC();
 	const auto vcount = columns.size();
 	auto &offsets = layout.GetOffsets();
 	auto &types = layout.GetTypes();
-
+IC();
 	// Compute the entry size of the variable size columns
 	vector<unique_ptr<BufferHandle>> handles;
-	data_ptr_t data_locations[STANDARD_VECTOR_SIZE];
+	data_ptr_t data_locations[EXEC_ENGINE_VECTOR_SIZE];
+IC();
+	// scatter for non-constant-sized values. here, swizlling is performed.
 	if (!layout.AllConstant()) {
-		idx_t entry_sizes[STANDARD_VECTOR_SIZE];
+		idx_t entry_sizes[EXEC_ENGINE_VECTOR_SIZE];
 		std::fill_n(entry_sizes, count, sizeof(uint32_t));
 		for (idx_t col_no = 0; col_no < types.size(); col_no++) {
 			if (TypeIsConstantSize(types[col_no].InternalType())) {
 				continue;
 			}
+			// only non-constant columns
 
 			auto &vec = columns.data[col_no];
 			auto &col = col_data[col_no];
@@ -150,10 +156,10 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 				throw InternalException("Unsupported type for RowOperations::Scatter");
 			}
 		}
-
+IC();
 		// Build out the buffer space
 		string_heap.Build(count, data_locations, entry_sizes);
-
+IC();
 		// Serialize information that is needed for swizzling if the computation goes out-of-core
 		const idx_t heap_pointer_offset = layout.GetHeapPointerOffset();
 		for (idx_t i = 0; i < count; i++) {
@@ -166,7 +172,7 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 			data_locations[i] += sizeof(uint32_t);
 		}
 	}
-
+IC();
 	for (idx_t col_no = 0; col_no < types.size(); col_no++) {
 		auto &vec = columns.data[col_no];
 		auto &col = col_data[col_no];
@@ -221,7 +227,12 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 		default:
 			throw InternalException("Unsupported type for RowOperations::Scatter");
 		}
+IC();
 	}
+
+	
+IC();
+
 }
 
 } // namespace duckdb

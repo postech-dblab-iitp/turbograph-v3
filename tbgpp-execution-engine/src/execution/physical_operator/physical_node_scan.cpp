@@ -5,6 +5,7 @@
 #include "extent/extent_iterator.hpp"
 
 #include "planner/expression.hpp"
+#include "icecream.hpp"
 
 #include <cassert>
 
@@ -40,7 +41,7 @@ PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyK
 }
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
-unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState() const {
+unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState(ExecutionContext &context) const {
 	return make_unique<NodeScanState>();
 }
 
@@ -63,6 +64,9 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	// auto scanAPIResult =
 	// 	itbgpp_graph->doScan(state.ext_it, chunk, labels, state.null_els, state.null_els, propertyKeys, schema.getTypes(), filterKey, filterValue);
 	// GetData() should return empty chunk to indicate scan is finished.
+
+	IC( ((int64_t*)(chunk.data[2].GetData()))[0] );
+
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {

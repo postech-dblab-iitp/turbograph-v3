@@ -17,7 +17,7 @@ public:
 	ExtentIterator* ext_it;
 };
 
-unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState() const {
+unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<NodeIdSeekState>();
 }
 

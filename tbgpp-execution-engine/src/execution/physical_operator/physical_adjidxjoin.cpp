@@ -29,7 +29,7 @@ public:
 };
 
 
-unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState() const {
+unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext &context) const {
 
 	return make_unique<AdjIdxJoinState>( );
 }
