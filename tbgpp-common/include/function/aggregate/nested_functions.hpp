@@ -23,6 +23,7 @@ struct ListBindData : public FunctionData {
 };
 
 struct ListFun {
+	static AggregateFunction GetFunction();
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 struct HistogramFun {

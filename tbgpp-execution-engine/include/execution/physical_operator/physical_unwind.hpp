@@ -7,7 +7,7 @@
 namespace duckdb {
 
 class PhysicalUnwind: public CypherPhysicalOperator {
-
+public:
 	PhysicalUnwind(CypherSchema& sch, idx_t col_idx);
 	~PhysicalUnwind();
 

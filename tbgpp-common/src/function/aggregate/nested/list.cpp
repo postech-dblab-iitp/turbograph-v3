@@ -3,6 +3,8 @@
 #include "common/types/chunk_collection.hpp"
 #include "common/pair.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 struct ListAggState {
@@ -109,6 +111,7 @@ unique_ptr<FunctionData> ListBindFunction(ClientContext &context, AggregateFunct
                                           vector<unique_ptr<Expression>> &arguments) {
 	D_ASSERT(arguments.size() == 1);
 	function.return_type = LogicalType::LIST(arguments[0]->return_type);
+IC( function.return_type.ToString() );
 	return make_unique<ListBindData>(); // TODO atm this is not used anywhere but it might not be required after all
 	                                    // except for sanity checking
 }
@@ -122,6 +125,15 @@ void ListFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(agg);
 	agg.name = "array_agg";
 	set.AddFunction(agg);
+}
+
+AggregateFunction ListFun::GetFunction() {
+	auto agg =
+	    AggregateFunction("list", {LogicalType::ANY}, LogicalTypeId::LIST, AggregateFunction::StateSize<ListAggState>,
+	                      AggregateFunction::StateInitialize<ListAggState, ListFunction>, ListUpdateFunction,
+	                      ListCombineFunction, ListFinalize, nullptr, ListBindFunction,
+	                      AggregateFunction::StateDestroy<ListAggState, ListFunction>, nullptr, nullptr);
+	return agg;
 }
 
 } // namespace duckdb

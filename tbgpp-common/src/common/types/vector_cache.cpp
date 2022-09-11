@@ -18,7 +18,7 @@ public:
 			break;
 		}
 		case PhysicalType::LIST: {
-			D_ASSERT(false); // not supported currently
+// D_ASSERT(false); // not supported currently
 			// memory for the list offsets
 			owned_data = unique_ptr<data_t[]>(new data_t[STANDARD_VECTOR_SIZE * GetTypeIdSize(internal_type)]);
 			// child data of the list
