@@ -1,7 +1,7 @@
 
 #include "execution/cypher_pipeline_executor.hpp"
 
-#include "execution/physical_operator.hpp"
+#include "execution/physical_operator/physical_operator.hpp"
 
 #include "common/limits.hpp"
 #include "main/client_context.hpp"

@@ -1,13 +1,12 @@
 #include "typedef.hpp"
 
 #include "execution/physical_operator/physical_top_n_sort.hpp"
-#include "execution/physical_operator/top_n_sort.hpp"
+#include "execution/top_n_sort.hpp"
 
 #include "execution/expression_executor.hpp"
 
 #include <string>
 
-#include "execution/physical_operator.hpp"
 #include "common/allocator.hpp"
 
 #include "icecream.hpp"

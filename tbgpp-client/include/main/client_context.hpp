@@ -29,6 +29,7 @@
 #include "common/types/value.hpp"
 
 #include "storage/graph_store.hpp"
+#include "parallel/executor.hpp"
 
 
 namespace duckdb {
@@ -79,6 +80,9 @@ public:
 	//! The client configuration
 	//ClientConfig config;
 
+	//! executor assigned for this class;
+	unique_ptr<Executor> executor;
+
 
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {
@@ -95,86 +99,86 @@ public:
 	//! Issue a query, returning a QueryResult. The QueryResult can be either a StreamQueryResult or a
 	//! MaterializedQueryResult. The StreamQueryResult will only be returned in the case of a successful SELECT
 	//! statement.
-	/*DUCKDB_API unique_ptr<QueryResult> Query(const string &query, bool allow_stream_result);
-	DUCKDB_API unique_ptr<QueryResult> Query(unique_ptr<SQLStatement> statement, bool allow_stream_result);
+	// DUCKDB_API unique_ptr<QueryResult> Query(const string &query, bool allow_stream_result);
+	// DUCKDB_API unique_ptr<QueryResult> Query(unique_ptr<SQLStatement> statement, bool allow_stream_result);
 
-	//! Issues a query to the database and returns a Pending Query Result. Note that "query" may only contain
-	//! a single statement.
-	DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(const string &query);
-	//! Issues a query to the database and returns a Pending Query Result
-	DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(unique_ptr<SQLStatement> statement);
+	// //! Issues a query to the database and returns a Pending Query Result. Note that "query" may only contain
+	// //! a single statement.
+	// DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(const string &query);
+	// //! Issues a query to the database and returns a Pending Query Result
+	// DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(unique_ptr<SQLStatement> statement);
 
-	//! Destroy the client context
-	DUCKDB_API void Destroy();
+	// //! Destroy the client context
+	// DUCKDB_API void Destroy();
 
-	//! Get the table info of a specific table, or nullptr if it cannot be found
-	DUCKDB_API unique_ptr<TableDescription> TableInfo(const string &schema_name, const string &table_name);
-	//! Appends a DataChunk to the specified table. Returns whether or not the append was successful.
-	DUCKDB_API void Append(TableDescription &description, ChunkCollection &collection);
-	//! Try to bind a relation in the current client context; either throws an exception or fills the result_columns
-	//! list with the set of returned columns
-	DUCKDB_API void TryBindRelation(Relation &relation, vector<ColumnDefinition> &result_columns);
+	// //! Get the table info of a specific table, or nullptr if it cannot be found
+	// DUCKDB_API unique_ptr<TableDescription> TableInfo(const string &schema_name, const string &table_name);
+	// //! Appends a DataChunk to the specified table. Returns whether or not the append was successful.
+	// DUCKDB_API void Append(TableDescription &description, ChunkCollection &collection);
+	// //! Try to bind a relation in the current client context; either throws an exception or fills the result_columns
+	// //! list with the set of returned columns
+	// DUCKDB_API void TryBindRelation(Relation &relation, vector<ColumnDefinition> &result_columns);
 
-	//! Execute a relation
-	DUCKDB_API unique_ptr<QueryResult> Execute(const shared_ptr<Relation> &relation);
+	// //! Execute a relation
+	// DUCKDB_API unique_ptr<QueryResult> Execute(const shared_ptr<Relation> &relation);
 
-	//! Prepare a query
-	DUCKDB_API unique_ptr<PreparedStatement> Prepare(const string &query);
-	//! Directly prepare a SQL statement
-	DUCKDB_API unique_ptr<PreparedStatement> Prepare(unique_ptr<SQLStatement> statement);
+	// //! Prepare a query
+	// DUCKDB_API unique_ptr<PreparedStatement> Prepare(const string &query);
+	// //! Directly prepare a SQL statement
+	// DUCKDB_API unique_ptr<PreparedStatement> Prepare(unique_ptr<SQLStatement> statement);
 
-	//! Create a pending query result from a prepared statement with the given name and set of parameters
-	//! It is possible that the prepared statement will be re-bound. This will generally happen if the catalog is
-	//! modified in between the prepared statement being bound and the prepared statement being run.
-	DUCKDB_API unique_ptr<PendingQueryResult>
-	PendingQuery(const string &query, shared_ptr<PreparedStatementData> &prepared, vector<Value> &values);
+	// //! Create a pending query result from a prepared statement with the given name and set of parameters
+	// //! It is possible that the prepared statement will be re-bound. This will generally happen if the catalog is
+	// //! modified in between the prepared statement being bound and the prepared statement being run.
+	// DUCKDB_API unique_ptr<PendingQueryResult>
+	// PendingQuery(const string &query, shared_ptr<PreparedStatementData> &prepared, vector<Value> &values);
 
-	//! Execute a prepared statement with the given name and set of parameters
-	//! It is possible that the prepared statement will be re-bound. This will generally happen if the catalog is
-	//! modified in between the prepared statement being bound and the prepared statement being run.
-	DUCKDB_API unique_ptr<QueryResult> Execute(const string &query, shared_ptr<PreparedStatementData> &prepared,
-	                                           vector<Value> &values, bool allow_stream_result = true);
+	// //! Execute a prepared statement with the given name and set of parameters
+	// //! It is possible that the prepared statement will be re-bound. This will generally happen if the catalog is
+	// //! modified in between the prepared statement being bound and the prepared statement being run.
+	// DUCKDB_API unique_ptr<QueryResult> Execute(const string &query, shared_ptr<PreparedStatementData> &prepared,
+	//                                            vector<Value> &values, bool allow_stream_result = true);
 
-	//! Gets current percentage of the query's progress, returns 0 in case the progress bar is disabled.
-	DUCKDB_API double GetProgress();
+	// //! Gets current percentage of the query's progress, returns 0 in case the progress bar is disabled.
+	// DUCKDB_API double GetProgress();
 
-	//! Register function in the temporary schema
-	DUCKDB_API void RegisterFunction(CreateFunctionInfo *info);
+	// //! Register function in the temporary schema
+	// DUCKDB_API void RegisterFunction(CreateFunctionInfo *info);
 
-	//! Parse statements from a query
-	DUCKDB_API vector<unique_ptr<SQLStatement>> ParseStatements(const string &query);
+	// //! Parse statements from a query
+	// DUCKDB_API vector<unique_ptr<SQLStatement>> ParseStatements(const string &query);
 
-	//! Extract the logical plan of a query
-	DUCKDB_API unique_ptr<LogicalOperator> ExtractPlan(const string &query);
-	DUCKDB_API void HandlePragmaStatements(vector<unique_ptr<SQLStatement>> &statements);
+	// //! Extract the logical plan of a query
+	// DUCKDB_API unique_ptr<LogicalOperator> ExtractPlan(const string &query);
+	// DUCKDB_API void HandlePragmaStatements(vector<unique_ptr<SQLStatement>> &statements);
 
-	//! Runs a function with a valid transaction context, potentially starting a transaction if the context is in auto
-	//! commit mode.
-	DUCKDB_API void RunFunctionInTransaction(const std::function<void(void)> &fun,
-	                                         bool requires_valid_transaction = true);
-	//! Same as RunFunctionInTransaction, but does not obtain a lock on the client context or check for validation
-	DUCKDB_API void RunFunctionInTransactionInternal(ClientContextLock &lock, const std::function<void(void)> &fun,
-	                                                 bool requires_valid_transaction = true);
+	// //! Runs a function with a valid transaction context, potentially starting a transaction if the context is in auto
+	// //! commit mode.
+	// DUCKDB_API void RunFunctionInTransaction(const std::function<void(void)> &fun,
+	//                                          bool requires_valid_transaction = true);
+	// //! Same as RunFunctionInTransaction, but does not obtain a lock on the client context or check for validation
+	// DUCKDB_API void RunFunctionInTransactionInternal(ClientContextLock &lock, const std::function<void(void)> &fun,
+	//                                                  bool requires_valid_transaction = true);
 
-	//! Equivalent to CURRENT_SETTING(key) SQL function.
-	DUCKDB_API bool TryGetCurrentSetting(const std::string &key, Value &result);
+	// //! Equivalent to CURRENT_SETTING(key) SQL function.
+	// DUCKDB_API bool TryGetCurrentSetting(const std::string &key, Value &result);
 
-	//! Returns the parser options for this client context
-	DUCKDB_API ParserOptions GetParserOptions();
+	// //! Returns the parser options for this client context
+	// DUCKDB_API ParserOptions GetParserOptions();
 
-	DUCKDB_API unique_ptr<DataChunk> Fetch(ClientContextLock &lock, StreamQueryResult &result);
+	// DUCKDB_API unique_ptr<DataChunk> Fetch(ClientContextLock &lock, StreamQueryResult &result);
 
-	//! Whether or not the given result object (streaming query result or pending query result) is active
-	DUCKDB_API bool IsActiveResult(ClientContextLock &lock, BaseQueryResult *result);
+	// //! Whether or not the given result object (streaming query result or pending query result) is active
+	// DUCKDB_API bool IsActiveResult(ClientContextLock &lock, BaseQueryResult *result);
 
 	//! Returns the current executor
 	Executor &GetExecutor();
 
-	//! Returns the current query string (if any)
-	const string &GetCurrentQuery();
+	// //! Returns the current query string (if any)
+	// const string &GetCurrentQuery();
 
-	//! Fetch a list of table names that are required for a given query
-	DUCKDB_API unordered_set<string> GetTableNames(const string &query);*/
+	// //! Fetch a list of table names that are required for a given query
+	// DUCKDB_API unordered_set<string> GetTableNames(const string &query);
 
 private:
 	//! Parse statements and resolve pragmas from a query

@@ -8,7 +8,7 @@
 #include "common/enums/operator_result_type.hpp"
 // #include "common/constants.hpp"
 
-#include "execution/physical_operator.hpp"
+#include "execution/physical_operator/physical_operator.hpp"
 
 #include "typedef.hpp"
 #include "execution/execution_context.hpp"

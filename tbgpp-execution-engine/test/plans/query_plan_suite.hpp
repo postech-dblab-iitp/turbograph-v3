@@ -19,6 +19,7 @@
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_node_id_seek.hpp"
+#include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_produce_results.hpp"
 
 #include "planner/expression.hpp"
@@ -26,6 +27,9 @@
 #include "planner/expression/bound_comparison_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
+
+
+#include "function/aggregate_function.hpp"
 
 #include "icecream.hpp"	
 
@@ -46,10 +50,11 @@ public:
 		if( key.compare("t1") == 0 ) { return Test1(); }		// Scan
 		if( key.compare("t2") == 0 ) { return Test2(); }		// Scan + Filter
 		if( key.compare("t3") == 0 ) { return Test3(); }		// Scan + Projection
-		// if( key.compare("t4") == 0 ) { return Test4(); }
+		if( key.compare("t4") == 0 ) { return Test4(); }
 		if( key.compare("t5") == 0 ) { return Test5(); }		// Scan + NodeIdSeek (adding columns to node where data partially exists)
 		if( key.compare("t6") == 0 ) { return Test6(); }		// Scan + TopNSort
 		if( key.compare("t7") == 0 ) { return Test7(); }		// Scan + TopNSort (string sort key)
+		if( key.compare("t8") == 0 ) { return Test8(); }		// Scan + Order (without grouping; count(col))
 
 		/* LDBC queries */
 		// if( key.compare("s1") == 0 ) { return LDBC_IS1(); }	// TODO error in the storage
@@ -66,6 +71,9 @@ public:
 	std::vector<CypherPipelineExecutor*> Test5();	// 
 	std::vector<CypherPipelineExecutor*> Test6();	// 
 	std::vector<CypherPipelineExecutor*> Test7();	// 
+	std::vector<CypherPipelineExecutor*> Test8();	// 
+	std::vector<CypherPipelineExecutor*> Test9();	// 
+	std::vector<CypherPipelineExecutor*> Test10();	// 
 	
 	std::vector<CypherPipelineExecutor*> LDBC_IS1();
 	std::vector<CypherPipelineExecutor*> LDBC_IS2();
