@@ -2,11 +2,12 @@
 
 #include "typedef.hpp"
 
+#include "icecream.hpp"	
 
 namespace duckdb {
 
 PhysicalUnwind::PhysicalUnwind(CypherSchema& sch, idx_t col_idx):
-	col_idx(col_idx) { }
+	CypherPhysicalOperator(sch), col_idx(col_idx) { }
 
 PhysicalUnwind::~PhysicalUnwind() {}
 
@@ -17,7 +18,7 @@ public:
 		checkpoint.second = 0;
 	 }
 public:
-	std::pair<u_int64_t,u_int64_t> checkpoint;
+	std::pair<size_t,size_t> checkpoint;
 };
 
 unique_ptr<OperatorState> PhysicalUnwind::GetOperatorState(ExecutionContext &context) const {
@@ -31,9 +32,12 @@ OperatorResultType PhysicalUnwind::Execute(ExecutionContext &context, DataChunk 
 	bool isHaveMoreOutput = false;
 	int numProducedTuples = 0;
 
+	if( input.size() == 0 ) return OperatorResultType::NEED_MORE_INPUT;
+
+IC( state.checkpoint.first, state.checkpoint.second );
 	for( ; state.checkpoint.first < input.size(); state.checkpoint.first++ ) {
-		auto& listToUnwind = input.data[col_idx];
-		for( ; state.checkpoint.second < ListVector::GetListSize(listToUnwind); state.checkpoint.second++ ) {
+		auto listToUnwind = ListValue::GetChildren(input.GetValue(col_idx, state.checkpoint.first));
+		for( ; state.checkpoint.second < listToUnwind.size() ; state.checkpoint.second++ ) {
 			if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) {
 				isHaveMoreOutput = true;
 				goto breakLoop;
@@ -43,7 +47,7 @@ OperatorResultType PhysicalUnwind::Execute(ExecutionContext &context, DataChunk 
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
 			}
 			// prduce unwinded
-			auto value = ListVector::GetEntry(listToUnwind).GetValue(state.checkpoint.second);
+			auto& value = listToUnwind.at(state.checkpoint.second);
 			chunk.SetValue(col_idx, numProducedTuples, value );
 			// produce right
 			for (idx_t colId = col_idx+1; colId < chunk.ColumnCount() ; colId++) {

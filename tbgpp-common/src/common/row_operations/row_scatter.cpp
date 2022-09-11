@@ -113,24 +113,24 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 	if (count == 0) {
 		return;
 	}
-IC();
+//IC();
 	// Set the validity mask for each row before inserting data
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
-IC();
+//IC();
 	for (idx_t i = 0; i < count; ++i) {
 		auto row_idx = sel.get_index(i);
 		auto row = ptrs[row_idx];
 		ValidityBytes(row).SetAllValid(layout.ColumnCount());
 	}
-IC();
+//IC();
 	const auto vcount = columns.size();
 	auto &offsets = layout.GetOffsets();
 	auto &types = layout.GetTypes();
-IC();
+//IC();
 	// Compute the entry size of the variable size columns
 	vector<unique_ptr<BufferHandle>> handles;
 	data_ptr_t data_locations[EXEC_ENGINE_VECTOR_SIZE];
-IC();
+//IC();
 	// scatter for non-constant-sized values. here, swizlling is performed.
 	if (!layout.AllConstant()) {
 		idx_t entry_sizes[EXEC_ENGINE_VECTOR_SIZE];
@@ -156,10 +156,10 @@ IC();
 				throw InternalException("Unsupported type for RowOperations::Scatter");
 			}
 		}
-IC();
+//IC();
 		// Build out the buffer space
 		string_heap.Build(count, data_locations, entry_sizes);
-IC();
+//IC();
 		// Serialize information that is needed for swizzling if the computation goes out-of-core
 		const idx_t heap_pointer_offset = layout.GetHeapPointerOffset();
 		for (idx_t i = 0; i < count; i++) {
@@ -172,7 +172,7 @@ IC();
 			data_locations[i] += sizeof(uint32_t);
 		}
 	}
-IC();
+//IC();
 	for (idx_t col_no = 0; col_no < types.size(); col_no++) {
 		auto &vec = columns.data[col_no];
 		auto &col = col_data[col_no];
@@ -227,11 +227,11 @@ IC();
 		default:
 			throw InternalException("Unsupported type for RowOperations::Scatter");
 		}
-IC();
+//IC();
 	}
 
 	
-IC();
+//IC();
 
 }
 

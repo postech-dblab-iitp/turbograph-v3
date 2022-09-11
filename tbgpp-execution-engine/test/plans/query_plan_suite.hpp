@@ -21,7 +21,9 @@
 #include "execution/physical_operator/physical_node_id_seek.hpp"
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_produce_results.hpp"
+#include "execution/physical_operator/physical_unwind.hpp"
 
+#include "common/constants.hpp"
 #include "planner/expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
@@ -54,7 +56,10 @@ public:
 		if( key.compare("t5") == 0 ) { return Test5(); }		// Scan + NodeIdSeek (adding columns to node where data partially exists)
 		if( key.compare("t6") == 0 ) { return Test6(); }		// Scan + TopNSort
 		if( key.compare("t7") == 0 ) { return Test7(); }		// Scan + TopNSort (string sort key)
-		if( key.compare("t8") == 0 ) { return Test8(); }		// Scan + Order (without grouping; count(col))
+		if( key.compare("t8") == 0 ) { return Test8(); }		// Scan + Order(without grouping; count(col))
+		if( key.compare("t9") == 0 ) { return Test9(); }		// Scan + Order(with grouping; + collect)
+		if( key.compare("t10") == 0 ) { return Test10(); }		// Scan + Order(with grouping; + collect) + Unwind : result same as scan
+
 
 		/* LDBC queries */
 		// if( key.compare("s1") == 0 ) { return LDBC_IS1(); }	// TODO error in the storage

@@ -26,17 +26,23 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, Cypher
 	// initialize interm chunks
 	for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
 		auto opOutputChunk = std::make_unique<DataChunk>();
+IC();
 		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
+IC();
 		opOutputChunks.push_back(move(opOutputChunk));
 	}
+IC();
 
 	assert( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
 	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
 	// generate global states for each operator
 		// no global states for this demo!
 	// Manage local states
+IC();
 	local_source_state = pipeline->source->GetLocalSourceState(*context);
+IC();
 	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+IC();
 	for( auto op: pipeline->GetOperators() ) {
 		local_operator_states.push_back(op->GetOperatorState(*context));
 	}

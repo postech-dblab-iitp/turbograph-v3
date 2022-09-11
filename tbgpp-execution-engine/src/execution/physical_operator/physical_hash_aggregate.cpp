@@ -40,7 +40,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 	// TODO no support for custom grouping sets and grouping functions
 	D_ASSERT(grouping_sets.size() == 0 );
 	D_ASSERT(grouping_functions.size() == 0 );
-
+IC();
 	// get a list of all aggregates to be computed
 	for (auto &expr : groups) {
 		group_types.push_back(expr->return_type);
@@ -52,7 +52,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 		}
 		grouping_sets.push_back(move(set));
 	}
-
+IC();
 	vector<LogicalType> payload_types_filters;
 	for (auto &expr : expressions) {
 		D_ASSERT(expr->expression_class == ExpressionClass::BOUND_AGGREGATE);
@@ -80,7 +80,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 	for (const auto &pay_filters : payload_types_filters) {
 		payload_types.push_back(pay_filters);
 	}
-
+IC();
 	// filter_indexes must be pre-built, not lazily instantiated in parallel...
 	idx_t aggregate_input_idx = 0;
 	for (auto &aggregate : aggregates) {
@@ -104,7 +104,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 	for (auto &grouping_set : grouping_sets) {
 		radix_tables.emplace_back(grouping_set, *this);
 	}
-
+IC();
 }
 
 
@@ -269,9 +269,11 @@ void PhysicalHashAggregate::Combine(ExecutionContext &context, LocalSinkState &l
 class HashAggregateLocalSourceState : public LocalSourceState {
 public:
 	explicit HashAggregateLocalSourceState(const PhysicalHashAggregate &op) : scan_index(0) {
+		IC( ListType::GetChildType(op.types[1]).ToString() );
 		for (auto &rt : op.radix_tables) {
 			radix_states.push_back(rt.GetGlobalSourceState());
 		}
+		IC();
 	}
 
 	idx_t scan_index;
@@ -280,6 +282,7 @@ public:
 
 
 unique_ptr<LocalSourceState> PhysicalHashAggregate::GetLocalSourceState(ExecutionContext &context) const {
+IC();
 	return make_unique<HashAggregateLocalSourceState>(*this);
 }
 void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const {
