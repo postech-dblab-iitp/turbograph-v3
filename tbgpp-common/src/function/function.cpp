@@ -94,38 +94,40 @@ string BaseScalarFunction::ToString() {
 }
 
 // add your initializer for new functions here
-// void BuiltinFunctions::Initialize() {
-// 	RegisterSQLiteFunctions();
-// 	RegisterReadFunctions();
-// 	RegisterTableFunctions();
-// 	RegisterArrowFunctions();
+void BuiltinFunctions::Initialize() {
 
-// 	RegisterAlgebraicAggregates();
-// 	RegisterDistributiveAggregates();
-// 	RegisterNestedAggregates();
-// 	RegisterHolisticAggregates();
-// 	RegisterRegressiveAggregates();
+	// TODO make necessary ones available
+	// RegisterSQLiteFunctions();
+	// RegisterReadFunctions();
+	// RegisterTableFunctions();
+	// RegisterArrowFunctions();
 
-// 	RegisterDateFunctions();
-// 	RegisterEnumFunctions();
-// 	RegisterGenericFunctions();
-// 	RegisterMathFunctions();
-// 	RegisterOperators();
-// 	RegisterSequenceFunctions();
-// 	// RegisterStringFunctions();
-// 	RegisterNestedFunctions();
-// 	RegisterTrigonometricsFunctions();
+	RegisterAlgebraicAggregates();
+	RegisterDistributiveAggregates();
+	RegisterNestedAggregates();
+	// RegisterHolisticAggregates();
+	RegisterRegressiveAggregates();
 
-// 	RegisterPragmaFunctions();
+	// RegisterDateFunctions();
+	// RegisterEnumFunctions();
+	// RegisterGenericFunctions();
+	// RegisterMathFunctions();
+	// RegisterOperators();
+	// RegisterSequenceFunctions();
+	// RegisterStringFunctions();
+	// RegisterNestedFunctions();
+	// RegisterTrigonometricsFunctions();
 
-// 	// initialize collations
-// 	AddCollation("nocase", LowerFun::GetFunction(), true);
-// 	AddCollation("noaccent", StripAccentsFun::GetFunction());
-// 	AddCollation("nfc", NFCNormalizeFun::GetFunction());
-// }
+	// RegisterPragmaFunctions();
 
-// BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog) : context(context), catalog(catalog) {
-// }
+	// initialize collations
+	// AddCollation("nocase", LowerFun::GetFunction(), true);
+	// AddCollation("noaccent", StripAccentsFun::GetFunction());
+	// AddCollation("nfc", NFCNormalizeFun::GetFunction());
+}
+
+BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog) : context(context), catalog(catalog) {
+}
 
 // void BuiltinFunctions::AddCollation(string name, ScalarFunction function, bool combinable,
 //                                     bool not_required_for_equality) {
@@ -133,56 +135,56 @@ string BaseScalarFunction::ToString() {
 // 	catalog.CreateCollation(context, &info);
 // }
 
-// void BuiltinFunctions::AddFunction(AggregateFunctionSet set) {
-// 	CreateAggregateFunctionInfo info(move(set));
-// 	catalog.CreateFunction(context, &info);
+void BuiltinFunctions::AddFunction(AggregateFunctionSet set) {
+	CreateAggregateFunctionInfo info(move(set));
+	// catalog.CreateFunction(context, &info);
+}
+
+void BuiltinFunctions::AddFunction(AggregateFunction function) {
+	CreateAggregateFunctionInfo info(move(function));
+	// catalog.CreateFunction(context, &info);
+}
+
+// void BuiltinFunctions::AddFunction(PragmaFunction function) {
+// 	CreatePragmaFunctionInfo info(move(function));
+// 	catalog.CreatePragmaFunction(context, &info);
 // }
 
-// void BuiltinFunctions::AddFunction(AggregateFunction function) {
-// 	CreateAggregateFunctionInfo info(move(function));
-// 	catalog.CreateFunction(context, &info);
+// void BuiltinFunctions::AddFunction(const string &name, vector<PragmaFunction> functions) {
+// 	CreatePragmaFunctionInfo info(name, move(functions));
+// 	catalog.CreatePragmaFunction(context, &info);
 // }
 
-// // void BuiltinFunctions::AddFunction(PragmaFunction function) {
-// // 	CreatePragmaFunctionInfo info(move(function));
-// // 	catalog.CreatePragmaFunction(context, &info);
-// // }
+void BuiltinFunctions::AddFunction(ScalarFunction function) {
+	CreateScalarFunctionInfo info(move(function));
+	// catalog.CreateFunction(context, &info);
+}
 
-// // void BuiltinFunctions::AddFunction(const string &name, vector<PragmaFunction> functions) {
-// // 	CreatePragmaFunctionInfo info(name, move(functions));
-// // 	catalog.CreatePragmaFunction(context, &info);
-// // }
+void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction function) { // NOLINT: false positive
+	for (auto &name : names) {
+		function.name = name;
+		AddFunction(function);
+	}
+}
 
-// void BuiltinFunctions::AddFunction(ScalarFunction function) {
-// 	CreateScalarFunctionInfo info(move(function));
-// 	catalog.CreateFunction(context, &info);
-// }
-
-// void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction function) { // NOLINT: false positive
-// 	for (auto &name : names) {
-// 		function.name = name;
-// 		AddFunction(function);
-// 	}
-// }
-
-// void BuiltinFunctions::AddFunction(ScalarFunctionSet set) {
-// 	CreateScalarFunctionInfo info(move(set));
-// 	catalog.CreateFunction(context, &info);
-// }
+void BuiltinFunctions::AddFunction(ScalarFunctionSet set) {
+	CreateScalarFunctionInfo info(move(set));
+	// catalog.CreateFunction(context, &info);
+}
 
 // void BuiltinFunctions::AddFunction(TableFunction function) {
 // 	CreateTableFunctionInfo info(move(function));
-// 	catalog.CreateTableFunction(context, &info);
+// 	// catalog.CreateTableFunction(context, &info);
 // }
 
 // void BuiltinFunctions::AddFunction(TableFunctionSet set) {
 // 	CreateTableFunctionInfo info(move(set));
-// 	catalog.CreateTableFunction(context, &info);
+// 	// catalog.CreateTableFunction(context, &info);
 // }
 
 // void BuiltinFunctions::AddFunction(CopyFunction function) {
 // 	CreateCopyFunctionInfo info(move(function));
-// 	catalog.CreateCopyFunction(context, &info);
+// 	// catalog.CreateCopyFunction(context, &info);
 // }
 
 hash_t BaseScalarFunction::Hash() const {

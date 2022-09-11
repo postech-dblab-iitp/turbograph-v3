@@ -7,7 +7,6 @@
 
 #include <string>
 
-#include "execution/physical_operator.hpp"
 #include "common/allocator.hpp"
 
 #include "icecream.hpp"

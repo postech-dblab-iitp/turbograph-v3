@@ -9,7 +9,7 @@
 
 #include "common/types/row_layout.hpp"
 // #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
-// #include "execution/expression_executor.hpp"
+#include "execution/expression_executor.hpp"
 
 namespace duckdb {
 
@@ -52,21 +52,21 @@ void RowOperations::UpdateStates(AggregateObject &aggr, Vector &addresses, DataC
 	                     addresses, count);
 }
 
-// void RowOperations::UpdateFilteredStates(AggregateObject &aggr, Vector &addresses, DataChunk &payload, idx_t arg_idx) {
-// 	ExpressionExecutor filter_execution(aggr.filter);
-// 	SelectionVector true_sel(STANDARD_VECTOR_SIZE);
-// 	auto count = filter_execution.SelectExpression(payload, true_sel);
+void RowOperations::UpdateFilteredStates(AggregateObject &aggr, Vector &addresses, DataChunk &payload, idx_t arg_idx) {
+	ExpressionExecutor filter_execution(aggr.filter);
+	SelectionVector true_sel(STANDARD_VECTOR_SIZE);
+	auto count = filter_execution.SelectExpression(payload, true_sel);
 
-// 	DataChunk filtered_payload;
-// 	auto pay_types = payload.GetTypes();
-// 	filtered_payload.Initialize(pay_types);
-// 	filtered_payload.Slice(payload, true_sel, count);
+	DataChunk filtered_payload;
+	auto pay_types = payload.GetTypes();
+	filtered_payload.Initialize(pay_types);
+	filtered_payload.Slice(payload, true_sel, count);
 
-// 	Vector filtered_addresses(addresses, true_sel, count);
-// 	filtered_addresses.Normalify(count);
+	Vector filtered_addresses(addresses, true_sel, count);
+	filtered_addresses.Normalify(count);
 
-// 	UpdateStates(aggr, filtered_addresses, filtered_payload, arg_idx, filtered_payload.size());
-// }
+	UpdateStates(aggr, filtered_addresses, filtered_payload, arg_idx, filtered_payload.size());
+}
 
 void RowOperations::CombineStates(RowLayout &layout, Vector &sources, Vector &targets, idx_t count) {
 	if (count == 0) {
