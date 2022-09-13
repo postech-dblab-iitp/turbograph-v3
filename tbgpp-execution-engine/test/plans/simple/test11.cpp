@@ -8,6 +8,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test11() {
 
 	CypherSchema schema;
 	schema.addNode("c");
+	schema.addPropertyIntoNode("c", "id", LogicalType::UBIGINT);
 
 	// expand (com -> person) ; inverted
 	CypherSchema schema2 = schema;
@@ -16,9 +17,9 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test11() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 	// source
-	ops.push_back(new PhysicalNodeScan(schema, LabelSet("Comment"), PropertyKeys()) );
+	ops.push_back(new PhysicalNodeScan(schema, LabelSet("Comment"), PropertyKeys({"id"})) );
 	// operators
-	ops.push_back(new PhysicalAdjIdxJoin(schema2, "c", LabelSet("Comment"), LabelSet("LIKES"), ExpandDirection::INCOMING, LabelSet("Person")));
+	ops.push_back(new PhysicalAdjIdxJoin(schema2, "c", LabelSet("Comment"), LabelSet("LIKES"), ExpandDirection::INCOMING, LabelSet("Person"), JoinType::INNER, false, true));
 	// sink
 	ops.push_back(new PhysicalProduceResults(schema2));
 

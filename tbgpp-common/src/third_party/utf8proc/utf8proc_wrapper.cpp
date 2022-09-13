@@ -1,6 +1,8 @@
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 #include "third_party/utf8proc/utf8proc.hpp"
 
+#include "icecream.hpp"	
+
 using namespace std;
 
 namespace duckdb {
@@ -37,6 +39,7 @@ UnicodeType Utf8Proc::Analyze(const char *s, size_t len, UnicodeInvalidReason *i
 		c = s[i];
 		if (c == '\0') {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::NULL_BYTE);
+IC();
 			return UnicodeType::INVALID;
 		}
 		// 1 Byte / ASCII
@@ -46,6 +49,7 @@ UnicodeType Utf8Proc::Analyze(const char *s, size_t len, UnicodeInvalidReason *i
 		type = UnicodeType::UNICODE;
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
+IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xE0) == 0xC0) {
@@ -53,6 +57,7 @@ UnicodeType Utf8Proc::Analyze(const char *s, size_t len, UnicodeInvalidReason *i
 		}
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
+IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xF0) == 0xE0) {
@@ -60,12 +65,14 @@ UnicodeType Utf8Proc::Analyze(const char *s, size_t len, UnicodeInvalidReason *i
 		}
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
+IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xF8) == 0xF0) {
 			continue;
 		}
 		AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
+IC();
 		return UnicodeType::INVALID;
 	}
 

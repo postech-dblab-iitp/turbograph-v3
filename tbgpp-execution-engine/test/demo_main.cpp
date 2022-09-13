@@ -115,7 +115,6 @@ class InputParser{
     }
     void getCmdOption() const {
       std::vector<std::string>::const_iterator itr;
-      std::vector<std::string>::const_iterator itr;
       for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
     	std::string current_str = *itr;
         if (std::strncmp(current_str.c_str(), "--nodes:", 8) == 0) {

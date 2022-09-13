@@ -51,6 +51,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 }
 
 StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
+	
 	ExtentID current_eid;
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid);
 	if (scan_ongoing) {
@@ -61,8 +62,8 @@ StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& outp
 
 StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema, std::string filterKey, duckdb::Value filterValue) {
 	ExtentID current_eid;
-	
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
+	D_ASSERT(filterKey.compare("") != 0);
 	vector<string> output_properties;
 	for (size_t i = 0; i < edgeLabels.size(); i++) {
 		for (auto &it : edgeLabels[i].data) output_properties.push_back(it);

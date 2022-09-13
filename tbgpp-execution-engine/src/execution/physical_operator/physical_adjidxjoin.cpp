@@ -7,6 +7,9 @@
 #include <string>
 #include "icecream.hpp"
 
+#include <boost/timer/timer.hpp>
+
+
 
 namespace duckdb {
 
@@ -18,6 +21,8 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	// init timers
 	adjfetch_time = 0;
 	tgtfetch_time = 0;
+
+	adjfetch_timer_started = false;
 
 	// operator rules
 	bool check = (enumerate) ? true : (!load_eid);
@@ -75,19 +80,19 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 	// get adjacency list columns in column
 	vector<int> adjColIdxs;
-	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs);
+	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs, expandDir);
 	D_ASSERT( adjColIdxs.size() > 0); // TODO need to remove this. what if srcLabelSet is all different?
 	uint64_t* adj_start; uint64_t* adj_end;
-IC();
+//IC();
 	// fetch source column
 	uint64_t *src_column = (uint64_t *)input.data[srcColIdx].GetData();
-IC();
+//IC();
 	// iterate source vids
 	for( ; state.checkpoint.first < input.size() ; state.checkpoint.first++) {
 
 		// check if output chunk full
 		if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) { isHaveMoreOutput = true; goto breakLoop; }
-IC();
+//IC();
 		// check if vid is null
 		if( state.checkpoint.second == 0 
 			&&	FlatVector::IsNull(input.data[srcColIdx], state.checkpoint.first)
@@ -99,13 +104,20 @@ IC();
 			} else { continue; }
 		}
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
-IC();
+//IC();
 		// vid is not null. now get source vid
 		uint64_t vid = src_column[state.checkpoint.first];
-IC(vid);
-		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end );
+//IC(vid);
+		if(!adjfetch_timer_started){
+			adjfetch_timer.start();
+			adjfetch_timer_started = true;
+		} else {
+			adjfetch_timer.resume();
+		}
+		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
+		adjfetch_timer.stop();
 		size_t adjListSize = adj_end - adj_start;	
-IC(adjListSize);
+//IC(adjListSize);
 		size_t numTargets = adjListSize/2;			// adjListSize = 2 * target vertices
 		// in anti/semijoin, the result is always smaller than input. Thus no overflow check required
 		if ( join_type == JoinType::SEMI ) {
@@ -129,14 +141,14 @@ IC(adjListSize);
 			 }
 			continue;
 		}
-IC();
+//IC();
 		// TODO split range into subranges (apply filters)
 			// TODO filter edge label
 			// TODO filter target label
 
 		// iterate subranges. currently TODO currently only one range
 		if( enumerate ) {
-			IC();
+			//IC();
 			// enumerate mode
 				// choose smaller ones
 			size_t numTuplesToProduce = ((EXEC_ENGINE_VECTOR_SIZE - numProducedTuples) > numTargets )
@@ -159,7 +171,7 @@ IC();
 				isHaveMoreOutput = true;
 				goto breakLoop;
 			}
-			IC();
+			//IC();
 
 		} else {
 			// range mode
@@ -178,6 +190,9 @@ IC();
 	}
 
 breakLoop:
+	icecream::ic.enable();
+	IC( adjfetch_timer.elapsed().wall / 1000000.0);
+	icecream::ic.disable();
 	// now produce finished. store state and exit
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
 	chunk.SetCardinality(numProducedTuples);

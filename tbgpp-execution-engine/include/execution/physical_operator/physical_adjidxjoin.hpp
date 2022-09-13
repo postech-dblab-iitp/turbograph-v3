@@ -51,13 +51,13 @@ public:
 	bool enumerate;
 
 	// performance counter
-	boost::timer::cpu_timer adjfetch_timer;
-	bool adjfetch_timer_started;
-	int64_t adjfetch_time;
+	mutable boost::timer::cpu_timer adjfetch_timer;
+	mutable bool adjfetch_timer_started;
+	mutable int64_t adjfetch_time;
 
-	boost::timer::cpu_timer tgtfetch_timer;
-	bool tgtfetch_timer_started;
-	int64_t tgtfetch_time;
+	mutable boost::timer::cpu_timer tgtfetch_timer;
+	mutable bool tgtfetch_timer_started;
+	mutable int64_t tgtfetch_time;
 
 };
 
