@@ -28,6 +28,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	scan_propertyKeys.push_back("creationDate");
 	
 	// Filter
+// FIXME todo change
 	duckdb::Value filter_val;
 	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
 	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }

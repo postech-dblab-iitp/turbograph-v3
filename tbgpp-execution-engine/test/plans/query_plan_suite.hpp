@@ -61,6 +61,8 @@ public:
 		if( key.compare("t8") == 0 ) { return Test8(); }		// Scan + Order(without grouping; count(col))
 		if( key.compare("t9") == 0 ) { return Test9(); }		// Scan + Order(with grouping; + collect)
 		if( key.compare("t10") == 0 ) { return Test10(); }		// Scan + Order(with grouping; + collect) + Unwind : result same as scan
+		if( key.compare("t11") == 0 ) { return Test11(); }		// Scan + Expand (incoming) ( using backward edge )
+		if( key.compare("t11-1") == 0 ) { return Test11_1(); }		// Scan + Expand (outgoing ; reversed of test 11)
 
 
 		/* LDBC queries */
@@ -81,6 +83,8 @@ public:
 	std::vector<CypherPipelineExecutor*> Test8();	// 
 	std::vector<CypherPipelineExecutor*> Test9();	// 
 	std::vector<CypherPipelineExecutor*> Test10();	// 
+	std::vector<CypherPipelineExecutor*> Test11();	// 
+	std::vector<CypherPipelineExecutor*> Test11_1();	// 
 	
 														// ( ! : need to set predicate value)
 														// all to-fix parts marked FIXME
