@@ -54,6 +54,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		state.iter_inited = true;
 		// select properties to access
 		PropertyKeys access_property_keys = propertyKeys;
+		vector<LogicalType> access_schema = schema.getTypes();
 		if( filter_pushdown_key.compare("") != 0 ) {
 			// check to add filterkey to access
 			for( auto& key: propertyKeys ) {
@@ -61,10 +62,11 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 			}
 			// now add pushdown key to access keys
 			access_property_keys.push_back( filter_pushdown_key );
+			access_schema.push_back( filter_pushdown_value.type() );
 		}
 
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_it, labels, state.null_els, state.null_adjopt, access_property_keys, schema.getTypes());
+			context.client->graph_store->InitializeScan(state.ext_it, labels, state.null_els, state.null_adjopt, access_property_keys, access_schema );
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
 
 	}
