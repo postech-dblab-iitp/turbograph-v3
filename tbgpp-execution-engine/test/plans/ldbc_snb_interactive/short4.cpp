@@ -21,18 +21,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 
 	// filter predcs
 	CypherSchema filter_schema = schema;
-	vector<unique_ptr<Expression>> predicates;
-	unique_ptr<Expression> filter_expr1;
-	{
-		auto lhs = make_unique<BoundColumnRefExpression>("id", LogicalType::UBIGINT, ColumnBinding());	// id
-		duckdb::Value rhsval;
-		if(LDBC_SF==1) { rhsval = duckdb::Value::UBIGINT(57459); }
-		if(LDBC_SF==10) { rhsval = duckdb::Value::UBIGINT(58929); }
-		if(LDBC_SF==100) { rhsval = duckdb::Value::UBIGINT(19560); }
-		auto rhs = make_unique<BoundConstantExpression>(rhsval);
-		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
-	}
-	predicates.push_back(std::move(filter_expr1));
+	duckdb::Value filter_val;
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
+	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 		
 	// Project
 	CypherSchema project_schema;
@@ -49,7 +41,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, std::move(predicates)) );
+	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, "id", filter_val) );
 		//operators
 	ops.push_back(new PhysicalProjection(project_schema, std::move(proj_exprs)));
 		// sink

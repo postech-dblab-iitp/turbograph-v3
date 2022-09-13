@@ -28,18 +28,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	scan_propertyKeys.push_back("creationDate");
 	
 	// Filter
-	vector<unique_ptr<Expression>> predicates;
-	unique_ptr<Expression> filter_expr1;
-	{
-		auto lhs = make_unique<BoundColumnRefExpression>("id", LogicalType::UBIGINT, ColumnBinding());
-		duckdb::Value rhsval;
-		if(LDBC_SF==1) { rhsval = duckdb::Value::UBIGINT(57459); }
-		if(LDBC_SF==10) { rhsval = duckdb::Value::UBIGINT(58929); }
-		if(LDBC_SF==100) { rhsval = duckdb::Value::UBIGINT(19560); }
-		auto rhs = make_unique<BoundConstantExpression>(rhsval);
-		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
-	}
-	predicates.push_back(std::move(filter_expr1));
+	duckdb::Value filter_val;
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
+	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 
 	// Expand
 	CypherSchema expandschema = schema;
@@ -78,7 +70,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 		// source
-	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, move(predicates)));
+	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, "id", filter_val));
 		//operators
 	ops.push_back(new PhysicalAdjIdxJoin(expandschema, "n", LabelSet("Person"), LabelSet("IS_LOCATED_IN"), ExpandDirection::OUTGOING, LabelSet("City"), JoinType::INNER, false, true));
 	ops.push_back(new PhysicalNodeIdSeek(schema3, "p", LabelSet("Place"), seek_propertyKeys));

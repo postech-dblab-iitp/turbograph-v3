@@ -16,14 +16,14 @@ class PhysicalNodeScan: public CypherPhysicalOperator {
 public:
 	
 	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk);
-	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, vector<unique_ptr<Expression>> storage_predicates);
+	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, string filter_pushdown_key, Value filter_pushdown_value);
 	~PhysicalNodeScan();
 
 public:
 	
 	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
-
+	
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
@@ -31,7 +31,10 @@ public:
 	LabelSet labels;
 	PropertyKeys propertyKeys;
 
-	unique_ptr<Expression> filter_pushdown_expression;
+	// filter pushdown
+	string filter_pushdown_key;
+	Value filter_pushdown_value;
+
 	
 };	
 
