@@ -117,9 +117,9 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            // if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
-            //     chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-            // }
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             memcpy(buf_ptr, &input_size, sizeof(uint64_t));
@@ -148,6 +148,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
         ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
         extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        chunkdefinition_cat->SetNumEntriesInColumn(input.size());
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
@@ -228,9 +229,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            // if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
-            //     chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-            // }
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             //best_compression_function = BITPACKING;
