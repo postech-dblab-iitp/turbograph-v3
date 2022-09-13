@@ -24,7 +24,7 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	assert( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
 
 	// TODO assert
-	assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index. how to do for both direction or incoming?"); // TODO needs support from the storage
+	//assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index. how to do for both direction or incoming?"); // TODO needs support from the storage
 	assert( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
 	assert( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
 	assert( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
