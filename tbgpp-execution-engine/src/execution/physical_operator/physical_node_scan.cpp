@@ -7,13 +7,17 @@
 #include "planner/expression.hpp"
 #include "icecream.hpp"
 
+#include "planner/expression/bound_reference_expression.hpp"
+#include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_columnref_expression.hpp"
+
 #include <cassert>
 
 namespace duckdb {
 class NodeScanState : public LocalSourceState {
 public:
 	explicit NodeScanState() {
-		iter_inited = true;
+		iter_inited = false;
 		// TODO remove
 		null_adjopt = LoadAdjListOption::NONE;
 	}
@@ -28,19 +32,16 @@ public:
 };
 
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk):
-		CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk), filter_pushdown_expression(nullptr) { }
+		CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk), filter_pushdown_key("") { }
 		
-PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, vector<unique_ptr<Expression>> storage_predicates):
-	CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk) {
+PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, string filter_pushdown_key, Value filter_pushdown_value):
+	CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk), filter_pushdown_key(filter_pushdown_key), filter_pushdown_value(filter_pushdown_value) { }
 
-	// TODO pushdwn predicates
-	// convert into CNF
-
-	filter_pushdown_expression = nullptr;
-
-}
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
+//===--------------------------------------------------------------------===//
+// Source
+//===--------------------------------------------------------------------===//
 unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState(ExecutionContext &context) const {
 	return make_unique<NodeScanState>();
 }
@@ -49,24 +50,34 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	auto &state = (NodeScanState &)lstate;
 
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
-	if (state.iter_inited) {
-		state.iter_inited = false;
+	if (!state.iter_inited) {
+		state.iter_inited = true;
+		// select properties to access
+		PropertyKeys access_property_keys = propertyKeys;
+		if( filter_pushdown_key.compare("") != 0 ) {
+			// check to add filterkey to access
+			for( auto& key: propertyKeys ) {
+				if( key.compare(filter_pushdown_key) == 0 ) { break; }
+			}
+			// now add pushdown key to access keys
+			access_property_keys.push_back( filter_pushdown_key );
+		}
+
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_it, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
+			context.client->graph_store->InitializeScan(state.ext_it, labels, state.null_els, state.null_adjopt, access_property_keys, schema.getTypes());
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
+
 	}
 	D_ASSERT(state.ext_it != nullptr);
 
 	// TODO need to split chunk in units of EXEC_ENGINE_VECTOR_SIZE
-	// TODO pass filter pushdown and bypasses
-	auto scanAPIResult =
+	if( filter_pushdown_key.compare("") == 0 ) {
 		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
-	// auto scanAPIResult =
-	// 	itbgpp_graph->doScan(state.ext_it, chunk, labels, state.null_els, state.null_els, propertyKeys, schema.getTypes(), filterKey, filterValue);
+	} else {
+		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
+	}
+IC();
 	// GetData() should return empty chunk to indicate scan is finished.
-
-	IC( ((int64_t*)(chunk.data[2].GetData()))[0] );
-
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {

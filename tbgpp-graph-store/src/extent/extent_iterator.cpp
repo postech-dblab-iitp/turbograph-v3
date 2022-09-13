@@ -8,6 +8,8 @@
 #include "common/types/data_chunk.hpp"
 #include "extent/compression/compression_function.hpp"
 
+#include "icecream.hpp" 
+
 namespace duckdb {
 
 // TODO: select extent to iterate using min & max & key
@@ -391,6 +393,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     scan_length = scan_end_offset - scan_start_offset;
 
     // Find the column index
+IC(filter_cdf_id);
+for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
+
     auto col_idx_find_result = std::find(io_requested_cdf_ids[prev_toggle].begin(), io_requested_cdf_ids[prev_toggle].end(), filter_cdf_id);
     if (col_idx_find_result == io_requested_cdf_ids[prev_toggle].end()) throw InvalidInputException("I/O Error");
     idx_t col_idx = col_idx_find_result - io_requested_cdf_ids[prev_toggle].begin();

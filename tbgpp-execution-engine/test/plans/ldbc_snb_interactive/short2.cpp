@@ -20,17 +20,12 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 // scan person
 	CypherSchema sch1;
 	sch1.addNode("UNNAMED1");
-	unique_ptr<Expression> filter_expr1;
-	{
-		auto lhs = make_unique<BoundColumnRefExpression>("id", LogicalType::UBIGINT, ColumnBinding());	// id
-		duckdb::Value rhsval;
-// FIXME here
-		// if(LDBC_SF==1) { rhsval = duckdb::Value::UBIGINT(57459); }
-		// if(LDBC_SF==10) { rhsval = duckdb::Value::UBIGINT(58929); }
-		// if(LDBC_SF==100) { rhsval = duckdb::Value::UBIGINT(19560); }
-		auto rhs = make_unique<BoundConstantExpression>(rhsval);
-		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
-	}
+
+// FIXME
+	duckdb::Value filter_val;
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
+	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 
 // expand
 	CypherSchema sch2 = sch1;
@@ -74,7 +69,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 // pipe
 	std::vector<CypherPhysicalOperator *> ops;
 	// src
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Person"), PropertyKeys()) );
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Person"), PropertyKeys(), "id", filter_val ) );
 	// ops
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "UNNAMED1", LabelSet("Person"), LabelSet("HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Comment"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "message", LabelSet("Comment"), exp_pkeys));
@@ -149,6 +144,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	//ops.push_back( new Physical)	// TODO here
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "post", LabelSet("Post"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true) );
 // FIXME here ; do i need to filter by target nodes? // custom filter?
+	// TODO change plan : 
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "post", LabelSet("Post"), seek1_prop));
 	ops.push_back( new PhysicalNodeIdSeek(sch3_1, "person", LabelSet("Person"), seek2_prop));
 	ops.push_back( new PhysicalProjection(sch4, move(proj_exprs)));
