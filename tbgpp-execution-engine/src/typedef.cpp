@@ -100,7 +100,7 @@ void CypherSchema::addNode(std::string name, LoadAdjListOption adjOption) {
 		}
 		case LoadAdjListOption::OUTGOING: {
 			nodeSchema.attrs.push_back(
-				std::make_tuple("_adj_out", CypherValueType::ADJLIST, LogicalType(LogicalTypeId::ADJLIST))
+				std::make_tuple("_adj_out", CypherValueType::ADJLIST, LogicalType(LogicalTypeId::FORWARD_ADJLIST))
 			);
 			// nodeSchema.attrs.push_back(
 			// 	std::make_tuple("_adj_out", CypherValueType::ADJLIST, duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT))

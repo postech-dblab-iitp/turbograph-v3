@@ -148,7 +148,7 @@ bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 	return true;
 }
 
-void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
+void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, ExpandDirection expand_dir) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	if( labels.size()!= 1 ) {
@@ -160,25 +160,38 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
 	
 	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
-	for (int i = 0; i < l_types.size(); i++) {
-		if (l_types[i] == LogicalType::ADJLIST) adjColIdxs.push_back(i);
+	if (expand_dir == ExpandDirection::OUTGOING) {
+		for (int i = 0; i < l_types.size(); i++)
+			if (l_types[i] == LogicalType::FORWARD_ADJLIST) adjColIdxs.push_back(i);
+	} else if (expand_dir == ExpandDirection::INCOMING) {
+		for (int i = 0; i < l_types.size(); i++)
+			if (l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColIdxs.push_back(i);
+	} else if (expand_dir == ExpandDirection::BOTH) {
+		for (int i = 0; i < l_types.size(); i++)
+			if (l_types[i] == LogicalType::FORWARD_ADJLIST || l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColIdxs.push_back(i);
 	}
 }
 
 StoreAPIResult iTbgppGraphStore::getAdjListRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t* start_idx, uint64_t* end_idx) {
+	D_ASSERT(false);
 	adj_iter.Initialize(client, adjColIdx, vid);
 	adj_iter.getAdjListRange(vid, start_idx, end_idx);
 	return StoreAPIResult::OK; 
 }
 
 StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase) {
+	D_ASSERT(false);
 	adj_iter.Initialize(client, adjColIdx, vid);
 	// adj_iter.getAdjListRange(vid, start_idx, end_idx);
 	return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
-	adj_iter.Initialize(client, adjColIdx, vid);
+StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
+	if (expand_dir == ExpandDirection::OUTGOING) {
+		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
+	} else if (expand_dir == ExpandDirection::INCOMING) {
+		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
+	}
 
 	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr);
 	return StoreAPIResult::OK;

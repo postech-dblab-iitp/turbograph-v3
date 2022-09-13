@@ -655,12 +655,12 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
     return enough;
 }
 
-void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid) {
+void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type) {
     ExtentID target_eid = vid >> 32;
 
     if (is_initialized && target_eid == cur_eid) return;
 
-    vector<LogicalType> target_types { LogicalType::FORWARD_ADJLIST }; // TODO controlled by parameter
+    vector<LogicalType> target_types { adjlist_type };
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
     
     ext_it = new ExtentIterator();
