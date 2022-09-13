@@ -11,7 +11,7 @@
 #include "common/serializer/buffered_file_writer.hpp"
 
 namespace duckdb {
-
+/*
 class BufferedFileReader : public Deserializer {
 public:
 	BufferedFileReader(FileSystem &fs, const char *path, FileOpener *opener = nullptr);
@@ -35,5 +35,5 @@ private:
 	idx_t file_size;
 	idx_t total_read;
 };
-
+*/
 } // namespace duckdb

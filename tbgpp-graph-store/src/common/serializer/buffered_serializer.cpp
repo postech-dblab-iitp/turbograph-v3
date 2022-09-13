@@ -3,7 +3,7 @@
 #include <cstring>
 
 namespace duckdb {
-
+/*
 BufferedSerializer::BufferedSerializer(idx_t maximum_size)
     : BufferedSerializer(unique_ptr<data_t[]>(new data_t[maximum_size]), maximum_size) {
 }
@@ -30,6 +30,6 @@ void BufferedSerializer::WriteData(const_data_ptr_t buffer, idx_t write_size) {
 
 	memcpy(data + blob.size, buffer, write_size);
 	blob.size += write_size;
-}
+}*/
 
 } // namespace duckdb

@@ -6,7 +6,7 @@
 namespace duckdb {
 
 // Remove this when we switch C++17: https://stackoverflow.com/a/53350948
-constexpr uint8_t BufferedFileWriter::DEFAULT_OPEN_FLAGS;
+/*constexpr uint8_t BufferedFileWriter::DEFAULT_OPEN_FLAGS;
 
 BufferedFileWriter::BufferedFileWriter(FileSystem &fs, const string &path_p, uint8_t open_flags, FileOpener *opener)
     : fs(fs), path(path_p), data(unique_ptr<data_t[]>(new data_t[FILE_BUFFER_SIZE])), offset(0), total_written(0) {
@@ -55,6 +55,6 @@ void BufferedFileWriter::Truncate(int64_t size) {
 	handle->Truncate(size);
 	// reset anything written in the buffer
 	offset = 0;
-}
+}*/
 
 } // namespace duckdb
