@@ -303,7 +303,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 // Get Next Extent with filterKey
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, std::string filterKey, duckdb::Value filterValue, bool is_output_chunk_initialized) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, duckdb::Value filterValue, vector<string> &output_properties, std::vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized) {
     // TODO we assume that there is only one tuple that matches the predicate
     // We should avoid data copy here.. but copy for demo temporarliy
     
@@ -356,17 +356,32 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     filter_cdf_id = filter_cdf_id << 32;
     filter_cdf_id = filter_cdf_id + (idx - pks.begin());
 
+    // For the case: scanSchema != ext_property_types
+    vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));
+    vector<bool> valid_output;
+    valid_output.resize(target_idxs.size());
+    idx_t output_idx = 0;
+    for (idx_t i = 0; i < target_idxs.size(); i++) {
+        if (output_column_idxs[output_idx] == target_idxs[i]) {
+            valid_output[i] = true;
+            output_idx++;
+        } else {
+            valid_output[i] = false;
+        }
+    }
+
     // Initialize output DataChunk & copy each column
     // fprintf(stdout, "E\n");
     if (!is_output_chunk_initialized) {
         output.Reset();
         // fprintf(stdout, "EE\n");
-        output.Initialize(ext_property_types);
+        output.Initialize(scanSchema);
     }
 
     idx_t scan_start_offset, scan_end_offset, scan_length;
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
             (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, "main", "cdf_" + std::to_string(filter_cdf_id));
+    // TODO move this logic to InitializeScan (We don't need to do I/O in this case)
     if (cdf_cat_entry->IsMinMaxArrayExist()) {
         vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
 
@@ -476,7 +491,9 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
     }
     
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
+    output_idx = 0;
     for (size_t i = 0; i < ext_property_types.size(); i++) {
+        if (!valid_output[i]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
@@ -490,14 +507,14 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
-                                       output.data[i], comp_header.data_len);
+                                       output.data[output_idx], comp_header.data_len);
             } else {
-                auto strings = FlatVector::GetData<string_t>(output.data[i]);
+                auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
                 uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
                 uint64_t prev_string_offset = matched_row_idx == 0 ? 0 : offset_arr[matched_row_idx - 1];
                 uint64_t string_offset = offset_arr[matched_row_idx];
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                strings[0] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                strings[0] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
         } else if (ext_property_types[i] == LogicalType::ADJLIST) {
             // TODO we need to allocate buffer for adjlist
@@ -515,7 +532,7 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
         } else if (ext_property_types[i] == LogicalType::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
-            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            idx_t *id_column = (idx_t *)output.data[output_idx].GetData();
             id_column[0] = physical_id_base + matched_row_idx;
         } else {
             if (comp_header.comp_type == BITPACKING) {
@@ -523,12 +540,13 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
-                                       output.data[i], comp_header.data_len);
+                                       output.data[output_idx], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size, type_size);
+                memcpy(output.data[output_idx].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size, type_size);
             }
         }
+        output_idx++;
     }
     // fprintf(stdout, "U\n");
 
