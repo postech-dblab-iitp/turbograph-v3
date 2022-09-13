@@ -75,7 +75,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         uint8_t* buf_ptr;
         size_t buf_size;
         size_t alloc_buf_size;
-        if (l_type == LogicalType::ADJLIST) {
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
         } else if (l_type == LogicalType::VARCHAR) {
@@ -111,7 +111,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
                 memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
                 offset += string_len;
             }
-        } else if (l_type == LogicalType::ADJLIST) {
+        } else if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
@@ -158,7 +158,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         uint8_t *buf_ptr;
         size_t buf_size;
         size_t alloc_buf_size;
-        if (l_type == LogicalType::ADJLIST) {
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
         } else if (l_type == LogicalType::VARCHAR) {
@@ -213,7 +213,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                     offset += string_len;
                 }
             }
-        } else if (l_type == LogicalType::ADJLIST) {
+        } else if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             size_t input_size = adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
             CompressionHeader comp_header(UNCOMPRESSED, input_size);
