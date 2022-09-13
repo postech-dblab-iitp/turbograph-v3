@@ -1,5 +1,5 @@
-
 #include "main/database.hpp"
+
 #include "main/client_context.hpp"
 
 //#include "parallel/pipeline.hpp"
@@ -19,6 +19,7 @@
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_node_id_seek.hpp"
+#include "execution/physical_operator/physical_edge_id_seek.hpp"
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_produce_results.hpp"
 #include "execution/physical_operator/physical_unwind.hpp"
@@ -27,9 +28,10 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_columnref_expression.hpp"
+
 #include "planner/expression/bound_case_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
-
 
 #include "function/aggregate_function.hpp"
 
@@ -62,7 +64,7 @@ public:
 
 
 		/* LDBC queries */
-		// if( key.compare("s1") == 0 ) { return LDBC_IS1(); }	// TODO error in the storage
+		if( key.compare("s1") == 0 ) { return LDBC_IS1(); }
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
 		// if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
 		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
@@ -80,33 +82,33 @@ public:
 	std::vector<CypherPipelineExecutor*> Test9();	// 
 	std::vector<CypherPipelineExecutor*> Test10();	// 
 	
-	std::vector<CypherPipelineExecutor*> LDBC_IS1();
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();
-	std::vector<CypherPipelineExecutor*> LDBC_IS3();
-	std::vector<CypherPipelineExecutor*> LDBC_IS4();
-	std::vector<CypherPipelineExecutor*> LDBC_IS5();
-	std::vector<CypherPipelineExecutor*> LDBC_IS6();
-	std::vector<CypherPipelineExecutor*> LDBC_IS7();
+														// ( ! : need to set predicate value)
+														// all to-fix parts marked FIXME
+														// Q_GEN | Q_WORKS | CORRECT
+	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// ! |  o |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// ! |    |   |	// adjjoin
+	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// ! |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// ! |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS6();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
 
-	std::vector<CypherPipelineExecutor*> LDBC_IC1();
-	std::vector<CypherPipelineExecutor*> LDBC_IC2();
-	std::vector<CypherPipelineExecutor*> LDBC_IC3();
-	std::vector<CypherPipelineExecutor*> LDBC_IC4();
-	std::vector<CypherPipelineExecutor*> LDBC_IC5();
-	std::vector<CypherPipelineExecutor*> LDBC_IC6();
-	std::vector<CypherPipelineExecutor*> LDBC_IC7();
-	std::vector<CypherPipelineExecutor*> LDBC_IC8();
-	std::vector<CypherPipelineExecutor*> LDBC_IC9();
-	std::vector<CypherPipelineExecutor*> LDBC_IC10();
-	std::vector<CypherPipelineExecutor*> LDBC_IC11();
-	std::vector<CypherPipelineExecutor*> LDBC_IC12();
-	std::vector<CypherPipelineExecutor*> LDBC_IC13();
-	std::vector<CypherPipelineExecutor*> LDBC_IC14();
+	std::vector<CypherPipelineExecutor*> LDBC_IC1();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC2();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC3();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC4();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC5();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC6();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC7();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC8();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC9();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC10();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC11();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC12();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC13();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IC14();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
-
-private:
-
 	ClientContext &context;
 	int64_t LDBC_SF;
 
