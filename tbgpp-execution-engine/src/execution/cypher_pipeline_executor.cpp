@@ -104,7 +104,7 @@ IC();
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
 
-	icecream::ic.enable();
+	icecream::ic.disable();
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
 	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;

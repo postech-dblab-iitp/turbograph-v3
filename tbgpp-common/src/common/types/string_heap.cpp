@@ -5,6 +5,8 @@
 #include "common/exception.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
+#include "icecream.hpp"
+
 #include <cstring>
 
 namespace duckdb {

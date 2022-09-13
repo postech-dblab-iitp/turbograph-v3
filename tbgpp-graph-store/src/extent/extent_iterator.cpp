@@ -150,7 +150,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 // Get Next Extent with all properties
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
-    
     // Keep previous values
     // fprintf(stdout, "Z\n");
     int prev_toggle = toggle;
@@ -235,11 +234,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+//            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+//                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+//                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         } else {
-            fprintf(stdout, "Load Column %ld\n", i);
+//            fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             // fprintf(stdout, "VARCHAR\n");
@@ -255,8 +254,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
                 for (size_t output_idx = 0; output_idx < comp_header.data_len; output_idx++) {
                     string_offset = offset_arr[output_idx];
-                    strings[output_idx] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
-
+// IC( string_offset, prev_string_offset, string_data_offset, output_idx, io_requested_cdf_ids[prev_toggle][i] );
+                    strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
                     string_data_offset += (string_offset - prev_string_offset);
                     prev_string_offset = string_offset;
                     D_ASSERT(string_data_offset <= io_requested_buf_sizes[prev_toggle][i]);
@@ -408,7 +407,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     scan_length = scan_end_offset - scan_start_offset;
 
     // Find the column index
-IC(filter_cdf_id);
 for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
 
     auto col_idx_find_result = std::find(io_requested_cdf_ids[prev_toggle].begin(), io_requested_cdf_ids[prev_toggle].end(), filter_cdf_id);
@@ -458,7 +456,7 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
                 }
             }
         }
-    } else if (ext_property_types[col_idx] == LogicalType::ADJLIST) {
+    } else if (ext_property_types[col_idx] == LogicalType::FORWARD_ADJLIST || ext_property_types[col_idx] == LogicalType::BACKWARD_ADJLIST) {
         throw InvalidInputException("Filter predicate on ADJLIST column");
     } else if (ext_property_types[col_idx] == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");

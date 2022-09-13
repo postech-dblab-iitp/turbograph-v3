@@ -200,7 +200,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 // Copy CompressionHeader
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
-                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint32_t);
+                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint64_t);
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
