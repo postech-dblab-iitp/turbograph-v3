@@ -213,7 +213,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             break;
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             continue;
         } else if (ext_property_types[i] == LogicalType::ID) {
             continue;
@@ -262,7 +262,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     D_ASSERT(string_data_offset <= io_requested_buf_sizes[prev_toggle][i]);
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // fprintf(stdout, "ADJLIST\n");
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
@@ -424,7 +424,7 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             break;
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             continue;
         } else if (ext_property_types[i] == LogicalType::ID) {
             continue;
@@ -516,7 +516,7 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
                 strings[0] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // size_t adj_list_end = adjListBase[STANDARD_VECTOR_SIZE - 1];
@@ -639,7 +639,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
                 strings[0] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
@@ -675,7 +675,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
-    D_ASSERT(ext_property_types[0] == LogicalType::ADJLIST); // Only for ADJLIIST now..
+    D_ASSERT(ext_property_types[0] == LogicalType::FORWARD_ADJLIST || ext_property_types[0] == LogicalType::BACKWARD_ADJLIST); // Only for ADJLIIST now..
     // Keep previous values
     int prev_toggle = toggle;
     if (current_idx > max_idx) return false;
@@ -706,12 +706,12 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
     return enough;
 }
 
-void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid) {
+void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type) {
     ExtentID target_eid = vid >> 32;
 
     if (is_initialized && target_eid == cur_eid) return;
 
-    vector<LogicalType> target_types { LogicalType::ADJLIST };
+    vector<LogicalType> target_types { adjlist_type };
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
     
     ext_it = new ExtentIterator();

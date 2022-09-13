@@ -602,7 +602,8 @@ Value Vector::GetValue(idx_t index) const {
 		}
 		return Value::LIST(ListType::GetChildType(GetType()), move(children));
 	}
-	case LogicalTypeId::ADJLIST: {
+	case LogicalTypeId::FORWARD_ADJLIST:
+	case LogicalTypeId::BACKWARD_ADJLIST: {
 		D_ASSERT(index >= 0);
 		auto start_offset = index == 0 ? STANDARD_VECTOR_SIZE : ((idx_t *)data)[index-1];
 		auto end_offset = ((idx_t *)data)[index];

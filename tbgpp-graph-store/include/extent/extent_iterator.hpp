@@ -55,7 +55,7 @@ public:
     AdjacencyListIterator() {}
     ~AdjacencyListIterator() {}
 
-    void Initialize(ClientContext &context, int adjColIdx, uint64_t vid);
+    void Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type=LogicalType::FORWARD_ADJLIST);
     void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
     void getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr);
 
