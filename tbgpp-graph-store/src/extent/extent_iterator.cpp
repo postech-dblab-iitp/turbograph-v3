@@ -365,22 +365,29 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     idx_t scan_start_offset, scan_end_offset, scan_length;
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
             (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, "main", "cdf_" + std::to_string(filter_cdf_id));
-    vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
+    if (cdf_cat_entry->IsMinMaxArrayExist()) {
+        vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
 
-    bool find_block_to_scan = false;
-    for (size_t i = 0; i < minmax.size(); i++) {
-        // if (i == 0)
-            // std::cout << "Min: " << minmax[i].min << ", Max: " << minmax[i].max << std::endl;
-        if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
-            scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
-            scan_end_offset = (i + 1) * MIN_MAX_ARRAY_SIZE;
-            find_block_to_scan = true;
+        bool find_block_to_scan = false;
+        for (size_t i = 0; i < minmax.size(); i++) {
+            // if (i == 0)
+                // std::cout << "Min: " << minmax[i].min << ", Max: " << minmax[i].max << std::endl;
+            if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
+                scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
+                scan_end_offset = MIN((i + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                find_block_to_scan = true;
+                break;
+            }
         }
+        if (!find_block_to_scan) {
+            output.SetCardinality(0);
+            return true;
+        }
+    } else {
+        scan_start_offset = 0;
+        scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
     }
-    if (!find_block_to_scan) {
-        output.SetCardinality(0);
-        return true;
-    }
+    
     scan_length = scan_end_offset - scan_start_offset;
 
     // Find the column index
