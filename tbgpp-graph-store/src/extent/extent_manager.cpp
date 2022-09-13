@@ -58,6 +58,7 @@ void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChun
 }
 
 void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
+    throw NotImplementedException("Deprecated Function");
     idx_t input_chunk_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base = cdf_id_base << 32;
@@ -116,9 +117,9 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            // if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
-            //     chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-            // }
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             memcpy(buf_ptr, &input_size, sizeof(uint64_t));
@@ -147,6 +148,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
         ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
         extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        chunkdefinition_cat->SetNumEntriesInColumn(input.size());
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
@@ -169,7 +171,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             if (best_compression_function == DICTIONARY)
                 string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
-                string_len_total += (input.size() * sizeof(uint32_t)); // string len field
+                string_len_total += (input.size() * sizeof(uint64_t)); // string len field
             alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
@@ -196,21 +198,26 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
                 // Copy CompressionHeader
-                size_t offset = 0;
                 size_t input_size = input.size();
+                size_t string_len_offset = sizeof(CompressionHeader);
+                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint32_t);
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);
-                memcpy(buf_ptr + offset, &comp_header, sizeof(CompressionHeader));
-                offset += sizeof(CompressionHeader);
+                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
                 uint32_t string_len;
+                uint64_t accumulated_string_len = 0;
                 string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
 
                 for (size_t i = 0; i < input.size(); i++) {
+                    accumulated_string_len += string_buffer[i].GetSize();
+                    memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
+                    string_len_offset += sizeof(uint64_t);
+                }
+
+                for (size_t i = 0; i < input.size(); i++) {
                     string_len = string_buffer[i].GetSize();
-                    memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
-                    offset += sizeof(uint32_t);
-                    memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
-                    offset += string_len;
+                    memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
+                    string_data_offset += string_len;
                 }
             }
         } else if (l_type == LogicalType::ADJLIST) {
@@ -222,9 +229,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            // if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
-            //     chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-            // }
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+            }
 
             // Copy Data Into Cache
             //best_compression_function = BITPACKING;

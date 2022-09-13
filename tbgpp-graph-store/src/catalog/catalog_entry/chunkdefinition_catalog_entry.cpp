@@ -18,7 +18,6 @@ ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, Schem
 
 void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input_size) {
 	// return;
-	idx_t num_entries_in_column = input_size;
 	idx_t num_entries_in_array = (num_entries_in_column + MIN_MAX_ARRAY_SIZE - 1) / MIN_MAX_ARRAY_SIZE;
 	min_max_array.resize(num_entries_in_array);
 

@@ -49,6 +49,7 @@ public:
 	LogicalType data_type;
 	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
 	bool is_min_max_array_exist = false;
+	size_t num_entries_in_column;
 	vector<minmax_t> min_max_array;
 public:
 
@@ -56,7 +57,16 @@ public:
 	//virtual void Serialize(Serializer &serializer);
 	//! Deserializes to a CreateTableInfo
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
+	void SetNumEntriesInColumn(size_t num_entries_in_column_) {
+		num_entries_in_column = num_entries_in_column_;
+	}
+	size_t GetNumEntriesInColumn() {
+		return num_entries_in_column;
+	}
 	void CreateMinMaxArray(Vector &column, size_t input_size);
+	bool IsMinMaxArrayExist() {
+		return is_min_max_array_exist;
+	}
 	vector<minmax_t> GetMinMaxArray();
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
