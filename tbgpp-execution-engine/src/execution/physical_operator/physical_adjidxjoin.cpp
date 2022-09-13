@@ -108,14 +108,14 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// vid is not null. now get source vid
 		uint64_t vid = src_column[state.checkpoint.first];
 //IC(vid);
-		if(!adjfetch_timer_started){
-			adjfetch_timer.start();
-			adjfetch_timer_started = true;
-		} else {
-			adjfetch_timer.resume();
-		}
+		// if(!adjfetch_timer_started){
+		// 	adjfetch_timer.start();
+		// 	adjfetch_timer_started = true;
+		// } else {
+		// 	adjfetch_timer.resume();
+		// }
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
-		adjfetch_timer.stop();
+		// adjfetch_timer.stop();
 		size_t adjListSize = adj_end - adj_start;	
 //IC(adjListSize);
 		size_t numTargets = adjListSize/2;			// adjListSize = 2 * target vertices
@@ -190,9 +190,9 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	}
 
 breakLoop:
-	icecream::ic.enable();
-	IC( adjfetch_timer.elapsed().wall / 1000000.0);
-	icecream::ic.disable();
+	// icecream::ic.enable();
+	// IC( adjfetch_timer.elapsed().wall / 1000000.0);
+	// icecream::ic.disable();
 	// now produce finished. store state and exit
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
 	chunk.SetCardinality(numProducedTuples);
