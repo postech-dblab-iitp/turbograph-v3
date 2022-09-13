@@ -17,6 +17,8 @@
 #include "extent/extent_iterator.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 /*LiveGraphStore::LiveGraphStore(livegraph::Graph* graph, LiveGraphCatalog* catalog) {
 	this->graph = graph;
@@ -72,8 +74,10 @@ StoreAPIResult iTbgppGraphStore::doIndexSeek(ExtentIterator *&ext_it, DataChunk&
 	// std::cout << "A\n";
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
+IC(entry_name);
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+IC();
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	// std::cout << "B\n";
 	vector<string> properties_temp;
@@ -156,10 +160,13 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs) {
 	}
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
+IC(entry_name);
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
-	
+printf("%p\n", ps_cat_entry);
+
 	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
+IC(l_types.size());
 	for (int i = 0; i < l_types.size(); i++) {
 		if (l_types[i] == LogicalType::ADJLIST) adjColIdxs.push_back(i);
 	}

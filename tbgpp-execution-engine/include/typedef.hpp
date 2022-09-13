@@ -38,6 +38,9 @@ class LabelSet {
 
 public:
 	LabelSet() {}
+	LabelSet(std::string e1) { this->insert(e1); }
+	LabelSet(std::string e1, std::string e2) { this->insert(e1); this->insert(e1);  }
+	LabelSet(std::string e1, std::string e2, std::string e3 ) { this->insert(e1); this->insert(e2); this->insert(e3); }
 	void insert(std::string input);
 	// TODO support multiple insert at once by supporting variadic template
 

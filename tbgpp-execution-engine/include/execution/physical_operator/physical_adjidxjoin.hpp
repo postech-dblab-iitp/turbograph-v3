@@ -14,25 +14,9 @@ class PhysicalAdjIdxJoin: public CypherPhysicalOperator {
 
 public:
 	PhysicalAdjIdxJoin(CypherSchema& sch,
-		std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
-		: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), load_eid(load_eid), enumerate(enumerate) {
-		
-		// init timers
-		adjfetch_time = 0;
-		tgtfetch_time = 0;
+		std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate);
+	// TODO add interface with predicates : remaining predicates should be applied - look JoinCondition
 
-		// operator rules
-		bool check = (enumerate) ? true : (!load_eid);
-		assert( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
-
-		// TODO assert
-		assert( expandDir == ExpandDirection::OUTGOING && "currently supports outgoing index. how to do for both direction or incoming?"); // TODO needs support from the storage
-		assert( tgtLabelSet.size() == 0 && "currently do not filter target labels, Storage API support needed"); // TODO needs support from the storage
-		assert( edgeLabelSet.size() == 0 && "currently do not filter edge labels, Storage API support needed"); // TODO needs support from the storage
-		assert( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-		assert( join_type == JoinType::INNER && "write all fixmes"); // TODO needs support from the storage
-		
-	}
 	~PhysicalAdjIdxJoin() {}
 
 public:
@@ -46,16 +30,23 @@ public:
 	std::string ToString() const override;
 
 	// operator parameters
-		// src
+
 	std::string srcName;
+	// this is not actually necessary... src should be already given as node list. should further be removed.
 	LabelSet srcLabelSet;
-		// edge
+
+	// list of edges to scan (empty means all possible edges, otherwise, union items).
+	// Equivalent as performing join with multiple tables : e.g. R join S U R join S' -> R join (S U S')
 	LabelSet edgeLabelSet;
 	ExpandDirection expandDir;
-		// tgt
+
+	// join condition (filter) on target labels (empty means all existing nodes, intersection on multiple labels)
 	LabelSet tgtLabelSet;
-		// others
+	// remaining join conditions
+	// TODO add attribute here
+
 	JoinType join_type;
+
 	bool load_eid;
 	bool enumerate;
 

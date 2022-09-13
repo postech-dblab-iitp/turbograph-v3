@@ -14,7 +14,8 @@ namespace duckdb {
 
 //! The vector size used in the storage
 #ifndef STANDARD_VECTOR_SIZE
-#define STANDARD_VECTOR_SIZE 1024 // 1M, a unit of Disk IO
+#define STANDARD_VECTOR_SIZE 1024 // temporary
+// #define STANDARD_VECTOR_SIZE 1048576 // 1M, a unit of Disk IO
 //#define STANDARD_VECTOR_SIZE 16384 // 16K
 #endif
 

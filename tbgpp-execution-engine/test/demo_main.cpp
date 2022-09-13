@@ -162,17 +162,17 @@ int main(int argc, char** argv) {
 	argc = 1;
 
 	// Initialize Database
-	IC();
+	////IC();
 	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(nullptr);
-	IC();
+	//IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map;
 	
 	// Initialize ClientContext
-	IC();
+	//IC();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
 
 	CreateGraphInfo graph_info("main", "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
-	IC();
+	//IC();
 	// Read Vertex CSV File & CreateVertexExtents
 	for (auto &vertex_file: vertex_files) {
 		fprintf(stderr, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
@@ -310,9 +310,12 @@ int main(int argc, char** argv) {
 		ExtentIterator ext_it;
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
 		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
-		vector<idx_t> src_column_idxs = {(idx_t) src_column_idx};
-		vector<LogicalType> vertex_id_type = {LogicalType::UBIGINT};
+		vector<string> key_column_name = { "id" };
+		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
+		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+		vertex_ps_cat_entry->AppendType({ LogicalType::ADJLIST });
+		vertex_ps_cat_entry->AppendKey({ edge_type });
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -320,6 +323,7 @@ int main(int argc, char** argv) {
 		idx_t *vertex_id_column;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
+		vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -353,7 +357,9 @@ int main(int argc, char** argv) {
 		if (min_id == ULLONG_MAX) {
 			// Get First Vertex Extent
 			while (true) {
-			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+//IC();
+			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+//IC();
 				// We do not allow this case
 				throw InvalidInputException("E"); 
 			}
@@ -393,8 +399,9 @@ int main(int argc, char** argv) {
 				adj_list_buffer.push_back(epid_base + dst_seqno);
 			}
 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-
+//IC();
 			if (cur_src_id > max_id) {
+//IC();
 				// Fill offsets
 				idx_t last_offset = adj_list_buffer.size();
 				for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
@@ -404,22 +411,22 @@ int main(int argc, char** argv) {
 				DataChunk adj_list_chunk;
 				vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
 				vector<data_ptr_t> adj_list_datas(1);
-				vector<string> append_keys = { edge_type };
 				adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 				adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
 				ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 				adj_list_chunk.Destroy();
-
 				// Re-initialize adjlist buffer for next Extent
 				adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
 
 				// Read corresponding ID column of Src Vertex Extent
 				while (true) {
-				if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, false)) {
+//IC();
+				if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+//IC();
 					// We do not allow this case
 					throw InvalidInputException("F");
 				}
-			
+//IC();
 				// Initialize min & max id
 				vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
 				min_id = vertex_id_column[0];
@@ -440,7 +447,7 @@ int main(int argc, char** argv) {
 				D_ASSERT(vertex_seqno < STANDARD_VECTOR_SIZE);
 				}
 			}
-
+//IC();
 			prev_id = cur_src_id;
 			begin_idx = src_seqno;
 			src_seqno++;
@@ -472,7 +479,6 @@ int main(int argc, char** argv) {
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { LogicalType::ADJLIST };
 		vector<data_ptr_t> adj_list_datas(1);
-		vector<string> append_keys = { edge_type };
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
