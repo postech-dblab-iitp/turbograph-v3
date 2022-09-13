@@ -679,8 +679,8 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
     if (current_idx > max_idx) return false;
 
     // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
-        ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+    // for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
+    //     ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
 
     CompressionHeader comp_header;
     
@@ -714,6 +714,8 @@ void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ui
     
     ext_it = new ExtentIterator();
     ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
+    cur_eid = target_eid;
+    is_initialized = true;
 }
 
 void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {
