@@ -11,7 +11,7 @@
 #include "common/serializer.hpp"
 
 namespace duckdb {
-
+/*
 #define SERIALIZER_DEFAULT_SIZE 1024
 
 struct BinaryData {
@@ -44,6 +44,6 @@ public:
 	void Reset() {
 		blob.size = 0;
 	}
-};
+};*/
 
 } // namespace duckdb

@@ -373,6 +373,7 @@ enum class LogicalTypeId : uint8_t {
 	// TBGPP-specific
 	ADJLIST = 106,
 	ID = 107,
+	ADJLISTCOLUMN = 108,
 };
 
 struct ExtraTypeInfo;
@@ -481,6 +482,7 @@ public:
 	// TBGPP-specific
 	static constexpr const LogicalTypeId ADJLIST = LogicalTypeId::ADJLIST;
 	static constexpr const LogicalTypeId ID = LogicalTypeId::ID;
+	static constexpr const LogicalTypeId ADJLISTCOLUMN = LogicalTypeId::ADJLISTCOLUMN;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
 	DUCKDB_API static LogicalType DECIMAL(int width, int scale);                 // NOLINT
