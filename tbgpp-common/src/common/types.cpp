@@ -136,7 +136,8 @@ PhysicalType LogicalType::GetInternalType() {
 		return PhysicalType::UNKNOWN;
 	case LogicalTypeId::AGGREGATE_STATE:
 		return PhysicalType::VARCHAR;
-	case LogicalTypeId::ADJLIST:
+	case LogicalTypeId::FORWARD_ADJLIST:
+	case LogicalTypeId::BACKWARD_ADJLIST:
 		return PhysicalType::ADJLIST;	
 	case LogicalTypeId::ID:
 		return PhysicalType::UINT64;
@@ -186,7 +187,8 @@ constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 constexpr const LogicalTypeId LogicalType::TABLE;
 
 // TBGPP-specific
-constexpr const LogicalTypeId LogicalType::ADJLIST;
+constexpr const LogicalTypeId LogicalType::FORWARD_ADJLIST;
+constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
 
 constexpr const LogicalTypeId LogicalType::ANY;

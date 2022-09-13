@@ -371,8 +371,9 @@ enum class LogicalTypeId : uint8_t {
 	ENUM = 104,
 	AGGREGATE_STATE = 105,
 	// TBGPP-specific
-	ADJLIST = 106,
-	ID = 107,
+	FORWARD_ADJLIST = 106,
+	BACKWARD_ADJLIST = 107,
+	ID = 108,
 };
 
 struct ExtraTypeInfo;
@@ -479,7 +480,8 @@ public:
 	static constexpr const LogicalTypeId ROW_TYPE = LogicalTypeId::BIGINT;
 
 	// TBGPP-specific
-	static constexpr const LogicalTypeId ADJLIST = LogicalTypeId::ADJLIST;
+	static constexpr const LogicalTypeId FORWARD_ADJLIST = LogicalTypeId::FORWARD_ADJLIST;
+	static constexpr const LogicalTypeId BACKWARD_ADJLIST = LogicalTypeId::BACKWARD_ADJLIST;
 	static constexpr const LogicalTypeId ID = LogicalTypeId::ID;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
