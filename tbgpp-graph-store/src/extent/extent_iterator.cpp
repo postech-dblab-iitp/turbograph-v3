@@ -211,7 +211,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             break;
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             continue;
         } else if (ext_property_types[i] == LogicalType::ID) {
             continue;
@@ -266,7 +266,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // fprintf(stdout, "ADJLIST\n");
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
@@ -396,7 +396,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             break;
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             continue;
         } else if (ext_property_types[i] == LogicalType::ID) {
             continue;
@@ -454,7 +454,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // size_t adj_list_end = adjListBase[STANDARD_VECTOR_SIZE - 1];
@@ -588,7 +588,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     D_ASSERT(offset <= io_requested_buf_sizes[prev_toggle][i]);
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::ADJLIST) {
+        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
@@ -624,7 +624,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
-    D_ASSERT(ext_property_types[0] == LogicalType::ADJLIST); // Only for ADJLIIST now..
+    D_ASSERT(ext_property_types[0] == LogicalType::FORWARD_ADJLIST || ext_property_types[0] == LogicalType::BACKWARD_ADJLIST); // Only for ADJLIIST now..
     // Keep previous values
     int prev_toggle = toggle;
     if (current_idx > max_idx) return false;
@@ -660,7 +660,7 @@ void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ui
 
     if (is_initialized && target_eid == cur_eid) return;
 
-    vector<LogicalType> target_types { LogicalType::ADJLIST };
+    vector<LogicalType> target_types { LogicalType::FORWARD_ADJLIST }; // TODO controlled by parameter
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
     
     ext_it = new ExtentIterator();
