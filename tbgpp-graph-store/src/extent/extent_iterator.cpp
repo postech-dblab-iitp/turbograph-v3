@@ -357,6 +357,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // For the case: scanSchema != ext_property_types
     vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));
+
     vector<bool> valid_output;
     valid_output.resize(target_idxs.size());
     idx_t output_idx = 0;
@@ -368,6 +369,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             valid_output[i] = false;
         }
     }
+
 
     // Initialize output DataChunk & copy each column
     // fprintf(stdout, "E\n");
@@ -407,8 +409,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     scan_length = scan_end_offset - scan_start_offset;
 
     // Find the column index
-for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
-
     auto col_idx_find_result = std::find(io_requested_cdf_ids[prev_toggle].begin(), io_requested_cdf_ids[prev_toggle].end(), filter_cdf_id);
     if (col_idx_find_result == io_requested_cdf_ids[prev_toggle].end()) throw InvalidInputException("I/O Error");
     idx_t col_idx = col_idx_find_result - io_requested_cdf_ids[prev_toggle].begin();
@@ -491,7 +491,7 @@ for( auto& i: io_requested_cdf_ids[prev_toggle]) { IC( i ); }
     // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     output_idx = 0;
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (!valid_output[i]) continue;
+        if (i != 0 && !valid_output[i - 1]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
             // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 

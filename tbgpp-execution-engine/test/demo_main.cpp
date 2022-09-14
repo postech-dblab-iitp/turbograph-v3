@@ -938,6 +938,8 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
 	(*content)["Actual Rows"] = op->processed_tuples; // TODO fix
 	(*content)["Actual Loops"] = 1; // meaningless
+	// output shcma
+	(*content)["Output Schema"] = op->schema.toString();
 
 	// TODO add operator-speciic
 	// if( op->ToString() == "NExpand" ) {

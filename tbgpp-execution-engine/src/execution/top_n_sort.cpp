@@ -14,8 +14,6 @@ void TopNSortState::Initialize() {
 	RowLayout layout;
 	layout.Initialize(heap.payload_types);
 	auto &buffer_manager = BufferManager::GetBufferManager(heap.context);
-IC();
-IC( buffer_manager.GetMaxMemory() );
 	global_state = make_unique<GlobalSortState>(buffer_manager, heap.orders, layout);
 	local_state = make_unique<LocalSortState>();
 	local_state->Initialize(*global_state, buffer_manager);
