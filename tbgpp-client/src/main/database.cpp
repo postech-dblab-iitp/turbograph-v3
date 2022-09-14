@@ -131,7 +131,15 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
     // 	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
     // 	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
    	// } remover;
-	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, "/data/iTurboGraph_Catalog_SHM", (void *) 0x10000000000);
+	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
+	const_named_it named_beg = catalog_shm->named_begin();
+	const_named_it named_end = catalog_shm->named_end();
+	fprintf(stdout, "All named object list\n");
+	for(; named_beg != named_end; ++named_beg){
+		//A pointer to the name of the named object
+		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		fprintf(stdout, "\t%s\n", name);
+	}
 	catalog = make_unique<Catalog>(*this, catalog_shm);
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);

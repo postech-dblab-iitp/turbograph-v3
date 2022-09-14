@@ -179,7 +179,7 @@ int main(int argc, char** argv) {
 	// Initialize Database
 	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
-	database = make_unique<DuckDB>(nullptr);
+	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	//IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
