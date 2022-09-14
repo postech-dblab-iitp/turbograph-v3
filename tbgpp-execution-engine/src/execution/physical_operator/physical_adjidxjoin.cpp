@@ -34,7 +34,7 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	assert( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
 	assert( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
 	assert( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-	assert( join_type == JoinType::INNER && "write all fixmes"); // TODO needs support from the storage
+	// assert( join_type == JoinType::INNER && "write all fixmes"); // TODO needs support from the storage
 		
 }
 
@@ -55,7 +55,7 @@ public:
 	std::pair<u_int64_t,u_int64_t> checkpoint;
 	AdjacencyListIterator *adj_it;
 	
-	// TODO future get filter information for edge labelset and target labelset
+	// TODO future get filter information for target labelset
 
 };
 
@@ -67,13 +67,16 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
-
+// icecream::ic.enable();
+IC(input.ToString(1));
 	// init
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
 	const idx_t srcColIdx = schema.getColIdxOfKey(srcName);	// first index of source node : where source node id is
 	const idx_t edgeColIdx = input.ColumnCount();			// not using when load_eid = false
 	const idx_t tgtColIdx = input.ColumnCount() + int(load_eid);	// first index of target node : where target node id should be OR start index of range
-
+IC(srcColIdx);
+IC(edgeColIdx);
+IC(tgtColIdx);
 	// intra-chunk variables
 	int numProducedTuples = 0;
 	bool isHaveMoreOutput = false;
@@ -81,8 +84,12 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 	// get adjacency list columns in column
 	vector<int> adjColIdxs;
+// IC();
+// for( auto& k: edgeLabelSet.data ) { IC(k); }
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs, expandDir, edgeLabelSet);
 	D_ASSERT( adjColIdxs.size() > 0 );
+// IC(adjColIdxs.size());
+// IC(adjColIdxs[0]);
 	uint64_t* adj_start; uint64_t* adj_end;
 
 	// fetch source column
@@ -92,48 +99,66 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 		// check if output chunk full
 		if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) { isHaveMoreOutput = true; goto breakLoop; }
+
 		// check if vid is null
-		if( state.checkpoint.second == 0 &&	FlatVector::IsNull(input.data[srcColIdx], state.checkpoint.first) ) {
+		if( state.checkpoint.second == 0 && input.GetValue(srcColIdx, state.checkpoint.first).IsNull() ) {
+			// when left join produce left
 			if( join_type == JoinType::LEFT ) {
-				// FIXME produce lsh join null
-				// consider edge
+				// produce lhs
+				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+				}
+				// produce rhs (null)
+				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
+				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
 				numProducedTuples +=1;
-			} else { continue; }
+			}
+			continue;
 		}
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
 		// vid is not null. now get source vid
 		uint64_t vid = src_column[state.checkpoint.first];
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
 		size_t adjListSize = adj_end - adj_start;
-		D_ASSERT( adjListSize % 2 == 0);
+		D_ASSERT( adjListSize % 2 == 0 );
 
 		size_t numTargets = (adjListSize / 2) - state.checkpoint.second;			// adjListSize = 2 * target vertices
 
 		// in anti/semijoin, the result is always smaller than input. Thus no overflow check required
 		if ( join_type == JoinType::SEMI ) {
 			if( adjListSize > 0 ) { 
-				// FIXME produce lhs
+				// produce lhs only
+				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+				}
 				numProducedTuples +=1;
-			 }
+			}
 			continue;
 		} else if (join_type == JoinType::ANTI ) {
 			if( adjListSize == 0 ) { 
-				// FIXME produce lhs
+				// produce lhs only
+				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+				}
 				numProducedTuples +=1;
-			 }
+			}
 			continue;
 		}
 		// for left join, consider no adjacency case
 		if ( join_type == JoinType::LEFT ) {
 			if( adjListSize == 0 ) { 
-				// FIXME produce lhs, null
-				// consider edge
+				// produce lhs
+				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+				}
+				// produce rhs (null)
+				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
+				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
 				numProducedTuples +=1;
 			}
 			continue;
 		}
 
-		// if( enumerate ) {
 		// enumerate mode
 		// choose smaller one
 		const size_t numTuplesToProduce = ((EXEC_ENGINE_VECTOR_SIZE - numProducedTuples) > numTargets )
@@ -158,11 +183,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			isHaveMoreOutput = true;
 			goto breakLoop;
 		}
-		
-		// } else {
-		// 	// range mode
-		// 	D_ASSERT(false); // TODO needs logic recheck
-		// }
+	
 	}
 
 breakLoop:

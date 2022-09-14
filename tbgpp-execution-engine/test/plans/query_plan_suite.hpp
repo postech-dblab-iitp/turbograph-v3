@@ -72,6 +72,7 @@ public:
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
 		if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
 		if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
+		if( key.compare("s7") == 0 ) { return LDBC_IS7(); }
 		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
 		else { return std::vector<CypherPipelineExecutor*>(); }
 	}
@@ -93,12 +94,12 @@ public:
 														// all to-fix parts marked FIXME
 														// Q_GEN | Q_WORKS | CORRECT
 	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// o | o | o |
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// o |   |   |	// nodescan dies. change to variable error in plan..? wrong proeprty
-	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o |   |   |  // change to BOTH direction.
+	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// o | o | o |	// nodescan dies. change to variable error in plan..? 
+	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o | o | o |  // change to BOTH direction.
 	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o | o | o |
 	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// o | o | o |
-	std::vector<CypherPipelineExecutor*> LDBC_IS6();	// o | o | x |	// DATA (has_moderator) is wrong.. no edge
-	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS6();	// o | o | _ |	// DATA (has_moderator) is wrong.. no edge
+	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// o | o | o |
 
 	std::vector<CypherPipelineExecutor*> LDBC_IC1();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IC2();	//   |   |   |

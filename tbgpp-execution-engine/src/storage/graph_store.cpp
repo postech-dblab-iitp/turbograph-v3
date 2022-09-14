@@ -160,6 +160,7 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, E
 	if( labels.size()!= 1 ) {
 		throw InvalidInputException("demo08 invalid!");
 	}
+// IC();
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
@@ -168,9 +169,7 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, E
 	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
 	vector<string> keys = move(ps_cat_entry->GetKeys());
 	D_ASSERT(l_types.size() == keys.size());
-// icecream::ic.enable();
 // for( auto& key : keys) { IC(key); }
-// icecream::ic.disable();
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		for (int i = 0; i < l_types.size(); i++)
 			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && edgeLabels.contains(keys[i])) adjColIdxs.push_back(i);
