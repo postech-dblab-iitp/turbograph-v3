@@ -140,11 +140,8 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// src
 	ops.push_back( prev_pipe->pipeline->GetSink() );
 	// ops
-// FIXME here
-	//ops.push_back( new Physical)	// TODO here
+	ops.push_back( new PhysicalAdjIdxJoin(sch1, "message", LabelSet("Comment"), LabelSet("REPLY_OF"), ExpandDirection::OUTGOING, LabelSet("Post"), JoinType::INNER, false, true) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "post", LabelSet("Post"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true) );
-// FIXME here ; do i need to filter by target nodes? // custom filter?
-	// TODO change plan : 
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "post", LabelSet("Post"), seek1_prop));
 	ops.push_back( new PhysicalNodeIdSeek(sch3_1, "person", LabelSet("Person"), seek2_prop));
 	ops.push_back( new PhysicalProjection(sch4, move(proj_exprs)));

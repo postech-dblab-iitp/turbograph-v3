@@ -67,8 +67,10 @@ public:
 
 		/* LDBC queries */
 		if( key.compare("s1") == 0 ) { return LDBC_IS1(); }
+		if( key.compare("s2") == 0 ) { return LDBC_IS2(); }
+		if( key.compare("s3") == 0 ) { return LDBC_IS3(); }
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
-		// if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
+		if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
 		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
 		else { return std::vector<CypherPipelineExecutor*>(); }
 	}
@@ -89,11 +91,11 @@ public:
 														// ( ! : need to set predicate value)
 														// all to-fix parts marked FIXME
 														// Q_GEN | Q_WORKS | CORRECT
-	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// ! |  o |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// ! |    |   |	// adjjoin
-	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// ! |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// ! |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// o | o | o |
+	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// o |    |   |	// nodescan dies. change to variable
+	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o |  |  |    // nodescan dies. change to BOTH direction.
+	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o | o  | o  |
+	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// o |   |   |	// nodescan dies
 	std::vector<CypherPipelineExecutor*> LDBC_IS6();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
 

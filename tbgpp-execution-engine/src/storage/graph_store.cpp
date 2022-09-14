@@ -104,6 +104,7 @@ IC();
 
 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID
+
 	ext_it = new ExtentIterator();
 	// std::cout << "E\n";
 	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs, target_eid);

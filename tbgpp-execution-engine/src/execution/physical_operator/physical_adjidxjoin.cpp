@@ -106,7 +106,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
 		size_t adjListSize = adj_end - adj_start;
 		D_ASSERT( adjListSize % 2 == 0);
-		
+
 		size_t numTargets = (adjListSize / 2) - state.checkpoint.second;			// adjListSize = 2 * target vertices
 
 		// in anti/semijoin, the result is always smaller than input. Thus no overflow check required
@@ -144,9 +144,10 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
 			}
-			// produce rhs : (edgeid), tid
-			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2] )); }
-			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2 + 1] ));
+			// produce rhs : tid, (edgeid)
+			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2] ));
+			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2 + 1] )); }
+
 			numProducedTuples +=1;
 		}
 
