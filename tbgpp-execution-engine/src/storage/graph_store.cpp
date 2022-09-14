@@ -154,7 +154,7 @@ bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 	return true;
 }
 
-void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, ExpandDirection expand_dir) {
+void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, ExpandDirection expand_dir, Labels tgt_labels) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	if( labels.size()!= 1 ) {
@@ -166,15 +166,17 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, E
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
 
 	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
+	vector<string> keys = move(ps_cat_entry->GetKeys());
+	D_ASSERT(l_types.size() == keys.size());
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		for (int i = 0; i < l_types.size(); i++)
-			if (l_types[i] == LogicalType::FORWARD_ADJLIST) adjColIdxs.push_back(i);
+			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && tgt_labels.contains(keys[i])) adjColIdxs.push_back(i);
 	} else if (expand_dir == ExpandDirection::INCOMING) {
 		for (int i = 0; i < l_types.size(); i++)
-			if (l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColIdxs.push_back(i);
+			if ((l_types[i] == LogicalType::BACKWARD_ADJLIST) && tgt_labels.contains(keys[i])) adjColIdxs.push_back(i);
 	} else if (expand_dir == ExpandDirection::BOTH) {
 		for (int i = 0; i < l_types.size(); i++)
-			if (l_types[i] == LogicalType::FORWARD_ADJLIST || l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColIdxs.push_back(i);
+			if ((l_types[i] == LogicalType::FORWARD_ADJLIST || l_types[i] == LogicalType::BACKWARD_ADJLIST) && && tgt_labels.contains(keys[i])) adjColIdxs.push_back(i);
 	}
 }
 
