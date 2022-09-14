@@ -127,7 +127,6 @@ icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
-icecream::ic.enable();IC();icecream::ic.disable();
 		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 			// timer stop
 		pipeline->GetSink()->op_timer.stop();
