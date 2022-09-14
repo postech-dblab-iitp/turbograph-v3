@@ -29,7 +29,8 @@ CatalogServer::CatalogServer(const std::string &unix_socket)
 bool CatalogServer::recreate() {
   // Remove the existing shared memory
   boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
-  
+  delete catalog_segment;
+
   // Create shared memory
   catalog_segment = new fixed_managed_shared_memory(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024, (void *) 0x10000000000);
   fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");

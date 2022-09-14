@@ -42,9 +42,8 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 
 void PhysicalProduceResults::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	auto& state = (ProduceResultsState &) lstate;
-icecream::ic.enable();
-IC();
-icecream::ic.disable();
+
+
 	int LIMIT = 10;
 	size_t num_total_tuples = 0;
 	for (auto &it : state.resultChunks) num_total_tuples += it->size();
