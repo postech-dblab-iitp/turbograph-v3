@@ -182,7 +182,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
-        fprintf(stdout, "[ChunkCacheManager] Get size %ld buffer\n", buf_size);
+//        fprintf(stdout, "[ChunkCacheManager] Get size %ld buffer\n", buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
@@ -260,7 +260,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
-        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
+//        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
     }
 }
 

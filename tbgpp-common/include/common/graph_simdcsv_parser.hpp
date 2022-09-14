@@ -546,7 +546,7 @@ public:
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
+    // std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
@@ -645,7 +645,7 @@ public:
 		// }
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
+    // std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {

@@ -145,8 +145,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
 			}
 			// produce rhs : tid, (edgeid)
-			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2] ));
-			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[state.checkpoint.second*2 + 1] )); }
+			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2)] ));
+			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2 + 1)] )); }
 
 			numProducedTuples +=1;
 		}

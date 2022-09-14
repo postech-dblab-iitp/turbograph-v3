@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+//			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
 			//continue;
 			//fprintf(stderr, "%s\n", data.ToString().c_str());
 			// Create Vertex Extent by Extent Manager
@@ -267,7 +267,7 @@ int main(int argc, char** argv) {
 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+//			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
 			property_schema_cat->AddExtent(new_eid);
 			
 			if (load_edge) {
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
 				}
 				auto map_build_end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+//				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
 				// Build Index
 				// auto index_build_start = std::chrono::high_resolution_clock::now();
@@ -399,7 +399,7 @@ int main(int argc, char** argv) {
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+//			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = property_schema_cat->GetNewExtentID();

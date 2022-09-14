@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "icecream.hpp"	
 namespace duckdb {
 
 string SimilarCatalogEntry::GetQualifiedName() const {
@@ -350,7 +351,6 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
 		}
-
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
 		if (!entry && !if_exists) {
 			D_ASSERT(false);
