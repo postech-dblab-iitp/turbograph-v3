@@ -27,12 +27,12 @@ CatalogServer::CatalogServer(const std::string &unix_socket)
 }
 
 bool CatalogServer::recreate() {
-  // // Remove the existing shared memory
-  // boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
+  // Remove the existing shared memory
+  boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
   
-  // // Create shared memory
-  // catalog_segment = new fixed_managed_shared_memory(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024, (void *) 0x10000000000);
-  // fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");
+  // Create shared memory
+  catalog_segment = new fixed_managed_shared_memory(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024, (void *) 0x10000000000);
+  fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");
   return true;
 }
 
@@ -67,9 +67,9 @@ void CatalogServer::listener() {
       exit(-1);
     }
     
-    // bool reinitialize_done = recreate();
-    bool reinitialize_done;
-    Exit();
+    bool reinitialize_done = recreate();
+    // bool reinitialize_done;
+    // Exit();
     
     int bytes_sent = send(client_fd, &reinitialize_done, sizeof(reinitialize_done), 0);
     if (bytes_sent != sizeof(reinitialize_done)) {
