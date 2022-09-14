@@ -87,7 +87,7 @@ struct SimilarCatalogEntry {
 class Catalog {
 	typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
-	typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
+	typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 	
 public:
 	explicit Catalog(DatabaseInstance &db, fixed_managed_shared_memory *&catalog_segment);

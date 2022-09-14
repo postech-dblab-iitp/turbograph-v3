@@ -228,7 +228,8 @@ int main(int argc, char** argv) {
 			throw InvalidInputException("");
 		}
 		
-		int64_t key_column_idx = reader.GetKeyColumnIndexFromHeader();
+		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+		D_ASSERT(key_column_idxs.size() == 1); // XXX Temporary
 		
 		string property_schema_name = "vps_" + vertex_file.first;
 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
@@ -279,8 +280,8 @@ int main(int argc, char** argv) {
 
 				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
 				auto map_build_start = std::chrono::high_resolution_clock::now();
-				if (key_column_idx < 0) continue;
-				idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
+				if (key_column_idxs[0] < 0) continue;
+				idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData(); // XXX idx_t type?
 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
 					lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
 				}

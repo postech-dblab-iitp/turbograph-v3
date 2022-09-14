@@ -485,6 +485,7 @@ Value Vector::GetValue(idx_t index) const {
 	if (!validity.RowIsValid(index)) {
 		return Value(GetType());
 	}
+
 	switch (GetType().id()) {
 	case LogicalTypeId::BOOLEAN:
 		return Value::BOOLEAN(((bool *)data)[index]);
@@ -510,6 +511,7 @@ Value Vector::GetValue(idx_t index) const {
 		return Value::UINTEGER(((uint32_t *)data)[index]);
 	case LogicalTypeId::UBIGINT:
 	case LogicalTypeId::ID:
+	case LogicalTypeId::ADJLISTCOLUMN:
 		return Value::UBIGINT(((uint64_t *)data)[index]);
 	case LogicalTypeId::TIMESTAMP:
 		return Value::TIMESTAMP(((timestamp_t *)data)[index]);

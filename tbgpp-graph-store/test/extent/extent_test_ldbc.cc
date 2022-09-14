@@ -103,6 +103,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   ExtentManager ext_mng; // TODO put this into database
   vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
   vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
+  vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
 
   // Initialize ClientContext
   std::shared_ptr<ClientContext> client = 
@@ -119,7 +120,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
   int aaa;
   // std::cin >> aaa;
   // Read Vertex CSV File & CreateVertexExtents
-  unique_ptr<Index> index; // Temporary..
+  // unique_ptr<Index> index; // Temporary..
   for (auto &vertex_file: vertex_files) {
     auto vertex_file_start = std::chrono::high_resolution_clock::now();
     fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
@@ -147,7 +148,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       throw InvalidInputException("");
     }
     
-    int64_t key_column_idx = reader.GetKeyColumnIndexFromHeader();
+    vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
     
     string property_schema_name = "vps_" + vertex_file.first;
     fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
@@ -165,14 +166,18 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     data.Initialize(types);
 
     // Initialize LID_TO_PID_MAP
-    unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
+    // unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
+    ART *index;
+    
     if (load_edge) {
-      lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
-      lid_to_pid_map_instance = &lid_to_pid_map.back().second;
-      lid_to_pid_map_instance->reserve(approximated_num_rows);
+      // lid_to_pid_index.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
+      // lid_to_pid_map_instance = &lid_to_pid_map.back().second;
+      // lid_to_pid_map_instance->reserve(approximated_num_rows);
       vector<column_t> column_ids;
-      column_ids.push_back(key_column_idx);
-      index = make_unique<ART>(column_ids, IndexConstraintType::NONE);
+      for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
+      index = new ART(column_ids, IndexConstraintType::NONE);
+      std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
+      lid_to_pid_index.push_back(pair_to_insert);
     }
 
     // Read CSV File into DataChunk & CreateVertexExtent
@@ -197,34 +202,36 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
         pid_base = pid_base << 32;
 
         // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
-        auto map_build_start = std::chrono::high_resolution_clock::now();
-        if (key_column_idx < 0) continue;
-        idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
-        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-          lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
-          // if (new_eid >= 65536 + 55 && new_eid <= 65536 + 57) {
-          //std::cout << key_column[seqno] << " inserted at seqno: " << seqno << ", pid = " << pid_base + seqno << std::endl;
-          // }
-        }
-        auto map_build_end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-        fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+        // auto map_build_start = std::chrono::high_resolution_clock::now();
+        // if (key_column_idxs.size() == 0) continue;
+        // idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
+        // for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+        //   lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
+        //   // if (new_eid >= 65536 + 55 && new_eid <= 65536 + 57) {
+        //   //std::cout << key_column[seqno] << " inserted at seqno: " << seqno << ", pid = " << pid_base + seqno << std::endl;
+        //   // }
+        // }
+        // auto map_build_end = std::chrono::high_resolution_clock::now();
+        // std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+        // fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
         // Build Index
-        // auto index_build_start = std::chrono::high_resolution_clock::now();
-        // Vector row_ids(LogicalType::UBIGINT, true, false, data.size());
-        // for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-        //   row_ids.SetValue(seqno, Value::UBIGINT(pid_base + seqno));
-        // }
-        // DataChunk tmp_chunk;
-        // vector<LogicalType> tmp_types = {LogicalType::UBIGINT};
-        // tmp_chunk.Initialize(tmp_types);
-        // tmp_chunk.data[0].Reference(data.data[key_column_idx]);
-        // IndexLock lock;
-        // index->Insert(lock, tmp_chunk, row_ids);
-        // auto index_build_end = std::chrono::high_resolution_clock::now();
-        // std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-        // fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
+        auto index_build_start = std::chrono::high_resolution_clock::now();
+        Vector row_ids(LogicalType::UBIGINT, true, false, data.size());
+        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+          row_ids.SetValue(seqno, Value::UBIGINT(pid_base + seqno));
+        }
+        DataChunk tmp_chunk;
+        vector<LogicalType> tmp_types;
+        tmp_types.resize(key_column_idxs.size());
+        for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
+        tmp_chunk.Initialize(tmp_types);
+        for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
+        IndexLock lock;
+        index->Insert(lock, tmp_chunk, row_ids);
+        auto index_build_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
+        fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
       }
       read_chunk_start = std::chrono::high_resolution_clock::now();
     }
@@ -266,15 +273,15 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("B");
     fprintf(stdout, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
 
-    auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-      [&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
-    if (src_it == lid_to_pid_map.end()) throw InvalidInputException("C");
-    unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
+    auto src_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
+      [&src_column_name](const std::pair<string, ART*> &element) { return element.first == src_column_name; });
+    if (src_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
+    ART *src_lid_to_pid_index_instance = src_it->second;
 
-    auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-      [&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
-    if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("D");
-    unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
+    auto dst_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
+      [&dst_column_name](const std::pair<string, ART*> &element) { return element.first == dst_column_name; });
+    if (dst_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
+    ART *dst_lid_to_pid_index_instance = dst_it->second;
 
     string property_schema_name = "eps_" + edge_file.first;
     CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
@@ -345,7 +352,12 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
       begin_idx = src_seqno;
       prev_id = cur_src_id = src_key_column[src_seqno];
       
-      D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
+      ARTIndexScanState state;
+      vector<row_t> result_ids;
+      unique_ptr<Key> index_key = CreateKey(index, PhysicalType::UINT64, src_key_column[src_seqno]);
+      //D_ASSERT(src_lid_to_pid_index_instance-> .find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
+      state.values[0] = src_key_column[src_seqno];
+      src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
       cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
       src_key_column[src_seqno] = cur_src_pid;
       src_seqno++;

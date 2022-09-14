@@ -22,7 +22,7 @@ private:
   bool recreate();
 
   std::string unix_socket_;
-  fixed_managed_shared_memory *catalog_segment;
+  fixed_managed_mapped_file *catalog_segment;
 };
 
 } // namespace duckdb

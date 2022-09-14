@@ -471,21 +471,21 @@ static unique_ptr<Key> CreateKey(ART &art, PhysicalType type, Value &value) {
 	}
 }
 
-// bool ART::SearchEqual(ARTIndexScanState *state, idx_t max_count, vector<row_t> &result_ids) {
-// 	auto key = CreateKey(*this, types[0], state->values[0]);
-// 	auto leaf = static_cast<Leaf *>(Lookup(tree, *key, 0));
-// 	if (!leaf) {
-// 		return true;
-// 	}
-// 	if (leaf->num_elements > max_count) {
-// 		return false;
-// 	}
-// 	for (idx_t i = 0; i < leaf->num_elements; i++) {
-// 		row_t row_id = leaf->GetRowId(i);
-// 		result_ids.push_back(row_id);
-// 	}
-// 	return true;
-// }
+bool ART::SearchEqual(ARTIndexScanState *state, idx_t max_count, vector<row_t> &result_ids) {
+	auto key = CreateKey(*this, types[0], state->values[0]);
+	auto leaf = static_cast<Leaf *>(Lookup(tree, *key, 0));
+	if (!leaf) {
+		return true;
+	}
+	if (leaf->num_elements > max_count) {
+		return false;
+	}
+	for (idx_t i = 0; i < leaf->num_elements; i++) {
+		row_t row_id = leaf->GetRowId(i);
+		result_ids.push_back(row_id);
+	}
+	return true;
+}
 
 // void ART::SearchEqualJoinNoFetch(Value &equal_value, idx_t &result_size) {
 // 	//! We need to look for a leaf
