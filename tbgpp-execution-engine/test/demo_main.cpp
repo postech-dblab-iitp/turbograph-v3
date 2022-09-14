@@ -180,14 +180,12 @@ int main(int argc, char** argv) {
 	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(nullptr);
-	//IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
 
 	// Initialize ClientContext
-	//IC();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
@@ -198,7 +196,7 @@ int main(int argc, char** argv) {
 
 	CreateGraphInfo graph_info("main", "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
-	//IC();
+
 	// Read Vertex CSV File & CreateVertexExtents
 	// unique_ptr<Index> index; // Temporary..
 	for (auto &vertex_file: vertex_files) {
@@ -462,18 +460,32 @@ int main(int argc, char** argv) {
 				} else {
 					lid_pair.first = prev_id;
 					end_idx = src_seqno;
-					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
-							fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+					if (load_backward_edge) {
+						for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+							// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+							// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+							// }
+							D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+							cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+							lid_pair.second = dst_key_column[dst_seqno];
+							dst_key_column[dst_seqno] = cur_dst_pid;
+							adj_list_buffer.push_back(cur_dst_pid);
+							adj_list_buffer.push_back(epid_base + dst_seqno);
+							lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
 						}
-						D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-						cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-						lid_pair.second = dst_key_column[dst_seqno];
-						dst_key_column[dst_seqno] = cur_dst_pid;
-						adj_list_buffer.push_back(cur_dst_pid);
-						adj_list_buffer.push_back(epid_base + dst_seqno);
-						lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+					} else {
+						for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+							// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+							// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+							// }
+							D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+							cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+							dst_key_column[dst_seqno] = cur_dst_pid;
+							adj_list_buffer.push_back(cur_dst_pid);
+							adj_list_buffer.push_back(epid_base + dst_seqno);
+						}
 					}
+					
 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
 					if (cur_src_id > max_id) {
@@ -531,16 +543,26 @@ int main(int argc, char** argv) {
 			// Process remaining dst vertices
 			lid_pair.first = prev_id;
 			end_idx = src_seqno;
-			for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-				D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-				lid_pair.second = dst_key_column[dst_seqno];
-				dst_key_column[dst_seqno] = cur_dst_pid;
-				adj_list_buffer.push_back(cur_dst_pid);
-				adj_list_buffer.push_back(epid_base + dst_seqno);
-				lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+			if (load_backward_edge) {
+				for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+					D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+					cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+					lid_pair.second = dst_key_column[dst_seqno];
+					dst_key_column[dst_seqno] = cur_dst_pid;
+					adj_list_buffer.push_back(cur_dst_pid);
+					adj_list_buffer.push_back(epid_base + dst_seqno);
+					lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+				}
+			} else {
+				for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+					D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+					cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+					dst_key_column[dst_seqno] = cur_dst_pid;
+					adj_list_buffer.push_back(cur_dst_pid);
+					adj_list_buffer.push_back(epid_base + dst_seqno);
+				}
 			}
-			
+
 			// Create Edge Extent by Extent Manager
 			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
 			property_schema_cat->AddExtent(new_eid);
