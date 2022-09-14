@@ -208,7 +208,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
         }
         auto map_build_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-        fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+//        fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
         // Build Index
         // auto index_build_start = std::chrono::high_resolution_clock::now();
@@ -323,7 +323,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+//      fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
       // Get New ExtentID for this chunk
       ExtentID new_eid = property_schema_cat->GetNewExtentID();

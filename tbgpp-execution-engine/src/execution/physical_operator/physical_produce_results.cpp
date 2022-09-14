@@ -52,7 +52,6 @@ void PhysicalProduceResults::Combine(ExecutionContext& context, LocalSinkState& 
 	if (num_total_tuples != 0) {
 		auto& firstchunk = state.resultChunks[0];
 		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-		// TODO print column schema
 		for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
 			std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
 		}
