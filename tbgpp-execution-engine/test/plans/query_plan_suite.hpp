@@ -92,10 +92,10 @@ public:
 														// all to-fix parts marked FIXME
 														// Q_GEN | Q_WORKS | CORRECT
 	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// o | o | o |
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// o |    |   |	// nodescan dies. change to variable
-	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o |  |  |    // nodescan dies. change to BOTH direction.
-	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o | o  | o  |
-	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// o |   |   |	// nodescan dies
+	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// o |   |   |	// nodescan dies. change to variable error in plan..? wrong proeprty
+	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o |   |   |  // nodescan dies. change to BOTH direction.
+	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o | o | o |
+	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// o | o | o |
 	std::vector<CypherPipelineExecutor*> LDBC_IS6();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
 

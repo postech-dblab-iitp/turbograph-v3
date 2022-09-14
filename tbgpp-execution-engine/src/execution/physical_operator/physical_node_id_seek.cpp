@@ -23,6 +23,9 @@ unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 
+icecream::ic.enable();
+IC( input.ToString(1) );
+
 	auto &state = (NodeIdSeekState &)lstate;
 IC();
 	DataChunk targetTupleChunk;
@@ -75,7 +78,11 @@ IC( int(numAddedColumns) );
 	}
 	chunk.SetCardinality( input.size() );
 IC(chunk.ToString(1));
+icecream::ic.disable();
+
 	return OperatorResultType::NEED_MORE_INPUT;
+
+
 }
 
 std::string PhysicalNodeIdSeek::ParamsToString() const {
