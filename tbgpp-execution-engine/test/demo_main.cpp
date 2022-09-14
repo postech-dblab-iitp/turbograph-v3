@@ -463,17 +463,30 @@ int main(int argc, char** argv) {
 				} else {
 					lid_pair.first = prev_id;
 					end_idx = src_seqno;
-					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
-							fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+					if (load_backward_edge) {
+						for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+							// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+							// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+							// }
+							D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+							cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+							lid_pair.second = dst_key_column[dst_seqno];
+							dst_key_column[dst_seqno] = cur_dst_pid;
+							adj_list_buffer.push_back(cur_dst_pid);
+							adj_list_buffer.push_back(epid_base + dst_seqno);
+							lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
 						}
-						D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-						cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-						lid_pair.second = dst_key_column[dst_seqno];
-						dst_key_column[dst_seqno] = cur_dst_pid;
-						adj_list_buffer.push_back(cur_dst_pid);
-						adj_list_buffer.push_back(epid_base + dst_seqno);
-						lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+					} else {
+						for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+							// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+							// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+							// }
+							D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+							cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+							dst_key_column[dst_seqno] = cur_dst_pid;
+							adj_list_buffer.push_back(cur_dst_pid);
+							adj_list_buffer.push_back(epid_base + dst_seqno);
+						}
 					}
 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
@@ -532,14 +545,24 @@ int main(int argc, char** argv) {
 			// Process remaining dst vertices
 			lid_pair.first = prev_id;
 			end_idx = src_seqno;
-			for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-				D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-				lid_pair.second = dst_key_column[dst_seqno];
-				dst_key_column[dst_seqno] = cur_dst_pid;
-				adj_list_buffer.push_back(cur_dst_pid);
-				adj_list_buffer.push_back(epid_base + dst_seqno);
-				lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+			if (load_backward_edge) {
+				for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+					D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+					cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+					lid_pair.second = dst_key_column[dst_seqno];
+					dst_key_column[dst_seqno] = cur_dst_pid;
+					adj_list_buffer.push_back(cur_dst_pid);
+					adj_list_buffer.push_back(epid_base + dst_seqno);
+					lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+				}
+			} else {
+				for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+					D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+					cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+					dst_key_column[dst_seqno] = cur_dst_pid;
+					adj_list_buffer.push_back(cur_dst_pid);
+					adj_list_buffer.push_back(epid_base + dst_seqno);
+				}
 			}
 			
 			// Create Edge Extent by Extent Manager

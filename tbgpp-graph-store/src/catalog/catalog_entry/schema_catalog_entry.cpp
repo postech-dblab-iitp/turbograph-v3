@@ -91,7 +91,7 @@ namespace duckdb {
 // 	this->internal = internal;
 // }
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_shared_memory *&catalog_segment)
+SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_mapped_file *&catalog_segment)
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p), (void_allocator) catalog_segment->get_segment_manager()), 
 	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")), 
 	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
