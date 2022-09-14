@@ -96,7 +96,7 @@ class CatalogSet {
 
 public:
 	DUCKDB_API explicit CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
-	DUCKDB_API explicit CatalogSet(Catalog &catalog, fixed_managed_shared_memory *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
+	DUCKDB_API explicit CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
@@ -179,7 +179,7 @@ private:
 	//! The generator used to generate default internal entries
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager
-	fixed_managed_shared_memory *catalog_segment;
+	fixed_managed_mapped_file *catalog_segment;
 	string catalog_set_name;
 };
 } // namespace duckdb

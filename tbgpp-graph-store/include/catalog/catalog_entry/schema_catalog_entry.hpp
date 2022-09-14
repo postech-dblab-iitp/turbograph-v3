@@ -52,17 +52,17 @@ struct DropInfo;
 //! A schema in the catalog
 class SchemaCatalogEntry : public CatalogEntry {
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
-	typedef boost::interprocess::managed_unique_ptr<CatalogEntry, fixed_managed_shared_memory>::type unique_ptr_type;
-	typedef boost::interprocess::managed_unique_ptr<GraphCatalogEntry, fixed_managed_shared_memory>::type graph_unique_ptr_type;
-	typedef boost::interprocess::managed_unique_ptr<PartitionCatalogEntry, fixed_managed_shared_memory>::type partition_unique_ptr_type;
-	typedef boost::interprocess::managed_unique_ptr<PropertySchemaCatalogEntry, fixed_managed_shared_memory>::type propertyschema_unique_ptr_type;
-	typedef boost::interprocess::managed_unique_ptr<ExtentCatalogEntry, fixed_managed_shared_memory>::type extent_unique_ptr_type;
-	typedef boost::interprocess::managed_unique_ptr<ChunkDefinitionCatalogEntry, fixed_managed_shared_memory>::type chunkdefinition_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<CatalogEntry, fixed_managed_mapped_file>::type unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<GraphCatalogEntry, fixed_managed_mapped_file>::type graph_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<PartitionCatalogEntry, fixed_managed_mapped_file>::type partition_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<PropertySchemaCatalogEntry, fixed_managed_mapped_file>::type propertyschema_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<ExtentCatalogEntry, fixed_managed_mapped_file>::type extent_unique_ptr_type;
+	typedef boost::interprocess::managed_unique_ptr<ChunkDefinitionCatalogEntry, fixed_managed_mapped_file>::type chunkdefinition_unique_ptr_type;
 	friend class Catalog;
 
 public:
 	// SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal);
-	SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal, fixed_managed_shared_memory *&catalog_segment);
+	SchemaCatalogEntry(Catalog *catalog, string name, bool is_internal, fixed_managed_mapped_file *&catalog_segment);
 
 private:
 	//! The catalog set holding the graphs
@@ -95,7 +95,7 @@ private:
 	//! The catalog set holding the types
 	CatalogSet types;
 	*/
-	fixed_managed_shared_memory *catalog_segment;
+	fixed_managed_mapped_file *catalog_segment;
 
 public:
 	//! Scan the specified catalog set, invoking the callback method for every entry

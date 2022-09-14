@@ -16,6 +16,7 @@
 //#include "parser/parser.hpp"
 
 #include <cmath>
+#include <iostream>
 
 namespace duckdb {
 
@@ -139,6 +140,7 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::FORWARD_ADJLIST:
 	case LogicalTypeId::BACKWARD_ADJLIST:
 		return PhysicalType::ADJLIST;	
+	case LogicalTypeId::ADJLISTCOLUMN:
 	case LogicalTypeId::ID:
 		return PhysicalType::UINT64;
 	default:
@@ -190,6 +192,7 @@ constexpr const LogicalTypeId LogicalType::TABLE;
 constexpr const LogicalTypeId LogicalType::FORWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
+constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -461,6 +464,12 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 	// TBGPP!
 	case LogicalTypeId::ID:
 		return "ID";
+	case LogicalTypeId::FORWARD_ADJLIST:
+		return "FORWARD_ADJLIST";
+	case LogicalTypeId::BACKWARD_ADJLIST:
+		return "BACKWARD_ADJLIST";
+	case LogicalTypeId::ADJLISTCOLUMN:
+		return "ADJLISTCOLUMN";
 	}
 	return "UNDEFINED";
 }
@@ -511,7 +520,8 @@ string LogicalType::ToString() const {
 		if (width == 0) {
 			return "DECIMAL";
 		}
-		return StringUtil::Format("DECIMAL(%d,%d)", width, scale);
+		return "DECIMAL";
+		// return StringUtil::Format("DECIMAL(%d,%d)", width, scale); // make some bug..
 	}
 	case LogicalTypeId::ENUM: {
 		//return KeywordHelper::WriteOptionallyQuoted(EnumType::GetTypeName(*this));

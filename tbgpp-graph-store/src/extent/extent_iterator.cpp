@@ -234,11 +234,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-//            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-//                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-//                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+            //                 i, io_requested_cdf_ids[prev_toggle][i], (int)ext_property_types[i].id(), output.size(), comp_header.data_len, 
+            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+            //                 io_requested_buf_ptrs[prev_toggle][i], output.data[i].GetData());
         } else {
-//            fprintf(stdout, "Load Column %ld\n", i);
+            // fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             // fprintf(stdout, "VARCHAR\n");
