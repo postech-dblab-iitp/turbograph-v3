@@ -5,7 +5,7 @@
 namespace duckdb {
     // typedefs for shared memory object
     typedef boost::interprocess::basic_managed_shared_memory< char,boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family, void * >,boost::interprocess::iset_index > fixed_managed_shared_memory;
-    typedef boost::interprocess::basic_managed_mapped_file< char,boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family, boost::interprocess::offset_ptr<void> >,boost::interprocess::flat_map_index > fixed_managed_mapped_file;
+    typedef boost::interprocess::basic_managed_mapped_file< char,boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family, boost::interprocess::offset_ptr<void> >,boost::interprocess::iset_index > fixed_managed_mapped_file;
 	// typedef fixed_managed_shared_memory::segment_manager segment_manager_t;
     typedef fixed_managed_mapped_file::segment_manager segment_manager_t;
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;

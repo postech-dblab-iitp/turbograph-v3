@@ -50,7 +50,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 	*current_entry = 0;
 }
 
-CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_shared_memory *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
+CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
