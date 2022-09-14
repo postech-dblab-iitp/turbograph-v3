@@ -55,7 +55,7 @@ IC();
 		// fetch value
 		uint64_t vid = UBigIntValue::Get(input.GetValue(edgeColIdx, srcIdx));
 		// pass value
-		context.client->graph_store->doIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
+		context.client->graph_store->doEdgeIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
 		assert( targetTupleChunk.size() == 1 && "did not fetch well");
 		// set value
 		for (idx_t colId = 1; colId < targetTupleChunk.ColumnCount(); colId++) {	// abandon pid and use only newly added columns
