@@ -81,8 +81,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 	// get adjacency list columns in column
 	vector<int> adjColIdxs;
-	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs, expandDir);
-	D_ASSERT( adjColIdxs.size() > 0);
+	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs, expandDir, edgeLabelSet);
+	D_ASSERT( adjColIdxs.size() > 0 );
 	uint64_t* adj_start; uint64_t* adj_end;
 
 	// fetch source column

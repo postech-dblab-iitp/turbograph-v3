@@ -97,7 +97,7 @@ public:
 	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// o |   |   |  // change to BOTH direction.
 	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o | o | o |
 	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// o | o | o |
-	std::vector<CypherPipelineExecutor*> LDBC_IS6();	// o |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS6();	// o | o | x |	// DATA (has_moderator) is wrong.. no edge
 	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
 
 	std::vector<CypherPipelineExecutor*> LDBC_IC1();	//   |   |   |

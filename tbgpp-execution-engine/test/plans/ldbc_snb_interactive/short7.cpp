@@ -23,17 +23,11 @@
 // // scan message
 // 	CypherSchema sch1;
 // 	sch1.addNode("m");
-// 	unique_ptr<Expression> filter_expr1;
-// 	{
-// 		auto lhs = make_unique<BoundColumnRefExpression>("id", LogicalType::UBIGINT, ColumnBinding());	// id
-// 		duckdb::Value rhsval;
-// // FIXME here
-// 		// if(LDBC_SF==1) { rhsval = duckdb::Value::UBIGINT(57459); }
-// 		// if(LDBC_SF==10) { rhsval = duckdb::Value::UBIGINT(58929); }
-// 		// if(LDBC_SF==100) { rhsval = duckdb::Value::UBIGINT(19560); }
-// 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
-// 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
-// 	}
+// 	duckdb::Value filter_val; // person key
+// 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+// 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
+// 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+
 // // expand  m->c
 // 	CypherSchema sch2 = sch1;
 // 	sch2.addNode("c");
@@ -72,12 +66,18 @@
 // 	}
 
 // // fetch c (in: _m _c _p _a _r _p1 )
-// 	CypherSchema sch6;
+// 	CypherSchema sch6 = sch5;
+// 	sch6.addPropertyIntoNode("c", "content", LogicalType::VARCHAR);
+// 	sch6.addPropertyIntoNode("c", "creationDate", LogicalType::BIGINT);
 
-// // fetch p
-// 	CypherSchema sch7;
+// // fetch p (in: _m _c c.c c.cd _p _a _r _p1)
+// 	CypherSchema sch7 = sch6;
+// 	sch7.addPropertyIntoNode("p", "id", LogicalType::UBIGINT);
+// 	sch7.addPropertyIntoNode("p", "firstName", LogicalType::VARCHAR);
+// 	sch7.addPropertyIntoNode("p", "lastName", LogicalType::VARCHAR);
+	
 
-// // projection
+// //  (in: _m _c c.c c.cd _p _p.id _p.fn _p.ln _a _r _p1)
 // 	CypherSchema sch8;
 
 // // order by
@@ -91,8 +91,8 @@
 // 	//ops
 // 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "m", LabelSet("Comment"), LabelSet("REPLY_OF"), ExpandDirection::INCOMING, LabelSet("Comment"), JoinType::INNER, false, true));
 // 	ops.push_back( new PhysicalAdjIdxJoin(sch3, "c", LabelSet("Comment"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
-// 	ops.push_back( new PhysicalAdjIdxJoin(sch4, "m", LabelSet("Comment"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::LEFT, true, true));	// optional m->a
-// 	ops.push_back( new PhysicalAdjIdxJoin(sch5, "a", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::LEFT, false, true)); // optional a-r->p1
+// 	ops.push_back( new PhysicalAdjIdxJoin(sch4, "m", LabelSet("Comment"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::LEFT, false, true));	// optional m->a
+// 	ops.push_back( new PhysicalAdjIdxJoin(sch5, "a", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::LEFT, true, true)); // optional a-r->p1 // loadedge true
 // 	ops.push_back( new PhysicalFilter(sch5, into_predicates));
 
 	
