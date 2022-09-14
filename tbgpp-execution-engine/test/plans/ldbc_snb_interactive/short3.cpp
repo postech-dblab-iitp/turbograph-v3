@@ -104,9 +104,12 @@ CypherPipelineExecutor* is3_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// sink
 	ops.push_back( new PhysicalProduceResults(sch1) );
 
+	vector<CypherPipelineExecutor*> childs;
+	childs.push_back(prev_pipe);
+
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
-	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
+	auto pipeexec = new CypherPipelineExecutor(ctx, pipe, childs);
 	return pipeexec;
 
 }
