@@ -67,7 +67,7 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
-// icecream::ic.enable();
+//icecream::ic.enable();
 IC(input.ToString(1));
 	// init
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
@@ -84,12 +84,15 @@ IC(tgtColIdx);
 
 	// get adjacency list columns in column
 	vector<int> adjColIdxs;
+	vector<LogicalType> adjColTypes;
 // IC();
-// for( auto& k: edgeLabelSet.data ) { IC(k); }
-	context.client->graph_store->getAdjColIdxs(srcLabelSet, adjColIdxs, expandDir, edgeLabelSet);
-	D_ASSERT( adjColIdxs.size() > 0 );
-// IC(adjColIdxs.size());
+for( auto& k: edgeLabelSet.data ) { IC(k); }
+	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, adjColIdxs, adjColTypes);
+	D_ASSERT( adjColIdxs.size() > 0);
+	D_ASSERT( adjColIdxs.size() == adjColTypes.size() );
+IC(adjColIdxs.size());
 // IC(adjColIdxs[0]);
+
 	uint64_t* adj_start; uint64_t* adj_end;
 
 	// fetch source column
