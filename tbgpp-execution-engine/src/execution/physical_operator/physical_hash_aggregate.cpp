@@ -36,7 +36,6 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 	: CypherPhysicalOperator(sch), groups(move(groups_p)),
       grouping_sets(move(grouping_sets_p)), grouping_functions(move(grouping_functions_p)), all_combinable(true),	
       any_distinct(false) {
-
 	// TODO no support for custom grouping sets and grouping functions
 	D_ASSERT(grouping_sets.size() == 0 );
 	D_ASSERT(grouping_functions.size() == 0 );
@@ -269,7 +268,6 @@ void PhysicalHashAggregate::Combine(ExecutionContext &context, LocalSinkState &l
 class HashAggregateLocalSourceState : public LocalSourceState {
 public:
 	explicit HashAggregateLocalSourceState(const PhysicalHashAggregate &op) : scan_index(0) {
-		IC( ListType::GetChildType(op.types[1]).ToString() );
 		for (auto &rt : op.radix_tables) {
 			radix_states.push_back(rt.GetGlobalSourceState());
 		}

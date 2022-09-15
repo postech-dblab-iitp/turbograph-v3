@@ -1,6 +1,8 @@
 #include "plans/query_plan_suite.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite);
@@ -12,9 +14,13 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IC4() {
 
 	std::vector<CypherPipelineExecutor*> result;
 	auto p1 = ic4_pipe1(*this);
+	//IC();
 	auto p2 = ic4_pipe2(*this, p1);
+	//IC();
 	auto p3 = ic4_pipe3(*this, p2);
+	//IC();
 	auto p4 = ic4_pipe4(*this, p3);
+	//IC();
 	result.push_back(p1);
 	result.push_back(p2);
 	result.push_back(p3);
@@ -23,7 +29,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IC4() {
 }
 
 CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
-	
+//IC();
 	// person
 	CypherSchema sch1; sch1.addNode("person");
 	duckdb::Value filter_val; // person key
@@ -43,16 +49,16 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 	sch5.addNode("tag");
 	vector<unique_ptr<Expression>> proj_exprs;
 	{
-		proj_exprs.push_back( move( make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 2) ) );	// post
-		proj_exprs.push_back( move( make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 3) ) );	// tag
+		proj_exprs.push_back( move( make_unique<BoundReferenceExpression>(LogicalType::ID, 2) ) );	// post
+		proj_exprs.push_back( move( make_unique<BoundReferenceExpression>(LogicalType::ID, 3) ) );	// tag
 	}
-
+//IC();
 	// aggregate - distinct (in: _p _t)
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_groups;
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 0) ); // group by (tag, post)
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 1) ); // group by (tag, post)
-
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 0) ); // group by (tag, post)
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 1) ); // group by (tag, post)
+//IC();
 // pipe
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
@@ -61,15 +67,18 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "person", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalAdjIdxJoin(sch3, "friend", LabelSet("Person"), LabelSet("HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Post"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalAdjIdxJoin(sch4, "post", LabelSet("Post"), LabelSet("HAS_TAG"), ExpandDirection::OUTGOING, LabelSet("Tag"), JoinType::INNER, false, true));
+//IC();
 	ops.push_back( new PhysicalProjection(sch5, move(proj_exprs)));
 	// sink
+//IC();
 	ops.push_back( new PhysicalHashAggregate(sch5, move(agg_exprs), move(agg_groups)));
+//IC();
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
 	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
 	return pipeexec;
-
+//IC();
 }
 CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 	// attach post.creationdate ( in: _p _t )
@@ -114,6 +123,10 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	}
 
 	// aggregation - gp tag, sum(valid),  // in( _t, valid, invalid)
+	CypherSchema sch3;
+	sch3.addNode("tag");
+	sch3.addColumn("postCount", LogicalType::HUGEINT);
+	sch3.addColumn("invalidPostCount", LogicalType::HUGEINT);
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_expr_1_child;
 	vector<unique_ptr<Expression>> agg_expr_2_child;
@@ -123,7 +136,7 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	agg_expr_2_child.push_back( make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 2) ); //invalid
 	agg_exprs.push_back( make_unique<BoundAggregateExpression>(agg_expr_1_func, move(agg_expr_1_child), nullptr, nullptr, false  ) ); //sum(valid)
 	agg_exprs.push_back( make_unique<BoundAggregateExpression>(agg_expr_1_func, move(agg_expr_2_child), nullptr, nullptr, false ) );	// sum(invalid)
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 0) ); // group by (tag)
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 0) ); // group by (tag)
 
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
@@ -132,11 +145,14 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	ops.push_back( new PhysicalNodeIdSeek(sch1, "post", LabelSet("Post"), post_keys));
 	ops.push_back( new PhysicalProjection(sch2, move(expr_pj1)));
 	// sink
-	ops.push_back( new PhysicalHashAggregate(sch2, move(agg_exprs), move(agg_groups)));
+	ops.push_back( new PhysicalHashAggregate(sch3, move(agg_exprs), move(agg_groups)));	// reuse
+
+	vector<CypherPipelineExecutor*> childs;
+	childs.push_back(prev_pipe);
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
-	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
+	auto pipeexec = new CypherPipelineExecutor(ctx, pipe, childs);
 	return pipeexec;
 }
 CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
@@ -144,14 +160,14 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// filter
 	CypherSchema sch1;
 	sch1.addNode("tag");
-	sch1.addColumn("postCount", LogicalType::BIGINT);
-	sch1.addColumn("invalidPostCount", LogicalType::BIGINT);
+	sch1.addColumn("postCount", LogicalType::HUGEINT);
+	sch1.addColumn("invalidPostCount", LogicalType::HUGEINT);
 	// filter preds
 	vector<unique_ptr<Expression>> predicates;
 	{
 		// pc > 0
 		unique_ptr<Expression> filter_expr1;
-		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1);	// pc
+		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 1);	// pc
 		auto rhsval = duckdb::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHAN, std::move(lhs), std::move(rhs));
@@ -160,7 +176,7 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 	{
 		// ipc == 0
 		unique_ptr<Expression> filter_expr1;
-		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 2);	// ipc
+		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 2);	// ipc
 		auto rhsval = duckdb::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
@@ -177,17 +193,17 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// projection (_tag, tag.name, pc, ipc) => (tagname, pc) // 1, 2
 	CypherSchema sch3;
 	sch3.addColumn("tagName", LogicalType::VARCHAR);
-	sch3.addColumn("postCount", LogicalType::BIGINT);
+	sch3.addColumn("postCount", LogicalType::HUGEINT);
 	vector<unique_ptr<Expression>> proj_exprs;
 	{
 		auto c1 = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 1);	// tag.name
-		auto c2 = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 2);	// postcount
+		auto c2 = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 2);	// postcount
 		proj_exprs.push_back(std::move(c1));
 		proj_exprs.push_back(std::move(c2));
 	}
 
 	// orderby
-	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1);		// postcount desc
+	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 1);		// postcount desc
 	BoundOrderByNode order1(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
 	unique_ptr<Expression> order_expr_2 = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 0);		// tagname asc
 	BoundOrderByNode order2(OrderType::ASCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_2));
@@ -199,14 +215,18 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 	//src
 	ops.push_back( prev_pipe->pipeline->GetSink() );
 	// op
-	ops.push_back( new PhysicalNodeIdSeek(sch1, "tag", LabelSet("Tag"), tag_keys));
-	ops.push_back( new PhysicalProjection(sch2, move(proj_exprs)));
+	ops.push_back( new PhysicalFilter(sch1, move(predicates)));
+	ops.push_back( new PhysicalNodeIdSeek(sch2, "tag", LabelSet("Tag"), tag_keys));
+	ops.push_back( new PhysicalProjection(sch3, move(proj_exprs)));
 	// sink
-	ops.push_back( new PhysicalTopNSort(sch2, move(orders), (idx_t) 10, (idx_t)0));
+	ops.push_back( new PhysicalTopNSort(sch3, move(orders), (idx_t) 10, (idx_t)0));
+
+	vector<CypherPipelineExecutor*> childs;
+	childs.push_back(prev_pipe);
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
-	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
+	auto pipeexec = new CypherPipelineExecutor(ctx, pipe, childs);
 	return pipeexec;
 }
 
@@ -214,7 +234,7 @@ CypherPipelineExecutor* ic4_pipe4(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 	CypherSchema sch3;
 	sch3.addColumn("tagName", LogicalType::VARCHAR);
-	sch3.addColumn("postCount", LogicalType::BIGINT);
+	sch3.addColumn("postCount", LogicalType::HUGEINT);
 
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
@@ -222,9 +242,12 @@ CypherPipelineExecutor* ic4_pipe4(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// sink
 	ops.push_back( new PhysicalProduceResults(sch3) );
 
+	vector<CypherPipelineExecutor*> childs;
+	childs.push_back(prev_pipe);
+
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
-	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
+	auto pipeexec = new CypherPipelineExecutor(ctx, pipe, childs);
 	return pipeexec;
 
 }
