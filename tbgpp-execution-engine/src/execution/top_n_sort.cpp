@@ -151,9 +151,7 @@ TopNHeap::TopNHeap(ClientContext &context_p, const vector<LogicalType> &payload_
 }
 
 void TopNHeap::Sink(DataChunk &input) {
-IC();
 	sort_state.Sink(input);
-IC();
 }
 
 void TopNHeap::Combine(TopNHeap &other) {

@@ -43,6 +43,10 @@ IC();
 	vector<LogicalType> targetTypes;
 	targetTypes.push_back(LogicalType::ID); // for node ids
 	for( auto& key: propertyKeys ) {
+// icecream::ic.enable();
+// IC(outputNodeSchema.toString());
+// IC(key);
+// icecream::ic.disable();
 		targetTypes.push_back( outputNodeSchema.getType(key) );
 	}
 
