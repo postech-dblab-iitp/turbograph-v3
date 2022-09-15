@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
 
 	CreateGraphInfo graph_info("main", "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
-	//IC();
+
 	// Read Vertex CSV File & CreateVertexExtents
 	// unique_ptr<Index> index; // Temporary..
 	for (auto &vertex_file: vertex_files) {
@@ -263,7 +263,7 @@ int main(int argc, char** argv) {
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+//			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
 			//continue;
 			//fprintf(stderr, "%s\n", data.ToString().c_str());
 			// Create Vertex Extent by Extent Manager
@@ -271,7 +271,7 @@ int main(int argc, char** argv) {
 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+//			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
 			property_schema_cat->AddExtent(new_eid);
 			
 			if (load_edge) {
@@ -288,7 +288,7 @@ int main(int argc, char** argv) {
 				}
 				auto map_build_end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+//				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
 				// Build Index
 				// auto index_build_start = std::chrono::high_resolution_clock::now();
@@ -403,7 +403,7 @@ int main(int argc, char** argv) {
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+//			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -489,6 +489,7 @@ int main(int argc, char** argv) {
 							adj_list_buffer.push_back(epid_base + dst_seqno);
 						}
 					}
+					
 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
 					if (cur_src_id > max_id) {
@@ -565,7 +566,7 @@ int main(int argc, char** argv) {
 					adj_list_buffer.push_back(epid_base + dst_seqno);
 				}
 			}
-			
+
 			// Create Edge Extent by Extent Manager
 			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
 			property_schema_cat->AddExtent(new_eid);
@@ -862,7 +863,9 @@ int main(int argc, char** argv) {
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 			//std::cout << exec->pipeline->toString() << std::endl;
 			std::cout << "starting!!" << std::endl;
+			icecream::ic.enable();
 			exec->ExecutePipeline();
+			icecream::ic.disable();
 			std::cout << "done pipeline execution!!" << std::endl;
 		}
 		// end_timer
@@ -940,6 +943,8 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
 	(*content)["Actual Rows"] = op->processed_tuples; // TODO fix
 	(*content)["Actual Loops"] = 1; // meaningless
+	// output shcma
+	(*content)["Output Schema"] = op->schema.toString();
 
 	// TODO add operator-speciic
 	// if( op->ToString() == "NExpand" ) {
