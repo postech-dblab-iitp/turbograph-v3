@@ -50,6 +50,10 @@ IC();
 	std::vector<LabelSet> empty_els;
 IC(input.size());
 	int numProducedTuples = 0;
+
+	// initialize indexseek
+	context.client->graph_store->InitializeEdgeIndexSeek(state.ext_it, targetTupleChunk, input, edgeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes);
+	
 	// for fetched columns, call api 
 	for( u_int64_t srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// fetch value
