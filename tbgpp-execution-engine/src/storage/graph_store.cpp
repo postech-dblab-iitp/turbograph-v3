@@ -154,15 +154,15 @@ bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 	return true;
 }
 
-void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, ExpandDirection expand_dir, LabelSet edgeLabels) {
+void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, ExpandDirection expand_dir, vector<int> &adjColIdxs, vector<LogicalType> &adjColTypes) {
 	Catalog &cat_instance = client.db->GetCatalog();
-	D_ASSERT(labels.size() == 1); // XXX Temporary
-	if( labels.size()!= 1 ) {
+	D_ASSERT(src_labels.size() == 1); // XXX Temporary
+	if( src_labels.size()!= 1 ) {
 		throw InvalidInputException("demo08 invalid!");
 	}
 // IC();
 	string entry_name = "vps_";
-	for (auto &it : labels.data) entry_name += it;
+	for (auto &it : src_labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
 
@@ -172,13 +172,24 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet labels, vector<int> &adjColIdxs, E
 // for( auto& key : keys) { IC(key); }
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		for (int i = 0; i < l_types.size(); i++)
-			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && edgeLabels.contains(keys[i])) adjColIdxs.push_back(i);
+			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && edge_labels.contains(keys[i])) {
+				adjColIdxs.push_back(i);
+				adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
+			}
 	} else if (expand_dir == ExpandDirection::INCOMING) {
 		for (int i = 0; i < l_types.size(); i++)
-			if ((l_types[i] == LogicalType::BACKWARD_ADJLIST) && edgeLabels.contains(keys[i])) adjColIdxs.push_back(i);
+			if ((l_types[i] == LogicalType::BACKWARD_ADJLIST) && edge_labels.contains(keys[i])) {
+				adjColIdxs.push_back(i);
+				adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
+			}
 	} else if (expand_dir == ExpandDirection::BOTH) {
-		for (int i = 0; i < l_types.size(); i++)
-			if ((l_types[i] == LogicalType::FORWARD_ADJLIST || l_types[i] == LogicalType::BACKWARD_ADJLIST) && edgeLabels.contains(keys[i])) adjColIdxs.push_back(i);
+		for (int i = 0; i < l_types.size(); i++) {
+			if (edge_labels.contains(keys[i])) {
+				if (l_types[i] == LogicalType::FORWARD_ADJLIST) adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
+				else if (l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
+				adjColIdxs.push_back(i);
+			}
+		}
 	}
 }
 
