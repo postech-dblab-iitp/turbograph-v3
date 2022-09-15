@@ -588,36 +588,47 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // We should avoid data copy here.. but copy for demo temporarliy
     int prev_toggle = toggle;
     
+// icecream::ic.enable();
+//     IC(toggle, prev_toggle, target_eid, current_eid, current_idx, max_idx);
+// icecream::ic.disable();
     if (target_eid != current_eid) {
-        // Keep previous values    
+        // Keep previous values
+        if (current_eid != std::numeric_limits<uint32_t>::max())
+           toggle = (toggle + 1) % num_data_chunks;
+        int next_toggle = (toggle + 1) % num_data_chunks;
         idx_t previous_idx = current_idx++;
         if (current_idx > max_idx) return false;
+// icecream::ic.enable();
+//         IC(toggle, prev_toggle, target_eid, current_eid, current_idx, max_idx, ext_ids_to_iterate[current_idx]);
+// icecream::ic.disable();
 
         // Request I/O to the next extent if we can support double buffering
         Catalog& cat_instance = context.db->GetCatalog();
         if (support_double_buffering && current_idx < max_idx) {
-            toggle = (toggle + 1) % num_data_chunks;
+            IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             ExtentCatalogEntry* extent_cat_entry = 
                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
             
             // Unpin previous chunks
-            if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
-            for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
-                ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
+            if (current_eid != std::numeric_limits<uint32_t>::max()) {
+                if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
+                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++)
+                    ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+            }
 
             size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
-            io_requested_cdf_ids[toggle].resize(chunk_size);
-            io_requested_buf_ptrs[toggle].resize(chunk_size);
-            io_requested_buf_sizes[toggle].resize(chunk_size);
+            io_requested_cdf_ids[next_toggle].resize(chunk_size);
+            io_requested_buf_ptrs[next_toggle].resize(chunk_size);
+            io_requested_buf_sizes[next_toggle].resize(chunk_size);
             
             int j = 0;
             for (int i = 0; i < chunk_size; i++) {
                 if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
-                io_requested_cdf_ids[toggle][i] = cdf_id;
+                io_requested_cdf_ids[next_toggle][i] = cdf_id;
                 string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
             }
         }
 
@@ -641,35 +652,39 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         // TODO record data cardinality in Chunk Definition?
         output.SetCardinality(1);
         output_eid = ext_ids_to_iterate[previous_idx];
+        IC(output_eid);
     } else {
-        output_eid = target_eid;
+        output.SetCardinality(1);
+        output_eid = current_eid;
+        IC(output_eid);
     }
 
     CompressionHeader comp_header;
-
+// IC();
+// IC(toggle, io_requested_cdf_ids[toggle].size(), io_requested_buf_sizes[toggle].size(), io_requested_buf_ptrs[toggle].size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-            //                 i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            // fprintf(stdout, "Load Column %ld, access %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+            //                 i, target_seqno, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
+            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
         } else {
-            // fprintf(stdout, "Load Column %ld\n", i);
+            // fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
+                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[i]);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
+                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
                 uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
                 uint64_t string_offset = offset_arr[target_seqno];
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                strings[0] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                strings[0] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
         } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO
@@ -683,14 +698,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
+                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
+                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
             }
         }
     }
+// IC();
+icecream::ic.disable();
     return true;
 }
 

@@ -24,8 +24,10 @@ unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState(ExecutionContext 
 OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 
 // icecream::ic.enable();
-// IC();
-// IC( input.ToString(1) );
+// IC(input.size());
+// if (input.size() != 0)
+// 	IC( input.ToString(std::min(10, (int)input.size())) );
+// icecream::ic.disable();
 
 	auto &state = (NodeIdSeekState &)lstate;
 IC();
@@ -69,6 +71,8 @@ for( auto& k: propertyKeys) { IC(k); }
 		uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, srcIdx));
 		// pass value
 		context.client->graph_store->doVertexIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
+		if (targetTupleChunk.size() != 1)
+			fprintf(stdout, "targetTupleChunk size = %ld\n", targetTupleChunk.size());
 		assert( targetTupleChunk.size() == 1 && "did not fetch well");
 		// set value
 		for (idx_t colId = 1; colId < targetTupleChunk.ColumnCount(); colId++) {	// abandon pid and use only newly added columns
@@ -90,7 +94,10 @@ IC( int(numAddedColumns) );
 		chunk.data[i].Reference( input.data[ i-numAddedColumns ] );
 	}
 	chunk.SetCardinality( input.size() );
-// IC(chunk.ToString(1));
+// icecream::ic.enable();
+// IC(chunk.size());
+// if (chunk.size() != 0)
+// 	IC(chunk.ToString(std::min(10, (int)chunk.size())));
 // icecream::ic.disable();
 
 	return OperatorResultType::NEED_MORE_INPUT;
