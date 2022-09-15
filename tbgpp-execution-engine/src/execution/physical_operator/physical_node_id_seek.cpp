@@ -14,7 +14,7 @@ class NodeIdSeekState : public OperatorState {
 public:
 	explicit NodeIdSeekState() {}
 public:
-	ExtentIterator* ext_it;
+	ExtentIterator* ext_it = nullptr;
 };
 
 unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState(ExecutionContext &context) const {
@@ -59,12 +59,16 @@ for( auto& k: propertyKeys) { IC(k); }
 
 	std::vector<LabelSet> empty_els;
 	int numProducedTuples = 0;
-	// for fetched columns, call api 
+
+	// initialize indexseek
+	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, targetTupleChunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes);
+
+	// for fetched columns, call api
 	for( u_int64_t srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// fetch value
 		uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, srcIdx));
 		// pass value
-		context.client->graph_store->doIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
+		context.client->graph_store->doVertexIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
 		assert( targetTupleChunk.size() == 1 && "did not fetch well");
 		// set value
 		for (idx_t colId = 1; colId < targetTupleChunk.ColumnCount(); colId++) {	// abandon pid and use only newly added columns
@@ -73,6 +77,7 @@ for( auto& k: propertyKeys) { IC(k); }
 		targetTupleChunk.Reset();
 		numProducedTuples +=1;
 	}
+icecream::ic.disable();
 IC();
 	// for original ones reference existing columns
 	for(int i = 0; i <= nodeColIdx+alreadyExistingCols; i++) {

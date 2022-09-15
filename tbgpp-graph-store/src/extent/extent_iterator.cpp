@@ -55,6 +55,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
     }
+    is_initialized = true;
 }
 
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_) {
@@ -100,6 +101,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
     }
+    is_initialized = true;
 }
 
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid) {
@@ -145,6 +147,54 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
     }
+    is_initialized = true;
+}
+
+void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, vector<ExtentID> target_eids) {
+    ps_cat_entry = property_schema_cat_entry;
+    if (_CheckIsMemoryEnough()) {
+        support_double_buffering = true;
+        num_data_chunks = MAX_NUM_DATA_CHUNKS;
+        // Initialize Data Chunks
+        for (int i = 0; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = new DataChunk();
+    } else {
+        support_double_buffering = false;
+        num_data_chunks = 1;
+        // Initialize Data Chunks
+        data_chunks[0] = new DataChunk();
+        for (int i = 1; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = nullptr;
+    }
+
+    toggle = 0;
+    current_idx = 0;
+    max_idx = target_eids.size();
+    ext_property_types = move(target_types_);
+    target_idxs = move(target_idxs_);
+
+    for (size_t i = 0; i < target_eids.size(); i++)
+        ext_ids_to_iterate.push_back(target_eids[i]);
+
+    Catalog& cat_instance = context.db->GetCatalog();
+    // Request I/O for the first extent
+    {
+        ExtentCatalogEntry* extent_cat_entry = 
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+        
+        size_t chunk_size = ext_property_types.size();
+        io_requested_cdf_ids[toggle].resize(chunk_size);
+        io_requested_buf_ptrs[toggle].resize(chunk_size);
+        io_requested_buf_sizes[toggle].resize(chunk_size);
+
+        int j = 0;
+        for (int i = 0; i < chunk_size; i++) {
+            if (ext_property_types[i] == LogicalType::ID) continue;
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
+            io_requested_cdf_ids[toggle][i] = cdf_id;
+            string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+            ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+        }
+    }
+    is_initialized = true;
 }
 
 // Get Next Extent with all properties
@@ -153,12 +203,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // Keep previous values
     int prev_toggle = toggle;
     idx_t previous_idx = current_idx++;
-    toggle = (toggle + 1) % num_data_chunks;
     if (current_idx > max_idx) return false;
 
     // Request I/O to the next extent if we can support double buffering
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
+        toggle = (toggle + 1) % num_data_chunks;
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -297,12 +347,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // Keep previous values
     int prev_toggle = toggle;
     idx_t previous_idx = current_idx++;
-    toggle = (toggle + 1) % num_data_chunks;
     if (current_idx > max_idx) return false;
 
     // Request I/O to the next extent if we can support double buffering
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx) {
+        toggle = (toggle + 1) % num_data_chunks;
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -534,66 +584,69 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 // For Seek Operator
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
-    
-    // Keep previous values
-    // fprintf(stdout, "Z\n");
     int prev_toggle = toggle;
-    idx_t previous_idx = current_idx++;
-    toggle = (toggle + 1) % num_data_chunks;
-    if (current_idx > max_idx) return false;
+    
+    if (target_eid != current_eid) {
+        // Keep previous values    
+        idx_t previous_idx = current_idx++;
+        if (current_idx > max_idx) return false;
 
-    // fprintf(stdout, "K\n");
-    // Request I/O to the next extent if we can support double buffering
-    Catalog& cat_instance = context.db->GetCatalog();
-    if (support_double_buffering && current_idx < max_idx) {
-        // fprintf(stdout, "Q\n");
-        ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
-        
-        // Unpin previous chunks
-        if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
-        for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
-            ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
+        // Request I/O to the next extent if we can support double buffering
+        Catalog& cat_instance = context.db->GetCatalog();
+        if (support_double_buffering && current_idx < max_idx) {
+            toggle = (toggle + 1) % num_data_chunks;
+            ExtentCatalogEntry* extent_cat_entry = 
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            
+            // Unpin previous chunks
+            if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
+            for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
+                ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
 
-        size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
-        io_requested_cdf_ids[toggle].resize(chunk_size);
-        io_requested_buf_ptrs[toggle].resize(chunk_size);
-        io_requested_buf_sizes[toggle].resize(chunk_size);
-        
-        for (int i = 0; i < chunk_size; i++) {
-            if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
-            ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[i]];
-            io_requested_cdf_ids[toggle][i] = cdf_id;
-            string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-            ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+            size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
+            io_requested_cdf_ids[toggle].resize(chunk_size);
+            io_requested_buf_ptrs[toggle].resize(chunk_size);
+            io_requested_buf_sizes[toggle].resize(chunk_size);
+            
+            int j = 0;
+            for (int i = 0; i < chunk_size; i++) {
+                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
+                ChunkDefinitionID cdf_id = target_idxs.empty() ? 
+                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
+                io_requested_cdf_ids[toggle][i] = cdf_id;
+                string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+            }
         }
+
+        // Request chunk cache manager to finalize I/O
+        for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
+            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+        current_eid = ext_ids_to_iterate[previous_idx];
+
+        // Initialize DataChunk using cached buffer
+        /*data_chunks[prev_toggle]->Destroy();
+        data_chunks[prev_toggle]->Initialize(ext_property_types, io_requested_buf_ptrs[prev_toggle]);
+        data_chunks[prev_toggle]->SetCardinality(io_requested_buf_sizes[prev_toggle][0] / GetTypeIdSize(ext_property_types[0].InternalType())); // XXX.. bug can occur
+        output = data_chunks[prev_toggle];*/
+
+        // Initialize output DataChunk & copy each column
+        if (!is_output_chunk_initialized) {
+            output.Reset();
+            output.Initialize(ext_property_types);
+        }
+        
+        // TODO record data cardinality in Chunk Definition?
+        output.SetCardinality(1);
+        output_eid = ext_ids_to_iterate[previous_idx];
+    } else {
+        output_eid = target_eid;
     }
 
-    // fprintf(stdout, "W\n");
-    // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
-        ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
-
-    // Initialize DataChunk using cached buffer
-    /*data_chunks[prev_toggle]->Destroy();
-    data_chunks[prev_toggle]->Initialize(ext_property_types, io_requested_buf_ptrs[prev_toggle]);
-    data_chunks[prev_toggle]->SetCardinality(io_requested_buf_sizes[prev_toggle][0] / GetTypeIdSize(ext_property_types[0].InternalType())); // XXX.. bug can occur
-    output = data_chunks[prev_toggle];*/
-
-    // Initialize output DataChunk & copy each column
-    if (!is_output_chunk_initialized) {
-        output.Reset();
-        output.Initialize(ext_property_types);
-    }
     CompressionHeader comp_header;
-    // TODO record data cardinality in Chunk Definition?
-    output.SetCardinality(1);
-    output_eid = ext_ids_to_iterate[previous_idx];
 
-    // fprintf(stdout, "T, size = %ld\n", ext_property_types.size());
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
@@ -620,17 +673,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO
-            // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
-            // idx_t start_offset = target_seqno == 0 ? STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
-            // idx_t end_offset = adjListBase[target_seqno];
-            // size_t adj_list_size = end_offset - start_offset;
-            // // output.InitializeAdjListColumn(i, adj_list_size);
-            // memcpy(output.data[i].GetData(), &adj_list_size, sizeof(size_t));
-            // VectorListBuffer &adj_list_buffer = (VectorListBuffer &)*output.data[i].GetAuxiliary();
-            // for (idx_t adj_list_idx = start_offset; adj_list_idx < end_offset; adj_list_idx++) {
-            //     adj_list_buffer.PushBack(Value::UBIGINT(adjListBase[adj_list_idx]));
-            // }
-            // memcpy(output.data[i].GetAuxiliary()->GetData(), adjListBase + start_offset, adj_list_size * sizeof(idx_t));
         } else if (ext_property_types[i] == LogicalType::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
@@ -649,7 +691,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         }
     }
-    // fprintf(stdout, "U\n");
     return true;
 }
 
