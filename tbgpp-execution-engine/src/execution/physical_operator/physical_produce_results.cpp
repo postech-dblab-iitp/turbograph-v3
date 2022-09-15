@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cassert>
 
+#include "icecream.hpp"
+
 namespace duckdb {
 	
 class ProduceResultsState : public LocalSinkState {
@@ -41,6 +43,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 void PhysicalProduceResults::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	auto& state = (ProduceResultsState &) lstate;
 
+
 	int LIMIT = 10;
 	size_t num_total_tuples = 0;
 	for (auto &it : state.resultChunks) num_total_tuples += it->size();
@@ -49,7 +52,6 @@ void PhysicalProduceResults::Combine(ExecutionContext& context, LocalSinkState& 
 	if (num_total_tuples != 0) {
 		auto& firstchunk = state.resultChunks[0];
 		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-		// TODO print column schema
 		for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
 			std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
 		}

@@ -5,6 +5,7 @@
 #include "common/enums/join_type.hpp"
 
 #include <boost/timer/timer.hpp>
+#include <unordered_set>
 
 #include <cassert>
 
@@ -55,9 +56,6 @@ public:
 	mutable bool adjfetch_timer_started;
 	mutable int64_t adjfetch_time;
 
-	mutable boost::timer::cpu_timer tgtfetch_timer;
-	mutable bool tgtfetch_timer_started;
-	mutable int64_t tgtfetch_time;
 
 };
 

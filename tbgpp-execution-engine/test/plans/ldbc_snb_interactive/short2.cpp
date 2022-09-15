@@ -23,9 +23,9 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 // FIXME
 	duckdb::Value filter_val;
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 // expand
 	CypherSchema sch2 = sch1;
@@ -75,7 +75,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "message", LabelSet("Comment"), exp_pkeys));
 	ops.push_back( new PhysicalProjection(sch4, move(proj_exprs)));
 	// sink
-	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)10, (idx_t)0));
+	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)100, (idx_t)0));
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
@@ -140,11 +140,9 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	// src
 	ops.push_back( prev_pipe->pipeline->GetSink() );
 	// ops
-// FIXME here
-	//ops.push_back( new Physical)	// TODO here
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "post", LabelSet("Post"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true) );
-// FIXME here ; do i need to filter by target nodes? // custom filter?
-	// TODO change plan : 
+	ops.push_back( new PhysicalAdjIdxJoin(sch1, "message", LabelSet("Comment"), LabelSet("REPLY_OF"), ExpandDirection::OUTGOING, LabelSet("Post"), JoinType::INNER, false, true) );
+// FIXME POST_HAS_CREATOR!!!
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "post", LabelSet("Post"), LabelSet("POST_HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true) );
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "post", LabelSet("Post"), seek1_prop));
 	ops.push_back( new PhysicalNodeIdSeek(sch3_1, "person", LabelSet("Person"), seek2_prop));
 	ops.push_back( new PhysicalProjection(sch4, move(proj_exprs)));
@@ -153,7 +151,9 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
-	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
+	vector<CypherPipelineExecutor*> childs;
+	childs.push_back(prev_pipe);
+	auto pipeexec = new CypherPipelineExecutor(ctx, pipe, childs);
 	return pipeexec;
 }
 
