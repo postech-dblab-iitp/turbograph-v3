@@ -177,19 +177,20 @@ int main(int argc, char** argv) {
 	argc = 1;
 
 	// Initialize Database
-	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
+	
+	// Initialize ClientContext
+	//IC();
+	std::shared_ptr<ClientContext> client = 
+		std::make_shared<ClientContext>(database->instance->shared_from_this());
+	if (false) {
 	//IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
-
-	// Initialize ClientContext
-	//IC();
-	std::shared_ptr<ClientContext> client = 
-		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
 	// Initialize Catalog Informations
 	// Create Schema, Graph
@@ -840,6 +841,7 @@ int main(int argc, char** argv) {
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 
 		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
+	}
 	}
 	
 	// load plans

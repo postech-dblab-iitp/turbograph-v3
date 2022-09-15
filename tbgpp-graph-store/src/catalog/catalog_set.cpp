@@ -54,15 +54,15 @@ CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_seg
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
-	mapping = catalog_segment->construct<MappingUnorderedMap>(mapping_name.c_str())
+	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
 		catalog_segment->get_allocator<map_value_type>());
 	string entries_name = catalog_set_name_ + "_entries";
-	entries = catalog_segment->construct<EntriesUnorderedMap>(entries_name.c_str())
+	entries = catalog_segment->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
 		catalog_segment->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
-	current_entry = catalog_segment->construct<idx_t>(current_entry_name.c_str())(0);
+	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -149,7 +149,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 		*current_entry = entry_index + 1;
 
 		string dummy_name = name + "_dummy" + std::to_string(entry_index);
-		auto dummy_node = catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name, (void_allocator) catalog_segment->get_segment_manager());
+		auto dummy_node = catalog_segment->find_or_construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name, (void_allocator) catalog_segment->get_segment_manager());
 		//ValueType dummy_node = ValueType(entry_index, 
 		//	boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node->timestamp = 0;
@@ -159,19 +159,20 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 		entries->insert_or_assign(entry_index, move(dummy_node));
 		PutMapping(context, name, entry_index);
 	} else {
-		entry_index = mapping_value->index;
-		auto &current = *entries->at(entry_index);
-		// if it does, we have to check version numbers
-		if (HasConflict(context, current.timestamp)) {
-			// current version has been written to by a currently active
-			// transaction
-			throw TransactionException("Catalog write-write conflict on create with \"%s\"", std::string(current.name.data()));
-		}
-		// there is a current version that has been committed
-		// if it has not been deleted there is a conflict
-		if (!current.deleted) {
-			return false;
-		}
+		return true; // XXX In the current single thread version, we just return (LoadCatalog Case)
+		// entry_index = mapping_value->index;
+		// auto &current = *entries->at(entry_index);
+		// // if it does, we have to check version numbers
+		// if (HasConflict(context, current.timestamp)) {
+		// 	// current version has been written to by a currently active
+		// 	// transaction
+		// 	throw TransactionException("Catalog write-write conflict on create with \"%s\"", std::string(current.name.data()));
+		// }
+		// // there is a current version that has been committed
+		// // if it has not been deleted there is a conflict
+		// if (!current.deleted) {
+		// 	return false;
+		// }
 	}
 	// create a new entry and replace the currently stored one
 	// set the timestamp to the timestamp of the current transaction
@@ -479,7 +480,7 @@ void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t en
 	name_ = name.c_str();
 	auto entry = mapping->find(name_);
 	string new_value_name = name + "_mapval" + std::to_string(entry_index);
-	auto new_value = catalog_segment->construct<MappingValue>(new_value_name.c_str())(entry_index);
+	auto new_value = catalog_segment->find_or_construct<MappingValue>(new_value_name.c_str())(entry_index);
 	//auto new_value = make_unique<MappingValue>(entry_index);
 	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
 	new_value->timestamp = 0;

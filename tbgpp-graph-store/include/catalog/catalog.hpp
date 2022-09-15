@@ -90,6 +90,7 @@ class Catalog {
 	// typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 	
 public:
+	explicit Catalog(DatabaseInstance &db);
 	explicit Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment);
 	~Catalog();
 
@@ -108,6 +109,7 @@ public:
 	//! Get the ClientContext from the Catalog
 	DUCKDB_API static Catalog &GetCatalog(ClientContext &context);
 	DUCKDB_API static Catalog &GetCatalog(DatabaseInstance &db);
+	DUCKDB_API void LoadCatalog(fixed_managed_mapped_file *&catalog_segment, vector<vector<string>> &object_names);
 
 	DUCKDB_API DependencyManager &GetDependencyManager() {
 		return *dependency_manager;

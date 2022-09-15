@@ -47,16 +47,37 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 	return std::string(schema->name.data()) + "." + name;
 }
 
+Catalog::Catalog(DatabaseInstance &db)
+    : db(db), dependency_manager(make_unique<DependencyManager>(*this)) {
+	catalog_version = 0;
+}
+
 Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment_)
     : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
-
-	// Connect to shared memory
 	catalog_segment = catalog_segment_;
-	//catalog_segment = new boost::interprocess::managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
 }
 Catalog::~Catalog() {
+}
+
+void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names) {
+	schemas = make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this));
+	catalog_segment = catalog_segment_;
+
+	// Load SchemaCatalogEntry
+	unordered_set<CatalogEntry *> dependencies;
+	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
+	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
+
+	std::shared_ptr<ClientContext> client = 
+		std::make_shared<ClientContext>(db.shared_from_this());
+	if (!schemas->CreateEntry(*client.get(), "main", move(entry), dependencies)) {
+		throw CatalogException("Schema with name main already exists!");
+	}
+
+	// Load Other Catalog Entries
+	// Maybe we don't need this..?
 }
 
 Catalog &Catalog::GetCatalog(ClientContext &context) {
