@@ -605,7 +605,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         // Request I/O to the next extent if we can support double buffering
         Catalog& cat_instance = context.db->GetCatalog();
         if (support_double_buffering && current_idx < max_idx) {
-            IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
+//            IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             ExtentCatalogEntry* extent_cat_entry = 
                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
             
@@ -652,11 +652,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         // TODO record data cardinality in Chunk Definition?
         output.SetCardinality(1);
         output_eid = ext_ids_to_iterate[previous_idx];
-        IC(output_eid);
+        // IC(output_eid);
     } else {
         output.SetCardinality(1);
         output_eid = current_eid;
-        IC(output_eid);
+        // IC(output_eid);
     }
 
     CompressionHeader comp_header;
