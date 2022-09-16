@@ -45,7 +45,7 @@ class QueryPlanSuite {
 public:
 	QueryPlanSuite(ClientContext& context): context(context) {
 
-		LDBC_SF=1; // TODO change SF
+		LDBC_SF=10; // TODO change SF
 	};
 
 	std::vector<CypherPipelineExecutor*> getTest(string key) {
