@@ -107,7 +107,8 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 }
 
 StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input, idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
-	D_ASSERT(ext_it == nullptr);
+// icecream::ic.enable();
+	if (ext_it != nullptr) delete ext_it;
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	string entry_name = "vps_";
@@ -130,15 +131,13 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 	vector<ExtentID> target_eids;
 	uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
 	for (size_t i = 0; i < input.size(); i++) {
-		uint64_t vid = vids[i];
+		uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, i));
 		ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 		target_eids.push_back(target_eid);
 	}
 	// std::sort( target_eids.begin(), target_eids.end() );
 	target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
-icecream::ic.enable();
-	IC(target_eids.size());
-icecream::ic.disable();
+// icecream::ic.disable();
 
 	if (target_eids.size() == 0) return StoreAPIResult::DONE;
 
@@ -149,12 +148,13 @@ icecream::ic.disable();
 
 StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
 icecream::ic.enable();
-	D_ASSERT(ext_it->IsInitialized());
+	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID
 	ExtentID current_eid;
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, target_seqno);
-	D_ASSERT(current_eid == target_eid);
+	// IC(vid, target_eid, target_seqno, current_eid);
+	if (scan_ongoing) assert(current_eid == target_eid);
 	
 icecream::ic.disable();
 	return StoreAPIResult::OK;
