@@ -81,16 +81,13 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     target_idxs = move(target_idxs_);
     for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
-icecream::ic.enable();
-IC(ext_ids_to_iterate.size());
-icecream::ic.disable();
 
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
-        
+
         size_t chunk_size = ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
@@ -215,6 +212,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (current_idx > max_idx) return false;
 
     // Request I/O to the next extent if we can support double buffering
+    // IC(prev_toggle, toggle, next_toggle, current_idx, current_idx_in_this_extent, max_idx, scan_size);
     Catalog& cat_instance = context.db->GetCatalog();
     if (support_double_buffering && current_idx < max_idx && current_idx_in_this_extent == 0) {
         if (current_idx != 0) toggle = (toggle + 1) % num_data_chunks;
@@ -340,6 +338,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
     
     current_idx_in_this_extent++;
+icecream::ic.disable();
     return true;
 }
 
@@ -531,11 +530,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (i != 0 && !valid_output[i - 1]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-            //                 i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         } else {
-            // fprintf(stdout, "Load Column %ld\n", i);
+            fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i] == LogicalType::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
