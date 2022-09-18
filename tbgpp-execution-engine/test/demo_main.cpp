@@ -238,10 +238,12 @@ int main(int argc, char** argv) {
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(key_names);
+IC();
 		
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+IC();
 
 		// Initialize LID_TO_PID_MAP
 		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
@@ -253,13 +255,15 @@ int main(int argc, char** argv) {
 			// column_ids.push_back(key_column_idx);
 			// index = make_unique<ART>(column_ids, IndexConstraintType::NONE);
 		}
+IC();
 
 		// Read CSV File into DataChunk & CreateVertexExtent
 		auto read_chunk_start = std::chrono::high_resolution_clock::now();
 		while (!reader.ReadCSVFile(key_names, types, data)) {
+			IC();
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-//			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
 			//continue;
 			//fprintf(stderr, "%s\n", data.ToString().c_str());
 			// Create Vertex Extent by Extent Manager
@@ -267,7 +271,7 @@ int main(int argc, char** argv) {
 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-//			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
 			property_schema_cat->AddExtent(new_eid);
 			
 			if (load_edge) {
@@ -363,7 +367,7 @@ int main(int argc, char** argv) {
 
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize LID_PAIR_TO_EPID_MAP
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
@@ -376,7 +380,7 @@ int main(int argc, char** argv) {
 
 		// Initialize AdjListBuffer
 		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
@@ -395,7 +399,7 @@ int main(int argc, char** argv) {
 		idx_t *vertex_id_column;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
-		vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
+		vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -429,7 +433,7 @@ int main(int argc, char** argv) {
 			if (min_id == ULLONG_MAX) {
 				// Get First Vertex Extent
 				while (true) {
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
@@ -491,7 +495,7 @@ int main(int argc, char** argv) {
 					if (cur_src_id > max_id) {
 						// Fill offsets
 						idx_t last_offset = adj_list_buffer.size();
-						for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 							adj_list_buffer[i] = last_offset;
 
 						// AddChunk for Adj.List to current Src Vertex Extent
@@ -499,16 +503,16 @@ int main(int argc, char** argv) {
 						vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
 						vector<data_ptr_t> adj_list_datas(1);
 						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 						adj_list_chunk.Destroy();
 
 						// Re-initialize adjlist buffer for next Extent
-						adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 						// Read corresponding ID column of Src Vertex Extent
 						while (true) {
-							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 								// We do not allow this case
 								throw InvalidInputException("F");
 							}
@@ -530,7 +534,7 @@ int main(int argc, char** argv) {
 					} else {
 						while (vertex_id_column[vertex_seqno] < cur_src_id) {
 							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							D_ASSERT(vertex_seqno < STANDARD_VECTOR_SIZE);
+							D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
 						}
 					}
 
@@ -571,15 +575,15 @@ int main(int argc, char** argv) {
 		// Process remaining adjlist
 		// Fill offsets
 		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
-		adj_list_buffer[i] = last_offset;
+		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+			adj_list_buffer[i] = last_offset;
 
 		// AddChunk for Adj.List to current Src Vertex Extent
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
 		vector<data_ptr_t> adj_list_datas(1);
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 		adj_list_chunk.Destroy();
 
@@ -648,11 +652,11 @@ int main(int argc, char** argv) {
 
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize AdjListBuffer
 		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
@@ -671,7 +675,7 @@ int main(int argc, char** argv) {
 		idx_t *vertex_id_column;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
-		vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
+		vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -698,7 +702,7 @@ int main(int argc, char** argv) {
 			if (min_id == ULLONG_MAX) {
 				// Get First Vertex Extent
 				while (true) {
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
@@ -754,7 +758,7 @@ int main(int argc, char** argv) {
 					if (cur_src_id > max_id) {
 						// Fill offsets
 						idx_t last_offset = adj_list_buffer.size();
-						for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 							adj_list_buffer[i] = last_offset;
 
 						// AddChunk for Adj.List to current Src Vertex Extent
@@ -762,16 +766,16 @@ int main(int argc, char** argv) {
 						vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
 						vector<data_ptr_t> adj_list_datas(1);
 						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 						adj_list_chunk.Destroy();
 
 						// Re-initialize adjlist buffer for next Extent
-						adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 						// Read corresponding ID column of Src Vertex Extent
 						while (true) {
-							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 								// We do not allow this case
 								throw InvalidInputException("F");
 							}
@@ -793,7 +797,7 @@ int main(int argc, char** argv) {
 					} else {
 						while (vertex_id_column[vertex_seqno] < cur_src_id) {
 							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							D_ASSERT(vertex_seqno < STANDARD_VECTOR_SIZE);
+							D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
 						}
 					}
 
@@ -822,7 +826,7 @@ int main(int argc, char** argv) {
 		// Process remaining adjlist
 		// Fill offsets
 		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 			adj_list_buffer[i] = last_offset;
 
 		// AddChunk for Adj.List to current Src Vertex Extent
@@ -830,7 +834,7 @@ int main(int argc, char** argv) {
 		vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
 		vector<data_ptr_t> adj_list_datas(1);
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 		adj_list_chunk.Destroy();
 
