@@ -1,3 +1,8 @@
+#pragma once
+
+#include <cstdlib>
+#include <string>
+
 #include "main/database.hpp"
 
 #include "main/client_context.hpp"
@@ -6,7 +11,6 @@
 //#include "execution/executor.hpp"
 
 #include "storage/graph_store.hpp"
-#pragma once
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -44,9 +48,26 @@ class QueryPlanSuite {
 
 public:
 	QueryPlanSuite(ClientContext& context): context(context) {
+		
+		// search for SF environment variable
+		char* sf_str = std::getenv("SF");
+		// default scale factor as 1
+		LDBC_SF = 1;
 
-		LDBC_SF=1; // TODO change SF
-	};
+		// overwrite scalefactor from SF
+		if( sf_str != NULL ){
+			try {
+			int conv = std::stoi((string)sf_str);
+			// overwrite
+			LDBC_SF = conv;
+			} catch (const std::string& expn) {
+				std::cout << "Cannot find valid envvar SF. Setting to default environment variable SF=1" << std::endl;
+			}
+		}
+	
+		std::cout << "QueryPlanSuite : using scalefactor - " << LDBC_SF << std::endl;
+		
+	}
 
 	std::vector<CypherPipelineExecutor*> getTest(string key) {
 		//IC();
