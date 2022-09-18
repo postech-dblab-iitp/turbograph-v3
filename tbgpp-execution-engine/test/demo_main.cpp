@@ -868,9 +868,9 @@ IC();
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 			//std::cout << exec->pipeline->toString() << std::endl;
 			std::cout << "starting!!" << std::endl;
-			icecream::ic.enable();
+			// icecream::ic.enable();
 			exec->ExecutePipeline();
-			icecream::ic.disable();
+			// icecream::ic.disable();
 			std::cout << "done pipeline execution!!" << std::endl;
 		}
 		// end_timer

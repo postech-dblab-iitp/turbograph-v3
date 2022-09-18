@@ -71,16 +71,15 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 
 	}
 	D_ASSERT(state.ext_it != nullptr);
-
+	
 	// TODO need to split chunk in units of EXEC_ENGINE_VECTOR_SIZE
 	if( filter_pushdown_key.compare("") == 0 ) {
 		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
 	} else {
 		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
 	}
-//IC();
+	
 	// GetData() should return empty chunk to indicate scan is finished.
-icecream::ic.disable();
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {

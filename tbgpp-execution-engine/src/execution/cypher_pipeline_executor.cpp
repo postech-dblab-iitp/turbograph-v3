@@ -111,7 +111,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		
 		// call execute pipe
 		// std::cout << "call execute pipe!!" << std::endl;
-		IC();
+		// IC();
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 			// timer start
