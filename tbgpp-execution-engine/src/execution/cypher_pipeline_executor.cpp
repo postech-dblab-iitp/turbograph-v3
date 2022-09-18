@@ -130,6 +130,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			*context, *pipeOutputChunk, *local_sink_state
 		);
 		// count produced tuples only on ProduceResults operator
+		// TODO actually, ProduceResults also does not need processed_tuples too since it does not push results upwards, but returns it to the user.
 		if( pipeline->GetSink()->ToString().find("ProduceResults") != std::string::npos ) {
 			pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 		}
