@@ -36,12 +36,14 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
 	for (size_t i = 0; i < edgeLabels.size(); i++) {
 		for (auto &it : edgeLabels[i].data) properties_temp.push_back(it);
 	}
 	for (auto &it : properties) properties_temp.push_back(it);
+
 	vector<idx_t> column_idxs;
 	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
 
@@ -51,7 +53,6 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 }
 
 StoreAPIResult iTbgppGraphStore::doScan(ExtentIterator *&ext_it, DataChunk& output, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> scanSchema) {
-	
 	ExtentID current_eid;
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid);
 	if (scan_ongoing) {
@@ -107,8 +108,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 }
 
 StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input, idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
-// icecream::ic.enable();
-	if (ext_it != nullptr) delete ext_it;
+	// if (ext_it != nullptr) delete ext_it;
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	string entry_name = "vps_";
@@ -125,6 +125,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 		// std::cout << "Property: " << it << std::endl;
 		properties_temp.push_back(it);
 	}
+
 	vector<idx_t> column_idxs;
 	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
 
@@ -135,6 +136,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 		ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 		target_eids.push_back(target_eid);
 	}
+
 	// std::sort( target_eids.begin(), target_eids.end() );
 	target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
 // icecream::ic.disable();
@@ -147,16 +149,15 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 }
 
 StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
-icecream::ic.enable();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID
 	ExtentID current_eid;
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, target_seqno);
+
 	// IC(vid, target_eid, target_seqno, current_eid);
 	if (scan_ongoing) assert(current_eid == target_eid);
 	
-icecream::ic.disable();
 	return StoreAPIResult::OK;
 }
 

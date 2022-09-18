@@ -30,18 +30,18 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 // icecream::ic.disable();
 
 	auto &state = (NodeIdSeekState &)lstate;
-IC();
+// IC();
 	DataChunk targetTupleChunk;
 	CypherSchema outputNodeSchema = schema.getSubSchemaOfKey( name );
 	
 	idx_t nodeColIdx = schema.getColIdxOfKey( name ); // position of pid
-IC(nodeColIdx);
+// IC(nodeColIdx);
 	idx_t alreadyExistingCols = outputNodeSchema.getTypes().size() - 1 - propertyKeys.size();
-IC(alreadyExistingCols);
+// IC(alreadyExistingCols);
 	idx_t colIdxToStartFetch = nodeColIdx + alreadyExistingCols + 1;
-IC(colIdxToStartFetch);
+// IC(colIdxToStartFetch);
 
-IC();
+// IC();
 	vector<LogicalType> targetTypes;
 	targetTypes.push_back(LogicalType::ID); // for node ids
 	for( auto& key: propertyKeys ) {

@@ -531,7 +531,6 @@ public:
 
 	bool ReadVertexCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
 		if (row_cursor == num_rows) return true;
-IC();
     idx_t current_index = 0;
 		vector<idx_t> required_key_column_idxs;
 		for (auto &key: required_keys) {
@@ -544,13 +543,11 @@ IC();
 				throw InvalidInputException("A");
 			}
 		}
-IC();
+
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
     std::cout << "num_rows: " << num_rows << std::endl;
-    IC(output.size());
-IC();
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
@@ -562,7 +559,6 @@ IC();
 			current_index++;
       index_cursor += num_columns;
 		}
-IC();
 
     // Column-oriented manner
     // idx_t cur_base_row_cursor = row_cursor;
