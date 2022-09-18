@@ -62,9 +62,10 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
-icecream::ic.enable();
-IC();
-icecream::ic.disable();
+// FIXME
+// icecream::ic.enable();
+// IC();
+// icecream::ic.disable();
 
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*context, *local_sink_state);
@@ -90,13 +91,12 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 // icecream::ic.disable();
 	switch( childs.size() ) {
 		// no child pipeline
-		// IC();
-		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break; }
+		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break;}
 		// single child
-		// IC();
 		case 1: { pipeline->GetSource()->GetData( *context, result, *local_source_state, *(childs[0]->local_sink_state) ); break; }
 	}
-	pipeline->GetSource()->processed_tuples += result.size();
+	pipeline->GetSource()->processed_tuples += result.size();	
+	
 	// timer stop
 	pipeline->GetSource()->op_timer.stop();
 }
@@ -129,10 +129,13 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
-		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
-			// timer stop
+		// count produced tuples only on ProduceResults operator
+		// TODO actually, ProduceResults also does not need processed_tuples too since it does not push results upwards, but returns it to the user.
+		if( pipeline->GetSink()->ToString().find("ProduceResults") != std::string::npos ) {
+			pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
+		}
+		// timer stop
 		pipeline->GetSink()->op_timer.stop();
-// icecream::ic.enable();IC();icecream::ic.disable();
 
 		// break when pipes for single chunk finishes
 		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 

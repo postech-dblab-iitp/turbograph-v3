@@ -75,7 +75,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "message", LabelSet("Comment"), exp_pkeys));
 	ops.push_back( new PhysicalProjection(sch4, move(proj_exprs)));
 	// sink
-	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)100, (idx_t)0));
+	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)10, (idx_t)0));
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
