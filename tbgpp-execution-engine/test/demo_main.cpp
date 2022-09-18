@@ -850,6 +850,7 @@ int main(int argc, char** argv) {
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		executors = suite.getTest(query_str);
+		if( executors.size() == 0 ) { continue; }
 	
 		// start_timer
 		boost::timer::cpu_timer query_timer;
@@ -867,6 +868,31 @@ int main(int argc, char** argv) {
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 		std::cout << "\ndone query exec in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
+		// dump result
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+				std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
+			}
+			std::cout << std::endl;
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+					std::cout << "\t" << firstchunk->GetValue(colIdx, idx).ToString();
+				}
+				std::cout << std::endl;
+			}
+		}
+		std::cout << "===================================================" << std::endl;
+		
 		// Print result plan
 		exportQueryPlanVisualizer(executors, query_exec_time_ms);
 
