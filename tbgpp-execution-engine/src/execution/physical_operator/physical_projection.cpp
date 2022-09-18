@@ -23,6 +23,7 @@ unique_ptr<OperatorState> PhysicalProjection::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalProjection::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (ProjectionState &)lstate;
+
 	// state not necessary
 	IC();
 	state.executor.Execute(input, chunk);

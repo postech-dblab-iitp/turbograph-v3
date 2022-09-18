@@ -43,7 +43,6 @@ icecream::ic.disable();
 	auto &sink = (TopNSortSinkState &)lstate;
 	sink.heap.Sink(input);
 	sink.heap.Reduce();
-icecream::ic.enable();
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
@@ -51,6 +50,7 @@ icecream::ic.enable();
 // Combine
 //===--------------------------------------------------------------------===//
 void PhysicalTopNSort::Combine(ExecutionContext &context, LocalSinkState &lstate_p) const {
+IC();
 	// auto &gstate = (TopNGlobalState &)state;
 	auto &lstate = (TopNSortSinkState &)lstate_p;
 	// directly call finalize for heap
@@ -83,7 +83,6 @@ icecream::ic.disable();
 		state.initialized = true;
 	}
 	gstate.heap.Scan(state.state, chunk);
-icecream::ic.enable();
 }
 
 std::string PhysicalTopNSort::ParamsToString() const {

@@ -28,11 +28,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	scan_propertyKeys.push_back("creationDate");
 	
 	// Filter
-// FIXME todo change
-	duckdb::Value filter_val;
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
-	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
-	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+	duckdb::Value filter_val; // person key
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 	// Expand
 	CypherSchema expandschema = schema;
@@ -73,7 +72,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 		// source
 	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, "id", filter_val));
 		//operators
-	ops.push_back(new PhysicalAdjIdxJoin(expandschema, "n", LabelSet("Person"), LabelSet("IS_LOCATED_IN"), ExpandDirection::OUTGOING, LabelSet("City"), JoinType::INNER, false, true));
+	ops.push_back(new PhysicalAdjIdxJoin(expandschema, "n", LabelSet("Person"), LabelSet("IS_LOCATED_IN"), ExpandDirection::OUTGOING, LabelSet("Place"), JoinType::INNER, false, true));
 	ops.push_back(new PhysicalNodeIdSeek(schema3, "p", LabelSet("Place"), seek_propertyKeys));
 	ops.push_back(new PhysicalProjection(project_schema, move(proj_exprs)));
 		// sink

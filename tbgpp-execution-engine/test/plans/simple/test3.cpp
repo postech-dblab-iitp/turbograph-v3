@@ -21,16 +21,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	scan_propertyKeys.push_back("id");
 	scan_propertyKeys.push_back("url");
 	// filter preds
-	vector<unique_ptr<Expression>> predicates;
-	{
-		// expression space
-		unique_ptr<Expression> filter_expr1;
-		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 2);	// pid name "id" -> index 2
-		auto rhsval = duckdb::Value::UBIGINT(0);
-		auto rhs = make_unique<BoundConstantExpression>(rhsval);
-		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
-		predicates.push_back(std::move(filter_expr1));
-	}
+	duckdb::Value filter_val; // person key
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 	
 	// projection
 	CypherSchema pj_schema;
@@ -50,9 +44,8 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	// pipe 1
 	std::vector<CypherPhysicalOperator *> ops;
 	// source
-	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys) );
+	ops.push_back(new PhysicalNodeScan(schema, scan_labels, scan_propertyKeys, "id", filter_val) );
 	// operators
-	//ops.push_back(new PhysicalFilter(schema, std::move(predicates)));
 	ops.push_back(new PhysicalProjection(pj_schema, std::move(proj_exprs)));
 	// sink
 	ops.push_back(new PhysicalProduceResults(pj_schema));

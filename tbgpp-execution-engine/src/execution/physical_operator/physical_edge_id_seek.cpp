@@ -23,6 +23,8 @@ unique_ptr<OperatorState> PhysicalEdgeIdSeek::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalEdgeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 
+// icecream::ic.enable();
+IC( input.ToString(5) );
 	auto &state = (EdgeIdSeekState &)lstate;
 IC();
 	DataChunk targetTupleChunk;
@@ -46,14 +48,18 @@ IC();
 	D_ASSERT( propertyKeys.size()+1 == targetTypes.size() );
 
 	std::vector<LabelSet> empty_els;
-IC();
+IC(input.size());
 	int numProducedTuples = 0;
+
+	// initialize indexseek
+	context.client->graph_store->InitializeEdgeIndexSeek(state.ext_it, targetTupleChunk, input, edgeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes);
+	
 	// for fetched columns, call api 
 	for( u_int64_t srcIdx=0 ; srcIdx < input.size(); srcIdx++) {
 		// fetch value
 		uint64_t vid = UBigIntValue::Get(input.GetValue(edgeColIdx, srcIdx));
 		// pass value
-		context.client->graph_store->doIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
+		context.client->graph_store->doEdgeIndexSeek(state.ext_it, targetTupleChunk, vid, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes); // TODO need to fix API
 		assert( targetTupleChunk.size() == 1 && "did not fetch well");
 		// set value
 		for (idx_t colId = 1; colId < targetTupleChunk.ColumnCount(); colId++) {	// abandon pid and use only newly added columns
@@ -75,7 +81,12 @@ IC( int(numAddedColumns) );
 	}
 	chunk.SetCardinality( input.size() );
 IC(chunk.ToString(1));
+
+// icecream::ic.disable();
+
 	return OperatorResultType::NEED_MORE_INPUT;
+
+
 }
 
 std::string PhysicalEdgeIdSeek::ParamsToString() const {
