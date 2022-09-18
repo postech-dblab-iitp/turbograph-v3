@@ -330,7 +330,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
 
     // Read CSV File into DataChunk & CreateEdgeExtent
     while (!reader.ReadCSVFile(key_names, types, data)) {
-      fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+//      fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
       // Get New ExtentID for this chunk
       ExtentID new_eid = property_schema_cat->GetNewExtentID();

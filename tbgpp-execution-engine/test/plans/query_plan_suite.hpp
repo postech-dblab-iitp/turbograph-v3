@@ -67,8 +67,15 @@ public:
 
 		/* LDBC queries */
 		if( key.compare("s1") == 0 ) { return LDBC_IS1(); }
+		if( key.compare("s2") == 0 ) { return LDBC_IS2(); }
+		if( key.compare("s3") == 0 ) { return LDBC_IS3(); }
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
-		// if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
+		if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
+		if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
+		if( key.compare("s7") == 0 ) { return LDBC_IS7(); }
+		if( key.compare("c2") == 0 ) { return LDBC_IC2(); }
+		if( key.compare("c4") == 0 ) { return LDBC_IC4(); }
+		if( key.compare("c8") == 0 ) { return LDBC_IC8(); }
 		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
 		else { return std::vector<CypherPipelineExecutor*>(); }
 	}
@@ -86,16 +93,13 @@ public:
 	std::vector<CypherPipelineExecutor*> Test11();	// 
 	std::vector<CypherPipelineExecutor*> Test11_1();	// 
 	
-														// ( ! : need to set predicate value)
-														// all to-fix parts marked FIXME
-														// Q_GEN | Q_WORKS | CORRECT
-	std::vector<CypherPipelineExecutor*> LDBC_IS1();	// ! |  o |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();	// ! |    |   |	// adjjoin
-	std::vector<CypherPipelineExecutor*> LDBC_IS3();	// ! |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS4();	// o |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS5();	// ! |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS6();	//   |   |   |
-	std::vector<CypherPipelineExecutor*> LDBC_IS7();	// ! |   |   |
+	std::vector<CypherPipelineExecutor*> LDBC_IS1();
+	std::vector<CypherPipelineExecutor*> LDBC_IS2();
+	std::vector<CypherPipelineExecutor*> LDBC_IS3();
+	std::vector<CypherPipelineExecutor*> LDBC_IS4();
+	std::vector<CypherPipelineExecutor*> LDBC_IS5();
+	std::vector<CypherPipelineExecutor*> LDBC_IS6();
+	std::vector<CypherPipelineExecutor*> LDBC_IS7();
 
 	std::vector<CypherPipelineExecutor*> LDBC_IC1();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IC2();	//   |   |   |

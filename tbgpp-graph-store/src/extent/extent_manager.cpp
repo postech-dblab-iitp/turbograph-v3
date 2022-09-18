@@ -78,7 +78,7 @@ void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &inpu
         size_t alloc_buf_size;
         if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
         } else if (l_type == LogicalType::VARCHAR) {
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
@@ -162,7 +162,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         size_t alloc_buf_size;
         if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
         } else if (l_type == LogicalType::VARCHAR) {
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
@@ -182,7 +182,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
-        fprintf(stdout, "[ChunkCacheManager] Get size %ld buffer\n", buf_size);
+//        fprintf(stdout, "[ChunkCacheManager] Get size %ld buffer\n", buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
@@ -222,7 +222,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             }
         } else if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            size_t input_size = adj_list_buffer[STANDARD_VECTOR_SIZE - 1];
+            size_t input_size = adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
             CompressionHeader comp_header(UNCOMPRESSED, input_size);
             memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
             memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
@@ -260,7 +260,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
-        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
+//        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
     }
 }
 

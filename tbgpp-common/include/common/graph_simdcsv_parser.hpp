@@ -20,6 +20,7 @@
 #include "timing.h"
 #include "mem_util.h"
 #include "portability.h"
+#include "icecream.hpp"
 
 using namespace turbograph_simdcsv;
 
@@ -609,7 +610,7 @@ public:
 
 	bool ReadVertexCSVFile(vector<string> &required_keys, vector<LogicalType> &types, DataChunk &output) {
 		if (row_cursor == num_rows) return true;
-
+IC();
     idx_t current_index = 0;
 		vector<idx_t> required_key_column_idxs;
 		for (auto &key: required_keys) {
@@ -622,12 +623,15 @@ public:
 				throw InvalidInputException("A");
 			}
 		}
+IC();
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
     std::cout << "num_rows: " << num_rows << std::endl;
+    IC(output.size());
+IC();
 		for (; row_cursor < num_rows; row_cursor++) {
-			if (current_index == STANDARD_VECTOR_SIZE) break;
+			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
         idx_t target_index = index_cursor + required_key_column_idxs[i];
         idx_t start_offset = pcsv.indexes[target_index-1] + 1;
@@ -637,7 +641,7 @@ public:
 			current_index++;
       index_cursor += num_columns;
 		}
-    std::cout << "???\n";
+IC();
 
     // Column-oriented manner
     // idx_t cur_base_row_cursor = row_cursor;
@@ -725,9 +729,9 @@ public:
 		// }
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
+    // std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
-			if (current_index == STANDARD_VECTOR_SIZE) break;
+			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
         idx_t target_index = index_cursor + required_key_column_idxs[i];
         idx_t start_offset = pcsv.indexes[target_index-1] + 1;

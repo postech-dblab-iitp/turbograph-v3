@@ -13,7 +13,7 @@ BoundAggregateExpression::BoundAggregateExpression(AggregateFunction function, v
     : Expression(ExpressionType::BOUND_AGGREGATE, ExpressionClass::BOUND_AGGREGATE, function.return_type),
       function(move(function)), children(move(children)), bind_info(move(bind_info)), distinct(distinct),
       filter(move(filter)) {
-	D_ASSERT(!function.name.empty());
+	// D_ASSERT(!function.name.empty());
 }
 
 string BoundAggregateExpression::ToString() const {
