@@ -5,6 +5,9 @@
 #include "common/vector.hpp"
 
 #include "common/types.hpp"
+#include "common/vector_size.hpp"
+
+#include <limits>
 
 namespace duckdb {
 
@@ -27,11 +30,16 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, vector<ExtentID> target_eids);
 
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, Value filterValue, vector<string> &output_properties, vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr);
+
+    bool IsInitialized() {
+        return is_initialized;
+    }
 
 private:
     bool _CheckIsMemoryEnough();
@@ -44,11 +52,14 @@ private:
     vector<size_t> io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
     vector<LogicalType> ext_property_types;
     vector<idx_t> target_idxs;
+    idx_t current_idx_in_this_extent;
     idx_t current_idx;
     idx_t max_idx;
+    ExtentID current_eid = (ExtentID)std::numeric_limits<uint32_t>::max();
     int num_data_chunks;
     int toggle;
     bool support_double_buffering;
+    bool is_initialized = false;
     PropertySchemaCatalogEntry *ps_cat_entry;
 };
 

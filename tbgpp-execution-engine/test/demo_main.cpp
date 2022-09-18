@@ -242,10 +242,12 @@ int main(int argc, char** argv) {
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(key_names);
+IC();
 		
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+IC();
 
 		// Initialize LID_TO_PID_MAP
 		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
@@ -257,13 +259,15 @@ int main(int argc, char** argv) {
 			// column_ids.push_back(key_column_idx);
 			// index = make_unique<ART>(column_ids, IndexConstraintType::NONE);
 		}
+IC();
 
 		// Read CSV File into DataChunk & CreateVertexExtent
 		auto read_chunk_start = std::chrono::high_resolution_clock::now();
 		while (!reader.ReadCSVFile(key_names, types, data)) {
+			IC();
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-//			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
 			//continue;
 			//fprintf(stderr, "%s\n", data.ToString().c_str());
 			// Create Vertex Extent by Extent Manager
@@ -271,7 +275,7 @@ int main(int argc, char** argv) {
 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-//			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
 			property_schema_cat->AddExtent(new_eid);
 			
 			if (load_edge) {
@@ -367,7 +371,7 @@ int main(int argc, char** argv) {
 
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize LID_PAIR_TO_EPID_MAP
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
@@ -380,7 +384,7 @@ int main(int argc, char** argv) {
 
 		// Initialize AdjListBuffer
 		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
@@ -399,7 +403,7 @@ int main(int argc, char** argv) {
 		idx_t *vertex_id_column;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
-		vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
+		vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -433,7 +437,7 @@ int main(int argc, char** argv) {
 			if (min_id == ULLONG_MAX) {
 				// Get First Vertex Extent
 				while (true) {
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
@@ -495,7 +499,7 @@ int main(int argc, char** argv) {
 					if (cur_src_id > max_id) {
 						// Fill offsets
 						idx_t last_offset = adj_list_buffer.size();
-						for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 							adj_list_buffer[i] = last_offset;
 
 						// AddChunk for Adj.List to current Src Vertex Extent
@@ -503,16 +507,16 @@ int main(int argc, char** argv) {
 						vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
 						vector<data_ptr_t> adj_list_datas(1);
 						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 						adj_list_chunk.Destroy();
 
 						// Re-initialize adjlist buffer for next Extent
-						adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 						// Read corresponding ID column of Src Vertex Extent
 						while (true) {
-							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 								// We do not allow this case
 								throw InvalidInputException("F");
 							}
@@ -534,7 +538,7 @@ int main(int argc, char** argv) {
 					} else {
 						while (vertex_id_column[vertex_seqno] < cur_src_id) {
 							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							D_ASSERT(vertex_seqno < STANDARD_VECTOR_SIZE);
+							D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
 						}
 					}
 
@@ -575,15 +579,15 @@ int main(int argc, char** argv) {
 		// Process remaining adjlist
 		// Fill offsets
 		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
-		adj_list_buffer[i] = last_offset;
+		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+			adj_list_buffer[i] = last_offset;
 
 		// AddChunk for Adj.List to current Src Vertex Extent
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
 		vector<data_ptr_t> adj_list_datas(1);
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 		adj_list_chunk.Destroy();
 
@@ -652,11 +656,11 @@ int main(int argc, char** argv) {
 
 		// Initialize DataChunk
 		DataChunk data;
-		data.Initialize(types);
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize AdjListBuffer
 		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
@@ -675,7 +679,7 @@ int main(int argc, char** argv) {
 		idx_t *vertex_id_column;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
-		vertex_id_chunk.Initialize({ LogicalType::UBIGINT });
+		vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -702,7 +706,7 @@ int main(int argc, char** argv) {
 			if (min_id == ULLONG_MAX) {
 				// Get First Vertex Extent
 				while (true) {
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
@@ -758,7 +762,7 @@ int main(int argc, char** argv) {
 					if (cur_src_id > max_id) {
 						// Fill offsets
 						idx_t last_offset = adj_list_buffer.size();
-						for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 							adj_list_buffer[i] = last_offset;
 
 						// AddChunk for Adj.List to current Src Vertex Extent
@@ -766,16 +770,16 @@ int main(int argc, char** argv) {
 						vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
 						vector<data_ptr_t> adj_list_datas(1);
 						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 						adj_list_chunk.Destroy();
 
 						// Re-initialize adjlist buffer for next Extent
-						adj_list_buffer.resize(STANDARD_VECTOR_SIZE);
+						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 						// Read corresponding ID column of Src Vertex Extent
 						while (true) {
-							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid)) {
+							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 								// We do not allow this case
 								throw InvalidInputException("F");
 							}
@@ -797,7 +801,7 @@ int main(int argc, char** argv) {
 					} else {
 						while (vertex_id_column[vertex_seqno] < cur_src_id) {
 							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							D_ASSERT(vertex_seqno < STANDARD_VECTOR_SIZE);
+							D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
 						}
 					}
 
@@ -826,7 +830,7 @@ int main(int argc, char** argv) {
 		// Process remaining adjlist
 		// Fill offsets
 		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STANDARD_VECTOR_SIZE; i++)
+		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
 			adj_list_buffer[i] = last_offset;
 
 		// AddChunk for Adj.List to current Src Vertex Extent
@@ -834,7 +838,7 @@ int main(int argc, char** argv) {
 		vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
 		vector<data_ptr_t> adj_list_datas(1);
 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas);
+		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
 		adj_list_chunk.Destroy();
 
@@ -855,6 +859,7 @@ int main(int argc, char** argv) {
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		executors = suite.getTest(query_str);
+		if( executors.size() == 0 ) { continue; }
 	
 		// start_timer
 		boost::timer::cpu_timer query_timer;
@@ -872,6 +877,31 @@ int main(int argc, char** argv) {
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 		std::cout << "\ndone query exec in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
+		// dump result
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+				std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
+			}
+			std::cout << std::endl;
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+					std::cout << "\t" << firstchunk->GetValue(colIdx, idx).ToString();
+				}
+				std::cout << std::endl;
+			}
+		}
+		std::cout << "===================================================" << std::endl;
+		
 		// Print result plan
 		exportQueryPlanVisualizer(executors, query_exec_time_ms);
 
@@ -890,32 +920,31 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
 	std::replace( curtime.begin(), curtime.end(), ' ', '_');
 	boost::filesystem::create_directories("execution-log/");
-	std::cout << "saving query visualization in : " << "execution-log/" << curtime << ".html" << std::endl;
+	std::cout << "saving query visualization in : " << "build/execution-log/" << curtime << ".html" << std::endl;
 	std::ofstream file( "execution-log/" + curtime + ".html" );
 
 	// TODO currently supports only linear query plan.
 	
 	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
-	std::string html_1 = "<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
-	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n</script>\n";
+	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
+	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
 
 	json j = json::array( { json({}), } );
 	j[0]["Execution Time"] = query_exec_time_ms;
 
 	// reverse-iterate executors
 	json* current_root = &(j[0]);
-	bool isRootOp = true;
+	bool isRootOp = true;	// is true for only one operator
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
-		// sink first
-		current_root = operatorToVisualizerJSON( current_root, pipeline->sink, isRootOp );
-		isRootOp = false;
 		// reverse operator
 		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, false );
+			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp );
+			if( isRootOp ) { isRootOp = false; }
 		}
 		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, false );
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+		if( isRootOp ) { isRootOp = false; }
 	}
 
 	file << html_1;
@@ -927,31 +956,42 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 }
 
 json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root) {
-
 	json* content;
 	if( is_root ) {
 		(*j)["Plan"] = json({});
 		content = &((*j)["Plan"]);
 	} else {
-		(*j)["Plans"] = json::array( { json({}), } );
+		if( (*j)["Plans"].is_null() ) {
+			// single child
+			(*j)["Plans"] = json::array( { json({}), } );
+		} else {
+			// already made child with two childs. so pass
+		}
 		content = &((*j)["Plans"][0]);
 	}
 	(*content)["Node Type"] = op->ToString();
 
-	// TODO need understanding about the logics of timing in psql
 	(*content)["Actual Startup Time"] = 0.0;	
 	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
-	(*content)["Actual Rows"] = op->processed_tuples; // TODO fix
+	(*content)["Actual Rows"] = op->processed_tuples;
 	(*content)["Actual Loops"] = 1; // meaningless
 	// output shcma
 	(*content)["Output Schema"] = op->schema.toString();
 
-	// TODO add operator-speciic
-	// if( op->ToString() == "NExpand" ) {
-	// 	(*content)["AdjFetch Time"] = ((NaiveExpand*) op)->adjfetch_time;
-	// 	(*content)["TgtFetch Time"] = ((NaiveExpand*) op)->tgtfetch_time;
-	// }
-
+	// add child when operator is 
+	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
+	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
+	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
+	}
 
 	return content;
 }
