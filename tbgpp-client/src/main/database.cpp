@@ -139,6 +139,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	object_names.resize(20);
 	for(; named_beg != named_end; ++named_beg) {
 		// A pointer to the name of the named object
+		const void *value = named_beg->value();
 		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
 		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
 			object_names[0].push_back(name);
@@ -158,6 +159,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 			object_names[7].push_back(name);
 		} else {
 			object_names[8].push_back(name);
+			fprintf(stdout, "%s %p\n", name, value);
 		}
 		num_objects_in_catalog++;
 	}
@@ -173,10 +175,10 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
 	fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
 	for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
-	fprintf(stdout, "ExtentCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
-	fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
+	// fprintf(stdout, "ExtentCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
+	// fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
 	fprintf(stdout, "Else\n");
 	for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
 	fprintf(stdout, "num_objects = %ld\n", num_objects_in_catalog);

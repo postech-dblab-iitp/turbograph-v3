@@ -13,6 +13,7 @@
 #include <sys/fcntl.h>
 
 #include <iostream>
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -52,6 +53,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
+IC(catalog_set_name_);
 	this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
@@ -451,16 +453,24 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 }
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
+IC();
+	fprintf(stdout, "catalogset %p\n", this);
+	fprintf(stdout, "catalog_set_name %s\n", catalog_set_name.c_str());
 	MappingValue *mapping_value;
+IC();
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+IC();
 	char_string name_(temp_charallocator);
+IC();
 	name_ = name.c_str();
+IC();
 	auto entry = mapping->find(name_);
 	if (entry != mapping->end()) {
 		mapping_value = entry->second;
 	} else {
 		return nullptr;
 	}
+IC();
 	if (get_latest) {
 		return mapping_value;
 	}
@@ -586,8 +596,11 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 }
 
 CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
-	unique_lock<mutex> lock(catalog_lock);
+	// unique_lock<mutex> lock(catalog_lock); // TODO disable in debug phase..
+	fprintf(stdout, "CatalogSet address %p\n", this);
+IC();
 	auto mapping_value = GetMapping(context, name);
+IC();
 	if (mapping_value != nullptr && !mapping_value->deleted) {
 		// we found an entry for this name
 		// check the version numbers
@@ -599,17 +612,19 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		}
 		return current;
 	}
+IC();
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
 		return nullptr;
 	}
+IC();
 	// this catalog set has a default map defined
 	// check if there is a default entry that we can create with this name
-	lock.unlock();
+	// lock.unlock(); // XXX disable in debug phase..
 	auto entry = defaults->CreateDefaultEntry(context, name);
-
-	lock.lock();
+IC();
+	// lock.lock(); // XXX disable in debug phase
 	if (!entry) {
 		// no default entry
 		return nullptr;
@@ -619,10 +634,11 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 	if (result) {
 		return result;
 	}
+IC();
 	// we found a default entry, but failed
 	// this means somebody else created the entry first
 	// just retry?
-	lock.unlock();
+	// lock.unlock(); // XXX disable in debug phase..
 	return GetEntry(context, name);
 }
 

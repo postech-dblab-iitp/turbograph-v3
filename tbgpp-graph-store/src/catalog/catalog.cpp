@@ -366,13 +366,16 @@ SimilarCatalogEntry Catalog::SimilarEntryInSchemas(ClientContext &context, const
 
 CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type, const string &schema_name,
                                         const string &name, bool if_exists) { //, QueryErrorContext error_context) {
+IC();
 	if (!schema_name.empty()) {
 		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
+IC();
 		if (!schema) {
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
 		}
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
+IC();
 		if (!entry && !if_exists) {
 			D_ASSERT(false);
 			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
@@ -380,7 +383,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 
 		return {schema, entry};
 	}
-
+IC();
 //	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
 	const auto paths = vector<string>();
 	for (const auto &path : paths) {
@@ -390,7 +393,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 			return lookup;
 		}
 	}
-
+IC();
 	if (!if_exists) {
 		vector<SchemaCatalogEntry *> schemas;
 		for (const auto &path : paths) {
@@ -403,6 +406,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 		D_ASSERT(false);
 		//throw CreateMissingEntryException(context, name, type, schemas, error_context);
 	}
+IC();
 
 	return {nullptr, nullptr};
 }
