@@ -48,6 +48,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iostream>
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -98,6 +99,7 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
 	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
 	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")) {
+IC();
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
 }
