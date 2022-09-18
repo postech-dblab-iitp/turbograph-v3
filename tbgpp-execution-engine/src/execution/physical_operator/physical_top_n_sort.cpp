@@ -39,11 +39,10 @@ unique_ptr<LocalSinkState> PhysicalTopNSort::GetLocalSinkState(ExecutionContext 
 //===--------------------------------------------------------------------===//
 SinkResultType PhysicalTopNSort::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	// append to the local sink state
-icecream::ic.enable();
+icecream::ic.disable();
 	auto &sink = (TopNSortSinkState &)lstate;
 	sink.heap.Sink(input);
 	sink.heap.Reduce();
-icecream::ic.disable();
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
@@ -84,7 +83,6 @@ icecream::ic.disable();
 		state.initialized = true;
 	}
 	gstate.heap.Scan(state.state, chunk);
-icecream::ic.enable();
 }
 
 std::string PhysicalTopNSort::ParamsToString() const {

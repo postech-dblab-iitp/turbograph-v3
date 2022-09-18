@@ -374,6 +374,10 @@ IC();
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
 		}
+// icecream::ic.enable();
+// IC(schema_name);
+// IC(name);
+// icecream::ic.disable();
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
 IC();
 		if (!entry && !if_exists) {

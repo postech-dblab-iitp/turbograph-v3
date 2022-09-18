@@ -48,7 +48,7 @@ unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState(ExecutionCont
 
 void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const {
 	auto &state = (NodeScanState &)lstate;
-icecream::ic.enable();
+// icecream::ic.enable();
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
 	if (!state.iter_inited) {
 		state.iter_inited = true;

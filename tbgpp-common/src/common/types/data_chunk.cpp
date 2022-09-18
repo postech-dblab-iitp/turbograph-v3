@@ -27,8 +27,8 @@ DataChunk::DataChunk() : count(0), capacity(STANDARD_VECTOR_SIZE) {
 DataChunk::~DataChunk() {
 }
 
-void DataChunk::InitializeEmpty(const vector<LogicalType> &types) {
-	capacity = STANDARD_VECTOR_SIZE;
+void DataChunk::InitializeEmpty(const vector<LogicalType> &types, idx_t capacity_) {
+	capacity = capacity_;
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	for (idx_t i = 0; i < types.size(); i++) {
@@ -36,19 +36,19 @@ void DataChunk::InitializeEmpty(const vector<LogicalType> &types) {
 	}
 }
 
-void DataChunk::Initialize(const vector<LogicalType> &types) {
+void DataChunk::Initialize(const vector<LogicalType> &types, idx_t capacity_) {
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
-	capacity = STANDARD_VECTOR_SIZE;
+	capacity = capacity_;
 	for (idx_t i = 0; i < types.size(); i++) {
-		VectorCache cache(types[i]);
+		VectorCache cache(types[i], capacity);
 		data.emplace_back(cache);
 		vector_caches.push_back(move(cache));
 	}
 }
 
-void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas) {
-	capacity = STANDARD_VECTOR_SIZE;
+void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capacity_) {
+	capacity = capacity_;
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	for (idx_t i = 0; i < types.size(); i++) {
