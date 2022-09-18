@@ -854,6 +854,7 @@ IC();
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		executors = suite.getTest(query_str);
+		if( executors.size() == 0 ) { continue; }
 	
 		// start_timer
 		boost::timer::cpu_timer query_timer;
@@ -871,6 +872,31 @@ IC();
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 		std::cout << "\ndone query exec in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
+		// dump result
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+				std::cout << "\t" << firstchunk->GetTypes()[colIdx].ToString();
+			}
+			std::cout << std::endl;
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+					std::cout << "\t" << firstchunk->GetValue(colIdx, idx).ToString();
+				}
+				std::cout << std::endl;
+			}
+		}
+		std::cout << "===================================================" << std::endl;
+		
 		// Print result plan
 		exportQueryPlanVisualizer(executors, query_exec_time_ms);
 
@@ -889,32 +915,31 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
 	std::replace( curtime.begin(), curtime.end(), ' ', '_');
 	boost::filesystem::create_directories("execution-log/");
-	std::cout << "saving query visualization in : " << "execution-log/" << curtime << ".html" << std::endl;
+	std::cout << "saving query visualization in : " << "build/execution-log/" << curtime << ".html" << std::endl;
 	std::ofstream file( "execution-log/" + curtime + ".html" );
 
 	// TODO currently supports only linear query plan.
 	
 	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
-	std::string html_1 = "<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
-	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n</script>\n";
+	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
+	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
 
 	json j = json::array( { json({}), } );
 	j[0]["Execution Time"] = query_exec_time_ms;
 
 	// reverse-iterate executors
 	json* current_root = &(j[0]);
-	bool isRootOp = true;
+	bool isRootOp = true;	// is true for only one operator
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
-		// sink first
-		current_root = operatorToVisualizerJSON( current_root, pipeline->sink, isRootOp );
-		isRootOp = false;
 		// reverse operator
 		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, false );
+			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp );
+			if( isRootOp ) { isRootOp = false; }
 		}
 		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, false );
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+		if( isRootOp ) { isRootOp = false; }
 	}
 
 	file << html_1;
@@ -926,31 +951,42 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 }
 
 json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root) {
-
 	json* content;
 	if( is_root ) {
 		(*j)["Plan"] = json({});
 		content = &((*j)["Plan"]);
 	} else {
-		(*j)["Plans"] = json::array( { json({}), } );
+		if( (*j)["Plans"].is_null() ) {
+			// single child
+			(*j)["Plans"] = json::array( { json({}), } );
+		} else {
+			// already made child with two childs. so pass
+		}
 		content = &((*j)["Plans"][0]);
 	}
 	(*content)["Node Type"] = op->ToString();
 
-	// TODO need understanding about the logics of timing in psql
 	(*content)["Actual Startup Time"] = 0.0;	
 	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
-	(*content)["Actual Rows"] = op->processed_tuples; // TODO fix
+	(*content)["Actual Rows"] = op->processed_tuples;
 	(*content)["Actual Loops"] = 1; // meaningless
 	// output shcma
 	(*content)["Output Schema"] = op->schema.toString();
 
-	// TODO add operator-speciic
-	// if( op->ToString() == "NExpand" ) {
-	// 	(*content)["AdjFetch Time"] = ((NaiveExpand*) op)->adjfetch_time;
-	// 	(*content)["TgtFetch Time"] = ((NaiveExpand*) op)->tgtfetch_time;
-	// }
-
+	// add child when operator is 
+	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
+	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
+	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
+	}
 
 	return content;
 }
