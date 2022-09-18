@@ -73,10 +73,10 @@ public:
 	//! This will create one vector of the specified type for each LogicalType in the
 	//! types list. The vector will be referencing vector to the data owned by
 	//! the DataChunk.
-	DUCKDB_API void Initialize(const vector<LogicalType> &types);
-	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
 	//! Initializes an empty DataChunk with the given types. The vectors will *not* have any data allocated for them.
-	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types);
+	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void InitializeAdjListColumn(idx_t adj_list_column_idx, size_t adj_list_size);
 	//! Append the other DataChunk to this one. The column count and types of
 	//! the two DataChunks have to match exactly. Throws an exception if there
