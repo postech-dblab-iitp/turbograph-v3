@@ -148,7 +148,7 @@ class InputParser{
 };
 
 int main(int argc, char** argv) {
-icecream::ic.disable();
+icecream::ic.enable();
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
@@ -304,6 +304,7 @@ IC();
 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
+					IC(seqno, row_ids_data[seqno]);
 				}
 IC();
 				DataChunk tmp_chunk;
@@ -454,7 +455,7 @@ IC();
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-// icecream::ic.enable();			
+icecream::ic.enable();			
 IC(data.ToString(10));
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -462,6 +463,7 @@ IC(data.ToString(10));
 			// Initialize epid base
 			idx_t epid_base = (idx_t) new_eid;
 			epid_base = epid_base << 32;
+			IC(new_eid, epid_base);
 IC();
 			// Convert lid to pid using LID_TO_PID_MAP
 			vector<idx_t *> src_key_columns, dst_key_columns;
@@ -522,6 +524,7 @@ IC();
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
+icecream::ic.enable();
 IC();
 					
 					// Initialize min & max id. We assume that the vertex data is sorted by id
@@ -571,14 +574,14 @@ IC();
 				IC(src_seqno);
 				if (src_column_idx.size() == 1) {
 					state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
-					// prev_id = cur_src_id = state.values[0];
+					cur_src_id = state.values[0];
 				} else if (src_column_idx.size() == 2) {
 					hugeint_t key_val;
 					key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
 					key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
 					IC(key_val.upper, key_val.lower);
 					state.values[0] = Value::HUGEINT(key_val);
-					// prev_id = cur_src_id = state.values[0];
+					cur_src_id = state.values[0];
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 IC();
 				result_ids.clear();
@@ -598,9 +601,12 @@ IC();
 				// cur_src_id = src_key_column[src_seqno];
 				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
 				src_key_columns[0][src_seqno] = cur_src_pid;
+icecream::ic.enable();
 				if (cur_src_id == prev_id) {
+					IC();
 					src_seqno++;
 				} else {
+					IC();
 					// lid_pair.first = prev_id;
 					end_idx = src_seqno;
 					if (load_backward_edge) {
@@ -626,10 +632,12 @@ IC();
 								dst_result_ids.clear();
 								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
 								D_ASSERT(dst_result_ids.size() == 1);
-								cur_src_pid = dst_result_ids[0];
+								cur_dst_pid = dst_result_ids[0];
 								dst_key_columns[0][dst_seqno] = cur_dst_pid;
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
+								IC();
+								IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else if (dst_column_idx.size() == 2) {
 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
@@ -642,10 +650,12 @@ IC();
 								dst_result_ids.clear();
 								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
 								D_ASSERT(dst_result_ids.size() == 1);
-								cur_src_pid = dst_result_ids[0];
+								cur_dst_pid = dst_result_ids[0];
 								dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
+								IC();
+								IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 					}
@@ -735,6 +745,7 @@ IC();
 					src_seqno++;
 				}
 			}
+icecream::ic.enable();
 IC();
 			// Process remaining dst vertices
 			// lid_pair.first = prev_id;
@@ -759,10 +770,11 @@ IC();
 						dst_result_ids.clear();
 						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
 						D_ASSERT(dst_result_ids.size() == 1);
-						cur_src_pid = dst_result_ids[0];
+						cur_dst_pid = dst_result_ids[0];
 						dst_key_columns[0][dst_seqno] = cur_dst_pid;
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
+						IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 					}
 				} else if (dst_column_idx.size() == 2) {
 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
@@ -775,10 +787,11 @@ IC();
 						dst_result_ids.clear();
 						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
 						D_ASSERT(dst_result_ids.size() == 1);
-						cur_src_pid = dst_result_ids[0];
+						cur_dst_pid = dst_result_ids[0];
 						dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
+						IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 					}
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 			}
