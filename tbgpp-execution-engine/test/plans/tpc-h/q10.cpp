@@ -14,11 +14,11 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10() {
 
 	std::vector<CypherPipelineExecutor*> result;
 	auto p1 = q10_pipe1(*this);
-	auto p2 = q10_pipe2(*this, p1);
-	auto p3 = q10_pipe3(*this, p2);
+	// auto p2 = q10_pipe2(*this, p1);
+	// auto p3 = q10_pipe3(*this, p2);
 	result.push_back(p1);
-	result.push_back(p2);
-	result.push_back(p3);
+	// result.push_back(p2);
+	// result.push_back(p3);
 	return result;
 
 }
@@ -66,6 +66,7 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8674))) )
 		);
 		filter_exprs_2.push_back(move(filter_expr1));
+		filter_exprs_2.push_back(move(filter_expr2));
 	}
 
 	// join o->c (_l, l.rf, l.ep, l.d, _o, o.od)
@@ -90,18 +91,19 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	
 	// groupby (_l, l.rf, l.ep, l.d, _o, o.od, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n, n.name)	// 14 cols
 	CypherSchema sch9;
-	sch9.addNode("l");
+	sch9.addNode("c");
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
 	sch9.addColumn("C_ADDRESS", LogicalType::VARCHAR);
 	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
+	sch9.addColumn("C_COMMENT", LogicalType::VARCHAR);
 	sch9.addColumn("N_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("revenue", LogicalType::DOUBLE);
 
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_groups;
 	// 7 keys (groups)
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 0) ); // _l
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 6) ); // _c
 	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 7) ); // cname
 	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::LogicalType::DECIMAL(12,2), 8) ); // c.ab
 	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 9) ); // c.addr
@@ -132,7 +134,8 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("CUSTOMER"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("CUSTOMER"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("NATION"), JoinType::INNER, false, true) );
 	ops.push_back( new PhysicalNodeIdSeek(sch8, "n", LabelSet("NATION"), PropertyKeys({"N_NAME"}) ) );
-	ops.push_back( new PhysicalHashAggregate(sch9, move(agg_exprs), move(agg_groups)));
+	ops.push_back( new PhysicalProduceResults(sch8));
+	// ops.push_back( new PhysicalHashAggregate(sch9, move(agg_exprs), move(agg_groups)));
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
@@ -145,14 +148,15 @@ CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 	// orderby (_c, c_name, c_ab, c_addr, c_pho, c.cmt, n.name, revenue:double)
 	CypherSchema sch9;
-	sch9.addNode("l");
+	sch9.addNode("c");
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
 	sch9.addColumn("C_ADDRESS", LogicalType::VARCHAR);
 	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
-	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
+	sch9.addColumn("C_COMMENT", LogicalType::VARCHAR);
 	sch9.addColumn("N_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("revenue", LogicalType::DOUBLE);
+
 	
 	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::DOUBLE, 7);		// revenue desc
 	BoundOrderByNode order1(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
@@ -179,12 +183,12 @@ CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 CypherPipelineExecutor* q10_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 	CypherSchema sch9;
-	sch9.addNode("l");
+	sch9.addNode("c");
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
 	sch9.addColumn("C_ADDRESS", LogicalType::VARCHAR);
 	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
-	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
+	sch9.addColumn("C_COMMENT", LogicalType::VARCHAR);
 	sch9.addColumn("N_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("revenue", LogicalType::DOUBLE);
 

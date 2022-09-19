@@ -148,7 +148,7 @@ class InputParser{
 };
 
 int main(int argc, char** argv) {
-icecream::ic.enable();
+icecream::ic.disable();
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
@@ -455,7 +455,6 @@ IC();
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-icecream::ic.enable();			
 IC(data.ToString(10));
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = property_schema_cat->GetNewExtentID();
@@ -524,7 +523,6 @@ IC();
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
-icecream::ic.enable();
 IC();
 					
 					// Initialize min & max id. We assume that the vertex data is sorted by id
@@ -601,7 +599,6 @@ IC();
 				// cur_src_id = src_key_column[src_seqno];
 				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
 				src_key_columns[0][src_seqno] = cur_src_pid;
-icecream::ic.enable();
 				if (cur_src_id == prev_id) {
 					IC();
 					src_seqno++;
@@ -745,7 +742,6 @@ icecream::ic.enable();
 					src_seqno++;
 				}
 			}
-icecream::ic.enable();
 IC();
 			// Process remaining dst vertices
 			// lid_pair.first = prev_id;
@@ -1080,7 +1076,7 @@ IC();
 	// run queries by query name
 	std::string query_str;
 	std::vector<CypherPipelineExecutor*> executors;
-	// icecream::ic.disable();
+icecream::ic.disable();
 	while(true) {
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		executors = suite.getTest(query_str);

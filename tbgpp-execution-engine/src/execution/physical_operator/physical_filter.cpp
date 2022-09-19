@@ -30,11 +30,11 @@ unique_ptr<OperatorState> PhysicalFilter::GetOperatorState(ExecutionContext &con
 OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	//std::cout << "Start Filter\n";
 
-icecream::ic.enable();
-IC(input.size());
-if (input.size() != 0)
-	IC( input.ToString(std::min(10, (int)input.size())) );
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() != 0)
+// 	IC( input.ToString(std::min(10, (int)input.size())) );
+// icecream::ic.disable();
 
 	auto &state = (FilterState &)lstate;
 	D_ASSERT( input.size() <= STANDARD_VECTOR_SIZE ); // TODO release me

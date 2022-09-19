@@ -49,7 +49,11 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
 		// std::cout << "why?!!" << std::endl;
-		source_chunk.Reset();
+		icecream::ic.enable();IC();icecream::ic.disable();
+		// source_chunk.Reset();
+		source_chunk.Destroy();
+		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
+		icecream::ic.enable();IC();icecream::ic.disable();
 		FetchFromSource(source_chunk);
 		// std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
@@ -61,11 +65,6 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// when limit operator reports early finish, the caches must be finished after all.
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
-
-// FIXME
-icecream::ic.enable();
-IC();
-icecream::ic.disable();
 
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*context, *local_sink_state);
@@ -87,7 +86,8 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 	// call
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetSource()->ToString());
+fprintf(stdout, "%s\n", pipeline->GetSource()->ToString().c_str());
+// IC(pipeline->GetSource()->ToString());
 icecream::ic.disable();
 	switch( childs.size() ) {
 		// no child pipeline
@@ -124,7 +124,8 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// std::cout << "call sink!!" << std::endl;
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetSink()->ToString());
+fprintf(stdout, "%s\n", pipeline->GetSink()->ToString().c_str());
+// IC(pipeline->GetSink()->ToString());
 icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
@@ -169,7 +170,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		auto& current_output_chunk =
 			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
 		auto& prev_output_chunk = *opOutputChunks[current_idx-1];
+icecream::ic.enable();IC();icecream::ic.disable();
 		current_output_chunk.Reset();
+icecream::ic.enable();IC();icecream::ic.disable();
 
 		// start current operator
 // std::cout << "starting (interm) operator" << std::endl;
@@ -184,7 +187,8 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			// call operator
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetIdxOperator(current_idx)->ToString());
+fprintf(stdout, "%s\n", pipeline->GetIdxOperator(current_idx)->ToString().c_str());
+// IC(pipeline->GetIdxOperator(current_idx)->ToString());
 icecream::ic.disable();
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
