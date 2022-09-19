@@ -67,8 +67,14 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
+
+icecream::ic.enable();
+IC(input.size());
+if (input.size() != 0)
+	IC( input.ToString(std::min(10, (int)input.size())) );
+icecream::ic.disable();
+
 //icecream::ic.enable();
-IC(input.ToString(1));
 	// init
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
 	const idx_t srcColIdx = schema.getColIdxOfKey(srcName);	// first index of source node : where source node id is
@@ -190,9 +196,17 @@ IC(adjColIdxs.size());
 	}
 
 breakLoop:
+
 	// now produce finished. store state and exit
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
 	chunk.SetCardinality(numProducedTuples);
+
+icecream::ic.enable();
+IC(chunk.size());
+if (chunk.size() != 0)
+	IC( chunk.ToString(std::min(10, (int)chunk.size())) );
+icecream::ic.disable();
+
 	if( isHaveMoreOutput ) {
 		// state saved
 		return OperatorResultType::HAVE_MORE_OUTPUT;
