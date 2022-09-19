@@ -192,7 +192,9 @@ void Vector::Slice(const SelectionVector &sel, idx_t count, SelCache &cache) {
 
 void Vector::Initialize(bool zero_data, idx_t capacity) {
 	auxiliary.reset();
+	icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
+	icecream::ic.enable();IC();icecream::ic.disable();
 	auto &type = GetType();
 	auto internal_type = type.InternalType();
 	if (internal_type == PhysicalType::STRUCT) {
@@ -873,7 +875,9 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 	auto data = (int64_t *)buffer->GetData();
 	data[0] = start;
 	data[1] = increment;
+	icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
+	icecream::ic.enable();IC();icecream::ic.disable();
 	auxiliary.reset();
 }
 

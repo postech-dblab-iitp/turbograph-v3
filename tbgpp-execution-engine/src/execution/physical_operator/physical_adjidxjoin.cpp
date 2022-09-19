@@ -68,11 +68,11 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
 
-icecream::ic.enable();
-IC(input.size());
-if (input.size() != 0)
-	IC( input.ToString(std::min(10, (int)input.size())) );
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() != 0)
+// 	IC( input.ToString(std::min(10, (int)input.size())) );
+// icecream::ic.disable();
 
 //icecream::ic.enable();
 	// init
@@ -101,8 +101,6 @@ IC(adjColIdxs.size());
 
 	uint64_t* adj_start; uint64_t* adj_end;
 
-	// fetch source column
-	uint64_t *src_column = (uint64_t *)input.data[srcColIdx].GetData();
 	// iterate source vids
 	for( ; state.checkpoint.first < input.size() ; state.checkpoint.first++) {
 
@@ -126,7 +124,7 @@ IC(adjColIdxs.size());
 		}
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
 		// vid is not null. now get source vid
-		uint64_t vid = src_column[state.checkpoint.first];
+		uint64_t vid = input.data[srcColIdx].GetValue(state.checkpoint.first).GetValue<uint64_t>();
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
 		size_t adjListSize = adj_end - adj_start;
 		D_ASSERT( adjListSize % 2 == 0 );
@@ -201,11 +199,11 @@ breakLoop:
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
 	chunk.SetCardinality(numProducedTuples);
 
-icecream::ic.enable();
-IC(chunk.size());
-if (chunk.size() != 0)
-	IC( chunk.ToString(std::min(10, (int)chunk.size())) );
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(chunk.size());
+// if (chunk.size() != 0)
+// 	IC( chunk.ToString(std::min(10, (int)chunk.size())) );
+// icecream::ic.disable();
 
 	if( isHaveMoreOutput ) {
 		// state saved

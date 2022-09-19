@@ -5,6 +5,7 @@
 #include "common/vector_operations/binary_executor.hpp"
 
 #include <algorithm>
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -20,7 +21,9 @@ unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundCompa
 void ExpressionExecutor::Execute(const BoundComparisonExpression &expr, ExpressionState *state,
                                  const SelectionVector *sel, idx_t count, Vector &result) {
 	// resolve the children
+	icecream::ic.enable();IC();icecream::ic.disable();
 	state->intermediate_chunk.Reset();
+	icecream::ic.enable();IC();icecream::ic.disable();
 	auto &left = state->intermediate_chunk.data[0];
 	auto &right = state->intermediate_chunk.data[1];
 

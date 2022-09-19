@@ -23,11 +23,11 @@ unique_ptr<OperatorState> PhysicalNodeIdSeek::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 
-icecream::ic.enable();
-IC(input.size());
-if (input.size() != 0)
-	IC( input.ToString(std::min(10, (int)input.size())) );
-// icecream::ic.disable();
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() != 0)
+// 	IC( input.ToString(std::min(10, (int)input.size())) );
+// // icecream::ic.disable();
 
 	auto &state = (NodeIdSeekState &)lstate;
 // IC();

@@ -345,8 +345,10 @@ void RadixPartitionedHashTable::GetData(ExecutionContext &context, DataChunk &ch
 	if (state.finished) {
 		return;
 	}
-
+icecream::ic.enable();
+IC();
 	state.scan_chunk.Reset();
+IC();
 	// special case hack to sort out aggregating from empty intermediates
 	// for aggregations without groups
 	if (gstate.is_empty && grouping_set.empty()) {

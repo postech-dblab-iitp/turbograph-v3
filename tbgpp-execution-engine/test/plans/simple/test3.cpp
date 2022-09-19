@@ -7,7 +7,6 @@ namespace duckdb {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 
-	icecream::ic.enable();
 	CypherSchema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
