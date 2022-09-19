@@ -2,11 +2,15 @@
 
 // #include "planner/expression.hpp"
 // #include "planner/bound_result_modifier.hpp"
+// #include "common/sort/sort.hpp"
+// #include "execution/expression_executor.hpp"
+// #include "main/client_context.hpp"
+// #include "storage/buffer_manager.hpp"
 
 // namespace duckdb {
 
-// PhysicalSort::PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> order_exprs):
-// 	CypherPhysicalOperator(sch), order_exprs(std::move(order_exprs)) { }
+// PhysicalSort::PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> orders_p):
+// 	CypherPhysicalOperator(sch), orders(std::move(orders_p)) { }
 
 // PhysicalSort::~PhysicalSort() {}
 
@@ -19,8 +23,16 @@
 // 	SortSinkState() {
 // 		// TODO content
 // 	}
-
-// 	// TODO members
+// 	//! Global sort state
+// 	GlobalSortState global_sort_state;
+// 	//! Memory usage per thread
+// 	idx_t memory_per_thread;
+// 	//! The local sort state
+// 	LocalSortState local_sort_state;
+// 	//! Local copy of the sorting expression executor
+// 	ExpressionExecutor executor;
+// 	//! Holds a vector of incoming sorting columns
+// 	DataChunk sort;
 	
 // }
 
@@ -28,7 +40,7 @@
 	
 // 	auto result = make_unique<SortSinkState>();	// TODO maybe more to initialize!
 // 	vector<LogicalType> types;
-// 	for (auto &order : order_exprs) {
+// 	for (auto &order : orders) {
 // 		types.push_back(order.expression->return_type);
 // 		result->executor.AddExpression(*order.expression);
 // 	}

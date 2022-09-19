@@ -104,7 +104,7 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
-void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, int exec_time);
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
 
 class InputParser{
   public:
@@ -855,8 +855,12 @@ IC();
 		std::cout << ">> "; std::getline(std::cin, query_str);
 		executors = suite.getTest(query_str);
 		if( executors.size() == 0 ) { continue; }
-	
-		// start_timer
+
+		// debug plan before executing
+		std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
+		exportQueryPlanVisualizer(executors, curtime, 0, true);	// debug plan
+
+		// start timer
 		boost::timer::cpu_timer query_timer;
 		int idx = 0;
 		for( auto exec : executors ) { 
@@ -898,7 +902,7 @@ IC();
 		std::cout << "===================================================" << std::endl;
 		
 		// Print result plan
-		exportQueryPlanVisualizer(executors, query_exec_time_ms);
+		exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 
 	}
 
@@ -907,26 +911,29 @@ IC();
 	return 0;
 }
 
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root);
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug);
 
-void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, int query_exec_time_ms) {
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int query_exec_time_ms, bool is_debug) {	// default = 0, false
 
 	// output file
-	std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
-	std::replace( curtime.begin(), curtime.end(), ' ', '_');
-	boost::filesystem::create_directories("execution-log/");
-	std::cout << "saving query visualization in : " << "build/execution-log/" << curtime << ".html" << std::endl;
-	std::ofstream file( "execution-log/" + curtime + ".html" );
-
-	// TODO currently supports only linear query plan.
 	
+	std::replace( start_time.begin(), start_time.end(), ' ', '_');
+	boost::filesystem::create_directories("execution-log/");
+
+	std::string filename = "execution-log/" + start_time;
+	if( is_debug ) filename += "_debug";
+	std::cout << "saving query visualization in : " << "build/execution-log/" << filename << ".html" << std::endl;
+	std::ofstream file( filename + ".html" );
+
 	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
 	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
 	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
 
 	json j = json::array( { json({}), } );
-	j[0]["Execution Time"] = query_exec_time_ms;
-
+	if(!is_debug) {
+		j[0]["Execution Time"] = query_exec_time_ms;
+	}
+	
 	// reverse-iterate executors
 	json* current_root = &(j[0]);
 	bool isRootOp = true;	// is true for only one operator
@@ -934,11 +941,11 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
 		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp );
+			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );
 			if( isRootOp ) { isRootOp = false; }
 		}
 		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp, is_debug );
 		if( isRootOp ) { isRootOp = false; }
 	}
 
@@ -950,7 +957,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	file.close();
 }
 
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root) {
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug) {
 	json* content;
 	if( is_root ) {
 		(*j)["Plan"] = json({});
@@ -966,10 +973,12 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	}
 	(*content)["Node Type"] = op->ToString();
 
-	(*content)["Actual Startup Time"] = 0.0;	
-	(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
-	(*content)["Actual Rows"] = op->processed_tuples;
-	(*content)["Actual Loops"] = 1; // meaningless
+	if(!is_debug ) {
+		(*content)["Actual Startup Time"] = 0.0;	
+		(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
+		(*content)["Actual Rows"] = op->processed_tuples;
+		(*content)["Actual Loops"] = 1; // meaningless
+	}
 	// output shcma
 	(*content)["Output Schema"] = op->schema.toString();
 
