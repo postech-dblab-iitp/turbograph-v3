@@ -55,13 +55,13 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	// filter date range (_l, l.rf, l.ep, l.d, _o, o.od)
 	vector<unique_ptr<Expression>> filter_exprs_2;
 	{
-		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,	// orderdate >= 1993-10-01
+		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,	// orderdate >= 1993-07-01
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) ),
+			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8582))) )
+		);
+		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// orderdate < 1993-10-01
 			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) ),
 			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8674))) )
-		);
-		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// orderdate < 19940101
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) ),
-			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8766))) )
 		);
 		filter_exprs_2.push_back(move(filter_expr1));
 	}
@@ -148,7 +148,7 @@ CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
 	sch9.addColumn("C_ADDRESS", LogicalType::VARCHAR);
-	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);s
+	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
 	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
 	sch9.addColumn("N_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("revenue", LogicalType::DOUBLE);
