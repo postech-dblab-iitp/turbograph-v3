@@ -5,6 +5,7 @@
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/enums/graph_component_type.hpp"
+#include "common/types/date.hpp"
 #include "third_party/csv-parser/csv.hpp"
 #include <unistd.h> // for getopt
 
@@ -323,7 +324,36 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::HUGEINT:
 			throw NotImplementedException("Do not support HugeInt"); break;
 		case LogicalTypeId::DECIMAL:
-			throw NotImplementedException("Do not support Decimal"); break;
+			uint8_t width, scale;
+      type.GetDecimalProperties(width, scale);
+      switch(type.InternalType()) {
+        case PhysicalType::INT16: {
+          int16_t val_before_decimal_point, val_after_decimal_point;
+          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+          ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+          break;
+        }
+        case PhysicalType::INT32: {
+          int32_t val_before_decimal_point, val_after_decimal_point;
+          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+          ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+          break;
+        }
+        case PhysicalType::INT64: {
+          int64_t val_before_decimal_point, val_after_decimal_point;
+          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+          ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+          break;
+        }
+        case PhysicalType::INT128:
+          hugeint_t val;
+          throw NotImplementedException("Hugeint type for Decimal");
+        default:
+          throw InvalidInputException("Unsupported type for Decimal");
+      }
 		case LogicalTypeId::FLOAT:
       std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((float *)data_ptr)[current_index]); break;
 		case LogicalTypeId::DOUBLE:
@@ -334,6 +364,8 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
       // }
       // std::cout << std::endl;
 			((string_t *)data_ptr)[current_index] = StringVector::AddStringOrBlob(output.data[i], (const char*)p.data() + start_offset, string_size); break;
+    case LogicalTypeId::DATE:
+      ((date_t *)data_ptr)[current_index] = Date::FromCString((const char*)p.data() + start_offset, end_offset - start_offset); break;
 		default:
 			throw NotImplementedException("Unsupported type");
 	}
@@ -416,6 +448,31 @@ inline void SetValueFromCSV_VARCHAR(LogicalType type, DataChunk &output, size_t 
   ((string_t *)data_ptr)[current_index] = StringVector::AddStringOrBlob(output.data[i], (const char*)p.data() + start_offset, string_size);
 }
 
+template <typename A, typename B>
+void zip(
+    const std::vector<A> &a, 
+    const std::vector<B> &b, 
+    std::vector<std::pair<A,B>> &zipped)
+{
+    for(size_t i=0; i<a.size(); ++i)
+    {
+        zipped.push_back(std::make_pair(a[i], b[i]));
+    }
+}
+
+template <typename A, typename B>
+void unzip(
+    const std::vector<std::pair<A, B>> &zipped, 
+    std::vector<A> &a, 
+    std::vector<B> &b)
+{
+    for(size_t i=0; i<a.size(); i++)
+    {
+        a[i] = zipped[i].first;
+        b[i] = zipped[i].second;
+    }
+}
+
 class GraphSIMDCSVFileParser {
   typedef void (*set_value_from_csv_func)(LogicalType type, DataChunk &output, size_t i, idx_t current_index, std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset);
 
@@ -468,9 +525,9 @@ public:
         std::string type_name = key_and_type.substr(delim_pos + 1);
         LogicalType type = StringToLogicalType(type_name, i);
         if (type_name.find("START_ID") != std::string::npos) {
-          key_names.push_back(src_key_name + "_src");
+          key_names.push_back(src_key_name + "_src_" + std::to_string(src_columns.size()));
         } else {
-          key_names.push_back(dst_key_name + "_dst");
+          key_names.push_back(dst_key_name + "_dst_" + std::to_string(dst_columns.size()));
         }
         key_types.push_back(move(type));
       } else {
@@ -478,6 +535,22 @@ public:
         LogicalType type = StringToLogicalType(type_name, i);
         key_names.push_back(move(key));
         key_types.push_back(move(type));
+      }
+    }
+
+    // Sort key columns vector
+    if (key_columns_order.size() > 0) {
+      vector<std::pair<int64_t, int64_t>> zipped;
+      zip(key_columns, key_columns_order, zipped);
+
+      std::sort(std::begin(zipped), std::end(zipped),
+        [&](const auto &a, const auto&b) {
+          return a.second < b.second;
+        });
+      
+      unzip(zipped, key_columns, key_columns_order);
+      for (size_t i = 0; i < key_columns_order.size(); i++) {
+        std::cout << key_columns_order[i] << " : " << key_columns[i] << std::endl;
       }
     }
 
@@ -498,21 +571,21 @@ public:
 		return true;
 	}
 
-	int64_t GetKeyColumnIndexFromHeader() {
+	vector<int64_t> GetKeyColumnIndexFromHeader() {
 		D_ASSERT(type == GraphComponentType::VERTEX);
-		return key_column;
+		return key_columns;
 	}
 
-	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
+	void GetSrcColumnIndexFromHeader(vector<int64_t> &src_column_idxs, string &src_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
-		src_column_idx = src_column;
+		src_column_idxs = src_columns;
 		src_column_name = src_key_name;
 		return;
 	}
 
-	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
+	void GetDstColumnIndexFromHeader(vector<int64_t> &dst_column_idxs, string &dst_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
-		dst_column_idx = dst_column;
+		dst_column_idxs = dst_columns;
 		dst_column_name = dst_key_name;
 		return;
 	}
@@ -664,33 +737,58 @@ public:
 	}
 private:
   LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
-		const auto end = m.end();
+    const auto end = m.end();
 		auto it = m.find(type_name);
 		if (it != end) {
-			return it->second;
+      LogicalType return_type = it->second;
+			return return_type;
 		} else {
 			if (type_name.find("ID") != std::string::npos) {
 				// ID Column
 				if (type == GraphComponentType::VERTEX) {
-					D_ASSERT(key_column == -1);
-					key_column = column_idx;
+          auto last_pos = type_name.find_first_of('(');
+          string id_name = type_name.substr(0, last_pos - 1);
+          auto delimiter_pos = id_name.find("_");
+
+          if (delimiter_pos != std::string::npos) {
+            // Multi key
+            auto key_order = std::stoi(type_name.substr(delimiter_pos + 1, last_pos - delimiter_pos - 1));
+            key_columns_order.push_back(key_order);
+            key_columns.push_back(column_idx);
+          } else {
+            // Single key
+            key_columns.push_back(column_idx);
+          }
+					// D_ASSERT(key_column == -1);
+					// key_column = column_idx;
 				} else { // type == GraphComponentType::EDGE
-					D_ASSERT((src_column == -1) || (dst_column == -1));
+					// D_ASSERT((src_column == -1) || (dst_column == -1));
 					auto first_pos = type_name.find_first_of('(');
 					auto last_pos = type_name.find_last_of(')');
 					string label_name = type_name.substr(first_pos + 1, last_pos - first_pos - 1);
           std::cout << type_name << std::endl;
           if (type_name.find("START_ID") != std::string::npos) {
             src_key_name = move(label_name);
-						src_column = column_idx;
+						src_columns.push_back(column_idx);
           } else { // "END_ID"
             dst_key_name = move(label_name);
-						dst_column = column_idx;
+						dst_columns.push_back(column_idx);
           }
 				}
 				return LogicalType::UBIGINT;
+      // } else if (type_name.find("ADJLIST") != std::string::npos) {
+      //   D_ASSERT(type == GraphComponentType::VERTEX);
+      //   return LogicalType::ADJLISTCOLUMN;
+      } else if (type_name.find("DECIMAL") != std::string::npos) {
+        auto first_pos = type_name.find_first_of('(');
+        auto comma_pos = type_name.find_first_of(',');
+				auto last_pos = type_name.find_last_of(')');
+        int width = std::stoi(type_name.substr(first_pos + 1, comma_pos - first_pos - 1));
+        int scale = std::stoi(type_name.substr(comma_pos + 1, last_pos - comma_pos - 1));
+        return LogicalType::DECIMAL(width, scale);
 			} else {
-				throw InvalidInputException("C");
+        fprintf(stdout, "%s\n", type_name.c_str());
+				throw InvalidInputException("Unsupported Type");
 			}
 		}
   }
@@ -701,9 +799,10 @@ private:
 	string src_key_name;
 	string dst_key_name;
   vector<LogicalType> key_types;
-	int64_t key_column = -1;
-	int64_t src_column = -1;
-	int64_t dst_column = -1;
+  vector<int64_t> key_columns;
+  vector<int64_t> key_columns_order;
+  vector<int64_t> src_columns;
+  vector<int64_t> dst_columns;
 	int64_t num_columns;
   int64_t num_rows;
   idx_t row_cursor;
@@ -716,7 +815,12 @@ private:
 		{"STRING", LogicalType(LogicalTypeId::VARCHAR)},
 		{"STRING[]", LogicalType(LogicalTypeId::VARCHAR)},
 		{"INT"   , LogicalType(LogicalTypeId::INTEGER)},
+    {"INTEGER"   , LogicalType(LogicalTypeId::INTEGER)},
 		{"LONG"  , LogicalType(LogicalTypeId::BIGINT)},
+    {"ULONG"  , LogicalType(LogicalTypeId::UBIGINT)},
+    {"DATE"  , LogicalType(LogicalTypeId::DATE)},
+    {"DECIMAL"  , LogicalType(LogicalTypeId::DECIMAL)},
+    // {"ADJLIST"  , LogicalType(LogicalTypeId::ADJLISTCOLUMN)},
 	};
 };
 
