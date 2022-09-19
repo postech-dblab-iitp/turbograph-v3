@@ -23,7 +23,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10() {
 
 CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 
-	// scan lineitem
+	// scan LINEITEM
 	CypherSchema sch1;
 	sch1.addNode("l");
 	sch1.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
@@ -93,7 +93,6 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
 	sch9.addColumn("C_ADDRESS", LogicalType::VARCHAR);
 	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
-	sch9.addColumn("C_PHONE", LogicalType::VARCHAR);
 	sch9.addColumn("N_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("revenue", LogicalType::DOUBLE);
 
@@ -122,15 +121,15 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
 // FIXME further add predicate to sacn and remove filter
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("lineitem"), PropertyKeys({"L_RETURNFLAG", "L_EXTENDEDPRICE", "L_DISCOUNT"})) );
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("LINEITEM"), PropertyKeys({"L_RETURNFLAG", "L_EXTENDEDPRICE", "L_DISCOUNT"})) );
 	ops.push_back( new PhysicalFilter(sch2, move(filter_exprs)) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch3, "l", LabelSet("lineitem"), LabelSet("IS_PART_OF"), ExpandDirection::OUTGOING, LabelSet("orders"), JoinType::INNER, false, true) );
-	ops.push_back( new PhysicalNodeIdSeek(sch4, "o", LabelSet("orders"), PropertyKeys({"O_ORDERDATE"}) ) );
+	ops.push_back( new PhysicalAdjIdxJoin(sch3, "l", LabelSet("LINEITEM"), LabelSet("IS_PART_OF"), ExpandDirection::OUTGOING, LabelSet("ORDERS"), JoinType::INNER, false, true) );
+	ops.push_back( new PhysicalNodeIdSeek(sch4, "o", LabelSet("ORDERS"), PropertyKeys({"O_ORDERDATE"}) ) );
 	ops.push_back( new PhysicalFilter(sch4, move(filter_exprs_2)) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch5, "o", LabelSet("orders"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("customer"), JoinType::INNER, false, true ) );
-	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("customer"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("customer"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("nation"), JoinType::INNER, false, true) );
-	ops.push_back( new PhysicalNodeIdSeek(sch8, "n", LabelSet("nation"), PropertyKeys({"N_NAME"}) ) );
+	ops.push_back( new PhysicalAdjIdxJoin(sch5, "o", LabelSet("ORDERS"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("CUSTOMER"), JoinType::INNER, false, true ) );
+	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("CUSTOMER"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
+	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("CUSTOMER"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("NATION"), JoinType::INNER, false, true) );
+	ops.push_back( new PhysicalNodeIdSeek(sch8, "n", LabelSet("NATION"), PropertyKeys({"N_NAME"}) ) );
 	ops.push_back( new PhysicalHashAggregate(sch9, move(agg_exprs), move(agg_groups)));
 
 	auto pipe = new CypherPipeline(ops);

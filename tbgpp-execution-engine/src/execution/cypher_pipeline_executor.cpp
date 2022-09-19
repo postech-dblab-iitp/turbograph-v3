@@ -63,9 +63,9 @@ void CypherPipelineExecutor::ExecutePipeline() {
 			// this is an invariant to the main logic when the pipeline is terminated early
 
 // FIXME
-// icecream::ic.enable();
-// IC();
-// icecream::ic.disable();
+icecream::ic.enable();
+IC();
+icecream::ic.disable();
 
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
 	pipeline->GetSink()->Combine(*context, *local_sink_state);
@@ -86,9 +86,9 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 	}
 	// call
 // FIXME
-// icecream::ic.enable();
-// IC(pipeline->GetSource()->ToString());
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(pipeline->GetSource()->ToString());
+icecream::ic.disable();
 	switch( childs.size() ) {
 		// no child pipeline
 		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break;}
@@ -123,9 +123,9 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		}
 		// std::cout << "call sink!!" << std::endl;
 // FIXME
-// icecream::ic.enable();
-// IC(pipeline->GetSink()->ToString());
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(pipeline->GetSink()->ToString());
+icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
@@ -183,9 +183,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		}
 			// call operator
 // FIXME
-// icecream::ic.enable();
-// IC(pipeline->GetIdxOperator(current_idx)->ToString());
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(pipeline->GetIdxOperator(current_idx)->ToString());
+icecream::ic.disable();
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
