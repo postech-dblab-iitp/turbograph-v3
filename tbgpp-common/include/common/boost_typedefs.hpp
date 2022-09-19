@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
+#include "common/boost.hpp"
 
 namespace duckdb {
     // typedefs for shared memory object
@@ -19,7 +20,9 @@ namespace duckdb {
     typedef boost::interprocess::allocator<PropertySchemaID, segment_manager_t> propertyschemaid_allocator;
     typedef boost::interprocess::allocator<ChunkDefinitionID, segment_manager_t> chunkdefinitionid_allocator;
     typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
+    typedef boost::interprocess::allocator<char_string, segment_manager_t> string_allocator;
     typedef boost::interprocess::vector<idx_t, idx_t_allocator> idx_t_vector;
+    typedef boost::interprocess::vector<char_string, string_allocator> string_vector;
     typedef boost::interprocess::vector<PartitionID, partitionid_allocator> PartitionID_vector;
     typedef boost::interprocess::vector<PropertyKeyID, propertykeyid_allocator> PropertyKeyID_vector;
     typedef boost::interprocess::vector<PropertySchemaID, propertyschemaid_allocator> PropertySchemaID_vector;

@@ -483,6 +483,24 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 	//return info;
 }
 
+void SchemaCatalogEntry::LoadCatalogSet() {
+IC();
+	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
+IC();
+	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
+IC();
+	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
+IC();
+	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
+IC();
+	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
+IC();
+}
+
+void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment) {
+	this->catalog_segment = catalog_segment;
+}
+
 string SchemaCatalogEntry::ToSQL() {
 	std::stringstream ss;
 	ss << "CREATE SCHEMA " << name << ";";

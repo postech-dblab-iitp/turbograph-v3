@@ -46,15 +46,15 @@ private:
 };
 
 CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
-    : catalog(catalog), defaults(move(defaults)) {
+    : catalog(&catalog), defaults(move(defaults)) {
 	current_entry = new idx_t;
 	*current_entry = 0;
 }
 
 CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
-    : catalog(catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
+    : catalog(&catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
 IC(catalog_set_name_);
-	this->catalog_set_name = catalog_set_name_;
+	// this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
@@ -65,6 +65,31 @@ IC(catalog_set_name_);
 		catalog_segment->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
+IC();
+}
+
+void CatalogSet::Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults) {
+IC(catalog_set_name_);
+fprintf(stdout, "this %p\n", this);
+	// this->catalog_set_name = catalog_set_name_;
+fprintf(stdout, "catalog_segment %p\n", catalog_segment_);
+	this->catalog_segment = catalog_segment_;
+IC();
+	this->catalog = &catalog;
+IC();
+	string mapping_name = catalog_set_name_ + "_mapping";
+	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
+		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
+		catalog_segment->get_allocator<map_value_type>());
+IC();
+	string entries_name = catalog_set_name_ + "_entries";
+	entries = catalog_segment->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
+		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
+		catalog_segment->get_allocator<ValueType>());
+IC();
+	string current_entry_name = catalog_set_name_ + "_current_entry";
+	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
+IC();
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -134,7 +159,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
                              unordered_set<CatalogEntry *> &dependencies) {
 	//auto &transaction = Transaction::GetTransaction(context);
 	// lock the catalog for writing
-	lock_guard<mutex> write_lock(catalog.write_lock);
+	lock_guard<mutex> write_lock(catalog->write_lock);
 	// lock this catalog set to disallow reading
 	lock_guard<mutex> read_lock(catalog_lock);
 
@@ -184,7 +209,7 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 	value->set = this;
 
 	// now add the dependency set of this object to the dependency manager
-	catalog.dependency_manager->AddObject(context, value, dependencies);
+	catalog->dependency_manager->AddObject(context, value, dependencies);
 
 	value->child = move(entries->at(entry_index));
 	value->child->parent = value;
@@ -405,7 +430,7 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 
 bool CatalogSet::DropEntry(ClientContext &context, const string &name, bool cascade) {
 	// lock the catalog for writing
-	lock_guard<mutex> write_lock(catalog.write_lock);
+	lock_guard<mutex> write_lock(catalog->write_lock);
 	// we can only delete an entry that exists
 	idx_t entry_index;
 	CatalogEntry *entry;
@@ -455,7 +480,7 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
 IC();
 	fprintf(stdout, "catalogset %p\n", this);
-	fprintf(stdout, "catalog_set_name %s\n", catalog_set_name.c_str());
+	// fprintf(stdout, "catalog_set_name %s\n", catalog_set_name.c_str());
 	MappingValue *mapping_value;
 IC();
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
@@ -481,6 +506,7 @@ IC();
 		mapping_value = mapping_value->child;
 		D_ASSERT(mapping_value);
 	}
+IC();
 	return mapping_value;
 }
 
@@ -596,9 +622,9 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 }
 
 CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
+IC();
 	// unique_lock<mutex> lock(catalog_lock); // TODO disable in debug phase..
 	fprintf(stdout, "CatalogSet address %p\n", this);
-IC();
 	auto mapping_value = GetMapping(context, name);
 IC();
 	if (mapping_value != nullptr && !mapping_value->deleted) {

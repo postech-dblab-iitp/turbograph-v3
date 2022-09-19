@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
 
 	// Initialize ChunkCacheManager
 	fprintf(stdout, "\nInitialize ChunkCacheManager\n");
-	ChunkCacheManager::ccm = new ChunkCacheManager();
+	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
 
 	// Run Catch Test
 	fprintf(stdout, "\nTest Case Start!!\n");
@@ -182,11 +182,10 @@ int main(int argc, char** argv) {
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	
 	// Initialize ClientContext
-	//IC();
+icecream::ic.enable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	if (false) {
-	//IC();
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
@@ -241,7 +240,7 @@ int main(int argc, char** argv) {
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
-		property_schema_cat->SetKeys(key_names);
+		property_schema_cat->SetKeys(*client.get(), key_names);
 IC();
 		
 		// Initialize DataChunk
@@ -367,7 +366,7 @@ IC();
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
-		property_schema_cat->SetKeys(key_names);
+		property_schema_cat->SetKeys(*client.get(), key_names);
 
 		// Initialize DataChunk
 		DataChunk data;
@@ -395,7 +394,7 @@ IC();
 		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
-		vertex_ps_cat_entry->AppendKey({ edge_type });
+		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -671,7 +670,7 @@ IC();
 		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
-		vertex_ps_cat_entry->AppendKey({ edge_type });
+		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
