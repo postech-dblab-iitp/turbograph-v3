@@ -132,6 +132,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
 	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
+	fprintf(stdout, "%p Open CatalogSHM %p\n", this, catalog_shm);
 	int64_t num_objects_in_catalog = 0;
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
@@ -141,6 +142,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		// A pointer to the name of the named object
 		const void *value = named_beg->value();
 		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		fprintf(stdout, "%s %p\n", name, value);
 		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
 			object_names[0].push_back(name);
 		} else if (startsWith(name, "graph")) { // GraphCatalogEntry
@@ -159,7 +161,6 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 			object_names[7].push_back(name);
 		} else {
 			object_names[8].push_back(name);
-			fprintf(stdout, "%s %p\n", name, value);
 		}
 		num_objects_in_catalog++;
 	}
@@ -217,6 +218,7 @@ DuckDB::DuckDB(DatabaseInstance &instance_p) : instance(instance_p.shared_from_t
 }
 
 DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
+	fprintf(stdout, "dbinstance %p\n", instance.get());
 	instance->Initialize(path);
 }
 
@@ -229,6 +231,12 @@ StorageManager &DatabaseInstance::GetStorageManager() {
 
 Catalog &DatabaseInstance::GetCatalog() {
 	return *catalog;
+}
+
+fixed_managed_mapped_file *DatabaseInstance::GetCatalogSHM() {
+	fprintf(stdout, "?? %p\n", this);
+	fprintf(stdout, "GetCatalogSHM %p\n", catalog_shm);
+	return catalog_shm;
 }
 
 // TransactionManager &DatabaseInstance::GetTransactionManager() {

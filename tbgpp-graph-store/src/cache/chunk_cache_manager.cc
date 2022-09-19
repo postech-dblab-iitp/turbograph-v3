@@ -1,19 +1,51 @@
 #include <string>
 #include <thread>
 #include <unordered_set>
+#include <filesystem>
 
 #include "cache/chunk_cache_manager.h"
 #include "Turbo_bin_aio_handler.hpp"
 #include "common/exception.hpp"
+#include "common/string_util.hpp"
+#include "icecream.hpp"
 
 namespace duckdb {
 
 ChunkCacheManager* ChunkCacheManager::ccm;
 
-ChunkCacheManager::ChunkCacheManager() {
+ChunkCacheManager::ChunkCacheManager(const char *path) {
   // Init LightningClient
   client = new LightningClient("/tmp/lightning", "password");
 
+  // Initialize file handlers
+IC();
+  std::string partition_path = std::string(path);
+IC(partition_path);
+  for (const auto &partition_entry : std::filesystem::directory_iterator(partition_path)) { // /path/
+    std::string partition_entry_path = std::string(partition_entry.path());
+    std::string partition_entry_name = partition_entry_path.substr(partition_entry_path.find_last_of("/") + 1);
+    IC(partition_entry_name);
+    if (StringUtil::StartsWith(std::string(partition_entry.path()), "part_")) {
+      std::string extent_path = std::string(partition_entry.path()) + std::string("/");
+      IC(extent_path);
+      for (const auto &extent_entry : std::filesystem::directory_iterator(extent_path)) { // /path/part_/
+        if (StringUtil::StartsWith(extent_entry.path(), "ext_")) {
+          std::string chunk_path = std::string(extent_entry.path()) + std::string("/");
+          IC(chunk_path);
+          for (const auto &chunk_entry : std::filesystem::directory_iterator(chunk_path)) { // /path/part_/ext_/
+            std::string chunk = std::string(chunk_entry.path());
+            ChunkDefinitionID chunk_id = (ChunkDefinitionID) std::stoull(chunk.substr(chunk.find("_") + 1));
+            D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
+            file_handlers[chunk_id] = new Turbo_bin_aio_handler();
+            fprintf(stdout, "Open %s\n", chunk.c_str());
+            // ReturnStatus rs = file_handlers[chunk_id]->OpenFile();
+          }
+        }
+      }
+    }
+  }
+  //   file_handlers[cid] = new Turbo_bin_aio_handler();
+  // ReturnStatus rs = file_handlers[cid]->OpenFile((file_path + std::to_string(cid)).c_str(), true, true, true, true);
   // Initialize file_handlers as nullptr
   //for (int i = 0; i < NUM_MAX_SEGMENTS; i++) file_handlers[i] = nullptr;
 }

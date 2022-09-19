@@ -47,6 +47,7 @@ public:
 	//DUCKDB_API TaskScheduler &GetScheduler();
 	//DUCKDB_API ObjectCache &GetObjectCache();
 	//DUCKDB_API ConnectionManager &GetConnectionManager();
+	fixed_managed_mapped_file *GetCatalogSHM(); 
 
 	idx_t NumberOfThreads();
 

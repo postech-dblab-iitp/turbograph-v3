@@ -34,8 +34,10 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
+IC();
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+IC();
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -43,12 +45,15 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 		for (auto &it : edgeLabels[i].data) properties_temp.push_back(it);
 	}
 	for (auto &it : properties) properties_temp.push_back(it);
+IC();
 
 	vector<idx_t> column_idxs;
 	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
+IC();
 
 	ext_it = new ExtentIterator();
 	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs);
+IC();
 	return StoreAPIResult::OK;
 }
 

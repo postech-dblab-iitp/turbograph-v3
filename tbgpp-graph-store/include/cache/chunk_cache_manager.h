@@ -18,7 +18,7 @@ public:
   static ChunkCacheManager* ccm;
 
 public:
-  ChunkCacheManager();
+  ChunkCacheManager(const char *path);
   ~ChunkCacheManager();
 
   // ChunkCacheManager APIs

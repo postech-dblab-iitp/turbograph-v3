@@ -46,11 +46,11 @@ public:
 	//! Create a real GraphCatalogEntry
 	ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info, const void_allocator &void_alloc);
 
-	LogicalType data_type;
+	LogicalType data_type; // TODO SHM
 	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
-	bool is_min_max_array_exist = false;
-	size_t num_entries_in_column;
-	vector<minmax_t> min_max_array;
+	bool is_min_max_array_exist = false; // TODO SHM
+	size_t num_entries_in_column; // TODO SHM
+	vector<minmax_t> min_max_array; // TODO SHM
 public:
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer

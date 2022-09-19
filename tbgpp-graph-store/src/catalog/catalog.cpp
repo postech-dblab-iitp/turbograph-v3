@@ -63,19 +63,29 @@ Catalog::~Catalog() {
 }
 
 void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names) {
+icecream::ic.enable();
+IC();
 	schemas = make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this));
 	catalog_segment = catalog_segment_;
-
+IC();
 	// Load SchemaCatalogEntry
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
 	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
+IC();
 
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(db.shared_from_this());
 	if (!schemas->CreateEntry(*client.get(), "main", move(entry), dependencies)) {
 		throw CatalogException("Schema with name main already exists!");
 	}
+IC();
+
+	// Load CatalogSet
+	entry->SetCatalogSegment(catalog_segment_);
+IC();
+	entry->LoadCatalogSet();
+IC();
 
 	// Load Other Catalog Entries
 	// Maybe we don't need this..?
@@ -306,6 +316,7 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 		D_ASSERT(false);
 		//return ClientData::Get(context).temporary_objects.get();
 	}
+IC();
 	auto entry = schemas->GetEntry(context, schema_name);
 	if (!entry && !if_exists) {
 		D_ASSERT(false); // TODO exception handling
@@ -375,15 +386,17 @@ IC();
 			return {nullptr, nullptr};
 		}
 // icecream::ic.enable();
-// IC(schema_name);
-// IC(name);
+IC(schema_name);
+IC(name);
 // icecream::ic.disable();
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
+fprintf(stdout, "type %d schema_name %s, name %s, entry %p\n", (uint8_t)type, schema_name.c_str(), name.c_str(), entry);
 IC();
 		if (!entry && !if_exists) {
 			D_ASSERT(false);
 			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
 		}
+IC();
 
 		return {schema, entry};
 	}
