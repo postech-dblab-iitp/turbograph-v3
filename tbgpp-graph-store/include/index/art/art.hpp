@@ -109,7 +109,7 @@ public:
 	//! Insert data into the index.
 	bool Insert(IndexLock &lock, DataChunk &data, Vector &row_ids) override;
 
-	// bool SearchEqual(ARTIndexScanState *state, idx_t max_count, vector<row_t> &result_ids);
+	bool SearchEqual(ARTIndexScanState *state, idx_t max_count, vector<row_t> &result_ids);
 	// //! Search Equal used for Joins that do not need to fetch data
 	// void SearchEqualJoinNoFetch(Value &equal_value, idx_t &result_size);
 
