@@ -149,6 +149,9 @@ AggregateFunction SumFun::GetSumAggregate(PhysicalType type) {
 	case PhysicalType::INT128:
 		return AggregateFunction::UnaryAggregate<SumState<hugeint_t>, hugeint_t, hugeint_t, HugeintSumOperation>(
 		    LogicalType::HUGEINT, LogicalType::HUGEINT, true);
+	case PhysicalType::DOUBLE:
+		return AggregateFunction::UnaryAggregate<SumState<double>, double, double, NumericSumOperation>(
+	    	LogicalType::DOUBLE, LogicalType::DOUBLE, true);
 	default:
 		throw InternalException("Unimplemented sum aggregate");
 	}
