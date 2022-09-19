@@ -59,6 +59,8 @@ public:
 	IndexConstraintType constraint_type;
 
 public:
+
+	vector<column_t> GetColumnIds();
 	//! Initialize a scan on the index with the given expression and column ids
 	//! to fetch from the base table when we only have one query predicate
 	// virtual unique_ptr<IndexScanState> InitializeScanSinglePredicate(Transaction &transaction, Value value,
