@@ -2,23 +2,23 @@
 
 namespace duckdb {
 
-// ScalarFunction::ScalarFunction(string name, vector<LogicalType> arguments, LogicalType return_type,
-//                                scalar_function_t function, bool has_side_effects, bind_scalar_function_t bind,
-//                                dependency_function_t dependency, function_statistics_t statistics,
-//                                init_local_state_t init_local_state, LogicalType varargs, bool propagate_null_values)
-//     : BaseScalarFunction(move(name), move(arguments), move(return_type), has_side_effects, move(varargs),
-//                          propagate_null_values),
-//       function(move(function)), bind(bind), init_local_state(init_local_state), dependency(dependency),
-//       statistics(statistics) {
-// }
+ScalarFunction::ScalarFunction(string name, vector<LogicalType> arguments, LogicalType return_type,
+                               scalar_function_t function, bool has_side_effects, bind_scalar_function_t bind,
+                               dependency_function_t dependency, function_statistics_t statistics,
+                               init_local_state_t init_local_state, LogicalType varargs, bool propagate_null_values)
+    : BaseScalarFunction(move(name), move(arguments), move(return_type), has_side_effects, move(varargs),
+                         propagate_null_values),
+      function(move(function)), bind(bind), init_local_state(init_local_state), dependency(dependency),
+      statistics(statistics) {
+}
 
-// ScalarFunction::ScalarFunction(vector<LogicalType> arguments, LogicalType return_type, scalar_function_t function,
-//                                bool propagate_null_values, bool has_side_effects, bind_scalar_function_t bind,
-//                                dependency_function_t dependency, function_statistics_t statistics,
-//                                init_local_state_t init_local_state, LogicalType varargs)
-//     : ScalarFunction(string(), move(arguments), move(return_type), move(function), has_side_effects, bind, dependency,
-//                      statistics, init_local_state, move(varargs), propagate_null_values) {
-// }
+ScalarFunction::ScalarFunction(vector<LogicalType> arguments, LogicalType return_type, scalar_function_t function,
+                               bool propagate_null_values, bool has_side_effects, bind_scalar_function_t bind,
+                               dependency_function_t dependency, function_statistics_t statistics,
+                               init_local_state_t init_local_state, LogicalType varargs)
+    : ScalarFunction(string(), move(arguments), move(return_type), move(function), has_side_effects, bind, dependency,
+                     statistics, init_local_state, move(varargs), propagate_null_values) {
+}
 
 bool ScalarFunction::operator==(const ScalarFunction &rhs) const {
 	return CompareScalarFunctionT(rhs.function) && bind == rhs.bind && dependency == rhs.dependency &&
@@ -52,7 +52,7 @@ bool ScalarFunction::Equal(const ScalarFunction &rhs) const {
 }
 
 bool ScalarFunction::CompareScalarFunctionT(const scalar_function_t &other) const {
-	typedef void(scalar_function_ptr_t)(DataChunk &, Vector &);
+	typedef void(scalar_function_ptr_t)(DataChunk &, ExpressionState &, Vector &);
 
 	auto func_ptr = (scalar_function_ptr_t **)function.template target<scalar_function_ptr_t *>();
 	auto other_ptr = (scalar_function_ptr_t **)other.template target<scalar_function_ptr_t *>();
@@ -68,7 +68,7 @@ bool ScalarFunction::CompareScalarFunctionT(const scalar_function_t &other) cons
 	return ((size_t)*func_ptr == (size_t)*other_ptr);
 }
 
-void ScalarFunction::NopFunction(DataChunk &input, Vector &result) {
+void ScalarFunction::NopFunction(DataChunk &input, ExpressionState &state, Vector &result) {
 	D_ASSERT(input.ColumnCount() >= 1);
 	result.Reference(input.data[0]);
 }
