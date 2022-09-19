@@ -15,6 +15,8 @@
 //#include "parser/keyword_helper.hpp"
 //#include "parser/parser.hpp"
 
+#include "icecream.hpp"
+
 #include <cmath>
 
 namespace duckdb {
@@ -511,7 +513,7 @@ string LogicalType::ToString() const {
 		if (width == 0) {
 			return "DECIMAL";
 		}
-		return StringUtil::Format("DECIMAL(%d,%d)", width, scale);
+		return "DECIMAL(" + std::to_string(width) + "," + std::to_string(scale) + ")";
 	}
 	case LogicalTypeId::ENUM: {
 		//return KeywordHelper::WriteOptionallyQuoted(EnumType::GetTypeName(*this));
