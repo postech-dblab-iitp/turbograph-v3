@@ -1,6 +1,8 @@
 #include "plans/query_plan_suite.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite);
@@ -23,7 +25,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10() {
 
 CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 
-	// scan LINEITEM
+	// scan LINEITEM;
 	CypherSchema sch1;
 	sch1.addNode("l");
 	sch1.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
