@@ -96,7 +96,9 @@ class CatalogSet {
 
 public:
 	DUCKDB_API explicit CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
-	DUCKDB_API explicit CatalogSet(Catalog &catalog, fixed_managed_shared_memory *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
+	DUCKDB_API explicit CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
+
+	void Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults = nullptr);
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
@@ -165,7 +167,7 @@ private:
 	void DropEntryDependencies(ClientContext &context, idx_t entry_index, CatalogEntry &entry, bool cascade);
 
 private:
-	Catalog &catalog;
+	Catalog *catalog;
 	//! The catalog lock is used to make changes to the data
 	mutex catalog_lock;
 	//! Mapping of string to catalog entry
@@ -179,7 +181,7 @@ private:
 	//! The generator used to generate default internal entries
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager
-	fixed_managed_shared_memory *catalog_segment;
-	string catalog_set_name;
+	fixed_managed_mapped_file *catalog_segment;
+	// string catalog_set_name;
 };
 } // namespace duckdb

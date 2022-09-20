@@ -47,6 +47,7 @@ public:
 	//DUCKDB_API TaskScheduler &GetScheduler();
 	//DUCKDB_API ObjectCache &GetObjectCache();
 	//DUCKDB_API ConnectionManager &GetConnectionManager();
+	fixed_managed_mapped_file *GetCatalogSHM(); 
 
 	idx_t NumberOfThreads();
 
@@ -65,7 +66,7 @@ private:
 	//unique_ptr<ObjectCache> object_cache;
 	//unique_ptr<ConnectionManager> connection_manager;
 	//unordered_set<std::string> loaded_extensions;
-	fixed_managed_shared_memory *catalog_shm;
+	fixed_managed_mapped_file *catalog_shm;
 
 	// unique_ptr<FileSystem> file_system;
 };

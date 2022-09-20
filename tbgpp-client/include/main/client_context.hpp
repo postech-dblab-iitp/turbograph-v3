@@ -27,6 +27,7 @@
 
 #include "common/mutex.hpp"
 #include "common/types/value.hpp"
+#include "common/boost_typedefs.hpp"
 
 #include "storage/graph_store.hpp"
 #include "parallel/executor.hpp"
@@ -83,6 +84,8 @@ public:
 	//! executor assigned for this class;
 	unique_ptr<Executor> executor;
 
+	// Catalog SHM (is this place appropriate?)
+	fixed_managed_mapped_file *catalog_shm;
 
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {
@@ -179,6 +182,9 @@ public:
 
 	// //! Fetch a list of table names that are required for a given query
 	// DUCKDB_API unordered_set<string> GetTableNames(const string &query);
+
+	//! Returns the catalog shm
+	fixed_managed_mapped_file *GetCatalogSHM();
 
 private:
 	//! Parse statements and resolve pragmas from a query

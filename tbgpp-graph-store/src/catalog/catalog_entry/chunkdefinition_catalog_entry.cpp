@@ -11,9 +11,9 @@
 namespace duckdb {
 
 ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::CHUNKDEFINITION_ENTRY, schema, catalog, info->chunkdefinition, void_alloc) {
+    : StandardEntry(CatalogType::CHUNKDEFINITION_ENTRY, schema, catalog, info->chunkdefinition, void_alloc), min_max_array(void_alloc) {
 	this->temporary = info->temporary;
-	this->data_type = info->l_type;
+	this->data_type_id = info->l_type.id();
 }
 
 void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input_size) {
@@ -25,8 +25,8 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 		idx_t start_offset = i * MIN_MAX_ARRAY_SIZE;
 		idx_t end_offset = (i == num_entries_in_array - 1) ? 
 							num_entries_in_column : (i + 1) * MIN_MAX_ARRAY_SIZE;
-		Value min_val = Value::MaximumValue(data_type);
-		Value max_val = Value::MinimumValue(data_type);
+		Value min_val = Value::MaximumValue(LogicalType(data_type_id));
+		Value max_val = Value::MinimumValue(LogicalType(data_type_id));
 		for (idx_t j = start_offset; j < end_offset; j++) {
 			Value val = column.GetValue(j);
 			if (min_val > val) min_val = val;

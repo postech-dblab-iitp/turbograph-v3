@@ -13,6 +13,7 @@
 #include <boost/interprocess/allocators/private_adaptive_pool.hpp>
 #include <boost/interprocess/allocators/cached_adaptive_pool.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/containers/deque.hpp>
 #include <boost/interprocess/containers/list.hpp>

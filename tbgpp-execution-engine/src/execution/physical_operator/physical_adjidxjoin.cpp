@@ -94,11 +94,13 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	// get adjacency list columns in column
 	vector<int> adjColIdxs;
 	vector<LogicalType> adjColTypes;
-// IC();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 // for( auto& k: edgeLabelSet.data ) { IC(k); }
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, adjColIdxs, adjColTypes);
+// icecream::ic.enable(); IC(); IC(adjColIdxs.size()); icecream::ic.disable();
 	D_ASSERT( adjColIdxs.size() > 0);
 	D_ASSERT( adjColIdxs.size() == adjColTypes.size() );
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 // IC(adjColIdxs.size());
 // IC(adjColIdxs[0]);
 
@@ -145,7 +147,9 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 // } else {
 // 	adjfetch_timer.resume();
 // }
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 // adjfetch_timer.stop();
 
 		size_t adjListSize = adj_end - adj_start;
@@ -195,8 +199,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		const size_t finalCheckpoint = state.checkpoint.second + numTuplesToProduce;
 		
 		// PRODUCE
-icecream::ic.enable();
-
+// icecream::ic.enable();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 		// set sel
 			// don't need to initialize selvector all times
 		auto sel_index = numProducedTuples;	// start from numproducedtuples
