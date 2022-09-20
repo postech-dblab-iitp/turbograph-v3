@@ -1088,6 +1088,7 @@ icecream::ic.disable();
 
 		// start timer
 		boost::timer::cpu_timer query_timer;
+		query_timer.start();
 		int idx = 0;
 		for( auto exec : executors ) { 
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;

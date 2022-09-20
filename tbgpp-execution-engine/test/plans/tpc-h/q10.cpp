@@ -14,11 +14,11 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10() {
 
 	std::vector<CypherPipelineExecutor*> result;
 	auto p1 = q10_pipe1(*this);
-	// auto p2 = q10_pipe2(*this, p1);
-	// auto p3 = q10_pipe3(*this, p2);
+	auto p2 = q10_pipe2(*this, p1);
+	auto p3 = q10_pipe3(*this, p2);
 	result.push_back(p1);
-	// result.push_back(p2);
-	// result.push_back(p3);
+	result.push_back(p2);
+	result.push_back(p3);
 	return result;
 
 }
@@ -134,8 +134,8 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("CUSTOMER"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("CUSTOMER"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("NATION"), JoinType::INNER, false, true) );
 	ops.push_back( new PhysicalNodeIdSeek(sch8, "n", LabelSet("NATION"), PropertyKeys({"N_NAME"}) ) );
-	ops.push_back( new PhysicalProduceResults(sch8));
-	// ops.push_back( new PhysicalHashAggregate(sch9, move(agg_exprs), move(agg_groups)));
+	// ops.push_back( new PhysicalProduceResults(sch8));
+	ops.push_back( new PhysicalHashAggregate(sch9, move(agg_exprs), move(agg_groups)));
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
