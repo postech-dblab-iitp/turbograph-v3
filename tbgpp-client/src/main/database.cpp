@@ -132,7 +132,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
 	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
-	fprintf(stdout, "%p Open CatalogSHM %p\n", this, catalog_shm);
+	fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
 	int64_t num_objects_in_catalog = 0;
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
@@ -182,7 +182,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
 	// fprintf(stdout, "Else\n");
 	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
-	fprintf(stdout, "num_objects = %ld\n", num_objects_in_catalog);
+	fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
 	
 	if (num_objects_in_catalog == 0) {
 		// Make a new catalog
@@ -218,7 +218,6 @@ DuckDB::DuckDB(DatabaseInstance &instance_p) : instance(instance_p.shared_from_t
 }
 
 DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
-	fprintf(stdout, "dbinstance %p\n", instance.get());
 	instance->Initialize(path);
 }
 
@@ -234,8 +233,6 @@ Catalog &DatabaseInstance::GetCatalog() {
 }
 
 fixed_managed_mapped_file *DatabaseInstance::GetCatalogSHM() {
-	fprintf(stdout, "?? %p\n", this);
-	fprintf(stdout, "GetCatalogSHM %p\n", catalog_shm);
 	return catalog_shm;
 }
 

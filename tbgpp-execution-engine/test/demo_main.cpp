@@ -66,6 +66,7 @@ using namespace duckdb;
 vector<std::pair<string, string>> vertex_files;
 vector<std::pair<string, string>> edge_files;
 vector<std::pair<string, string>> edge_files_backward;
+string workspace;
 
 bool load_edge;
 bool load_backward_edge;
@@ -141,7 +142,9 @@ class InputParser{
         	pair_to_insert.second = *itr;
         	edge_files_backward.push_back(pair_to_insert);
         	load_backward_edge = true;
-        }
+        } else if (std::strncmp(current_str.c_str(), "--workspace:", 12) == 0) {
+			workspace = std::string(*itr).substr(12);
+		}
       }
     }
   private:
@@ -153,20 +156,15 @@ icecream::ic.disable();
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
-	fprintf(stdout, "\nLoad Following Nodes\n");
-	for (int i = 0; i < vertex_files.size(); i++)
-		fprintf(stdout, "\t%s : %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
-	fprintf(stdout, "\nLoad Following Relationships\n");
-	for (int i = 0; i < edge_files.size(); i++)
-		fprintf(stdout, "\t%s : %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
 
-	fprintf(stdout, "\nInitialize DiskAioParameters\n");
+	fprintf(stdout, "Initialize DiskAioParameters\n\n");
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/";
+	DiskAioParameters::WORKSPACE = workspace;
+	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
@@ -177,7 +175,6 @@ icecream::ic.disable();
 	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
 
 	// Run Catch Test
-	fprintf(stdout, "\nTest Case Start!!\n");
 	argc = 1;
 
 	// Initialize Database
@@ -189,889 +186,889 @@ icecream::ic.disable();
 icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
-	if (false) {
-	Catalog& cat_instance = database->instance->GetCatalog();
-	ExtentManager ext_mng; // TODO put this into database
-	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
-	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
-	vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
+// 	if (false) {
+// 	Catalog& cat_instance = database->instance->GetCatalog();
+// 	ExtentManager ext_mng; // TODO put this into database
+// 	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
+// 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
+// 	vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
 
-	// Initialize Catalog Informations
-	// Create Schema, Graph
-	CreateSchemaInfo schema_info;
-	cat_instance.CreateSchema(*client.get(), &schema_info);
+// 	// Initialize Catalog Informations
+// 	// Create Schema, Graph
+// 	CreateSchemaInfo schema_info;
+// 	cat_instance.CreateSchema(*client.get(), &schema_info);
 
-	CreateGraphInfo graph_info("main", "graph1");
-	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+// 	CreateGraphInfo graph_info("main", "graph1");
+// 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
-	// Read Vertex CSV File & CreateVertexExtents
-	// unique_ptr<Index> index; // Temporary..
-	for (auto &vertex_file: vertex_files) {
-		auto vertex_file_start = std::chrono::high_resolution_clock::now();
-		fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
-		// Create Partition for each vertex (partitioned by label)
-		vector<string> vertex_labels = {vertex_file.first};
-		string partition_name = "vpart_" + vertex_file.first;
-		CreatePartitionInfo partition_info("main", partition_name.c_str());
-		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-		PartitionID new_pid = graph_cat->GetNewPartitionID();
-		graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
+// 	// Read Vertex CSV File & CreateVertexExtents
+// 	// unique_ptr<Index> index; // Temporary..
+// 	for (auto &vertex_file: vertex_files) {
+// 		auto vertex_file_start = std::chrono::high_resolution_clock::now();
+// 		fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
+// 		// Create Partition for each vertex (partitioned by label)
+// 		vector<string> vertex_labels = {vertex_file.first};
+// 		string partition_name = "vpart_" + vertex_file.first;
+// 		CreatePartitionInfo partition_info("main", partition_name.c_str());
+// 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+// 		PartitionID new_pid = graph_cat->GetNewPartitionID();
+// 		graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
 		
-		fprintf(stdout, "Init GraphCSVFile\n");
-		auto init_csv_start = std::chrono::high_resolution_clock::now();
-		// Initialize CSVFileReader
-		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
-		auto init_csv_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
-		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
+// 		fprintf(stdout, "Init GraphCSVFile\n");
+// 		auto init_csv_start = std::chrono::high_resolution_clock::now();
+// 		// Initialize CSVFileReader
+// 		GraphSIMDCSVFileParser reader;
+// 		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+// 		auto init_csv_end = std::chrono::high_resolution_clock::now();
+// 		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
+// 		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
 
-		// Initialize Property Schema Catalog Entry using Schema of the vertex
-		vector<string> key_names;
-		vector<LogicalType> types;
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("");
-		}
+// 		// Initialize Property Schema Catalog Entry using Schema of the vertex
+// 		vector<string> key_names;
+// 		vector<LogicalType> types;
+// 		if (!reader.GetSchemaFromHeader(key_names, types)) {
+// 			throw InvalidInputException("");
+// 		}
 		
-		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+// 		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
 		
-		string property_schema_name = "vps_" + vertex_file.first;
-		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
-		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+// 		string property_schema_name = "vps_" + vertex_file.first;
+// 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
+// 		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+// 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		
-		vector<PropertyKeyID> property_key_ids;
-		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
-		property_schema_cat->SetTypes(types);
-		property_schema_cat->SetKeys(*client.get(), key_names);
-// IC();
+// 		vector<PropertyKeyID> property_key_ids;
+// 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+// 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+// 		property_schema_cat->SetTypes(types);
+// 		property_schema_cat->SetKeys(*client.get(), key_names);
+// // IC();
 		
-		// Initialize DataChunk
-		DataChunk data;
-		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
-// IC();
+// 		// Initialize DataChunk
+// 		DataChunk data;
+// 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+// // IC();
 
-		// Initialize LID_TO_PID_MAP
-		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
-		ART *index;
-		if (load_edge) {
-			// lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
-			// lid_to_pid_map_instance = &lid_to_pid_map.back().second;
-			// lid_to_pid_map_instance->reserve(approximated_num_rows);
-			vector<column_t> column_ids;
-			for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
-			index = new ART(column_ids, IndexConstraintType::NONE);
-			std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
-			lid_to_pid_index.push_back(pair_to_insert);
-		}
-// IC();
+// 		// Initialize LID_TO_PID_MAP
+// 		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
+// 		ART *index;
+// 		if (load_edge) {
+// 			// lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
+// 			// lid_to_pid_map_instance = &lid_to_pid_map.back().second;
+// 			// lid_to_pid_map_instance->reserve(approximated_num_rows);
+// 			vector<column_t> column_ids;
+// 			for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
+// 			index = new ART(column_ids, IndexConstraintType::NONE);
+// 			std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
+// 			lid_to_pid_index.push_back(pair_to_insert);
+// 		}
+// // IC();
 
-		// Read CSV File into DataChunk & CreateVertexExtent
-		auto read_chunk_start = std::chrono::high_resolution_clock::now();
-		while (!reader.ReadCSVFile(key_names, types, data)) {
-			// IC();
-			auto read_chunk_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
-			//continue;
-			//fprintf(stderr, "%s\n", data.ToString().c_str());
-			// Create Vertex Extent by Extent Manager
-			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
-			auto create_extent_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
-			property_schema_cat->AddExtent(new_eid);
+// 		// Read CSV File into DataChunk & CreateVertexExtent
+// 		auto read_chunk_start = std::chrono::high_resolution_clock::now();
+// 		while (!reader.ReadCSVFile(key_names, types, data)) {
+// 			// IC();
+// 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
+// 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
+// 			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+// 			//continue;
+// 			//fprintf(stderr, "%s\n", data.ToString().c_str());
+// 			// Create Vertex Extent by Extent Manager
+// 			auto create_extent_start = std::chrono::high_resolution_clock::now();
+// 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+// 			auto create_extent_end = std::chrono::high_resolution_clock::now();
+// 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
+// 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+// 			property_schema_cat->AddExtent(new_eid);
 			
-			if (load_edge) {
-				// Initialize pid base
-				idx_t pid_base = (idx_t) new_eid;
-				pid_base = pid_base << 32;
+// 			if (load_edge) {
+// 				// Initialize pid base
+// 				idx_t pid_base = (idx_t) new_eid;
+// 				pid_base = pid_base << 32;
 
-				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
-				// auto map_build_start = std::chrono::high_resolution_clock::now();
-				// if (key_column_idx < 0) continue;
-				// idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
-				// for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-				// 	lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
-				// }
-				// auto map_build_end = std::chrono::high_resolution_clock::now();
-				// std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-//				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+// 				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
+// 				// auto map_build_start = std::chrono::high_resolution_clock::now();
+// 				// if (key_column_idx < 0) continue;
+// 				// idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
+// 				// for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 				// 	lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
+// 				// }
+// 				// auto map_build_end = std::chrono::high_resolution_clock::now();
+// 				// std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+// //				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
-				// Build Index
-// IC();
-				auto index_build_start = std::chrono::high_resolution_clock::now();
-				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
-				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
-				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-					// IC(seqno, row_ids_data[seqno]);
-				}
-// IC();
-				DataChunk tmp_chunk;
-				vector<LogicalType> tmp_types;
-				tmp_types.resize(1);
-				if (key_column_idxs.size() == 1) {
-// IC();
-					tmp_types[0] = LogicalType::UBIGINT;
-					tmp_chunk.Initialize(tmp_types, data.size());
-					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
-					tmp_chunk.SetCardinality(data.size());
-				} else if (key_column_idxs.size() == 2) {
-// IC();
-					tmp_types[0] = LogicalType::HUGEINT;
-					tmp_chunk.Initialize(tmp_types, data.size());
-					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
-					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-						hugeint_t key_val;
-						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
-						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
-						tmp_chunk_data[seqno] = key_val;
-						// IC(key_val.upper, key_val.lower);
-						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
-					}
-					tmp_chunk.SetCardinality(data.size());
-				} else {
-					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-				}
-// IC();
-				// tmp_types.resize(key_column_idxs.size());
-				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
-				// tmp_chunk.Initialize(tmp_types);
-				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-				// IC(tmp_chunk.size());
-				IndexLock lock;
-				index->Insert(lock, tmp_chunk, row_ids);
-				auto index_build_end = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
-			}
-			read_chunk_start = std::chrono::high_resolution_clock::now();
-		}
-		auto vertex_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
-
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
-	}
-
-	fprintf(stdout, "Vertex File Loading Done\n");
-
-	// Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
-	for (auto &edge_file: edge_files) {
-		auto edge_file_start = std::chrono::high_resolution_clock::now();
-		fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
-		// Create Partition for each edge (partitioned by edge type)
-		string edge_type = edge_file.first;
-		string partition_name = "epart_" + edge_file.first;
-		CreatePartitionInfo partition_info("main", partition_name.c_str());
-		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-		PartitionID new_pid = graph_cat->GetNewPartitionID();
-		graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
-
-		// Initialize CSVFileReader
-		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
-
-		// Initialize Property Schema Info using Schema of the edge
-		vector<string> key_names;
-		vector<LogicalType> types;
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("A");
-		}
-		// for (size_t i = 0; i < key_names.size(); i++) IC(key_names[i]);
-
-		vector<int64_t> src_column_idx, dst_column_idx;
-		string src_column_name, dst_column_name;
-		reader.GetSrcColumnIndexFromHeader(src_column_idx, src_column_name);
-		reader.GetDstColumnIndexFromHeader(dst_column_idx, dst_column_name);
-		if (src_column_idx.size() == 0 || dst_column_idx.size() == 0) throw InvalidInputException("B");
-		fprintf(stdout, "Src column name = %s (idx =", src_column_name.c_str());
-		for (size_t i = 0; i < src_column_idx.size(); i++) fprintf(stdout, " %ld", src_column_idx[i]);
-		fprintf(stdout, "), Dst column name = %s (idx =", dst_column_name.c_str());
-		for (size_t i = 0; i < dst_column_idx.size(); i++) fprintf(stdout, " %ld", dst_column_idx[i]);
-		fprintf(stdout, ")\n");
-
-		auto src_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
-			[&src_column_name](const std::pair<string, ART*> &element) { return element.first == src_column_name; });
-		if (src_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
-		ART *src_lid_to_pid_index_instance = src_it->second;
-
-		auto dst_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
-			[&dst_column_name](const std::pair<string, ART*> &element) { return element.first == dst_column_name; });
-		if (dst_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
-		ART *dst_lid_to_pid_index_instance = dst_it->second;
-
-		string property_schema_name = "eps_" + edge_file.first;
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
-		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
-		vector<PropertyKeyID> property_key_ids;
-		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
-		property_schema_cat->SetTypes(types);
-		property_schema_cat->SetKeys(*client.get(), key_names);
-
-		// for (size_t i = 0; i < property_key_ids.size(); i++) IC(property_key_ids[i]);
-
-		// Initialize DataChunk
-		DataChunk data;
-		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
-
-		// Initialize LID_PAIR_TO_EPID_MAP
-		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
-		if (load_backward_edge) {
-			lid_pair_to_epid_map.emplace_back(edge_file.first, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
-			lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
-		}
-		LidPair lid_pair;
-
-		// Initialize AdjListBuffer
-		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
-
-		// Initialize Extent Iterator for Vertex Extents
-		ExtentIterator ext_it;
-		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
-		vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
-		// IC(src_column_idxs.size());
-		vector<LogicalType> vertex_id_type;
-		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
-		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
-		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
-
-		// Initialize variables related to vertex extent
-		Value cur_src_id, cur_dst_id, min_id, max_id; // Logical ID
-		idx_t cur_src_pid, cur_dst_pid; // Physical ID
-		idx_t vertex_seqno;
-		idx_t *vertex_id_column;
-		DataChunk vertex_id_chunk;
-		ExtentID current_vertex_eid;
-		bool is_first_tuple_processed = false;
-		vertex_id_chunk.Initialize(vertex_id_type, STORAGE_STANDARD_VECTOR_SIZE);
-// IC();
-
-		// Read CSV File into DataChunk & CreateEdgeExtent
-		while (!reader.ReadCSVFile(key_names, types, data)) {
-			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-// IC(data.ToString(10));
-			// Get New ExtentID for this chunk
-			ExtentID new_eid = property_schema_cat->GetNewExtentID();
-
-			// Initialize epid base
-			idx_t epid_base = (idx_t) new_eid;
-			epid_base = epid_base << 32;
-// 			IC(new_eid, epid_base);
-// IC();
-			// Convert lid to pid using LID_TO_PID_MAP
-			vector<idx_t *> src_key_columns, dst_key_columns;
-			src_key_columns.resize(src_column_idx.size());
-			dst_key_columns.resize(dst_column_idx.size());
-			for (size_t i = 0; i < src_key_columns.size(); i++) src_key_columns[i] = (idx_t *)data.data[src_column_idx[i]].GetData();
-			for (size_t i = 0; i < dst_key_columns.size(); i++) dst_key_columns[i] = (idx_t *)data.data[dst_column_idx[i]].GetData();
-			// idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
-			// idx_t *dst_key_column = (idx_t*) data.data[dst_column_idx].GetData();
-// IC();
-			idx_t src_seqno = 0, dst_seqno = 0;
-			idx_t begin_idx, end_idx;
-			idx_t max_seqno = data.size();
-			Value prev_id;
-			// idx_t prev_id = ULLONG_MAX;
-
-			// For the first tuple
-			begin_idx = src_seqno;
-// IC();	
-			// D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
-			ARTIndexScanState state;
-			vector<row_t> result_ids;
-			if (src_column_idx.size() == 1) {
-				state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
-				prev_id = cur_src_id = state.values[0];
-			} else if (src_column_idx.size() == 2) {
-				hugeint_t key_val;
-				key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
-				key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-				// IC(key_val.upper, key_val.lower);
-				state.values[0] = Value::HUGEINT(key_val);
-				prev_id = cur_src_id = state.values[0];
-			} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-			result_ids.clear();
-			src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-// 			if (result_ids.size() != 1) {
-// 				IC(result_ids.size());
-// 				if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-// 				else if (src_column_idx.size() == 2) {
-// 					IC(state.values[0].GetValue<hugeint_t>().upper);
-// 					IC(state.values[0].GetValue<hugeint_t>().lower);
+// 				// Build Index
+// // IC();
+// 				auto index_build_start = std::chrono::high_resolution_clock::now();
+// 				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
+// 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
+// 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
+// 					// IC(seqno, row_ids_data[seqno]);
 // 				}
-// 				for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
+// // IC();
+// 				DataChunk tmp_chunk;
+// 				vector<LogicalType> tmp_types;
+// 				tmp_types.resize(1);
+// 				if (key_column_idxs.size() == 1) {
+// // IC();
+// 					tmp_types[0] = LogicalType::UBIGINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else if (key_column_idxs.size() == 2) {
+// // IC();
+// 					tmp_types[0] = LogicalType::HUGEINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
+// 					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 						hugeint_t key_val;
+// 						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
+// 						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
+// 						tmp_chunk_data[seqno] = key_val;
+// 						// IC(key_val.upper, key_val.lower);
+// 						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
+// 					}
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else {
+// 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 				}
+// // IC();
+// 				// tmp_types.resize(key_column_idxs.size());
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
+// 				// tmp_chunk.Initialize(tmp_types);
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
+// 				// IC(tmp_chunk.size());
+// 				IndexLock lock;
+// 				index->Insert(lock, tmp_chunk, row_ids);
+// 				auto index_build_end = std::chrono::high_resolution_clock::now();
+// 				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
+// 				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
 // 			}
-// IC();
-			D_ASSERT(result_ids.size() == 1);
-			cur_src_pid = result_ids[0];
-			// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
-			src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
-			src_seqno++;
-// IC();
+// 			read_chunk_start = std::chrono::high_resolution_clock::now();
+// 		}
+// 		auto vertex_file_end = std::chrono::high_resolution_clock::now();
+// 		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
 
-			if (!is_first_tuple_processed) {
-				// Get First Vertex Extent
-				while (true) {
-// IC();
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-						// We do not allow this case
-						throw InvalidInputException("E"); 
-					}
-// IC();
+// 		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
+// 	}
+
+// 	fprintf(stdout, "Vertex File Loading Done\n");
+
+// 	// Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
+// 	for (auto &edge_file: edge_files) {
+// 		auto edge_file_start = std::chrono::high_resolution_clock::now();
+// 		fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
+// 		// Create Partition for each edge (partitioned by edge type)
+// 		string edge_type = edge_file.first;
+// 		string partition_name = "epart_" + edge_file.first;
+// 		CreatePartitionInfo partition_info("main", partition_name.c_str());
+// 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+// 		PartitionID new_pid = graph_cat->GetNewPartitionID();
+// 		graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
+
+// 		// Initialize CSVFileReader
+// 		GraphSIMDCSVFileParser reader;
+// 		size_t approximated_num_rows = reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
+
+// 		// Initialize Property Schema Info using Schema of the edge
+// 		vector<string> key_names;
+// 		vector<LogicalType> types;
+// 		if (!reader.GetSchemaFromHeader(key_names, types)) {
+// 			throw InvalidInputException("A");
+// 		}
+// 		// for (size_t i = 0; i < key_names.size(); i++) IC(key_names[i]);
+
+// 		vector<int64_t> src_column_idx, dst_column_idx;
+// 		string src_column_name, dst_column_name;
+// 		reader.GetSrcColumnIndexFromHeader(src_column_idx, src_column_name);
+// 		reader.GetDstColumnIndexFromHeader(dst_column_idx, dst_column_name);
+// 		if (src_column_idx.size() == 0 || dst_column_idx.size() == 0) throw InvalidInputException("B");
+// 		fprintf(stdout, "Src column name = %s (idx =", src_column_name.c_str());
+// 		for (size_t i = 0; i < src_column_idx.size(); i++) fprintf(stdout, " %ld", src_column_idx[i]);
+// 		fprintf(stdout, "), Dst column name = %s (idx =", dst_column_name.c_str());
+// 		for (size_t i = 0; i < dst_column_idx.size(); i++) fprintf(stdout, " %ld", dst_column_idx[i]);
+// 		fprintf(stdout, ")\n");
+
+// 		auto src_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
+// 			[&src_column_name](const std::pair<string, ART*> &element) { return element.first == src_column_name; });
+// 		if (src_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
+// 		ART *src_lid_to_pid_index_instance = src_it->second;
+
+// 		auto dst_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
+// 			[&dst_column_name](const std::pair<string, ART*> &element) { return element.first == dst_column_name; });
+// 		if (dst_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
+// 		ART *dst_lid_to_pid_index_instance = dst_it->second;
+
+// 		string property_schema_name = "eps_" + edge_file.first;
+// 		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+// 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+// 		vector<PropertyKeyID> property_key_ids;
+// 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+// 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+// 		property_schema_cat->SetTypes(types);
+// 		property_schema_cat->SetKeys(*client.get(), key_names);
+
+// 		// for (size_t i = 0; i < property_key_ids.size(); i++) IC(property_key_ids[i]);
+
+// 		// Initialize DataChunk
+// 		DataChunk data;
+// 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+
+// 		// Initialize LID_PAIR_TO_EPID_MAP
+// 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
+// 		if (load_backward_edge) {
+// 			lid_pair_to_epid_map.emplace_back(edge_file.first, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+// 			lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
+// 			lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
+// 		}
+// 		LidPair lid_pair;
+
+// 		// Initialize AdjListBuffer
+// 		vector<idx_t> adj_list_buffer;
+// 		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
+
+// 		// Initialize Extent Iterator for Vertex Extents
+// 		ExtentIterator ext_it;
+// 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
+// 			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+// 		vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
+// 		// IC(src_column_idxs.size());
+// 		vector<LogicalType> vertex_id_type;
+// 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
+// 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+// 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
+// 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
+
+// 		// Initialize variables related to vertex extent
+// 		Value cur_src_id, cur_dst_id, min_id, max_id; // Logical ID
+// 		idx_t cur_src_pid, cur_dst_pid; // Physical ID
+// 		idx_t vertex_seqno;
+// 		idx_t *vertex_id_column;
+// 		DataChunk vertex_id_chunk;
+// 		ExtentID current_vertex_eid;
+// 		bool is_first_tuple_processed = false;
+// 		vertex_id_chunk.Initialize(vertex_id_type, STORAGE_STANDARD_VECTOR_SIZE);
+// // IC();
+
+// 		// Read CSV File into DataChunk & CreateEdgeExtent
+// 		while (!reader.ReadCSVFile(key_names, types, data)) {
+// 			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+// // IC(data.ToString(10));
+// 			// Get New ExtentID for this chunk
+// 			ExtentID new_eid = property_schema_cat->GetNewExtentID();
+
+// 			// Initialize epid base
+// 			idx_t epid_base = (idx_t) new_eid;
+// 			epid_base = epid_base << 32;
+// // 			IC(new_eid, epid_base);
+// // IC();
+// 			// Convert lid to pid using LID_TO_PID_MAP
+// 			vector<idx_t *> src_key_columns, dst_key_columns;
+// 			src_key_columns.resize(src_column_idx.size());
+// 			dst_key_columns.resize(dst_column_idx.size());
+// 			for (size_t i = 0; i < src_key_columns.size(); i++) src_key_columns[i] = (idx_t *)data.data[src_column_idx[i]].GetData();
+// 			for (size_t i = 0; i < dst_key_columns.size(); i++) dst_key_columns[i] = (idx_t *)data.data[dst_column_idx[i]].GetData();
+// 			// idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
+// 			// idx_t *dst_key_column = (idx_t*) data.data[dst_column_idx].GetData();
+// // IC();
+// 			idx_t src_seqno = 0, dst_seqno = 0;
+// 			idx_t begin_idx, end_idx;
+// 			idx_t max_seqno = data.size();
+// 			Value prev_id;
+// 			// idx_t prev_id = ULLONG_MAX;
+
+// 			// For the first tuple
+// 			begin_idx = src_seqno;
+// // IC();	
+// 			// D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
+// 			ARTIndexScanState state;
+// 			vector<row_t> result_ids;
+// 			if (src_column_idx.size() == 1) {
+// 				state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
+// 				prev_id = cur_src_id = state.values[0];
+// 			} else if (src_column_idx.size() == 2) {
+// 				hugeint_t key_val;
+// 				key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
+// 				key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
+// 				// IC(key_val.upper, key_val.lower);
+// 				state.values[0] = Value::HUGEINT(key_val);
+// 				prev_id = cur_src_id = state.values[0];
+// 			} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 			result_ids.clear();
+// 			src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
+// // 			if (result_ids.size() != 1) {
+// // 				IC(result_ids.size());
+// // 				if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
+// // 				else if (src_column_idx.size() == 2) {
+// // 					IC(state.values[0].GetValue<hugeint_t>().upper);
+// // 					IC(state.values[0].GetValue<hugeint_t>().lower);
+// // 				}
+// // 				for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
+// // 			}
+// // IC();
+// 			D_ASSERT(result_ids.size() == 1);
+// 			cur_src_pid = result_ids[0];
+// 			// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+// 			src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
+// 			src_seqno++;
+// // IC();
+
+// 			if (!is_first_tuple_processed) {
+// 				// Get First Vertex Extent
+// 				while (true) {
+// // IC();
+// 					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+// 						// We do not allow this case
+// 						throw InvalidInputException("E"); 
+// 					}
+// // IC();
 					
-					// Initialize min & max id. We assume that the vertex data is sorted by id
-					if (src_column_idxs.size() == 1) {
-						min_id = vertex_id_chunk.GetValue(0, 0);
-						max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
-					} else if (src_column_idxs.size() == 2) {
-						hugeint_t min_key_val, max_key_val;
-						min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
-						min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
-						min_id = Value::HUGEINT(min_key_val);
-						max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
-						max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
-						max_id = Value::HUGEINT(max_key_val);
-					}
-// IC();
-// 					IC(cur_src_id.ToString());
-// 					IC(min_id.ToString());
-// 					IC(max_id.ToString());
-					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-				}
-// IC();
+// 					// Initialize min & max id. We assume that the vertex data is sorted by id
+// 					if (src_column_idxs.size() == 1) {
+// 						min_id = vertex_id_chunk.GetValue(0, 0);
+// 						max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
+// 					} else if (src_column_idxs.size() == 2) {
+// 						hugeint_t min_key_val, max_key_val;
+// 						min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
+// 						min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
+// 						min_id = Value::HUGEINT(min_key_val);
+// 						max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
+// 						max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
+// 						max_id = Value::HUGEINT(max_key_val);
+// 					}
+// // IC();
+// // 					IC(cur_src_id.ToString());
+// // 					IC(min_id.ToString());
+// // 					IC(max_id.ToString());
+// 					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+// 				}
+// // IC();
 
-				// Initialize vertex_seqno
-				vertex_seqno = 0;
-				if (src_column_idxs.size() == 1) {
-					while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-					}
-				} else if (src_column_idxs.size() == 2) {
-					hugeint_t key_val;
-					key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-					key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-					Value key = Value::HUGEINT(key_val);
-					while (key < cur_src_id) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-						key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-						key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-						key = Value::HUGEINT(key_val);
-					}
-				}
-				is_first_tuple_processed = true;
-			}
-// IC();
+// 				// Initialize vertex_seqno
+// 				vertex_seqno = 0;
+// 				if (src_column_idxs.size() == 1) {
+// 					while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
+// 						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 					}
+// 				} else if (src_column_idxs.size() == 2) {
+// 					hugeint_t key_val;
+// 					key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 					key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 					Value key = Value::HUGEINT(key_val);
+// 					while (key < cur_src_id) {
+// 						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 						key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 						key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 						key = Value::HUGEINT(key_val);
+// 					}
+// 				}
+// 				is_first_tuple_processed = true;
+// 			}
+// // IC();
 			
-			while(src_seqno < max_seqno) {
-				// IC(src_seqno);
-				if (src_column_idx.size() == 1) {
-					state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
-					cur_src_id = state.values[0];
-				} else if (src_column_idx.size() == 2) {
-					hugeint_t key_val;
-					key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
-					key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-					// IC(key_val.upper, key_val.lower);
-					state.values[0] = Value::HUGEINT(key_val);
-					cur_src_id = state.values[0];
-				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-// IC();
-				result_ids.clear();
-				src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-				// if (result_ids.size() != 1) {
-				// 	IC(result_ids.size());
-				// 	if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-				// 	else if (src_column_idx.size() == 2) {
-				// 		IC(state.values[0].GetValue<hugeint_t>().upper);
-				// 		IC(state.values[0].GetValue<hugeint_t>().lower);
-				// 	}
-				// 	for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
-				// }
-				D_ASSERT(result_ids.size() == 1);
-				cur_src_pid = result_ids[0];
-// IC();
-				// cur_src_id = src_key_column[src_seqno];
-				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
-				src_key_columns[0][src_seqno] = cur_src_pid;
-				if (cur_src_id == prev_id) {
-					// IC();
-					src_seqno++;
-				} else {
-					// IC();
-					// lid_pair.first = prev_id;
-					end_idx = src_seqno;
-					if (load_backward_edge) {
-						D_ASSERT(false);
-						// for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						// 	// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
-						// 	// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
-						// 	// }
-						// 	D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-						// 	cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-						// 	lid_pair.second = dst_key_column[dst_seqno];
-						// 	dst_key_column[dst_seqno] = cur_dst_pid;
-						// 	adj_list_buffer.push_back(cur_dst_pid);
-						// 	adj_list_buffer.push_back(epid_base + dst_seqno);
-						// 	lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
-						// }
-					} else {
-						if (dst_column_idx.size() == 1) {
-							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-								ARTIndexScanState dst_state;
-								vector<row_t> dst_result_ids;
-								dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
-								dst_result_ids.clear();
-								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-								D_ASSERT(dst_result_ids.size() == 1);
-								cur_dst_pid = dst_result_ids[0];
-								dst_key_columns[0][dst_seqno] = cur_dst_pid;
-								adj_list_buffer.push_back(cur_dst_pid);
-								adj_list_buffer.push_back(epid_base + dst_seqno);
-								// IC();
-								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
-							}
-						} else if (dst_column_idx.size() == 2) {
-							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-								ARTIndexScanState dst_state;
-								vector<row_t> dst_result_ids;
-								hugeint_t key_val;
-								key_val.upper = data.GetValue(dst_column_idx[0], src_seqno).GetValue<int64_t>();
-								key_val.lower = data.GetValue(dst_column_idx[1], src_seqno).GetValue<uint64_t>();
-								dst_state.values[0] = Value::HUGEINT(key_val);
-								dst_result_ids.clear();
-								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-								D_ASSERT(dst_result_ids.size() == 1);
-								cur_dst_pid = dst_result_ids[0];
-								dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
-								adj_list_buffer.push_back(cur_dst_pid);
-								adj_list_buffer.push_back(epid_base + dst_seqno);
-								// IC();
-								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
-							}
-						} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-					}
+// 			while(src_seqno < max_seqno) {
+// 				// IC(src_seqno);
+// 				if (src_column_idx.size() == 1) {
+// 					state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
+// 					cur_src_id = state.values[0];
+// 				} else if (src_column_idx.size() == 2) {
+// 					hugeint_t key_val;
+// 					key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
+// 					key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
+// 					// IC(key_val.upper, key_val.lower);
+// 					state.values[0] = Value::HUGEINT(key_val);
+// 					cur_src_id = state.values[0];
+// 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// // IC();
+// 				result_ids.clear();
+// 				src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
+// 				// if (result_ids.size() != 1) {
+// 				// 	IC(result_ids.size());
+// 				// 	if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
+// 				// 	else if (src_column_idx.size() == 2) {
+// 				// 		IC(state.values[0].GetValue<hugeint_t>().upper);
+// 				// 		IC(state.values[0].GetValue<hugeint_t>().lower);
+// 				// 	}
+// 				// 	for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
+// 				// }
+// 				D_ASSERT(result_ids.size() == 1);
+// 				cur_src_pid = result_ids[0];
+// // IC();
+// 				// cur_src_id = src_key_column[src_seqno];
+// 				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+// 				src_key_columns[0][src_seqno] = cur_src_pid;
+// 				if (cur_src_id == prev_id) {
+// 					// IC();
+// 					src_seqno++;
+// 				} else {
+// 					// IC();
+// 					// lid_pair.first = prev_id;
+// 					end_idx = src_seqno;
+// 					if (load_backward_edge) {
+// 						D_ASSERT(false);
+// 						// for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 						// 	// if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+// 						// 	// 	fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+// 						// 	// }
+// 						// 	D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+// 						// 	cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+// 						// 	lid_pair.second = dst_key_column[dst_seqno];
+// 						// 	dst_key_column[dst_seqno] = cur_dst_pid;
+// 						// 	adj_list_buffer.push_back(cur_dst_pid);
+// 						// 	adj_list_buffer.push_back(epid_base + dst_seqno);
+// 						// 	lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+// 						// }
+// 					} else {
+// 						if (dst_column_idx.size() == 1) {
+// 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 								ARTIndexScanState dst_state;
+// 								vector<row_t> dst_result_ids;
+// 								dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
+// 								dst_result_ids.clear();
+// 								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
+// 								D_ASSERT(dst_result_ids.size() == 1);
+// 								cur_dst_pid = dst_result_ids[0];
+// 								dst_key_columns[0][dst_seqno] = cur_dst_pid;
+// 								adj_list_buffer.push_back(cur_dst_pid);
+// 								adj_list_buffer.push_back(epid_base + dst_seqno);
+// 								// IC();
+// 								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+// 							}
+// 						} else if (dst_column_idx.size() == 2) {
+// 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 								ARTIndexScanState dst_state;
+// 								vector<row_t> dst_result_ids;
+// 								hugeint_t key_val;
+// 								key_val.upper = data.GetValue(dst_column_idx[0], src_seqno).GetValue<int64_t>();
+// 								key_val.lower = data.GetValue(dst_column_idx[1], src_seqno).GetValue<uint64_t>();
+// 								dst_state.values[0] = Value::HUGEINT(key_val);
+// 								dst_result_ids.clear();
+// 								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
+// 								D_ASSERT(dst_result_ids.size() == 1);
+// 								cur_dst_pid = dst_result_ids[0];
+// 								dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
+// 								adj_list_buffer.push_back(cur_dst_pid);
+// 								adj_list_buffer.push_back(epid_base + dst_seqno);
+// 								// IC();
+// 								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+// 							}
+// 						} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 					}
 					
-					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
-					if (cur_src_id > max_id) {
-						// Fill offsets
-						idx_t last_offset = adj_list_buffer.size();
-						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
-							adj_list_buffer[i] = last_offset;
+// 					if (cur_src_id > max_id) {
+// 						// Fill offsets
+// 						idx_t last_offset = adj_list_buffer.size();
+// 						for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+// 							adj_list_buffer[i] = last_offset;
 
-						// AddChunk for Adj.List to current Src Vertex Extent
-						DataChunk adj_list_chunk;
-						vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
-						vector<data_ptr_t> adj_list_datas(1);
-						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
-						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
-						adj_list_chunk.Destroy();
+// 						// AddChunk for Adj.List to current Src Vertex Extent
+// 						DataChunk adj_list_chunk;
+// 						vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
+// 						vector<data_ptr_t> adj_list_datas(1);
+// 						adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
+// 						adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+// 						ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
+// 						adj_list_chunk.Destroy();
 
-						// Re-initialize adjlist buffer for next Extent
-						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
+// 						// Re-initialize adjlist buffer for next Extent
+// 						adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
-						// Read corresponding ID column of Src Vertex Extent
-						while (true) {
-							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-								// We do not allow this case
-								throw InvalidInputException("F");
-							}
+// 						// Read corresponding ID column of Src Vertex Extent
+// 						while (true) {
+// 							if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+// 								// We do not allow this case
+// 								throw InvalidInputException("F");
+// 							}
 						
-							// Initialize min & max id
-							if (src_column_idxs.size() == 1) {
-								min_id = vertex_id_chunk.GetValue(0, 0);
-								max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
-							} else if (src_column_idxs.size() == 2) {
-								hugeint_t min_key_val, max_key_val;
-								min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
-								min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
-								min_id = Value::HUGEINT(min_key_val);
-								max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
-								max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
-								max_id = Value::HUGEINT(max_key_val);
-							}
-							if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-						}
+// 							// Initialize min & max id
+// 							if (src_column_idxs.size() == 1) {
+// 								min_id = vertex_id_chunk.GetValue(0, 0);
+// 								max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
+// 							} else if (src_column_idxs.size() == 2) {
+// 								hugeint_t min_key_val, max_key_val;
+// 								min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
+// 								min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
+// 								min_id = Value::HUGEINT(min_key_val);
+// 								max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
+// 								max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
+// 								max_id = Value::HUGEINT(max_key_val);
+// 							}
+// 							if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+// 						}
 						
-						// Initialize vertex_seqno
-						vertex_seqno = 0;
-						if (src_column_idxs.size() == 1) {
-							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
-								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							}
-						} else if (src_column_idxs.size() == 2) {
-							hugeint_t key_val;
-							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-							Value key = Value::HUGEINT(key_val);
-							while (key < cur_src_id) {
-								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-								key = Value::HUGEINT(key_val);
-							}
-						}
-					} else {
-						if (src_column_idxs.size() == 1) {
-							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
-								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-							}
-						} else if (src_column_idxs.size() == 2) {
-							hugeint_t key_val;
-							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-							Value key = Value::HUGEINT(key_val);
-							while (key < cur_src_id) {
-								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-								key = Value::HUGEINT(key_val);
-							}
-						}
-					}
+// 						// Initialize vertex_seqno
+// 						vertex_seqno = 0;
+// 						if (src_column_idxs.size() == 1) {
+// 							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
+// 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 							}
+// 						} else if (src_column_idxs.size() == 2) {
+// 							hugeint_t key_val;
+// 							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 							Value key = Value::HUGEINT(key_val);
+// 							while (key < cur_src_id) {
+// 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 								key = Value::HUGEINT(key_val);
+// 							}
+// 						}
+// 					} else {
+// 						if (src_column_idxs.size() == 1) {
+// 							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
+// 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 							}
+// 						} else if (src_column_idxs.size() == 2) {
+// 							hugeint_t key_val;
+// 							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 							Value key = Value::HUGEINT(key_val);
+// 							while (key < cur_src_id) {
+// 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
+// 								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
+// 								key = Value::HUGEINT(key_val);
+// 							}
+// 						}
+// 					}
 
-					prev_id = cur_src_id;
-					begin_idx = src_seqno;
-					src_seqno++;
-				}
-			}
-// IC();
-			// Process remaining dst vertices
-			// lid_pair.first = prev_id;
-			end_idx = src_seqno;
-			if (load_backward_edge) {
-				D_ASSERT(false);
-				// for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-				// 	D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-				// 	cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-				// 	lid_pair.second = dst_key_column[dst_seqno];
-				// 	dst_key_column[dst_seqno] = cur_dst_pid;
-				// 	adj_list_buffer.push_back(cur_dst_pid);
-				// 	adj_list_buffer.push_back(epid_base + dst_seqno);
-				// 	lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
-				// }
-			} else {
-				if (dst_column_idx.size() == 1) {
-					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						ARTIndexScanState dst_state;
-						vector<row_t> dst_result_ids;
-						dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
-						dst_result_ids.clear();
-						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-						D_ASSERT(dst_result_ids.size() == 1);
-						cur_dst_pid = dst_result_ids[0];
-						dst_key_columns[0][dst_seqno] = cur_dst_pid;
-						adj_list_buffer.push_back(cur_dst_pid);
-						adj_list_buffer.push_back(epid_base + dst_seqno);
-						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
-					}
-				} else if (dst_column_idx.size() == 2) {
-					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						ARTIndexScanState dst_state;
-						vector<row_t> dst_result_ids;
-						hugeint_t key_val;
-						key_val.upper = data.GetValue(dst_column_idx[0], src_seqno).GetValue<int64_t>();
-						key_val.lower = data.GetValue(dst_column_idx[1], src_seqno).GetValue<uint64_t>();
-						dst_state.values[0] = Value::HUGEINT(key_val);
-						dst_result_ids.clear();
-						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-						D_ASSERT(dst_result_ids.size() == 1);
-						cur_dst_pid = dst_result_ids[0];
-						dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
-						adj_list_buffer.push_back(cur_dst_pid);
-						adj_list_buffer.push_back(epid_base + dst_seqno);
-						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
-					}
-				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-			}
+// 					prev_id = cur_src_id;
+// 					begin_idx = src_seqno;
+// 					src_seqno++;
+// 				}
+// 			}
+// // IC();
+// 			// Process remaining dst vertices
+// 			// lid_pair.first = prev_id;
+// 			end_idx = src_seqno;
+// 			if (load_backward_edge) {
+// 				D_ASSERT(false);
+// 				// for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 				// 	D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+// 				// 	cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+// 				// 	lid_pair.second = dst_key_column[dst_seqno];
+// 				// 	dst_key_column[dst_seqno] = cur_dst_pid;
+// 				// 	adj_list_buffer.push_back(cur_dst_pid);
+// 				// 	adj_list_buffer.push_back(epid_base + dst_seqno);
+// 				// 	lid_pair_to_epid_map_instance->emplace(lid_pair, epid_base + dst_seqno);
+// 				// }
+// 			} else {
+// 				if (dst_column_idx.size() == 1) {
+// 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 						ARTIndexScanState dst_state;
+// 						vector<row_t> dst_result_ids;
+// 						dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
+// 						dst_result_ids.clear();
+// 						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
+// 						D_ASSERT(dst_result_ids.size() == 1);
+// 						cur_dst_pid = dst_result_ids[0];
+// 						dst_key_columns[0][dst_seqno] = cur_dst_pid;
+// 						adj_list_buffer.push_back(cur_dst_pid);
+// 						adj_list_buffer.push_back(epid_base + dst_seqno);
+// 						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+// 					}
+// 				} else if (dst_column_idx.size() == 2) {
+// 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 						ARTIndexScanState dst_state;
+// 						vector<row_t> dst_result_ids;
+// 						hugeint_t key_val;
+// 						key_val.upper = data.GetValue(dst_column_idx[0], src_seqno).GetValue<int64_t>();
+// 						key_val.lower = data.GetValue(dst_column_idx[1], src_seqno).GetValue<uint64_t>();
+// 						dst_state.values[0] = Value::HUGEINT(key_val);
+// 						dst_result_ids.clear();
+// 						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
+// 						D_ASSERT(dst_result_ids.size() == 1);
+// 						cur_dst_pid = dst_result_ids[0];
+// 						dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
+// 						adj_list_buffer.push_back(cur_dst_pid);
+// 						adj_list_buffer.push_back(epid_base + dst_seqno);
+// 						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+// 					}
+// 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 			}
 
-			// Create Edge Extent by Extent Manager
-			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
-			property_schema_cat->AddExtent(new_eid);
-		}
+// 			// Create Edge Extent by Extent Manager
+// 			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
+// 			property_schema_cat->AddExtent(new_eid);
+// 		}
 		
-		// Process remaining adjlist
-		// Fill offsets
-		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
-			adj_list_buffer[i] = last_offset;
+// 		// Process remaining adjlist
+// 		// Fill offsets
+// 		idx_t last_offset = adj_list_buffer.size();
+// 		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+// 			adj_list_buffer[i] = last_offset;
 
-		// AddChunk for Adj.List to current Src Vertex Extent
-		DataChunk adj_list_chunk;
-		vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
-		vector<data_ptr_t> adj_list_datas(1);
-		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
-		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
-		adj_list_chunk.Destroy();
+// 		// AddChunk for Adj.List to current Src Vertex Extent
+// 		DataChunk adj_list_chunk;
+// 		vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
+// 		vector<data_ptr_t> adj_list_datas(1);
+// 		adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
+// 		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+// 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
+// 		adj_list_chunk.Destroy();
 
-		auto edge_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
-// icecream::ic.disable();
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
-	}
+// 		auto edge_file_end = std::chrono::high_resolution_clock::now();
+// 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
+// // icecream::ic.disable();
+// 		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
+// 	}
 
-	// Read Backward Edge CSV File & Append Adj.List to VertexExtents
-	for (auto &edge_file: edge_files_backward) {
-		D_ASSERT(false);
-		// auto edge_file_start = std::chrono::high_resolution_clock::now();
-		// fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
-		// // Get Partition for each edge (partitioned by edge type).
-		// string edge_type = edge_file.first;
-		// string partition_name = "epart_" + edge_file.first;
+// 	// Read Backward Edge CSV File & Append Adj.List to VertexExtents
+// 	for (auto &edge_file: edge_files_backward) {
+// 		D_ASSERT(false);
+// 		// auto edge_file_start = std::chrono::high_resolution_clock::now();
+// 		// fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
+// 		// // Get Partition for each edge (partitioned by edge type).
+// 		// string edge_type = edge_file.first;
+// 		// string partition_name = "epart_" + edge_file.first;
 		
-		// // CreatePartitionInfo partition_info("main", partition_name.c_str());
-		// // PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-		// // PartitionID new_pid = graph_cat->GetNewPartitionID();
-		// // graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
+// 		// // CreatePartitionInfo partition_info("main", partition_name.c_str());
+// 		// // PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+// 		// // PartitionID new_pid = graph_cat->GetNewPartitionID();
+// 		// // graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
 
-		// // Initialize CSVFileReader
-		// GraphSIMDCSVFileParser reader;
-		// reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
+// 		// // Initialize CSVFileReader
+// 		// GraphSIMDCSVFileParser reader;
+// 		// reader.InitCSVFile(edge_file.second.c_str(), GraphComponentType::EDGE, '|');
 
-		// // Initialize LID_PAIR_TO_EPID_MAP
-		// auto edge_it = std::find_if(lid_pair_to_epid_map.begin(), lid_pair_to_epid_map.end(),
-		// 	[&edge_type](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) { return element.first == edge_type; });
-		// if (edge_it == lid_pair_to_epid_map.end()) throw InvalidInputException("[Error] Lid Pair to EPid Map does not exists");
-		// unordered_map<LidPair, idx_t, boost::hash<LidPair>> &lid_pair_to_epid_map_instance = edge_it->second;
-		// LidPair lid_pair;
+// 		// // Initialize LID_PAIR_TO_EPID_MAP
+// 		// auto edge_it = std::find_if(lid_pair_to_epid_map.begin(), lid_pair_to_epid_map.end(),
+// 		// 	[&edge_type](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) { return element.first == edge_type; });
+// 		// if (edge_it == lid_pair_to_epid_map.end()) throw InvalidInputException("[Error] Lid Pair to EPid Map does not exists");
+// 		// unordered_map<LidPair, idx_t, boost::hash<LidPair>> &lid_pair_to_epid_map_instance = edge_it->second;
+// 		// LidPair lid_pair;
 
-		// // Initialize Property Schema Info using Schema of the edge
-		// vector<string> key_names;
-		// vector<LogicalType> types;
-		// if (!reader.GetSchemaFromHeader(key_names, types)) {
-		// 	throw InvalidInputException("[Error] GetSchemaFromHeader");
-		// }
+// 		// // Initialize Property Schema Info using Schema of the edge
+// 		// vector<string> key_names;
+// 		// vector<LogicalType> types;
+// 		// if (!reader.GetSchemaFromHeader(key_names, types)) {
+// 		// 	throw InvalidInputException("[Error] GetSchemaFromHeader");
+// 		// }
 
-		// int64_t src_column_idx, dst_column_idx;
-		// string src_column_name, dst_column_name;
-		// reader.GetDstColumnIndexFromHeader(src_column_idx, src_column_name); // Reverse
-		// reader.GetSrcColumnIndexFromHeader(dst_column_idx, dst_column_name); // Reverse
-		// if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("[Error] GetSrc/DstColumnIndexFromHeader");
-		// fprintf(stdout, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
+// 		// int64_t src_column_idx, dst_column_idx;
+// 		// string src_column_name, dst_column_name;
+// 		// reader.GetDstColumnIndexFromHeader(src_column_idx, src_column_name); // Reverse
+// 		// reader.GetSrcColumnIndexFromHeader(dst_column_idx, dst_column_name); // Reverse
+// 		// if (src_column_idx < 0 || dst_column_idx < 0) throw InvalidInputException("[Error] GetSrc/DstColumnIndexFromHeader");
+// 		// fprintf(stdout, "Src column name = %s (idx = %ld), Dst column name = %s (idx = %ld)\n", src_column_name.c_str(), src_column_idx, dst_column_name.c_str(), dst_column_idx);
 
-		// auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-		// 	[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
-		// if (src_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Src Lid to Pid Map does not exists");
-		// unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
+// 		// auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+// 		// 	[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
+// 		// if (src_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Src Lid to Pid Map does not exists");
+// 		// unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
-		// auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-		// 	[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
-		// if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Dst Lid to Pid Map does not exists");
-		// unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
+// 		// auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+// 		// 	[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
+// 		// if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Dst Lid to Pid Map does not exists");
+// 		// unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
-		// // string property_schema_name = "eps_" + edge_file.first;
-		// // CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
-		// // PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
-		// // vector<PropertyKeyID> property_key_ids;
-		// // graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		// // partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
-		// // property_schema_cat->SetTypes(types);
-		// // property_schema_cat->SetKeys(key_names);
+// 		// // string property_schema_name = "eps_" + edge_file.first;
+// 		// // CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+// 		// // PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+// 		// // vector<PropertyKeyID> property_key_ids;
+// 		// // graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+// 		// // partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+// 		// // property_schema_cat->SetTypes(types);
+// 		// // property_schema_cat->SetKeys(key_names);
 
-		// // Initialize DataChunk
-		// DataChunk data;
-		// data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+// 		// // Initialize DataChunk
+// 		// DataChunk data;
+// 		// data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
-		// // Initialize AdjListBuffer
-		// vector<idx_t> adj_list_buffer;
-		// adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
+// 		// // Initialize AdjListBuffer
+// 		// vector<idx_t> adj_list_buffer;
+// 		// adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
-		// // Initialize Extent Iterator for Vertex Extents
-		// ExtentIterator ext_it;
-		// PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-		// (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
-		// vector<string> key_column_name = { "id" };
-		// vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
-		// vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
-		// ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
-		// vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
-		// vertex_ps_cat_entry->AppendKey({ edge_type });
+// 		// // Initialize Extent Iterator for Vertex Extents
+// 		// ExtentIterator ext_it;
+// 		// PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
+// 		// (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+// 		// vector<string> key_column_name = { "id" };
+// 		// vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
+// 		// vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
+// 		// ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+// 		// vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
+// 		// vertex_ps_cat_entry->AppendKey({ edge_type });
 
-		// // Initialize variables related to vertex extent
-		// idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
-		// idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX, vertex_seqno;
-		// idx_t *vertex_id_column;
-		// DataChunk vertex_id_chunk;
-		// ExtentID current_vertex_eid;
-		// vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
+// 		// // Initialize variables related to vertex extent
+// 		// idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
+// 		// idx_t min_id = ULLONG_MAX, max_id = ULLONG_MAX, vertex_seqno;
+// 		// idx_t *vertex_id_column;
+// 		// DataChunk vertex_id_chunk;
+// 		// ExtentID current_vertex_eid;
+// 		// vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
 
-		// // Read CSV File into DataChunk & CreateEdgeExtent
-		// while (!reader.ReadCSVFile(key_names, types, data)) {
-		// 	//fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+// 		// // Read CSV File into DataChunk & CreateEdgeExtent
+// 		// while (!reader.ReadCSVFile(key_names, types, data)) {
+// 		// 	//fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
-		// 	// Convert lid to pid using LID_TO_PID_MAP
-		// 	idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
-		// 	idx_t *dst_key_column = (idx_t*) data.data[dst_column_idx].GetData();
+// 		// 	// Convert lid to pid using LID_TO_PID_MAP
+// 		// 	idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
+// 		// 	idx_t *dst_key_column = (idx_t*) data.data[dst_column_idx].GetData();
 
-		// 	idx_t src_seqno = 0, dst_seqno = 0;
-		// 	idx_t begin_idx, end_idx;
-		// 	idx_t max_seqno = data.size();
-		// 	idx_t prev_id = ULLONG_MAX;
+// 		// 	idx_t src_seqno = 0, dst_seqno = 0;
+// 		// 	idx_t begin_idx, end_idx;
+// 		// 	idx_t max_seqno = data.size();
+// 		// 	idx_t prev_id = ULLONG_MAX;
 
-		// 	// For the first tuple
-		// 	begin_idx = src_seqno;
-		// 	prev_id = cur_src_id = src_key_column[src_seqno];
+// 		// 	// For the first tuple
+// 		// 	begin_idx = src_seqno;
+// 		// 	prev_id = cur_src_id = src_key_column[src_seqno];
 			
-		// 	D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
-		// 	cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
-		// 	// src_key_column[src_seqno] = cur_src_pid;
-		// 	src_seqno++;
+// 		// 	D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
+// 		// 	cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+// 		// 	// src_key_column[src_seqno] = cur_src_pid;
+// 		// 	src_seqno++;
 
-		// 	if (min_id == ULLONG_MAX) {
-		// 		// Get First Vertex Extent
-		// 		while (true) {
-		// 			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-		// 				// We do not allow this case
-		// 				throw InvalidInputException("E"); 
-		// 			}
+// 		// 	if (min_id == ULLONG_MAX) {
+// 		// 		// Get First Vertex Extent
+// 		// 		while (true) {
+// 		// 			if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+// 		// 				// We do not allow this case
+// 		// 				throw InvalidInputException("E"); 
+// 		// 			}
 					
-		// 			// Initialize min & max id
-		// 			vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
-		// 			min_id = vertex_id_column[0];
-		// 			max_id = vertex_id_column[vertex_id_chunk.size() - 1];
-		// 			fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
-		// 			if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-		// 		}
+// 		// 			// Initialize min & max id
+// 		// 			vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
+// 		// 			min_id = vertex_id_column[0];
+// 		// 			max_id = vertex_id_column[vertex_id_chunk.size() - 1];
+// 		// 			fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
+// 		// 			if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+// 		// 		}
 
-		// 		// Initialize vertex_seqno
-		// 		vertex_seqno = 0;
-		// 		vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
-		// 		while (vertex_id_column[vertex_seqno] < cur_src_id) {
-		// 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-		// 		}
-		// 		if (vertex_id_column[vertex_seqno] != cur_src_id) {
-		// 			fprintf(stdout, "Error at %ld, %ld != %ld\n", vertex_seqno, vertex_id_column[vertex_seqno], cur_src_id);
-		// 		}
-		// 		D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
-		// 	}
+// 		// 		// Initialize vertex_seqno
+// 		// 		vertex_seqno = 0;
+// 		// 		vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
+// 		// 		while (vertex_id_column[vertex_seqno] < cur_src_id) {
+// 		// 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 		// 		}
+// 		// 		if (vertex_id_column[vertex_seqno] != cur_src_id) {
+// 		// 			fprintf(stdout, "Error at %ld, %ld != %ld\n", vertex_seqno, vertex_id_column[vertex_seqno], cur_src_id);
+// 		// 		}
+// 		// 		D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
+// 		// 	}
 			
-		// 	while(src_seqno < max_seqno) {
-		// 		cur_src_id = src_key_column[src_seqno];
-		// 		cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
-		// 		// src_key_column[src_seqno] = cur_src_pid;
-		// 		if (cur_src_id == prev_id) {
-		// 			src_seqno++;
-		// 		} else {
-		// 			lid_pair.second = prev_id;
-		// 			end_idx = src_seqno;
-		// 			idx_t peid;
-		// 			for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-		// 				if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
-		// 					fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
-		// 				}
-		// 				D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-		// 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-		// 				lid_pair.first = dst_key_column[dst_seqno];
-		// 				if (lid_pair_to_epid_map_instance.find(lid_pair) == lid_pair_to_epid_map_instance.end()) {
-		// 					fprintf(stdout, "????? cannot find lid_pair %ld %ld\n", lid_pair.first, lid_pair.second);
-		// 				}
-		// 				D_ASSERT(lid_pair_to_epid_map_instance.find(lid_pair) != lid_pair_to_epid_map_instance.end());
-		// 				peid = lid_pair_to_epid_map_instance.at(lid_pair);
-		// 				// dst_key_column[dst_seqno] = cur_dst_pid;
-		// 				adj_list_buffer.push_back(cur_dst_pid);
-		// 				adj_list_buffer.push_back(peid);
-		// 			}
-		// 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 		// 	while(src_seqno < max_seqno) {
+// 		// 		cur_src_id = src_key_column[src_seqno];
+// 		// 		cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+// 		// 		// src_key_column[src_seqno] = cur_src_pid;
+// 		// 		if (cur_src_id == prev_id) {
+// 		// 			src_seqno++;
+// 		// 		} else {
+// 		// 			lid_pair.second = prev_id;
+// 		// 			end_idx = src_seqno;
+// 		// 			idx_t peid;
+// 		// 			for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 		// 				if (dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) == dst_lid_to_pid_map_instance.end()) {
+// 		// 					fprintf(stdout, "????? dst_seqno %ld, val %ld, src_seqno = %ld, max_seqno = %ld, begin_idx = %ld, end_idx = %ld\n", dst_seqno, dst_key_column[dst_seqno], src_seqno, max_seqno, begin_idx, end_idx);
+// 		// 				}
+// 		// 				D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+// 		// 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+// 		// 				lid_pair.first = dst_key_column[dst_seqno];
+// 		// 				if (lid_pair_to_epid_map_instance.find(lid_pair) == lid_pair_to_epid_map_instance.end()) {
+// 		// 					fprintf(stdout, "????? cannot find lid_pair %ld %ld\n", lid_pair.first, lid_pair.second);
+// 		// 				}
+// 		// 				D_ASSERT(lid_pair_to_epid_map_instance.find(lid_pair) != lid_pair_to_epid_map_instance.end());
+// 		// 				peid = lid_pair_to_epid_map_instance.at(lid_pair);
+// 		// 				// dst_key_column[dst_seqno] = cur_dst_pid;
+// 		// 				adj_list_buffer.push_back(cur_dst_pid);
+// 		// 				adj_list_buffer.push_back(peid);
+// 		// 			}
+// 		// 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
-		// 			if (cur_src_id > max_id) {
-		// 				// Fill offsets
-		// 				idx_t last_offset = adj_list_buffer.size();
-		// 				for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
-		// 					adj_list_buffer[i] = last_offset;
+// 		// 			if (cur_src_id > max_id) {
+// 		// 				// Fill offsets
+// 		// 				idx_t last_offset = adj_list_buffer.size();
+// 		// 				for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+// 		// 					adj_list_buffer[i] = last_offset;
 
-		// 				// AddChunk for Adj.List to current Src Vertex Extent
-		// 				DataChunk adj_list_chunk;
-		// 				vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
-		// 				vector<data_ptr_t> adj_list_datas(1);
-		// 				adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		// 				adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
-		// 				ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
-		// 				adj_list_chunk.Destroy();
+// 		// 				// AddChunk for Adj.List to current Src Vertex Extent
+// 		// 				DataChunk adj_list_chunk;
+// 		// 				vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
+// 		// 				vector<data_ptr_t> adj_list_datas(1);
+// 		// 				adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
+// 		// 				adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+// 		// 				ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
+// 		// 				adj_list_chunk.Destroy();
 
-		// 				// Re-initialize adjlist buffer for next Extent
-		// 				adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
+// 		// 				// Re-initialize adjlist buffer for next Extent
+// 		// 				adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
-		// 				// Read corresponding ID column of Src Vertex Extent
-		// 				while (true) {
-		// 					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-		// 						// We do not allow this case
-		// 						throw InvalidInputException("F");
-		// 					}
+// 		// 				// Read corresponding ID column of Src Vertex Extent
+// 		// 				while (true) {
+// 		// 					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+// 		// 						// We do not allow this case
+// 		// 						throw InvalidInputException("F");
+// 		// 					}
 						
-		// 					// Initialize min & max id
-		// 					vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
-		// 					min_id = vertex_id_column[0];
-		// 					max_id = vertex_id_column[vertex_id_chunk.size() - 1];
-		// 					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-		// 				}
+// 		// 					// Initialize min & max id
+// 		// 					vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
+// 		// 					min_id = vertex_id_column[0];
+// 		// 					max_id = vertex_id_column[vertex_id_chunk.size() - 1];
+// 		// 					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+// 		// 				}
 						
-		// 				// Initialize vertex_seqno
-		// 				vertex_seqno = 0;
-		// 				vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
-		// 				while (vertex_id_column[vertex_seqno] < cur_src_id) {
-		// 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-		// 				}
-		// 				D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
-		// 			} else {
-		// 				while (vertex_id_column[vertex_seqno] < cur_src_id) {
-		// 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-		// 					D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
-		// 				}
-		// 			}
+// 		// 				// Initialize vertex_seqno
+// 		// 				vertex_seqno = 0;
+// 		// 				vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
+// 		// 				while (vertex_id_column[vertex_seqno] < cur_src_id) {
+// 		// 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 		// 				}
+// 		// 				D_ASSERT(vertex_id_column[vertex_seqno] == cur_src_id);
+// 		// 			} else {
+// 		// 				while (vertex_id_column[vertex_seqno] < cur_src_id) {
+// 		// 					adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+// 		// 					D_ASSERT(vertex_seqno < STORAGE_STANDARD_VECTOR_SIZE);
+// 		// 				}
+// 		// 			}
 
-		// 			prev_id = cur_src_id;
-		// 			begin_idx = src_seqno;
-		// 			src_seqno++;
-		// 		}
-		// 	}
+// 		// 			prev_id = cur_src_id;
+// 		// 			begin_idx = src_seqno;
+// 		// 			src_seqno++;
+// 		// 		}
+// 		// 	}
 
-		// 	// Process remaining dst vertices
-		// 	lid_pair.second = prev_id;
-		// 	end_idx = src_seqno;
-		// 	idx_t peid;
-		// 	for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-		// 		D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
-		// 		cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
-		// 		lid_pair.first = dst_key_column[dst_seqno];
-		// 		D_ASSERT(lid_pair_to_epid_map_instance.find(lid_pair) != lid_pair_to_epid_map_instance.end());
-		// 		peid = lid_pair_to_epid_map_instance.at(lid_pair);
-		// 		// dst_key_column[dst_seqno] = cur_dst_pid;
-		// 		adj_list_buffer.push_back(cur_dst_pid);
-		// 		adj_list_buffer.push_back(peid);
-		// 	}
-		// }
+// 		// 	// Process remaining dst vertices
+// 		// 	lid_pair.second = prev_id;
+// 		// 	end_idx = src_seqno;
+// 		// 	idx_t peid;
+// 		// 	for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
+// 		// 		D_ASSERT(dst_lid_to_pid_map_instance.find(dst_key_column[dst_seqno]) != dst_lid_to_pid_map_instance.end());
+// 		// 		cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key_column[dst_seqno]);
+// 		// 		lid_pair.first = dst_key_column[dst_seqno];
+// 		// 		D_ASSERT(lid_pair_to_epid_map_instance.find(lid_pair) != lid_pair_to_epid_map_instance.end());
+// 		// 		peid = lid_pair_to_epid_map_instance.at(lid_pair);
+// 		// 		// dst_key_column[dst_seqno] = cur_dst_pid;
+// 		// 		adj_list_buffer.push_back(cur_dst_pid);
+// 		// 		adj_list_buffer.push_back(peid);
+// 		// 	}
+// 		// }
 		
-		// // Process remaining adjlist
-		// // Fill offsets
-		// idx_t last_offset = adj_list_buffer.size();
-		// for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
-		// 	adj_list_buffer[i] = last_offset;
+// 		// // Process remaining adjlist
+// 		// // Fill offsets
+// 		// idx_t last_offset = adj_list_buffer.size();
+// 		// for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+// 		// 	adj_list_buffer[i] = last_offset;
 
-		// // AddChunk for Adj.List to current Src Vertex Extent
-		// DataChunk adj_list_chunk;
-		// vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
-		// vector<data_ptr_t> adj_list_datas(1);
-		// adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
-		// adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
-		// ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
-		// adj_list_chunk.Destroy();
+// 		// // AddChunk for Adj.List to current Src Vertex Extent
+// 		// DataChunk adj_list_chunk;
+// 		// vector<LogicalType> adj_list_chunk_types = { LogicalType::BACKWARD_ADJLIST };
+// 		// vector<data_ptr_t> adj_list_datas(1);
+// 		// adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
+// 		// adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+// 		// ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, current_vertex_eid);
+// 		// adj_list_chunk.Destroy();
 
-		// auto edge_file_end = std::chrono::high_resolution_clock::now();
-		// std::chrono::duration<double> duration = edge_file_end - edge_file_start;
+// 		// auto edge_file_end = std::chrono::high_resolution_clock::now();
+// 		// std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 
-		// fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
-	}
-	}
+// 		// fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
+// 	}
+// 	}
 	
 	// load plans
 	auto suite = QueryPlanSuite(*client.get());
