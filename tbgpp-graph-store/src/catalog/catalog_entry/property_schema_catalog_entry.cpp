@@ -41,15 +41,13 @@ ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
 vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
 	vector<LogicalType> types;
 	for (auto &it : this->property_typesid) {
-		types.emplace_back(it);
+		LogicalType type(it);
+		types.push_back(type);
 	}
 	return types;
 }
 
 vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property_keys) {
-	for (auto &it : property_key_names) {
-		std::cout << "pk: " << it << std::endl;
-	}
 	vector<idx_t> column_idxs;
 	for (auto &it : property_keys) {
 		auto idx = std::find(this->property_key_names.begin(), this->property_key_names.end(), it);
@@ -62,7 +60,7 @@ vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property
 void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(property_typesid.empty());
 	for (auto &it : types) {
-		property_types.push_back(it.id());
+		property_typesid.push_back(it.id());
 	}
 }
 
@@ -85,7 +83,7 @@ vector<string> PropertySchemaCatalogEntry::GetKeys() {
 }
 
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
-	property_types.push_back(move(type.id()));
+	property_typesid.push_back(move(type.id()));
 }
 
 void PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) {

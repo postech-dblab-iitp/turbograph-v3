@@ -57,12 +57,15 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		vector<LogicalType> access_schema = schema.getTypes();
 		if( filter_pushdown_key.compare("") != 0 ) {
 			// check to add filterkey to access
+			bool isFilterKeyFound = false;
 			for( auto& key: propertyKeys ) {
-				if( key.compare(filter_pushdown_key) == 0 ) { break; }
+				if( key.compare(filter_pushdown_key) == 0 ) { isFilterKeyFound = true; break; }
 			}
 			// now add pushdown key to access keys
-			access_property_keys.push_back( filter_pushdown_key );
-			access_schema.push_back( filter_pushdown_value.type() );
+			if( ! isFilterKeyFound ) {
+				access_property_keys.push_back( filter_pushdown_key );
+				access_schema.push_back( filter_pushdown_value.type() );
+			}
 		}
 
 		auto initializeAPIResult =

@@ -46,7 +46,8 @@ bool StorageManager::InMemory() {
 }
 
 void StorageManager::Initialize() {
-	bool in_memory = InMemory();
+	// bool in_memory = InMemory();
+	bool in_memory = true;
 	if (in_memory && read_only) {
 		throw CatalogException("Cannot launch in-memory database in read-only mode!");
 	}

@@ -34,10 +34,10 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 	D_ASSERT(labels.size() == 1); // XXX Temporary
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
-IC();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
-IC();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -45,15 +45,17 @@ IC();
 		for (auto &it : edgeLabels[i].data) properties_temp.push_back(it);
 	}
 	for (auto &it : properties) properties_temp.push_back(it);
-IC();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 
 	vector<idx_t> column_idxs;
 	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
-IC();
+// icecream::ic.enable(); IC(); 
+// 	for (size_t i = 0; i < column_idxs.size(); i++) IC(column_idxs[i]);
+// icecream::ic.disable();
 
 	ext_it = new ExtentIterator();
 	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs);
-IC();
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	return StoreAPIResult::OK;
 }
 
@@ -140,6 +142,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 		ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 		target_eids.push_back(target_eid);
 		if (prev_eid != target_eid) boundary_position.push_back(i - 1);
+		prev_eid = target_eid;
 	}
 	boundary_position.push_back(input.size() - 1);
 
@@ -172,6 +175,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, Data
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	ExtentID target_eid = target_eids[current_pos]; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	ExtentID current_eid;
+	if (current_pos >= boundary_position.size()) throw InvalidInputException("??");
 	idx_t start_seqno, end_seqno; // [start_seqno, end_seqno]
 	start_seqno = current_pos == 0 ? 0 : boundary_position[current_pos - 1] + 1;
 	end_seqno = boundary_position[current_pos];
@@ -276,13 +280,15 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, 
 // IC();
 	string entry_name = "vps_";
 	for (auto &it : src_labels.data) entry_name += it;
+// icecream::ic.enable(); IC(); IC(entry_name); icecream::ic.disable();
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
 
 	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
 	vector<string> keys = move(ps_cat_entry->GetKeys());
 	D_ASSERT(l_types.size() == keys.size());
-// for( auto& key : keys) { IC(key); }
+// icecream::ic.enable(); for( auto& key : keys) { IC(key); } icecream::ic.disable();
+// icecream::ic.enable(); IC(l_types.size(), keys.size()); icecream::ic.disable();
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		for (int i = 0; i < l_types.size(); i++)
 			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && edge_labels.contains(keys[i])) {
@@ -323,7 +329,9 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_
 StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
 	D_ASSERT( expand_dir ==ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
 	if (expand_dir == ExpandDirection::OUTGOING) {
+		// icecream::ic.enable(); IC(); icecream::ic.disable();
 		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
+		// icecream::ic.enable(); IC(); icecream::ic.disable();
 	} else if (expand_dir == ExpandDirection::INCOMING) {
 		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
 	}
