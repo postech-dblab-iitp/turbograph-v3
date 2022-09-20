@@ -493,7 +493,7 @@ icecream::ic.disable();
 					vertex_id_column = (idx_t*) vertex_id_chunk.data[0].GetData();
 					min_id = vertex_id_column[0];
 					max_id = vertex_id_column[vertex_id_chunk.size() - 1];
-					fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
+					// fprintf(stdout, "min_id = %ld, cur_src_id = %ld, max_id = %ld\n", min_id, cur_src_id, max_id);
 					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
 				}
 				// Initialize vertex_seqno
