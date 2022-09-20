@@ -19,6 +19,8 @@
 //#include "common/types/arrow_aux_data.hpp"
 #include "common/types/uuid.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 DataChunk::DataChunk() : count(0), capacity(STANDARD_VECTOR_SIZE) {

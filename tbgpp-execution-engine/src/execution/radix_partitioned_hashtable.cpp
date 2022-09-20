@@ -318,9 +318,9 @@ public:
 	    : ht_index(0), ht_scan_position(0), finished(false) {
 		auto scan_chunk_types = ht.group_types;
 		for (auto &aggr_type : ht.op.aggregate_return_types) {
-	IC();
+	// IC();
 			scan_chunk_types.push_back(aggr_type);
-			IC(aggr_type.ToString());
+			// IC(aggr_type.ToString());
 		}
 		scan_chunk.Initialize(scan_chunk_types);
 	}
@@ -345,8 +345,8 @@ void RadixPartitionedHashTable::GetData(ExecutionContext &context, DataChunk &ch
 	if (state.finished) {
 		return;
 	}
-
 	state.scan_chunk.Reset();
+// IC();
 	// special case hack to sort out aggregating from empty intermediates
 	// for aggregations without groups
 	if (gstate.is_empty && grouping_set.empty()) {

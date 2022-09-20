@@ -54,8 +54,6 @@ public:
 	// performance counter
 	mutable boost::timer::cpu_timer adjfetch_timer;
 	mutable bool adjfetch_timer_started;
-	mutable int64_t adjfetch_time;
-
 
 };
 

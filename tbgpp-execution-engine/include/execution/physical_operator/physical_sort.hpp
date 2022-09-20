@@ -4,8 +4,10 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "main/client_context.hpp"
 
-#include "planner/expression.hpp"
-#include "planner/bound_result_modifier.hpp"
+#include "common/types/chunk_collection.hpp"
+#include "parallel/pipeline.hpp"
+#include "planner/bound_query_node.hpp"
+
 
 namespace duckdb {
 
@@ -13,7 +15,7 @@ class PhysicalSort: public CypherPhysicalOperator {
 
 public:
 
-	PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> order_exprs);
+	PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> orders);
 	~PhysicalSort();
 
 public:
@@ -24,14 +26,14 @@ public:
 	virtual void Combine(ExecutionContext& context, LocalSinkState& lstate) const;
 
 	// source
-	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
+	void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
 	// operator parameters
-	vector<BoundOrderByNode> order_exprs;
+	vector<BoundOrderByNode> orders;
 
 };
 

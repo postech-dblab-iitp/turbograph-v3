@@ -9,8 +9,6 @@
 
 #include <boost/timer/timer.hpp>
 
-
-
 namespace duckdb {
 
 
@@ -19,8 +17,6 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), load_eid(load_eid), enumerate(enumerate) {
 		
 	// init timers
-	adjfetch_time = 0;
-
 	adjfetch_timer_started = false;
 
 	// operator rules
@@ -67,16 +63,22 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
+
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() != 0)
+// 	IC( input.ToString(std::min(10, (int)input.size())) );
+// icecream::ic.disable();
+
 //icecream::ic.enable();
-IC(input.ToString(1));
 	// init
 	vector<LogicalType> input_datachunk_types = move(input.GetTypes());
 	const idx_t srcColIdx = schema.getColIdxOfKey(srcName);	// first index of source node : where source node id is
 	const idx_t edgeColIdx = input.ColumnCount();			// not using when load_eid = false
 	const idx_t tgtColIdx = input.ColumnCount() + int(load_eid);	// first index of target node : where target node id should be OR start index of range
-IC(srcColIdx);
-IC(edgeColIdx);
-IC(tgtColIdx);
+// IC(srcColIdx);
+// IC(edgeColIdx);
+// IC(tgtColIdx);
 	// intra-chunk variables
 	int numProducedTuples = 0;
 	bool isHaveMoreOutput = false;
@@ -86,17 +88,15 @@ IC(tgtColIdx);
 	vector<int> adjColIdxs;
 	vector<LogicalType> adjColTypes;
 // IC();
-for( auto& k: edgeLabelSet.data ) { IC(k); }
+// for( auto& k: edgeLabelSet.data ) { IC(k); }
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, adjColIdxs, adjColTypes);
 	D_ASSERT( adjColIdxs.size() > 0);
 	D_ASSERT( adjColIdxs.size() == adjColTypes.size() );
-IC(adjColIdxs.size());
+// IC(adjColIdxs.size());
 // IC(adjColIdxs[0]);
 
 	uint64_t* adj_start; uint64_t* adj_end;
 
-	// fetch source column
-	uint64_t *src_column = (uint64_t *)input.data[srcColIdx].GetData();
 	// iterate source vids
 	for( ; state.checkpoint.first < input.size() ; state.checkpoint.first++) {
 
@@ -120,8 +120,17 @@ IC(adjColIdxs.size());
 		}
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
 		// vid is not null. now get source vid
-		uint64_t vid = src_column[state.checkpoint.first];
+		uint64_t vid = input.data[srcColIdx].GetValue(state.checkpoint.first).GetValue<uint64_t>();
+// WARNING adjfetch timer very slow
+// if( ! adjfetch_timer_started ) {
+// 	adjfetch_timer.start();
+// 	adjfetch_timer_started = true;
+// } else {
+// 	adjfetch_timer.resume();
+// }
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
+// adjfetch_timer.stop();
+
 		size_t adjListSize = adj_end - adj_start;
 		D_ASSERT( adjListSize % 2 == 0 );
 
@@ -168,6 +177,7 @@ IC(adjColIdxs.size());
 			? numTargets : (EXEC_ENGINE_VECTOR_SIZE - numProducedTuples);
 		const size_t finalCheckpoint = state.checkpoint.second + numTuplesToProduce;
 		for( ; state.checkpoint.second < finalCheckpoint; state.checkpoint.second++ ) {
+			// PRODUCE
 			// produce lhs
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
@@ -190,9 +200,17 @@ IC(adjColIdxs.size());
 	}
 
 breakLoop:
+
 	// now produce finished. store state and exit
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
 	chunk.SetCardinality(numProducedTuples);
+
+// icecream::ic.enable();
+// IC(chunk.size());
+// if (chunk.size() != 0)
+// 	IC( chunk.ToString(std::min(10, (int)chunk.size())) );
+// icecream::ic.disable();
+
 	if( isHaveMoreOutput ) {
 		// state saved
 		return OperatorResultType::HAVE_MORE_OUTPUT;
@@ -212,10 +230,6 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteRangedInput(ExecutionContext& cont
 }
 
 OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-
-	// check input type and run different function
-	// TODO need logic change
-		// if ranged input, unwrap range and provide per one vid.
 	
 	if( schema.getCypherType(srcName) == CypherValueType::RANGE ) {
 		D_ASSERT( false && "currently not supporting when range is given as input");

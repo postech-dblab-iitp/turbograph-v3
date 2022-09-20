@@ -8,6 +8,8 @@
 #include <cstring>
 #include <ctgmath>
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 // ART::ART(const vector<column_t> &column_ids, const vector<unique_ptr<Expression>> &unbound_expressions,

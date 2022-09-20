@@ -14,6 +14,7 @@
 //#include "storage/buffer/buffer_handle.hpp"
 
 #include <cstring> // strlen() on Solaris
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -662,7 +663,7 @@ string Vector::ToString(idx_t count) const {
 		break;
 	}
 	retval += "]";
-	//fprintf(stdout, "%s\n", retval.c_str());
+	// fprintf(stdout, "%s\n", retval.c_str());
 	return retval;
 }
 
@@ -874,7 +875,9 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 	auto data = (int64_t *)buffer->GetData();
 	data[0] = start;
 	data[1] = increment;
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	auxiliary.reset();
 }
 
