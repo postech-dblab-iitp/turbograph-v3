@@ -18,6 +18,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
+#include <string>
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
@@ -1201,8 +1202,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Node Type"] = op->ToString();
 
 	if(!is_debug ) {
-		(*content)["Actual Startup Time"] = 0.0;	
-		(*content)["Actual Total Time"] = op->op_timer.elapsed().wall / 1000000.0;
+		(*content)["Total Cost"] = std::to_string(op->op_timer.elapsed().wall / 1000000.0);
 		(*content)["Actual Rows"] = op->processed_tuples;
 		(*content)["Actual Loops"] = 1; // meaningless
 	}
@@ -1214,7 +1214,6 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
 		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
-		(rhs_content)["AdjIdxFetchTime"] = ((PhysicalAdjIdxJoin*)op)->adjfetch_timer.elapsed().wall/100000.0 ;
 	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
