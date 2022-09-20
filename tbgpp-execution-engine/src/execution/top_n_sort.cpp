@@ -21,7 +21,7 @@ void TopNSortState::Initialize() {
 
 void TopNSortState::Append(DataChunk &sort_chunk, DataChunk &payload) {
 	D_ASSERT(!is_sorted);
-IC();
+// IC();
 	if (heap.has_boundary_values) {
 		if (!heap.CheckBoundaryValues(sort_chunk, payload)) {
 			return;
@@ -80,7 +80,7 @@ void TopNSortState::Scan(TopNScanState &state, DataChunk &chunk) {
 	D_ASSERT(is_sorted);
 	while (chunk.size() == 0) {
 		state.scanner->Scan(chunk);
-IC();IC(chunk.size());
+// IC();IC(chunk.size());
 		if (chunk.size() == 0) {
 			break;
 		}
@@ -125,7 +125,7 @@ IC();IC(chunk.size());
 			chunk.SetCardinality(chunk_end);
 		}
 	}
-IC();IC(chunk.size());
+// IC();IC(chunk.size());
 }
 
 //===--------------------------------------------------------------------===//
@@ -176,11 +176,11 @@ void TopNHeap::Finalize() {
 
 void TopNHeap::Reduce() {
 	idx_t min_sort_threshold = MaxValue<idx_t>(STANDARD_VECTOR_SIZE * 5, 2 * (limit + offset));
-IC(sort_state.count, min_sort_threshold);
+// IC(sort_state.count, min_sort_threshold);
 	if (sort_state.count < min_sort_threshold) {
 		// only reduce when we pass two times the limit + offset, or 5 vectors (whichever comes first)
 		return;
-IC();
+// IC();
 	}
 	sort_state.Finalize();
 	TopNSortState new_state(*this);
@@ -195,7 +195,7 @@ IC();
 	DataChunk *current_chunk = &new_chunk;
 	DataChunk *prev_chunk = &payload_chunk;
 	has_boundary_values = false;
-IC();
+// IC();
 	while (true) {
 		current_chunk->Reset();
 		Scan(state, *current_chunk);
@@ -203,12 +203,12 @@ IC();
 			ExtractBoundaryValues(*current_chunk, *prev_chunk);
 			break;
 		}
-IC();
+// IC();
 		new_state.Sink(*current_chunk);
-IC();
+// IC();
 		std::swap(current_chunk, prev_chunk);
 	}
-IC();
+// IC();
 	sort_state.Move(new_state);
 }
 
@@ -219,7 +219,7 @@ void TopNHeap::ExtractBoundaryValues(DataChunk &current_chunk, DataChunk &prev_c
 		ConstantVector::Reference(current_chunk.data[col_idx], prev_chunk.data[col_idx], prev_chunk.size() - 1,
 		                          prev_chunk.size());
 	}
-IC();
+// IC();
 	current_chunk.SetCardinality(1);
 	sort_chunk.Reset();
 	executor.Execute(&current_chunk, sort_chunk);
