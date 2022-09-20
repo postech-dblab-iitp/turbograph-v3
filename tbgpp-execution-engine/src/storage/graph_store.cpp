@@ -137,7 +137,6 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 		if (prev_eid != target_eid) boundary_position.push_back(i - 1);
 	}
 	boundary_position.push_back(input.size() - 1);
-	output.SetCardinality(input.size());
 
 	// std::sort( target_eids.begin(), target_eids.end() );
 	target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
@@ -151,6 +150,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 }
 
 StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
+	D_ASSERT(false);
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
 	idx_t target_seqno = vid & 0x00000000FFFFFFFF; // TODO make this functionality as Macro --> GetSeqNoFromPhysicalID

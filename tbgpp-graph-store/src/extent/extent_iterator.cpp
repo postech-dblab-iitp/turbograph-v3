@@ -829,7 +829,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
             // TODO
         } else if (ext_property_types[i] == LogicalType::ID) {
-            throw InvalidInputException("Never occur");
+            // throw InvalidInputException("Never occur");
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);

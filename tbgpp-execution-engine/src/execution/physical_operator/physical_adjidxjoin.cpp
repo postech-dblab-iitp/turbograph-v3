@@ -9,8 +9,6 @@
 
 #include <boost/timer/timer.hpp>
 
-
-
 namespace duckdb {
 
 
@@ -19,8 +17,6 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), load_eid(load_eid), enumerate(enumerate) {
 		
 	// init timers
-	adjfetch_time = 0;
-
 	adjfetch_timer_started = false;
 
 	// operator rules
@@ -125,7 +121,16 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
 		// vid is not null. now get source vid
 		uint64_t vid = input.data[srcColIdx].GetValue(state.checkpoint.first).GetValue<uint64_t>();
+// WARNING adjfetch timer very slow
+// if( ! adjfetch_timer_started ) {
+// 	adjfetch_timer.start();
+// 	adjfetch_timer_started = true;
+// } else {
+// 	adjfetch_timer.resume();
+// }
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
+// adjfetch_timer.stop();
+
 		size_t adjListSize = adj_end - adj_start;
 		D_ASSERT( adjListSize % 2 == 0 );
 
@@ -172,6 +177,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			? numTargets : (EXEC_ENGINE_VECTOR_SIZE - numProducedTuples);
 		const size_t finalCheckpoint = state.checkpoint.second + numTuplesToProduce;
 		for( ; state.checkpoint.second < finalCheckpoint; state.checkpoint.second++ ) {
+			// PRODUCE
 			// produce lhs
 			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
 				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
@@ -224,10 +230,6 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteRangedInput(ExecutionContext& cont
 }
 
 OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-
-	// check input type and run different function
-	// TODO need logic change
-		// if ranged input, unwrap range and provide per one vid.
 	
 	if( schema.getCypherType(srcName) == CypherValueType::RANGE ) {
 		D_ASSERT( false && "currently not supporting when range is given as input");
