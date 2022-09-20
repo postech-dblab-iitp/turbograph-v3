@@ -18,7 +18,7 @@ public:
   static ChunkCacheManager* ccm;
 
 public:
-  ChunkCacheManager();
+  ChunkCacheManager(const char *path);
   ~ChunkCacheManager();
 
   // ChunkCacheManager APIs
@@ -38,10 +38,10 @@ public:
   size_t GetSegmentSize(ChunkID cid, std::string file_path); // sid가 필요한지?
   size_t GetFileSize(ChunkID cid, std::string file_path); // sid가 필요한지?
   Turbo_bin_aio_handler* GetFileHandler(ChunkID cid);
-  void ReadData(ChunkID cid, std::string file_path, uint8_t** ptr, size_t size_to_read, bool read_data_async);
+  void ReadData(ChunkID cid, std::string file_path, void *ptr, size_t size_to_read, bool read_data_async);
   void WriteData(ChunkID cid);
   ReturnStatus CreateNewFile(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
-  void MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
+  void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
 
 public:
   // Member Variables

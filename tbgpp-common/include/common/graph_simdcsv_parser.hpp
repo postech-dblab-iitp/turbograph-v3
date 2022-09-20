@@ -316,6 +316,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::UINTEGER:
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint32_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::UBIGINT:
+    case LogicalTypeId::ADJLISTCOLUMN:
       // for (size_t j = start_offset; j < end_offset; j++) {
       //     std::cout << p[j];
       // }
@@ -354,6 +355,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
         default:
           throw InvalidInputException("Unsupported type for Decimal");
       }
+      break;
 		case LogicalTypeId::FLOAT:
       std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((float *)data_ptr)[current_index]); break;
 		case LogicalTypeId::DOUBLE:
@@ -367,7 +369,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
     case LogicalTypeId::DATE:
       ((date_t *)data_ptr)[current_index] = Date::FromCString((const char*)p.data() + start_offset, end_offset - start_offset); break;
 		default:
-			throw NotImplementedException("Unsupported type");
+			throw NotImplementedException("SetValueFromCSV - Unsupported type");
 	}
 }
 
@@ -512,18 +514,19 @@ public:
     vector<string> col_names = move(reader->get_col_names());
     num_columns = col_names.size();
     num_rows = pcsv.n_indexes / num_columns;
+    fprintf(stdout, "n_indexes = %ld, num_columns = %ld\n", pcsv.n_indexes, num_columns);
     D_ASSERT(pcsv.n_indexes % num_columns == 0);
     for (size_t i = 0; i < col_names.size(); i++) {
       // Assume each element in the header column is of format 'key:type'
       std::string key_and_type = col_names[i]; 
-      std::cout << key_and_type << std::endl;
+      std::cout << "\t" << key_and_type << std::endl;
       size_t delim_pos = key_and_type.find(':');
       if (delim_pos == std::string::npos) throw InvalidInputException("D");
       std::string key = key_and_type.substr(0, delim_pos);
       if (key == "") {
         // special case
         std::string type_name = key_and_type.substr(delim_pos + 1);
-        LogicalType type = StringToLogicalType(type_name, i);
+        LogicalType type = move(StringToLogicalType(type_name, i));
         if (type_name.find("START_ID") != std::string::npos) {
           key_names.push_back(src_key_name + "_src_" + std::to_string(src_columns.size()));
         } else {
@@ -532,7 +535,7 @@ public:
         key_types.push_back(move(type));
       } else {
         std::string type_name = key_and_type.substr(delim_pos + 1);
-        LogicalType type = StringToLogicalType(type_name, i);
+        LogicalType type = move(StringToLogicalType(type_name, i));
         key_names.push_back(move(key));
         key_types.push_back(move(type));
       }
@@ -568,6 +571,9 @@ public:
 		types.resize(key_types.size());
 		std::copy(key_names.begin(), key_names.end(), names.begin());
 		std::copy(key_types.begin(), key_types.end(), types.begin());
+    // for (int i = 0; i < types.size(); i++) {
+    //   fprintf(stdout, "%d column(%s): %s -> %s\n", i, key_names[i].c_str(), key_types[i].ToString().c_str(), types[i].ToString().c_str());
+    // }
 		return true;
 	}
 

@@ -66,7 +66,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 				access_property_keys.push_back( filter_pushdown_key );
 				access_schema.push_back( filter_pushdown_value.type() );
 			}
-
 		}
 
 		auto initializeAPIResult =

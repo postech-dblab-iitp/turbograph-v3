@@ -131,7 +131,10 @@ class Turbo_bin_aio_handler {
 #pragma omp parallel num_threads(DiskAioParameters::NUM_THREADS)
     {
       diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(read);
-      if (my_io != NULL) WaitMyPendingDiskIO(my_io);
+      if (my_io != NULL) {
+        // fprintf(stdout, "WaitMyPendingDiskIO my_io %p\n", my_io);
+        WaitMyPendingDiskIO(my_io);
+      }
     }
   }
 
@@ -254,6 +257,7 @@ class Turbo_bin_aio_handler {
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
     assert (((uintptr_t)data) % 512 == 0);
+    // fprintf(stdout, "Read %ld\n", ((uintptr_t)data) % 512);
 
     AioRequest req;
     req.buf = data;
@@ -265,6 +269,7 @@ class Turbo_bin_aio_handler {
     req.user_info.func = func;
 
     // XXX read_buf variable is not for this purpose, but just use it
+    // fprintf(stdout, "ARead my_io %p, %p, %ld, %ld, %d\n", my_io, req.buf, req.start_pos, req.io_size, req.user_info.file_id);
     bool success = DiskAioFactory::GetPtr()->ARead(req, my_io);
   }
     
@@ -408,7 +413,7 @@ class Turbo_bin_aio_handler {
 private:
   int file_descriptor;
   int file_id;
-  bool is_reserved;
+  bool is_reserved = false;
   bool delete_when_close;
   char* file_mmap;
   uint8_t* aligned_data_ptr;

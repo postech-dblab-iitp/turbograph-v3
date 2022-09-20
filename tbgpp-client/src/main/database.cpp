@@ -100,6 +100,10 @@ ConnectionManager &ConnectionManager::Get(ClientContext &context) {
 	return ConnectionManager::Get(DatabaseInstance::GetDatabase(context));
 }*/
 
+bool startsWith(const std::string &str, const std::string &prefix) {
+    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
 void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) {
 	/*if (new_config) {
 		// user-supplied configuration
@@ -126,13 +130,68 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
-	// struct shm_remove
-   	// {
-    // 	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-    // 	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-   	// } remover;
-	catalog_shm = new fixed_managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM", (void *) 0x10000000000);
-	catalog = make_unique<Catalog>(*this, catalog_shm);
+
+	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
+	fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
+	int64_t num_objects_in_catalog = 0;
+	const_named_it named_beg = catalog_shm->named_begin();
+	const_named_it named_end = catalog_shm->named_end();
+	vector<vector<string>> object_names;
+	object_names.resize(20);
+	for(; named_beg != named_end; ++named_beg) {
+		// A pointer to the name of the named object
+		const void *value = named_beg->value();
+		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		// fprintf(stdout, "%s %p\n", name, value);
+		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
+			object_names[0].push_back(name);
+		} else if (startsWith(name, "graph")) { // GraphCatalogEntry
+			object_names[1].push_back(name);
+		} else if (startsWith(name, "vpart")) { // VertexPartitionCatalogEntry
+			object_names[2].push_back(name);
+		} else if (startsWith(name, "epart")) { // EdgePartitionCatalogEntry
+			object_names[3].push_back(name);
+		} else if (startsWith(name, "vps")) { // VertexPropertySchemaCatalogEntry
+			object_names[4].push_back(name);
+		} else if (startsWith(name, "eps")) { // EdgePropertySchemaCatalogEntry
+			object_names[5].push_back(name);
+		} else if (startsWith(name, "ext")) { // ExtentCatalogEntry
+			object_names[6].push_back(name);
+		} else if (startsWith(name, "cdf")) { // ChunkDefinitionCatalogEntry
+			object_names[7].push_back(name);
+		} else {
+			object_names[8].push_back(name);
+		}
+		num_objects_in_catalog++;
+	}
+	// fprintf(stdout, "SchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
+	// fprintf(stdout, "GraphCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
+	// fprintf(stdout, "VertexPartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s\n", object_names[2][i].c_str());
+	// fprintf(stdout, "EdgePartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
+	// fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
+	// fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
+	// fprintf(stdout, "ExtentCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
+	// fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
+	// fprintf(stdout, "Else\n");
+	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
+	fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
+	
+	if (num_objects_in_catalog == 0) {
+		// Make a new catalog
+		catalog = make_unique<Catalog>(*this, catalog_shm);
+	} else {
+		// Load the existing catalog
+		catalog = make_unique<Catalog>(*this);
+		catalog->LoadCatalog(catalog_shm, object_names);
+	}
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);
 	//object_cache = make_unique<ObjectCache>();
@@ -171,6 +230,10 @@ StorageManager &DatabaseInstance::GetStorageManager() {
 
 Catalog &DatabaseInstance::GetCatalog() {
 	return *catalog;
+}
+
+fixed_managed_mapped_file *DatabaseInstance::GetCatalogSHM() {
+	return catalog_shm;
 }
 
 // TransactionManager &DatabaseInstance::GetTransactionManager() {

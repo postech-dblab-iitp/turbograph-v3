@@ -142,7 +142,7 @@ private:
 	bool SearchCloseRange(ARTIndexScanState *state, bool left_inclusive, bool right_inclusive, idx_t max_count,
 	                      vector<row_t> &result_ids);
 
-private:
+public:
 	template <bool HAS_BOUND, bool INCLUSIVE>
 	bool IteratorScan(ARTIndexScanState *state, Iterator *it, Key *upper_bound, idx_t max_count,
 	                  vector<row_t> &result_ids);

@@ -3,36 +3,54 @@
 #include <sys/un.h>
 #include <thread>
 #include <iostream>
+#include <stdio.h>
 #include <catalog/catalog_server.hpp>
 #include <catalog/catalog_entry/list.hpp>
 
 namespace duckdb {
 
-typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
+// typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
+typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 
 void signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
   exit(0);
 }
 
-CatalogServer::CatalogServer(const std::string &unix_socket)
-    : unix_socket_(unix_socket) {
+CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_directory)
+    : unix_socket_(unix_socket), shm_directory_(shm_directory) {
   fprintf(stdout, "CatalogServer uses Boost %d.%d.%d\n", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
-  // Remove the existing shared memory
-  boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
+  // Remove the existing shared memory file
+  // boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
+  // int status = remove("/data/iTurboGraph_Catalog_SHM");
   
   // Create shared memory
-  catalog_segment = new fixed_managed_shared_memory(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024, (void *) 0x10000000000);
-  fprintf(stdout, "Create shared memory: iTurboGraph_Catalog_SHM\n");
+  std::string shm_path = shm_directory_ + std::string("/iTurboGraph_Catalog_SHM");
+  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::open_or_create, shm_path.c_str(), 1024 * 1024 * 1024, (void *) 0x10000000000);
+  fprintf(stdout, "Open/Create shared memory: iTurboGraph_Catalog_SHM\n");
+  const_named_it named_beg = catalog_segment->named_begin();
+	const_named_it named_end = catalog_segment->named_end();
+  int64_t num_objects_in_the_catalog = 0;
+	for(; named_beg != named_end; ++named_beg){
+    num_objects_in_the_catalog++;
+		//A pointer to the name of the named object
+		// const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		// fprintf(stdout, "\t%s %p\n", name, named_beg->value());
+	}
+  fprintf(stdout, "# of named object list in the catalog = %ld\n", num_objects_in_the_catalog);
 }
 
 bool CatalogServer::recreate() {
   // Remove the existing shared memory
-  boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
+  // boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
   delete catalog_segment;
-
+  std::string shm_path = shm_directory_ + std::string("/iTurboGraph_Catalog_SHM");
+  int status = remove(shm_path.c_str());
+  if (status == 0) fprintf(stdout, "Remove the existing SHM file\n");
+  else fprintf(stdout, "Remove SHM file error\n");
+  
   // Create shared memory
-  catalog_segment = new fixed_managed_shared_memory(boost::interprocess::create_only, "iTurboGraph_Catalog_SHM", 1024 * 1024 * 1024, (void *) 0x10000000000);
+  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::create_only, shm_path.c_str(), 1024 * 1024 * 1024, (void *) 0x10000000000);
   fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");
   return true;
 }
@@ -95,8 +113,13 @@ void CatalogServer::Run() {
 }
 
 void CatalogServer::Exit() {
-  const_named_it named_beg = catalog_segment->named_begin();
-	const_named_it named_end = catalog_segment->named_end();
+  // Flushes cached data to file
+  catalog_segment->flush();
+  delete catalog_segment;
+  fprintf(stdout, "Exit CatalogServer, flushes cached data to file done\n");
+
+  // const_named_it named_beg = catalog_segment->named_begin();
+	// const_named_it named_end = catalog_segment->named_end();
 	// fprintf(stdout, "All named object list\n");
 	// for(; named_beg != named_end; ++named_beg){
 	// 	//A pointer to the name of the named object
