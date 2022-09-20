@@ -64,7 +64,6 @@ void DataChunk::InitializeAdjListColumn(idx_t adj_list_column_idx, size_t adj_li
 }
 
 void DataChunk::Reset() {
-IC();
 	if (data.empty()) {
 		return;
 	}
@@ -74,9 +73,6 @@ IC();
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		data[i].ResetFromCache(vector_caches[i]);
 	}
-icecream::ic.enable();
-IC();
-icecream::ic.disable();
 	capacity = STANDARD_VECTOR_SIZE;
 	SetCardinality(0);
 }

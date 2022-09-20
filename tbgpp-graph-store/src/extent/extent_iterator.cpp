@@ -256,9 +256,7 @@ IC();
 IC();
     // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
-        icecream::ic.enable();IC();icecream::ic.disable();
         output.Reset();
-        icecream::ic.enable();IC();icecream::ic.disable();
         output.Initialize(ext_property_types);
     }
     int idx_for_cardinality = -1;
@@ -293,7 +291,7 @@ IC();
     idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
     idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, comp_header.data_len);
     D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
-IC(current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset);
+// icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset);icecream::ic.disable();
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
@@ -328,8 +326,9 @@ IC(current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset);
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[i].GetData();
+            idx_t output_seqno = 0;
             for (size_t seqno = scan_begin_offset; seqno < scan_end_offset; seqno++)
-                id_column[seqno] = physical_id_base + seqno;
+                id_column[output_seqno++] = physical_id_base + seqno;
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
