@@ -1214,6 +1214,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
 		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
+		(rhs_content)["AdjIdxFetchTime"] = ((PhysicalAdjIdxJoin*)op)->adjfetch_timer.elapsed().wall/100000.0 ;
 	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];

@@ -32,6 +32,7 @@ public:
 	
 	//! if this is the last pipeline, store pointer to query results here
 	vector<DataChunk*> *query_results;
+
 	
 };
 
