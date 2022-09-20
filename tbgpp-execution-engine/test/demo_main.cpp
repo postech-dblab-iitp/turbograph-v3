@@ -1147,6 +1147,7 @@ icecream::ic.disable();
 }
 
 json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug);
+json* attachTime(json* j, CypherPhysicalOperator* op, bool is_root, float* accum_time);
 
 void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int query_exec_time_ms, bool is_debug) {	// default = 0, false
 
@@ -1172,6 +1173,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	// reverse-iterate executors
 	json* current_root = &(j[0]);
 	bool isRootOp = true;	// is true for only one operator
+	
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
@@ -1184,13 +1186,21 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 		if( isRootOp ) { isRootOp = false; }
 	}
 
-	// fix execution time
-	vector<CypherPhysicalOperator*> stack;
-	json& tmp_root = j[0];
-	while(true) {
-		
-	}
-
+	// fix accum time
+	// float accum_time = 0.0;
+	// bool isAccumRoot = true;
+	// 	// forward-iterate
+	// for (auto it = executors.begin() ; it != executors.end(); ++it) {
+  	// 	duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+	// 	// source
+	// 	current_root = operatorToVisualizerJSON( current_root, pipeline->source, isAccumRoot, is_debug );
+	// 	if( isAccumRoot ) { isAccumRoot = false; }
+	// 	// reverse operator
+	// 	for (auto it2 = pipeline->operators.begin() ; it2 != pipeline->operators.end(); ++it2) {
+	// 		current_root = operatorToVisualizerJSON( current_root, *it2, isAccumRoot, is_debug );
+	// 		if( isAccumRoot ) { isAccumRoot = false; }
+	// 	}
+	// }
 
 	file << html_1;
 	file << j.dump(4);
@@ -1217,7 +1227,8 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Node Type"] = op->ToString();
 
 	if(!is_debug) {
-		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0;
+		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0; // + (*accum_time);
+		// (*accum_time) += op->op_timer.elapsed().wall / 1000000.0 ;
 		(*content)["Actual Rows"] = op->processed_tuples;
 		(*content)["Actual Loops"] = 1; // meaningless
 	}
@@ -1229,8 +1240,6 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
 		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
-		(rhs_content)["AdjFetchTime"] = ((PhysicalAdjIdxJoin*)op)->adjfetch_timer.elapsed().wall/100000.0;
-		(rhs_content)["Looptime"] = ((PhysicalAdjIdxJoin*)op)->timer2.elapsed().wall/100000.0;
 	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
