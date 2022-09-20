@@ -1202,6 +1202,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	(*content)["Node Type"] = op->ToString();
 
 	if(!is_debug ) {
+		(*content)["Actual Duration"] = std::to_string(op->op_timer.elapsed().wall / 1000000.0);
 		(*content)["Total Cost"] = std::to_string(op->op_timer.elapsed().wall / 1000000.0);
 		(*content)["Actual Rows"] = op->processed_tuples;
 		(*content)["Actual Loops"] = 1; // meaningless
