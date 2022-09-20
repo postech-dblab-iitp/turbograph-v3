@@ -145,6 +145,7 @@ public:
 	std::vector<CypherPipelineExecutor*> LDBC_IC14();	//   |   |   |
 
 	std::vector<CypherPipelineExecutor*> TPCH_Q3();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> TPCH_Q4();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q10();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting

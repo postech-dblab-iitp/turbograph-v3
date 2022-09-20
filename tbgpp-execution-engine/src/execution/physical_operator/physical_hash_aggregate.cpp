@@ -165,7 +165,10 @@ unique_ptr<LocalSinkState> PhysicalHashAggregate::GetLocalSinkState(ExecutionCon
 SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	auto &llstate = (HashAggregateLocalSinkState &)lstate;
 	// auto &gstate = (HashAggregateGlobalState &)state;
-
+// icecream::ic.enable();
+// auto minsize = input.size() < 10 ? input.size() : 10;
+// IC( input.ToString(minsize) );
+// icecream::ic.disable();
 	DataChunk &aggregate_input_chunk = llstate.aggregate_input_chunk;
 
 	idx_t aggregate_input_idx = 0;

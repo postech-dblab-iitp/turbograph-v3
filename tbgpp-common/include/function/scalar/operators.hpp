@@ -26,6 +26,7 @@ struct SubtractFun {
 };
 
 struct MultiplyFun {
+	static ScalarFunction GetFunction(const LogicalType &type);
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
