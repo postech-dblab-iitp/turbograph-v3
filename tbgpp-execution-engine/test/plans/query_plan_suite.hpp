@@ -102,7 +102,9 @@ public:
 		if( key.compare("c8") == 0 ) { return LDBC_IC8(); }
 
 		/* TPC-H queries */
+		if( key.compare("q4") == 0 ) { return TPCH_Q4(); }
 		if( key.compare("q10") == 0 ) { return TPCH_Q10(); }
+		if( key.compare("q13") == 0 ) { return TPCH_Q13(); }
 
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();
@@ -147,6 +149,7 @@ public:
 	std::vector<CypherPipelineExecutor*> TPCH_Q3();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q4();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q10();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> TPCH_Q13();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;

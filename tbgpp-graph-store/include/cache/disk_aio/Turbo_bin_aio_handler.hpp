@@ -179,7 +179,7 @@ class Turbo_bin_aio_handler {
     }
     assert(file_id >= 0);
     file_size_ = DiskAioFactory::GetPtr()->GetAioFileSize(file_id);
-    assert(file_size_ == 0);
+    // assert(file_size_ == 0);
     file_descriptor = DiskAioFactory::GetPtr()->Getfd(file_id);
     file_mmap = NULL;
     //OpenFileTemp(file_name, false, false, false, o_direct);

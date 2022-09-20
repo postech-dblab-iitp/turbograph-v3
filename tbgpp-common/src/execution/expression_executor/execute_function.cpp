@@ -35,10 +35,10 @@ void ExpressionExecutor::Execute(const BoundFunctionExpression &expr, Expression
 		arguments.Verify();
 	}
 	arguments.SetCardinality(count);
-icecream::ic.enable();
-IC();
-IC( arguments.ToString() );
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC();
+// IC( arguments.ToString() );
+// icecream::ic.disable();
 	state->profiler.BeginSample();
 	expr.function.function(arguments, *state, result);
 	state->profiler.EndSample(count);

@@ -177,13 +177,11 @@ IC();
 	//src
 // FIXME further add predicate to sacn and remove filter
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("LINEITEM"), PropertyKeys({"L_RETURNFLAG", "L_EXTENDEDPRICE", "L_DISCOUNT"})) );
-// FIXME
 IC();
-	// ops.push_back( new PhysicalFilter(sch2, move(filter_exprs)) );
+	ops.push_back( new PhysicalFilter(sch2, move(filter_exprs)) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch3, "l", LabelSet("LINEITEM"), LabelSet("IS_PART_OF"), ExpandDirection::OUTGOING, LabelSet("ORDERS"), JoinType::INNER, false, true) );
 	ops.push_back( new PhysicalNodeIdSeek(sch4, "o", LabelSet("ORDERS"), PropertyKeys({"O_ORDERDATE"}) ) );
-// FIXME
-	// ops.push_back( new PhysicalFilter(sch4, move(filter_exprs_2)) );
+	ops.push_back( new PhysicalFilter(sch4, move(filter_exprs_2)) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch5, "o", LabelSet("ORDERS"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("CUSTOMER"), JoinType::INNER, false, true ) );
 	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("CUSTOMER"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("CUSTOMER"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("NATION"), JoinType::INNER, false, true) );
