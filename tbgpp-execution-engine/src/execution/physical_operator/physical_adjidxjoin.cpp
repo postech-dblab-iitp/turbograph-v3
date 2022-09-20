@@ -80,9 +80,9 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	const idx_t srcColIdx = schema.getColIdxOfKey(srcName);	// first index of source node : where source node id is
 	const idx_t edgeColIdx = input.ColumnCount();			// not using when load_eid = false
 	const idx_t tgtColIdx = input.ColumnCount() + int(load_eid);	// first index of target node : where target node id should be OR start index of range
-IC(srcColIdx);
-IC(edgeColIdx);
-IC(tgtColIdx);
+// IC(srcColIdx);
+// IC(edgeColIdx);
+// IC(tgtColIdx);
 	// intra-chunk variables
 	int numProducedTuples = 0;
 	bool isHaveMoreOutput = false;
@@ -92,11 +92,11 @@ IC(tgtColIdx);
 	vector<int> adjColIdxs;
 	vector<LogicalType> adjColTypes;
 // IC();
-for( auto& k: edgeLabelSet.data ) { IC(k); }
+// for( auto& k: edgeLabelSet.data ) { IC(k); }
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, adjColIdxs, adjColTypes);
 	D_ASSERT( adjColIdxs.size() > 0);
 	D_ASSERT( adjColIdxs.size() == adjColTypes.size() );
-IC(adjColIdxs.size());
+// IC(adjColIdxs.size());
 // IC(adjColIdxs[0]);
 
 	uint64_t* adj_start; uint64_t* adj_end;

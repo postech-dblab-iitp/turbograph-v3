@@ -25,9 +25,9 @@ OperatorResultType PhysicalProjection::Execute(ExecutionContext &context, DataCh
 	auto &state = (ProjectionState &)lstate;
 
 	// state not necessary
-	IC();
+	// IC();
 	state.executor.Execute(input, chunk);
-	IC();
+	// IC();
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 

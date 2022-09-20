@@ -24,20 +24,20 @@ unique_ptr<OperatorState> PhysicalEdgeIdSeek::GetOperatorState(ExecutionContext 
 OperatorResultType PhysicalEdgeIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 
 // icecream::ic.enable();
-IC( input.ToString(5) );
+// IC( input.ToString(5) );
 	auto &state = (EdgeIdSeekState &)lstate;
-IC();
+// IC();
 	DataChunk targetTupleChunk;
 	CypherSchema outputEdgeSchema = schema.getSubSchemaOfKey( name );
 	
 	idx_t edgeColIdx = schema.getColIdxOfKey( name ); // position of pid
-IC(edgeColIdx);
+// IC(edgeColIdx);
 	idx_t alreadyExistingCols = outputEdgeSchema.getTypes().size() - 1 - propertyKeys.size();
-IC(alreadyExistingCols);
+// IC(alreadyExistingCols);
 	idx_t colIdxToStartFetch = edgeColIdx + alreadyExistingCols + 1;
-IC(colIdxToStartFetch);
+// IC(colIdxToStartFetch);
 
-IC();
+// IC();
 	vector<LogicalType> targetTypes;
 	targetTypes.push_back(LogicalType::ID); // for edge ids
 	for( auto& key: propertyKeys ) {
@@ -48,7 +48,7 @@ IC();
 	D_ASSERT( propertyKeys.size()+1 == targetTypes.size() );
 
 	std::vector<LabelSet> empty_els;
-IC(input.size());
+// IC(input.size());
 	int numProducedTuples = 0;
 
 	// initialize indexseek
@@ -68,19 +68,19 @@ IC(input.size());
 		targetTupleChunk.Reset();
 		numProducedTuples +=1;
 	}
-IC();
+// IC();
 	// for original ones reference existing columns
 	for(int i = 0; i <= edgeColIdx+alreadyExistingCols; i++) {
 		chunk.data[i].Reference( input.data[i] );
 	}
 	idx_t idxToPutRightOnes = edgeColIdx + outputEdgeSchema.getTypes().size();
 	idx_t numAddedColumns = targetTupleChunk.ColumnCount() - 1 - alreadyExistingCols;
-IC( int(numAddedColumns) );
+// IC( int(numAddedColumns) );
 	for(int i = idxToPutRightOnes ; i < chunk.ColumnCount() ; i++) {
 		chunk.data[i].Reference( input.data[ i-numAddedColumns ] );
 	}
 	chunk.SetCardinality( input.size() );
-IC(chunk.ToString(1));
+// IC(chunk.ToString(1));
 
 // icecream::ic.disable();
 

@@ -242,12 +242,12 @@ icecream::ic.disable();
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(key_names);
-IC();
+// IC();
 		
 		// Initialize DataChunk
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
-IC();
+// IC();
 
 		// Initialize LID_TO_PID_MAP
 		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
@@ -262,12 +262,12 @@ IC();
 			std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
 			lid_to_pid_index.push_back(pair_to_insert);
 		}
-IC();
+// IC();
 
 		// Read CSV File into DataChunk & CreateVertexExtent
 		auto read_chunk_start = std::chrono::high_resolution_clock::now();
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-			IC();
+			// IC();
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
 			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
@@ -298,26 +298,26 @@ IC();
 //				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
 				// Build Index
-IC();
+// IC();
 				auto index_build_start = std::chrono::high_resolution_clock::now();
 				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-					IC(seqno, row_ids_data[seqno]);
+					// IC(seqno, row_ids_data[seqno]);
 				}
-IC();
+// IC();
 				DataChunk tmp_chunk;
 				vector<LogicalType> tmp_types;
 				tmp_types.resize(1);
 				if (key_column_idxs.size() == 1) {
-IC();
+// IC();
 					tmp_types[0] = LogicalType::UBIGINT;
 					tmp_chunk.Initialize(tmp_types, data.size());
 					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
 					tmp_chunk.SetCardinality(data.size());
 				} else if (key_column_idxs.size() == 2) {
-IC();
+// IC();
 					tmp_types[0] = LogicalType::HUGEINT;
 					tmp_chunk.Initialize(tmp_types, data.size());
 					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
@@ -326,19 +326,19 @@ IC();
 						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
 						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
 						tmp_chunk_data[seqno] = key_val;
-						IC(key_val.upper, key_val.lower);
+						// IC(key_val.upper, key_val.lower);
 						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
 					}
 					tmp_chunk.SetCardinality(data.size());
 				} else {
 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 				}
-IC();
+// IC();
 				// tmp_types.resize(key_column_idxs.size());
 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
 				// tmp_chunk.Initialize(tmp_types);
 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-				IC(tmp_chunk.size());
+				// IC(tmp_chunk.size());
 				IndexLock lock;
 				index->Insert(lock, tmp_chunk, row_ids);
 				auto index_build_end = std::chrono::high_resolution_clock::now();
@@ -377,7 +377,7 @@ IC();
 		if (!reader.GetSchemaFromHeader(key_names, types)) {
 			throw InvalidInputException("A");
 		}
-		for (size_t i = 0; i < key_names.size(); i++) IC(key_names[i]);
+		// for (size_t i = 0; i < key_names.size(); i++) IC(key_names[i]);
 
 		vector<int64_t> src_column_idx, dst_column_idx;
 		string src_column_name, dst_column_name;
@@ -409,7 +409,7 @@ IC();
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(key_names);
 
-		for (size_t i = 0; i < property_key_ids.size(); i++) IC(property_key_ids[i]);
+		// for (size_t i = 0; i < property_key_ids.size(); i++) IC(property_key_ids[i]);
 
 		// Initialize DataChunk
 		DataChunk data;
@@ -433,13 +433,13 @@ IC();
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
 			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
 		vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
-		IC(src_column_idxs.size());
+		// IC(src_column_idxs.size());
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
 		vertex_ps_cat_entry->AppendKey({ edge_type });
-IC();
+// IC();
 
 		// Initialize variables related to vertex extent
 		Value cur_src_id, cur_dst_id, min_id, max_id; // Logical ID
@@ -450,20 +450,20 @@ IC();
 		ExtentID current_vertex_eid;
 		bool is_first_tuple_processed = false;
 		vertex_id_chunk.Initialize(vertex_id_type, STORAGE_STANDARD_VECTOR_SIZE);
-IC();
+// IC();
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-IC(data.ToString(10));
+// IC(data.ToString(10));
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = property_schema_cat->GetNewExtentID();
 
 			// Initialize epid base
 			idx_t epid_base = (idx_t) new_eid;
 			epid_base = epid_base << 32;
-			IC(new_eid, epid_base);
-IC();
+// 			IC(new_eid, epid_base);
+// IC();
 			// Convert lid to pid using LID_TO_PID_MAP
 			vector<idx_t *> src_key_columns, dst_key_columns;
 			src_key_columns.resize(src_column_idx.size());
@@ -472,7 +472,7 @@ IC();
 			for (size_t i = 0; i < dst_key_columns.size(); i++) dst_key_columns[i] = (idx_t *)data.data[dst_column_idx[i]].GetData();
 			// idx_t *src_key_column = (idx_t*) data.data[src_column_idx].GetData();
 			// idx_t *dst_key_column = (idx_t*) data.data[dst_column_idx].GetData();
-IC();
+// IC();
 			idx_t src_seqno = 0, dst_seqno = 0;
 			idx_t begin_idx, end_idx;
 			idx_t max_seqno = data.size();
@@ -481,7 +481,7 @@ IC();
 
 			// For the first tuple
 			begin_idx = src_seqno;
-IC();	
+// IC();	
 			// D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
 			ARTIndexScanState state;
 			vector<row_t> result_ids;
@@ -492,38 +492,38 @@ IC();
 				hugeint_t key_val;
 				key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
 				key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-				IC(key_val.upper, key_val.lower);
+				// IC(key_val.upper, key_val.lower);
 				state.values[0] = Value::HUGEINT(key_val);
 				prev_id = cur_src_id = state.values[0];
 			} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 			result_ids.clear();
 			src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-			if (result_ids.size() != 1) {
-				IC(result_ids.size());
-				if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-				else if (src_column_idx.size() == 2) {
-					IC(state.values[0].GetValue<hugeint_t>().upper);
-					IC(state.values[0].GetValue<hugeint_t>().lower);
-				}
-				for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
-			}
-IC();
+// 			if (result_ids.size() != 1) {
+// 				IC(result_ids.size());
+// 				if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
+// 				else if (src_column_idx.size() == 2) {
+// 					IC(state.values[0].GetValue<hugeint_t>().upper);
+// 					IC(state.values[0].GetValue<hugeint_t>().lower);
+// 				}
+// 				for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
+// 			}
+// IC();
 			D_ASSERT(result_ids.size() == 1);
 			cur_src_pid = result_ids[0];
 			// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
 			src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
 			src_seqno++;
-IC();
+// IC();
 
 			if (!is_first_tuple_processed) {
 				// Get First Vertex Extent
 				while (true) {
-IC();
+// IC();
 					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 						// We do not allow this case
 						throw InvalidInputException("E"); 
 					}
-IC();
+// IC();
 					
 					// Initialize min & max id. We assume that the vertex data is sorted by id
 					if (src_column_idxs.size() == 1) {
@@ -538,13 +538,13 @@ IC();
 						max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
 						max_id = Value::HUGEINT(max_key_val);
 					}
-IC();
-					IC(cur_src_id.ToString());
-					IC(min_id.ToString());
-					IC(max_id.ToString());
+// IC();
+// 					IC(cur_src_id.ToString());
+// 					IC(min_id.ToString());
+// 					IC(max_id.ToString());
 					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
 				}
-IC();
+// IC();
 
 				// Initialize vertex_seqno
 				vertex_seqno = 0;
@@ -566,10 +566,10 @@ IC();
 				}
 				is_first_tuple_processed = true;
 			}
-IC();
+// IC();
 			
 			while(src_seqno < max_seqno) {
-				IC(src_seqno);
+				// IC(src_seqno);
 				if (src_column_idx.size() == 1) {
 					state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
 					cur_src_id = state.values[0];
@@ -581,29 +581,29 @@ IC();
 					state.values[0] = Value::HUGEINT(key_val);
 					cur_src_id = state.values[0];
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-IC();
+// IC();
 				result_ids.clear();
 				src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-				if (result_ids.size() != 1) {
-					IC(result_ids.size());
-					if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-					else if (src_column_idx.size() == 2) {
-						IC(state.values[0].GetValue<hugeint_t>().upper);
-						IC(state.values[0].GetValue<hugeint_t>().lower);
-					}
-					for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
-				}
+				// if (result_ids.size() != 1) {
+				// 	IC(result_ids.size());
+				// 	if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
+				// 	else if (src_column_idx.size() == 2) {
+				// 		IC(state.values[0].GetValue<hugeint_t>().upper);
+				// 		IC(state.values[0].GetValue<hugeint_t>().lower);
+				// 	}
+				// 	for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
+				// }
 				D_ASSERT(result_ids.size() == 1);
 				cur_src_pid = result_ids[0];
-IC();
+// IC();
 				// cur_src_id = src_key_column[src_seqno];
 				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
 				src_key_columns[0][src_seqno] = cur_src_pid;
 				if (cur_src_id == prev_id) {
-					IC();
+					// IC();
 					src_seqno++;
 				} else {
-					IC();
+					// IC();
 					// lid_pair.first = prev_id;
 					end_idx = src_seqno;
 					if (load_backward_edge) {
@@ -633,8 +633,8 @@ IC();
 								dst_key_columns[0][dst_seqno] = cur_dst_pid;
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
-								IC();
-								IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+								// IC();
+								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else if (dst_column_idx.size() == 2) {
 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
@@ -651,8 +651,8 @@ IC();
 								dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
-								IC();
-								IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+								// IC();
+								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 					}
@@ -742,7 +742,7 @@ IC();
 					src_seqno++;
 				}
 			}
-IC();
+// IC();
 			// Process remaining dst vertices
 			// lid_pair.first = prev_id;
 			end_idx = src_seqno;
@@ -770,7 +770,7 @@ IC();
 						dst_key_columns[0][dst_seqno] = cur_dst_pid;
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
-						IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 					}
 				} else if (dst_column_idx.size() == 2) {
 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
@@ -787,7 +787,7 @@ IC();
 						dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
-						IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
+						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 					}
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 			}
