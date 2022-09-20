@@ -84,7 +84,7 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 	// call
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetSource()->ToString());
+//IC(pipeline->GetSource()->ToString());
 icecream::ic.disable();
 	switch( childs.size() ) {
 		// no child pipeline
@@ -124,7 +124,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// std::cout << "call sink!!" << std::endl;
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetSink()->ToString());
+//IC(pipeline->GetSink()->ToString());
 icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
@@ -187,7 +187,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			// call operator
 // FIXME
 icecream::ic.enable();
-IC(pipeline->GetIdxOperator(current_idx)->ToString());
+//IC(pipeline->GetIdxOperator(current_idx)->ToString());
 icecream::ic.disable();
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]

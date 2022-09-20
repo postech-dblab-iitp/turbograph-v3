@@ -176,19 +176,25 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		const size_t numTuplesToProduce = ((EXEC_ENGINE_VECTOR_SIZE - numProducedTuples) > numTargets )
 			? numTargets : (EXEC_ENGINE_VECTOR_SIZE - numProducedTuples);
 		const size_t finalCheckpoint = state.checkpoint.second + numTuplesToProduce;
-		for( ; state.checkpoint.second < finalCheckpoint; state.checkpoint.second++ ) {
-			// PRODUCE
-			// produce lhs
-			for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-				chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+		
+		// PRODUCE
+icecream::ic.enable();
+
+		// produce lhs (in column major)
+// IC(numProducedTuples, numTuplesToProduce);
+		for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+			auto val = input.GetValue(colId, state.checkpoint.first);
+			for( auto i = numProducedTuples; i < numProducedTuples + numTuplesToProduce; i++ ) {
+				chunk.SetValue(colId, i, val);
 			}
+		}
+		// produce rhs (in row major)
+		for( ; state.checkpoint.second < finalCheckpoint; state.checkpoint.second++ ) {
 			// produce rhs : tid, (edgeid)
 			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2)] ));
 			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2 + 1)] )); }
-
 			numProducedTuples +=1;
 		}
-
 		if( numTuplesToProduce == numTargets ) {
 			// produce for this vertex done. init second
 			state.checkpoint.second = 0;
@@ -196,9 +202,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			isHaveMoreOutput = true;
 			goto breakLoop;
 		}
-	
 	}
-
 breakLoop:
 
 	// now produce finished. store state and exit
@@ -208,7 +212,7 @@ breakLoop:
 // icecream::ic.enable();
 // IC(chunk.size());
 // if (chunk.size() != 0)
-// 	IC( chunk.ToString(std::min(10, (int)chunk.size())) );
+// IC( chunk.ToString(std::min(10, (int)chunk.size())) );
 // icecream::ic.disable();
 
 	if( isHaveMoreOutput ) {
