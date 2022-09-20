@@ -53,6 +53,7 @@ public:
 		char* sf_str = std::getenv("SF");
 		// default scale factor as 1
 		LDBC_SF = 1;
+		TPCH_SF = 1;
 
 		// overwrite scalefactor from SF
 		if( sf_str != NULL ){
@@ -60,12 +61,13 @@ public:
 			int conv = std::stoi((string)sf_str);
 			// overwrite
 			LDBC_SF = conv;
+			TPCH_SF = conv;
 			} catch (const std::string& expn) {
 				std::cout << "Cannot find valid envvar SF. Setting to default environment variable SF=1" << std::endl;
 			}
 		}
 	
-		std::cout << "QueryPlanSuite : using scalefactor - " << LDBC_SF << std::endl;
+		std::cout << "QueryPlanSuite : using SF=" << LDBC_SF << std::endl;
 		
 	}
 
@@ -97,8 +99,12 @@ public:
 		if( key.compare("c2") == 0 ) { return LDBC_IC2(); }
 		if( key.compare("c4") == 0 ) { return LDBC_IC4(); }
 		if( key.compare("c8") == 0 ) { return LDBC_IC8(); }
-		if( key.compare("") == 0 ) { return std::vector<CypherPipelineExecutor*>(); }
-		else { return std::vector<CypherPipelineExecutor*>(); }
+
+		/* TPC-H queries */
+		if( key.compare("q10") == 0 ) { return TPCH_Q10(); }
+
+		/* Empty plan at last */
+		return std::vector<CypherPipelineExecutor*>();
 	}
 	// returns root pipeline
 	std::vector<CypherPipelineExecutor*> Test1();	// 
@@ -136,10 +142,14 @@ public:
 	std::vector<CypherPipelineExecutor*> LDBC_IC12();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IC13();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> LDBC_IC14();	//   |   |   |
+
+	std::vector<CypherPipelineExecutor*> TPCH_Q3();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> TPCH_Q10();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;
 	int64_t LDBC_SF;
+	int64_t TPCH_SF;
 
 };
 }

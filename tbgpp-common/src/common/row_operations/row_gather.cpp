@@ -40,7 +40,7 @@ static void TemplatedGatherLoop(Vector &rows, const SelectionVector &row_sel, Ve
 	idx_t entry_idx;
 	idx_t idx_in_entry;
 	ValidityBytes::GetEntryIndex(col_no, entry_idx, idx_in_entry);
-IC(col_no, entry_idx, idx_in_entry);
+// IC(col_no, entry_idx, idx_in_entry);
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 	auto data = FlatVector::GetData<T>(col);
 	auto &col_mask = FlatVector::Validity(col);

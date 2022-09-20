@@ -325,7 +325,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::HUGEINT:
 			throw NotImplementedException("Do not support HugeInt"); break;
 		case LogicalTypeId::DECIMAL:
-      uint8_t width, scale;
+			uint8_t width, scale;
       type.GetDecimalProperties(width, scale);
       switch(type.InternalType()) {
         case PhysicalType::INT16: {
@@ -528,9 +528,9 @@ public:
         std::string type_name = key_and_type.substr(delim_pos + 1);
         LogicalType type = move(StringToLogicalType(type_name, i));
         if (type_name.find("START_ID") != std::string::npos) {
-          key_names.push_back(src_key_name + "_src");
+          key_names.push_back(src_key_name + "_src_" + std::to_string(src_columns.size()));
         } else {
-          key_names.push_back(dst_key_name + "_dst");
+          key_names.push_back(dst_key_name + "_dst_" + std::to_string(dst_columns.size()));
         }
         key_types.push_back(move(type));
       } else {
@@ -582,16 +582,16 @@ public:
 		return key_columns;
 	}
 
-	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
+	void GetSrcColumnIndexFromHeader(vector<int64_t> &src_column_idxs, string &src_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
-		src_column_idx = src_column;
+		src_column_idxs = src_columns;
 		src_column_name = src_key_name;
 		return;
 	}
 
-	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
+	void GetDstColumnIndexFromHeader(vector<int64_t> &dst_column_idxs, string &dst_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
-		dst_column_idx = dst_column;
+		dst_column_idxs = dst_columns;
 		dst_column_name = dst_key_name;
 		return;
 	}
@@ -743,7 +743,7 @@ public:
 	}
 private:
   LogicalType StringToLogicalType(std::string &type_name, size_t column_idx) {
-		const auto end = m.end();
+    const auto end = m.end();
 		auto it = m.find(type_name);
 		if (it != end) {
       LogicalType return_type = it->second;
@@ -768,23 +768,23 @@ private:
 					// D_ASSERT(key_column == -1);
 					// key_column = column_idx;
 				} else { // type == GraphComponentType::EDGE
-					D_ASSERT((src_column == -1) || (dst_column == -1));
+					// D_ASSERT((src_column == -1) || (dst_column == -1));
 					auto first_pos = type_name.find_first_of('(');
 					auto last_pos = type_name.find_last_of(')');
 					string label_name = type_name.substr(first_pos + 1, last_pos - first_pos - 1);
           std::cout << type_name << std::endl;
           if (type_name.find("START_ID") != std::string::npos) {
             src_key_name = move(label_name);
-						src_column = column_idx;
+						src_columns.push_back(column_idx);
           } else { // "END_ID"
             dst_key_name = move(label_name);
-						dst_column = column_idx;
+						dst_columns.push_back(column_idx);
           }
 				}
 				return LogicalType::UBIGINT;
-      } else if (type_name.find("ADJLIST") != std::string::npos) {
-        D_ASSERT(type == GraphComponentType::VERTEX);
-        return LogicalType::ADJLISTCOLUMN;
+      // } else if (type_name.find("ADJLIST") != std::string::npos) {
+      //   D_ASSERT(type == GraphComponentType::VERTEX);
+      //   return LogicalType::ADJLISTCOLUMN;
       } else if (type_name.find("DECIMAL") != std::string::npos) {
         auto first_pos = type_name.find_first_of('(');
         auto comma_pos = type_name.find_first_of(',');
@@ -805,11 +805,10 @@ private:
 	string src_key_name;
 	string dst_key_name;
   vector<LogicalType> key_types;
-	int64_t key_column = -1;
   vector<int64_t> key_columns;
   vector<int64_t> key_columns_order;
-	int64_t src_column = -1;
-	int64_t dst_column = -1;
+  vector<int64_t> src_columns;
+  vector<int64_t> dst_columns;
 	int64_t num_columns;
   int64_t num_rows;
   idx_t row_cursor;
@@ -827,7 +826,7 @@ private:
     {"ULONG"  , LogicalType(LogicalTypeId::UBIGINT)},
     {"DATE"  , LogicalType(LogicalTypeId::DATE)},
     {"DECIMAL"  , LogicalType(LogicalTypeId::DECIMAL)},
-    {"ADJLIST"  , LogicalType(LogicalTypeId::ADJLISTCOLUMN)},
+    // {"ADJLIST"  , LogicalType(LogicalTypeId::ADJLISTCOLUMN)},
 	};
 };
 
