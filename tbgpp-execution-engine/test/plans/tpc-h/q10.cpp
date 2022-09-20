@@ -115,7 +115,9 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 // FIXME advance expression after checking its running. (later)
 	auto agg_expr_func = SumFun::GetSumAggregate(PhysicalType::DOUBLE);	// sum function of DOUBLE
 	vector<unique_ptr<Expression>> agg_expr_1_child;
-	agg_expr_1_child.push_back( make_unique<BoundReferenceExpression>(LogicalType::DECIMAL(12,2), 2));		// extendedprice
+	agg_expr_1_child.push_back(
+		make_unique<BoundReferenceExpression>(LogicalType::DECIMAL(12,2), 2 )	
+	);		// extendedprice
 	agg_exprs.push_back(
 		make_unique<BoundAggregateExpression>(agg_expr_func, move(agg_expr_1_child), nullptr, nullptr, false )
 	); //sum(valid)

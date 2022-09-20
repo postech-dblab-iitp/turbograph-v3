@@ -33,6 +33,7 @@
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
 #include "planner/expression/bound_columnref_expression.hpp"
+#include "planner/expression/bound_operator_expression.hpp"
 
 #include "planner/expression/bound_case_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
