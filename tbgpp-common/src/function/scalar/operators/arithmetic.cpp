@@ -671,6 +671,21 @@ unique_ptr<FunctionData> BindDecimalMultiply(ClientContext &context, ScalarFunct
 	return nullptr;
 }
 
+ScalarFunction MultiplyFun::GetFunction(const LogicalType &type) {
+	if (type.id() == LogicalTypeId::DECIMAL) {
+		auto function = ScalarFunction({type, type}, type, nullptr, true, false, BindDecimalMultiply);
+		// binding
+		function.name = "*";
+			return function;
+	} else {
+		auto function = ScalarFunction({type, type}, type,
+			                                     GetScalarBinaryFunction<MultiplyOperator>(type.InternalType()), true);
+			function.name = "*";
+			return function;									 
+		D_ASSERT(false && "TODO need to add more!");
+	}
+}
+
 void MultiplyFun::RegisterFunction(BuiltinFunctions &set) {
 	ScalarFunctionSet functions("*");
 	for (auto &type : LogicalType::Numeric()) {

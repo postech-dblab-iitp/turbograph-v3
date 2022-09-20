@@ -1535,7 +1535,7 @@ bool TryCastToDecimal::Operation(string_t input, hugeint_t &result, string *erro
                                  uint8_t scale) {
 	return TryDecimalStringCast<hugeint_t>(input, result, error_message, width, scale);
 }
-/*
+
 template <>
 string_t StringCastFromDecimal::Operation(int16_t input, uint8_t width, uint8_t scale, Vector &result) {
 	return DecimalToString::Format<int16_t, uint16_t>(input, scale, result);
@@ -1555,7 +1555,7 @@ template <>
 string_t StringCastFromDecimal::Operation(hugeint_t input, uint8_t width, uint8_t scale, Vector &result) {
 	return HugeintToStringCast::FormatDecimal(input, scale, result);
 }
-*/
+
 //===--------------------------------------------------------------------===//
 // Decimal Casts
 //===--------------------------------------------------------------------===//

@@ -74,6 +74,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
+	"${PROJECT_SOURCE_DIR}/third_party/tblr"
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
