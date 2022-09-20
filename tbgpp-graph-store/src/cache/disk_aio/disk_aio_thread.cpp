@@ -55,9 +55,11 @@ int DiskAioThread::Complete(int num) {
 		if (req->cb.aio_lio_opcode == IO_CMD_PREAD) {
 			stats_.num_reads++;
 			stats_.num_read_bytes += req->cb.u.c.nbytes;
+			// fprintf(stdout, "num_reads %ld, read_bytes %ld\n", stats_.num_reads, stats_.num_read_bytes);
 		} else {
 			stats_.num_writes++;
 			stats_.num_write_bytes += req->cb.u.c.nbytes;
+			// fprintf(stdout, "num_writes %ld, num_write_bytes %ld\n", stats_.num_writes, stats_.num_write_bytes);
 		}
 		//assert (n == 1);
 		int c = req->Complete();
@@ -73,6 +75,7 @@ void DiskAioThread::run() {
 	tspec.tv_sec = tspec.tv_nsec = 0;
 	while (num_ongoing_ > 0 || fetched > 0) {
 		if (fetched > 0) {
+			// fprintf(stdout, "fetched request %d\n", fetched);
 			SubmitToKernel(fetched);
 			num_ongoing_ += fetched;
 		}

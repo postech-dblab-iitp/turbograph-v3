@@ -142,7 +142,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		// A pointer to the name of the named object
 		const void *value = named_beg->value();
 		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-		fprintf(stdout, "%s %p\n", name, value);
+		// fprintf(stdout, "%s %p\n", name, value);
 		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
 			object_names[0].push_back(name);
 		} else if (startsWith(name, "graph")) { // GraphCatalogEntry
@@ -164,24 +164,24 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		}
 		num_objects_in_catalog++;
 	}
-	fprintf(stdout, "SchemaCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
-	fprintf(stdout, "GraphCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
-	fprintf(stdout, "VertexPartitionCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s\n", object_names[2][i].c_str());
-	fprintf(stdout, "EdgePartitionCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
-	fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
-	fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
-	for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
+	// fprintf(stdout, "SchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
+	// fprintf(stdout, "GraphCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
+	// fprintf(stdout, "VertexPartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s\n", object_names[2][i].c_str());
+	// fprintf(stdout, "EdgePartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
+	// fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
+	// fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
 	// fprintf(stdout, "ExtentCatalogEntry\n");
 	// for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
 	// fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
 	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
-	fprintf(stdout, "Else\n");
-	for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
+	// fprintf(stdout, "Else\n");
+	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
 	fprintf(stdout, "num_objects = %ld\n", num_objects_in_catalog);
 	
 	if (num_objects_in_catalog == 0) {

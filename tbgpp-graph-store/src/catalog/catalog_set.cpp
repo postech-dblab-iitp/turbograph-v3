@@ -53,7 +53,7 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 
 CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
     : catalog(&catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
-IC(catalog_set_name_);
+// IC(catalog_set_name_);
 	// this->catalog_set_name = catalog_set_name_;
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
@@ -65,31 +65,31 @@ IC(catalog_set_name_);
 		catalog_segment->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
-IC();
+// IC();
 }
 
 void CatalogSet::Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults) {
-IC(catalog_set_name_);
-fprintf(stdout, "this %p\n", this);
+// IC(catalog_set_name_);
+// fprintf(stdout, "this %p\n", this);
 	// this->catalog_set_name = catalog_set_name_;
-fprintf(stdout, "catalog_segment %p\n", catalog_segment_);
+// fprintf(stdout, "catalog_segment %p\n", catalog_segment_);
 	this->catalog_segment = catalog_segment_;
-IC();
+// IC();
 	this->catalog = &catalog;
-IC();
+// IC();
 	string mapping_name = catalog_set_name_ + "_mapping";
 	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
 		catalog_segment->get_allocator<map_value_type>());
-IC();
+// IC();
 	string entries_name = catalog_set_name_ + "_entries";
 	entries = catalog_segment->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
 		catalog_segment->get_allocator<ValueType>());
-IC();
+// IC();
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
-IC();
+// IC();
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -478,24 +478,24 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 }
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
-IC();
-	fprintf(stdout, "catalogset %p\n", this);
+// IC();
+	// fprintf(stdout, "catalogset %p\n", this);
 	// fprintf(stdout, "catalog_set_name %s\n", catalog_set_name.c_str());
 	MappingValue *mapping_value;
-IC();
+// IC();
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
-IC();
+// IC();
 	char_string name_(temp_charallocator);
-IC();
+// IC();
 	name_ = name.c_str();
-IC();
+// IC();
 	auto entry = mapping->find(name_);
 	if (entry != mapping->end()) {
 		mapping_value = entry->second;
 	} else {
 		return nullptr;
 	}
-IC();
+// IC();
 	if (get_latest) {
 		return mapping_value;
 	}
@@ -506,7 +506,7 @@ IC();
 		mapping_value = mapping_value->child;
 		D_ASSERT(mapping_value);
 	}
-IC();
+// IC();
 	return mapping_value;
 }
 
@@ -622,11 +622,11 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 }
 
 CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
-IC();
+// IC();
 	// unique_lock<mutex> lock(catalog_lock); // TODO disable in debug phase..
-	fprintf(stdout, "CatalogSet address %p\n", this);
+	// fprintf(stdout, "CatalogSet address %p\n", this);
 	auto mapping_value = GetMapping(context, name);
-IC();
+// IC();
 	if (mapping_value != nullptr && !mapping_value->deleted) {
 		// we found an entry for this name
 		// check the version numbers
@@ -638,18 +638,18 @@ IC();
 		}
 		return current;
 	}
-IC();
+// IC();
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
 		return nullptr;
 	}
-IC();
+// IC();
 	// this catalog set has a default map defined
 	// check if there is a default entry that we can create with this name
 	// lock.unlock(); // XXX disable in debug phase..
 	auto entry = defaults->CreateDefaultEntry(context, name);
-IC();
+// IC();
 	// lock.lock(); // XXX disable in debug phase
 	if (!entry) {
 		// no default entry
@@ -660,7 +660,7 @@ IC();
 	if (result) {
 		return result;
 	}
-IC();
+// IC();
 	// we found a default entry, but failed
 	// this means somebody else created the entry first
 	// just retry?

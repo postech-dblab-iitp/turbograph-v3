@@ -33,7 +33,11 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 // icecream::ic.disable();
 
 	auto &state = (NodeIdSeekState &)lstate;
-// IC();
+
+	if(input.size() == 0) {
+		chunk.SetCardinality(0);
+		return OperatorResultType::NEED_MORE_INPUT;
+	}
 	CypherSchema outputNodeSchema = schema.getSubSchemaOfKey( name );
 	
 	idx_t nodeColIdx = schema.getColIdxOfKey( name ); // position of pid
@@ -59,18 +63,32 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 	// initialize indexseek
 	vector<ExtentID> target_eids;		// target extent ids to access
 	vector<idx_t> boundary_position;	// boundary position of the input chunk
-	
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
 	D_ASSERT( target_eids.size() == boundary_position.size() );
+	if (target_eids.size() != boundary_position.size()) {
+		fprintf(stderr, "target_eids.size() = %ld, boundary_position.size() = %ld\n", target_eids.size(), boundary_position.size());
+		for (size_t i = 0; i < target_eids.size(); i++) fprintf(stderr, "%d, ", target_eids[i]);
+		fprintf(stderr, "\n");
+		for (size_t i = 0; i < boundary_position.size(); i++) fprintf(stderr, "%ld, ", boundary_position[i]);
+		fprintf(stderr, "\n");
+		for (size_t i = 0; i < input.size(); i++) {
+			uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, i));
+			ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+			fprintf(stderr, "(%ld, %d), ", vid, target_eid);
+		}
+		fprintf(stderr, "\n");
+		throw InvalidInputException("target_eids.size() != boundary_position.size()");
+	}
 	vector<idx_t> output_col_idx;
 	for (idx_t colId = 0; colId < state.targetChunk.ColumnCount(); colId++) {
 		output_col_idx.push_back( colId-1+colIdxToStartFetch );
 	}
-
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
 		context.client->graph_store->doVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position, extentIdx, output_col_idx);
 	}
-
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 icecream::ic.disable();
 
 	// for original ones reference existing columns

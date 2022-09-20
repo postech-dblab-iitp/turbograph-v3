@@ -186,7 +186,7 @@ icecream::ic.disable();
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	
 	// Initialize ClientContext
-icecream::ic.enable();
+icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	if (false) {
@@ -245,7 +245,7 @@ icecream::ic.enable();
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
-IC();
+// IC();
 		
 		// Initialize DataChunk
 		DataChunk data;
@@ -579,7 +579,7 @@ IC();
 					hugeint_t key_val;
 					key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
 					key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-					IC(key_val.upper, key_val.lower);
+					// IC(key_val.upper, key_val.lower);
 					state.values[0] = Value::HUGEINT(key_val);
 					cur_src_id = state.values[0];
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
@@ -1189,9 +1189,9 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	// fix execution time
 	vector<CypherPhysicalOperator*> stack;
 	json& tmp_root = j[0];
-	while(true) {
+	// while(true) {
 		
-	}
+	// }
 
 
 	file << html_1;

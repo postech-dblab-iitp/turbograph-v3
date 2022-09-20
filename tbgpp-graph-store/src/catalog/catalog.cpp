@@ -63,29 +63,29 @@ Catalog::~Catalog() {
 }
 
 void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names) {
-icecream::ic.enable();
-IC();
+// icecream::ic.enable();
+// IC();
 	schemas = make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this));
 	catalog_segment = catalog_segment_;
-IC();
+// IC();
 	// Load SchemaCatalogEntry
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
 	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
-IC();
+// IC();
 
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(db.shared_from_this());
 	if (!schemas->CreateEntry(*client.get(), "main", move(entry), dependencies)) {
 		throw CatalogException("Schema with name main already exists!");
 	}
-IC();
+// IC();
 
 	// Load CatalogSet
 	entry->SetCatalogSegment(catalog_segment_);
-IC();
+// IC();
 	entry->LoadCatalogSet();
-IC();
+// IC();
 
 	// Load Other Catalog Entries
 	// Maybe we don't need this..?
@@ -247,7 +247,7 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
 	auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, info->schema, info->internal, this->catalog_segment);
-	fprintf(stdout, "Create Schema %s, %p\n", schema_cat_name_in_shm.c_str(), entry);
+	// fprintf(stdout, "Create Schema %s, %p\n", schema_cat_name_in_shm.c_str(), entry);
 	// const_named_it named_beg = catalog_segment->named_begin();
 	// const_named_it named_end = catalog_segment->named_end();
 	// fprintf(stdout, "All named object list\n");
@@ -316,7 +316,7 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 		D_ASSERT(false);
 		//return ClientData::Get(context).temporary_objects.get();
 	}
-IC();
+// IC();
 	auto entry = schemas->GetEntry(context, schema_name);
 	if (!entry && !if_exists) {
 		D_ASSERT(false); // TODO exception handling
@@ -377,30 +377,30 @@ SimilarCatalogEntry Catalog::SimilarEntryInSchemas(ClientContext &context, const
 
 CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type, const string &schema_name,
                                         const string &name, bool if_exists) { //, QueryErrorContext error_context) {
-IC();
+// IC();
 	if (!schema_name.empty()) {
 		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
-IC();
+// IC();
 		if (!schema) {
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
 		}
 // icecream::ic.enable();
-IC(schema_name);
-IC(name);
+// IC(schema_name);
+// IC(name);
 // icecream::ic.disable();
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
-fprintf(stdout, "type %d schema_name %s, name %s, entry %p\n", (uint8_t)type, schema_name.c_str(), name.c_str(), entry);
-IC();
+// fprintf(stdout, "type %d schema_name %s, name %s, entry %p\n", (uint8_t)type, schema_name.c_str(), name.c_str(), entry);
+// IC();
 		if (!entry && !if_exists) {
 			D_ASSERT(false);
 			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
 		}
-IC();
+// IC();
 
 		return {schema, entry};
 	}
-IC();
+// IC();
 //	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
 	const auto paths = vector<string>();
 	for (const auto &path : paths) {
@@ -410,7 +410,7 @@ IC();
 			return lookup;
 		}
 	}
-IC();
+// IC();
 	if (!if_exists) {
 		vector<SchemaCatalogEntry *> schemas;
 		for (const auto &path : paths) {
@@ -423,7 +423,7 @@ IC();
 		D_ASSERT(false);
 		//throw CreateMissingEntryException(context, name, type, schemas, error_context);
 	}
-IC();
+// IC();
 
 	return {nullptr, nullptr};
 }
