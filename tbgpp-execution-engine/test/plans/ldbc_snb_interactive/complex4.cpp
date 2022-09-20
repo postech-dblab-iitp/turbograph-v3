@@ -65,7 +65,7 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Person"), vector<string>(), "id", filter_val));
 	// ops
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "person", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
-	ops.push_back( new PhysicalAdjIdxJoin(sch3, "friend", LabelSet("Person"), LabelSet("HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Post"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch3, "friend", LabelSet("Person"), LabelSet("POST_HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Post"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalAdjIdxJoin(sch4, "post", LabelSet("Post"), LabelSet("HAS_TAG"), ExpandDirection::OUTGOING, LabelSet("Tag"), JoinType::INNER, false, true));
 //IC();
 	ops.push_back( new PhysicalProjection(sch5, move(proj_exprs)));
