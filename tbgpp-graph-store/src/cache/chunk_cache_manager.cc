@@ -39,11 +39,22 @@ IC(partition_path);
             std::string chunk_entry_path = std::string(chunk_entry.path());
             std::string chunk_entry_name = chunk_entry_path.substr(chunk_entry_path.find_last_of("/") + 1);
             ChunkDefinitionID chunk_id = (ChunkDefinitionID) std::stoull(chunk_entry_name.substr(chunk_entry_name.find("_") + 1));
+
+            // Open File & Insert into file_handlers
             D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
             file_handlers[chunk_id] = new Turbo_bin_aio_handler();
-            fprintf(stdout, "Open %s\n", chunk_entry_path.c_str());
             ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_entry_path.c_str(), false, true, false, true);
             D_ASSERT(rs == NOERROR);
+
+            // Read First Block & SetRequestedSize
+            char first_block[512];
+            file_handlers[chunk_id]->Read(0, 512, first_block, this, nullptr);
+            file_handlers[chunk_id]->WaitForMyIoRequests(true, false);
+
+            size_t requested_size;
+            memcpy(&requested_size, first_block, sizeof(size_t));
+            file_handlers[chunk_id]->SetRequestedSize(requested_size);
+            fprintf(stdout, "Open %s, requested_size = %ld, file_size = %ld\n", chunk_entry_path.c_str(), requested_size, file_handlers[chunk_id]->file_size());
           }
         }
       }
