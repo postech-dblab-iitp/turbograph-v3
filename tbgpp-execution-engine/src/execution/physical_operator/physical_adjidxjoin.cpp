@@ -3,6 +3,7 @@
 
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "extent/extent_iterator.hpp"
+#include "common/types/selection_vector.hpp"
 
 #include <string>
 #include "icecream.hpp"
@@ -18,6 +19,7 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 		
 	// init timers
 	adjfetch_timer_started = false;
+	timer2_started = false;
 
 	// operator rules
 	bool check = (enumerate) ? true : (!load_eid);
@@ -30,7 +32,9 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	assert( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
 	assert( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
 	assert( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-	// assert( join_type == JoinType::INNER && "write all fixmes"); // TODO needs support from the storage
+	
+	assert( join_type == JoinType::INNER && "need to re-fix this");
+	
 		
 }
 
@@ -43,6 +47,7 @@ public:
 		checkpoint.first = 0;
 		checkpoint.second = 0;
 		adj_it = new AdjacencyListIterator();
+		rhs_sel.Initialize(STANDARD_VECTOR_SIZE);
 	}
 public:
 	// iterator state
@@ -50,6 +55,8 @@ public:
 		// second state on adjacency
 	std::pair<u_int64_t,u_int64_t> checkpoint;
 	AdjacencyListIterator *adj_it;
+
+	SelectionVector rhs_sel;
 	
 	// TODO future get filter information for target labelset
 
@@ -100,8 +107,18 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	// iterate source vids
 	for( ; state.checkpoint.first < input.size() ; state.checkpoint.first++) {
 
+// WARNING adjfetch timer very slow
+// if( ! timer2_started ) {
+// 	timer2.start();
+// 	timer2_started = true;
+// } else {
+// 	timer2.resume();
+// }
 		// check if output chunk full
-		if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) { isHaveMoreOutput = true; goto breakLoop; }
+		if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) {
+			isHaveMoreOutput = true;
+			goto breakLoop;
+		}
 
 		// check if vid is null
 		if( state.checkpoint.second == 0 && input.GetValue(srcColIdx, state.checkpoint.first).IsNull() ) {
@@ -180,21 +197,27 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// PRODUCE
 icecream::ic.enable();
 
-		// produce lhs (in column major)
-// IC(numProducedTuples, numTuplesToProduce);
-		for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-			auto val = input.GetValue(colId, state.checkpoint.first);
-			for( auto i = numProducedTuples; i < numProducedTuples + numTuplesToProduce; i++ ) {
-				chunk.SetValue(colId, i, val);
-			}
+		// set sel
+			// don't need to initialize selvector all times
+		auto sel_index = numProducedTuples;	// start from numproducedtuples
+		for( ; sel_index < numProducedTuples + numTuplesToProduce; sel_index++ ) {
+			// for rhs in sel[sel_index], refer from checkpoint.first(=input row id)... if join size=3, (0, 1), (1, 1), (2, 1) where (rhsidx, input-lhsidx)
+			state.rhs_sel.set_index(sel_index, state.checkpoint.first);					
 		}
+		// produce lhs (produced outside of loop, below)
 		// produce rhs (in row major)
+		uint64_t *tgt_adj_column = (uint64_t *)chunk.data[tgtColIdx].GetData();
+		uint64_t *eid_adj_column = (uint64_t *)chunk.data[edgeColIdx].GetData();
+		int prev_numProducedTuples = numProducedTuples;
 		for( ; state.checkpoint.second < finalCheckpoint; state.checkpoint.second++ ) {
 			// produce rhs : tid, (edgeid)
-			chunk.SetValue(tgtColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2)] ));
-			if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value::UBIGINT( adj_start[(idx_t)(state.checkpoint.second*2 + 1)] )); }
+			tgt_adj_column[numProducedTuples] = adj_start[state.checkpoint.second * 2];
+			if( load_eid ) {
+				eid_adj_column[numProducedTuples] = adj_start[state.checkpoint.second * 2 + 1];
+			}
 			numProducedTuples +=1;
 		}
+
 		if( numTuplesToProduce == numTargets ) {
 			// produce for this vertex done. init second
 			state.checkpoint.second = 0;
@@ -203,7 +226,13 @@ icecream::ic.enable();
 			goto breakLoop;
 		}
 	}
+
 breakLoop:
+
+	// lazily produce lhs
+	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+		chunk.data[colId].Slice(input.data[colId], state.rhs_sel, numProducedTuples);	// sel valid for only numTuplesToProduce
+	}
 
 	// now produce finished. store state and exit
 	D_ASSERT( numProducedTuples <= EXEC_ENGINE_VECTOR_SIZE );
