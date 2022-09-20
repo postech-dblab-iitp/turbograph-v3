@@ -50,7 +50,7 @@ icecream::ic.disable();
 // Combine
 //===--------------------------------------------------------------------===//
 void PhysicalTopNSort::Combine(ExecutionContext &context, LocalSinkState &lstate_p) const {
-IC();
+// IC();
 	// auto &gstate = (TopNGlobalState &)state;
 	auto &lstate = (TopNSortSinkState &)lstate_p;
 	// directly call finalize for heap

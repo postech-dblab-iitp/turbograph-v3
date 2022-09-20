@@ -34,7 +34,7 @@ OperatorResultType PhysicalUnwind::Execute(ExecutionContext &context, DataChunk 
 
 	if( input.size() == 0 ) return OperatorResultType::NEED_MORE_INPUT;
 
-IC( state.checkpoint.first, state.checkpoint.second );
+// IC( state.checkpoint.first, state.checkpoint.second );
 	for( ; state.checkpoint.first < input.size(); state.checkpoint.first++ ) {
 		auto listToUnwind = ListValue::GetChildren(input.GetValue(col_idx, state.checkpoint.first));
 		for( ; state.checkpoint.second < listToUnwind.size() ; state.checkpoint.second++ ) {
