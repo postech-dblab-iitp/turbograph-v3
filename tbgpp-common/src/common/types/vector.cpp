@@ -873,9 +873,9 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 	auto data = (int64_t *)buffer->GetData();
 	data[0] = start;
 	data[1] = increment;
-	icecream::ic.enable();IC();icecream::ic.disable();
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
-	icecream::ic.enable();IC();icecream::ic.disable();
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	auxiliary.reset();
 }
 

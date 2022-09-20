@@ -51,8 +51,8 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 		targetTypes.push_back( outputNodeSchema.getType(key) );
 	}
 
-for( auto& type: targetTypes) { IC(type.ToString());}
-for( auto& k: propertyKeys) { IC(k); }
+// for( auto& type: targetTypes) { IC(type.ToString());}
+// for( auto& k: propertyKeys) { IC(k); }
 
 	// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
 	targetTupleChunk.Initialize(targetTypes);
@@ -62,7 +62,9 @@ for( auto& k: propertyKeys) { IC(k); }
 	int numProducedTuples = 0;
 
 	// initialize indexseek
-	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, targetTupleChunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes);
+	vector<ExtentID> target_eids;
+	vector<idx_t> boundary_position;
+	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, targetTupleChunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
 
 	// for fetched columns, call api
 	for( u_int64_t srcIdx=0 ; srcIdx < input.size(); srcIdx++) {

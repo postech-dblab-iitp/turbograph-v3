@@ -39,7 +39,7 @@ UnicodeType Utf8Proc::Analyze(const char *s, size_t len, UnicodeInvalidReason *i
 		c = s[i];
 		if (c == '\0') {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::NULL_BYTE);
-IC();
+// IC();
 			return UnicodeType::INVALID;
 		}
 		// 1 Byte / ASCII
@@ -49,7 +49,7 @@ IC();
 		type = UnicodeType::UNICODE;
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
-IC();
+// IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xE0) == 0xC0) {
@@ -57,7 +57,7 @@ IC();
 		}
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
-IC();
+// IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xF0) == 0xE0) {
@@ -65,14 +65,14 @@ IC();
 		}
 		if ((s[++i] & 0xC0) != 0x80) {
 			AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
-IC();
+// IC();
 			return UnicodeType::INVALID;
 		}
 		if ((c & 0xF8) == 0xF0) {
 			continue;
 		}
 		AssignInvalidUTF8Reason(invalid_reason, invalid_pos, i, UnicodeInvalidReason::BYTE_MISMATCH);
-IC();
+// IC();
 		return UnicodeType::INVALID;
 	}
 

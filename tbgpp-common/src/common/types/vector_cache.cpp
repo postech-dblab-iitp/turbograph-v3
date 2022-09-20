@@ -47,12 +47,11 @@ public:
 	}
 
 	void ResetFromCache(Vector &result, const buffer_ptr<VectorBuffer> &buffer) {
-
-icecream::ic.enable();
-if( type != result.GetType()){
-	IC(type.ToString(), result.GetType().ToString() );
-}
-icecream::ic.disable();
+// icecream::ic.enable();
+// if( type != result.GetType()){
+// 	IC(type.ToString(), result.GetType().ToString() );
+// }
+// icecream::ic.disable();
 		D_ASSERT(type == result.GetType());
 		auto internal_type = type.InternalType();
 		result.vector_type = VectorType::FLAT_VECTOR;
