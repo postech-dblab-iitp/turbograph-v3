@@ -14,56 +14,57 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q4() {
 	auto p2 = q4_pipe2(*this, p1);
 	auto p3 = q4_pipe3(*this, p2);
 	result.push_back(p1);
-result.push_back(p2);
+	result.push_back(p2);
 	result.push_back(p3);
 	return result;
 }
 
 CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 
-	// scan LINEITEM;
+	// scan ORDERS;
 	CypherSchema sch1;
-	sch1.addNode("l");
-	sch1.addPropertyIntoNode("l", "L_COMMITDATE", LogicalType::DATE);
-	sch1.addPropertyIntoNode("l", "L_RECEIPTDATE", LogicalType::DATE);
-
-	// filter (_l, l.lc, l.lr)
-	vector<unique_ptr<Expression>> filter_exprs;
-	{
-		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// commitdate < receiptdate
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),		// commitdate
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 2) )			// receiptdate
-		);
-		filter_exprs.push_back(move(filter_expr1));
-	}
-	// expand (_l, l.lc, l.lr)
-	CypherSchema sch2 = sch1;
-	sch2.addNode("o");
-
-	// seek (_l, l.lc, l.lr, _o, o.od, o.op)
-	CypherSchema sch3 = sch2;
-	sch3.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
-	sch3.addPropertyIntoNode("o", "O_ORDERPRIORITY", LogicalType::VARCHAR);
+	sch1.addNode("o");
+	sch1.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
+	sch1.addPropertyIntoNode("o", "O_ORDERPRIORITY", LogicalType::VARCHAR);
 	PropertyKeys o_keys({"O_ORDERDATE", "O_ORDERPRIORITY"});
 
-	// filter (_l, l.lc, l.lr, _o, o.od, o.op)
-	vector<unique_ptr<Expression>> filter_exprs_2;
+	// filter (_o, o.od, o.p)
+		vector<unique_ptr<Expression>> filter_exprs;
 	{
 // FIXME change predicate when SF changes
 		// https://www.timeanddate.com/date/durationresult.html
-		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,	// orderdate >= 1994-01-01
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 4) ),	// orderdate
-			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8766))) )
+		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),	// orderdate
+			move( make_unique<BoundConstantExpression>(Value::DATE(1994,1,1))) 
 		);
-		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// orderdate < 1994-03-01
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 4) ),
-			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8856))) )
+		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),
+			move( make_unique<BoundConstantExpression>(Value::DATE(1994,2,1)))
 		);
-		filter_exprs_2.push_back(move(filter_expr1));
-		filter_exprs_2.push_back(move(filter_expr2));
+		filter_exprs.push_back(move(filter_expr1));
+		filter_exprs.push_back(move(filter_expr2));
 	}
 
-	// aggregate (_l, l.lc, l.lr, _o, o.od, o.op)
+	// adjidxjoin (_o, o.od, o.p) o->l
+	CypherSchema sch2 = sch1;
+	sch2.addNode("l");
+
+	// fetch (_o, o.od, o.p, _l)
+	CypherSchema sch3 = sch2;
+	sch3.addPropertyIntoNode("l", "L_COMMITDATE", LogicalType::DATE);
+	sch3.addPropertyIntoNode("l", "L_RECEIPTDATE", LogicalType::DATE);
+
+	// filter (_o o.od o.p _l l.cd, l.rd)
+	vector<unique_ptr<Expression>> filter_exprs_2;
+	{
+		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// commitdate < receiptdate
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 4) ),		// commitdate
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) )			// receiptdate
+		);
+		filter_exprs_2.push_back(move(filter_expr1));
+	}
+
+	// aggregate ( _o, o.od, o.op _l, l.cd, l.rd,)
 	CypherSchema sch4;
 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
@@ -71,7 +72,7 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_groups;
 	// 1 keys (groups)
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 5) ); // o.orderpriority
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 2) ); // o.orderpriority
 	// 1 agg expression
 	auto agg_expr_func = CountStarFun::GetFunction();
 	vector<unique_ptr<Expression>> agg_expr_1_child;
@@ -79,13 +80,14 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 		make_unique<BoundAggregateExpression>(agg_expr_func, move(agg_expr_1_child), nullptr, nullptr, false )
 	); // count(*)
 
-// pipes
+
+// // pipes
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("LINEITEM"), PropertyKeys({"L_COMMITDATE", "L_RECEIPTDATE"})) );
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("ORDERS"), o_keys) );
 	ops.push_back( new PhysicalFilter(sch1, move(filter_exprs)) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "l", LabelSet("LINEITEM"), LabelSet("IS_PART_OF"), ExpandDirection::OUTGOING, LabelSet("ORDERS"), JoinType::INNER, false, true));
-	ops.push_back( new PhysicalNodeIdSeek(sch3, "o", LabelSet("ORDERS"), o_keys));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "o", LabelSet("ORDERS"), LabelSet("IS_PART_OF_BACKWARD"), ExpandDirection::OUTGOING, LabelSet("LINEITEM"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalNodeIdSeek(sch3, "l", LabelSet("LINEITEM"), PropertyKeys({"L_COMMITDATE", "L_RECEIPTDATE"})));
 	ops.push_back( new PhysicalFilter(sch3, move(filter_exprs_2)));
 	ops.push_back( new PhysicalHashAggregate(sch4, move(agg_exprs), move(agg_groups)));
 
@@ -106,7 +108,6 @@ CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* 
 	BoundOrderByNode order1(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
 	vector<BoundOrderByNode> orders;
 	orders.push_back(move(order1));
-
 
 // pipes
 	std::vector<CypherPhysicalOperator *> ops;
