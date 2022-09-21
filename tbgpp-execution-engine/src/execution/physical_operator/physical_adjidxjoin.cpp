@@ -126,10 +126,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		if( state.checkpoint.second == 0 && input.GetValue(srcColIdx, state.checkpoint.first).IsNull() ) {
 			// when left join produce left
 			if( join_type == JoinType::LEFT ) {
-				// produce lhs
-				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
-				}
+				// produce lhs (actually lazy on later)
+				state.rhs_sel.set_index(numProducedTuples, state.checkpoint.first);
 				// produce rhs (null)
 				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
 				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
@@ -180,10 +178,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// for left join, consider no adjacency case
 		if ( join_type == JoinType::LEFT ) {
 			if( adjListSize == 0 ) { 
-				// produce lhs
-				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
-				}
+				// produce lhs (actually lazy on later)
+				state.rhs_sel.set_index(numProducedTuples, state.checkpoint.first);
 				// produce rhs (null)
 				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
 				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
@@ -233,7 +229,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 breakLoop:
 
-	// lazily produce lhs
+	// lazily produce lhs - fr
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
 		chunk.data[colId].Slice(input.data[colId], state.rhs_sel, numProducedTuples);	// sel valid for only numTuplesToProduce
 	}
