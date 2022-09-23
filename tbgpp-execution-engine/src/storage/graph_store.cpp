@@ -49,7 +49,8 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(ExtentIterator *&ext_it, LabelSe
 
 	vector<idx_t> column_idxs;
 	column_idxs = move(ps_cat_entry->GetColumnIdxs(properties_temp));
-// icecream::ic.enable(); IC(); 
+// icecream::ic.enable(); IC();
+// 	for (size_t i = 0; i < properties_temp.size(); i++) IC(properties_temp[i]);
 // 	for (size_t i = 0; i < column_idxs.size(); i++) IC(column_idxs[i]);
 // icecream::ic.disable();
 

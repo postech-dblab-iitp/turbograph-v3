@@ -81,6 +81,10 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	} else {
 		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
 	}
+icecream::ic.enable();
+if (chunk.size() > 0)
+	IC(chunk.ToString(std::min(chunk.size(), (idx_t)10)));
+icecream::ic.disable();
 	
 	// GetData() should return empty chunk to indicate scan is finished.
 }

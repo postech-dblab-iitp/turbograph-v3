@@ -22,7 +22,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 	CypherSchema sch1;
 	sch1.addNode("n");
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(17592186052613); }
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
@@ -50,7 +50,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 		unique_ptr<Expression> filter_expr1;
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_LESSTHANOREQUALTO, 
 							make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 5),
-							make_unique<BoundConstantExpression>(Value::BIGINT( 1287230400000 ))
+							make_unique<BoundConstantExpression>(Value::BIGINT( 1354060800000 ))
 						);
 		filter_exprs.push_back(move(filter_expr1));
 	}

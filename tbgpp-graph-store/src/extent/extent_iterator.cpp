@@ -97,7 +97,10 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            if (ext_property_types[i] == LogicalType::ID) continue;
+            if (ext_property_types[i] == LogicalType::ID) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                continue;
+            }
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -147,7 +150,10 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            if (ext_property_types[i] == LogicalType::ID) continue;
+            if (ext_property_types[i] == LogicalType::ID) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                continue;
+            }
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -196,7 +202,10 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            if (ext_property_types[i] == LogicalType::ID) continue;
+            if (ext_property_types[i] == LogicalType::ID) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                continue;
+            }
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -228,8 +237,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
             
             // Unpin previous chunks
-            for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++)
+            for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+                if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
                 ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+            }
 
             size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
             io_requested_cdf_ids[next_toggle].resize(chunk_size);
@@ -238,7 +249,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             
             int j = 0;
             for (int i = 0; i < chunk_size; i++) {
-                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
+                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    continue;
+                }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
@@ -252,8 +266,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // Request chunk cache manager to finalize I/O
     if (current_idx_in_this_extent == 0)
-        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
+        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+        }
 
     // Initialize DataChunk using cached buffer
     /*data_chunks[prev_toggle]->Destroy();
@@ -375,8 +391,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         
         // Unpin previous chunks
         if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
-        for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
+        for (size_t i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[toggle][i]);
+        }
 
         size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -385,7 +403,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
+            if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                continue;
+            }
             ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                 extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
@@ -396,8 +417,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
+    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++) {
+        if (io_requested_cdf_ids[prev_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+    }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     vector<string> pks = move(ps_cat_entry->GetKeys());
     auto idx = std::find(pks.begin(), pks.end(), filterKey);
@@ -464,7 +487,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         scan_start_offset = 0;
         scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
     }
-// icecream::ic.enable(); IC(); icecream::ic.disable();
     
     scan_length = scan_end_offset - scan_start_offset;
 
@@ -472,6 +494,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     auto col_idx_find_result = std::find(io_requested_cdf_ids[prev_toggle].begin(), io_requested_cdf_ids[prev_toggle].end(), filter_cdf_id);
     if (col_idx_find_result == io_requested_cdf_ids[prev_toggle].end()) throw InvalidInputException("I/O Error");
     idx_t col_idx = col_idx_find_result - io_requested_cdf_ids[prev_toggle].begin();
+// icecream::ic.enable(); 
+// IC(); 
+// IC(col_idx, io_requested_cdf_ids[prev_toggle].size(), ext_property_types.size()); 
+// for (size_t i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++) IC(io_requested_cdf_ids[prev_toggle][i]);
+// icecream::ic.disable();
 
     // Get Compression Header
     int idx_for_cardinality = -1;
@@ -641,8 +668,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // Unpin previous chunks
             if (current_eid != std::numeric_limits<uint32_t>::max()) {
                 if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
-                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++)
+                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+                    if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
                     ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+                }
             }
 
             size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
@@ -652,7 +681,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             
             int j = 0;
             for (int i = 0; i < chunk_size; i++) {
-                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
+                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    continue;
+                }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
@@ -663,8 +695,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
 
         // Request chunk cache manager to finalize I/O
-        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
+        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+        }
         current_eid = ext_ids_to_iterate[previous_idx];
 
         // Initialize DataChunk using cached buffer
@@ -765,8 +799,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // Unpin previous chunks
             if (current_eid != std::numeric_limits<uint32_t>::max()) {
                 if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
-                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++)
+                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+                    if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
                     ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+                }
             }
 
             size_t chunk_size = ext_property_types.empty() ? extent_cat_entry->chunks.size() : ext_property_types.size();
@@ -776,7 +812,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             
             int j = 0;
             for (int i = 0; i < chunk_size; i++) {
-                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) continue;
+                if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    continue;
+                }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
@@ -787,8 +826,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
 
         // Request chunk cache manager to finalize I/O
-        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++)
+        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+        }
         current_eid = ext_ids_to_iterate[previous_idx];
 
         // Initialize DataChunk using cached buffer
@@ -880,8 +921,10 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
     if (current_idx > max_idx) return false;
 
     // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++)
+    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++) {
+        if (io_requested_cdf_ids[prev_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+    }
 
     CompressionHeader comp_header;
     
