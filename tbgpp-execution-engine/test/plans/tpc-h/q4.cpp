@@ -39,7 +39,7 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 		);
 		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,
 			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),
-			move( make_unique<BoundConstantExpression>(Value::DATE(1994,2,1)))
+			move( make_unique<BoundConstantExpression>(Value::DATE(1994,4,1)))
 		);
 		filter_exprs.push_back(move(filter_expr1));
 		filter_exprs.push_back(move(filter_expr2));
