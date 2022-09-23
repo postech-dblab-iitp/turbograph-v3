@@ -95,7 +95,7 @@ public:
 		if( key.compare("s3") == 0 ) { return LDBC_IS3(); }
 		if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
 		if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
-		if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
+		// if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
 		if( key.compare("s7") == 0 ) { return LDBC_IS7(); }
 		if( key.compare("c2") == 0 ) { return LDBC_IC2(); }
 		if( key.compare("c4") == 0 ) { return LDBC_IC4(); }

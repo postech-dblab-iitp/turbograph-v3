@@ -160,7 +160,7 @@ icecream::ic.disable();
 	InputParser input(argc, argv);
 	input.getCmdOption();
 
-	fprintf(stdout, "Initialize DiskAioParameters\n\n");
+	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
@@ -174,7 +174,7 @@ icecream::ic.disable();
 	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 
 	// Initialize ChunkCacheManager
-	fprintf(stdout, "\nInitialize ChunkCacheManager\n");
+	// fprintf(stdout, "\nInitialize ChunkCacheManager\n");
 	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
 
 	// Run Catch Test
@@ -216,13 +216,13 @@ icecream::ic.disable();
 		query_timer.start();
 		int idx = 0;
 		for( auto exec : executors ) { 
-			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			//std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 			//std::cout << exec->pipeline->toString() << std::endl;
-			std::cout << "starting!!" << std::endl;
+			//std::cout << "starting!!" << std::endl;
 			// icecream::ic.enable();
 			exec->ExecutePipeline();
 			// icecream::ic.disable();
-			std::cout << "done pipeline execution!!" << std::endl;
+			//std::cout << "done pipeline execution!!" << std::endl;
 		}
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
@@ -286,7 +286,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	std::string filename = "execution-log/" + start_time;
 	if( is_debug ) filename += "_debug";
 	if( ! is_debug ) {
-		std::cout << "saving query visualization in : " << "build/execution-log/" << filename << ".html" << std::endl << std::endl;
+		std::cout << "saving query profile result in : " << "build/execution-log/" << filename << ".html" << std::endl << std::endl;
 	}
 	std::ofstream file( filename + ".html" );
 
