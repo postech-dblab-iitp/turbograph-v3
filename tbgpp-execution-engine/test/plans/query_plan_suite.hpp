@@ -104,6 +104,7 @@ public:
 		/* TPC-H queries */
 		if( key.compare("q4") == 0 ) { return TPCH_Q4(); }
 		if( key.compare("q10") == 0 ) { return TPCH_Q10(); }
+		if( key.compare("q10-1") == 0 ) { return TPCH_Q10_1(); }
 		if( key.compare("q13") == 0 ) { return TPCH_Q13(); }
 
 		/* Empty plan at last */
@@ -149,6 +150,7 @@ public:
 	std::vector<CypherPipelineExecutor*> TPCH_Q3();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q4();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q10();	//   |   |   |
+	std::vector<CypherPipelineExecutor*> TPCH_Q10_1();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q13();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting

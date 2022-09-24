@@ -914,26 +914,24 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     return true;
 }
 
-bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr) {
+bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, bool is_initialized) {
     D_ASSERT(ext_property_types[0] == LogicalType::FORWARD_ADJLIST || ext_property_types[0] == LogicalType::BACKWARD_ADJLIST); // Only for ADJLIIST now..
     // Keep previous values
     int prev_toggle = toggle;
     if (current_idx > max_idx) return false;
 
     // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++) {
-        if (io_requested_cdf_ids[prev_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-        ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+    if (!is_initialized) {
+        for (int i = 0; i < io_requested_cdf_ids[prev_toggle].size(); i++) {
+            if (io_requested_cdf_ids[prev_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
+        }
     }
 
     CompressionHeader comp_header;
     
     D_ASSERT(ext_property_types.size() == 1);
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        //memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-        // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-        //                 i, io_requested_cdf_ids[prev_toggle][i], comp_header.data_len, 
-        //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         chunk_ptr = (data_ptr_t)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
     }
     return true;
@@ -948,34 +946,61 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
     return enough;
 }
 
-void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type) {
+bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type) {
     ExtentID target_eid = vid >> 32;
 
-    if (is_initialized && target_eid == cur_eid) return;
+    if (is_initialized && target_eid == cur_eid) return true;
+    // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
 
     vector<LogicalType> target_types { adjlist_type };
 	vector<idx_t> target_idxs { (idx_t)adjColIdx };
-    // icecream::ic.enable(); IC(); icecream::ic.disable();
+    
     ext_it = new ExtentIterator();
     ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
     // icecream::ic.enable(); IC(); icecream::ic.disable();
     cur_eid = target_eid;
     is_initialized = true;
+    return false;
+}
+
+void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type) {
+    // vector<ExtentID> target_eids;
+    // uint64_t *vids = (uint64_t *)input.data[srcColIdx].GetData();
+    // ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
+    // for (size_t i = 0; i < input.size(); i++) {
+    //     uint64_t vid = vids[i];
+	// 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+	// 	target_eids.push_back(target_eid);
+    // }
+    // ExtentID target_eid = vid >> 32;
+
+    // if (is_initialized && target_eid == cur_eid) return;
+    // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
+
+    // vector<LogicalType> target_types { adjlist_type };
+	// vector<idx_t> target_idxs { (idx_t)adjColIdx };
+    
+    // ext_it = new ExtentIterator();
+    // ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
+    // // icecream::ic.enable(); IC(); icecream::ic.disable();
+    // cur_eid = target_eid;
+    // is_initialized = true;
 }
 
 void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {
-    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-    data_ptr_t adj_list;
-    ext_it->GetExtent(adj_list);
-    idx_t *adjListBase = (idx_t *)adj_list;
-    *start_idx = target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
-    *end_idx = adjListBase[target_seqno];
+    D_ASSERT(false);
+    // idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+    // data_ptr_t adj_list;
+    // ext_it->GetExtent(adj_list);
+    // idx_t *adjListBase = (idx_t *)adj_list;
+    // *start_idx = target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
+    // *end_idx = adjListBase[target_seqno];
 }
 
-void AdjacencyListIterator::getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) {
+void AdjacencyListIterator::getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized) {
     idx_t target_seqno = vid & 0x00000000FFFFFFFF;
     data_ptr_t adj_list;
-    ext_it->GetExtent(adj_list);
+    ext_it->GetExtent(adj_list, is_initialized);
     idx_t *adjListBase = (idx_t *)adj_list;
     idx_t start_idx = target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
     idx_t end_idx = adjListBase[target_seqno];
