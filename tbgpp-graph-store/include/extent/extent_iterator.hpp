@@ -36,7 +36,7 @@ public:
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, Value filterValue, vector<string> &output_properties, vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> output_col_idx, idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized=true);
-    bool GetExtent(data_ptr_t &chunk_ptr);
+    bool GetExtent(data_ptr_t &chunk_ptr, bool is_initialized);
 
     bool IsInitialized() {
         return is_initialized;
@@ -68,10 +68,10 @@ class AdjacencyListIterator {
 public:
     AdjacencyListIterator() {}
     ~AdjacencyListIterator() {}
-
-    void Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
+    bool Initialize(ClientContext &context, int adjColIdx, uint64_t vid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
+    void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
     void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
-    void getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr);
+    void getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized);
 
 private:
     bool is_initialized = false;

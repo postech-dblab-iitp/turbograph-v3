@@ -9,17 +9,17 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite);
-CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
-CypherPipelineExecutor* q10_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
+CypherPipelineExecutor* q10_1_pipe1(QueryPlanSuite& suite);
+CypherPipelineExecutor* q10_1_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
+CypherPipelineExecutor* q10_1_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
 
 
-std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10() {
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q10_1() {
 icecream::ic.disable();
 	std::vector<CypherPipelineExecutor*> result;
-	auto p1 = q10_pipe1(*this);
-	auto p2 = q10_pipe2(*this, p1);
-	auto p3 = q10_pipe3(*this, p2);
+	auto p1 = q10_1_pipe1(*this);
+	auto p2 = q10_1_pipe2(*this, p1);
+	auto p3 = q10_1_pipe3(*this, p2);
 	result.push_back(p1);
 	result.push_back(p2);
 	result.push_back(p3);
@@ -28,58 +28,59 @@ icecream::ic.disable();
 
 }
 
-CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
+CypherPipelineExecutor* q10_1_pipe1(QueryPlanSuite& suite) {
 
-	// scan LINEITEM;
+	// scan ORDERS;
 	CypherSchema sch1;
-	sch1.addNode("l");
-	sch1.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
-	sch1.addPropertyIntoNode("l", "L_EXTENDEDPRICE", LogicalType::DECIMAL(12, 2));
-	sch1.addPropertyIntoNode("l", "L_DISCOUNT", LogicalType::DECIMAL(12, 2));
-	duckdb::Value filter_val = duckdb::Value((string_t)"R");
+	sch1.addNode("o");
+	sch1.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
+	PropertyKeys o_keys({"O_ORDERDATE"});
 
-// FIXME further pushdown (later)
-	// filter_expr (_l, l.rf, l.ep, l.d)
-	CypherSchema sch2 = sch1;
-	vector<unique_ptr<Expression>> filter_exprs;
-	{
-		unique_ptr<Expression> filter_expr1;
-		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, 
-							make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 1),
-							make_unique<BoundConstantExpression>(Value( (string_t) "R" ))
-						);
-		filter_exprs.push_back(move(filter_expr1));
-	}
-
-	// join l->o ( _l, l.rf, l.ep, l.d)
-	CypherSchema sch3 = sch2;
-	sch3.addNode("o");
-	
-	// fetch o (_l, l.rf, l.ep, l.d, _o)
-	CypherSchema sch4 = sch3;
-	sch4.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
-
-	// filter date range (_l, l.rf, l.ep, l.d, _o, o.od)
+	// filter date range (_o, o.od)
 	vector<unique_ptr<Expression>> filter_exprs_2;
 	{
 // FIXME change predicate when SF changes
 		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,	// orderdate >= 1993-07-01
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) ),
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),
 			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8582))) )
 		);
 		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,	// orderdate < 1993-10-01
-			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 5) ),
+			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),
 			move( make_unique<BoundConstantExpression>(Value::DATE(date_t(8674))) )
 		);
 		filter_exprs_2.push_back(move(filter_expr1));
 		filter_exprs_2.push_back(move(filter_expr2));
 	}
 
+	// join o->l (_o, o.od, _l)
+	CypherSchema sch2 = sch1;
+	sch2.addNode("l");
+
+	// fetch l (_o, o.od, _l, l.rf, l.ep, l.d)
+	CypherSchema sch3 = sch2;
+	sch3.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
+	sch3.addPropertyIntoNode("l", "L_EXTENDEDPRICE", LogicalType::DECIMAL(12, 2));
+	sch3.addPropertyIntoNode("l", "L_DISCOUNT", LogicalType::DECIMAL(12, 2));
+	duckdb::Value filter_val = duckdb::Value((string_t)"R");
+
+// FIXME further pushdown (later)
+	// filter_expr (_o, o.od, _l, l.rf, l.ep, l.d)
+	CypherSchema sch4 = sch3;
+	vector<unique_ptr<Expression>> filter_exprs;
+	{
+		unique_ptr<Expression> filter_expr1;
+		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, 
+							make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 3),
+							make_unique<BoundConstantExpression>(Value( (string_t) "R" ))
+						);
+		filter_exprs.push_back(move(filter_expr1));
+	}
+	
 	// join o->c (_l, l.rf, l.ep, l.d, _o, o.od)
 	CypherSchema sch5 = sch4;
 	sch5.addNode("c");
 
-	// fetch c (_l, l.rf, l.ep, l.d, _o, o.od, _c)
+	// fetch c (_o, o.od, _l, l.rf, l.ep, l.d, _c)
 	CypherSchema sch6 = sch5;
 	sch6.addPropertyIntoNode("c", "C_NAME", LogicalType::VARCHAR);
 	sch6.addPropertyIntoNode("c", "C_ACCTBAL", LogicalType::DECIMAL(12,2));
@@ -87,15 +88,15 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	sch6.addPropertyIntoNode("c", "C_PHONE", LogicalType::VARCHAR);
 	sch6.addPropertyIntoNode("c", "C_COMMENT", LogicalType::VARCHAR);
 
-	// join c->n (_l, l.rf, l.ep, l.d, _o, o.od, _c, c.name, c.ab, c.addr, c.pho, c.cmt)
+	// join c->n (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt)
 	CypherSchema sch7 = sch6;
 	sch7.addNode("n");
 
-	// fetch n (_l, l.rf, l.ep, l.d, _o, o.od, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n)
+	// fetch n (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n)
 	CypherSchema sch8 = sch7;
 	sch8.addPropertyIntoNode("n", "N_NAME", LogicalType::VARCHAR);
 
-	// projection (_l, l.rf, l.ep, l.d, _o, o.od, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n, n.name)
+	// projection (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n, n.name)
 	CypherSchema sch9;
 	sch9.addNode("c");
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
@@ -176,13 +177,11 @@ IC();
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
 // FIXME further add predicate to sacn and remove filter
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("LINEITEM"), PropertyKeys({"L_RETURNFLAG", "L_EXTENDEDPRICE", "L_DISCOUNT"})) );
-	// ops.push_back( new PhysicalNodeScan(sch1, LabelSet("LINEITEM"), PropertyKeys({"L_EXTENDEDPRICE"})) );
-	ops.push_back( new PhysicalFilter(sch2, move(filter_exprs)) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch3, "l", LabelSet("LINEITEM"), LabelSet("IS_PART_OF"), ExpandDirection::OUTGOING, LabelSet("ORDERS"), JoinType::INNER, false, true) );
-	// ops.push_back( new PhysicalProduceResults(sch3) );
-	ops.push_back( new PhysicalNodeIdSeek(sch4, "o", LabelSet("ORDERS"), PropertyKeys({"O_ORDERDATE"}) ) );
-	ops.push_back( new PhysicalFilter(sch4, move(filter_exprs_2)) );
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("ORDERS"), PropertyKeys({"O_ORDERDATE"}) ) );
+	ops.push_back( new PhysicalFilter(sch1, move(filter_exprs_2)) );
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "o", LabelSet("ORDERS"), LabelSet("IS_PART_OF_BACKWARD"), ExpandDirection::OUTGOING, LabelSet("LINEITEM"), JoinType::INNER, false, true) );
+	ops.push_back( new PhysicalNodeIdSeek(sch3, "l", LabelSet("LINEITEM"), PropertyKeys({"L_RETURNFLAG", "L_EXTENDEDPRICE", "L_DISCOUNT"})) );
+	ops.push_back( new PhysicalFilter(sch4, move(filter_exprs)) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch5, "o", LabelSet("ORDERS"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("CUSTOMER"), JoinType::INNER, false, true ) );
 	ops.push_back( new PhysicalNodeIdSeek(sch6, "c", LabelSet("CUSTOMER"), PropertyKeys({"C_NAME", "C_ACCTBAL", "C_ADDRESS", "C_PHONE", "C_COMMENT"})) );
 	ops.push_back( new PhysicalAdjIdxJoin(sch7, "c", LabelSet("CUSTOMER"), LabelSet("BELONG_TO"), ExpandDirection::OUTGOING, LabelSet("NATION"), JoinType::INNER, false, true) );
@@ -195,7 +194,7 @@ IC();
 	auto pipeexec = new CypherPipelineExecutor(ctx, pipe);
 	return pipeexec;
 }
-CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
+CypherPipelineExecutor* q10_1_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 	// orderby (_c, c_name, c_ab, c_addr, c_pho, c.cmt, n.name, revenue:double)
 	CypherSchema sch9;
@@ -235,7 +234,7 @@ IC();
 	return pipeexec;
 }
 
-CypherPipelineExecutor* q10_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
+CypherPipelineExecutor* q10_1_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 IC();
 
 	CypherSchema sch9;

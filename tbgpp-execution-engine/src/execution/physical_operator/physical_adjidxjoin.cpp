@@ -97,6 +97,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 // icecream::ic.enable(); IC(); icecream::ic.disable();
 // for( auto& k: edgeLabelSet.data ) { IC(k); }
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, adjColIdxs, adjColTypes);
+	// context.client->graph_store->initgetAdjList(*state.adj_it, input, srcColIdx, adjColIdxs[0], expandDir);
 // icecream::ic.enable(); IC(); IC(adjColIdxs.size()); icecream::ic.disable();
 	D_ASSERT( adjColIdxs.size() > 0);
 	D_ASSERT( adjColIdxs.size() == adjColTypes.size() );
@@ -105,17 +106,10 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 // IC(adjColIdxs[0]);
 
 	uint64_t* adj_start; uint64_t* adj_end;
+	uint64_t *src_vid_column = (uint64_t *)input.data[srcColIdx].GetData();
 
 	// iterate source vids
 	for( ; state.checkpoint.first < input.size() ; state.checkpoint.first++) {
-
-// WARNING adjfetch timer very slow
-// if( ! timer2_started ) {
-// 	timer2.start();
-// 	timer2_started = true;
-// } else {
-// 	timer2.resume();
-// }
 		// check if output chunk full
 		if( numProducedTuples == EXEC_ENGINE_VECTOR_SIZE ) {
 			isHaveMoreOutput = true;
@@ -123,32 +117,24 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		}
 
 		// check if vid is null
-		if( state.checkpoint.second == 0 && input.GetValue(srcColIdx, state.checkpoint.first).IsNull() ) {
-			// when left join produce left
-			if( join_type == JoinType::LEFT ) {
-				// produce lhs (actually lazy on later)
-				state.rhs_sel.set_index(numProducedTuples, state.checkpoint.first);
-				// produce rhs (null)
-				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
-				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
-				numProducedTuples +=1;
-			}
-			continue;
-		}
+		// if( state.checkpoint.second == 0 && input.GetValue(srcColIdx, state.checkpoint.first).IsNull() ) { // TODO Null check without GetValue
+		// // if( state.checkpoint.second == 0 ) {
+		// 	// when left join produce left
+		// 	if( join_type == JoinType::LEFT ) {
+		// 		// produce lhs (actually lazy on later)
+		// 		state.rhs_sel.set_index(numProducedTuples, state.checkpoint.first);
+		// 		// produce rhs (null)
+		// 		chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
+		// 		if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
+		// 		numProducedTuples +=1;
+		// 	}
+		// 	continue;
+		// }
 		// TODO actually there should be one more chunk full checking logic after producing 1 tuple in left join
 		// vid is not null. now get source vid
-		uint64_t vid = input.data[srcColIdx].GetValue(state.checkpoint.first).GetValue<uint64_t>();
-// WARNING adjfetch timer very slow
-// if( ! adjfetch_timer_started ) {
-// 	adjfetch_timer.start();
-// 	adjfetch_timer_started = true;
-// } else {
-// 	adjfetch_timer.resume();
-// }
-// icecream::ic.enable(); IC(); icecream::ic.disable();
-		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], vid, adj_start, adj_end, expandDir);
-// icecream::ic.enable(); IC(); icecream::ic.disable();
-// adjfetch_timer.stop();
+		// uint64_t vid = input.data[srcColIdx].GetValue(state.checkpoint.first).GetValue<uint64_t>(); // XXX No problem?
+		uint64_t src_vid = src_vid_column[state.checkpoint.first];
+		context.client->graph_store->getAdjListFromVid(*state.adj_it, adjColIdxs[0], src_vid, adj_start, adj_end, expandDir);
 
 		size_t adjListSize = adj_end - adj_start;
 		D_ASSERT( adjListSize % 2 == 0 );
@@ -160,7 +146,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			if( adjListSize > 0 ) { 
 				// produce lhs only
 				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) ); // TODO remove GetValue & SetValue
 				}
 				numProducedTuples +=1;
 			}
@@ -169,7 +155,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			if( adjListSize == 0 ) { 
 				// produce lhs only
 				for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) );
+					chunk.SetValue(colId, numProducedTuples, input.GetValue(colId, state.checkpoint.first) ); // TODO remove GetValue & SetValue
 				}
 				numProducedTuples +=1;
 			}
@@ -181,8 +167,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 				// produce lhs (actually lazy on later)
 				state.rhs_sel.set_index(numProducedTuples, state.checkpoint.first);
 				// produce rhs (null)
-				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT ));
-				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); }
+				chunk.SetValue(tgtColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); // TODO remove GetValue & SetValue
+				if( load_eid ) { chunk.SetValue(edgeColIdx, numProducedTuples, Value( LogicalType::UBIGINT )); } // TODO remove GetValue & SetValue
 				numProducedTuples +=1;
 			}
 			continue;

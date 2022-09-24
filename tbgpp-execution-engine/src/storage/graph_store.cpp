@@ -313,6 +313,17 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, 
 	}
 }
 
+StoreAPIResult iTbgppGraphStore::initgetAdjList(AdjacencyListIterator &adj_iter, DataChunk &input, idx_t srcColIdx, int adjColIdx, ExpandDirection expand_dir) {
+	// D_ASSERT( expand_dir ==ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
+	// if (expand_dir == ExpandDirection::OUTGOING) {
+	// 	// icecream::ic.enable(); IC(); icecream::ic.disable();
+	// 	adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
+	// 	// icecream::ic.enable(); IC(); icecream::ic.disable();
+	// } else if (expand_dir == ExpandDirection::INCOMING) {
+	// 	adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
+	// }
+}
+
 StoreAPIResult iTbgppGraphStore::getAdjListRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t* start_idx, uint64_t* end_idx) {
 	D_ASSERT(false);
 	adj_iter.Initialize(client, adjColIdx, vid);
@@ -329,15 +340,16 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_
 
 StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
 	D_ASSERT( expand_dir ==ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
+	bool is_initialized;
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		// icecream::ic.enable(); IC(); icecream::ic.disable();
-		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
+		is_initialized = adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
 		// icecream::ic.enable(); IC(); icecream::ic.disable();
 	} else if (expand_dir == ExpandDirection::INCOMING) {
-		adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
+		is_initialized = adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
 	}
 
-	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr);
+	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr, is_initialized);
 	return StoreAPIResult::OK;
 }
 
