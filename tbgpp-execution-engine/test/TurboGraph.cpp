@@ -216,13 +216,13 @@ icecream::ic.disable();
 		query_timer.start();
 		int idx = 0;
 		for( auto exec : executors ) { 
-			//std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 			//std::cout << exec->pipeline->toString() << std::endl;
 			//std::cout << "starting!!" << std::endl;
 			// icecream::ic.enable();
 			exec->ExecutePipeline();
 			// icecream::ic.disable();
-			//std::cout << "done pipeline execution!!" << std::endl;
+			std::cout << "done pipeline execution!!" << std::endl;
 		}
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;

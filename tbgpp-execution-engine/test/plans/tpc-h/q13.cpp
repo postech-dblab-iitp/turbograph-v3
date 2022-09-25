@@ -45,7 +45,7 @@ CypherPipelineExecutor* q13_pipe1(QueryPlanSuite& suite) {
 	// aggregate (_o, o.c, _c)
 	CypherSchema sch3;
 	sch3.addNode("c");
-	sch3.addColumn("c_count", LogicalType::INTEGER);
+	sch3.addColumn("c_count", LogicalType::BIGINT);
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_groups;
 	// 1 keys (groups)
@@ -75,13 +75,13 @@ CypherPipelineExecutor* q13_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 	// aggregate2 (c_id, c_count) -> (c_count, count(cid))
 	CypherSchema sch4;
-	sch4.addColumn("c_count", LogicalType::INTEGER);
-	sch4.addColumn("custdist", LogicalType::INTEGER );
+	sch4.addColumn("c_count", LogicalType::BIGINT);
+	sch4.addColumn("custdist", LogicalType::BIGINT );
 
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_groups;
 	// 1 keys (groups)
-	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 1) ); // c_count
+	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1) ); // c_count
 	// 1 agg expression
 	vector<unique_ptr<Expression>> agg_expr_1_child;
 	auto agg_expr_func = CountStarFun::GetFunction();
@@ -111,12 +111,12 @@ CypherPipelineExecutor* q13_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 	// orderby (c_count, custdist)
 	CypherSchema sch4;
-	sch4.addColumn("c_count", LogicalType::INTEGER);
-	sch4.addColumn("custdist", LogicalType::INTEGER );
+	sch4.addColumn("c_count", LogicalType::BIGINT);
+	sch4.addColumn("custdist", LogicalType::BIGINT );
 
-	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 1);	// custdist
+	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1);	// custdist
 	BoundOrderByNode order1(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
-	unique_ptr<Expression> order_expr_2 = make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 0);	// c_count
+	unique_ptr<Expression> order_expr_2 = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 0);	// c_count
 	BoundOrderByNode order2(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_2));
 	vector<BoundOrderByNode> orders;
 	orders.push_back(move(order1));
