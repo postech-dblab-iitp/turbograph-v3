@@ -150,7 +150,9 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 
 	// std::sort( target_eids.begin(), target_eids.end() );
 	target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
-// icecream::ic.enable(); IC(target_eids.size(), boundary_position.size()); icecream::ic.disable();
+	// icecream::ic.enable(); IC(target_eids.size(), boundary_position.size()); 
+	// for (size_t i = 0; i < target_eids.size(); i++) IC(i, target_eids[i]);
+	// icecream::ic.disable();
 
 	if (target_eids.size() == 0) return StoreAPIResult::DONE;
 // icecream::ic.enable(); IC(); icecream::ic.disable();
