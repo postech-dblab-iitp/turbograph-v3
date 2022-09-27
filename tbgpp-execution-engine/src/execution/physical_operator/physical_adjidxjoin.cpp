@@ -121,16 +121,37 @@ inline uint64_t& getIdRefFromVector(Vector& vector, idx_t index) {
 
 void PhysicalAdjIdxJoin::ProcessSemiAntiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate; 
-	D_ASSERT(false);
+	
+	D_ASSERT(join_type == JoinType::SEMI || join_type == JoinType::ANTI);
 
-	// TODO later
+	uint64_t* adj_start;
+	uint64_t* adj_end;
+	uint64_t src_vid;
+	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
+	size_t adjlist_size;
 
-	// function handle semiantijoin
-	// if semi => notnull and size > 0
-	// if anti -> null or size == 0 
-
+	for( ; state.lhs_idx < input.size(); state.lhs_idx++ ) {
+		
+		uint64_t& src_vid = getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
+		context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[state.adj_idx], src_vid, adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]));
+		// FIXME debug calculate size directly here
+		int adj_size_debug = (adj_end - adj_start)/2;
+		const bool predicate_satisfied = (join_type == JoinType::SEMI)
+							? ( !state.src_nullity[state.lhs_idx] && adj_size_debug > 0 ) 		// semi join
+							: ( state.src_nullity[state.lhs_idx] || adj_size_debug == 0 );		// anti join
+		if( predicate_satisfied ) {
+			state.rhs_sel.set_index(state.output_idx++, state.lhs_idx);
+		}
+	}
 	// use sel vector and filter lhs to chunk
-	// return
+	// chunk determined. now fill in lhs using slice operation
+	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
+		chunk.data[colId].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+	}
+	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
+	chunk.SetCardinality(state.output_idx);
+
+
 }
 
 void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &input, OperatorState &lstate) const {
