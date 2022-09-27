@@ -119,7 +119,7 @@ static void ConcatenateKeys(Vector &input, idx_t count, vector<unique_ptr<Key>> 
 }
 
 void ART::GenerateKeys(DataChunk &input, vector<unique_ptr<Key>> &keys) {
-	keys.reserve(STANDARD_VECTOR_SIZE);
+	keys.reserve(input.size());
 	// generate keys for the first input column
 	switch (input.data[0].GetType().InternalType()) {
 	case PhysicalType::BOOL:
