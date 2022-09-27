@@ -15,7 +15,7 @@
 
 #include <cassert>
 
-//#define OP_TIMER 
+// #define OP_TIMER
 
 namespace duckdb {
 
@@ -87,9 +87,9 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 #endif
 	// call
 // FIXME
-icecream::ic.enable();
-//IC(pipeline->GetSource()->ToString());
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(pipeline->GetSource()->ToString());
+// icecream::ic.disable();
 	switch( childs.size() ) {
 		// no child pipeline
 		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break;}
@@ -131,9 +131,9 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 #endif
 		// std::cout << "call sink!!" << std::endl;
 // FIXME
-icecream::ic.enable();
-//IC(pipeline->GetSink()->ToString());
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(pipeline->GetSink()->ToString());
+// icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
@@ -196,9 +196,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 #endif
 			// call operator
 // FIXME
-icecream::ic.enable();
-//IC(pipeline->GetIdxOperator(current_idx)->ToString());
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(pipeline->GetIdxOperator(current_idx)->ToString());
+// icecream::ic.disable();
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
