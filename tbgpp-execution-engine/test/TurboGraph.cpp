@@ -350,6 +350,8 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 
 	// add child when operator is 
 	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
+		(*content)["Timer1"] = ((PhysicalAdjIdxJoin*)op)->timer1.elapsed().wall / 1000000.0 ;
+		(*content)["Timer2"] = ((PhysicalAdjIdxJoin*)op)->timer2.elapsed().wall / 1000000.0 ;
 		(*content)["Plans"] = json::array( { json({}), json({})} );
 		auto& rhs_content = (*content)["Plans"][1];
 		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";

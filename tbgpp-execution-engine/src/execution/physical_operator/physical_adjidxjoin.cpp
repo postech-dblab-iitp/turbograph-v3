@@ -31,6 +31,10 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 
 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
 
+	//FIXME DEBUG
+	timer1_started = false;
+	timer2_started = false;
+	
 }
 
 //===--------------------------------------------------------------------===//
@@ -259,6 +263,12 @@ void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &i
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate; 
  
+if( ! timer1_started ){
+			timer1.start();
+			timer1_started = true;
+		} else {
+			timer1.resume();
+}
 	if( !state.first_fetch ) {
 		// values used while processing
 		state.srcColIdx = schema.getColIdxOfKey(srcName);
@@ -268,18 +278,29 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		GetJoinMatches(context, input, lstate);
 		state.first_fetch = true;
 	}
-	
+
+timer1.stop();
+
 	if( join_type == JoinType::SEMI || join_type == JoinType::ANTI ) {
 		// these joins can be processed in single call. explicitly process them and return
 		ProcessSemiAntiJoin(context, input, chunk, lstate);
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
+if( ! timer2_started ){
+			timer2.start();
+			timer2_started = true;
+		} else {
+			timer2.resume();
+}
+
 	const bool isProcessingTerminated =
 		state.equi_join_finished && (join_type != JoinType::LEFT || state.left_join_finished);
 	if ( isProcessingTerminated ) {	
 		// initialize state for next chunk
 		state.resetForNewInput();
+timer2.stop();
+
 		return OperatorResultType::NEED_MORE_INPUT;
 	} else {
 		if( ! state.equi_join_finished ) {
@@ -289,6 +310,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			if( state.lhs_idx >= input.size() ) {
 				state.equi_join_finished = true;
 			}
+timer2.stop();
 			return OperatorResultType::HAVE_MORE_OUTPUT;
 		} else {
 			D_ASSERT( ! state.left_join_finished );
@@ -298,6 +320,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 			if( state.left_lhs_idx >= input.size() ) {
 				state.left_join_finished = true;
 			}
+timer2.stop();
 			return OperatorResultType::HAVE_MORE_OUTPUT;
 		}
 	}
