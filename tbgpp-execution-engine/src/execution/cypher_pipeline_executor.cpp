@@ -15,7 +15,7 @@
 
 #include <cassert>
 
-//#define OP_TIMER 
+#define OP_TIMER 
 
 namespace duckdb {
 
