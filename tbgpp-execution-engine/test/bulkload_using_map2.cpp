@@ -698,6 +698,7 @@ icecream::ic.disable();
 			// src_seqno++;
 
 			while(src_seqno < max_seqno) {
+				// Get Cur_Src_ID
 				if (src_column_idx.size() == 1) {
 					key.first = src_key_columns[0][src_seqno];
 					key.second = 0;
@@ -750,6 +751,7 @@ icecream::ic.disable();
 						}
 					}
 					is_first_tuple_processed = true;
+					prev_id = cur_src_id;
 				}
 
 				cur_src_pid = src_lid_to_pid_map_instance.at(key);
