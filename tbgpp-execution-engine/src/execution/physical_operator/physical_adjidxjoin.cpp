@@ -100,8 +100,23 @@ unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext 
 	return make_unique<AdjIdxJoinState>( );
 }
 
+// helper functions
 inline ExpandDirection adjListLogicalTypeToExpandDir(LogicalType adjType) {
 	return adjType == LogicalType::FORWARD_ADJLIST ? ExpandDirection::OUTGOING : ExpandDirection::INCOMING;
+}
+
+inline uint64_t& getIdRefFromVector(Vector& vector, idx_t index) {
+	switch( vector.GetVectorType() ) {
+		case VectorType::DICTIONARY_VECTOR: {
+			return ((uint64_t *)vector.GetData())[DictionaryVector::SelVector(vector).get_index(index)];
+		}
+		case VectorType::FLAT_VECTOR: {
+			return ((uint64_t *)vector.GetData())[index];
+		}
+		default: {
+			D_ASSERT(false);
+		}
+	}
 }
 
 void PhysicalAdjIdxJoin::ProcessSemiAntiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
@@ -147,20 +162,19 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 	}
 	
 	// ask for sizes foreach srcvid
-	uint64_t *src_vid_column = (uint64_t *)input.data[state.srcColIdx].GetData();
+	Vector& src_vid_column_vector = input.data[state.srcColIdx];
 	uint64_t *adj_start; uint64_t *adj_end;
 	size_t adjListSize = adj_end - adj_start;
 
 	for(idx_t a_i = 0; a_i < state.adj_col_idxs.size(); a_i++) {
 		for(idx_t v_i = 0; v_i < input.size(); v_i++) {
 			// FIXME need to use different APIs : that only returns size not whoe adjacency
-			context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[a_i], src_vid_column[v_i], adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[a_i]));
+			context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[a_i], getIdRefFromVector(src_vid_column_vector, v_i), adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[a_i]));
 			adjListSize = (adj_end - adj_start)/2;
 			state.join_sizes[v_i][a_i] = adjListSize;
 			state.total_join_size[v_i] += adjListSize;
 		}
 	}
-
 }
 
 // TODO function handlepredicates
@@ -175,9 +189,9 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	uint64_t* adj_start;
 	uint64_t* adj_end;
 	uint64_t src_vid;
-	uint64_t *src_vid_column = (uint64_t *)input.data[state.srcColIdx].GetData();
-	uint64_t *tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();
-	uint64_t *eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();
+	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
+	uint64_t *tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	uint64_t *eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	size_t adjlist_size;
 
 	// iterate source vids
@@ -188,7 +202,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 			state.lhs_idx++;
 			continue;
 		}
-		uint64_t src_vid = src_vid_column[state.lhs_idx];
+		uint64_t& src_vid = getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[state.adj_idx], src_vid, adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]));
 
 		// calculate size
