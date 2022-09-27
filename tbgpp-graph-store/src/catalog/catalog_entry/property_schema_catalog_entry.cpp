@@ -11,7 +11,8 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
-	, property_keys(void_alloc), extent_ids(void_alloc), local_extent_id_version(0), property_key_names(void_alloc), property_typesid(void_alloc) {
+	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc)
+	, local_extent_id_version(0), property_key_names(void_alloc), property_typesid(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 }
@@ -74,10 +75,24 @@ void PropertySchemaCatalogEntry::SetKeys(ClientContext &context, vector<string> 
 	}
 }
 
+void PropertySchemaCatalogEntry::SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_) {
+	for (auto &it : key_column_idxs_) {
+		key_column_idxs.push_back(it);
+	}
+}
+
 vector<string> PropertySchemaCatalogEntry::GetKeys() {
 	vector<string> output;
 	for (auto &it : property_key_names) {
 		output.push_back(std::string(it));
+	}
+	return output;
+}
+
+vector<idx_t> PropertySchemaCatalogEntry::GetKeyColumnIdxs() {
+	vector<idx_t> output;
+	for (auto &it : key_column_idxs) {
+		output.push_back(it);
 	}
 	return output;
 }

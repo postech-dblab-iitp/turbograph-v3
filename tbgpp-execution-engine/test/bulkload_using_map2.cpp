@@ -73,6 +73,169 @@ bool load_backward_edge;
 
 typedef std::pair<idx_t, idx_t> LidPair;
 
+template <typename T, int K>
+class MapKey {
+	using type = MapKey<T, K>;
+	using value_type = T;
+
+	T k[K];
+
+	template<typename... Args>
+		MapKey(T first, Args... args) {
+			std::vector<T> vec = {first, args...};
+			for (auto i = 0; i < K; i++) k[i] = vec[i];
+		}
+
+	template <typename U>
+	operator MapKey<U, K>() const {
+		MapKey<U, K> tmp;
+		for (auto i = 0; i < K; i++) tmp[i] = k[i];
+		return tmp;
+	}
+
+	MapKey() {
+	}
+
+	MapKey(T init_value_) {
+		for (auto i = 0; i < K; i++) k[i] = init_value_;
+	}
+
+	~MapKey() {
+	}
+
+	void SetValue(T value_) {
+		for (auto i = 0; i < K; i++) k[i] = value_;
+	}
+
+	void SetValue(idx_t idx, T value_) {
+		k[idx] = value_;
+	}
+
+	T& operator[] (idx_t idx) {
+		return k[idx];
+	}
+
+	const T& operator[] (idx_t idx) const {
+		return k[idx];
+	}
+
+	MapKey<T, K>& operator=(const MapKey<T, K> &l) {
+		for (auto i = 0; i < K; i++) 
+            k[i] = l[i];
+        return *this;
+	}
+
+	//template <typename t_>
+	//	friend bool operator== (MapKey<t_> &l, MapKey<t_> &r);
+	template <typename t_, int k_>
+		friend bool operator== (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	//template <typename t_>
+	//	friend bool operator!= (MapKey<t_> &l, MapKey<t_> &r);
+	template <typename t_, int k_>
+		friend bool operator!= (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t_, int k_>
+		friend MapKey<t_, k_> operator* (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t_, int k_>
+		friend MapKey<t_, k_> operator/ (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t_, int k_>
+		friend t_ operator* (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t, typename t_, int k_>
+		friend MapKey<t_, k_> operator* (const t &l, const MapKey<t_, k_> &r);
+	template <typename t, typename t_, int k_>
+		friend MapKey<t_, k_> operator* (const MapKey<t_, k_> &l, const t &r);
+	template <typename t_, int k_>
+		friend MapKey<t_, k_> operator+ (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t_, int k_>
+		friend MapKey<t_, k_> operator- (const MapKey<t_, k_> &l, const MapKey<t_, k_> &r);
+	template <typename t_, int k_>
+		friend std::ostream& operator<< (std::ostream& out, const MapKey<t_, k_> &l);
+};
+
+/*template <typename T>
+  bool operator== (MapKey<T> &l, MapKey<T> &r) {
+  ALWAYS_ASSERT(l.latent_factor == r.latent_factor);
+  for (auto i = 0; i < l.latent_factor; i++)
+  if (l[i] != r[i]) return false;
+  return true;
+  }*/
+template <typename T, int K>
+bool operator== (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+    // return checkEquality(l, r);
+	for (auto i = 0; i < K; i++)
+		if (l[i] != r[i]) return false;
+	return true;
+}
+/*template <typename T>
+  bool operator!= (MapKey<T> &l, MapKey<T> &r) {
+  ALWAYS_ASSERT(l.latent_factor == r.latent_factor);
+  for (auto i = 0; i < l.latent_factor; i++)
+  if (l[i] != r[i]) return true;
+  return false;
+  }*/
+template <typename T, int K>
+bool operator!= (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+    // return !checkEquality(l, r);
+	for (auto i = 0; i < K; i++)
+		if (l[i] != r[i]) return true;
+	return false;
+}
+template <typename T, int K>
+MapKey<T, K> operator* (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = l[i] * r[i];
+	return result;
+}
+template <typename T, int K>
+MapKey<T, K> operator/ (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = l[i] / r[i];
+	return result;
+}
+template <typename T, int K>
+T operator* (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+	T result = (T)0;
+	for (auto i = 0; i < K; i++)
+		result += (l[i] * r[i]);
+	return result;
+}
+template <typename S, typename T, int K>
+MapKey<T, K> operator* (const S &l, const MapKey<T, K> &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = l * r[i];
+	return result;
+}
+template <typename S, typename T, int K>
+MapKey<T, K> operator* (const MapKey<T, K> &l, const S &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = r * l[i];
+	return result;
+}
+template <typename T, int K>
+MapKey<T, K> operator+ (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = l[i] + r[i];
+	return result;
+}
+template <typename T, int K>
+MapKey<T, K> operator- (const MapKey<T, K> &l, const MapKey<T, K> &r) {
+	MapKey<T, K> result;
+	for (auto i = 0; i < K; i++)
+		result[i] = l[i] - r[i];
+	return result;
+}
+template <typename T, int K>
+std::ostream& operator<< (std::ostream& out, const MapKey<T, K> &l) {
+    for (auto i = 0; i < K; i++) {
+    	out << l[i] << " ";
+    }
+    return out;
+}
+
 void helper_deallocate_objects_in_shared_memory () {
   string server_socket = "/tmp/catalog_server";
   // setup unix domain socket with storage
@@ -107,6 +270,8 @@ void helper_deallocate_objects_in_shared_memory () {
 
   fprintf(stdout, "Re-initialize shared memory\n");
 }
+
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
 
 class InputParser{
   public:
@@ -185,6 +350,8 @@ icecream::ic.disable();
 	fprintf(stdout, "Init ChunkCacheManager Elapsed: %.3f\n", init_ccm_duration.count());
 
 	// Run Catch Test
+	// int x;
+	// std::cin >> x;
 	fprintf(stdout, "\nBulk Load Start!!\n");
 	auto bulkload_start = std::chrono::high_resolution_clock::now();
 	argc = 1;
@@ -201,7 +368,7 @@ icecream::ic.disable();
 
 	Catalog& cat_instance = database->instance->GetCatalog();
 	ExtentManager ext_mng; // TODO put this into database
-	vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
+	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_to_pid_map; // For Forward & Backward AdjList
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
 	vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
 
@@ -226,14 +393,14 @@ icecream::ic.disable();
 		PartitionID new_pid = graph_cat->GetNewPartitionID();
 		graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
 		
-		fprintf(stdout, "Init GraphCSVFile\n");
+		fprintf(stdout, "Load & Parse GraphCSVFile\n");
 		auto init_csv_start = std::chrono::high_resolution_clock::now();
 		// Initialize CSVFileReader
 		GraphSIMDCSVFileParser reader;
 		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
 		auto init_csv_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
-		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
+		fprintf(stdout, "Load/ParseCSV Elapsed: %.3f\n", init_csv_duration.count());
 
 		// Initialize Property Schema Catalog Entry using Schema of the vertex
 		vector<string> key_names;
@@ -242,7 +409,9 @@ icecream::ic.disable();
 			throw InvalidInputException("");
 		}
 		
-		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+		vector<int64_t> key_column_idxs_ = reader.GetKeyColumnIndexFromHeader();
+		vector<idx_t> key_column_idxs;
+		for (size_t i = 0; i < key_column_idxs_.size(); i++) key_column_idxs.push_back((idx_t) key_column_idxs_[i]);
 		
 		string property_schema_name = "vps_" + vertex_file.first;
 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
@@ -254,6 +423,7 @@ icecream::ic.disable();
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
+		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
 // IC();
 		
 		// Initialize DataChunk
@@ -262,17 +432,17 @@ icecream::ic.disable();
 // IC();
 
 		// Initialize LID_TO_PID_MAP
-		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
+		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
 		ART *index;
 		if (load_edge) {
-			// lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
-			// lid_to_pid_map_instance = &lid_to_pid_map.back().second;
-			// lid_to_pid_map_instance->reserve(approximated_num_rows);
-			vector<column_t> column_ids;
-			for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
-			index = new ART(column_ids, IndexConstraintType::NONE);
-			std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
-			lid_to_pid_index.push_back(pair_to_insert);
+			lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
+			lid_to_pid_map_instance->reserve(approximated_num_rows * 2);
+			// vector<column_t> column_ids;
+			// for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
+			// index = new ART(column_ids, IndexConstraintType::NONE);
+			// std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
+			// lid_to_pid_index.push_back(pair_to_insert);
 		}
 // IC();
 
@@ -299,63 +469,80 @@ icecream::ic.disable();
 				pid_base = pid_base << 32;
 
 				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
-				// auto map_build_start = std::chrono::high_resolution_clock::now();
-				// if (key_column_idx < 0) continue;
-				// idx_t* key_column = (idx_t*) data.data[key_column_idx].GetData(); // XXX idx_t type?
-				// for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-				// 	lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
-				// }
-				// auto map_build_end = std::chrono::high_resolution_clock::now();
-				// std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-//				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
-				// Build Index
-// IC();
-				auto index_build_start = std::chrono::high_resolution_clock::now();
-				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
-				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
-				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-					// IC(seqno, row_ids_data[seqno]);
-				}
-// IC();
-				DataChunk tmp_chunk;
-				vector<LogicalType> tmp_types;
-				tmp_types.resize(1);
-				if (key_column_idxs.size() == 1) {
-// IC();
-					tmp_types[0] = LogicalType::UBIGINT;
-					tmp_chunk.Initialize(tmp_types, data.size());
-					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
-					tmp_chunk.SetCardinality(data.size());
-				} else if (key_column_idxs.size() == 2) {
-// IC();
-					tmp_types[0] = LogicalType::HUGEINT;
-					tmp_chunk.Initialize(tmp_types, data.size());
-					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
+				auto map_build_start = std::chrono::high_resolution_clock::now();
+				if (key_column_idxs.size() == 0) {
+					continue;
+				} else if (key_column_idxs.size() == 1) {
+					LidPair lid_key;
+					lid_key.second = 0;
+					idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData();
+					
 					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-						hugeint_t key_val;
-						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
-						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
-						tmp_chunk_data[seqno] = key_val;
-						// IC(key_val.upper, key_val.lower);
-						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
+						lid_key.first = key_column[seqno];
+						lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
 					}
-					tmp_chunk.SetCardinality(data.size());
+				} else if (key_column_idxs.size() == 2) {
+					LidPair lid_key;
+					idx_t* key_column_1 = (idx_t*) data.data[key_column_idxs[0]].GetData();
+					idx_t* key_column_2 = (idx_t*) data.data[key_column_idxs[1]].GetData();
+					
+					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+						lid_key.first = key_column_1[seqno];
+						lid_key.second = key_column_2[seqno];
+						lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+					}
 				} else {
 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 				}
-// IC();
-				// tmp_types.resize(key_column_idxs.size());
-				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
-				// tmp_chunk.Initialize(tmp_types);
-				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-				// IC(tmp_chunk.size());
-				IndexLock lock;
-				index->Insert(lock, tmp_chunk, row_ids);
-				auto index_build_end = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
+				
+				auto map_build_end = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+
+				// Build Index
+// 				auto index_build_start = std::chrono::high_resolution_clock::now();
+// 				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
+// 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
+// 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
+// 					// IC(seqno, row_ids_data[seqno]);
+// 				}
+
+// 				DataChunk tmp_chunk;
+// 				vector<LogicalType> tmp_types;
+// 				tmp_types.resize(1);
+// 				if (key_column_idxs.size() == 1) {
+// 					tmp_types[0] = LogicalType::UBIGINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else if (key_column_idxs.size() == 2) {
+// 					tmp_types[0] = LogicalType::HUGEINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
+// 					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 						hugeint_t key_val;
+// 						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
+// 						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
+// 						tmp_chunk_data[seqno] = key_val;
+// 						// IC(key_val.upper, key_val.lower);
+// 						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
+// 					}
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else {
+// 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 				}
+// // IC();
+// 				// tmp_types.resize(key_column_idxs.size());
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
+// 				// tmp_chunk.Initialize(tmp_types);
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
+// 				// IC(tmp_chunk.size());
+// 				IndexLock lock;
+// 				index->Insert(lock, tmp_chunk, row_ids);
+// 				auto index_build_end = std::chrono::high_resolution_clock::now();
+// 				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
+// 				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
 			}
 			read_chunk_start = std::chrono::high_resolution_clock::now();
 		}
@@ -402,15 +589,15 @@ icecream::ic.disable();
 		for (size_t i = 0; i < dst_column_idx.size(); i++) fprintf(stdout, " %ld", dst_column_idx[i]);
 		fprintf(stdout, ")\n");
 
-		auto src_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
-			[&src_column_name](const std::pair<string, ART*> &element) { return element.first == src_column_name; });
-		if (src_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
-		ART *src_lid_to_pid_index_instance = src_it->second;
+		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+			[&src_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) { return element.first == src_column_name; });
+		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
+		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &src_lid_to_pid_map_instance = src_it->second;
 
-		auto dst_it = std::find_if(lid_to_pid_index.begin(), lid_to_pid_index.end(),
-			[&dst_column_name](const std::pair<string, ART*> &element) { return element.first == dst_column_name; });
-		if (dst_it == lid_to_pid_index.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
-		ART *dst_lid_to_pid_index_instance = dst_it->second;
+		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+			[&dst_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) { return element.first == dst_column_name; });
+		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
+		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance = dst_it->second;
 
 		string property_schema_name = "eps_" + edge_file.first;
 		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
@@ -444,7 +631,7 @@ icecream::ic.disable();
 		ExtentIterator ext_it;
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
 			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
-		vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
+		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetKeyColumnIdxs());
 // icecream::ic.enable(); IC(); IC(src_column_idxs.size()); for (size_t i = 0; i < src_column_idxs.size(); i++) IC(src_column_idxs[i]); icecream::ic.disable();
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
@@ -453,15 +640,15 @@ icecream::ic.disable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 
 		// Initialize variables related to vertex extent
-		Value cur_src_id, cur_dst_id, min_id, max_id; // Logical ID
+		LidPair cur_src_id, cur_dst_id, min_id, max_id, prev_id; // Logical ID
 		idx_t cur_src_pid, cur_dst_pid; // Physical ID
 		idx_t vertex_seqno;
-		idx_t *vertex_id_column;
+		idx_t *vertex_id_column_1, *vertex_id_column_2;
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
 		bool is_first_tuple_processed = false;
 		vertex_id_chunk.Initialize(vertex_id_type, STORAGE_STANDARD_VECTOR_SIZE);
-// IC();
+		cur_src_id.second = cur_dst_id.second = min_id.second = max_id.second = 0;
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -487,130 +674,89 @@ icecream::ic.disable();
 			idx_t src_seqno = 0, dst_seqno = 0;
 			idx_t begin_idx, end_idx;
 			idx_t max_seqno = data.size();
-			Value prev_id;
 			// idx_t prev_id = ULLONG_MAX;
 
 			// For the first tuple
 			begin_idx = src_seqno;
-// IC();	
 			// D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
-			ARTIndexScanState state;
-			vector<row_t> result_ids;
-			if (src_column_idx.size() == 1) {
-				state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
-				prev_id = cur_src_id = state.values[0];
-			} else if (src_column_idx.size() == 2) {
-				hugeint_t key_val;
-				key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
-				key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-				// IC(key_val.upper, key_val.lower);
-				state.values[0] = Value::HUGEINT(key_val);
-				prev_id = cur_src_id = state.values[0];
-			} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-			result_ids.clear();
-			src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-// 			if (result_ids.size() != 1) {
-// 				IC(result_ids.size());
-// 				if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-// 				else if (src_column_idx.size() == 2) {
-// 					IC(state.values[0].GetValue<hugeint_t>().upper);
-// 					IC(state.values[0].GetValue<hugeint_t>().lower);
-// 				}
-// 				for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
-// 			}
-// IC();
-			D_ASSERT(result_ids.size() == 1);
-			cur_src_pid = result_ids[0];
-			// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
-			src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
-			src_seqno++;
-// IC();
-
-			if (!is_first_tuple_processed) {
-				// Get First Vertex Extent
-				while (true) {
-// IC();
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-						// We do not allow this case
-						throw InvalidInputException("GetNextExtent Fail - The vertex chunk containing the first vertex does not exist");
-					}
-// IC();
-					
-					// Initialize min & max id. We assume that the vertex data is sorted by id
-					if (src_column_idxs.size() == 1) {
-						min_id = vertex_id_chunk.GetValue(0, 0);
-						max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
-					} else if (src_column_idxs.size() == 2) {
-						hugeint_t min_key_val, max_key_val;
-						min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
-						min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
-						min_id = Value::HUGEINT(min_key_val);
-						max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
-						max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
-						max_id = Value::HUGEINT(max_key_val);
-					}
-// icecream::ic.enable(); IC(); IC(cur_src_id.ToString()); IC(vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>()); IC(vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>()); 
-// IC(vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>()); IC(vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>()); IC(min_id.ToString()); IC(max_id.ToString()); icecream::ic.disable();
-					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-				}
-
-				// Initialize vertex_seqno
-				vertex_seqno = 0;
-				if (src_column_idxs.size() == 1) {
-					while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-					}
-				} else if (src_column_idxs.size() == 2) {
-					hugeint_t key_val;
-					key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-					key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-					Value key = Value::HUGEINT(key_val);
-					while (key < cur_src_id) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-						key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-						key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-						key = Value::HUGEINT(key_val);
-					}
-				}
-				is_first_tuple_processed = true;
-			}
+			LidPair key, dst_key;
+			// if (src_column_idx.size() == 1) {
+			// 	key.first = src_key_columns[0][src_seqno];
+			// 	key.second = 0;
+			// 	cur_src_id = key;
+			// 	if (src_column_idx.size() == 1 && dst_column_idx.size() == 1 && (cur_src_id.first > 4194300 && cur_src_id.first < 4194310)) {
+			// 		icecream::ic.enable(); IC(); IC(src_seqno, cur_src_id.first); icecream::ic.disable();
+			// 	}
+			// } else if (src_column_idx.size() == 2) {
+			// 	key.first = src_key_columns[0][src_seqno];
+			// 	key.second = src_key_columns[1][src_seqno];
+			// 	cur_src_id = key;
+			// } else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+			// cur_src_pid = src_lid_to_pid_map_instance.at(key);
 			
+			// src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
+			// src_seqno++;
+
 			while(src_seqno < max_seqno) {
-				// IC(src_seqno);
 				if (src_column_idx.size() == 1) {
-					state.values[0] = Value::UBIGINT(src_key_columns[0][src_seqno]);
-					cur_src_id = state.values[0];
+					key.first = src_key_columns[0][src_seqno];
+					key.second = 0;
+					cur_src_id = key;
+					// if (src_column_idx.size() == 1 && dst_column_idx.size() == 1 && (cur_src_id.first > 4194300 && cur_src_id.first < 4194310)) {
+					// 	icecream::ic.enable(); IC(); IC(src_seqno, cur_src_id.first); icecream::ic.disable();
+					// }
 				} else if (src_column_idx.size() == 2) {
-					hugeint_t key_val;
-					key_val.upper = data.GetValue(src_column_idx[0], src_seqno).GetValue<int64_t>();
-					key_val.lower = data.GetValue(src_column_idx[1], src_seqno).GetValue<uint64_t>();
-					// IC(key_val.upper, key_val.lower);
-					state.values[0] = Value::HUGEINT(key_val);
-					cur_src_id = state.values[0];
+					key.first = src_key_columns[0][src_seqno];
+					key.second = src_key_columns[1][src_seqno];
+					cur_src_id = key;
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-// IC();
-				result_ids.clear();
-				src_lid_to_pid_index_instance->SearchEqual(&state, 1, result_ids);
-				// if (result_ids.size() != 1) {
-				// 	IC(result_ids.size());
-				// 	if (src_column_idx.size() == 1) IC(state.values[0].GetValue<uint64_t>());
-				// 	else if (src_column_idx.size() == 2) {
-				// 		IC(state.values[0].GetValue<hugeint_t>().upper);
-				// 		IC(state.values[0].GetValue<hugeint_t>().lower);
-				// 	}
-				// 	for (size_t i = 0; i < result_ids.size(); i++) IC(result_ids[i]);
-				// }
-				D_ASSERT(result_ids.size() == 1);
-				cur_src_pid = result_ids[0];
-// IC();
-				// cur_src_id = src_key_column[src_seqno];
-				// cur_src_pid = src_lid_to_pid_map_instance.at(src_key_column[src_seqno]);
+
+				if (!is_first_tuple_processed) {
+					// Get First Vertex Extent
+					while (true) {
+	// IC();
+						if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+							// We do not allow this case
+							throw InvalidInputException("GetNextExtent Fail - The vertex chunk containing the first vertex does not exist");
+						}
+	// IC();
+						
+						// Initialize min & max id. We assume that the vertex data is sorted by id
+						if (src_column_idxs.size() == 1) {
+							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+							min_id.first = vertex_id_column_1[0];
+							max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+						} else if (src_column_idxs.size() == 2) {
+							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+							vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
+							min_id.first = vertex_id_column_1[0];
+							min_id.second = vertex_id_column_2[0];
+							max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+							max_id.second = vertex_id_column_2[vertex_id_chunk.size() - 1];
+						}
+						if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+					}
+
+					// Initialize vertex_seqno
+					vertex_seqno = 0;
+					if (src_column_idxs.size() == 1) {
+						while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
+							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						}
+					} else if (src_column_idxs.size() == 2) {
+						while ((vertex_id_column_1[vertex_seqno] < cur_src_id.first) ||
+							((vertex_id_column_1[vertex_seqno] == cur_src_id.first) && (vertex_id_column_2[vertex_seqno] < cur_src_id.second))) {
+							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						}
+					}
+					is_first_tuple_processed = true;
+				}
+
+				cur_src_pid = src_lid_to_pid_map_instance.at(key);
 				src_key_columns[0][src_seqno] = cur_src_pid;
 				if (cur_src_id == prev_id) {
-					// IC();
 					src_seqno++;
 				} else {
-					// IC();
 					// lid_pair.first = prev_id;
 					end_idx = src_seqno;
 					if (load_backward_edge) {
@@ -630,36 +776,21 @@ icecream::ic.disable();
 					} else {
 						if (dst_column_idx.size() == 1) {
 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-								ARTIndexScanState dst_state;
-								vector<row_t> dst_result_ids;
-								dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
-								dst_result_ids.clear();
-								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-								D_ASSERT(dst_result_ids.size() == 1);
-								cur_dst_pid = dst_result_ids[0];
+								dst_key.first = dst_key_columns[0][dst_seqno];
+								dst_key.second = 0;
+								cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 								dst_key_columns[0][dst_seqno] = cur_dst_pid;
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
-								// IC();
-								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else if (dst_column_idx.size() == 2) {
 							for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-								ARTIndexScanState dst_state;
-								vector<row_t> dst_result_ids;
-								hugeint_t key_val;
-								key_val.upper = data.GetValue(dst_column_idx[0], dst_seqno).GetValue<int64_t>();
-								key_val.lower = data.GetValue(dst_column_idx[1], dst_seqno).GetValue<uint64_t>();
-								dst_state.values[0] = Value::HUGEINT(key_val);
-								dst_result_ids.clear();
-								dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-								D_ASSERT(dst_result_ids.size() == 1);
-								cur_dst_pid = dst_result_ids[0];
+								dst_key.first = dst_key_columns[0][dst_seqno];
+								dst_key.second = dst_key_columns[1][dst_seqno];
+								cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 								dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 								adj_list_buffer.push_back(cur_dst_pid);
 								adj_list_buffer.push_back(epid_base + dst_seqno);
-								// IC();
-								// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 							}
 						} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 					}
@@ -692,17 +823,18 @@ icecream::ic.disable();
 							}
 						
 							// Initialize min & max id
+
 							if (src_column_idxs.size() == 1) {
-								min_id = vertex_id_chunk.GetValue(0, 0);
-								max_id = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1);
+								vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+								min_id.first = vertex_id_column_1[0];
+								max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
 							} else if (src_column_idxs.size() == 2) {
-								hugeint_t min_key_val, max_key_val;
-								min_key_val.upper = vertex_id_chunk.GetValue(0, 0).GetValue<int64_t>();
-								min_key_val.lower = vertex_id_chunk.GetValue(1, 0).GetValue<uint64_t>();
-								min_id = Value::HUGEINT(min_key_val);
-								max_key_val.upper = vertex_id_chunk.GetValue(0, vertex_id_chunk.size() - 1).GetValue<int64_t>();
-								max_key_val.lower = vertex_id_chunk.GetValue(1, vertex_id_chunk.size() - 1).GetValue<uint64_t>();
-								max_id = Value::HUGEINT(max_key_val);
+								vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+								vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
+								min_id.first = vertex_id_column_1[0];
+								min_id.second = vertex_id_column_2[0];
+								max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+								max_id.second = vertex_id_column_2[vertex_id_chunk.size() - 1];
 							}
 							if (cur_src_id >= min_id && cur_src_id <= max_id) break;
 						}
@@ -710,36 +842,25 @@ icecream::ic.disable();
 						// Initialize vertex_seqno
 						vertex_seqno = 0;
 						if (src_column_idxs.size() == 1) {
-							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
+							while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
+								// icecream::ic.enable(); IC(current_vertex_eid, vertex_seqno, vertex_id_column_1[vertex_seqno], cur_src_id.first); icecream::ic.disable();
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 							}
 						} else if (src_column_idxs.size() == 2) {
-							hugeint_t key_val;
-							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-							Value key = Value::HUGEINT(key_val);
-							while (key < cur_src_id) {
+							while ((vertex_id_column_1[vertex_seqno] < cur_src_id.first) ||
+								((vertex_id_column_1[vertex_seqno] == cur_src_id.first) && (vertex_id_column_2[vertex_seqno] < cur_src_id.second))) {
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-								key = Value::HUGEINT(key_val);
 							}
 						}
 					} else {
 						if (src_column_idxs.size() == 1) {
-							while (vertex_id_chunk.GetValue(0, vertex_seqno) < cur_src_id) {
+							while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 							}
 						} else if (src_column_idxs.size() == 2) {
-							hugeint_t key_val;
-							key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-							key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-							Value key = Value::HUGEINT(key_val);
-							while (key < cur_src_id) {
+							while ((vertex_id_column_1[vertex_seqno] < cur_src_id.first) ||
+								((vertex_id_column_1[vertex_seqno] == cur_src_id.first) && (vertex_id_column_2[vertex_seqno] < cur_src_id.second))) {
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-								key_val.upper = vertex_id_chunk.GetValue(0, vertex_seqno).GetValue<int64_t>();
-								key_val.lower = vertex_id_chunk.GetValue(1, vertex_seqno).GetValue<uint64_t>();
-								key = Value::HUGEINT(key_val);
 							}
 						}
 					}
@@ -767,30 +888,18 @@ icecream::ic.disable();
 			} else {
 				if (dst_column_idx.size() == 1) {
 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						ARTIndexScanState dst_state;
-						vector<row_t> dst_result_ids;
-						dst_state.values[0] = Value::UBIGINT(dst_key_columns[0][dst_seqno]);
-						dst_result_ids.clear();
-						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-						D_ASSERT(dst_result_ids.size() == 1);
-						cur_dst_pid = dst_result_ids[0];
+						dst_key.first = dst_key_columns[0][dst_seqno];
+						dst_key.second = 0;
+						cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 						dst_key_columns[0][dst_seqno] = cur_dst_pid;
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
-						// IC(src_seqno, dst_seqno, epid_base, cur_dst_pid, epid_base + dst_seqno);
 					}
 				} else if (dst_column_idx.size() == 2) {
 					for(dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
-						ARTIndexScanState dst_state;
-						vector<row_t> dst_result_ids;
-						hugeint_t key_val;
-						key_val.upper = data.GetValue(dst_column_idx[0], dst_seqno).GetValue<int64_t>();
-						key_val.lower = data.GetValue(dst_column_idx[1], dst_seqno).GetValue<uint64_t>();
-						dst_state.values[0] = Value::HUGEINT(key_val);
-						dst_result_ids.clear();
-						dst_lid_to_pid_index_instance->SearchEqual(&dst_state, 1, dst_result_ids);
-						D_ASSERT(dst_result_ids.size() == 1);
-						cur_dst_pid = dst_result_ids[0];
+						dst_key.first = dst_key_columns[0][dst_seqno];
+						dst_key.second = dst_key_columns[1][dst_seqno];
+						cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 						dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
 						adj_list_buffer.push_back(cur_dst_pid);
 						adj_list_buffer.push_back(epid_base + dst_seqno);
@@ -1084,4 +1193,102 @@ icecream::ic.disable();
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
 	return 0;
+}
+
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug);
+
+void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int query_exec_time_ms, bool is_debug) {	// default = 0, false
+
+	// output file
+	
+	std::replace( start_time.begin(), start_time.end(), ' ', '_');
+	boost::filesystem::create_directories("execution-log/");
+
+	std::string filename = "execution-log/" + start_time;
+	if( is_debug ) filename += "_debug";
+	std::cout << "saving query visualization in : " << "build/execution-log/" << filename << ".html" << std::endl;
+	std::ofstream file( filename + ".html" );
+
+	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
+	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
+	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
+
+	json j = json::array( { json({}), } );
+	if(!is_debug) {
+		j[0]["Execution Time"] = query_exec_time_ms;
+	}
+	
+	// reverse-iterate executors
+	json* current_root = &(j[0]);
+	bool isRootOp = true;	// is true for only one operator
+	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
+  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+		// reverse operator
+		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
+			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );
+			if( isRootOp ) { isRootOp = false; }
+		}
+		// source
+		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp, is_debug );
+		if( isRootOp ) { isRootOp = false; }
+	}
+
+	// fix execution time
+	vector<CypherPhysicalOperator*> stack;
+	json& tmp_root = j[0];
+	// while(true) {
+		
+	// }
+
+
+	file << html_1;
+	file << j.dump(4);
+	file << html_2;
+
+	// close file
+	file.close();
+}
+
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug) {
+	json* content;
+	if( is_root ) {
+		(*j)["Plan"] = json({});
+		content = &((*j)["Plan"]);
+	} else {
+		if( (*j)["Plans"].is_null() ) {
+			// single child
+			(*j)["Plans"] = json::array( { json({}), } );
+		} else {
+			// already made child with two childs. so pass
+		}
+		content = &((*j)["Plans"][0]);
+	}
+	(*content)["Node Type"] = op->ToString();
+
+	if(!is_debug) {
+		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0;
+		(*content)["Actual Rows"] = op->processed_tuples;
+		(*content)["Actual Loops"] = 1; // meaningless
+	}
+	// output shcma
+	(*content)["Output Schema"] = op->schema.toString();
+
+	// add child when operator is 
+	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
+		(rhs_content)["AdjFetchTime"] = ((PhysicalAdjIdxJoin*)op)->adjfetch_timer.elapsed().wall/100000.0;
+		(rhs_content)["Looptime"] = ((PhysicalAdjIdxJoin*)op)->timer2.elapsed().wall/100000.0;
+	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
+	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
+		(*content)["Plans"] = json::array( { json({}), json({})} );
+		auto& rhs_content = (*content)["Plans"][1];
+		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
+	}
+
+	return content;
 }
