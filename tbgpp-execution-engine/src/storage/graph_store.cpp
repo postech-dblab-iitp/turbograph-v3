@@ -17,6 +17,7 @@
 #include "extent/extent_iterator.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
+
 #include "icecream.hpp"
 
 namespace duckdb {
@@ -311,6 +312,7 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, 
 			}
 		}
 	}
+
 }
 
 StoreAPIResult iTbgppGraphStore::initgetAdjList(AdjacencyListIterator &adj_iter, DataChunk &input, idx_t srcColIdx, int adjColIdx, ExpandDirection expand_dir) {

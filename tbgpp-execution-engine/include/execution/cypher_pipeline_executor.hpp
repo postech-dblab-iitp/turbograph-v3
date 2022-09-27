@@ -87,7 +87,6 @@ public:
 	//! Child executors - to access sink information of the source
 	vector<CypherPipelineExecutor*> childs;
 
-
 private:
 
 	//! Reset the operator index to the first operator

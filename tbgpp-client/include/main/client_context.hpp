@@ -87,6 +87,10 @@ public:
 	// Catalog SHM (is this place appropriate?)
 	fixed_managed_mapped_file *catalog_shm;
 
+	// Custom configuration
+	bool ENV_PROFILE;	// when profile, it uses boost::timer to measuer per-operator time
+	bool ENV_VERBOSE;	// when verbose, it prints out progress when operation is called
+
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {
 		return transaction.ActiveTransaction();

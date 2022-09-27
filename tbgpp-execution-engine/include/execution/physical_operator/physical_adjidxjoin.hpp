@@ -66,16 +66,6 @@ public:
 	bool load_eid;
 	bool enumerate;
 
-	// performance counter
-	// mutable boost::timer::cpu_timer adjfetch_timer;
-	// mutable bool adjfetch_timer_started;
-
-	mutable boost::timer::cpu_timer timer2;
-	mutable bool timer2_started;
-
-	mutable boost::timer::cpu_timer timer1;
-	mutable bool timer1_started;
-
 };
 
 }
