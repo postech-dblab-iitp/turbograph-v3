@@ -59,6 +59,7 @@ private:
     idx_t current_idx;
     idx_t max_idx;
     ExtentID current_eid = (ExtentID)std::numeric_limits<uint32_t>::max();
+    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
     int num_data_chunks;
     int toggle;
     bool support_double_buffering;
