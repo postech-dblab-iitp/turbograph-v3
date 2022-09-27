@@ -654,94 +654,94 @@ public:
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
-    // std::cout << "num_rows: " << num_rows << std::endl;
-		// for (; row_cursor < num_rows; row_cursor++) {
-		// 	if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
-		// 	for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-    //     idx_t target_index = index_cursor + required_key_column_idxs[i];
-    //     idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
-    //     idx_t end_offset = pcsv.indexes[target_index];
-		// 		SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
-		// 	}
-		// 	current_index++;
-    //   index_cursor += num_columns;
-		// }
-
-    // Column-oriented manner
-    idx_t cur_base_row_cursor = row_cursor;
-    idx_t cur_base_index_cursor = index_cursor;
-    uint8_t width = 0, scale = 0;
-    for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-      index_cursor = cur_base_index_cursor;
-      set_value_from_csv_func set_func;
-      current_index = 0;
-      width = scale = 0;
-      switch (types[i].id()) {
-      case LogicalTypeId::BOOLEAN:
-        D_ASSERT(false); break;
-      case LogicalTypeId::TINYINT:
-        set_func = SetValueFromCSV_TINYINT; break;
-      case LogicalTypeId::SMALLINT:
-        set_func = SetValueFromCSV_SMALLINT; break;
-      case LogicalTypeId::INTEGER:
-        set_func = SetValueFromCSV_INTEGER; break;
-      case LogicalTypeId::BIGINT:
-        set_func = SetValueFromCSV_BIGINT; break;
-      case LogicalTypeId::UTINYINT:
-        set_func = SetValueFromCSV_UTINYINT; break;
-      case LogicalTypeId::USMALLINT:
-        set_func = SetValueFromCSV_USMALLINT; break;
-      case LogicalTypeId::UINTEGER:
-        set_func = SetValueFromCSV_UINTEGER; break;
-      case LogicalTypeId::UBIGINT:
-        set_func = SetValueFromCSV_UBIGINT; break;
-      case LogicalTypeId::HUGEINT:
-        throw NotImplementedException("Do not support HugeInt"); break;
-      case LogicalTypeId::DECIMAL:
-        types[i].GetDecimalProperties(width, scale);
-        switch(types[i].InternalType()) {
-          case PhysicalType::INT16: {
-            set_func = SetValueFromCSV_DECIMAL16; break;
-          }
-          case PhysicalType::INT32: {
-            set_func = SetValueFromCSV_DECIMAL32; break;
-          }
-          case PhysicalType::INT64: {
-            set_func = SetValueFromCSV_DECIMAL64; break;
-          }
-          case PhysicalType::INT128: {
-            throw NotImplementedException("Do not support HugeInt"); break;
-          }
-        }
-        break;
-      case LogicalTypeId::FLOAT:
-        set_func = SetValueFromCSV_FLOAT; break;
-      case LogicalTypeId::DOUBLE:
-        set_func = SetValueFromCSV_DOUBLE; break;
-      case LogicalTypeId::VARCHAR:
-        set_func = SetValueFromCSV_VARCHAR; break;
-      case LogicalTypeId::DATE:
-        set_func = SetValueFromCSV_DATE; break;
-      default:
-        throw NotImplementedException("Unsupported type");
-      }
-      
-      auto vertex_column_start = std::chrono::high_resolution_clock::now();
-      for (row_cursor = cur_base_row_cursor; row_cursor != pcsv.n_indexes; row_cursor++) {
-        if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
-        
+    std::cout << "num_rows: " << num_rows << std::endl;
+		for (; row_cursor < num_rows; row_cursor++) {
+			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
+			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
         idx_t target_index = index_cursor + required_key_column_idxs[i];
         idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
         idx_t end_offset = pcsv.indexes[target_index];
-        set_func(types[i], output, i, current_index, p, start_offset, end_offset, width, scale);
-        
-        current_index++;
-        index_cursor += num_columns;
-      }
-      auto vertex_column_end = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> vertex_column_duration = vertex_column_end - vertex_column_start;
-      fprintf(stdout, "Process column %ld, id %d (width %d, scale %d), Elapsed: %.6f\n", i, (int) types[i].id(), width, scale, vertex_column_duration.count());
+				SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+			}
+			current_index++;
+      index_cursor += num_columns;
 		}
+
+    // Column-oriented manner
+    // idx_t cur_base_row_cursor = row_cursor;
+    // idx_t cur_base_index_cursor = index_cursor;
+    // uint8_t width = 0, scale = 0;
+    // for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
+    //   index_cursor = cur_base_index_cursor;
+    //   set_value_from_csv_func set_func;
+    //   current_index = 0;
+    //   width = scale = 0;
+    //   switch (types[i].id()) {
+    //   case LogicalTypeId::BOOLEAN:
+    //     D_ASSERT(false); break;
+    //   case LogicalTypeId::TINYINT:
+    //     set_func = SetValueFromCSV_TINYINT; break;
+    //   case LogicalTypeId::SMALLINT:
+    //     set_func = SetValueFromCSV_SMALLINT; break;
+    //   case LogicalTypeId::INTEGER:
+    //     set_func = SetValueFromCSV_INTEGER; break;
+    //   case LogicalTypeId::BIGINT:
+    //     set_func = SetValueFromCSV_BIGINT; break;
+    //   case LogicalTypeId::UTINYINT:
+    //     set_func = SetValueFromCSV_UTINYINT; break;
+    //   case LogicalTypeId::USMALLINT:
+    //     set_func = SetValueFromCSV_USMALLINT; break;
+    //   case LogicalTypeId::UINTEGER:
+    //     set_func = SetValueFromCSV_UINTEGER; break;
+    //   case LogicalTypeId::UBIGINT:
+    //     set_func = SetValueFromCSV_UBIGINT; break;
+    //   case LogicalTypeId::HUGEINT:
+    //     throw NotImplementedException("Do not support HugeInt"); break;
+    //   case LogicalTypeId::DECIMAL:
+    //     types[i].GetDecimalProperties(width, scale);
+    //     switch(types[i].InternalType()) {
+    //       case PhysicalType::INT16: {
+    //         set_func = SetValueFromCSV_DECIMAL16; break;
+    //       }
+    //       case PhysicalType::INT32: {
+    //         set_func = SetValueFromCSV_DECIMAL32; break;
+    //       }
+    //       case PhysicalType::INT64: {
+    //         set_func = SetValueFromCSV_DECIMAL64; break;
+    //       }
+    //       case PhysicalType::INT128: {
+    //         throw NotImplementedException("Do not support HugeInt"); break;
+    //       }
+    //     }
+    //     break;
+    //   case LogicalTypeId::FLOAT:
+    //     set_func = SetValueFromCSV_FLOAT; break;
+    //   case LogicalTypeId::DOUBLE:
+    //     set_func = SetValueFromCSV_DOUBLE; break;
+    //   case LogicalTypeId::VARCHAR:
+    //     set_func = SetValueFromCSV_VARCHAR; break;
+    //   case LogicalTypeId::DATE:
+    //     set_func = SetValueFromCSV_DATE; break;
+    //   default:
+    //     throw NotImplementedException("Unsupported type");
+    //   }
+      
+    //   auto vertex_column_start = std::chrono::high_resolution_clock::now();
+    //   for (row_cursor = cur_base_row_cursor; row_cursor != pcsv.n_indexes; row_cursor++) {
+    //     if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
+        
+    //     idx_t target_index = index_cursor + required_key_column_idxs[i];
+    //     idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
+    //     idx_t end_offset = pcsv.indexes[target_index];
+    //     set_func(types[i], output, i, current_index, p, start_offset, end_offset, width, scale);
+        
+    //     current_index++;
+    //     index_cursor += num_columns;
+    //   }
+    //   auto vertex_column_end = std::chrono::high_resolution_clock::now();
+    //   std::chrono::duration<double> vertex_column_duration = vertex_column_end - vertex_column_start;
+    //   fprintf(stdout, "Process column %ld, id %d (width %d, scale %d), Elapsed: %.6f\n", i, (int) types[i].id(), width, scale, vertex_column_duration.count());
+		// }
 		
 		output.SetCardinality(current_index);
 		return false;
