@@ -66,6 +66,7 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 	vector<idx_t> boundary_position;	// boundary position of the input chunk
 // icecream::ic.enable(); IC(); icecream::ic.disable();
 	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	D_ASSERT( target_eids.size() == boundary_position.size() );
 	if (target_eids.size() != boundary_position.size()) {
 		fprintf(stderr, "target_eids.size() = %ld, boundary_position.size() = %ld\n", target_eids.size(), boundary_position.size());
