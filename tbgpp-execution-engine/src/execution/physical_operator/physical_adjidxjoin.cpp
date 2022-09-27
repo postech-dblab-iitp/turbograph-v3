@@ -140,7 +140,7 @@ void PhysicalAdjIdxJoin::ProcessSemiAntiJoin(ExecutionContext& context, DataChun
 void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &input, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate; 
 	
-	// check nullity
+	// check nullity (debug note : this part has no burden in execution time. verified!)
 	switch( input.data[state.srcColIdx].GetVectorType() ) {
 		case VectorType::DICTIONARY_VECTOR: {
 			const auto &sel_vector = DictionaryVector::SelVector(input.data[state.srcColIdx]);
@@ -157,8 +157,16 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 			break;
 		}
 	}
+
 	// fill in adjacency col info
+if( ! timer1_started ){
+			timer1.start();
+			timer1_started = true;
+		} else {
+			timer1.resume();
+}
 	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);
+
 	// resize join sizes using adj_col_idxs
 	auto adjColCnt = state.adj_col_idxs.size();
 	for( auto& v: state.join_sizes) {
@@ -166,19 +174,23 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 	}
 	
 	// ask for sizes foreach srcvid
-	Vector& src_vid_column_vector = input.data[state.srcColIdx];
-	uint64_t *adj_start; uint64_t *adj_end;
-	size_t adjListSize = adj_end - adj_start;
+// FIXME commented until replaced by lightweight storage API
+	// Vector& src_vid_column_vector = input.data[state.srcColIdx];
+	// uint64_t *adj_start; uint64_t *adj_end;
+	// size_t adjListSize = adj_end - adj_start;
 
-	for(idx_t a_i = 0; a_i < state.adj_col_idxs.size(); a_i++) {
-		for(idx_t v_i = 0; v_i < input.size(); v_i++) {
-			// FIXME need to use different APIs : that only returns size not whoe adjacency
-			context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[a_i], getIdRefFromVector(src_vid_column_vector, v_i), adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[a_i]));
-			adjListSize = (adj_end - adj_start)/2;
-			state.join_sizes[v_i][a_i] = adjListSize;
-			state.total_join_size[v_i] += adjListSize;
-		}
-	}
+	// for(idx_t a_i = 0; a_i < state.adj_col_idxs.size(); a_i++) {
+	// 	for(idx_t v_i = 0; v_i < input.size(); v_i++) {
+	// 		// FIXME need to use different APIs : that only returns size not whoe adjacency
+	// 		context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[a_i], getIdRefFromVector(src_vid_column_vector, v_i), adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[a_i]));
+	// 		adjListSize = (adj_end - adj_start)/2;
+	// 		state.join_sizes[v_i][a_i] = adjListSize;
+	// 		state.total_join_size[v_i] += adjListSize;
+	// 	}
+	// }
+
+timer1.stop();
+
 }
 
 // TODO function handlepredicates
@@ -202,15 +214,18 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	while( state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size() ) {
 
 		// bypass null src or empty adjs
-		if( state.total_join_size[state.lhs_idx] == 0 ) {
-			state.lhs_idx++;
-			continue;
-		}
+	// FIXME debug need this!! when src null!!
+		// if( state.total_join_size[state.lhs_idx] == 0 ) {
+		// 	state.lhs_idx++;
+		// 	continue;
+		// }
 		uint64_t& src_vid = getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[state.adj_idx], src_vid, adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]));
 
 		// calculate size
-		const size_t num_rhs_left = state.join_sizes[state.lhs_idx][state.adj_idx] - state.rhs_idx;
+	// FIXME debug calculate size directly here
+	int adj_size_debug = (adj_end - adj_start)/2;
+		const size_t num_rhs_left = adj_size_debug - state.rhs_idx;
 		const size_t num_rhs_to_try_fetch = ((STANDARD_VECTOR_SIZE - state.output_idx) > num_rhs_left )
 										? num_rhs_left : (EXEC_ENGINE_VECTOR_SIZE - state.output_idx);
 		// TODO apply filter predicates
@@ -263,12 +278,7 @@ void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &i
 OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate; 
  
-if( ! timer1_started ){
-			timer1.start();
-			timer1_started = true;
-		} else {
-			timer1.resume();
-}
+
 	if( !state.first_fetch ) {
 		// values used while processing
 		state.srcColIdx = schema.getColIdxOfKey(srcName);
@@ -278,8 +288,6 @@ if( ! timer1_started ){
 		GetJoinMatches(context, input, lstate);
 		state.first_fetch = true;
 	}
-
-timer1.stop();
 
 	if( join_type == JoinType::SEMI || join_type == JoinType::ANTI ) {
 		// these joins can be processed in single call. explicitly process them and return
