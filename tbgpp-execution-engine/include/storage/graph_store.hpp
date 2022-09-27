@@ -9,6 +9,10 @@
 #include "common/vector.hpp"
 #include "common/types/data_chunk.hpp"
 //#include "common/types/chunk_collection.hpp"
+
+#include <boost/timer/timer.hpp>
+
+
 namespace duckdb {
 
 class ExtentIterator;

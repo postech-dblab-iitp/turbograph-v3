@@ -30,10 +30,6 @@ PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
 	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
 
 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
-
-	//FIXME DEBUG
-	timer1_started = false;
-	timer2_started = false;
 	
 }
 
@@ -61,8 +57,8 @@ public:
 		rhs_idx = 0;
 		left_lhs_idx = 0;
 		// init vectors
-		adj_col_idxs.clear();
-		adj_col_types.clear();
+		// adj_col_idxs.clear();
+		// adj_col_types.clear();
 		std::fill(total_join_size.begin(), total_join_size.end(), 0);
 	}
 	inline void resetForMoreOutput() {
@@ -159,14 +155,11 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 	}
 
 	// fill in adjacency col info
-if( ! timer1_started ){
-			timer1.start();
-			timer1_started = true;
-		} else {
-			timer1.resume();
-}
-	context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);
-
+// DEBUG 
+	if( state.adj_col_idxs.size() == 0 ) {
+		context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);	
+	}
+	
 	// resize join sizes using adj_col_idxs
 	auto adjColCnt = state.adj_col_idxs.size();
 	for( auto& v: state.join_sizes) {
@@ -188,8 +181,6 @@ if( ! timer1_started ){
 	// 		state.total_join_size[v_i] += adjListSize;
 	// 	}
 	// }
-
-timer1.stop();
 
 }
 
@@ -295,19 +286,11 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
-if( ! timer2_started ){
-			timer2.start();
-			timer2_started = true;
-		} else {
-			timer2.resume();
-}
-
 	const bool isProcessingTerminated =
 		state.equi_join_finished && (join_type != JoinType::LEFT || state.left_join_finished);
 	if ( isProcessingTerminated ) {	
 		// initialize state for next chunk
 		state.resetForNewInput();
-timer2.stop();
 
 		return OperatorResultType::NEED_MORE_INPUT;
 	} else {
@@ -318,7 +301,6 @@ timer2.stop();
 			if( state.lhs_idx >= input.size() ) {
 				state.equi_join_finished = true;
 			}
-timer2.stop();
 			return OperatorResultType::HAVE_MORE_OUTPUT;
 		} else {
 			D_ASSERT( ! state.left_join_finished );
@@ -328,7 +310,6 @@ timer2.stop();
 			if( state.left_lhs_idx >= input.size() ) {
 				state.left_join_finished = true;
 			}
-timer2.stop();
 			return OperatorResultType::HAVE_MORE_OUTPUT;
 		}
 	}
