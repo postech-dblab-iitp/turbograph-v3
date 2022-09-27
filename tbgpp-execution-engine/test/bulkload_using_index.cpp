@@ -108,8 +108,6 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
-void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
-
 class InputParser{
   public:
     InputParser (int &argc, char **argv){
@@ -1078,102 +1076,4 @@ icecream::ic.disable();
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
 	return 0;
-}
-
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug);
-
-void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int query_exec_time_ms, bool is_debug) {	// default = 0, false
-
-	// output file
-	
-	std::replace( start_time.begin(), start_time.end(), ' ', '_');
-	boost::filesystem::create_directories("execution-log/");
-
-	std::string filename = "execution-log/" + start_time;
-	if( is_debug ) filename += "_debug";
-	std::cout << "saving query visualization in : " << "build/execution-log/" << filename << ".html" << std::endl;
-	std::ofstream file( filename + ".html" );
-
-	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
-	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
-	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
-
-	json j = json::array( { json({}), } );
-	if(!is_debug) {
-		j[0]["Execution Time"] = query_exec_time_ms;
-	}
-	
-	// reverse-iterate executors
-	json* current_root = &(j[0]);
-	bool isRootOp = true;	// is true for only one operator
-	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
-		// reverse operator
-		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );
-			if( isRootOp ) { isRootOp = false; }
-		}
-		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp, is_debug );
-		if( isRootOp ) { isRootOp = false; }
-	}
-
-	// fix execution time
-	vector<CypherPhysicalOperator*> stack;
-	json& tmp_root = j[0];
-	// while(true) {
-		
-	// }
-
-
-	file << html_1;
-	file << j.dump(4);
-	file << html_2;
-
-	// close file
-	file.close();
-}
-
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug) {
-	json* content;
-	if( is_root ) {
-		(*j)["Plan"] = json({});
-		content = &((*j)["Plan"]);
-	} else {
-		if( (*j)["Plans"].is_null() ) {
-			// single child
-			(*j)["Plans"] = json::array( { json({}), } );
-		} else {
-			// already made child with two childs. so pass
-		}
-		content = &((*j)["Plans"][0]);
-	}
-	(*content)["Node Type"] = op->ToString();
-
-	if(!is_debug) {
-		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0;
-		(*content)["Actual Rows"] = op->processed_tuples;
-		(*content)["Actual Loops"] = 1; // meaningless
-	}
-	// output shcma
-	(*content)["Output Schema"] = op->schema.toString();
-
-	// add child when operator is 
-	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
-		(rhs_content)["AdjFetchTime"] = ((PhysicalAdjIdxJoin*)op)->adjfetch_timer.elapsed().wall/100000.0;
-		(rhs_content)["Looptime"] = ((PhysicalAdjIdxJoin*)op)->timer2.elapsed().wall/100000.0;
-	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
-	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
-	}
-
-	return content;
 }

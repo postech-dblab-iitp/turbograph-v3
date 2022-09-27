@@ -124,7 +124,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// std::cout << "call sink!!" << std::endl;
 // FIXME
 icecream::ic.enable();
-// IC(pipeline->GetSink()->ToString());
+//IC(pipeline->GetSink()->ToString());
 icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state

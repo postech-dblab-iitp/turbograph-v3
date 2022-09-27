@@ -32,6 +32,7 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 // 	IC( input.ToString(std::min(10, (int)input.size())) );
 // icecream::ic.disable();
 
+
 	auto &state = (NodeIdSeekState &)lstate;
 
 	if(input.size() == 0) {
