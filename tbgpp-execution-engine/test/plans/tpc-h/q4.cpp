@@ -29,17 +29,25 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 	PropertyKeys o_keys({"O_ORDERDATE", "O_ORDERPRIORITY"});
 
 	// filter (_o, o.od, o.p)
-		vector<unique_ptr<Expression>> filter_exprs;
+	vector<unique_ptr<Expression>> filter_exprs;
+	Value start; Value end;
+	if( suite.TPCH_SF==1 ) { 
+		start = Value::DATE(1994,1,1);
+		end = Value::DATE(1994,4,1);
+	} else if( suite.TPCH_SF==10 ) {
+		start = Value::DATE(1995,8,1);
+		end = Value::DATE(1995,11,1);
+	}
 	{
 // FIXME change predicate when SF changes
 		// https://www.timeanddate.com/date/durationresult.html
 		auto filter_expr1 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_GREATERTHANOREQUALTO,
 			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),	// orderdate
-			move( make_unique<BoundConstantExpression>(Value::DATE(1994,1,1))) 
+			move( make_unique<BoundConstantExpression>(start)) 
 		);
 		auto filter_expr2 = make_unique<BoundComparisonExpression>( ExpressionType::COMPARE_LESSTHAN,
 			move( make_unique<BoundReferenceExpression>(LogicalType::DATE, 1) ),
-			move( make_unique<BoundConstantExpression>(Value::DATE(1994,4,1)))
+			move( make_unique<BoundConstantExpression>(end))
 		);
 		filter_exprs.push_back(move(filter_expr1));
 		filter_exprs.push_back(move(filter_expr2));
@@ -74,11 +82,12 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 	// 1 keys (groups)
 	agg_groups.push_back( make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 2) ); // o.orderpriority
 	// 1 agg expression
-	auto agg_expr_func = CountStarFun::GetFunction();
+	auto agg_expr_func = CountFun::GetFunction();
 	vector<unique_ptr<Expression>> agg_expr_1_child;
+	agg_expr_1_child.push_back( make_unique<BoundReferenceExpression>(LogicalType::ID, 0) );	// 0
 	agg_exprs.push_back(
-		make_unique<BoundAggregateExpression>(agg_expr_func, move(agg_expr_1_child), nullptr, nullptr, false )
-	); // count(*)
+		make_unique<BoundAggregateExpression>(agg_expr_func, move(agg_expr_1_child), nullptr, nullptr, true )	// select count( distinct _o ) group by priorty
+	); // count( distinct orders._id )
 
 
 // // pipes
@@ -104,8 +113,8 @@ CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* 
 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 
 	// sort
-	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1);	// orderpriroity
-	BoundOrderByNode order1(OrderType::DESCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
+	unique_ptr<Expression> order_expr_1 = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 0);	// orderpriroity
+	BoundOrderByNode order1(OrderType::ASCENDING, OrderByNullType::NULLS_FIRST, move(order_expr_1));
 	vector<BoundOrderByNode> orders;
 	orders.push_back(move(order1));
 
@@ -115,7 +124,7 @@ CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* 
 	ops.push_back( prev_pipe->pipeline->GetSink() );
 	// op
 	// sink
-	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)100000, (idx_t)0));
+	ops.push_back( new PhysicalTopNSort(sch4, move(orders), (idx_t)100, (idx_t)0));
 
 	vector<CypherPipelineExecutor*> childs;
 	childs.push_back(prev_pipe);
