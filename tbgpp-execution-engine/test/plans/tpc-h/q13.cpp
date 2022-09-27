@@ -61,8 +61,8 @@ CypherPipelineExecutor* q13_pipe1(QueryPlanSuite& suite) {
 	std::vector<CypherPhysicalOperator *> ops;
 
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("ORDERS"), PropertyKeys({"O_COMMENT"}) ) );
-	// ops.push_back( new PhysicalFilter(sch1) );
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "o", LabelSet("ORDERS"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("CUSTOMER"), JoinType::INNER, false, true) );
+	// ops.push_back( new PhysicalFilter(sch1) );	// FIXME filter on like
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "o", LabelSet("ORDERS"), LabelSet("MADE_BY"), ExpandDirection::OUTGOING, LabelSet("CUSTOMER"), JoinType::INNER, false, true) );	// FIXME need outer join
 	ops.push_back( new PhysicalHashAggregate(sch3, move(agg_exprs), move(agg_groups)) );
 
 	auto pipe = new CypherPipeline(ops);
