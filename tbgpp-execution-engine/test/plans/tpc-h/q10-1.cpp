@@ -123,7 +123,7 @@ IC();
 		auto sub_f = SubtractFun::GetFunction( LogicalType::DOUBLE,  LogicalType::DOUBLE );
 		// auto sub_f_int = SubtractFun::GetFunction( LogicalType::INTEGER,  LogicalType::INTEGER );
 		auto sub_lhs = make_unique<BoundConstantExpression>( Value::DOUBLE(1) );			// 1 ; push 100 to set 1
-		auto sub_rhs = make_unique<BoundCastExpression>(make_unique<BoundReferenceExpression>( LogicalType::DECIMAL(12,2), 3), LogicalType::DOUBLE, false) ;	// discount
+		auto sub_rhs = make_unique<BoundCastExpression>(make_unique<BoundReferenceExpression>( LogicalType::DECIMAL(12,2), 5), LogicalType::DOUBLE, false) ;	// discount
 		vector<unique_ptr<Expression>> sub_args;												
 		sub_args.push_back(move(sub_lhs));
 		sub_args.push_back(move(sub_rhs));
@@ -131,7 +131,7 @@ IC();
 IC();
 	// mul
 		auto mul_f = MultiplyFun::GetFunction( LogicalType::DOUBLE );
-		auto mul_lhs = make_unique<BoundCastExpression>(make_unique<BoundReferenceExpression>( LogicalType::DECIMAL(12,2), 2), LogicalType::DOUBLE, false) ;	// extprice
+		auto mul_lhs = make_unique<BoundCastExpression>(make_unique<BoundReferenceExpression>( LogicalType::DECIMAL(12,2), 4), LogicalType::DOUBLE, false) ;	// extprice
 		auto mul_rhs = move(sub_expr);
 		vector<unique_ptr<Expression>> mul_args;
 		mul_args.push_back(move(mul_lhs));

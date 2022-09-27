@@ -24,6 +24,16 @@ unique_ptr<OperatorState> PhysicalProjection::GetOperatorState(ExecutionContext 
 OperatorResultType PhysicalProjection::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (ProjectionState &)lstate;
 
+// icecream::ic.enable();
+// for( auto& i: input.GetTypes()) {
+// 	IC(i.ToString());
+// }
+// for( auto& j: chunk.GetTypes()) {
+// 	IC(j.ToString());
+// }
+// icecream::ic.disable();
+
+
 	// state not necessary
 	// IC();
 	state.executor.Execute(input, chunk);

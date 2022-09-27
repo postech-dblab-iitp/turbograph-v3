@@ -1,32 +1,32 @@
-// #include "planner/joinside.hpp"
+#include "planner/joinside.hpp"
 
-// #include "planner/expression/bound_columnref_expression.hpp"
-// #include "planner/expression/bound_comparison_expression.hpp"
-// #include "planner/expression/bound_conjunction_expression.hpp"
-// #include "planner/expression/bound_subquery_expression.hpp"
-// #include "planner/expression_iterator.hpp"
+#include "planner/expression/bound_columnref_expression.hpp"
+#include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
+#include "planner/expression/bound_subquery_expression.hpp"
+#include "planner/expression_iterator.hpp"
 
-// namespace duckdb {
+namespace duckdb {
 
-// unique_ptr<Expression> JoinCondition::CreateExpression(JoinCondition cond) {
-// 	auto bound_comparison = make_unique<BoundComparisonExpression>(cond.comparison, move(cond.left), move(cond.right));
-// 	return move(bound_comparison);
-// }
+unique_ptr<Expression> JoinCondition::CreateExpression(JoinCondition cond) {
+	auto bound_comparison = make_unique<BoundComparisonExpression>(cond.comparison, move(cond.left), move(cond.right));
+	return move(bound_comparison);
+}
 
-// unique_ptr<Expression> JoinCondition::CreateExpression(vector<JoinCondition> conditions) {
-// 	unique_ptr<Expression> result;
-// 	for (auto &cond : conditions) {
-// 		auto expr = CreateExpression(move(cond));
-// 		if (!result) {
-// 			result = move(expr);
-// 		} else {
-// 			auto conj =
-// 			    make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND, move(expr), move(result));
-// 			result = move(conj);
-// 		}
-// 	}
-// 	return result;
-// }
+unique_ptr<Expression> JoinCondition::CreateExpression(vector<JoinCondition> conditions) {
+	unique_ptr<Expression> result;
+	for (auto &cond : conditions) {
+		auto expr = CreateExpression(move(cond));
+		if (!result) {
+			result = move(expr);
+		} else {
+			auto conj =
+			    make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND, move(expr), move(result));
+			result = move(conj);
+		}
+	}
+	return result;
+}
 
 // JoinSide JoinSide::CombineJoinSide(JoinSide left, JoinSide right) {
 // 	if (left == JoinSide::NONE) {
@@ -100,4 +100,4 @@
 // 	return side;
 // }
 
-// } // namespace duckdb
+} // namespace duckdb
