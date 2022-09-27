@@ -350,8 +350,8 @@ icecream::ic.disable();
 	fprintf(stdout, "Init ChunkCacheManager Elapsed: %.3f\n", init_ccm_duration.count());
 
 	// Run Catch Test
-	int x;
-	std::cin >> x;
+	// int x;
+	// std::cin >> x;
 	fprintf(stdout, "\nBulk Load Start!!\n");
 	auto bulkload_start = std::chrono::high_resolution_clock::now();
 	argc = 1;
@@ -640,7 +640,7 @@ icecream::ic.disable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 
 		// Initialize variables related to vertex extent
-		LidPair cur_src_id, cur_dst_id, min_id, max_id; // Logical ID
+		LidPair cur_src_id, cur_dst_id, min_id, max_id, prev_id; // Logical ID
 		idx_t cur_src_pid, cur_dst_pid; // Physical ID
 		idx_t vertex_seqno;
 		idx_t *vertex_id_column_1, *vertex_id_column_2;
@@ -674,78 +674,83 @@ icecream::ic.disable();
 			idx_t src_seqno = 0, dst_seqno = 0;
 			idx_t begin_idx, end_idx;
 			idx_t max_seqno = data.size();
-			LidPair prev_id;
 			// idx_t prev_id = ULLONG_MAX;
 
 			// For the first tuple
 			begin_idx = src_seqno;
 			// D_ASSERT(src_lid_to_pid_map_instance.find(src_key_column[src_seqno]) != src_lid_to_pid_map_instance.end());
 			LidPair key, dst_key;
-			if (src_column_idx.size() == 1) {
-				key.first = src_key_columns[0][src_seqno];
-				key.second = 0;
-				prev_id = cur_src_id = key;
-			} else if (src_column_idx.size() == 2) {
-				key.first = src_key_columns[0][src_seqno];
-				key.second = src_key_columns[1][src_seqno];
-				prev_id = cur_src_id = key;
-			} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-			cur_src_pid = src_lid_to_pid_map_instance.at(key);
+			// if (src_column_idx.size() == 1) {
+			// 	key.first = src_key_columns[0][src_seqno];
+			// 	key.second = 0;
+			// 	cur_src_id = key;
+			// 	if (src_column_idx.size() == 1 && dst_column_idx.size() == 1 && (cur_src_id.first > 4194300 && cur_src_id.first < 4194310)) {
+			// 		icecream::ic.enable(); IC(); IC(src_seqno, cur_src_id.first); icecream::ic.disable();
+			// 	}
+			// } else if (src_column_idx.size() == 2) {
+			// 	key.first = src_key_columns[0][src_seqno];
+			// 	key.second = src_key_columns[1][src_seqno];
+			// 	cur_src_id = key;
+			// } else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+			// cur_src_pid = src_lid_to_pid_map_instance.at(key);
 			
-			src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
-			src_seqno++;
+			// src_key_columns[0][src_seqno] = cur_src_pid; // TODO.. compound key columns -> one physical id column ?
+			// src_seqno++;
 
-			if (!is_first_tuple_processed) {
-				// Get First Vertex Extent
-				while (true) {
-// IC();
-					if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
-						// We do not allow this case
-						throw InvalidInputException("GetNextExtent Fail - The vertex chunk containing the first vertex does not exist");
-					}
-// IC();
-					
-					// Initialize min & max id. We assume that the vertex data is sorted by id
-					if (src_column_idxs.size() == 1) {
-						vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
-						min_id.first = vertex_id_column_1[0];
-						max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
-					} else if (src_column_idxs.size() == 2) {
-						vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
-						vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
-						min_id.first = vertex_id_column_1[0];
-						min_id.second = vertex_id_column_2[0];
-						max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
-						max_id.second = vertex_id_column_2[vertex_id_chunk.size() - 1];
-					}
-					if (cur_src_id >= min_id && cur_src_id <= max_id) break;
-				}
-
-				// Initialize vertex_seqno
-				vertex_seqno = 0;
-				if (src_column_idxs.size() == 1) {
-					while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-					}
-				} else if (src_column_idxs.size() == 2) {
-					while ((vertex_id_column_1[vertex_seqno] < cur_src_id.first) ||
-						   ((vertex_id_column_1[vertex_seqno] == cur_src_id.first) && (vertex_id_column_2[vertex_seqno] < cur_src_id.second))) {
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
-					}
-				}
-				is_first_tuple_processed = true;
-			}
-			
 			while(src_seqno < max_seqno) {
 				if (src_column_idx.size() == 1) {
 					key.first = src_key_columns[0][src_seqno];
 					key.second = 0;
 					cur_src_id = key;
+					// if (src_column_idx.size() == 1 && dst_column_idx.size() == 1 && (cur_src_id.first > 4194300 && cur_src_id.first < 4194310)) {
+					// 	icecream::ic.enable(); IC(); IC(src_seqno, cur_src_id.first); icecream::ic.disable();
+					// }
 				} else if (src_column_idx.size() == 2) {
 					key.first = src_key_columns[0][src_seqno];
 					key.second = src_key_columns[1][src_seqno];
 					cur_src_id = key;
 				} else throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+
+				if (!is_first_tuple_processed) {
+					// Get First Vertex Extent
+					while (true) {
+	// IC();
+						if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
+							// We do not allow this case
+							throw InvalidInputException("GetNextExtent Fail - The vertex chunk containing the first vertex does not exist");
+						}
+	// IC();
+						
+						// Initialize min & max id. We assume that the vertex data is sorted by id
+						if (src_column_idxs.size() == 1) {
+							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+							min_id.first = vertex_id_column_1[0];
+							max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+						} else if (src_column_idxs.size() == 2) {
+							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
+							vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
+							min_id.first = vertex_id_column_1[0];
+							min_id.second = vertex_id_column_2[0];
+							max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+							max_id.second = vertex_id_column_2[vertex_id_chunk.size() - 1];
+						}
+						if (cur_src_id >= min_id && cur_src_id <= max_id) break;
+					}
+
+					// Initialize vertex_seqno
+					vertex_seqno = 0;
+					if (src_column_idxs.size() == 1) {
+						while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
+							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						}
+					} else if (src_column_idxs.size() == 2) {
+						while ((vertex_id_column_1[vertex_seqno] < cur_src_id.first) ||
+							((vertex_id_column_1[vertex_seqno] == cur_src_id.first) && (vertex_id_column_2[vertex_seqno] < cur_src_id.second))) {
+							adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						}
+					}
+					is_first_tuple_processed = true;
+				}
 
 				cur_src_pid = src_lid_to_pid_map_instance.at(key);
 				src_key_columns[0][src_seqno] = cur_src_pid;
@@ -838,6 +843,7 @@ icecream::ic.disable();
 						vertex_seqno = 0;
 						if (src_column_idxs.size() == 1) {
 							while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
+								// icecream::ic.enable(); IC(current_vertex_eid, vertex_seqno, vertex_id_column_1[vertex_seqno], cur_src_id.first); icecream::ic.disable();
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 							}
 						} else if (src_column_idxs.size() == 2) {
