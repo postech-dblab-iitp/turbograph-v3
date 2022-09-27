@@ -374,80 +374,108 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 }
 
 inline void SetValueFromCSV_TINYINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int8_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_SMALLINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int16_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_INTEGER(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int32_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_BIGINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int64_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_UTINYINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint8_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_USMALLINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint16_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_UINTEGER(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint32_t *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_UBIGINT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint64_t *)data_ptr)[current_index]);
 }
 
-inline void SetValueFromCSV_FLOAT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+inline void SetValueFromCSV_DECIMAL16(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
+  int16_t val_before_decimal_point, val_after_decimal_point;
+  std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+  std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+  ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+}
+
+inline void SetValueFromCSV_DECIMAL32(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
+	auto data_ptr = output.data[i].GetData();
+  int32_t val_before_decimal_point, val_after_decimal_point;
+  std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+  std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+  ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+}
+
+inline void SetValueFromCSV_DECIMAL64(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
+	auto data_ptr = output.data[i].GetData();
+  int64_t val_before_decimal_point, val_after_decimal_point;
+  std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
+  std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
+  ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+}
+
+inline void SetValueFromCSV_DECIMAL128(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
+	
+}
+
+inline void SetValueFromCSV_FLOAT(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
+	auto data_ptr = output.data[i].GetData();
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((float *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_DOUBLE(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
-  size_t string_size = end_offset - start_offset;
   std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((double *)data_ptr)[current_index]);
 }
 
 inline void SetValueFromCSV_VARCHAR(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
-                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
 	auto data_ptr = output.data[i].GetData();
   size_t string_size = end_offset - start_offset;
   ((string_t *)data_ptr)[current_index] = StringVector::AddStringOrBlob(output.data[i], (const char*)p.data() + start_offset, string_size);
+}
+
+inline void SetValueFromCSV_DATE(LogicalType type, DataChunk &output, size_t i, idx_t current_index, 
+                            std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale) {
+	auto data_ptr = output.data[i].GetData();
+  ((date_t *)data_ptr)[current_index] = Date::FromCString((const char*)p.data() + start_offset, end_offset - start_offset);
 }
 
 template <typename A, typename B>
@@ -476,7 +504,7 @@ void unzip(
 }
 
 class GraphSIMDCSVFileParser {
-  typedef void (*set_value_from_csv_func)(LogicalType type, DataChunk &output, size_t i, idx_t current_index, std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset);
+  typedef void (*set_value_from_csv_func)(LogicalType type, DataChunk &output, size_t i, idx_t current_index, std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset, uint8_t width, uint8_t scale);
 
 public:
   GraphSIMDCSVFileParser() {}
@@ -552,9 +580,9 @@ public:
         });
       
       unzip(zipped, key_columns, key_columns_order);
-      for (size_t i = 0; i < key_columns_order.size(); i++) {
-        std::cout << key_columns_order[i] << " : " << key_columns[i] << std::endl;
-      }
+      // for (size_t i = 0; i < key_columns_order.size(); i++) {
+      //   std::cout << key_columns_order[i] << " : " << key_columns[i] << std::endl;
+      // }
     }
 
     // Initialize Cursor
@@ -626,71 +654,94 @@ public:
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
-		for (; row_cursor < num_rows; row_cursor++) {
-			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
-			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-        idx_t target_index = index_cursor + required_key_column_idxs[i];
-        idx_t start_offset = pcsv.indexes[target_index-1] + 1;
-        idx_t end_offset = pcsv.indexes[target_index];
-				SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
-			}
-			current_index++;
-      index_cursor += num_columns;
-		}
+    // std::cout << "num_rows: " << num_rows << std::endl;
+		// for (; row_cursor < num_rows; row_cursor++) {
+		// 	if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
+		// 	for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
+    //     idx_t target_index = index_cursor + required_key_column_idxs[i];
+    //     idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
+    //     idx_t end_offset = pcsv.indexes[target_index];
+		// 		SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+		// 	}
+		// 	current_index++;
+    //   index_cursor += num_columns;
+		// }
 
     // Column-oriented manner
-    // idx_t cur_base_row_cursor = row_cursor;
-    // idx_t cur_base_index_cursor = index_cursor;
-    // for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-    //   index_cursor = cur_base_index_cursor;
-    //   set_value_from_csv_func set_func;
-    //   current_index = 0;
-    //   switch (types[i].id()) {
-    //   case LogicalTypeId::BOOLEAN:
-    //     D_ASSERT(false); break;
-    //   case LogicalTypeId::TINYINT:
-    //     set_func = SetValueFromCSV_TINYINT; break;
-    //   case LogicalTypeId::SMALLINT:
-    //     set_func = SetValueFromCSV_SMALLINT; break;
-    //   case LogicalTypeId::INTEGER:
-    //     set_func = SetValueFromCSV_INTEGER; break;
-    //   case LogicalTypeId::BIGINT:
-    //     set_func = SetValueFromCSV_BIGINT; break;
-    //   case LogicalTypeId::UTINYINT:
-    //     set_func = SetValueFromCSV_UTINYINT; break;
-    //   case LogicalTypeId::USMALLINT:
-    //     set_func = SetValueFromCSV_USMALLINT; break;
-    //   case LogicalTypeId::UINTEGER:
-    //     set_func = SetValueFromCSV_UINTEGER; break;
-    //   case LogicalTypeId::UBIGINT:
-    //     set_func = SetValueFromCSV_UBIGINT; break;
-    //   case LogicalTypeId::HUGEINT:
-    //     throw NotImplementedException("Do not support HugeInt"); break;
-    //   case LogicalTypeId::DECIMAL:
-    //     throw NotImplementedException("Do not support Decimal"); break;
-    //   case LogicalTypeId::FLOAT:
-    //     set_func = SetValueFromCSV_FLOAT; break;
-    //   case LogicalTypeId::DOUBLE:
-    //     set_func = SetValueFromCSV_DOUBLE; break;
-    //   case LogicalTypeId::VARCHAR:
-    //     set_func = SetValueFromCSV_VARCHAR; break;
-    //   default:
-    //     throw NotImplementedException("Unsupported type");
-    //   }
-
-    //   for (row_cursor = cur_base_row_cursor; row_cursor != pcsv.n_indexes; row_cursor++) {
-    //     if (current_index == STANDARD_VECTOR_SIZE) break;
+    idx_t cur_base_row_cursor = row_cursor;
+    idx_t cur_base_index_cursor = index_cursor;
+    uint8_t width = 0, scale = 0;
+    for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
+      index_cursor = cur_base_index_cursor;
+      set_value_from_csv_func set_func;
+      current_index = 0;
+      width = scale = 0;
+      switch (types[i].id()) {
+      case LogicalTypeId::BOOLEAN:
+        D_ASSERT(false); break;
+      case LogicalTypeId::TINYINT:
+        set_func = SetValueFromCSV_TINYINT; break;
+      case LogicalTypeId::SMALLINT:
+        set_func = SetValueFromCSV_SMALLINT; break;
+      case LogicalTypeId::INTEGER:
+        set_func = SetValueFromCSV_INTEGER; break;
+      case LogicalTypeId::BIGINT:
+        set_func = SetValueFromCSV_BIGINT; break;
+      case LogicalTypeId::UTINYINT:
+        set_func = SetValueFromCSV_UTINYINT; break;
+      case LogicalTypeId::USMALLINT:
+        set_func = SetValueFromCSV_USMALLINT; break;
+      case LogicalTypeId::UINTEGER:
+        set_func = SetValueFromCSV_UINTEGER; break;
+      case LogicalTypeId::UBIGINT:
+        set_func = SetValueFromCSV_UBIGINT; break;
+      case LogicalTypeId::HUGEINT:
+        throw NotImplementedException("Do not support HugeInt"); break;
+      case LogicalTypeId::DECIMAL:
+        types[i].GetDecimalProperties(width, scale);
+        switch(types[i].InternalType()) {
+          case PhysicalType::INT16: {
+            set_func = SetValueFromCSV_DECIMAL16; break;
+          }
+          case PhysicalType::INT32: {
+            set_func = SetValueFromCSV_DECIMAL32; break;
+          }
+          case PhysicalType::INT64: {
+            set_func = SetValueFromCSV_DECIMAL64; break;
+          }
+          case PhysicalType::INT128: {
+            throw NotImplementedException("Do not support HugeInt"); break;
+          }
+        }
+        break;
+      case LogicalTypeId::FLOAT:
+        set_func = SetValueFromCSV_FLOAT; break;
+      case LogicalTypeId::DOUBLE:
+        set_func = SetValueFromCSV_DOUBLE; break;
+      case LogicalTypeId::VARCHAR:
+        set_func = SetValueFromCSV_VARCHAR; break;
+      case LogicalTypeId::DATE:
+        set_func = SetValueFromCSV_DATE; break;
+      default:
+        throw NotImplementedException("Unsupported type");
+      }
+      
+      auto vertex_column_start = std::chrono::high_resolution_clock::now();
+      for (row_cursor = cur_base_row_cursor; row_cursor != pcsv.n_indexes; row_cursor++) {
+        if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
         
-    //     idx_t target_index = index_cursor + required_key_column_idxs[i];
-    //     idx_t start_offset = pcsv.indexes[target_index-1];
-    //     idx_t end_offset = pcsv.indexes[target_index];
-    //     set_func(types[i], output, i, current_index, p, start_offset, end_offset);
+        idx_t target_index = index_cursor + required_key_column_idxs[i];
+        idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
+        idx_t end_offset = pcsv.indexes[target_index];
+        set_func(types[i], output, i, current_index, p, start_offset, end_offset, width, scale);
         
-    //     current_index++;
-    //     index_cursor += num_columns;
-    //   }
-		// }
+        current_index++;
+        index_cursor += num_columns;
+      }
+      auto vertex_column_end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> vertex_column_duration = vertex_column_end - vertex_column_start;
+      fprintf(stdout, "Process column %ld, id %d (width %d, scale %d), Elapsed: %.6f\n", i, (int) types[i].id(), width, scale, vertex_column_duration.count());
+		}
 		
 		output.SetCardinality(current_index);
 		return false;
@@ -712,20 +763,9 @@ public:
 				throw InvalidInputException("B");
 			}
 		}
-		// for (; csv_it != iter_end; csv_it++) {
-		// 	if (current_index == STANDARD_VECTOR_SIZE) break;
-		// 	auto &row = *csv_it;
-		// 	for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
-		// 		csv::CSVField csv_field = move(row[required_key_column_idxs[i]]);
-		// 		output.SimpleSetValue(i, current_index, CSVValToValue(csv_field, types[i]));
-		// 		// SetValueFromCSV(types[i], output, i, current_index, csv_field);
-		// 		//output.SimpleSetValue<types[i]>(i, current_index, csv_field);
-		// 	}
-		// 	current_index++;
-		// }
 
     // Row-oriented manner
-    // std::cout << "num_rows: " << num_rows << std::endl;
+    std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {

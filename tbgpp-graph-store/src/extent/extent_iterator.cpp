@@ -220,6 +220,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
     // Keep previous values
+    // icecream::ic.enable(); IC(); IC(current_idx, max_idx, current_idx_in_this_extent, scan_size); icecream::ic.disable();
     if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
@@ -260,23 +261,19 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
                 ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
             }
-            }
+        }
     }
 // IC();
 
     // Request chunk cache manager to finalize I/O
-    if (current_idx_in_this_extent == 0)
+    if (current_idx_in_this_extent == 0) {
         for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
             if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+            // icecream::ic.enable(); IC(); IC(io_requested_cdf_ids[toggle][i], toggle, i); icecream::ic.disable();
         }
+    }
 
-    // Initialize DataChunk using cached buffer
-    /*data_chunks[prev_toggle]->Destroy();
-    data_chunks[prev_toggle]->Initialize(ext_property_types, io_requested_buf_ptrs[prev_toggle]);
-    data_chunks[prev_toggle]->SetCardinality(io_requested_buf_sizes[prev_toggle][0] / GetTypeIdSize(ext_property_types[0].InternalType())); // XXX.. bug can occur
-    output = data_chunks[prev_toggle];*/
-// IC();
     // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
         output.Reset();
@@ -307,6 +304,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (comp_header.data_len < (current_idx_in_this_extent * scan_size)) return false;
         size_t remain_data_size = comp_header.data_len - (current_idx_in_this_extent * scan_size);
         size_t output_cardinality = std::min((size_t) scan_size, remain_data_size);
+        // icecream::ic.enable(); IC(); IC(comp_header.data_len, current_idx_in_this_extent, scan_size, remain_data_size, output_cardinality); icecream::ic.disable();
         output.SetCardinality(output_cardinality);
     }
     output_eid = ext_ids_to_iterate[current_idx];
@@ -318,10 +316,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
-            //                 i, io_requested_cdf_ids[prev_toggle][i], (int)ext_property_types[i].id(), output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len,
-            //                 io_requested_buf_ptrs[prev_toggle][i], output.data[i].GetData());
+            // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+            //                 i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
+            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+            //                 io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
         } else {
             // fprintf(stdout, "Load Column %ld\n", i);
         }

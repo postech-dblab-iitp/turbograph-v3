@@ -47,6 +47,7 @@ public:
 	PartitionID pid; // foreign key
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
+	idx_t_vector key_column_idxs;
 	atomic<ExtentID> local_extent_id_version;
 	vector<LogicalType> property_types; // TODO SHM
 	LogicalTypeId_vector property_typesid;
@@ -57,12 +58,14 @@ public:
 	
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	vector<string> GetKeys();
 	void AppendType(LogicalType type);
 	void AppendKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
+	vector<idx_t> GetKeyColumnIdxs();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

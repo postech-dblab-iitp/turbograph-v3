@@ -260,7 +260,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
-//        fprintf(stdout, "\t\tAppendChunk %ld Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, chunk_duration.count(), chunk_compression_duration.count());
+        // fprintf(stdout, "\t\tAppendChunk %ld -> %p size %ld, Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, buf_ptr, input.size(), chunk_duration.count(), chunk_compression_duration.count());
     }
 }
 
