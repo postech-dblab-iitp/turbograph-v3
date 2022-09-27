@@ -153,9 +153,10 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 // icecream::ic.enable(); IC(target_eids.size(), boundary_position.size()); icecream::ic.disable();
 
 	if (target_eids.size() == 0) return StoreAPIResult::DONE;
-
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	ext_it = new ExtentIterator();
 	ext_it->Initialize(client, ps_cat_entry, scanSchema, column_idxs, target_eids);
+// icecream::ic.enable(); IC(); icecream::ic.disable();
 	return StoreAPIResult::OK;
 }
 
@@ -343,15 +344,16 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromRange(AdjacencyListIterator &adj_
 StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
 	D_ASSERT( expand_dir ==ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
 	bool is_initialized;
+	ExtentID target_eid = vid >> 32;
 	if (expand_dir == ExpandDirection::OUTGOING) {
 		// icecream::ic.enable(); IC(); icecream::ic.disable();
-		is_initialized = adj_iter.Initialize(client, adjColIdx, vid, LogicalType::FORWARD_ADJLIST);
+		is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
 		// icecream::ic.enable(); IC(); icecream::ic.disable();
 	} else if (expand_dir == ExpandDirection::INCOMING) {
-		is_initialized = adj_iter.Initialize(client, adjColIdx, vid, LogicalType::BACKWARD_ADJLIST);
+		is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::BACKWARD_ADJLIST);
 	}
 
-	adj_iter.getAdjListPtr(vid, start_ptr, end_ptr, is_initialized);
+	adj_iter.getAdjListPtr(vid, target_eid, start_ptr, end_ptr, is_initialized);
 	return StoreAPIResult::OK;
 }
 
