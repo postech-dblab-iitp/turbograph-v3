@@ -21,7 +21,7 @@ CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 	unique_ptr<Expression> filter_expr1;
 	// Filter
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }	// demo samsung
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 
@@ -54,9 +54,9 @@ CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 // pipe
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Comment"), vector<string>(), "id", filter_val));	// comment only
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Post"), vector<string>(), "id", filter_val));	// comment only
 	//ops
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "m", LabelSet("Comment"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "m", LabelSet("Post"), LabelSet("POST_HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "p", LabelSet("Person"), p_keys));
 	ops.push_back( new PhysicalProjection(sch5, move(proj_exprs)));
 	// sink
