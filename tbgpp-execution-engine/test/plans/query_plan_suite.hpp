@@ -107,7 +107,7 @@ public:
 		if( key.compare("q10-1") == 0 ) { return TPCH_Q10_1(); }
 		if( key.compare("q10-1-test") == 0 ) { return TPCH_Q10_1_TEST(); }
 		if( key.compare("q10-1-test2") == 0 ) { return TPCH_Q10_1_TEST2(); }
-		if( key.compare("q13") == 0 ) { return TPCH_Q13(); }
+		// if( key.compare("q13") == 0 ) { return TPCH_Q13(); }
 
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();

@@ -22,7 +22,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 	CypherSchema sch1;
 	sch1.addNode("n");
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(17592186052613); }
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
