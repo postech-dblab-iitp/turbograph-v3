@@ -23,7 +23,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 // FIXME
 	duckdb::Value filter_val;
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(35184372099695); }
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 

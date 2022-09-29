@@ -987,12 +987,12 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is
     if (current_idx > max_idx) return false;
 
     // Request chunk cache manager to finalize I/O
-    // if (!is_initialized) { // We don't need I/O actually..
-    //     for (int i = 0; i < io_requested_cdf_ids[target_toggle].size(); i++) {
-    //         if (io_requested_cdf_ids[target_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-    //         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[target_toggle][i], true, false);
-    //     }
-    // }
+    if (!is_initialized) { // We don't need I/O actually..
+        for (int i = 0; i < io_requested_cdf_ids[target_toggle].size(); i++) {
+            if (io_requested_cdf_ids[target_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[target_toggle][i], true, false);
+        }
+    }
 
     CompressionHeader comp_header;
     
