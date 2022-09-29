@@ -75,7 +75,7 @@ CypherPipelineExecutor* is3_pipe1(QueryPlanSuite& suite) {
 	//src
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Person"), vector<string>(), "id", filter_val));
 	//ops
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "n", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, true, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "n", LabelSet("Person"), LabelSet("KNOWS"), ExpandDirection::INCOMING, LabelSet("Person"), JoinType::INNER, true, true));
 	ops.push_back( new PhysicalEdgeIdSeek(sch3, "r", LabelSet("KNOWS"), r_keys));
 	ops.push_back( new PhysicalNodeIdSeek(sch4, "friend", LabelSet("Person"), friend_keys));
 	ops.push_back( new PhysicalProjection(sch5, move(proj_exprs)));

@@ -24,7 +24,7 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 	CypherSchema sch1;
 	sch1.addNode("m");
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57457); } // verified
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); } // verified
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(3); }	// TODO fixme
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(0); }	// TODO fixme
 
