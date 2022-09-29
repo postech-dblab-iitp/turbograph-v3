@@ -22,7 +22,7 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 	CypherSchema sch1;
 	sch1.addNode("start");
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }	// demo
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(24189255818757); }	// demo
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
@@ -88,8 +88,8 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 // pipe
 	std::vector<CypherPhysicalOperator *> ops;
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("Person"), vector<string>(), "id", filter_val));
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "start", LabelSet("Person"), LabelSet("POST_HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Post"), JoinType::INNER, false, true));
-	ops.push_back( new PhysicalAdjIdxJoin(sch3, "m", LabelSet("Post"), LabelSet("REPLY_OF"), ExpandDirection::INCOMING, LabelSet("Comment"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "start", LabelSet("Person"), LabelSet("HAS_CREATOR"), ExpandDirection::INCOMING, LabelSet("Comment"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch3, "m", LabelSet("Comment"), LabelSet("REPLY_OF_COMMENT"), ExpandDirection::INCOMING, LabelSet("Comment"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalAdjIdxJoin(sch4, "comment", LabelSet("Comment"), LabelSet("HAS_CREATOR"), ExpandDirection::OUTGOING, LabelSet("Person"), JoinType::INNER, false, true));
 	ops.push_back( new PhysicalNodeIdSeek(sch5, "person", LabelSet("Person"), person_keys));
 	ops.push_back( new PhysicalNodeIdSeek(sch6, "comment", LabelSet("Comment"), comment_keys));

@@ -33,7 +33,7 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 	// person
 	CypherSchema sch1; sch1.addNode("person");
 	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }	//demo samsung
+	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(21990232559429); }	//demo samsung
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 	// p-K->friend
@@ -113,7 +113,7 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	}
 	{ 
 		// case when BIGINT > post.creationDate then 1 else 0 AS invalid
-		auto e_when_l = make_unique<BoundConstantExpression>(Value::BIGINT(1275350400000));
+		auto e_when_l = make_unique<BoundConstantExpression>(Value::BIGINT(1335830400000));
 		auto e_when_r = make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 1); // post.cd
 		auto e_when = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHAN, move(e_when_l), move(e_when_r));
 		auto e_then = make_unique<BoundConstantExpression>(Value::BIGINT(1));

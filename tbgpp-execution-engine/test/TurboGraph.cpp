@@ -63,6 +63,7 @@ using namespace tblr;
 #include "catalog/catalog_entry/list.hpp"
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
+#include "common/error_handler.hpp"
 
 using namespace duckdb;
 
@@ -159,6 +160,8 @@ icecream::ic.disable();
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
+	// set_signal_handler();
+	// setbuf(stdout, NULL);
 
 	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
 	// Initialize System Parameters

@@ -213,6 +213,13 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 
 void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (AdjIdxJoinState &)lstate;
+
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() > 0) {
+// 	IC(input.ToString(std::min((idx_t)10, input.size())));
+// }
+// icecream::ic.disable();
 	
 	uint64_t* adj_start;
 	uint64_t* adj_end;
@@ -237,8 +244,8 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		// calculate size
 	// FIXME debug calculate size directly here
 	int adj_size_debug = (adj_end - adj_start)/2;
-		const size_t num_rhs_left = adj_size_debug - state.rhs_idx;
-		const size_t num_rhs_to_try_fetch = ((STANDARD_VECTOR_SIZE - state.output_idx) > num_rhs_left )
+		size_t num_rhs_left = adj_size_debug - state.rhs_idx;
+		size_t num_rhs_to_try_fetch = ((STANDARD_VECTOR_SIZE - state.output_idx) > num_rhs_left )
 										? num_rhs_left : (EXEC_ENGINE_VECTOR_SIZE - state.output_idx);
 		// TODO apply filter predicates
 
@@ -248,7 +255,8 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 			state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
 		}
 		// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-		for( ; state.rhs_idx < num_rhs_to_try_fetch; state.rhs_idx++ ) {
+		auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+		for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++ ) {
 			tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
 			if( load_eid ) {
 				eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
@@ -258,7 +266,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		D_ASSERT(tmp_output_idx == state.output_idx);
 
 		// update lhs_idx and adj_idx for next iteration
-		if( state.rhs_idx >= state.join_sizes[state.lhs_idx][state.adj_idx] ) {
+		if( state.rhs_idx >= adj_size_debug ) {
 			// for this (lhs_idx, adj_idx), equi join is done
 			state.rhs_idx = 0;
 			if( state.adj_idx == state.adj_col_idxs.size() - 1) { state.lhs_idx++; state.adj_idx = 0;}
