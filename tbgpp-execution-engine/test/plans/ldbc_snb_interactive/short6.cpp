@@ -10,7 +10,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 
 	// Filter
 	duckdb::Value filter_val; // message key
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }
 	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 

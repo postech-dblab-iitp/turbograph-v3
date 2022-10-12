@@ -14,7 +14,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 	// scan params
 	LabelSet scan_labels;
 	PropertyKeys scan_propertyKeys;
-	scan_labels.insert("Comment");	// TODO this should originally by Message which is integration with Post and Comment
+	scan_labels.insert("Post");	// TODO this should originally by Message which is integration with Post and Comment
 	scan_propertyKeys.push_back("id");
 	scan_propertyKeys.push_back("content");
 	scan_propertyKeys.push_back("creationDate");
@@ -22,7 +22,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 	// filter predcs
 	CypherSchema filter_schema = schema;
 	duckdb::Value filter_val;
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(57459); }
+	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }
 	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 		

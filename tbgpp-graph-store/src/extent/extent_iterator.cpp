@@ -12,6 +12,20 @@
 
 namespace duckdb {
 
+inline uint64_t& getIdRefFromVectorTemp(Vector& vector, idx_t index) {
+	switch( vector.GetVectorType() ) {
+		case VectorType::DICTIONARY_VECTOR: {
+			return ((uint64_t *)vector.GetData())[DictionaryVector::SelVector(vector).get_index(index)];
+		}
+		case VectorType::FLAT_VECTOR: {
+			return ((uint64_t *)vector.GetData())[index];
+		}
+		default: {
+			D_ASSERT(false);
+		}
+	}
+}
+
 // TODO: select extent to iterate using min & max & key
 // Initialize iterator that iterates all extents
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry) {
@@ -824,7 +838,7 @@ icecream::ic.disable();
 // For Seek Operator - Bulk Mode
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> output_col_idx, idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized) {
     int prev_toggle = toggle;
-    
+    // icecream::ic.enable(); IC(); IC(target_eid, current_eid); icecream::ic.disable();
     if (target_eid != current_eid) {
         // Keep previous values
         if (current_eid != std::numeric_limits<uint32_t>::max())
@@ -836,7 +850,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         // Request I/O to the next extent if we can support double buffering
         Catalog& cat_instance = context.db->GetCatalog();
         if (support_double_buffering && current_idx < max_idx) {
-//            IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
+            // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
                 ExtentCatalogEntry* extent_cat_entry = 
                     (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
@@ -909,9 +923,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
             //                 i, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
+            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+            //                 io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
         } else {
             // fprintf(stdout, "Load Column %ld\n", i);
         }
@@ -925,9 +940,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_col_idx[i]]);
                 uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
+                // uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
+                Vector &vids = input.data[nodeColIdx];
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
-                    idx_t target_seqno = vids[seqno] & 0x00000000FFFFFFFF;
+                    // idx_t target_seqno = vids[seqno] & 0x00000000FFFFFFFF;
+                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
                     uint64_t string_offset = offset_arr[target_seqno];
                     size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
@@ -947,9 +964,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
+                Vector &vids = input.data[nodeColIdx];
+                // uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
-                    idx_t target_seqno = vids[seqno] & 0x00000000FFFFFFFF;
+                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+                    // icecream::ic.enable(); IC(); IC(start_seqno, seqno, end_seqno, vids[seqno], target_seqno); icecream::ic.disable();
                     memcpy(output.data[output_col_idx[i]].GetData() + seqno * type_size, io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
                 }
                 
@@ -968,12 +987,12 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is
     if (current_idx > max_idx) return false;
 
     // Request chunk cache manager to finalize I/O
-    // if (!is_initialized) { // We don't need I/O actually..
-    //     for (int i = 0; i < io_requested_cdf_ids[target_toggle].size(); i++) {
-    //         if (io_requested_cdf_ids[target_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-    //         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[target_toggle][i], true, false);
-    //     }
-    // }
+    if (!is_initialized) { // We don't need I/O actually..
+        for (int i = 0; i < io_requested_cdf_ids[target_toggle].size(); i++) {
+            if (io_requested_cdf_ids[target_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[target_toggle][i], true, false);
+        }
+    }
 
     CompressionHeader comp_header;
     
