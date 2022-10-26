@@ -11,6 +11,7 @@
 #include "parser/parsed_data/parse_info.hpp"
 #include "parser/column_definition.hpp"
 #include "common/enums/catalog_type.hpp"
+#include "parser/constraint.hpp"
 
 namespace duckdb {
 
@@ -29,6 +30,8 @@ struct AlterInfo : public ParseInfo {
 	~AlterInfo() override;
 
 	AlterType type;
+	//! if exists
+	bool if_exists;
 	//! Schema name to alter
 	string schema;
 	//! Entry name to alter
@@ -37,9 +40,9 @@ struct AlterInfo : public ParseInfo {
 public:
 	virtual CatalogType GetCatalogType() const = 0;
 	virtual unique_ptr<AlterInfo> Copy() const = 0;
-	//void Serialize(Serializer &serializer) const;
-	//virtual void Serialize(FieldWriter &writer) const = 0;
-	//static unique_ptr<AlterInfo> Deserialize(Deserializer &source);
+	void Serialize(Serializer &serializer) const;
+	virtual void Serialize(FieldWriter &writer) const = 0;
+	static unique_ptr<AlterInfo> Deserialize(Deserializer &source);
 };
 
 //===--------------------------------------------------------------------===//
@@ -60,7 +63,7 @@ struct ChangeOwnershipInfo : public AlterInfo {
 public:
 	CatalogType GetCatalogType() const override;
 	unique_ptr<AlterInfo> Copy() const override;
-	//void Serialize(FieldWriter &writer) const override;
+	void Serialize(FieldWriter &writer) const override;
 };
 
 //===--------------------------------------------------------------------===//
@@ -74,7 +77,7 @@ enum class AlterTableType : uint8_t {
 	REMOVE_COLUMN = 4,
 	ALTER_COLUMN_TYPE = 5,
 	SET_DEFAULT = 6,
-	FOREIGN_KEY_CONSTRAINT = 7
+	FOREIGN_KEY_CONSTRAINT = 7,
 };
 
 struct AlterTableInfo : public AlterInfo {
@@ -85,9 +88,9 @@ struct AlterTableInfo : public AlterInfo {
 
 public:
 	CatalogType GetCatalogType() const override;
-	//void Serialize(FieldWriter &writer) const override;
-	//virtual void SerializeAlterTable(FieldWriter &writer) const = 0;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader);
+	void Serialize(FieldWriter &writer) const override;
+	virtual void SerializeAlterTable(FieldWriter &writer) const = 0;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader);
 };
 
 //===--------------------------------------------------------------------===//
@@ -104,8 +107,8 @@ struct RenameColumnInfo : public AlterTableInfo {
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
@@ -120,8 +123,8 @@ struct RenameTableInfo : public AlterTableInfo {
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
@@ -136,34 +139,36 @@ struct AddColumnInfo : public AlterTableInfo {
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
 // RemoveColumnInfo
 //===--------------------------------------------------------------------===//
 struct RemoveColumnInfo : public AlterTableInfo {
-	RemoveColumnInfo(string schema, string table, string removed_column, bool if_exists);
+	RemoveColumnInfo(string schema, string table, string removed_column, bool if_exists, bool cascade);
 	~RemoveColumnInfo() override;
 
 	//! The column to remove
 	string removed_column;
 	//! Whether or not an error should be thrown if the column does not exist
 	bool if_exists;
+	//! Whether or not the column should be removed if a dependency conflict arises (used by GENERATED columns)
+	bool cascade;
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
 // ChangeColumnTypeInfo
 //===--------------------------------------------------------------------===//
 struct ChangeColumnTypeInfo : public AlterTableInfo {
-	ChangeColumnTypeInfo(string schema, string table, string column_name, LogicalType target_type);
-	                     //unique_ptr<ParsedExpression> expression);
+	ChangeColumnTypeInfo(string schema, string table, string column_name, LogicalType target_type,
+	                     unique_ptr<ParsedExpression> expression);
 	~ChangeColumnTypeInfo() override;
 
 	//! The column name to alter
@@ -171,30 +176,30 @@ struct ChangeColumnTypeInfo : public AlterTableInfo {
 	//! The target type of the column
 	LogicalType target_type;
 	//! The expression used for data conversion
-	//unique_ptr<ParsedExpression> expression;
+	unique_ptr<ParsedExpression> expression;
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
 // SetDefaultInfo
 //===--------------------------------------------------------------------===//
 struct SetDefaultInfo : public AlterTableInfo {
-	SetDefaultInfo(string schema, string table, string column_name);//, unique_ptr<ParsedExpression> new_default);
+	SetDefaultInfo(string schema, string table, string column_name, unique_ptr<ParsedExpression> new_default);
 	~SetDefaultInfo() override;
 
 	//! The column name to alter
 	string column_name;
 	//! The expression used for data conversion
-	//unique_ptr<ParsedExpression> expression;
+	unique_ptr<ParsedExpression> expression;
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
@@ -215,8 +220,8 @@ struct AlterForeignKeyInfo : public AlterTableInfo {
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterTable(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterTable(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 //===--------------------------------------------------------------------===//
@@ -232,9 +237,9 @@ struct AlterViewInfo : public AlterInfo {
 
 public:
 	CatalogType GetCatalogType() const override;
-	//void Serialize(FieldWriter &writer) const override;
-	//virtual void SerializeAlterView(FieldWriter &writer) const = 0;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader);
+	void Serialize(FieldWriter &writer) const override;
+	virtual void SerializeAlterView(FieldWriter &writer) const = 0;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader);
 };
 
 //===--------------------------------------------------------------------===//
@@ -249,8 +254,8 @@ struct RenameViewInfo : public AlterViewInfo {
 
 public:
 	unique_ptr<AlterInfo> Copy() const override;
-	//void SerializeAlterView(FieldWriter &writer) const override;
-	//static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
+	void SerializeAlterView(FieldWriter &writer) const override;
+	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
 } // namespace duckdb

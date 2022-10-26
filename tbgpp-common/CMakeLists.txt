@@ -50,7 +50,23 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/common/vector_operations"
 	# parser
 	"${PROJECT_SOURCE_DIR}/include/parser"
-	"${PROJECT_SOURCE_DIR}/include/parser/parsed_data" 
+	"${PROJECT_SOURCE_DIR}/include/parser/parsed_data"
+	"${PROJECT_SOURCE_DIR}/include/parser/constraints"
+	"${PROJECT_SOURCE_DIR}/include/parser/expression"
+	"${PROJECT_SOURCE_DIR}/include/parser/query_node"
+	"${PROJECT_SOURCE_DIR}/include/parser/statement"
+	"${PROJECT_SOURCE_DIR}/include/parser/tableref"
+	# planner
+	"${PROJECT_SOURCE_DIR}/include/planner"
+	"${PROJECT_SOURCE_DIR}/include/planner/constraints"
+	"${PROJECT_SOURCE_DIR}/include/planner/expression"
+	"${PROJECT_SOURCE_DIR}/include/planner/expression_binder"
+	"${PROJECT_SOURCE_DIR}/include/planner/filter"
+	"${PROJECT_SOURCE_DIR}/include/planner/operator"
+	"${PROJECT_SOURCE_DIR}/include/planner/parsed_data"
+	"${PROJECT_SOURCE_DIR}/include/planner/query_node"
+	"${PROJECT_SOURCE_DIR}/include/planner/subquery"
+	"${PROJECT_SOURCE_DIR}/include/planner/tableref"
 	# third_party
 	"${PROJECT_SOURCE_DIR}/include/third_party/fmt/include"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
@@ -58,6 +74,10 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
+	"${PROJECT_SOURCE_DIR}/third_party/tblr"
+	# external - client
+	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")

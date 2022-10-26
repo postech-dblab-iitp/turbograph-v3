@@ -3,6 +3,12 @@
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
+#include "common/unordered_map.hpp"
+
+#include "common/types.hpp"
+#include "common/vector_size.hpp"
+
+#include <limits>
 
 namespace duckdb {
 
@@ -25,11 +31,18 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, vector<ExtentID> target_eids);
+    int RequestNewIO(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid, ExtentID &evicted_eid);
 
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized=true);
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, std::string filterKey, Value filterValue, bool is_output_chunk_initialized=true);
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
-    bool GetExtent(data_ptr_t &chunk_ptr);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, Value filterValue, vector<string> &output_properties, vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> output_col_idx, idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized=true);
+    bool GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized);
+
+    bool IsInitialized() {
+        return is_initialized;
+    }
 
 private:
     bool _CheckIsMemoryEnough();
@@ -42,11 +55,15 @@ private:
     vector<size_t> io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
     vector<LogicalType> ext_property_types;
     vector<idx_t> target_idxs;
+    idx_t current_idx_in_this_extent;
     idx_t current_idx;
     idx_t max_idx;
+    ExtentID current_eid = (ExtentID)std::numeric_limits<uint32_t>::max();
+    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
     int num_data_chunks;
     int toggle;
     bool support_double_buffering;
+    bool is_initialized = false;
     PropertySchemaCatalogEntry *ps_cat_entry;
 };
 
@@ -54,15 +71,17 @@ class AdjacencyListIterator {
 public:
     AdjacencyListIterator() {}
     ~AdjacencyListIterator() {}
-
-    void Initialize(ClientContext &context, int adjColIdx, uint64_t vid);
+    bool Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
+    void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
     void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
-    void getAdjListPtr(uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr);
+    void getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized);
 
 private:
     bool is_initialized = false;
-    ExtentIterator *ext_it;
-    ExtentID cur_eid;
+    ExtentIterator *ext_it = nullptr;
+    ExtentID cur_eid = std::numeric_limits<ExtentID>::max();
+    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
+    data_ptr_t cur_adj_list;
 };
 
 } // namespace duckdb

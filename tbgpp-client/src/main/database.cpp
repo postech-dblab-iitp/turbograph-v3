@@ -48,7 +48,7 @@ DatabaseInstance::~DatabaseInstance() {
 	}
 }
 
-/*BufferManager &BufferManager::GetBufferManager(DatabaseInstance &db) {
+BufferManager &BufferManager::GetBufferManager(DatabaseInstance &db) {
 	return *db.GetStorageManager().buffer_manager;
 }
 
@@ -58,15 +58,15 @@ BlockManager &BlockManager::GetBlockManager(DatabaseInstance &db) {
 
 BlockManager &BlockManager::GetBlockManager(ClientContext &context) {
 	return BlockManager::GetBlockManager(DatabaseInstance::GetDatabase(context));
-}*/
+}
 
 DatabaseInstance &DatabaseInstance::GetDatabase(ClientContext &context) {
 	return *context.db;
 }
 
-/*StorageManager &StorageManager::GetStorageManager(DatabaseInstance &db) {
+StorageManager &StorageManager::GetStorageManager(DatabaseInstance &db) {
 	return db.GetStorageManager();
-}*/
+}
 
 Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
 	return db.GetCatalog();
@@ -100,6 +100,10 @@ ConnectionManager &ConnectionManager::Get(ClientContext &context) {
 	return ConnectionManager::Get(DatabaseInstance::GetDatabase(context));
 }*/
 
+bool startsWith(const std::string &str, const std::string &prefix) {
+    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
 void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) {
 	/*if (new_config) {
 		// user-supplied configuration
@@ -123,22 +127,78 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		config.temporary_directory = string();
 	}*/
 
-	//storage =
+	storage =
 	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
-	// struct shm_remove
-   	// {
-    // 	shm_remove() { boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-    // 	~shm_remove(){ boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM"); }
-   	// } remover;
-	catalog_shm = new fixed_managed_shared_memory(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM", (void *) 0x10000000000);
-	catalog = make_unique<Catalog>(*this, catalog_shm);
+	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
+
+	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
+	fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
+	int64_t num_objects_in_catalog = 0;
+	const_named_it named_beg = catalog_shm->named_begin();
+	const_named_it named_end = catalog_shm->named_end();
+	vector<vector<string>> object_names;
+	object_names.resize(20);
+	for(; named_beg != named_end; ++named_beg) {
+		// A pointer to the name of the named object
+		const void *value = named_beg->value();
+		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
+		// fprintf(stdout, "%s %p\n", name, value);
+		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
+			object_names[0].push_back(name);
+		} else if (startsWith(name, "graph")) { // GraphCatalogEntry
+			object_names[1].push_back(name);
+		} else if (startsWith(name, "vpart")) { // VertexPartitionCatalogEntry
+			object_names[2].push_back(name);
+		} else if (startsWith(name, "epart")) { // EdgePartitionCatalogEntry
+			object_names[3].push_back(name);
+		} else if (startsWith(name, "vps")) { // VertexPropertySchemaCatalogEntry
+			object_names[4].push_back(name);
+		} else if (startsWith(name, "eps")) { // EdgePropertySchemaCatalogEntry
+			object_names[5].push_back(name);
+		} else if (startsWith(name, "ext")) { // ExtentCatalogEntry
+			object_names[6].push_back(name);
+		} else if (startsWith(name, "cdf")) { // ChunkDefinitionCatalogEntry
+			object_names[7].push_back(name);
+		} else {
+			object_names[8].push_back(name);
+		}
+		num_objects_in_catalog++;
+	}
+	// fprintf(stdout, "SchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
+	// fprintf(stdout, "GraphCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
+	// fprintf(stdout, "VertexPartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s\n", object_names[2][i].c_str());
+	// fprintf(stdout, "EdgePartitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
+	// fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
+	// fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
+	// fprintf(stdout, "ExtentCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
+	// fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
+	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
+	// fprintf(stdout, "Else\n");
+	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
+	fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
+	
+	if (num_objects_in_catalog == 0) {
+		// Make a new catalog
+		catalog = make_unique<Catalog>(*this, catalog_shm);
+	} else {
+		// Load the existing catalog
+		catalog = make_unique<Catalog>(*this);
+		catalog->LoadCatalog(catalog_shm, object_names);
+	}
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);
 	//object_cache = make_unique<ObjectCache>();
 	//connection_manager = make_unique<ConnectionManager>();
 
 	// initialize the database
-	//storage->Initialize();
+	storage->Initialize();
 
 	// only increase thread count after storage init because we get races on catalog otherwise
 	//scheduler->SetThreads(config.maximum_threads);
@@ -164,45 +224,50 @@ DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
 DuckDB::~DuckDB() {
 }
 
-/*StorageManager &DatabaseInstance::GetStorageManager() {
+StorageManager &DatabaseInstance::GetStorageManager() {
 	return *storage;
-}*/
+}
 
 Catalog &DatabaseInstance::GetCatalog() {
 	return *catalog;
 }
 
-/*TransactionManager &DatabaseInstance::GetTransactionManager() {
-	return *transaction_manager;
+fixed_managed_mapped_file *DatabaseInstance::GetCatalogSHM() {
+	return catalog_shm;
 }
 
-TaskScheduler &DatabaseInstance::GetScheduler() {
-	return *scheduler;
-}
+// TransactionManager &DatabaseInstance::GetTransactionManager() {
+// 	return *transaction_manager;
+// }
 
-ObjectCache &DatabaseInstance::GetObjectCache() {
-	return *object_cache;
-}
+// TaskScheduler &DatabaseInstance::GetScheduler() {
+// 	return *scheduler;
+// }
+
+// ObjectCache &DatabaseInstance::GetObjectCache() {
+// 	return *object_cache;
+// }
 
 FileSystem &DatabaseInstance::GetFileSystem() {
-	return *config.file_system;
+	return DEFAULT_LOCAL_FILE_SYSTEM;
+	// return *config.file_system;
 }
 
-ConnectionManager &DatabaseInstance::GetConnectionManager() {
-	return *connection_manager;
-}
+// ConnectionManager &DatabaseInstance::GetConnectionManager() {
+// 	return *connection_manager;
+// }
 
 FileSystem &DuckDB::GetFileSystem() {
 	return instance->GetFileSystem();
 }
 
-Allocator &Allocator::Get(ClientContext &context) {
-	return Allocator::Get(*context.db);
-}
+// Allocator &Allocator::Get(ClientContext &context) {
+// 	return Allocator::Get(*context.db);
+// }
 
-Allocator &Allocator::Get(DatabaseInstance &db) {
-	return db.config.allocator;
-}*/
+// Allocator &Allocator::Get(DatabaseInstance &db) {
+// 	return db.config.allocator;
+// }
 
 /*void DatabaseInstance::Configure(DBConfig &new_config) {
 	config.access_mode = AccessMode::READ_WRITE;

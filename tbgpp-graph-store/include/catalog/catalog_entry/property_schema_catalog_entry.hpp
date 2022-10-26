@@ -17,6 +17,8 @@
 //#include "planner/bound_constraint.hpp"
 //#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
+#include "common/boost.hpp"
+#include "common/boost_typedefs.hpp"
 
 namespace duckdb {
 
@@ -35,6 +37,9 @@ struct AlterForeignKeyInfo;
 
 //! A property schema catalog entry
 class PropertySchemaCatalogEntry : public StandardEntry {
+    typedef boost::interprocess::allocator<LogicalTypeId, segment_manager_t> logicaltypeid_allocator;
+	typedef boost::interprocess::vector<LogicalTypeId, logicaltypeid_allocator> LogicalTypeId_vector;
+
 public:
 	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
@@ -42,21 +47,25 @@ public:
 	PartitionID pid; // foreign key
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
+	idx_t_vector key_column_idxs;
 	atomic<ExtentID> local_extent_id_version;
 	vector<LogicalType> property_types; // TODO SHM
-	vector<string> property_key_names; // Temporary
+	LogicalTypeId_vector property_typesid;
+	string_vector property_key_names;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
 	void SetTypes(vector<LogicalType> &types);
-	void SetKeys(vector<string> &key_names);
+	void SetKeys(ClientContext &context, vector<string> &key_names);
+	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	vector<string> GetKeys();
 	void AppendType(LogicalType type);
-	void AppendKey(string key_name);
+	void AppendKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
+	vector<idx_t> GetKeyColumnIdxs();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

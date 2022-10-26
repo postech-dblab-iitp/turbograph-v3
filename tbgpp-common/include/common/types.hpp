@@ -371,8 +371,10 @@ enum class LogicalTypeId : uint8_t {
 	ENUM = 104,
 	AGGREGATE_STATE = 105,
 	// TBGPP-specific
-	ADJLIST = 106,
-	ID = 107,
+	FORWARD_ADJLIST = 106,
+	BACKWARD_ADJLIST = 107,
+	ID = 108,
+	ADJLISTCOLUMN = 109,
 };
 
 struct ExtraTypeInfo;
@@ -420,9 +422,9 @@ struct LogicalType {
 	}
 
 	//! Serializes a LogicalType to a stand-alone binary blob
-	DUCKDB_API void Serialize(Serializer &serializer) const;
+	//DUCKDB_API void Serialize(Serializer &serializer) const;
 	//! Deserializes a blob back into an LogicalType
-	DUCKDB_API static LogicalType Deserialize(Deserializer &source);
+	//DUCKDB_API static LogicalType Deserialize(Deserializer &source);
 
 	DUCKDB_API string ToString() const;
 	DUCKDB_API bool IsIntegral() const;
@@ -479,8 +481,10 @@ public:
 	static constexpr const LogicalTypeId ROW_TYPE = LogicalTypeId::BIGINT;
 
 	// TBGPP-specific
-	static constexpr const LogicalTypeId ADJLIST = LogicalTypeId::ADJLIST;
+	static constexpr const LogicalTypeId FORWARD_ADJLIST = LogicalTypeId::FORWARD_ADJLIST;
+	static constexpr const LogicalTypeId BACKWARD_ADJLIST = LogicalTypeId::BACKWARD_ADJLIST;
 	static constexpr const LogicalTypeId ID = LogicalTypeId::ID;
+	static constexpr const LogicalTypeId ADJLISTCOLUMN = LogicalTypeId::ADJLISTCOLUMN;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
 	DUCKDB_API static LogicalType DECIMAL(int width, int scale);                 // NOLINT

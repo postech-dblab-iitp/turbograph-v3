@@ -6,13 +6,13 @@
 //#include "livegraph.hpp"
 #include "storage/graph_store.hpp"
 
-#include "execution/physical_operator.hpp"
+#include "execution/physical_operator/physical_operator.hpp"
+
 
 #include "common/types/data_chunk.hpp"
 #include "common/stack.hpp"
 
 #include <functional>
-
 
 // JHKO Copied directly from duckdb
 
@@ -20,13 +20,16 @@ namespace duckdb {
 
 struct LogicalType;
 class Executor;
+class ClientContext;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
 	static constexpr const idx_t CACHE_THRESHOLD = 64;
 
 public:
-	CypherPipelineExecutor(CypherPipeline* pipeline, GraphStore* graph);
+	
+	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline);
+	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs);
 
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
 	void ExecutePipeline();
@@ -45,9 +48,10 @@ public:
 
 
 	//! The pipeline to process
+	ExecutionContext* context;
 	CypherPipeline* pipeline;
-	// Graph
-	GraphStore* graphstore;
+		// TODO this needs to be unique pointer. maybe...?
+	
 
 	// TODO add statistics reporter.
 
@@ -56,7 +60,7 @@ public:
 	vector<unique_ptr<DataChunk>> opOutputChunks;
 
 	// in duckdb, each stated is stored in:
-		// .          local        |  global
+		// .            local        |  global
 		// source   pipelineexec     pipeline
 	 	// operator pipelineexec        op
 		// sink     pipelineexec        op
@@ -80,6 +84,8 @@ public:
 	//! Cached chunks for any operators that require caching
 	vector<unique_ptr<DataChunk>> cached_chunks;
 
+	//! Child executors - to access sink information of the source
+	vector<CypherPipelineExecutor*> childs;
 
 private:
 

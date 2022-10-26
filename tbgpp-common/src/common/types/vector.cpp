@@ -14,6 +14,7 @@
 //#include "storage/buffer/buffer_handle.hpp"
 
 #include <cstring> // strlen() on Solaris
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -60,7 +61,9 @@ Vector::Vector(Vector &&other) noexcept
 }
 
 void Vector::Reference(const Value &value) {
-	D_ASSERT(GetType().id() == value.type().id());
+	D_ASSERT( (GetType().id()==LogicalTypeId::ID) || (value.type().id()==LogicalTypeId::ID) || ( GetType().id() == value.type().id() ) );
+		// TODO bypassing same logical value checks on Logicaltypd::ID
+
 	this->vector_type = VectorType::CONSTANT_VECTOR;
 	buffer = VectorBuffer::CreateConstantVector(value.type());
 	auto internal_type = value.type().InternalType();
@@ -483,6 +486,7 @@ Value Vector::GetValue(idx_t index) const {
 	if (!validity.RowIsValid(index)) {
 		return Value(GetType());
 	}
+
 	switch (GetType().id()) {
 	case LogicalTypeId::BOOLEAN:
 		return Value::BOOLEAN(((bool *)data)[index]);
@@ -508,6 +512,7 @@ Value Vector::GetValue(idx_t index) const {
 		return Value::UINTEGER(((uint32_t *)data)[index]);
 	case LogicalTypeId::UBIGINT:
 	case LogicalTypeId::ID:
+	case LogicalTypeId::ADJLISTCOLUMN:
 		return Value::UBIGINT(((uint64_t *)data)[index]);
 	case LogicalTypeId::TIMESTAMP:
 		return Value::TIMESTAMP(((timestamp_t *)data)[index]);
@@ -600,7 +605,8 @@ Value Vector::GetValue(idx_t index) const {
 		}
 		return Value::LIST(ListType::GetChildType(GetType()), move(children));
 	}
-	case LogicalTypeId::ADJLIST: {
+	case LogicalTypeId::FORWARD_ADJLIST:
+	case LogicalTypeId::BACKWARD_ADJLIST: {
 		D_ASSERT(index >= 0);
 		auto start_offset = index == 0 ? STANDARD_VECTOR_SIZE : ((idx_t *)data)[index-1];
 		auto end_offset = ((idx_t *)data)[index];
@@ -657,7 +663,7 @@ string Vector::ToString(idx_t count) const {
 		break;
 	}
 	retval += "]";
-	//fprintf(stdout, "%s\n", retval.c_str());
+	// fprintf(stdout, "%s\n", retval.c_str());
 	return retval;
 }
 
@@ -869,7 +875,9 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 	auto data = (int64_t *)buffer->GetData();
 	data[0] = start;
 	data[1] = increment;
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
+	// icecream::ic.enable();IC();icecream::ic.disable();
 	auxiliary.reset();
 }
 

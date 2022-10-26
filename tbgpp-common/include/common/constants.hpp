@@ -63,6 +63,8 @@ typedef const data_t *const_data_ptr_t;
 
 //! Type used for the selection vector
 typedef uint32_t sel_t;
+//! Type used for storage (column) identifiers
+typedef idx_t storage_t;
 //! Type used for transaction timestamps
 typedef idx_t transaction_t;
 

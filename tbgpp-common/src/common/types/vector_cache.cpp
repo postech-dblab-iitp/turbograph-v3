@@ -1,6 +1,8 @@
 #include "common/types/vector_cache.hpp"
 #include "common/types/vector.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 
 class VectorCacheBuffer : public VectorBuffer {
@@ -10,7 +12,7 @@ public:
 		auto internal_type = type.InternalType();
 		switch (internal_type) {
 		case PhysicalType::ADJLIST: {
-			owned_data = unique_ptr<data_t[]>(new data_t[STANDARD_VECTOR_SIZE * GetTypeIdSize(internal_type)]);
+			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			LogicalType child_type = LogicalType::UBIGINT;
 			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
 			auto child_vector = make_unique<Vector>(child_type, false, false);
@@ -18,9 +20,9 @@ public:
 			break;
 		}
 		case PhysicalType::LIST: {
-			D_ASSERT(false); // not supported currently
+// D_ASSERT(false); // not supported currently
 			// memory for the list offsets
-			owned_data = unique_ptr<data_t[]>(new data_t[STANDARD_VECTOR_SIZE * GetTypeIdSize(internal_type)]);
+			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			// child data of the list
 			auto &child_type = ListType::GetChildType(type);
 			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
@@ -39,12 +41,17 @@ public:
 			break;
 		}
 		default:
-			owned_data = unique_ptr<data_t[]>(new data_t[STANDARD_VECTOR_SIZE * GetTypeIdSize(internal_type)]);
+			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			break;
 		}
 	}
 
 	void ResetFromCache(Vector &result, const buffer_ptr<VectorBuffer> &buffer) {
+// icecream::ic.enable();
+// if( type != result.GetType()){
+// 	IC(type.ToString(), result.GetType().ToString() );
+// }
+// icecream::ic.disable();
 		D_ASSERT(type == result.GetType());
 		auto internal_type = type.InternalType();
 		result.vector_type = VectorType::FLAT_VECTOR;
@@ -117,6 +124,10 @@ private:
 
 VectorCache::VectorCache(const LogicalType &type_p) {
 	buffer = make_unique<VectorCacheBuffer>(type_p);
+}
+
+VectorCache::VectorCache(const LogicalType &type_p, size_t size) {
+	buffer = make_unique<VectorCacheBuffer>(type_p, size);
 }
 
 void VectorCache::ResetFromCache(Vector &result) const {

@@ -1,39 +1,46 @@
 
 #include "execution/cypher_pipeline_executor.hpp"
 
-#include "execution/physical_operator.hpp"
-
+#include "execution/physical_operator/physical_operator.hpp"
 
 #include "common/limits.hpp"
-#include "storage/graph_store.hpp"
+#include "main/client_context.hpp"
+
+#include "execution/execution_context.hpp"
+
 //#include "livegraph.hpp"
 #include "common/types.hpp"
 
+#include "icecream.hpp"
+
 #include <cassert>
+
+// #define OP_TIMER
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(CypherPipeline* pipe, GraphStore* g) {
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
+	CypherPipelineExecutor(context, pipeline) { childs = childs_p; }
 
-	// store pipeline and graph
-	pipeline = pipe;
-	graphstore = g;
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline): 
+	context(context), pipeline(pipeline) {
+
 	// initialize interm chunks
-	for( int i = 0; i < pipe->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+	for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
 		auto opOutputChunk = std::make_unique<DataChunk>();
-		opOutputChunk->Initialize(pipe->GetIdxOperator(i)->GetTypes());
+		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
 		opOutputChunks.push_back(move(opOutputChunk));
 	}
 
-	assert( opOutputChunks.size() == (pipe->pipelineLength - 1) );
+	assert( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
 	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
 	// generate global states for each operator
 		// no global states for this demo!
 	// Manage local states
-	local_source_state = pipeline->source->GetLocalSourceState();
-	local_sink_state = pipeline->sink->GetLocalSinkState();
+	local_source_state = pipeline->source->GetLocalSourceState(*context);
+	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
 	for( auto op: pipeline->GetOperators() ) {
-		local_operator_states.push_back(op->GetOperatorState());
+		local_operator_states.push_back(op->GetOperatorState(*context));
 	}
 }
 
@@ -44,7 +51,9 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// std::cout << "fetching!!" << std::endl;
 		auto& source_chunk = *(opOutputChunks[0]);
 		// std::cout << "why?!!" << std::endl;
-		source_chunk.Reset();
+		// source_chunk.Reset();
+		source_chunk.Destroy();
+		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
 		FetchFromSource(source_chunk);
 		// std::cout << "fetched!!" << std::endl;
 		if( source_chunk.size() == 0 ) { break; }
@@ -58,7 +67,9 @@ void CypherPipelineExecutor::ExecutePipeline() {
 			// this is an invariant to the main logic when the pipeline is terminated early
 
 // std::cout << "calling combine for sink (which is printing out the result)" << std::endl;
-	pipeline->GetSink()->Combine(*local_sink_state);
+	pipeline->GetSink()->Combine(*context, *local_sink_state);
+
+	// TODO delete op-states after pipeline finishes
 
 }
 
@@ -66,17 +77,34 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 // std::cout << "starting (source) operator" << std::endl;
 	// timer start
-	if( pipeline->GetSource()->timer_started ){
+#ifdef OP_TIMER
+	if( ! pipeline->GetSource()->timer_started ){
 		pipeline->GetSource()->op_timer.start();
 		pipeline->GetSource()->timer_started = true;
 	} else {
 		pipeline->GetSource()->op_timer.resume();
 	}
+#endif
 	// call
-	pipeline->GetSource()->GetData( graphstore, result, *local_source_state );
-	pipeline->GetSource()->processed_tuples += result.size();
+// FIXME
+// icecream::ic.enable();
+// IC(pipeline->GetSource()->ToString());
+// icecream::ic.disable();
+	switch( childs.size() ) {
+		// no child pipeline
+		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break;}
+		// single child
+		case 1: { pipeline->GetSource()->GetData( *context, result, *local_source_state, *(childs[0]->local_sink_state) ); break; }
+	}
+	pipeline->GetSource()->processed_tuples += result.size();	
+	
 	// timer stop
+#ifdef OP_TIMER
 	pipeline->GetSource()->op_timer.stop();
+#endif
+// icecream::ic.enable();
+//IC( pipeline->GetSource()->ToString(), pipeline->GetSource()->op_timer.elapsed().wall / 1000000.0 );
+// icecream::ic.disable();
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
@@ -89,22 +117,39 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		
 		// call execute pipe
 		// std::cout << "call execute pipe!!" << std::endl;
+		// IC();
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// call sink
 			// timer start
-		if( pipeline->GetSink()->timer_started ){
+#ifdef OP_TIMER
+		if( ! pipeline->GetSink()->timer_started ){
 			pipeline->GetSink()->op_timer.start();
 			pipeline->GetSink()->timer_started = true;
 		} else {
 			pipeline->GetSink()->op_timer.resume();
 		}
+#endif
 		// std::cout << "call sink!!" << std::endl;
+// FIXME
+// icecream::ic.enable();
+// IC(pipeline->GetSink()->ToString());
+// icecream::ic.disable();
 		auto sinkResult = pipeline->GetSink()->Sink(
-			*pipeOutputChunk, *local_sink_state
+			*context, *pipeOutputChunk, *local_sink_state
 		);
-		pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
-			// timer stop
-		pipeline->GetSink()->op_timer.stop();
+		// count produced tuples only on ProduceResults operator
+		// TODO actually, ProduceResults also does not need processed_tuples too since it does not push results upwards, but returns it to the user.
+		if( pipeline->GetSink()->ToString().find("ProduceResults") != std::string::npos ) {
+			pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
+		}
+		// timer stop
+#ifdef OP_TIMER
+	pipeline->GetSink()->op_timer.stop();
+#endif
+// icecream::ic.enable();
+// IC( pipeline->GetSink()->ToString(), pipeline->GetSink()->op_timer.elapsed().wall / 1000000.0 );
+// icecream::ic.disable();
+
 		// break when pipes for single chunk finishes
 		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 
 			break;
@@ -112,7 +157,6 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 	}
 	// clear pipeline states.
 	in_process_operators = stack<idx_t>();
-
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 
@@ -141,22 +185,28 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		current_output_chunk.Reset();
 
 		// start current operator
-// std::cout << "starting (interm) operator" << std::endl;
-		// give interm as input and interm as output
 			// timer start
-		if( pipeline->GetIdxOperator(current_idx)->timer_started ){
+#ifdef OP_TIMER
+		if( ! pipeline->GetIdxOperator(current_idx)->timer_started ){
 			pipeline->GetIdxOperator(current_idx)->op_timer.start();
 			pipeline->GetIdxOperator(current_idx)->timer_started = true;
 		} else {
 			pipeline->GetIdxOperator(current_idx)->op_timer.resume();
 		}
+#endif
 			// call operator
+// FIXME
+// icecream::ic.enable();
+// IC(pipeline->GetIdxOperator(current_idx)->ToString());
+// icecream::ic.disable();
 		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			 graphstore, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
+			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 			// timer stop
+#ifdef OP_TIMER
 		pipeline->GetIdxOperator(current_idx)->op_timer.stop();
+#endif
 		// if result needs more output, push index to stack
 		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
 			in_process_operators.push(current_idx);

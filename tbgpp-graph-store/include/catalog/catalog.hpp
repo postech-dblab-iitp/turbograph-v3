@@ -85,12 +85,13 @@ struct SimilarCatalogEntry {
 
 //! The Catalog object represents the catalog of the database.
 class Catalog {
-	typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
-	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
-	typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
+	// typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
+	// typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
+	// typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 	
 public:
-	explicit Catalog(DatabaseInstance &db, fixed_managed_shared_memory *&catalog_segment);
+	explicit Catalog(DatabaseInstance &db);
+	explicit Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment);
 	~Catalog();
 
 	//! Reference to the database
@@ -102,12 +103,13 @@ public:
 	//! Write lock for the catalog
 	mutex write_lock;
 	// Shared memory manager
-	fixed_managed_shared_memory *catalog_segment;
+	fixed_managed_mapped_file *catalog_segment;
 
 public:
 	//! Get the ClientContext from the Catalog
 	DUCKDB_API static Catalog &GetCatalog(ClientContext &context);
 	DUCKDB_API static Catalog &GetCatalog(DatabaseInstance &db);
+	DUCKDB_API void LoadCatalog(fixed_managed_mapped_file *&catalog_segment, vector<vector<string>> &object_names);
 
 	DUCKDB_API DependencyManager &GetDependencyManager() {
 		return *dependency_manager;
