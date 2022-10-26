@@ -48,6 +48,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iostream>
+#include "icecream.hpp"
 
 namespace duckdb {
 
@@ -91,13 +92,14 @@ namespace duckdb {
 // 	this->internal = internal;
 // }
 
-SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_shared_memory *&catalog_segment)
+SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_mapped_file *&catalog_segment)
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p), (void_allocator) catalog_segment->get_segment_manager()), 
 	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")), 
 	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
 	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
 	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
 	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")) {
+IC();
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
 }
@@ -232,7 +234,7 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto graph = catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info, alloc_inst);
+	auto graph = catalog_segment->find_or_construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info, alloc_inst);
 	//auto graph = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -242,7 +244,7 @@ CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGrap
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto partition = catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
+	auto partition = catalog_segment->find_or_construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
 	//auto partition = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -252,7 +254,7 @@ CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, Create
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto propertyschema = catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
+	auto propertyschema = catalog_segment->find_or_construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
 	//auto propertyschema = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -262,7 +264,7 @@ CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, C
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto extent = catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
+	auto extent = catalog_segment->find_or_construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
 	//auto extent = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -272,7 +274,7 @@ CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExt
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto chunkdefinition = catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
+	auto chunkdefinition = catalog_segment->find_or_construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
 	//auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
 	//	catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
 	//	*catalog_segment);
@@ -479,6 +481,24 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 	//reader.Finalize();
 
 	//return info;
+}
+
+void SchemaCatalogEntry::LoadCatalogSet() {
+IC();
+	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
+IC();
+	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
+IC();
+	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
+IC();
+	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
+IC();
+	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
+IC();
+}
+
+void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment) {
+	this->catalog_segment = catalog_segment;
 }
 
 string SchemaCatalogEntry::ToSQL() {

@@ -12,7 +12,7 @@ namespace duckdb {
 
 class CatalogServer {
 public:
-  CatalogServer(const std::string &unix_socket);
+  CatalogServer(const std::string &unix_socket, std::string shm_directory);
   void Run();
   void Exit();
 
@@ -22,7 +22,8 @@ private:
   bool recreate();
 
   std::string unix_socket_;
-  fixed_managed_shared_memory *catalog_segment;
+  std::string shm_directory_;
+  fixed_managed_mapped_file *catalog_segment;
 };
 
 } // namespace duckdb

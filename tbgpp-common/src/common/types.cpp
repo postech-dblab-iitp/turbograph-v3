@@ -2,7 +2,7 @@
 
 //#include "catalog/catalog_entry/type_catalog_entry.hpp"
 #include "common/exception.hpp"
-//#include "common/field_writer.hpp"
+#include "common/field_writer.hpp"
 #include "common/limits.hpp"
 #include "common/operator/comparison_operators.hpp"
 #include "common/string_util.hpp"
@@ -15,7 +15,10 @@
 //#include "parser/keyword_helper.hpp"
 //#include "parser/parser.hpp"
 
+#include "icecream.hpp"
+
 #include <cmath>
+#include <iostream>
 
 namespace duckdb {
 
@@ -136,8 +139,10 @@ PhysicalType LogicalType::GetInternalType() {
 		return PhysicalType::UNKNOWN;
 	case LogicalTypeId::AGGREGATE_STATE:
 		return PhysicalType::VARCHAR;
-	case LogicalTypeId::ADJLIST:
+	case LogicalTypeId::FORWARD_ADJLIST:
+	case LogicalTypeId::BACKWARD_ADJLIST:
 		return PhysicalType::ADJLIST;	
+	case LogicalTypeId::ADJLISTCOLUMN:
 	case LogicalTypeId::ID:
 		return PhysicalType::UINT64;
 	default:
@@ -186,8 +191,10 @@ constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 constexpr const LogicalTypeId LogicalType::TABLE;
 
 // TBGPP-specific
-constexpr const LogicalTypeId LogicalType::ADJLIST;
+constexpr const LogicalTypeId LogicalType::FORWARD_ADJLIST;
+constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
+constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -459,6 +466,12 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 	// TBGPP!
 	case LogicalTypeId::ID:
 		return "ID";
+	case LogicalTypeId::FORWARD_ADJLIST:
+		return "FORWARD_ADJLIST";
+	case LogicalTypeId::BACKWARD_ADJLIST:
+		return "BACKWARD_ADJLIST";
+	case LogicalTypeId::ADJLISTCOLUMN:
+		return "ADJLISTCOLUMN";
 	}
 	return "UNDEFINED";
 }
@@ -509,7 +522,7 @@ string LogicalType::ToString() const {
 		if (width == 0) {
 			return "DECIMAL";
 		}
-		return StringUtil::Format("DECIMAL(%d,%d)", width, scale);
+		return "DECIMAL(" + std::to_string(width) + "," + std::to_string(scale) + ")";
 	}
 	case LogicalTypeId::ENUM: {
 		//return KeywordHelper::WriteOptionallyQuoted(EnumType::GetTypeName(*this));
@@ -1301,14 +1314,17 @@ const string EnumType::GetValue(const Value &val) {
 	auto info = val.type().AuxInfo();
 	//auto &values_insert_order = ((EnumTypeInfo &)*info).values_insert_order;
 	//return StringValue::Get(values_insert_order.GetValue(val.GetValue<uint32_t>()));
+	return "";
 }
 
-Vector &EnumType::GetValuesInsertOrder(const LogicalType &type) {
-	D_ASSERT(type.id() == LogicalTypeId::ENUM);
-	auto info = type.AuxInfo();
-	D_ASSERT(info);
-	//return ((EnumTypeInfo &)*info).values_insert_order;
-}
+// Vector &EnumType::GetValuesInsertOrder(const LogicalType &type) {
+// 	D_ASSERT(type.id() == LogicalTypeId::ENUM);
+// 	auto info = type.AuxInfo();
+// 	D_ASSERT(info);
+// 	// return ((EnumTypeInfo &)*info).values_insert_order;
+// 	D_ASSERT(false);
+// 	return *(new Vector());
+// }
 
 idx_t EnumType::GetSize(const LogicalType &type) {
 	D_ASSERT(type.id() == LogicalTypeId::ENUM);
@@ -1398,21 +1414,21 @@ shared_ptr<ExtraTypeInfo> ExtraTypeInfo::Deserialize(FieldReader &reader) {
 LogicalType::~LogicalType() {
 }
 
-/*void LogicalType::Serialize(Serializer &serializer) const {
-	FieldWriter writer(serializer);
-	writer.WriteField<LogicalTypeId>(id_);
-	ExtraTypeInfo::Serialize(type_info_.get(), writer);
-	writer.Finalize();
-}
+// void LogicalType::Serialize(Serializer &serializer) const {
+// 	FieldWriter writer(serializer);
+// 	writer.WriteField<LogicalTypeId>(id_);
+// 	ExtraTypeInfo::Serialize(type_info_.get(), writer);
+// 	writer.Finalize();
+// }
 
-LogicalType LogicalType::Deserialize(Deserializer &source) {
-	FieldReader reader(source);
-	auto id = reader.ReadRequired<LogicalTypeId>();
-	auto info = ExtraTypeInfo::Deserialize(reader);
-	reader.Finalize();
+// LogicalType LogicalType::Deserialize(Deserializer &source) {
+// 	FieldReader reader(source);
+// 	auto id = reader.ReadRequired<LogicalTypeId>();
+// 	auto info = ExtraTypeInfo::Deserialize(reader);
+// 	reader.Finalize();
 
-	return LogicalType(id, move(info));
-}*/
+// 	return LogicalType(id, move(info));
+// }
 
 bool LogicalType::operator==(const LogicalType &rhs) const {
 	if (id_ != rhs.id_) {

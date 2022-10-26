@@ -39,6 +39,10 @@ target_include_directories(tbgpp-main PUBLIC
 	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include"
 )
 target_include_directories(tbgpp-main PUBLIC
+	# tbgpp-execution-engine
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include"
+)
+target_include_directories(tbgpp-main PUBLIC
 	# tbgpp-common
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
 	# common
@@ -55,6 +59,7 @@ target_sources(tbgpp-main PUBLIC ${SYSTEM_SOURCES})
 target_link_libraries(tbgpp-main pthread aio numa rt hwloc tbb)
 target_link_libraries(tbgpp-main tbgpp-common-lib)
 target_link_libraries(tbgpp-main tbgpp-graph-store-lib)
+target_link_libraries(tbgpp-main tbgpp-execution-engine-lib)
 
 target_compile_options(tbgpp-main PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-main PUBLIC ${CXX_DEFINITION})

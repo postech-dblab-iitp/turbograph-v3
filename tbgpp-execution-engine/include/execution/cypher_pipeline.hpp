@@ -4,11 +4,11 @@
 // #include <vector>
 #include <string>
 
-// #include "duckdb/common/unordered_set.hpp"
-// #include "duckdb/execution/physical_operator.hpp"
-// #include "duckdb/function/table_function.hpp"
-// #include "duckdb/parallel/task_scheduler.hpp"
-// #include "duckdb/common/atomic.hpp"
+// #include "common/unordered_set.hpp"
+// #include "execution/physical_operator.hpp"
+// #include "function/table_function.hpp"
+// #include "parallel/task_scheduler.hpp"
+// #include "common/atomic.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
@@ -27,9 +27,7 @@ public:
 		ops.erase(ops.begin());
 		ops.pop_back();
 		operators = ops;
-
 	}
-
 	std::vector<CypherPhysicalOperator *> GetOperators() {
 		return operators;	
 	}
@@ -82,9 +80,6 @@ public:
 	std::vector<CypherPhysicalOperator *> operators;	// TODO name is strange!!!!! need to fix.
 	//! The sink (i.e. destination) for data; this is e.g. a hash table to-be-built
 	CypherPhysicalOperator *sink;
-
-	// TODO need to record parents
-	// when the pipelines have hierarchy.
 
 };
 

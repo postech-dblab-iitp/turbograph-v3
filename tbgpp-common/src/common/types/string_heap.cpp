@@ -5,12 +5,14 @@
 #include "common/exception.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
+#include "icecream.hpp"
+
 #include <cstring>
 
 namespace duckdb {
 
-//#define MINIMUM_HEAP_SIZE 4096
-#define MINIMUM_HEAP_SIZE 1073741824
+#define MINIMUM_HEAP_SIZE 4096 // What is the best?
+// #define MINIMUM_HEAP_SIZE 1073741824
 
 StringHeap::StringHeap() : tail(nullptr) {
 }

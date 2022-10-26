@@ -16,6 +16,10 @@
 //#include "main/config.hpp"
 //#include "main/extension.hpp"
 
+#include "common/file_system.hpp"
+#include "common/local_file_system.hpp"
+#include "storage/storage_manager.hpp"
+
 namespace duckdb {
 //class StorageManager;
 class Catalog;
@@ -36,13 +40,14 @@ public:
 	//DBConfig config;
 
 public:
-	//DUCKDB_API StorageManager &GetStorageManager();
+	DUCKDB_API StorageManager &GetStorageManager();
 	DUCKDB_API Catalog &GetCatalog();
-	//DUCKDB_API FileSystem &GetFileSystem();
+	DUCKDB_API FileSystem &GetFileSystem();
 	//DUCKDB_API TransactionManager &GetTransactionManager();
 	//DUCKDB_API TaskScheduler &GetScheduler();
 	//DUCKDB_API ObjectCache &GetObjectCache();
 	//DUCKDB_API ConnectionManager &GetConnectionManager();
+	fixed_managed_mapped_file *GetCatalogSHM(); 
 
 	idx_t NumberOfThreads();
 
@@ -54,14 +59,16 @@ private:
 	//void Configure(DBConfig &config);
 
 private:
-	//unique_ptr<StorageManager> storage;
+	unique_ptr<StorageManager> storage;
 	unique_ptr<Catalog> catalog;
 	//unique_ptr<TransactionManager> transaction_manager;
 	//unique_ptr<TaskScheduler> scheduler;
 	//unique_ptr<ObjectCache> object_cache;
 	//unique_ptr<ConnectionManager> connection_manager;
 	//unordered_set<std::string> loaded_extensions;
-	fixed_managed_shared_memory *catalog_shm;
+	fixed_managed_mapped_file *catalog_shm;
+
+	// unique_ptr<FileSystem> file_system;
 };
 
 //! The database object. This object holds the catalog and all the
@@ -89,7 +96,7 @@ public:
 		SetExtensionLoaded(extension.Name());
 	}
 
-	//DUCKDB_API FileSystem &GetFileSystem();
+	DUCKDB_API FileSystem &GetFileSystem();
 
 	DUCKDB_API idx_t NumberOfThreads();
 	DUCKDB_API static const char *SourceID();
