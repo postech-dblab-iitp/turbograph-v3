@@ -115,6 +115,7 @@ file (GLOB_RECURSE TEST_SOURCES
   "${PROJECT_SOURCE_DIR}/test/plans/simple/*.cpp"
   "${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.cpp"
   "${PROJECT_SOURCE_DIR}/test/plans/tpc-h/*.cpp"
+  "${PROJECT_SOURCE_DIR}/test/plans/coco/*.cpp"
 )
 
 foreach(test_file ${ENGINE_TEST_SRC})
