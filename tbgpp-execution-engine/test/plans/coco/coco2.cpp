@@ -26,8 +26,8 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	sch1.addPropertyIntoNode("images", "height", LogicalType::BIGINT);
 	sch1.addPropertyIntoNode("images", "width", LogicalType::BIGINT);
 	sch1.addPropertyIntoNode("images", "date_captured", LogicalType::VARCHAR);
-	sch1.addPropertyIntoNode("images", "flicker_url", LogicalType::VARCHAR);
-	PropertyKeys image_keys = PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flicker_url"});
+	sch1.addPropertyIntoNode("images", "flickr_url", LogicalType::VARCHAR);
+	PropertyKeys image_keys = PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flickr_url"});
 
 	CypherSchema sch2 = sch1;
 	sch2.addNode("annotations");
