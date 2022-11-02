@@ -113,10 +113,10 @@ public:
 		/* COCO dataset */
 		if( key.compare("coco1") == 0 ) { return COCO_Q1(); }
 		if( key.compare("coco2") == 0 ) { return COCO_Q2(); }
-		// if( key.compare("coco3a") == 0 ) { return COCO_Q3A(); }
+		if( key.compare("coco3a") == 0 ) { return COCO_Q3A(); }
 		// if( key.compare("coco3b") == 0 ) { return COCO_Q3B(); }
 		// if( key.compare("coco3c") == 0 ) { return COCO_Q3C(); }
-		// if( key.compare("coco3d") == 0 ) { return COCO_Q3D(); }
+		if( key.compare("coco3d") == 0 ) { return COCO_Q3D(); }
 
 
 		/* Empty plan at last */
