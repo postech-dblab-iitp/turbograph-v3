@@ -20,6 +20,7 @@
 #include "execution/physical_operator/physical_filter.hpp"
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_sort.hpp"
+#include "execution/physical_operator/physical_top.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_node_id_seek.hpp"
@@ -109,6 +110,9 @@ public:
 		if( key.compare("q10-1-test2") == 0 ) { return TPCH_Q10_1_TEST2(); }
 		// if( key.compare("q13") == 0 ) { return TPCH_Q13(); }
 
+		/* COCO dataset */
+		if( key.compare("coco1") == 0 ) { return COCO_Q1(); }
+
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();
 	}
@@ -156,6 +160,8 @@ public:
 	std::vector<CypherPipelineExecutor*> TPCH_Q10_1_TEST();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q10_1_TEST2();	//   |   |   |
 	std::vector<CypherPipelineExecutor*> TPCH_Q13();	//   |   |   |
+
+	std::vector<CypherPipelineExecutor*> COCO_Q1();	//   |   |   |
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;
