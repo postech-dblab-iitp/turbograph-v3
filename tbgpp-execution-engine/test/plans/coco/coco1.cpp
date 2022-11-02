@@ -33,8 +33,10 @@ CypherPipelineExecutor* coco1_pipe1(QueryPlanSuite& suite) {
 		PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flicker_url"})
 	));
 	//ops
-	//sink
 	ops.push_back( new PhysicalTop(sch1, (idx_t) 100, (idx_t)0)); // offset 0 limit 100
+	//sink
+	ops.push_back( new PhysicalProduceResults(sch1));
+	
 
 	auto pipe = new CypherPipeline(ops);
 	auto ctx = new ExecutionContext(&(suite.context));
