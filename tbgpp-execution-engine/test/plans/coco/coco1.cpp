@@ -25,12 +25,12 @@ CypherPipelineExecutor* coco1_pipe1(QueryPlanSuite& suite) {
 	sch1.addPropertyIntoNode("images", "height", LogicalType::BIGINT);
 	sch1.addPropertyIntoNode("images", "width", LogicalType::BIGINT);
 	sch1.addPropertyIntoNode("images", "date_captured", LogicalType::VARCHAR);
-	sch1.addPropertyIntoNode("images", "flicker_url", LogicalType::VARCHAR);
+	sch1.addPropertyIntoNode("images", "flickr_url", LogicalType::VARCHAR);
 
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("IMAGES"),
-		PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flicker_url"})
+		PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flickr_url"})
 	));
 	//ops
 	ops.push_back( new PhysicalTop(sch1, (idx_t) 100, (idx_t)0)); // offset 0 limit 100
