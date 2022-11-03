@@ -22,11 +22,11 @@ unique_ptr<OperatorState> PhysicalTop::GetOperatorState(ExecutionContext &contex
 OperatorResultType PhysicalTop::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	
 	auto& state = (TopState &)lstate;
-	D_ASSERT( limit - state.current_offset >= 0);
+	D_ASSERT( state.current_offset >= 0 && limit - state.current_offset >= 0);
 	if( input.size() >= limit - state.current_offset ) {
 		// pass all
 		chunk.Reference(input);
-		state.current_offset -= input.size();
+		state.current_offset += input.size();
 		return OperatorResultType::NEED_MORE_INPUT;
 
 	} else if( input.size() >= limit - state.current_offset ) {
