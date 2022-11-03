@@ -20,6 +20,11 @@ std::chrono::duration<double> fpgrowth_duration;
 
 namespace duckdb {
 
+#ifndef LIDPAIR
+#define LIDPAIR
+typedef std::pair<idx_t, idx_t> LidPair;
+#endif
+
 class GraphSIMDJSONFileParser {
 
 public:
@@ -30,6 +35,11 @@ public:
         client = client_;
         ext_mng = ext_mng_;
         cat_instance = cat_instance_;
+    }
+
+    void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
+        load_edge = true;
+        lid_to_pid_map = lid_to_pid_map_;
     }
 
     size_t InitJsonFile(const char *json_file_path, JsonFileType jftype) {
@@ -70,6 +80,7 @@ public:
         // Get Schema
         most_common_schema.clear();
         most_common_key_paths.clear();
+        key_column_idxs.clear();
         for (std::set<Item>::iterator item_it = most_frequency_pattern.first.begin(); item_it != most_frequency_pattern.first.end(); item_it++) {
             std::string key_path_and_type = std::string(*item_it);
             size_t delimiter_pos = key_path_and_type.find_last_of("_");
@@ -80,6 +91,9 @@ public:
             std::string type = key_path_and_type.substr(delimiter_pos + 1);
             most_common_key_paths.push_back(key_path);
             std::cout << key_path << ": ";
+            if (key_path == "id") {
+                key_column_idxs.push_back(std::distance(most_frequency_pattern.first.begin(), item_it));
+            }
             if (type == "str") {
                 std::cout << "str / ";
                 most_common_schema.push_back(LogicalType::VARCHAR);
@@ -118,7 +132,14 @@ public:
 		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
 		property_schema_cat->SetTypes(most_common_schema);
 		property_schema_cat->SetKeys(*client.get(), most_common_key_paths);
-		// property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
+		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
+
+        // Initialize LID_TO_PID_MAP
+		if (load_edge) {
+			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_to_pid_map_instance = &lid_to_pid_map->back().second;
+			// lid_to_pid_map_instance->reserve(approximated_num_rows * 2);
+		}
 
         // Rewind
         doc.rewind();
@@ -792,6 +813,43 @@ private:
                         data.SetCardinality(num_tuples);
                         ExtentID new_eid = ext_mng->CreateExtent(*client.get(), data, *property_schema_cat);
                         property_schema_cat->AddExtent(new_eid);
+
+                        if (load_edge) {
+                            // Initialize pid base
+                            idx_t pid_base = (idx_t) new_eid;
+                            pid_base = pid_base << 32;
+
+                            // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
+                            auto map_build_start = std::chrono::high_resolution_clock::now();
+                            if (key_column_idxs.size() == 0) {
+                            } else if (key_column_idxs.size() == 1) {
+                                LidPair lid_key;
+                                lid_key.second = 0;
+                                idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData();
+                                
+                                for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+                                    lid_key.first = key_column[seqno];
+                                    lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+                                }
+                            } else if (key_column_idxs.size() == 2) {
+                                LidPair lid_key;
+                                idx_t* key_column_1 = (idx_t*) data.data[key_column_idxs[0]].GetData();
+                                idx_t* key_column_2 = (idx_t*) data.data[key_column_idxs[1]].GetData();
+                                
+                                for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+                                    lid_key.first = key_column_1[seqno];
+                                    lid_key.second = key_column_2[seqno];
+                                    lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+                                }
+                            } else {
+                                throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+                            }
+                            
+                            auto map_build_end = std::chrono::high_resolution_clock::now();
+                            std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+                            fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+
+                        }
                         num_tuples = 0;
                         data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
                     }
@@ -809,6 +867,42 @@ private:
                 data.SetCardinality(num_tuples);
                 ExtentID new_eid = ext_mng->CreateExtent(*client.get(), data, *property_schema_cat);
                 property_schema_cat->AddExtent(new_eid);
+                if (load_edge) {
+                    // Initialize pid base
+                    idx_t pid_base = (idx_t) new_eid;
+                    pid_base = pid_base << 32;
+
+                    // Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
+                    auto map_build_start = std::chrono::high_resolution_clock::now();
+                    if (key_column_idxs.size() == 0) {
+                    } else if (key_column_idxs.size() == 1) {
+                        LidPair lid_key;
+                        lid_key.second = 0;
+                        idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData();
+                        
+                        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+                            lid_key.first = key_column[seqno];
+                            lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+                        }
+                    } else if (key_column_idxs.size() == 2) {
+                        LidPair lid_key;
+                        idx_t* key_column_1 = (idx_t*) data.data[key_column_idxs[0]].GetData();
+                        idx_t* key_column_2 = (idx_t*) data.data[key_column_idxs[1]].GetData();
+                        
+                        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+                            lid_key.first = key_column_1[seqno];
+                            lid_key.second = key_column_2[seqno];
+                            lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+                        }
+                    } else {
+                        throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+                    }
+                    
+                    auto map_build_end = std::chrono::high_resolution_clock::now();
+                    std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+                    fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+
+                }
                 num_tuples = 0;
                 data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
             }
@@ -989,6 +1083,10 @@ private:
     std::shared_ptr<ClientContext> client;
     Catalog *cat_instance;
     PropertySchemaCatalogEntry *property_schema_cat;
+    bool load_edge = false;
+    vector<idx_t> key_column_idxs;
+    unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
+    vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
 };
 
 } // namespace duckdb

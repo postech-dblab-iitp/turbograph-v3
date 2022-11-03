@@ -137,7 +137,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
     idx_t input_chunk_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base = cdf_id_base << 32;
-    icecream::ic.enable(); IC(); IC(cdf_id_base); icecream::ic.disable();
     for (auto &l_type : input.GetTypes()) {
         auto append_chunk_start = std::chrono::high_resolution_clock::now();
         // Get Physical Type
@@ -150,8 +149,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
         extent_cat_entry.AddChunkDefinitionID(cdf_id);
         chunkdefinition_cat->SetNumEntriesInColumn(input.size());
-
-        icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
@@ -197,9 +194,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
-        fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
+        // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
 
-        icecream::ic.enable(); IC(); icecream::ic.disable();
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
         if (l_type.id() == LogicalTypeId::VARCHAR) {
@@ -213,7 +209,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
-                icecream::ic.enable(); IC(); icecream::ic.disable();
                 // Copy CompressionHeader
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
@@ -226,30 +221,24 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
 
                 for (size_t i = 0; i < input.size(); i++) {
-                    // icecream::ic.enable(); IC(); IC(string_len_offset, accumulated_string_len); icecream::ic.disable();
                     accumulated_string_len += string_buffer[i].GetSize();
                     memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
                     string_len_offset += sizeof(uint64_t);
                 }
-                icecream::ic.enable(); IC(); icecream::ic.disable();
 
                 for (size_t i = 0; i < input.size(); i++) {
-                    // icecream::ic.enable(); IC(); IC(i, string_data_offset, string_len); icecream::ic.disable();
                     string_len = string_buffer[i].GetSize();
                     memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
                     string_data_offset += string_len;
                 }
-                icecream::ic.enable(); IC(); icecream::ic.disable();
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
-            icecream::ic.enable(); IC(); icecream::ic.disable();
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             size_t input_size = adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
             CompressionHeader comp_header(UNCOMPRESSED, input_size);
             memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
             memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
         } else if (l_type.id() == LogicalTypeId::LIST) {
-            icecream::ic.enable(); IC(); icecream::ic.disable();
             list_entry_t *list_buffer = (list_entry_t*) input.data[input_chunk_idx].GetData();
             size_t input_size = input.size();
             CompressionHeader comp_header(UNCOMPRESSED, input_size);
@@ -259,12 +248,10 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr + sizeof(CompressionHeader) + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - sizeof(CompressionHeader) - input_size * sizeof(list_entry_t));
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
-            icecream::ic.enable(); IC(); icecream::ic.disable();
             size_t input_size = input.size();
             if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
             }
-            icecream::ic.enable(); IC(); icecream::ic.disable();
 
             // Copy Data Into Cache
             //best_compression_function = BITPACKING;
@@ -283,7 +270,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
             }
         }
-        icecream::ic.enable(); IC(); icecream::ic.disable();
         auto chunk_compression_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_compression_duration = chunk_compression_end - chunk_compression_start;
 

@@ -77,7 +77,11 @@ string output_dir;
 bool load_edge;
 bool load_backward_edge;
 
+// TODO move this
+#ifndef LIDPAIR
+#define LIDPAIR
 typedef std::pair<idx_t, idx_t> LidPair;
+#endif
 
 template <typename T, int K>
 class MapKey {
@@ -533,6 +537,9 @@ icecream::ic.disable();
 
 		// Load & Parse JSON File
 		GraphSIMDJSONFileParser reader(client, &ext_mng, &cat_instance);
+		if (load_edge) {
+			reader.SetLidToPidMap(&lid_to_pid_map);
+		}
 
 		// CreateExtent For Each Vertex
 		if (json_file_types[idx] == JsonFileType::JSON) {
@@ -567,11 +574,6 @@ icecream::ic.disable();
 		std::chrono::duration<double> load_json_duration = json_end - json_start;
 		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", json_files[idx].first.c_str(), json_files[idx].second.c_str(), load_json_duration.count());
 	}
-
-	// Destruct ChunkCacheManager
-  	delete ChunkCacheManager::ccm;
-
-	return 0;
 
 	// Read Vertex CSV File & CreateVertexExtents
 	// unique_ptr<Index> index; // Temporary..
@@ -908,18 +910,22 @@ icecream::ic.disable();
 				if (!is_first_tuple_processed) {
 					// Get First Vertex Extent
 					while (true) {
-	// IC();
 						if (!ext_it.GetNextExtent(*client.get(), vertex_id_chunk, current_vertex_eid, STORAGE_STANDARD_VECTOR_SIZE)) {
 							// We do not allow this case
 							throw InvalidInputException("GetNextExtent Fail - The vertex chunk containing the first vertex does not exist");
 						}
-	// IC();
-						
+
 						// Initialize min & max id. We assume that the vertex data is sorted by id
 						if (src_column_idxs.size() == 1) {
 							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
 							min_id.first = vertex_id_column_1[0];
 							max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+
+							// XXX Temporary
+							for (size_t vertex_id_chunk_idx = 0; vertex_id_chunk_idx < vertex_id_chunk.size(); vertex_id_chunk_idx++) {
+								if (min_id.first > vertex_id_column_1[vertex_id_chunk_idx]) min_id.first = vertex_id_column_1[vertex_id_chunk_idx];
+								if (max_id.first < vertex_id_column_1[vertex_id_chunk_idx]) max_id.first = vertex_id_column_1[vertex_id_chunk_idx];
+							}
 						} else if (src_column_idxs.size() == 2) {
 							vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
 							vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
@@ -1023,6 +1029,12 @@ icecream::ic.disable();
 								vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
 								min_id.first = vertex_id_column_1[0];
 								max_id.first = vertex_id_column_1[vertex_id_chunk.size() - 1];
+
+								// XXX Temporary
+								for (size_t vertex_id_chunk_idx = 0; vertex_id_chunk_idx < vertex_id_chunk.size(); vertex_id_chunk_idx++) {
+									if (min_id.first > vertex_id_column_1[vertex_id_chunk_idx]) min_id.first = vertex_id_column_1[vertex_id_chunk_idx];
+									if (max_id.first < vertex_id_column_1[vertex_id_chunk_idx]) max_id.first = vertex_id_column_1[vertex_id_chunk_idx];
+								}
 							} else if (src_column_idxs.size() == 2) {
 								vertex_id_column_1 = (idx_t*) vertex_id_chunk.data[0].GetData();
 								vertex_id_column_2 = (idx_t*) vertex_id_chunk.data[1].GetData();
@@ -1038,7 +1050,6 @@ icecream::ic.disable();
 						vertex_seqno = 0;
 						if (src_column_idxs.size() == 1) {
 							while (vertex_id_column_1[vertex_seqno] < cur_src_id.first) {
-								// icecream::ic.enable(); IC(current_vertex_eid, vertex_seqno, vertex_id_column_1[vertex_seqno], cur_src_id.first); icecream::ic.disable();
 								adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 							}
 						} else if (src_column_idxs.size() == 2) {
