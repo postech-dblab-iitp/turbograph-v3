@@ -44,7 +44,7 @@ void DataChunk::Initialize(const vector<LogicalType> &types, idx_t capacity_) {
 	capacity = capacity_;
 	for (idx_t i = 0; i < types.size(); i++) {
 		VectorCache cache(types[i], capacity);
-		data.emplace_back(cache);
+		data.emplace_back(cache, capacity);
 		vector_caches.push_back(move(cache));
 	}
 }
@@ -74,6 +74,20 @@ void DataChunk::Reset() {
 		data[i].ResetFromCache(vector_caches[i]);
 	}
 	capacity = STANDARD_VECTOR_SIZE;
+	SetCardinality(0);
+}
+
+void DataChunk::Reset(idx_t capacity_) {
+	if (data.empty()) {
+		return;
+	}
+	if (vector_caches.size() != data.size()) {
+		throw InternalException("VectorCache and column count mismatch in DataChunk::Reset");
+	}
+	for (idx_t i = 0; i < ColumnCount(); i++) {
+		data[i].ResetFromCache(vector_caches[i]);
+	}
+	capacity = capacity_;
 	SetCardinality(0);
 }
 

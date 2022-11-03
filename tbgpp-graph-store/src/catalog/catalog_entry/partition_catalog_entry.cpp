@@ -13,6 +13,7 @@ namespace duckdb {
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc), property_schema_index(void_alloc) {
 	this->temporary = info->temporary;
+	this->pid = info->pid;
 }
 
 void PartitionCatalogEntry::AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas) {
@@ -35,6 +36,10 @@ unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
 	D_ASSERT(false);
 	//auto create_info = make_unique<CreatePartitionInfo>(schema->name, name);
 	//return make_unique<PartitionCatalogEntry>(catalog, schema, create_info.get());
+}
+
+PartitionID PartitionCatalogEntry::GetPartitionID() {
+	return pid;
 }
 
 } // namespace duckdb

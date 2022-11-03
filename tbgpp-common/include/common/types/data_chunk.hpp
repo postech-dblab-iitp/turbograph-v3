@@ -110,6 +110,7 @@ public:
 	//! function was called. This sets the count to 0, and resets each member
 	//! Vector to point back to the data owned by this DataChunk.
 	DUCKDB_API void Reset();
+	DUCKDB_API void Reset(idx_t capacity_);
 
 	//! Serializes a DataChunk to a stand-alone binary blob
 	//DUCKDB_API void Serialize(Serializer &serializer);
@@ -143,5 +144,6 @@ private:
 	idx_t capacity;
 	//! Vector caches, used to store data when ::Initialize is called
 	vector<VectorCache> vector_caches;
+	bool has_row_chunk;
 };
 } // namespace duckdb

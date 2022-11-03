@@ -25,9 +25,10 @@ public:
 			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			// child data of the list
 			auto &child_type = ListType::GetChildType(type);
-			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
-			auto child_vector = make_unique<Vector>(child_type, false, false);
-			auxiliary = make_unique<VectorListBuffer>(move(child_vector));
+			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type, size));
+			// auto child_vector = make_unique<Vector>(child_type, false, false, size);
+			auto child_vector = make_unique<Vector>(child_type, true, false, size);
+			auxiliary = make_unique<VectorListBuffer>(move(child_vector), size);
 			break;
 		}
 		case PhysicalType::STRUCT: {
@@ -78,7 +79,8 @@ public:
 			AssignSharedPointer(result.auxiliary, auxiliary);
 			// propagate through child
 			auto &list_buffer = (VectorListBuffer &)*result.auxiliary;
-			list_buffer.capacity = STANDARD_VECTOR_SIZE;
+			// list_buffer.capacity = STANDARD_VECTOR_SIZE; // TODO is it OK?
+			// list_buffer.capacity = STANDARD_VECTOR_SIZE;
 			list_buffer.size = 0;
 
 			auto &list_child = list_buffer.GetChild();

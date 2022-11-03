@@ -544,6 +544,7 @@ Value Value::LIST(vector<Value> values) {
 	result.type_ = LogicalType::LIST(values[0].type());
 	result.list_value = move(values);
 	result.is_null = false;
+	// fprintf(stderr, "%p\n", result.list_value.data());
 	return result;
 }
 
