@@ -69,7 +69,7 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	));
 	//ops
 	// images <- annotations (incoming)
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "images", LabelSet("IMAGES"), LabelSet("ANNOTATION_IMAGE"), ExpandDirection::INCOMING, LabelSet("ANNOTATIONS"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "images", LabelSet("IMAGES"), LabelSet("ANNOTATION_IMAGE_BACKWARD"), ExpandDirection::OUTGOING, LabelSet("ANNOTATIONS"), JoinType::INNER, false, true));
 	// annotations properties
 	ops.push_back( new PhysicalNodeIdSeek(sch3, "annotations", LabelSet("ANNOTATIONS"), annotation_keys));
 	// annotations -> categories (outgoing)

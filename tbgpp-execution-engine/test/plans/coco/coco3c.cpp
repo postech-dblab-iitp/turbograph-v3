@@ -38,7 +38,7 @@ CypherPipelineExecutor* coco3c_pipe1(QueryPlanSuite& suite) {
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("CATEGORIES"), PropertyKeys({}), "name", Value("fruit") ) );	// cat name == fruit
 // ops
 	// categories <- annotations (incoming)
-	ops.push_back( new PhysicalAdjIdxJoin(sch2, "categories", LabelSet("CATEGORIES"), LabelSet("ANNOTATION_CATEGORY"), ExpandDirection::INCOMING, LabelSet("CATEGORIES"), JoinType::INNER, false, true));
+	ops.push_back( new PhysicalAdjIdxJoin(sch2, "categories", LabelSet("CATEGORIES"), LabelSet("ANNOTATION_CATEGORY_BACKWARD"), ExpandDirection::OUTGOING, LabelSet("CATEGORIES"), JoinType::INNER, false, true));
 	// annotations -> images (outgoing)
 	ops.push_back( new PhysicalAdjIdxJoin(sch3, "annotations", LabelSet("ANNOTATIONS"), LabelSet("ANNOTATION_IMAGE"), ExpandDirection::OUTGOING, LabelSet("IMAGES"), JoinType::INNER, false, true));
 	// fetch image properties
