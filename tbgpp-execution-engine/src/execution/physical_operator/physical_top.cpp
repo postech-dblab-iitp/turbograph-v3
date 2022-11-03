@@ -29,7 +29,8 @@ OperatorResultType PhysicalTop::Execute(ExecutionContext &context, DataChunk &in
 		state.current_offset += input.size();
 		return OperatorResultType::NEED_MORE_INPUT;
 
-	} else if( input.size() >= limit - state.current_offset ) {
+	} else if( limit - state.current_offset > 0 ) {
+		// some remaining, but need to slice
 		// pass partially. in next function call it will return FINISHED
 		idx_t remaining = limit - state.current_offset;
 		SelectionVector sel(STANDARD_VECTOR_SIZE);
