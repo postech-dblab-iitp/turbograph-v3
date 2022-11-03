@@ -23,14 +23,13 @@ OperatorResultType PhysicalTop::Execute(ExecutionContext &context, DataChunk &in
 	
 	auto& state = (TopState &)lstate;
 	D_ASSERT( state.current_offset >= 0 && (limit - state.current_offset >= 0 ));
-
 	if( limit - state.current_offset == 0 ) {
 		// Now all inputs are filled. finish pipeline.
 		D_ASSERT( state.current_offset == limit);
 		return OperatorResultType::FINISHED;
 	}
 	idx_t remaining = limit - state.current_offset;
-	if( input.size() >= remaining ) {
+	if( input.size() <= remaining ) {
 		// all input survives
 		chunk.Reference(input);
 		state.current_offset += input.size();
@@ -40,7 +39,7 @@ OperatorResultType PhysicalTop::Execute(ExecutionContext &context, DataChunk &in
 		// pass partially. in next function call it will return FINISHED
 		SelectionVector sel(STANDARD_VECTOR_SIZE);
 		for (idx_t i = 0; i < remaining; i++) {
-			sel.set_index(i, remaining + i);
+			sel.set_index(i, i);
 		}
 		chunk.Slice(input, sel, remaining);
 		state.current_offset += remaining;
