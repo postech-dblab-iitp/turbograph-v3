@@ -35,7 +35,7 @@ CypherPipelineExecutor* coco3c_pipe1(QueryPlanSuite& suite) {
 
 	std::vector<CypherPhysicalOperator *> ops;
 //src
-	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("CATEGORIES"), PropertyKeys({}), "name", Value("fruit") ) );	// cat name == fruit
+	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("CATEGORIES"), PropertyKeys({}), "name", Value("banana") ) );	// cat name == banana
 // ops
 	// categories <- annotations (incoming)
 	ops.push_back( new PhysicalAdjIdxJoin(sch2, "categories", LabelSet("CATEGORIES"), LabelSet("ANNOTATION_CATEGORY_BACKWARD"), ExpandDirection::OUTGOING, LabelSet("CATEGORIES"), JoinType::INNER, false, true));
