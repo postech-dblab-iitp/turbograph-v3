@@ -45,6 +45,7 @@ public:
 
 	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
 	//vector<Constraints> constraints;
+	PartitionID pid;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -52,6 +53,7 @@ public:
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();
+	PartitionID GetPartitionID();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

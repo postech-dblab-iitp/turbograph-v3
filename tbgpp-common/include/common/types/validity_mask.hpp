@@ -13,6 +13,8 @@
 #include "common/vector_size.hpp"
 #include "common/to_string.hpp"
 
+#include "icecream.hpp"
+
 namespace duckdb {
 struct ValidityMask;
 
@@ -247,9 +249,9 @@ public:
 	}
 
 	//! Ensure the validity mask is writable, allocating space if it is not initialized
-	inline void EnsureWritable() {
+	inline void EnsureWritable(idx_t capacity = STANDARD_VECTOR_SIZE) {
 		if (!validity_mask) {
-			Initialize();
+			Initialize(capacity);
 		}
 	}
 

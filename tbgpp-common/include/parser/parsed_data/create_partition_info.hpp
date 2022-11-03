@@ -11,11 +11,12 @@ namespace duckdb {
 struct CreatePartitionInfo : public CreateInfo {
 	CreatePartitionInfo() : CreateInfo(CatalogType::PARTITION_ENTRY, INVALID_SCHEMA) {
 	}
-	CreatePartitionInfo(string schema, string name) : CreateInfo(CatalogType::PARTITION_ENTRY, schema), partition(name) {
+	CreatePartitionInfo(string schema, string name, PartitionID pid = 0) : CreateInfo(CatalogType::PARTITION_ENTRY, schema), partition(name), pid(pid) {
 	}
 
 	//! Partition name to insert to
 	string partition;
+	PartitionID pid;
 	//! CREATE GRAPH from QUERY // TODO Cypher needs to be extended to support graph creation
 	//unique_ptr<SelectStatement> query;
 

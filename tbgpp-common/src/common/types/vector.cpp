@@ -19,13 +19,14 @@
 namespace duckdb {
 
 Vector::Vector(LogicalType type_p, bool create_data, bool zero_data, idx_t capacity)
-    : vector_type(VectorType::FLAT_VECTOR), type(move(type_p)), data(nullptr) {
+    : vector_type(VectorType::FLAT_VECTOR), type(move(type_p)), data(nullptr), capacity(capacity) {
 	if (create_data) {
 		Initialize(zero_data, capacity);
 	}
 }
 
 Vector::Vector(LogicalType type_p, idx_t capacity) : Vector(move(type_p), true, false, capacity) {
+	this->capacity = capacity;
 }
 
 Vector::Vector(LogicalType type_p, data_ptr_t dataptr)
@@ -35,7 +36,7 @@ Vector::Vector(LogicalType type_p, data_ptr_t dataptr)
 	}
 }
 
-Vector::Vector(const VectorCache &cache) : type(cache.GetType()) {
+Vector::Vector(const VectorCache &cache, idx_t capacity) : type(cache.GetType()), capacity(capacity) {
 	ResetFromCache(cache);
 }
 
@@ -57,7 +58,7 @@ Vector::Vector(const Value &value) : type(value.type()) {
 
 Vector::Vector(Vector &&other) noexcept
     : vector_type(other.vector_type), type(move(other.type)), data(other.data), validity(move(other.validity)),
-      buffer(move(other.buffer)), auxiliary(move(other.auxiliary)) {
+      buffer(move(other.buffer)), auxiliary(move(other.auxiliary)), capacity(other.capacity) {
 }
 
 void Vector::Reference(const Value &value) {
@@ -108,6 +109,7 @@ void Vector::Reinterpret(Vector &other) {
 	AssignSharedPointer(auxiliary, other.auxiliary);
 	data = other.data;
 	validity = other.validity;
+	capacity = other.capacity;
 }
 
 void Vector::ResetFromCache(const VectorCache &cache) {
@@ -191,6 +193,7 @@ void Vector::Slice(const SelectionVector &sel, idx_t count, SelCache &cache) {
 }
 
 void Vector::Initialize(bool zero_data, idx_t capacity) {
+	this->capacity = capacity;
 	auxiliary.reset();
 	validity.Reset();
 	auto &type = GetType();
@@ -199,7 +202,7 @@ void Vector::Initialize(bool zero_data, idx_t capacity) {
 		auto struct_buffer = make_unique<VectorStructBuffer>(type, capacity);
 		auxiliary = move(struct_buffer);
 	} else if (internal_type == PhysicalType::LIST) {
-		auto list_buffer = make_unique<VectorListBuffer>(type);
+		auto list_buffer = make_unique<VectorListBuffer>(type, capacity);
 		auxiliary = move(list_buffer);
 	}
 	auto type_size = GetTypeIdSize(internal_type);
@@ -294,7 +297,7 @@ void Vector::SetValue(idx_t index, const Value &val) {
 		return;
 	}
 
-	validity.EnsureWritable();
+	validity.EnsureWritable(this->capacity);
 	validity.Set(index, !val.IsNull());
 	if (val.IsNull() && GetType().InternalType() != PhysicalType::STRUCT) {
 		// for structs we still need to set the child-entries to NULL
@@ -370,6 +373,7 @@ void Vector::SetValue(idx_t index, const Value &val) {
 				ListVector::PushBack(*this, val_children[i]);
 			}
 		}
+
 		//! now set the pointer
 		auto &entry = ((list_entry_t *)data)[index];
 		entry.length = val_children.size();
@@ -875,9 +879,7 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 	auto data = (int64_t *)buffer->GetData();
 	data[0] = start;
 	data[1] = increment;
-	// icecream::ic.enable();IC();icecream::ic.disable();
 	validity.Reset();
-	// icecream::ic.enable();IC();icecream::ic.disable();
 	auxiliary.reset();
 }
 

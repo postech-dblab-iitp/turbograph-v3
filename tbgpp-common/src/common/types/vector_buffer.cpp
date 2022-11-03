@@ -5,6 +5,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 
 #include "common/assert.hpp"
+#include "icecream.hpp"
 
 namespace duckdb {
 

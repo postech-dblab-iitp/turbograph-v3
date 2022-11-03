@@ -4,6 +4,6 @@
 
 namespace duckdb {
 
-enum class GraphComponentType : uint8_t { VERTEX = 0, EDGE = 1, INVALID = 2,};
+enum class JsonFileType : uint8_t { JSON = 0, JSONL = 1, };
 
 } // namespace duckdb

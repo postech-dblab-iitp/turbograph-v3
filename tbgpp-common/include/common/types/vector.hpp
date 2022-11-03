@@ -58,7 +58,7 @@ public:
 	//! Create a vector of size tuple_count (non-standard)
 	DUCKDB_API explicit Vector(LogicalType type, idx_t capacity = STANDARD_VECTOR_SIZE);
 	//! Create an empty standard vector with a type, equivalent to calling Vector(type, true, false)
-	DUCKDB_API explicit Vector(const VectorCache &cache);
+	DUCKDB_API explicit Vector(const VectorCache &cache, idx_t capacity = STANDARD_VECTOR_SIZE);
 	//! Create a non-owning vector that references the specified data
 	DUCKDB_API Vector(LogicalType type, data_ptr_t dataptr);
 	//! Create an owning vector that holds at most STANDARD_VECTOR_SIZE entries.
@@ -183,6 +183,7 @@ protected:
 	//! The buffer holding auxiliary data of the vector
 	//! e.g. a string vector uses this to store strings
 	buffer_ptr<VectorBuffer> auxiliary;
+	idx_t capacity;
 };
 
 //! The DictionaryBuffer holds a selection vector

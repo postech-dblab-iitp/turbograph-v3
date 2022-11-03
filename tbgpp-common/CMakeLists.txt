@@ -68,6 +68,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/planner/subquery"
 	"${PROJECT_SOURCE_DIR}/include/planner/tableref"
 	# third_party
+	"${PROJECT_SOURCE_DIR}/include/third_party"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fmt/include"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
 	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
@@ -75,6 +76,8 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
 	"${PROJECT_SOURCE_DIR}/third_party/tblr"
+	"${PROJECT_SOURCE_DIR}/third_party/simdjson/singleheader/"
+	"${PROJECT_SOURCE_DIR}/third_party/fpgrowth/FP-growth/include/"
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
