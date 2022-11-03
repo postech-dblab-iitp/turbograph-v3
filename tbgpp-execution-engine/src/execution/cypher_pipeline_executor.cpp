@@ -59,7 +59,10 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		if( source_chunk.size() == 0 ) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
-			// this will always result NEED_MORE_INPUT;
+		D_ASSERT( sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
+				 sourceProcessResult == OperatorResultType::FINISHED
+		);
+		if( sourceProcessResult == OperatorResultType::FINISHED ) { break; }
 	}
 	// do we need pushfinalize?
 		// when limit operator reports early finish, the caches must be finished after all.
@@ -119,6 +122,10 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		// std::cout << "call execute pipe!!" << std::endl;
 		// IC();
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
+		// shortcut returning execution finished for this pipeline
+		if( pipeResult == OperatorResultType::FINISHED ) {
+			return OperatorResultType::FINISHED;
+		}
 		// call sink
 			// timer start
 #ifdef OP_TIMER
@@ -210,7 +217,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		// if result needs more output, push index to stack
 		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
 			in_process_operators.push(current_idx);
-		}
+		} else if( opResult == OperatorResultType::FINISHED ) {
+			return OperatorResultType::FINISHED;
+		} 
 		// what is chunk cache for?
 		// increment
 		current_idx += 1;
