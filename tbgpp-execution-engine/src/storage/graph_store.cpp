@@ -353,11 +353,13 @@ StoreAPIResult iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_it
 	bool is_initialized;
 	ExtentID target_eid = vid >> 32;
 	if (expand_dir == ExpandDirection::OUTGOING) {
-		// icecream::ic.enable(); IC(); icecream::ic.disable();
+		// icecream::ic.enable(); IC(); IC(adjColIdx, vid, target_eid); icecream::ic.disable();
 		is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
 		// icecream::ic.enable(); IC(); icecream::ic.disable();
 	} else if (expand_dir == ExpandDirection::INCOMING) {
+		// icecream::ic.enable(); IC(); IC(adjColIdx, vid, target_eid); icecream::ic.disable();
 		is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::BACKWARD_ADJLIST);
+		// icecream::ic.enable(); IC(); icecream::ic.disable();
 	}
 
 	adj_iter.getAdjListPtr(vid, target_eid, start_ptr, end_ptr, is_initialized);

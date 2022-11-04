@@ -254,6 +254,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		for( ; tmp_output_idx < state.output_idx + num_rhs_to_try_fetch ; tmp_output_idx++ ) {
 			state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
 		}
+
 		// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
 		auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
 		for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++ ) {
