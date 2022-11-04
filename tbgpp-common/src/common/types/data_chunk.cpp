@@ -233,7 +233,7 @@ string DataChunk::ToString() const {
 string DataChunk::ToString(size_t size_to_print) const {
 	string retval = "Chunk - [" + to_string(ColumnCount()) + " Columns]\n";
 	for (idx_t i = 0; i < ColumnCount(); i++) {
-		if (data[i].GetType() == LogicalType::FORWARD_ADJLIST || data[i].GetType() == LogicalType::BACKWARD_ADJLIST) continue;
+		if (data[i].GetType() == LogicalType::FORWARD_ADJLIST || data[i].GetType() == LogicalType::BACKWARD_ADJLIST || data[i].GetType().id() == LogicalTypeId::LIST) continue;
 		retval += "- " + data[i].ToString(size_to_print) + "\n";
 	}
 	return retval;

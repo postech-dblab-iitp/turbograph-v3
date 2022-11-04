@@ -34,13 +34,12 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 
 
 	auto &state = (NodeIdSeekState &)lstate;
-
 	if(input.size() == 0) {
 		chunk.SetCardinality(0);
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
+
 	CypherSchema outputNodeSchema = schema.getSubSchemaOfKey( name );
-	
 	idx_t nodeColIdx = schema.getColIdxOfKey( name ); // position of pid
 	idx_t alreadyExistingCols = outputNodeSchema.getTypes().size() - 1 - propertyKeys.size();
 	idx_t colIdxToStartFetch = nodeColIdx + alreadyExistingCols + 1;
@@ -64,9 +63,8 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 	// initialize indexseek
 	vector<ExtentID> target_eids;		// target extent ids to access
 	vector<idx_t> boundary_position;	// boundary position of the input chunk
-// icecream::ic.enable(); IC(); icecream::ic.disable();
+
 	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
-// icecream::ic.enable(); IC(); icecream::ic.disable();
 	D_ASSERT( target_eids.size() == boundary_position.size() );
 	if (target_eids.size() != boundary_position.size()) {
 		fprintf(stderr, "target_eids.size() = %ld, boundary_position.size() = %ld\n", target_eids.size(), boundary_position.size());
@@ -86,11 +84,9 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 	for (idx_t colId = 0; colId < state.targetChunk.ColumnCount(); colId++) {
 		output_col_idx.push_back( colId-1+colIdxToStartFetch );
 	}
-// icecream::ic.enable(); IC(); icecream::ic.disable();
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
 		context.client->graph_store->doVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position, extentIdx, output_col_idx);
 	}
-// icecream::ic.enable(); IC(); icecream::ic.disable();
 icecream::ic.disable();
 
 	// for original ones reference existing columns
