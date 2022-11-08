@@ -175,11 +175,13 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else if (l_type.id() == LogicalTypeId::LIST) {
             size_t list_len_total = 0;
+            size_t child_type_size = GetTypeIdSize(ListType::GetChildType(l_type).InternalType());
             list_entry_t *list_buffer = (list_entry_t*)input.data[input_chunk_idx].GetData();
             // fprintf(stderr, "input_chunk_idx %ld list_buffer %p\n", input_chunk_idx, list_buffer);
-            for (size_t i = 0; i < input.size(); i++) { // Accumulate the length of all strings
+            for (size_t i = 0; i < input.size(); i++) { // Accumulate the length of all child datas
                 list_len_total += list_buffer[i].length;
             }
+            list_len_total *= child_type_size;
             if (best_compression_function == DICTIONARY)
                 list_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
@@ -246,6 +248,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
             memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), input_size * sizeof(list_entry_t));
             memcpy(buf_ptr + sizeof(CompressionHeader) + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - sizeof(CompressionHeader) - input_size * sizeof(list_entry_t));
+            icecream::ic.enable(); IC(); IC(sizeof(CompressionHeader) + input_size * sizeof(list_entry_t), alloc_buf_size - sizeof(CompressionHeader) - input_size * sizeof(list_entry_t)); icecream::ic.disable();
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
