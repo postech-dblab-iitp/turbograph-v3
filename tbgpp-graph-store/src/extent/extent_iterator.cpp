@@ -342,13 +342,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
-            idx_for_cardinality = i;
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            break;
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
-            continue;
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST || ext_property_types[i] == LogicalType::ID) {
             continue;
         } else {
             idx_for_cardinality = i;
@@ -382,7 +376,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             // fprintf(stdout, "Load Column %ld\n", i);
         }
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
+        if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -402,8 +396,27 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     output_idx++;
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
+            size_t type_size = sizeof(list_entry_t);
+            size_t offset_array_size = comp_header.data_len * type_size;
+            // Copy Offset Array
+            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
+            
+            // Prepare for copying data array
+            list_entry_t *list_buffer = (list_entry_t*) output.data[i].GetData();
+            size_t data_array_offset = list_buffer[0].offset;
+            size_t list_length = 0;
+            for (size_t input_idx = 0; input_idx < scan_end_offset - scan_begin_offset; input_idx++) {
+                list_length += list_buffer[input_idx].length;
+                list_buffer[input_idx].offset -= data_array_offset;
+            }
+
+            // Copy data array
+            Vector &child_vec = ListVector::GetEntry(output.data[i]);
+            ListVector::Reserve(output.data[i], list_length);
+            memcpy(child_vec.GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + data_array_offset, list_length);
+        } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[i].GetData();
@@ -562,13 +575,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
-            idx_for_cardinality = i;
-            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            break;
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
-            continue;
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::ID) {
             continue;
         } else {
             idx_for_cardinality = i;
@@ -645,7 +652,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             // fprintf(stdout, "Load Column %ld\n", i);
         }
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
+        if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
@@ -659,7 +666,23 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
                 strings[0] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
+            size_t type_size = sizeof(list_entry_t);
+            size_t offset_array_size = comp_header.data_len * type_size;
+            // Copy Offset Array
+            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size, type_size);
+            
+            // Prepare for copying data array
+            list_entry_t *list_buffer = (list_entry_t*) output.data[i].GetData();
+            size_t data_array_offset = list_buffer[0].offset;
+            size_t list_length = list_buffer[0].length;
+            list_buffer[0].offset = 0;
+
+            // Copy data array
+            Vector &child_vec = ListVector::GetEntry(output.data[i]);
+            ListVector::Reserve(output.data[i], list_length);
+            memcpy(child_vec.GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + data_array_offset, list_length);
+        } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
             // size_t adj_list_end = adjListBase[STORAGE_STANDARD_VECTOR_SIZE - 1];
@@ -672,7 +695,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // }
             // // memcpy(output.data[i].GetAuxiliary()->GetData(), io_requested_buf_ptrs[prev_toggle][i] + STORAGE_STANDARD_VECTOR_SIZE * sizeof(idx_t), 
             // //        adj_list_size * sizeof(idx_t));
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[output_idx].GetData();
@@ -795,7 +818,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             // fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
         }
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
+        if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -810,9 +833,25 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
                 strings[0] = StringVector::AddString(output.data[i], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
             }
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
+            size_t type_size = sizeof(list_entry_t);
+            size_t offset_array_size = comp_header.data_len * type_size;
+            // Copy Offset Array
+            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
+            
+            // Prepare for copying data array
+            list_entry_t *list_buffer = (list_entry_t*) output.data[i].GetData();
+            size_t data_array_offset = list_buffer[0].offset;
+            size_t list_length = list_buffer[0].length;
+            list_buffer[0].offset = 0;
+
+            // Copy data array
+            Vector &child_vec = ListVector::GetEntry(output.data[i]);
+            ListVector::Reserve(output.data[i], list_length);
+            memcpy(child_vec.GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + data_array_offset, list_length);
+        } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             // TODO
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[i].GetData();
@@ -930,7 +969,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             // fprintf(stdout, "Load Column %ld\n", i);
         }
-        if (ext_property_types[i] == LogicalType::VARCHAR) {
+        if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -951,9 +990,35 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     strings[seqno] = StringVector::AddString(output.data[output_col_idx[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
                 }
             }
-        } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
+            size_t type_size = sizeof(list_entry_t);
+            size_t offset_array_size = comp_header.data_len * type_size;
+
+            Vector &vids = input.data[nodeColIdx];
+            size_t list_offset = 0;
+            size_t list_size_to_append = 0;
+            size_t child_type_size = GetTypeIdSize(ListType::GetChildType(ext_property_types[i]).InternalType());
+            list_entry_t *list_vec = (list_entry_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
+            list_entry_t *output_list_vec = (list_entry_t *)output.data[output_col_idx[i]].GetData();
+            for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
+                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+                output_list_vec[seqno].length = list_vec[target_seqno].length;
+                list_size_to_append += (list_vec[target_seqno].length * child_type_size);
+            }
+
+            Vector &child_vec = ListVector::GetEntry(output.data[output_col_idx[i]]);
+            size_t last_offset = start_seqno == 0 ? 0 : output_list_vec[start_seqno - 1].offset + output_list_vec[start_seqno - 1].length;
+            ListVector::Reserve(output.data[output_col_idx[i]], last_offset + list_size_to_append);
+            for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
+                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+                icecream::ic.enable(); IC(); IC(target_seqno, last_offset, start_seqno, seqno, end_seqno, offset_array_size, list_vec[target_seqno].offset, list_vec[target_seqno].length, child_type_size); icecream::ic.disable();
+                memcpy(child_vec.GetData() + last_offset * child_type_size, io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + list_vec[target_seqno].offset * child_type_size, list_vec[target_seqno].length * child_type_size);
+                output_list_vec[seqno].offset = last_offset;
+                last_offset += list_vec[target_seqno].length;
+            }
+        } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             // TODO
-        } else if (ext_property_types[i] == LogicalType::ID) {
+        } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             // throw InvalidInputException("Never occur");
         } else {
             if (comp_header.comp_type == BITPACKING) {

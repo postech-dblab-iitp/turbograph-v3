@@ -35,14 +35,14 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	// annotations property
 	CypherSchema sch3 = sch2;
 	sch3.addPropertyIntoNode("annotations", "id", LogicalType::BIGINT);
-	// sch3.addPropertyIntoNode("annotations", "segmentation", LogicalType::LIST(LogicalType::DOUBLE));
+	sch3.addPropertyIntoNode("annotations", "segmentation", LogicalType::LIST(LogicalType::DOUBLE));
 	sch3.addPropertyIntoNode("annotations", "area", LogicalType::DOUBLE);
 	sch3.addPropertyIntoNode("annotations", "iscrowd", LogicalType::BIGINT);
 	sch3.addPropertyIntoNode("annotations", "image_id", LogicalType::BIGINT);
-	// sch3.addPropertyIntoNode("annotations", "bbox", LogicalType::LIST(LogicalType::DOUBLE));
+	sch3.addPropertyIntoNode("annotations", "bbox", LogicalType::LIST(LogicalType::DOUBLE));
 	sch3.addPropertyIntoNode("annotations", "category_id", LogicalType::BIGINT);
-	// PropertyKeys annotation_keys = PropertyKeys({"id", "segmentation", "area", "iscrowd", "image_id", "bbox", "category_id"});
-	PropertyKeys annotation_keys = PropertyKeys({"id", "area", "iscrowd", "image_id", "category_id"});
+	PropertyKeys annotation_keys = PropertyKeys({"id", "segmentation", "area", "iscrowd", "image_id", "bbox", "category_id"});
+	// PropertyKeys annotation_keys = PropertyKeys({"id", "area", "iscrowd", "image_id", "category_id"});
 
 	CypherSchema sch4 = sch3;
 	sch4.addNode("categories");
