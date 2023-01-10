@@ -1,6 +1,6 @@
 # Turbograph v3
 
-Fast and scalable HTAP graph database.
+Fast, scalable, and flexible HTAP graph database.
 
 ## Getting Started
 
@@ -10,7 +10,13 @@ Fast and scalable HTAP graph database.
 
 ## Building Project
 
-The project consists of several modules using various platforms. We mainly use `bazel` to integrate modules. Each module may use different compilation frameworks such as `cmake` or `maven`.
+The project consists of several modules using various platforms. We mainly use `cmake` as project builder, and `ninja` for fast incremental compilation.
+
+```
+cd build/
+cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
+ninja -j
+```
 
 ## Development
 
