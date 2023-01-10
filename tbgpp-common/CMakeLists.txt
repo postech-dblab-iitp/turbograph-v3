@@ -76,8 +76,8 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
 	"${PROJECT_SOURCE_DIR}/third_party/tblr"
-	"${PROJECT_SOURCE_DIR}/third_party/simdjson/singleheader/"
-	"${PROJECT_SOURCE_DIR}/third_party/fpgrowth/FP-growth/include/"
+	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
+	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"

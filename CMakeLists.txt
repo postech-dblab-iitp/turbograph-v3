@@ -26,6 +26,7 @@ set (CMAKE_CXX_STANDARD 17)
 add_subdirectory(tbgpp-common)
 add_subdirectory(tbgpp-graph-store)
 add_subdirectory(tbgpp-execution-engine)
+add_subdirectory(tbgpp-compiler)
 add_subdirectory(tbgpp-client)
 
 ####################
