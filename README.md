@@ -15,7 +15,12 @@ The project consists of several modules using various platforms. We mainly use `
 ```
 cd build/
 cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
-ninja -j
+ninja -j [NUM_PARALLEL_BUILD_THREADS]
+```
+
+You can see the system components and their dependencies using the following command.
+```
+cmake -GNinja -DCMAKE_BUILD_TYPE=Debug --graphviz=graphviz/dependencies.dot ..
 ```
 
 ## Development
