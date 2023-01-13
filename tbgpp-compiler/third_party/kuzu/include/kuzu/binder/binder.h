@@ -23,8 +23,10 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const Catalog& catalog)
-        : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+    // explicit Binder(const Catalog& catalog)
+    //     : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+        explicit Binder()
+        : lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
@@ -157,11 +159,15 @@ private:
     static void validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
-    static void validateTableExist(const Catalog& _catalog, string& tableName);
-
+    // TODO JHKO catalog disabled 
+    // static void validateTableExist(const Catalog& _catalog, string& tableName);
+    static void validateTableExist(string& tableName);
+    
     static bool validateStringParsingOptionName(string& parsingOptionName);
 
-    static void validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID);
+    // TODO JHKO catalog disabled 
+    // static void validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID);
+    static void validateNodeTableHasNoEdge(table_id_t tableID);
 
     /*** helpers ***/
     string getUniqueExpressionName(const string& name);
@@ -170,7 +176,7 @@ private:
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
 
 private:
-    const Catalog& catalog;
+    // const Catalog& catalog;
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;

@@ -17,7 +17,7 @@ public:
     inline void addTableIDs(const vector<table_id_t>& tableIDsToAdd) {
         auto tableIDsMap = unordered_set<table_id_t>(tableIDs.begin(), tableIDs.end());
         for (auto tableID : tableIDsToAdd) {
-            if (!tableIDsMap.contains(tableID)) {
+            if (!(tableIDsMap.find(tableID) != tableIDsMap.end())) {
                 tableIDs.push_back(tableID);
             }
         }
@@ -30,15 +30,15 @@ public:
     }
 
     inline void addPropertyExpression(const string propertyName, unique_ptr<Expression> property) {
-        assert(!propertyNameToIdx.contains(propertyName));
+        assert(!(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end()));
         propertyNameToIdx.insert({propertyName, properties.size()});
         properties.push_back(std::move(property));
     }
     inline bool hasPropertyExpression(const string& propertyName) const {
-        return propertyNameToIdx.contains(propertyName);
+        return propertyNameToIdx.find(propertyName) != propertyNameToIdx.end();
     }
     inline shared_ptr<Expression> getPropertyExpression(const string& propertyName) const {
-        assert(propertyNameToIdx.contains(propertyName));
+        assert(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end());
         return properties[propertyNameToIdx.at(propertyName)]->copy();
     }
     inline const vector<unique_ptr<Expression>>& getPropertyExpressions() const {

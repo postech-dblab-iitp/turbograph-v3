@@ -84,7 +84,7 @@ public:
 
     inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
     inline bool containsQueryNode(const string& queryNodeName) const {
-        return queryNodeNameToPosMap.contains(queryNodeName);
+        return queryNodeNameToPosMap.find(queryNodeName) != queryNodeNameToPosMap.end();
     }
     inline vector<shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
     inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
@@ -110,7 +110,7 @@ public:
 
     inline uint32_t getNumQueryRels() const { return queryRels.size(); }
     inline bool containsQueryRel(const string& queryRelName) const {
-        return queryRelNameToPosMap.contains(queryRelName);
+        return queryRelNameToPosMap.find(queryRelName) != queryRelNameToPosMap.end();
     }
     inline vector<shared_ptr<RelExpression>> getQueryRels() const { return queryRels; }
     inline shared_ptr<RelExpression> getQueryRel(const string& queryRelName) const {

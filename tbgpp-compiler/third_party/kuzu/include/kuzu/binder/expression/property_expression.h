@@ -26,10 +26,10 @@ public:
     inline string getVariableName() const { return variableName; }
 
     inline bool hasPropertyID(table_id_t tableID) const {
-        return propertyIDPerTable.contains(tableID);
+        return propertyIDPerTable.find(tableID) != propertyIDPerTable.end();
     }
     inline property_id_t getPropertyID(table_id_t tableID) const {
-        assert(propertyIDPerTable.contains(tableID));
+        assert(propertyIDPerTable.find(tableID) != propertyIDPerTable.end());
         return propertyIDPerTable.at(tableID);
     }
 
