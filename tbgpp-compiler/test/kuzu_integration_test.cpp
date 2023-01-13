@@ -2,8 +2,8 @@
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "cypher_lexer.h"
-#include "parser/transformer.h"
-
+#include "kuzu/parser/transformer.h"
+#include "kuzu/binder/binder.h"
 
 using namespace antlr4;
 
@@ -36,7 +36,9 @@ int main(int argc, char** argv) {
 	auto statement = transformer.transform();
 	
 	// Binder
-		// TODO
+	auto binder = kuzu::binder::Binder();
+	auto boundStatement = binder.bind(*statement);
+
 	std::cout << "compiler test end" << std::endl;
 	return 0;
 }
