@@ -10,7 +10,7 @@
 using namespace antlr4;
 
 int main(int argc, char** argv) {
-
+ 
 	std::cout << "compiler test start" << std::endl;
 	// std::string query = "MATCH (n) RETURN n;";
 	//std::string query = "EXPLAIN MATCH (n) RETURN n;";
