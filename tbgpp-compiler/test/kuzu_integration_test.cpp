@@ -1,5 +1,19 @@
 #include <iostream>
 
+#include "gpos/_api.h"
+#include "naucrates/init.h"
+#include "gpopt/init.h"
+
+#include "gpos/base.h"
+#include "gpopt/engine/CEngine.h"
+#include "gpopt/operators/CExpression.h"
+#include "gpopt/base/CColRef.h"
+#include "gpos/memory/CMemoryPool.h"
+#include "naucrates/md/CMDIdGPDB.h"
+#include "gpopt/operators/CLogicalGet.h"
+
+#include "gpopt/metadata/CTableDescriptor.h"
+
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "cypher_lexer.h"
 #include "kuzu/parser/transformer.h"
@@ -8,8 +22,9 @@
 #include "BTNode.h"
 
 using namespace antlr4;
+using namespace gpopt;
 
-int main(int argc, char** argv) {
+int _main(int argc, char** argv) {
  
 	std::cout << "compiler test start" << std::endl;
 	// std::string query = "MATCH (n) RETURN n;";
@@ -56,6 +71,29 @@ int main(int argc, char** argv) {
 	printer.print();
 	std::cout << std::endl;
 
+
+// bind orca
+
+	std::cout << "[TEST] orca init" << std::endl;
+	struct gpos_init_params gpos_params = {NULL};
+
+	gpos_init(&gpos_params);
+	gpdxl_init();
+	gpopt_init();
+
+	std::cout << "[TEST] orca memory pool" << std::endl;
+	std::cout << "[TEST] orca engine" << std::endl;
+	
+	//CExpression *pexprLeft = PexprLogicalGet(mp);
+
 	std::cout << "compiler test end" << std::endl;
 	return 0;
+}
+
+int main(int argc, char** argv) {
+	try{
+		int out = _main(argc, argv);
+	} catch (CException ex) {
+		std::cerr << ex.Major() << " " << ex.Minor() << std::endl;
+	}
 }

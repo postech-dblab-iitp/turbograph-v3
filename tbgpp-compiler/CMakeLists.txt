@@ -9,6 +9,8 @@ project(tbgpp-compiler)
 # ADD SUBDIRECTORIES
 ####################################################
 add_subdirectory(third_party)
+add_subdirectory(kuzu)
+add_subdirectory(gporca)
 
 ####################################################
 # COMPILATION FLAGS
@@ -18,6 +20,9 @@ set(CMAKE_CXX_STANDARD 17)
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
+
+# apply gporca configurations
+add_compile_options(-DUSE_CMAKE)
 
 ####################################################
 # DECLARE TARGETS
@@ -34,8 +39,13 @@ add_library(tbgpp-compiler STATIC)
 target_include_directories(tbgpp-compiler PUBLIC
 	# include
 	"${PROJECT_SOURCE_DIR}/include"
+	# kuzu
+	"${PROJECT_SOURCE_DIR}/kuzu/include"
+	"${PROJECT_SOURCE_DIR}/gporca/libgpos/include"
+	"${PROJECT_SOURCE_DIR}/gporca/libnaucrates/include"
+	"${PROJECT_SOURCE_DIR}/gporca/libgpdbcost/include"
+	"${PROJECT_SOURCE_DIR}/gporca/libgpopt/include"
 	# third_party
-	"${PROJECT_SOURCE_DIR}/third_party/kuzu/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
 	# tbgpp-common
@@ -52,7 +62,8 @@ file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
 #target_link_libraries(tbgpp-compiler tbgpp-common-lib)
 target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
-target_link_libraries(tbgpp-compiler antlr4_cypher antlr4_runtime kuzu)
+target_link_libraries(tbgpp-compiler kuzu gpos naucrates gpdbcost gpopt)
+target_link_libraries(tbgpp-compiler antlr4_cypher antlr4_runtime)
 target_compile_options(tbgpp-compiler PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-compiler PUBLIC ${CXX_DEFINITION})
 
