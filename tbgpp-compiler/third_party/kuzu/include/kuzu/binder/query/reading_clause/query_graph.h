@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "binder/expression/rel_expression.h"
+#include "binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {
@@ -71,7 +72,7 @@ private:
 };
 
 // QueryGraph represents a connected pattern specified in MATCH clause.
-class QueryGraph {
+class QueryGraph : public ParseTreeNode {
 public:
     QueryGraph() = default;
 
@@ -132,6 +133,12 @@ public:
 
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
 
+    std::string getName() override { return "[QueryGraph]"; }
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        return result;
+    }
+
 private:
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
@@ -141,7 +148,7 @@ private:
 
 // QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH
 // clause.
-class QueryGraphCollection {
+class QueryGraphCollection : public ParseTreeNode {
 public:
     QueryGraphCollection() = default;
 
@@ -153,6 +160,15 @@ public:
     vector<shared_ptr<RelExpression>> getQueryRels() const;
 
     unique_ptr<QueryGraphCollection> copy() const;
+
+    std::string getName() override { return "[QueryGraphCollection]"; }
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        for( auto& a: queryGraphs) {
+            result.push_back((ParseTreeNode*)a.get());
+        }
+        return result;
+    }
 
 private:
     vector<unique_ptr<QueryGraph>> queryGraphs;

@@ -36,6 +36,8 @@ public:
         return make_unique<BoundUnwindClause>(*this);
     }
 
+    std::string getName() override { return "[BoundUnwindClause]"; }
+
 private:
     shared_ptr<Expression> expression;
     shared_ptr<Expression> aliasExpression;

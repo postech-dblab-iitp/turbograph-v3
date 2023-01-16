@@ -1,11 +1,12 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {
 
-class BoundProjectionBody {
+class BoundProjectionBody : public ParseTreeNode{
 public:
     explicit BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
         : isDistinct{isDistinct}, projectionExpressions{move(projectionExpressions)},
@@ -51,6 +52,12 @@ public:
     inline unique_ptr<BoundProjectionBody> copy() const {
         return make_unique<BoundProjectionBody>(*this);
     }
+
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        return result;
+    }
+    std::string getName() override { return "[BoundProjectionBody]"; }
 
 private:
     bool isDistinct;

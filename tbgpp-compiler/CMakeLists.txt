@@ -38,16 +38,23 @@ target_include_directories(tbgpp-compiler PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/kuzu/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
+	# tbgpp-common
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common"
+  	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types"
+  	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" 
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/third_party/TreePrinter/TreePrinter/src"
 )
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
+#target_link_libraries(tbgpp-compiler tbgpp-common-lib)
 target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
 target_link_libraries(tbgpp-compiler antlr4_cypher antlr4_runtime kuzu)
 target_compile_options(tbgpp-compiler PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-compiler PUBLIC ${CXX_DEFINITION})
-
-
 
 ####################################################
 # TESTS

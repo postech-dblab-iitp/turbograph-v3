@@ -4,11 +4,12 @@
 #include "binder/query/reading_clause/query_graph.h"
 #include "binder/query/return_with_clause/bound_projection_body.h"
 #include "binder/query/updating_clause/bound_updating_clause.h"
+#include "binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {
 
-class NormalizedQueryPart {
+class NormalizedQueryPart : public ParseTreeNode {
 public:
     NormalizedQueryPart() = default;
     ~NormalizedQueryPart() = default;
@@ -46,6 +47,19 @@ public:
     }
 
     expression_vector getPropertiesToRead() const;
+
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        for( auto& a: readingClauses) {
+            result.push_back((ParseTreeNode*)a.get());
+        }
+        // for( auto& a: updatingClauses) {
+        //     result.push_back((ParseTreeNode*)a.get());
+        // }
+        result.push_back((ParseTreeNode*)projectionBody.get());
+        return result;
+    }
+    std::string getName() override { return "[NormalizedQueryPart]"; }
 
 private:
     vector<unique_ptr<BoundReadingClause>> readingClauses;

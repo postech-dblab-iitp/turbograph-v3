@@ -34,6 +34,15 @@ public:
 
     inline bool getIsUnionAll(uint32_t idx) const { return isUnionAll[idx]; }
 
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        for( auto& a: singleQueries) {
+            result.push_back((ParseTreeNode*)a.get());
+        }
+        return result;
+    }
+    std::string getName() override { return "[BoundRegularQuery]"; }
+
 private:
     vector<unique_ptr<NormalizedSingleQuery>> singleQueries;
     vector<bool> isUnionAll;
