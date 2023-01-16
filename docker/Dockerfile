@@ -62,6 +62,8 @@ RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSI
   && cd .. \
   && rm -rf boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0
 
+# TODO need to install xerces for installing orca
+
 #### For developers # TODO further separate
 RUN apt-get install -y \
 	vim \
