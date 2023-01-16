@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <list>
 
 #include "bound_statement_result.h"
+#include "parse_tree_node.h"
 #include "common/statement_type.h"
 
 using namespace kuzu::common;
@@ -10,7 +12,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-class BoundStatement {
+class BoundStatement : public ParseTreeNode {
 public:
     explicit BoundStatement(
         StatementType statementType, unique_ptr<BoundStatementResult> statementResult)

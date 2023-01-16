@@ -58,6 +58,13 @@ public:
         return make_unique<BoundMatchClause>(*this);
     }
 
+    std::string getName() override { return "[BoundMatchClause]"; }
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        result.push_back((ParseTreeNode*)queryGraphCollection.get());
+        return result;
+    }
+
 private:
     unique_ptr<QueryGraphCollection> queryGraphCollection;
     shared_ptr<Expression> whereExpression;
