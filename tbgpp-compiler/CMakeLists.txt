@@ -41,10 +41,12 @@ target_include_directories(tbgpp-compiler PUBLIC
 	"${PROJECT_SOURCE_DIR}/include"
 	# kuzu
 	"${PROJECT_SOURCE_DIR}/kuzu/include"
+	# gporca
 	"${PROJECT_SOURCE_DIR}/gporca/libgpos/include"
 	"${PROJECT_SOURCE_DIR}/gporca/libnaucrates/include"
 	"${PROJECT_SOURCE_DIR}/gporca/libgpdbcost/include"
 	"${PROJECT_SOURCE_DIR}/gporca/libgpopt/include"
+	"${PROJECT_SOURCE_DIR}/gporca/server/include"
 	# third_party
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
@@ -62,7 +64,11 @@ file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
 #target_link_libraries(tbgpp-compiler tbgpp-common-lib)
 target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
-target_link_libraries(tbgpp-compiler kuzu gpos naucrates gpdbcost gpopt)
+# gporca
+target_link_libraries(tbgpp-compiler gpos naucrates gpdbcost gpopt gporca_test_lib)
+# kuzu
+target_link_libraries(tbgpp-compiler kuzu)
+# third_party
 target_link_libraries(tbgpp-compiler antlr4_cypher antlr4_runtime)
 target_compile_options(tbgpp-compiler PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-compiler PUBLIC ${CXX_DEFINITION})

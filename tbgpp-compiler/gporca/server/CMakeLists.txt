@@ -566,3 +566,7 @@ target_link_libraries(gporca_test
                       gpopt
                       naucrates
                       gpos)
+
+# TODO jhko open test to external project
+add_library(gporca_test_lib STATIC ${srcs})
+target_link_libraries(gporca_test_lib gpdbcost gpopt naucrates gpos)
