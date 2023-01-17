@@ -21,6 +21,7 @@ DATA_DIR=$1
 SOURCE_DATA_DIR=$2
 
 # TODO you need to set /etc/passwd thus make another user, to access vscode
+# TODO and then mkdir /home/USERNAME and chown
 # TODO set entrypoints refer to commercial dbmss 
 	# e.g. https://github.com/docker-library/postgres/blob/master/12/bullseye/docker-entrypoint.sh
 
