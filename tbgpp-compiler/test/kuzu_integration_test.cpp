@@ -33,6 +33,8 @@
 #include "gpopt/xforms/CXformFactory.h"
 #include "naucrates/init.h"
 
+#include "gpopt/operators/CLogicalInnerJoin.h"
+
 #include "gpopt/metadata/CTableDescriptor.h"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
@@ -106,6 +108,130 @@ static void * OrcaTestExec(void *pv) {
 	std::cout << "[TEST] eres=" << eres << std::endl;
 
 	return NULL;
+}
+
+CExpression * genLogicalGet1(CMemoryPool *mp) {
+
+	CWStringConst strName(GPOS_WSZ_LIT("BaseTable1"));
+	CTableDescriptor *ptabdesc =
+		CTestUtils::PtabdescCreate(mp, 16,										// width 2
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 16467, 1, 0),	// 6 16467 1 1 - tpch-1
+					   CName(&strName));										// basetable
+
+	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias1"));
+	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
+}
+
+CExpression * genLogicalGet2(CMemoryPool *mp) {
+
+	CWStringConst strName(GPOS_WSZ_LIT("BaseTable2"));
+	CTableDescriptor *ptabdesc =
+		CTestUtils::PtabdescCreate(mp, 19,										// width
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 16467, 1, 0),	// 6 16467 1 1
+					   CName(&strName));										// basetable
+
+	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias2"));
+
+	// to generate logicalget, pass tablename / tabledesc(relwidth, mdid, name) / alias / + colmarkasused
+	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
+}
+
+CExpression * genPlan(gpos::CMemoryPool* mp) {
+	// TODO genplan
+	return nullptr;
+}
+
+static void * MyOrcaTestExec(void *pv) {
+	std::cout << "[TEST] inside MyOrcaTestExec()" << std::endl;
+	CMainArgs *pma = (CMainArgs *) pv;
+
+	
+
+// init dxl and cache
+	InitDXL();
+	CMDCache::Init();
+// load metadata objects into provider file
+	CMDProviderMemory * provider = NULL;
+	CMemoryPool *mp = NULL; 
+	{
+		CAutoMemoryPool amp;
+		mp = amp.Pmp();
+		//auto md_path = "../tbgpp-compiler/gpdb/src/backend/gporca/data/dxl/metadata/md.xml";
+		auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
+
+		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
+		// detach safety
+		(void) amp.Detach();
+	}
+	GPOS_ASSERT(mp != NULL);
+	GPOS_ASSERT(provider != NULL);
+// reset xforms factory to exercise xforms ctors and dtors
+	{
+		// TODO what is this?
+		CXformFactory::Pxff()->Shutdown();
+		GPOS_RESULT eres = CXformFactory::Init();
+		//GPOS_ASSERT(GPOS_OK == eres);
+	}
+// generate plan
+	{
+	// connect provider
+		CMDProviderMemory *pmdp = provider;
+		pmdp->AddRef();
+
+	// separate memory pool used for accessor
+		CAutoMemoryPool amp;
+		CMemoryPool *mp = amp.Pmp();
+				
+	// to generate accessor, provide local pool, global cache and provider
+			// TODO what is m_sysidDefault for, systemid
+		CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);	
+	// install opt context in TLS
+		gpdbcost::CCostModelGPDB* default_cost_model = GPOS_NEW(mp) CCostModelGPDB(mp, GPOPT_TEST_SEGMENTS);
+		CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ default_cost_model);
+
+	// initialize engine
+		CEngine eng(mp);
+		
+	// define join plan expression
+		CExpression *lhs_get = genLogicalGet1(mp);
+		// CExpression *rhs_get = genLogicalGet2(mp);
+		// CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
+		CExpression* pexpr = lhs_get;
+		
+
+	// generate query context
+		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
+
+	// Initialize engine
+		eng.Init(pqc, NULL /*search_stage_array*/);
+
+	// optimize query
+		eng.Optimize();
+
+	// extract plan
+		std::cout << "[TEST] output string" << std::endl;
+		CExpression *pexprPlan = eng.PexprExtractPlan();
+
+		CWStringDynamic str(mp);
+		COstreamString oss(&str);
+		pexprPlan->OsPrint(oss);
+
+		GPOS_TRACE(str.GetBuffer());
+
+	// clean up
+		pexpr->Release();
+		pexprPlan->Release();
+		GPOS_DELETE(pqc);
+		
+		// mp safely deallocated when exiting the scope
+	}
+
+	
+
+// cleanup cache and mdprovider
+	CMDCache::Shutdown();
+	CRefCount::SafeRelease(provider);
+	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
 }
 
 int _main(int argc, char** argv) {
@@ -182,7 +308,7 @@ int _main(int argc, char** argv) {
 	m_pfCleanup = Cleanup;
 
 	gpos_exec_params params;
-	params.func = OrcaTestExec;
+	params.func = MyOrcaTestExec;
 	params.arg = &ma;
 	params.stack_start = &params;
 	params.error_buffer = NULL;
@@ -191,16 +317,8 @@ int _main(int argc, char** argv) {
 
 	// std::cout << "[TEST] orca memory pool" << std::endl;
 	std::cout << "[TEST] orca engine" << std::endl;
-
-	if (gpos_exec(&params) ) {
-		return 1;
-	}
-	else {
-		return 0;
-	}
-
-	//auto orca_result = CEngineTest::EresUnittest_Basic();
-	//std::cout << orca_result << std::endl;
+	auto gpos_output_code = gpos_exec(&params);
+	std::cout << "[TEST] function outuput " << gpos_output_code << std::endl;
 
 	std::cout << "compiler test end" << std::endl;
 	return 0;
