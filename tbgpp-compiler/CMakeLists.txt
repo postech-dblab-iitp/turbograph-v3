@@ -10,7 +10,8 @@ project(tbgpp-compiler)
 ####################################################
 add_subdirectory(third_party)
 add_subdirectory(kuzu)
-add_subdirectory(gporca)
+add_subdirectory(gpdb)
+add_subdirectory(gpdb/src/backend/gporca)
 
 ####################################################
 # COMPILATION FLAGS
@@ -41,12 +42,14 @@ target_include_directories(tbgpp-compiler PUBLIC
 	"${PROJECT_SOURCE_DIR}/include"
 	# kuzu
 	"${PROJECT_SOURCE_DIR}/kuzu/include"
+	# gpdb
+	"${PROJECT_SOURCE_DIR}/gpdb/src/include/gpopt"
 	# gporca
-	"${PROJECT_SOURCE_DIR}/gporca/libgpos/include"
-	"${PROJECT_SOURCE_DIR}/gporca/libnaucrates/include"
-	"${PROJECT_SOURCE_DIR}/gporca/libgpdbcost/include"
-	"${PROJECT_SOURCE_DIR}/gporca/libgpopt/include"
-	"${PROJECT_SOURCE_DIR}/gporca/server/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpos/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libnaucrates/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpdbcost/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpopt/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/server/include"
 	# third_party
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/include"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
@@ -64,7 +67,8 @@ file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
 #target_link_libraries(tbgpp-compiler tbgpp-common-lib)
 target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
-# gporca
+# gpdb
+#target_link_libraries(tbgpp-compiler gpdb)
 target_link_libraries(tbgpp-compiler gpos naucrates gpdbcost gpopt gporca_test_lib)
 # kuzu
 target_link_libraries(tbgpp-compiler kuzu)
