@@ -115,7 +115,7 @@ CExpression * genLogicalGet1(CMemoryPool *mp) {
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable1"));
 	CTableDescriptor *ptabdesc =
 		CTestUtils::PtabdescCreate(mp, 16,										// width 2
-					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 16467, 1, 0),	// 6 16467 1 1 - tpch-1
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 1716555, 1, 1),	// 6 16467 1 1 - tpch-1
 					   CName(&strName));										// basetable
 
 	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias1"));
@@ -126,8 +126,8 @@ CExpression * genLogicalGet2(CMemoryPool *mp) {
 
 	CWStringConst strName(GPOS_WSZ_LIT("BaseTable2"));
 	CTableDescriptor *ptabdesc =
-		CTestUtils::PtabdescCreate(mp, 19,										// width
-					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 16467, 1, 0),	// 6 16467 1 1
+		CTestUtils::PtabdescCreate(mp, 16,										// width
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 17165, 1, 1),	// 6 16467 1 1
 					   CName(&strName));										// basetable
 
 	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias2"));
@@ -157,7 +157,8 @@ static void * MyOrcaTestExec(void *pv) {
 		CAutoMemoryPool amp;
 		mp = amp.Pmp();
 		//auto md_path = "../tbgpp-compiler/gpdb/src/backend/gporca/data/dxl/metadata/md.xml";
-		auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
+		//auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
+		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
 
 		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
 		// detach safety
@@ -194,11 +195,19 @@ static void * MyOrcaTestExec(void *pv) {
 		
 	// define join plan expression
 		CExpression *lhs_get = genLogicalGet1(mp);
-		// CExpression *rhs_get = genLogicalGet2(mp);
-		// CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
-		CExpression* pexpr = lhs_get;
-		
+		CExpression *rhs_get = genLogicalGet2(mp);
+		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
+		//CExpression* pexpr = lhs_get;
 
+		{
+			std::cout << "[TEST] logical plan string" << std::endl;
+			CWStringDynamic str(mp);
+			COstreamString oss(&str);
+			pexpr->OsPrint(oss);
+			GPOS_TRACE(str.GetBuffer());
+		}
+		
+	
 	// generate query context
 		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
 
