@@ -27,6 +27,7 @@
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CStatisticsConfig.h"
 #include "gpopt/init.h"
+#include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/mdcache/CMDCache.h"
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
@@ -209,7 +210,59 @@ static void * MyOrcaTestExec(void *pv) {
 		
 	
 	// generate query context
-		CQueryContext *pqc = CTestUtils::PqcGenerate(mp, pexpr);
+	// TODO query context is not naive. we need to modify query context, not using testutils here.
+		CQueryContext *pqc = nullptr;
+		{
+			CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+			pcrs->Include(pexpr->DeriveOutputColumns());
+			// keep a subset of columns
+			CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
+			CColRefSetIter crsi(*pcrs);
+			while (crsi.Advance()) {
+				CColRef *colref = crsi.Pcr();
+				if (1 != colref->Id() % GPOPT_TEST_REL_WIDTH) {
+					pcrsOutput->Include(colref);
+				}
+			}
+			pcrs->Release();
+
+			// construct an ordered array of the output columns
+			CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
+			CColRefSetIter crsiOutput(*pcrsOutput);
+			while (crsiOutput.Advance()) {
+				CColRef *colref = crsiOutput.Pcr();
+				colref_array->Append(colref);
+			}
+			// generate a sort order
+			COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
+			// no sort constraint
+			// pos->Append(GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_INT4_LT_OP),
+			// 			pcrsOutput->PcrAny(), COrderSpec::EntFirst);
+			CDistributionSpec *pds = GPOS_NEW(mp)
+				CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			CRewindabilitySpec *prs = GPOS_NEW(mp) CRewindabilitySpec(
+				CRewindabilitySpec::ErtNone, CRewindabilitySpec::EmhtNoMotion);
+			CEnfdOrder *peo = GPOS_NEW(mp) CEnfdOrder(pos, CEnfdOrder::EomSatisfy);
+			// we require exact matching on distribution since final query results must be sent to master
+			CEnfdDistribution *ped =
+				GPOS_NEW(mp) CEnfdDistribution(pds, CEnfdDistribution::EdmExact);
+			CEnfdRewindability *per =
+				GPOS_NEW(mp) CEnfdRewindability(prs, CEnfdRewindability::ErmSatisfy);
+			CCTEReq *pcter = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PcterProducers(mp);
+			CReqdPropPlan *prpp =
+				GPOS_NEW(mp) CReqdPropPlan(pcrsOutput, peo, ped, per, pcter);
+			CMDNameArray *pdrgpmdname = GPOS_NEW(mp) CMDNameArray(mp);
+			const ULONG length = colref_array->Size();
+			for (ULONG ul = 0; ul < length; ul++)
+			{
+				CColRef *colref = (*colref_array)[ul];
+				CMDName *mdname = GPOS_NEW(mp) CMDName(mp, colref->Name().Pstr());
+				pdrgpmdname->Append(mdname);
+			}
+
+			pqc = GPOS_NEW(mp) CQueryContext(mp, pexpr, prpp, colref_array,
+											pdrgpmdname, true /*fDeriveStats*/);
+		}
 
 	// Initialize engine
 		eng.Init(pqc, NULL /*search_stage_array*/);
@@ -236,7 +289,6 @@ static void * MyOrcaTestExec(void *pv) {
 	}
 
 	
-
 // cleanup cache and mdprovider
 	CMDCache::Shutdown();
 	CRefCount::SafeRelease(provider);
@@ -248,7 +300,9 @@ int _main(int argc, char** argv) {
 	std::cout << "compiler test start" << std::endl;
 	// std::string query = "MATCH (n) RETURN n;";
 	//std::string query = "EXPLAIN MATCH (n) RETURN n;";
-	std::string query = "MATCH (n), (m)-[r]->(z) WITH n,m,r,z MATCH (x), (y) RETURN m,n,x,y UNION MATCH (n) RETURN n;";
+	//std::string query = "MATCH (n), (m)-[r]->(z) WITH n,m,r,z MATCH (x), (y) RETURN m,n,x,y UNION MATCH (n) RETURN n;";
+	std::string query = "MATCH (a)-[x]->(b), (b)-[y]->(c) MATCH (c)-[z]->(d) MATCH (e) RETURN a,x,b,y,c,z,d,e";
+	// TODO in return clause, cases like id(n) should be considered as well.
 	
 	//std::string query = "MATCH (n) RETURN n;";
 

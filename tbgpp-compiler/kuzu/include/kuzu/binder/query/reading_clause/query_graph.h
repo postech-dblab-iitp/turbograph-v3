@@ -136,6 +136,15 @@ public:
     std::string getName() override { return "[QueryGraph]"; }
     std::list<ParseTreeNode*> getChildren() override { 
         std::list<ParseTreeNode*> result;
+        // nodes
+        for( auto& qn: queryNodes) {
+            result.push_back((ParseTreeNode*)qn.get());
+        }
+        // rels
+        for( auto& qn: queryRels) {
+            result.push_back((ParseTreeNode*)qn.get());
+        }
+
         return result;
     }
 
