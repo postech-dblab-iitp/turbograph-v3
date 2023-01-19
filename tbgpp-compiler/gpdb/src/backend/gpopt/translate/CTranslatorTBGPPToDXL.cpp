@@ -1,17 +1,17 @@
-// //---------------------------------------------------------------------------
-// //	Greenplum Database
-// //	Copyright (C) 2011 EMC Corp.
-// //
-// //	@filename:
-// //		CTranslatorRelcacheToDXL.cpp
-// //
-// //	@doc:
-// //		Class translating relcache entries into DXL objects
-// //
-// //	@test:
-// //
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2011 EMC Corp.
+//
+//	@filename:
+//		CTranslatorRelcacheToDXL.cpp
+//
+//	@doc:
+//		Class translating relcache entries into DXL objects
+//
+//	@test:
+//
+//
+//---------------------------------------------------------------------------
 
 // extern "C" {
 // #include "postgres.h"
@@ -34,40 +34,43 @@
 // #include "utils/typcache.h"
 // }
 
-// #include "gpos/base.h"
-// #include "gpos/error/CException.h"
-// #include "gpos/io/COstreamString.h"
+#include "gpos/base.h"
+#include "gpos/error/CException.h"
+#include "gpos/io/COstreamString.h"
 
-// #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CUtils.h"
 // #include "gpopt/gpdbwrappers.h"
-// #include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/mdcache/CMDAccessor.h"
 // #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
 // #include "gpopt/translate/CTranslatorScalarToDXL.h"
 // #include "gpopt/translate/CTranslatorUtils.h"
-// #include "naucrates/dxl/CDXLUtils.h"
-// #include "naucrates/dxl/gpdb_types.h"
-// #include "naucrates/dxl/xml/dxltokens.h"
-// #include "naucrates/exception.h"
-// #include "naucrates/md/CDXLColStats.h"
-// #include "naucrates/md/CDXLRelStats.h"
-// #include "naucrates/md/CMDArrayCoerceCastGPDB.h"
-// #include "naucrates/md/CMDCastGPDB.h"
-// #include "naucrates/md/CMDIdCast.h"
-// #include "naucrates/md/CMDIdColStats.h"
-// #include "naucrates/md/CMDIdRelStats.h"
-// #include "naucrates/md/CMDIdScCmp.h"
-// #include "naucrates/md/CMDIndexGPDB.h"
-// #include "naucrates/md/CMDPartConstraintGPDB.h"
-// #include "naucrates/md/CMDScCmpGPDB.h"
-// #include "naucrates/md/CMDTypeBoolGPDB.h"
-// #include "naucrates/md/CMDTypeGenericGPDB.h"
-// #include "naucrates/md/CMDTypeInt2GPDB.h"
-// #include "naucrates/md/CMDTypeInt4GPDB.h"
-// #include "naucrates/md/CMDTypeInt8GPDB.h"
-// #include "naucrates/md/CMDTypeOidGPDB.h"
+#include "naucrates/dxl/CDXLUtils.h"
+#include "naucrates/dxl/gpdb_types.h"
+#include "naucrates/dxl/xml/dxltokens.h"
+#include "naucrates/exception.h"
+#include "naucrates/md/CDXLColStats.h"
+#include "naucrates/md/CDXLRelStats.h"
+#include "naucrates/md/CMDArrayCoerceCastGPDB.h"
+#include "naucrates/md/CMDCastGPDB.h"
+#include "naucrates/md/CMDIdCast.h"
+#include "naucrates/md/CMDIdColStats.h"
+#include "naucrates/md/CMDIdRelStats.h"
+#include "naucrates/md/CMDIdScCmp.h"
+#include "naucrates/md/CMDIndexGPDB.h"
+#include "naucrates/md/CMDPartConstraintGPDB.h"
+#include "naucrates/md/CMDScCmpGPDB.h"
+#include "naucrates/md/CMDTypeBoolGPDB.h"
+#include "naucrates/md/CMDTypeGenericGPDB.h"
+#include "naucrates/md/CMDTypeInt2GPDB.h"
+#include "naucrates/md/CMDTypeInt4GPDB.h"
+#include "naucrates/md/CMDTypeInt8GPDB.h"
+#include "naucrates/md/CMDTypeOidGPDB.h"
 
-// using namespace gpdxl;
-// using namespace gpopt;
+// TBGPP related classes
+#include "catalog/catalog.hpp"
+
+using namespace gpdxl;
+using namespace gpopt;
 
 
 // static const ULONG cmp_type_mappings[][2] = {
@@ -75,14 +78,14 @@
 // 	{IMDType::EcmptL, CmptLT},	  {IMDType::EcmptG, CmptGT},
 // 	{IMDType::EcmptGEq, CmptGEq}, {IMDType::EcmptLEq, CmptLEq}};
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		GetIndexTypeFromOid
-// //
-// //	@doc:
-// //		Retrieve the type of physical index structure
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	@function:
+//		GetIndexTypeFromOid
+//
+//	@doc:
+//		Retrieve the type of physical index structure
+//
+//---------------------------------------------------------------------------
 // static IMDIndex::EmdindexType
 // GetIndexTypeFromOid(OID index_oid)
 // {
@@ -3639,4 +3642,4 @@
 // 	return input_col_mdids;
 // }
 
-// // EOF
+// EOF
