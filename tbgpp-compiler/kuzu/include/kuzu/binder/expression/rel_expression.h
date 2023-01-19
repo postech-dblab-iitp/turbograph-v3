@@ -2,11 +2,13 @@
 
 #include "common/exception.h"
 #include "node_expression.h"
+#include "binder/parse_tree_node.h"
+
 
 namespace kuzu {
 namespace binder {
 
-class RelExpression : public NodeOrRelExpression {
+class RelExpression : public NodeOrRelExpression, ParseTreeNode {
 public:
     RelExpression(const string& uniqueName, vector<table_id_t> tableIDs,
         shared_ptr<NodeExpression> srcNode, shared_ptr<NodeExpression> dstNode, uint64_t lowerBound,
@@ -30,6 +32,13 @@ public:
     inline bool hasInternalIDProperty() const { return hasPropertyExpression(INTERNAL_ID_SUFFIX); }
     inline shared_ptr<Expression> getInternalIDProperty() const {
         return getPropertyExpression(INTERNAL_ID_SUFFIX);
+    }
+
+    std::string getName() override {
+        return "[RelExpr] src=" + srcNode->getRawName() + ", dst=" + dstNode->getRawName(); }
+    std::list<ParseTreeNode*> getChildren() override { 
+        std::list<ParseTreeNode*> result;
+        return result;
     }
 
 private:
