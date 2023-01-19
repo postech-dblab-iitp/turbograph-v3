@@ -5,6 +5,7 @@ include_directories(src/backend/gporca)
 add_library(gpdb STATIC)
 target_include_directories(gpdb PUBLIC 
 	# gpdb libraries
+	"src/include"
 	"src/include/cdb"
 	"src/include/gpopt"
 	# gporca
