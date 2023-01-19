@@ -27,11 +27,14 @@
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CStatisticsConfig.h"
 #include "gpopt/init.h"
+#include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/mdcache/CMDCache.h"
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/xforms/CXformFactory.h"
 #include "naucrates/init.h"
+
+#include "gpopt/operators/CLogicalInnerJoin.h"
 
 #include "gpopt/metadata/CTableDescriptor.h"
 
@@ -108,12 +111,198 @@ static void * OrcaTestExec(void *pv) {
 	return NULL;
 }
 
+CExpression * genLogicalGet1(CMemoryPool *mp) {
+
+	CWStringConst strName(GPOS_WSZ_LIT("BaseTable1"));
+	CTableDescriptor *ptabdesc =
+		CTestUtils::PtabdescCreate(mp, 16,										// width 2
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 1716555, 1, 1),	// 6 16467 1 1 - tpch-1
+					   CName(&strName));										// basetable
+
+	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias1"));
+	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
+}
+
+CExpression * genLogicalGet2(CMemoryPool *mp) {
+
+	CWStringConst strName(GPOS_WSZ_LIT("BaseTable2"));
+	CTableDescriptor *ptabdesc =
+		CTestUtils::PtabdescCreate(mp, 16,										// width
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 17165, 1, 1),	// 6 16467 1 1
+					   CName(&strName));										// basetable
+
+	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias2"));
+
+	// to generate logicalget, pass tablename / tabledesc(relwidth, mdid, name) / alias / + colmarkasused
+	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
+}
+
+CExpression * genPlan(gpos::CMemoryPool* mp) {
+	// TODO genplan
+	return nullptr;
+}
+
+static void * MyOrcaTestExec(void *pv) {
+	std::cout << "[TEST] inside MyOrcaTestExec()" << std::endl;
+	CMainArgs *pma = (CMainArgs *) pv;
+
+	
+
+// init dxl and cache
+	InitDXL();
+	CMDCache::Init();
+// load metadata objects into provider file
+	CMDProviderMemory * provider = NULL;
+	CMemoryPool *mp = NULL; 
+	{
+		CAutoMemoryPool amp;
+		mp = amp.Pmp();
+		//auto md_path = "../tbgpp-compiler/gpdb/src/backend/gporca/data/dxl/metadata/md.xml";
+		//auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
+		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
+
+		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
+		// detach safety
+		(void) amp.Detach();
+	}
+	GPOS_ASSERT(mp != NULL);
+	GPOS_ASSERT(provider != NULL);
+// reset xforms factory to exercise xforms ctors and dtors
+	{
+		// TODO what is this?
+		CXformFactory::Pxff()->Shutdown();
+		GPOS_RESULT eres = CXformFactory::Init();
+		//GPOS_ASSERT(GPOS_OK == eres);
+	}
+// generate plan
+	{
+	// connect provider
+		CMDProviderMemory *pmdp = provider;
+		pmdp->AddRef();
+
+	// separate memory pool used for accessor
+		CAutoMemoryPool amp;
+		CMemoryPool *mp = amp.Pmp();
+				
+	// to generate accessor, provide local pool, global cache and provider
+			// TODO what is m_sysidDefault for, systemid
+		CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);	
+	// install opt context in TLS
+		gpdbcost::CCostModelGPDB* default_cost_model = GPOS_NEW(mp) CCostModelGPDB(mp, GPOPT_TEST_SEGMENTS);
+		CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ default_cost_model);
+
+	// initialize engine
+		CEngine eng(mp);
+		
+	// define join plan expression
+		CExpression *lhs_get = genLogicalGet1(mp);
+		CExpression *rhs_get = genLogicalGet2(mp);
+		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
+		//CExpression* pexpr = lhs_get;
+
+		{
+			std::cout << "[TEST] logical plan string" << std::endl;
+			CWStringDynamic str(mp);
+			COstreamString oss(&str);
+			pexpr->OsPrint(oss);
+			GPOS_TRACE(str.GetBuffer());
+		}
+		
+	
+	// generate query context
+	// TODO query context is not naive. we need to modify query context, not using testutils here.
+		CQueryContext *pqc = nullptr;
+		{
+			CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+			pcrs->Include(pexpr->DeriveOutputColumns());
+			// keep a subset of columns
+			CColRefSet *pcrsOutput = GPOS_NEW(mp) CColRefSet(mp);
+			CColRefSetIter crsi(*pcrs);
+			while (crsi.Advance()) {
+				CColRef *colref = crsi.Pcr();
+				if (1 != colref->Id() % GPOPT_TEST_REL_WIDTH) {
+					pcrsOutput->Include(colref);
+				}
+			}
+			pcrs->Release();
+
+			// construct an ordered array of the output columns
+			CColRefArray *colref_array = GPOS_NEW(mp) CColRefArray(mp);
+			CColRefSetIter crsiOutput(*pcrsOutput);
+			while (crsiOutput.Advance()) {
+				CColRef *colref = crsiOutput.Pcr();
+				colref_array->Append(colref);
+			}
+			// generate a sort order
+			COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
+			// no sort constraint
+			// pos->Append(GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_INT4_LT_OP),
+			// 			pcrsOutput->PcrAny(), COrderSpec::EntFirst);
+			CDistributionSpec *pds = GPOS_NEW(mp)
+				CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
+			CRewindabilitySpec *prs = GPOS_NEW(mp) CRewindabilitySpec(
+				CRewindabilitySpec::ErtNone, CRewindabilitySpec::EmhtNoMotion);
+			CEnfdOrder *peo = GPOS_NEW(mp) CEnfdOrder(pos, CEnfdOrder::EomSatisfy);
+			// we require exact matching on distribution since final query results must be sent to master
+			CEnfdDistribution *ped =
+				GPOS_NEW(mp) CEnfdDistribution(pds, CEnfdDistribution::EdmExact);
+			CEnfdRewindability *per =
+				GPOS_NEW(mp) CEnfdRewindability(prs, CEnfdRewindability::ErmSatisfy);
+			CCTEReq *pcter = COptCtxt::PoctxtFromTLS()->Pcteinfo()->PcterProducers(mp);
+			CReqdPropPlan *prpp =
+				GPOS_NEW(mp) CReqdPropPlan(pcrsOutput, peo, ped, per, pcter);
+			CMDNameArray *pdrgpmdname = GPOS_NEW(mp) CMDNameArray(mp);
+			const ULONG length = colref_array->Size();
+			for (ULONG ul = 0; ul < length; ul++)
+			{
+				CColRef *colref = (*colref_array)[ul];
+				CMDName *mdname = GPOS_NEW(mp) CMDName(mp, colref->Name().Pstr());
+				pdrgpmdname->Append(mdname);
+			}
+
+			pqc = GPOS_NEW(mp) CQueryContext(mp, pexpr, prpp, colref_array,
+											pdrgpmdname, true /*fDeriveStats*/);
+		}
+
+	// Initialize engine
+		eng.Init(pqc, NULL /*search_stage_array*/);
+
+	// optimize query
+		eng.Optimize();
+
+	// extract plan
+		std::cout << "[TEST] output string" << std::endl;
+		CExpression *pexprPlan = eng.PexprExtractPlan();
+
+		CWStringDynamic str(mp);
+		COstreamString oss(&str);
+		pexprPlan->OsPrint(oss);
+
+		GPOS_TRACE(str.GetBuffer());
+
+	// clean up
+		pexpr->Release();
+		pexprPlan->Release();
+		GPOS_DELETE(pqc);
+		
+		// mp safely deallocated when exiting the scope
+	}
+
+	
+// cleanup cache and mdprovider
+	CMDCache::Shutdown();
+	CRefCount::SafeRelease(provider);
+	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(mp);
+}
+
 int _main(int argc, char** argv) {
  
 	std::cout << "compiler test start" << std::endl;
 	// std::string query = "MATCH (n) RETURN n;";
 	//std::string query = "EXPLAIN MATCH (n) RETURN n;";
-	std::string query = "MATCH (n), (m)-[r]->(z) WITH n,m,r,z MATCH (x), (y) RETURN m,n,x,y UNION MATCH (n) RETURN n;";
+	//std::string query = "MATCH (n), (m)-[r]->(z) WITH n,m,r,z MATCH (x), (y) RETURN m,n,x,y UNION MATCH (n) RETURN n;";
+	std::string query = "MATCH (a)-[x]->(b), (b)-[y]->(c) MATCH (c)-[z]->(d) MATCH (e) RETURN a,x,b,y,c,z,d,e";
+	// TODO in return clause, cases like id(n) should be considered as well.
 	
 	//std::string query = "MATCH (n) RETURN n;";
 
@@ -182,7 +371,7 @@ int _main(int argc, char** argv) {
 	m_pfCleanup = Cleanup;
 
 	gpos_exec_params params;
-	params.func = OrcaTestExec;
+	params.func = MyOrcaTestExec;
 	params.arg = &ma;
 	params.stack_start = &params;
 	params.error_buffer = NULL;
@@ -191,16 +380,8 @@ int _main(int argc, char** argv) {
 
 	// std::cout << "[TEST] orca memory pool" << std::endl;
 	std::cout << "[TEST] orca engine" << std::endl;
-
-	if (gpos_exec(&params) ) {
-		return 1;
-	}
-	else {
-		return 0;
-	}
-
-	//auto orca_result = CEngineTest::EresUnittest_Basic();
-	//std::cout << orca_result << std::endl;
+	auto gpos_output_code = gpos_exec(&params);
+	std::cout << "[TEST] function outuput " << gpos_output_code << std::endl;
 
 	std::cout << "compiler test end" << std::endl;
 	return 0;

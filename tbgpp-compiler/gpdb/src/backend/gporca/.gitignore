@@ -22,7 +22,6 @@
 .project
 .vscode
 build
-server/minidumps/
 ivy-*.xml
 concourse/gporca_vars.yml
 xcode_build
