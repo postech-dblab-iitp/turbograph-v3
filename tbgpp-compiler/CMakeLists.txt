@@ -61,6 +61,8 @@ target_include_directories(tbgpp-compiler PUBLIC
   	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" 
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/third_party/TreePrinter/TreePrinter/src"
+	# tbgpp-graph-store
+	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include"
 )
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")

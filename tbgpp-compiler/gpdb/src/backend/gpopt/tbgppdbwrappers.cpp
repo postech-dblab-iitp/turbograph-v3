@@ -1,6 +1,26 @@
 #include "tbgppdbwrappers.h"
+// #include <setjmp.h>
+
+// #define GP_WRAP_START                                            \
+// 	sigjmp_buf local_sigjmp_buf;                                 \
+// 	{                                                            \
+// 		CAutoExceptionStack aes((void **) &PG_exception_stack,   \
+// 								(void **) &error_context_stack); \
+// 		if (0 == sigsetjmp(local_sigjmp_buf, 0))                 \
+// 		{                                                        \
+// 			aes.SetLocalJmp(&local_sigjmp_buf)
+
+// #define GP_WRAP_END                                        \
+// 	}                                                      \
+// 	else                                                   \
+// 	{                                                      \
+// 		GPOS_RAISE(gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError); \
+// 	}                                                      \
+// 	}
 
 using namespace duckdb;
+
+bool assert_enabled = true; // TODO
 
 IndexType
 duckdb::GetLogicalIndexType(Oid index_oid)
@@ -13,4 +33,16 @@ duckdb::GetLogicalIndexType(Oid index_oid)
 	// }
 	// GP_WRAP_END;
 	return IndexType::ART;
+}
+
+Relation
+duckdb::GetRelation(Oid rel_oid)
+{
+	// GP_WRAP_START;
+	{
+		/* catalog tables: relcache */
+		return RelationIdGetRelation(rel_oid);
+	}
+	// GP_WRAP_END;
+	return NULL;
 }

@@ -1,14 +1,25 @@
 #ifndef TBGPPDB_gdbwrappers_H
 #define TBGPPDB_gdbwrappers_H
 
-#include "enums/index_type.hpp"
+extern "C" {
+#include "postgres.h"
 
-typedef unsigned int Oid; // TODO temporary
+// #include "access/attnum.h"
+// #include "nodes/plannodes.h"
+// #include "parser/parse_coerce.h"
+// #include "utils/faultinjector.h"
+#include "utils/lsyscache.h"
+}
+
+#include "enums/index_type.hpp"
 
 namespace duckdb {
 
 // return the logical index type for a given logical index oid
 IndexType GetLogicalIndexType(Oid index_oid);
+
+// get relation with given oid
+Relation GetRelation(Oid rel_oid);
 
 } // duckdb
 
