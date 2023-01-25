@@ -18,7 +18,7 @@ target_include_directories(gpdb PUBLIC
 )
 
 # # add sources - exclude gporca/ from sources.
-file (GLOB_RECURSE SOURCES "src/backend/gpopt/*.c*")
+file (GLOB_RECURSE SOURCES "src/backend/gpopt/*.c*" "src/backend/nodes/*.c*" "src/backend/utils/*.c*")
 target_sources(gpdb PUBLIC ${SOURCES})
 
-target_link_libraries(gpdb PUBLIC gpos naucrates gpdbcost gpopt tbgpp-graph-store-lib)
+target_link_libraries(gpdb PUBLIC gpos naucrates gpdbcost gpopt tbgpp-main tbgpp-common-lib tbgpp-graph-store-lib)

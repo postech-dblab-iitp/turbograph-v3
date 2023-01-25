@@ -45,6 +45,8 @@
 
 #include "BTNode.h"
 
+#include "mdprovider/MDProviderTBGPP.h"
+
 using namespace antlr4;
 using namespace gpopt;
 
@@ -152,16 +154,16 @@ static void * MyOrcaTestExec(void *pv) {
 	InitDXL();
 	CMDCache::Init();
 // load metadata objects into provider file
-	CMDProviderMemory * provider = NULL;
+	MDProviderTBGPP * provider = NULL;
 	CMemoryPool *mp = NULL; 
 	{
 		CAutoMemoryPool amp;
 		mp = amp.Pmp();
 		//auto md_path = "../tbgpp-compiler/gpdb/src/backend/gporca/data/dxl/metadata/md.xml";
 		//auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
-		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
+		auto md_path = "/home/tslee/turbograph-v3/tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
 
-		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
+		provider = new (mp, __FILE__, __LINE__) MDProviderTBGPP(mp);
 		// detach safety
 		(void) amp.Detach();
 	}
@@ -177,7 +179,7 @@ static void * MyOrcaTestExec(void *pv) {
 // generate plan
 	{
 	// connect provider
-		CMDProviderMemory *pmdp = provider;
+		MDProviderTBGPP *pmdp = provider;
 		pmdp->AddRef();
 
 	// separate memory pool used for accessor
@@ -196,9 +198,9 @@ static void * MyOrcaTestExec(void *pv) {
 		
 	// define join plan expression
 		CExpression *lhs_get = genLogicalGet1(mp);
-		CExpression *rhs_get = genLogicalGet2(mp);
-		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
-		//CExpression* pexpr = lhs_get;
+		// CExpression *rhs_get = genLogicalGet2(mp);
+		// CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
+		CExpression* pexpr = lhs_get;
 
 		{
 			std::cout << "[TEST] logical plan string" << std::endl;
@@ -355,7 +357,7 @@ int _main(int argc, char** argv) {
 	gpopt_init();
 
 	INT iArgs = 3;
-	const std::vector<std::string> arguments = { "/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };
+	const std::vector<std::string> arguments = { "/home/tslee/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };
 	std::vector<const char*> argvv;
 	for (const auto& arg : arguments)
 		argvv.push_back((const char*)arg.data());

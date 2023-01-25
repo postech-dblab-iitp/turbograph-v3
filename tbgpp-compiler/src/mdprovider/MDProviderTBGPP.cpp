@@ -4,6 +4,7 @@
 #include "gpopt/mdcache/CMDAccessor.h"
 #include "mdprovider/MDProviderTBGPP.h"
 // #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
+#include "translate/CTranslatorTBGPPToDXL.h"
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/exception.h"
 
@@ -21,17 +22,16 @@ MDProviderTBGPP::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 									IMDId *md_id,
 									IMDCacheObject::Emdtype mdtype) const
 {
-	// IMDCacheObject *md_obj = CTranslatorRelcacheToDXL::RetrieveObject(
-	// 	mp, md_accessor, md_id, mdtype);
+	IMDCacheObject *md_obj = CTranslatorTBGPPToDXL::RetrieveObject(
+		mp, md_accessor, md_id, mdtype);
 
-	// GPOS_ASSERT(NULL != md_obj);
+	GPOS_ASSERT(NULL != md_obj);
 
-    CWStringDynamic *str;
-	// CWStringDynamic *str = CDXLUtils::SerializeMDObj(
-	// 	m_mp, md_obj, true /*fSerializeHeaders*/, false /*findent*/);
+	CWStringDynamic *str = CDXLUtils::SerializeMDObj(
+		m_mp, md_obj, true /*fSerializeHeaders*/, false /*findent*/);
 
 	// cleanup DXL object
-	// md_obj->Release();
+	md_obj->Release();
 
 	return str;
 }
