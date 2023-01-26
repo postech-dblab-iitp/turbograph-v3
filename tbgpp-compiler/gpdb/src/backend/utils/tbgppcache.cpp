@@ -91,8 +91,19 @@ extern "C" {
 // #include "cdb/cdbsreh.h"
 // #include "utils/visibility_summary.h"
 }
+#include "utils/tbgpp_rel.hpp" // added.. maybe remove this later
 
+#include <memory>
+#include "main/database.hpp"
+#include "main/client_context.hpp"
+#include "common/boost.hpp"
+#include "common/boost_typedefs.hpp"
+#include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
+
+static std::shared_ptr<duckdb::DatabaseInstance> db;
+static std::unique_ptr<duckdb::Catalog> catalog;
+static duckdb::fixed_managed_mapped_file *catalog_shm;
 
 // /*
 //  *		name of relcache init file(s), used to speed up backend startup
@@ -269,7 +280,7 @@ extern "C" {
 // 		  int natts, const FormData_pg_attribute *attrs);
 
 // static HeapTuple ScanPgRelation(Oid targetRelId, bool indexOK, bool force_non_historic);
-// static Relation AllocateRelationDesc(Form_pg_class relp);
+static Relation AllocateRelationDesc(/*Form_pg_class relp*/);
 // static void RelationParseRelOptions(Relation relation, HeapTuple tuple);
 // static void RelationBuildTupleDesc(Relation relation);
 static Relation RelationBuildDesc(Oid targetRelId, bool insertIt);
@@ -373,59 +384,59 @@ static Relation RelationBuildDesc(Oid targetRelId, bool insertIt);
 // 	return pg_class_tuple;
 // }
 
-// /*
-//  *		AllocateRelationDesc
-//  *
-//  *		This is used to allocate memory for a new relation descriptor
-//  *		and initialize the rd_rel field from the given pg_class tuple.
-//  */
-// static Relation
-// AllocateRelationDesc(Form_pg_class relp)
-// {
-// 	Relation	relation;
-// 	MemoryContext oldcxt;
-// 	Form_pg_class relationForm;
+/*
+ *		AllocateRelationDesc
+ *
+ *		This is used to allocate memory for a new relation descriptor
+ *		and initialize the rd_rel field from the given pg_class tuple.
+ */
+static Relation
+AllocateRelationDesc(/*Form_pg_class relp*/)
+{
+	Relation	relation;
+	// MemoryContext oldcxt;
+	// Form_pg_class relationForm;
 
-// 	/* Relcache entries must live in CacheMemoryContext */
-// 	oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
+	// /* Relcache entries must live in CacheMemoryContext */
+	// oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
 
-// 	/*
-// 	 * allocate and zero space for new relation descriptor
-// 	 */
-// 	relation = (Relation) palloc0(sizeof(RelationData));
+	// /*
+	//  * allocate and zero space for new relation descriptor
+	//  */
+	// relation = (Relation) palloc0(sizeof(RelationData));
 
-// 	/* make sure relation is marked as having no open file yet */
-// 	relation->rd_smgr = NULL;
+	// /* make sure relation is marked as having no open file yet */
+	// relation->rd_smgr = NULL;
 
-// 	/*
-// 	 * Copy the relation tuple form
-// 	 *
-// 	 * We only allocate space for the fixed fields, ie, CLASS_TUPLE_SIZE. The
-// 	 * variable-length fields (relacl, reloptions) are NOT stored in the
-// 	 * relcache --- there'd be little point in it, since we don't copy the
-// 	 * tuple's nulls bitmap and hence wouldn't know if the values are valid.
-// 	 * Bottom line is that relacl *cannot* be retrieved from the relcache. Get
-// 	 * it from the syscache if you need it.  The same goes for the original
-// 	 * form of reloptions (however, we do store the parsed form of reloptions
-// 	 * in rd_options).
-// 	 */
-// 	relationForm = (Form_pg_class) palloc(CLASS_TUPLE_SIZE);
+	// /*
+	//  * Copy the relation tuple form
+	//  *
+	//  * We only allocate space for the fixed fields, ie, CLASS_TUPLE_SIZE. The
+	//  * variable-length fields (relacl, reloptions) are NOT stored in the
+	//  * relcache --- there'd be little point in it, since we don't copy the
+	//  * tuple's nulls bitmap and hence wouldn't know if the values are valid.
+	//  * Bottom line is that relacl *cannot* be retrieved from the relcache. Get
+	//  * it from the syscache if you need it.  The same goes for the original
+	//  * form of reloptions (however, we do store the parsed form of reloptions
+	//  * in rd_options).
+	//  */
+	// relationForm = (Form_pg_class) palloc(CLASS_TUPLE_SIZE);
 
-// 	memcpy(relationForm, relp, CLASS_TUPLE_SIZE);
+	// memcpy(relationForm, relp, CLASS_TUPLE_SIZE);
 
-// 	/* initialize relation tuple form */
-// 	relation->rd_rel = relationForm;
+	// /* initialize relation tuple form */
+	// relation->rd_rel = relationForm;
 
-// 	/* and allocate attribute tuple form storage */
-// 	relation->rd_att = CreateTemplateTupleDesc(relationForm->relnatts,
-// 											   relationForm->relhasoids);
-// 	/* which we mark as a reference-counted tupdesc */
-// 	relation->rd_att->tdrefcount = 1;
+	// /* and allocate attribute tuple form storage */
+	// relation->rd_att = CreateTemplateTupleDesc(relationForm->relnatts,
+	// 										   relationForm->relhasoids);
+	// /* which we mark as a reference-counted tupdesc */
+	// relation->rd_att->tdrefcount = 1;
 
-// 	MemoryContextSwitchTo(oldcxt);
+	// MemoryContextSwitchTo(oldcxt);
 
-// 	return relation;
-// }
+	return relation;
+}
 
 // /*
 //  * RelationParseRelOptions
@@ -884,6 +895,9 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	// HeapTuple	pg_class_tuple;
 	// Form_pg_class relp;
 	duckdb::PropertySchemaCatalogEntry *pscat;
+	duckdb::ClientContext client(db);
+
+	pscat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
 
 	/*
 	 * find the tuple in pg_class corresponding to the given relation id
@@ -903,26 +917,26 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	// relp = (Form_pg_class) GETSTRUCT(pg_class_tuple);
 	// Assert(relid == targetRelId);
 
-	// /*
-	//  * allocate storage for the relation descriptor, and copy pg_class_tuple
-	//  * to relation->rd_rel and new fields into relation->rd_newfields.
-	//  */
-	// relation = AllocateRelationDesc(relp);
+	/*
+	 * allocate storage for the relation descriptor, and copy pg_class_tuple
+	 * to relation->rd_rel and new fields into relation->rd_newfields.
+	 */
+	relation = AllocateRelationDesc(/*relp*/);
 
-	// /*
-	//  * initialize the relation's relation id (relation->rd_id)
-	//  */
-	// RelationGetRelid(relation) = relid;
+	/*
+	 * initialize the relation's relation id (relation->rd_id)
+	 */
+	RelationGetRelid(relation) = relid;
 
-	// /*
-	//  * normal relations are not nailed into the cache; nor can a pre-existing
-	//  * relation be new.  It could be temp though.  (Actually, it could be new
-	//  * too, but it's okay to forget that fact if forced to flush the entry.)
-	//  */
-	// relation->rd_refcnt = 0;
-	// relation->rd_isnailed = false;
-	// relation->rd_createSubid = InvalidSubTransactionId;
-	// relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
+	/*
+	 * normal relations are not nailed into the cache; nor can a pre-existing
+	 * relation be new.  It could be temp though.  (Actually, it could be new
+	 * too, but it's okay to forget that fact if forced to flush the entry.)
+	 */
+	relation->rd_refcnt = 0;
+	relation->rd_isnailed = false;
+	relation->rd_createSubid = InvalidSubTransactionId;
+	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 	// switch (relation->rd_rel->relpersistence)
 	// {
 	// 	case RELPERSISTENCE_UNLOGGED:
@@ -961,15 +975,18 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	// 			 relation->rd_rel->relpersistence);
 	// 		break;
 	// }
+	// temporary
+	relation->rd_backend = InvalidBackendId;
+	relation->rd_islocaltemp = false;
 
 	// /*
 	//  * initialize the tuple descriptor (relation->rd_att).
 	//  */
 	// RelationBuildTupleDesc(relation);
 
-	// /*
-	//  * Fetch rules and triggers that affect this relation
-	//  */
+	/*
+	 * Fetch rules and triggers that affect this relation
+	 */
 	// if (relation->rd_rel->relhasrules)
 	// 	RelationBuildRuleLock(relation);
 	// else
@@ -983,15 +1000,15 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	// else
 	// 	relation->trigdesc = NULL;
 
-	// /*
-	//  * if it's an index, initialize index-related information
-	//  */
+	/*
+	 * if it's an index, initialize index-related information
+	 */
 	// if (OidIsValid(relation->rd_rel->relam))
 	// 	RelationInitIndexAccessInfo(relation);
 
-	// /*
-	//  * if it's an append-only table, get information from pg_appendonly
-	//  */
+	/*
+	 * if it's an append-only table, get information from pg_appendonly
+	 */
 	// if (relation->rd_rel->relstorage == RELSTORAGE_AOROWS ||
 	// 	relation->rd_rel->relstorage == RELSTORAGE_AOCOLS)
 	// {
@@ -1011,8 +1028,8 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	//  */
 	// RelationInitPhysicalAddr(relation);
 
-	// /* make sure relation is marked as having no open file yet */
-	// relation->rd_smgr = NULL;
+	/* make sure relation is marked as having no open file yet */
+	relation->rd_smgr = NULL;
 
     // /*
     //  * initialize Greenplum Database partitioning info
@@ -1048,8 +1065,8 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	// if (insertIt)
 	// 	RelationCacheInsert(relation, true);
 
-	// /* It's fully valid */
-	// relation->rd_isvalid = true;
+	/* It's fully valid */
+	relation->rd_isvalid = true;
 
 	return relation;
 }
@@ -3335,61 +3352,61 @@ RelationIdGetRelation(Oid relationId)
 // }
 
 
-// /*
-//  *		RelationCacheInitialize
-//  *
-//  *		This initializes the relation descriptor cache.  At the time
-//  *		that this is invoked, we can't do database access yet (mainly
-//  *		because the transaction subsystem is not up); all we are doing
-//  *		is making an empty cache hashtable.  This must be done before
-//  *		starting the initialization transaction, because otherwise
-//  *		AtEOXact_RelationCache would crash if that transaction aborts
-//  *		before we can get the relcache set up.
-//  */
+/*
+ *		RelationCacheInitialize
+ *
+ *		This initializes the relation descriptor cache.  At the time
+ *		that this is invoked, we can't do database access yet (mainly
+ *		because the transaction subsystem is not up); all we are doing
+ *		is making an empty cache hashtable.  This must be done before
+ *		starting the initialization transaction, because otherwise
+ *		AtEOXact_RelationCache would crash if that transaction aborts
+ *		before we can get the relcache set up.
+ */
 
-// #define INITRELCACHESIZE		400
+#define INITRELCACHESIZE		400
 
-// void
-// RelationCacheInitialize(void)
-// {
-// 	HASHCTL		ctl;
+void
+RelationCacheInitialize(void)
+{
+	// HASHCTL		ctl;
 
-// 	/*
-// 	 * make sure cache memory context exists
-// 	 */
-// 	if (!CacheMemoryContext)
-// 		CreateCacheMemoryContext();
+	// /*
+	//  * make sure cache memory context exists
+	//  */
+	// if (!CacheMemoryContext)
+	// 	CreateCacheMemoryContext();
 
-// 	/*
-// 	 * create hashtable that indexes the relcache
-// 	 */
-// 	MemSet(&ctl, 0, sizeof(ctl));
-// 	ctl.keysize = sizeof(Oid);
-// 	ctl.entrysize = sizeof(RelIdCacheEnt);
-// 	ctl.hash = oid_hash;
-// 	RelationIdCache = hash_create("Relcache by OID", INITRELCACHESIZE,
-// 								  &ctl, HASH_ELEM | HASH_FUNCTION);
+	// /*
+	//  * create hashtable that indexes the relcache
+	//  */
+	// MemSet(&ctl, 0, sizeof(ctl));
+	// ctl.keysize = sizeof(Oid);
+	// ctl.entrysize = sizeof(RelIdCacheEnt);
+	// ctl.hash = oid_hash;
+	// RelationIdCache = hash_create("Relcache by OID", INITRELCACHESIZE,
+	// 							  &ctl, HASH_ELEM | HASH_FUNCTION);
 
-// 	/*
-// 	 * relation mapper needs to be initialized too
-// 	 */
-// 	RelationMapInitialize();
-// }
+	// /*
+	//  * relation mapper needs to be initialized too
+	//  */
+	// RelationMapInitialize();
+}
 
-// /*
-//  *		RelationCacheInitializePhase2
-//  *
-//  *		This is called to prepare for access to shared catalogs during startup.
-//  *		We must at least set up nailed reldescs for pg_database, pg_authid,
-//  *		and pg_auth_members.  Ideally we'd like to have reldescs for their
-//  *		indexes, too.  We attempt to load this information from the shared
-//  *		relcache init file.  If that's missing or broken, just make phony
-//  *		entries for the catalogs themselves.  RelationCacheInitializePhase3
-//  *		will clean up as needed.
-//  */
-// void
-// RelationCacheInitializePhase2(void)
-// {
+/*
+ *		RelationCacheInitializePhase2
+ *
+ *		This is called to prepare for access to shared catalogs during startup.
+ *		We must at least set up nailed reldescs for pg_database, pg_authid,
+ *		and pg_auth_members.  Ideally we'd like to have reldescs for their
+ *		indexes, too.  We attempt to load this information from the shared
+ *		relcache init file.  If that's missing or broken, just make phony
+ *		entries for the catalogs themselves.  RelationCacheInitializePhase3
+ *		will clean up as needed.
+ */
+void
+RelationCacheInitializePhase2(void)
+{
 // 	MemoryContext oldcxt;
 
 // 	/*
@@ -3428,25 +3445,25 @@ RelationIdGetRelation(Oid relationId)
 // 	}
 
 // 	MemoryContextSwitchTo(oldcxt);
-// }
+}
 
-// /*
-//  *		RelationCacheInitializePhase3
-//  *
-//  *		This is called as soon as the catcache and transaction system
-//  *		are functional and we have determined MyDatabaseId.  At this point
-//  *		we can actually read data from the database's system catalogs.
-//  *		We first try to read pre-computed relcache entries from the local
-//  *		relcache init file.  If that's missing or broken, make phony entries
-//  *		for the minimum set of nailed-in-cache relations.  Then (unless
-//  *		bootstrapping) make sure we have entries for the critical system
-//  *		indexes.  Once we've done all this, we have enough infrastructure to
-//  *		open any system catalog or use any catcache.  The last step is to
-//  *		rewrite the cache files if needed.
-//  */
-// void
-// RelationCacheInitializePhase3(void)
-// {
+/*
+ *		RelationCacheInitializePhase3
+ *
+ *		This is called as soon as the catcache and transaction system
+ *		are functional and we have determined MyDatabaseId.  At this point
+ *		we can actually read data from the database's system catalogs.
+ *		We first try to read pre-computed relcache entries from the local
+ *		relcache init file.  If that's missing or broken, make phony entries
+ *		for the minimum set of nailed-in-cache relations.  Then (unless
+ *		bootstrapping) make sure we have entries for the critical system
+ *		indexes.  Once we've done all this, we have enough infrastructure to
+ *		open any system catalog or use any catcache.  The last step is to
+ *		rewrite the cache files if needed.
+ */
+void
+RelationCacheInitializePhase3(void)
+{
 // 	HASH_SEQ_STATUS status;
 // 	RelIdCacheEnt *idhentry;
 // 	MemoryContext oldcxt;
@@ -3702,7 +3719,7 @@ RelationIdGetRelation(Oid relationId)
 // 		write_relcache_init_file(true);
 // 		write_relcache_init_file(false);
 // 	}
-// }
+}
 
 // /*
 //  * Load one critical system index into the relcache

@@ -13,9 +13,10 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef REL_H
-#define REL_H
+#ifndef TBGPP_REL_HPP
+#define TBGPP_REL_HPP
 
+extern "C" {
 // #include "access/tupdesc.h"
 // #include "catalog/pg_am.h"
 // #include "catalog/pg_appendonly.h"
@@ -28,7 +29,9 @@
 #include "storage/relfilenode.h"
 // #include "utils/relcache.h"
 // #include "utils/reltrigger.h"
+}
 
+#include "catalog/catalog_entry/list.hpp"
 
 /*
  * LockRelId and LockInfo really belong to lmgr.h, but it's more convenient
@@ -97,11 +100,12 @@ typedef struct RelationData
 	 * subtransaction, e.g. BEGIN; TRUNCATE t; SAVEPOINT save; TRUNCATE t;
 	 * ROLLBACK TO save; -- rd_newRelfilenode is now forgotten
 	 */
-	// SubTransactionId rd_createSubid;	/* rel was created in current xact */
-	// SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
-	// 											 * current xact */
+	SubTransactionId rd_createSubid;	/* rel was created in current xact */
+	SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
+												 * current xact */
 
 	// Form_pg_class rd_rel;		/* RELATION tuple */ // TODO --> change this to our class
+	duckdb::PropertySchemaCatalogEntry *rd_rel;
 	// TupleDesc	rd_att;			/* tuple descriptor */ // TODO --> change this to our class
 	Oid			rd_id;			/* relation's object id */
 	LockInfoData rd_lockInfo;	/* lock mgr's info for locking relation */

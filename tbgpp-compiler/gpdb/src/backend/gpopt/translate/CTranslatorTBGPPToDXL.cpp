@@ -28,11 +28,11 @@ extern "C" {
 // #include "utils/elog.h"
 // #include "utils/guc.h"
 // #include "utils/lsyscache.h"
-#include "utils/rel.h"
 // #include "utils/relcache.h"
 // #include "utils/syscache.h"
 #include "utils/typcache.h"
 }
+#include "utils/tbgpp_rel.hpp"
 
 #include "gpos/base.h"
 #include "gpos/error/CException.h"
@@ -69,6 +69,7 @@ extern "C" {
 // TBGPP related classes
 #include "tbgppdbwrappers.h"
 #include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "translate/CTranslatorTBGPPToDXL.h"
 
 using namespace gpdxl;
@@ -616,82 +617,83 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	IMdIdArray *external_partitions = NULL;
 
 
-	// GPOS_TRY
-	// {
-	// 	// get rel name
-	// 	mdname = GetRelName(mp, rel);
+	GPOS_TRY
+	{
+		// get rel name
+		mdname = GetRelName(mp, rel);
 
-	// 	// get storage type
-	// 	rel_storage_type = RetrieveRelStorageType(rel->rd_rel->relstorage);
+		// get storage type
+		// rel_storage_type = RetrieveRelStorageType(rel->rd_rel->relstorage);
+		rel_storage_type = RetrieveRelStorageType('c'); // temporary
 
-	// 	// get relation columns
-	// 	mdcol_array =
-	// 		RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
-	// 	const ULONG max_cols =
-	// 		GPDXL_SYSTEM_COLUMNS + (ULONG) rel->rd_att->natts + 1;
-	// 	ULONG *attno_mapping = ConstructAttnoMapping(mp, mdcol_array, max_cols);
+		// // get relation columns
+		// mdcol_array =
+		// 	RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
+		// const ULONG max_cols =
+		// 	GPDXL_SYSTEM_COLUMNS + (ULONG) rel->rd_att->natts + 1;
+		// ULONG *attno_mapping = ConstructAttnoMapping(mp, mdcol_array, max_cols);
 
-	// 	// get distribution policy
-	// 	GpPolicy *gp_policy = gpdb::GetDistributionPolicy(rel);
-	// 	dist = GetRelDistribution(gp_policy);
+		// // get distribution policy
+		// GpPolicy *gp_policy = gpdb::GetDistributionPolicy(rel);
+		// dist = GetRelDistribution(gp_policy);
 
-	// 	// get distribution columns
-	// 	if (IMDRelation::EreldistrHash == dist)
-	// 	{
-	// 		distr_cols = RetrieveRelDistributionCols(mp, gp_policy, mdcol_array,
-	// 												 max_cols);
-	// 		distr_op_families =
-	// 			RetrieveRelDistributionOpFamilies(mp, gp_policy);
-	// 	}
+		// // get distribution columns
+		// if (IMDRelation::EreldistrHash == dist)
+		// {
+		// 	distr_cols = RetrieveRelDistributionCols(mp, gp_policy, mdcol_array,
+		// 											 max_cols);
+		// 	distr_op_families =
+		// 		RetrieveRelDistributionOpFamilies(mp, gp_policy);
+		// }
 
-	// 	convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel);
+		// convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel);
 
-	// 	// collect relation indexes
-	// 	md_index_info_array = RetrieveRelIndexInfo(mp, rel);
+		// // collect relation indexes
+		// md_index_info_array = RetrieveRelIndexInfo(mp, rel);
 
-	// 	// collect relation triggers
-	// 	mdid_triggers_array = RetrieveRelTriggers(mp, rel);
+		// // collect relation triggers
+		// mdid_triggers_array = RetrieveRelTriggers(mp, rel);
 
-	// 	// get partition keys
-	// 	if (IMDRelation::ErelstorageExternal != rel_storage_type)
-	// 	{
-	// 		RetrievePartKeysAndTypes(mp, rel, oid, &part_keys, &part_types);
-	// 	}
-	// 	is_partitioned = (NULL != part_keys && 0 < part_keys->Size());
+		// // get partition keys
+		// if (IMDRelation::ErelstorageExternal != rel_storage_type)
+		// {
+		// 	RetrievePartKeysAndTypes(mp, rel, oid, &part_keys, &part_types);
+		// }
+		// is_partitioned = (NULL != part_keys && 0 < part_keys->Size());
 
-	// 	// get number of leaf partitions
-	// 	if (gpdb::RelPartIsRoot(oid))
-	// 	{
-	// 		num_leaf_partitions = gpdb::CountLeafPartTables(oid);
-	// 	}
+		// // get number of leaf partitions
+		// if (gpdb::RelPartIsRoot(oid))
+		// {
+		// 	num_leaf_partitions = gpdb::CountLeafPartTables(oid);
+		// }
 
-	// 	// get key sets
-	// 	BOOL should_add_default_keys =
-	// 		RelHasSystemColumns(rel->rd_rel->relkind);
-	// 	keyset_array = RetrieveRelKeysets(mp, oid, should_add_default_keys,
-	// 									  is_partitioned, attno_mapping);
+		// // get key sets
+		// BOOL should_add_default_keys =
+		// 	RelHasSystemColumns(rel->rd_rel->relkind);
+		// keyset_array = RetrieveRelKeysets(mp, oid, should_add_default_keys,
+		// 								  is_partitioned, attno_mapping);
 
-	// 	// collect all check constraints
-	// 	check_constraint_mdids = RetrieveRelCheckConstraints(mp, oid);
+		// // collect all check constraints
+		// check_constraint_mdids = RetrieveRelCheckConstraints(mp, oid);
 
-	// 	is_temporary = (rel->rd_rel->relpersistence == RELPERSISTENCE_TEMP);
-	// 	has_oids = rel->rd_rel->relhasoids;
+		// is_temporary = (rel->rd_rel->relpersistence == RELPERSISTENCE_TEMP);
+		// has_oids = rel->rd_rel->relhasoids;
 
-	// 	if (gpdb::HasExternalPartition(oid))
-	// 	{
-	// 		GPOS_ASSERT(GPOS_FTRACE(EopttraceEnableExternalPartitionedTables));
-	// 		external_partitions = RetrieveRelExternalPartitions(mp, oid);
-	// 	}
+		// if (gpdb::HasExternalPartition(oid))
+		// {
+		// 	GPOS_ASSERT(GPOS_FTRACE(EopttraceEnableExternalPartitionedTables));
+		// 	external_partitions = RetrieveRelExternalPartitions(mp, oid);
+		// }
 
-	// 	GPOS_DELETE_ARRAY(attno_mapping);
-	// 	gpdb::CloseRelation(rel);
-	// }
-	// GPOS_CATCH_EX(ex)
-	// {
-	// 	gpdb::CloseRelation(rel);
-	// 	GPOS_RETHROW(ex);
-	// }
-	// GPOS_CATCH_END;
+		// GPOS_DELETE_ARRAY(attno_mapping);
+		// gpdb::CloseRelation(rel);
+	}
+	GPOS_CATCH_EX(ex)
+	{
+		// gpdb::CloseRelation(rel);
+		// GPOS_RETHROW(ex);
+	}
+	GPOS_CATCH_END;
 
 	GPOS_ASSERT(IMDRelation::ErelstorageSentinel != rel_storage_type);
 	GPOS_ASSERT(IMDRelation::EreldistrSentinel != dist);
