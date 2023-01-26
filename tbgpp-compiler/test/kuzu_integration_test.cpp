@@ -113,25 +113,25 @@ static void * OrcaTestExec(void *pv) {
 
 CExpression * genLogicalGet1(CMemoryPool *mp) {
 
-	CWStringConst strName(GPOS_WSZ_LIT("BaseTable1"));
+	CWStringConst strName(GPOS_WSZ_LIT("User"));
 	CTableDescriptor *ptabdesc =
 		CTestUtils::PtabdescCreate(mp, 16,										// width 2
-					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 1716555, 1, 1),	// 6 16467 1 1 - tpch-1
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 17165, 1, 1),	// 6 16467 1 1 - tpch-1
 					   CName(&strName));										// basetable
 
-	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias1"));
+	CWStringConst strAlias(GPOS_WSZ_LIT("A_User"));
 	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
 }
 
 CExpression * genLogicalGet2(CMemoryPool *mp) {
 
-	CWStringConst strName(GPOS_WSZ_LIT("BaseTable2"));
+	CWStringConst strName(GPOS_WSZ_LIT("Knows"));
 	CTableDescriptor *ptabdesc =
 		CTestUtils::PtabdescCreate(mp, 16,										// width
-					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 17165, 1, 1),	// 6 16467 1 1
+					   GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, 1716555, 1, 1),	// 6 16467 1 1
 					   CName(&strName));										// basetable
 
-	CWStringConst strAlias(GPOS_WSZ_LIT("BaseTableAlias2"));
+	CWStringConst strAlias(GPOS_WSZ_LIT("A_Knows"));
 
 	// to generate logicalget, pass tablename / tabledesc(relwidth, mdid, name) / alias / + colmarkasused
 	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
@@ -159,7 +159,9 @@ static void * MyOrcaTestExec(void *pv) {
 		mp = amp.Pmp();
 		//auto md_path = "../tbgpp-compiler/gpdb/src/backend/gporca/data/dxl/metadata/md.xml";
 		//auto md_path = "../tbgpp-compiler/test/minidumps/TPCH_1_metaonly.mdp";
-		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
+		//auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
+		//auto md_path = "../tbgpp-compiler/test/minidumps/pretty_mdp.mdp";
+		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly-simplified.mdp";
 
 		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
 		// detach safety
