@@ -5,7 +5,7 @@ target_include_directories(kuzu PUBLIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/include/kuzu"
 )
 target_include_directories(kuzu PRIVATE ../third_party/antlr4_runtime/src)
-target_include_directories(kuzu PRIVATE ../third_party/antlr4_cypher/include)
+target_include_directories(kuzu PRIVATE ../third_party/antlr4_cypher/antlr4)
 
 file (GLOB_RECURSE SOURCES "src/kuzu/*.c*")
 target_sources(kuzu PUBLIC ${SOURCES})

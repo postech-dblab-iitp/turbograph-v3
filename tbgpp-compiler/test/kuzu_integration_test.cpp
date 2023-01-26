@@ -39,7 +39,7 @@
 #include "gpopt/metadata/CTableDescriptor.h"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
-#include "cypher_lexer.h"
+#include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
 

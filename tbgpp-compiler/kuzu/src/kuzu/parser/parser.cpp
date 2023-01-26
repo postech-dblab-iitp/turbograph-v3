@@ -1,6 +1,6 @@
 #include "parser/parser.h"
 
-#include "cypher_lexer.h"
+#include "CypherLexer.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"

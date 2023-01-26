@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "cypher_parser.h"
+#include "CypherParser.h"
 
 namespace kuzu {
 namespace parser {
