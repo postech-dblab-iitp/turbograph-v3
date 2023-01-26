@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cypher_parser.h"
+#include "CypherParser.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 

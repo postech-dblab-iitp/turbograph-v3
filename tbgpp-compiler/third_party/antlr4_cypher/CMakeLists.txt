@@ -1,9 +1,12 @@
-add_library(antlr4_cypher
-        STATIC
-        cypher_lexer.cpp
-        cypher_parser.cpp)
+set(ANTLR4_RUNTIME_SRC
+        antlr4/CypherBaseListener.cpp
+        antlr4/CypherLexer.cpp
+        antlr4/CypherParser.cpp
+        antlr4/CypherListener.cpp
+)
 
-target_include_directories(antlr4_cypher PRIVATE include)
+add_library(antlr4_cypher STATIC ${ANTLR4_RUNTIME_SRC})
+target_include_directories(antlr4_cypher PRIVATE antlr4)
 target_include_directories(antlr4_cypher
         PRIVATE ../antlr4_runtime/src)
 

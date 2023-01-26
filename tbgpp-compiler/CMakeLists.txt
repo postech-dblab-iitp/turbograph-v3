@@ -51,7 +51,7 @@ target_include_directories(tbgpp-compiler PUBLIC
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpopt/include"
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/server/include"
 	# third_party
-	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/include"
+	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/antlr4"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
 	# tbgpp-common
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
