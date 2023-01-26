@@ -26,7 +26,7 @@ public:
     }
 
     std::string getName() override {
-        return "[NodeExpr] rawname=" + internalIDExpression->getRawName(); }
+        return "[NodeExpr] rn=" + internalIDExpression->getRawName(); }
     std::list<ParseTreeNode*> getChildren() override { 
         std::list<ParseTreeNode*> result;
         return result;

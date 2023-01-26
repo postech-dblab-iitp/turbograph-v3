@@ -15,6 +15,9 @@ public:
     virtual std::list<ParseTreeNode*> getChildren() { return std::list<ParseTreeNode*>(); }
     virtual std::string getName() { return "[_ParseTreeNode] _base"; }
 
+    ParseTreeNode* generateLeafNode(std::string name, std::string content) {
+        
+    }
 };
 
 }
