@@ -19,7 +19,6 @@
 // #include "access/tupdesc.h"
 // #include "nodes/bitmapset.h"
 
-
 typedef struct RelationData *Relation;
 
 /* ----------------
@@ -75,12 +74,12 @@ extern Relation RelationIdGetRelation(Oid relationId);
 // extern int	errtablecolname(Relation rel, const char *colname);
 // extern int	errtableconstraint(Relation rel, const char *conname);
 
-// /*
-//  * Routines for backend startup
-//  */
-// extern void RelationCacheInitialize(void);
-// extern void RelationCacheInitializePhase2(void);
-// extern void RelationCacheInitializePhase3(void);
+/*
+ * Routines for backend startup
+ */
+extern void RelationCacheInitialize(void);
+extern void RelationCacheInitializePhase2(void);
+extern void RelationCacheInitializePhase3(void);
 
 // /*
 //  * Routine to create a relcache entry for an about-to-be-created relation
