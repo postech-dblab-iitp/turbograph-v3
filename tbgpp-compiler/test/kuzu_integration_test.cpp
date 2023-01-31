@@ -32,6 +32,10 @@
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/xforms/CXformFactory.h"
+#include "gpopt/eval/CConstExprEvaluatorDefault.h"
+#include "gpopt/base/CDistributionSpecStrictSingleton.h"
+
+
 #include "naucrates/init.h"
 
 #include "gpopt/operators/CLogicalInnerJoin.h"
@@ -44,6 +48,12 @@
 #include "kuzu/binder/binder.h"
 
 #include "BTNode.h"
+
+#include "naucrates/traceflags/traceflags.h"
+
+
+using namespace gpopt;
+
 
 using namespace antlr4;
 using namespace gpopt;
@@ -178,6 +188,20 @@ static void * MyOrcaTestExec(void *pv) {
 	}
 // generate plan
 	{
+	// no distribute
+		// refer to CConfigParamMapping.cpp
+		//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotions, true /*fSet*/);
+		//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotionBroadcast, true /*fSet*/);
+		//CAutoTraceFlag atf2(gpos::EOptTraceFlag::EopttraceDisableMotionGather, true /*fSet*/);
+		// CAutoTraceFlag atf3(gpos::EOptTraceFlag::EopttracePrintXform, true /*fSet*/);
+		// CAutoTraceFlag atf4(gpos::EOptTraceFlag::EopttracePrintPlan, true /*fSet*/);
+		// CAutoTraceFlag atf5(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration, true /*fSet*/);
+		// CAutoTraceFlag atf6(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation, true /*fSet*/);
+		// CAutoTraceFlag atf7(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization, true /*fSet*/);
+		// CAutoTraceFlag atf8(gpos::EOptTraceFlag::EopttracePrintMemoEnforcement, true /*fSet*/);
+		
+		CAutoTraceFlag atf9(gpos::EOptTraceFlag::EopttraceEnumeratePlans, true /*fSet*/);
+		CAutoTraceFlag atf10(gpos::EOptTraceFlag::EopttracePrintOptimizationContext, true /*fSet*/);
 	// connect provider
 		CMDProviderMemory *pmdp = provider;
 		pmdp->AddRef();
@@ -190,8 +214,31 @@ static void * MyOrcaTestExec(void *pv) {
 			// TODO what is m_sysidDefault for, systemid
 		CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);	
 	// install opt context in TLS
-		gpdbcost::CCostModelGPDB* default_cost_model = GPOS_NEW(mp) CCostModelGPDB(mp, GPOPT_TEST_SEGMENTS);
-		CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ default_cost_model);
+		auto m_cost_model_params = GPOS_NEW(mp) CCostModelParamsGPDB(mp);
+		//m_cost_model_params->SetParam(39, 1.0, 1.0, 1.0);	// single machine cost - may need to make this alive
+		m_cost_model_params->SetParam(13, 0.0, 0.0, 1000000.0);	// gather cost
+		m_cost_model_params->SetParam(14, 0.0, 0.0, 1000000.0);	// gather cost
+		m_cost_model_params->SetParam(15, 10000000.0, 10000000.0, 10000000.0);	// redistribute cost
+		m_cost_model_params->SetParam(16, 10000000.0, 10000000.0, 10000000.0);	// redistribute cs
+		m_cost_model_params->SetParam(17, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
+		m_cost_model_params->SetParam(18, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
+		gpdbcost::CCostModelGPDB* pcm = GPOS_NEW(mp) CCostModelGPDB(mp, 1, m_cost_model_params);	// one segment
+
+		
+
+	// optimizer context (from CAutoOptCtxt.cpp)
+		//CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ pcm);
+		GPOS_ASSERT(NULL != pcm);
+		// create default statistics configuration
+		COptimizerConfig *optimizer_config =
+			COptimizerConfig::PoconfDefault(mp, pcm);
+		// use the default constant expression evaluator which cannot evaluate any expression
+		IConstExprEvaluator * pceeval = GPOS_NEW(mp) CConstExprEvaluatorDefault();
+		COptCtxt *poctxt =
+			COptCtxt::PoctxtCreate(mp, &mda, pceeval, optimizer_config);
+		poctxt->SetHasMasterOnlyTables();
+		ITask::Self()->GetTls().Store(poctxt);
+
 
 	// initialize engine
 		CEngine eng(mp);
@@ -240,6 +287,9 @@ static void * MyOrcaTestExec(void *pv) {
 			// no sort constraint
 			// pos->Append(GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_INT4_LT_OP),
 			// 			pcrsOutput->PcrAny(), COrderSpec::EntFirst);
+		// TODO error do we need to 
+			// CDistributionSpec *pds = GPOS_NEW(mp)
+			// 	CDistributionSpecStrictSingleton(CDistributionSpecSingleton::EstMaster);
 			CDistributionSpec *pds = GPOS_NEW(mp)
 				CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 			CRewindabilitySpec *prs = GPOS_NEW(mp) CRewindabilitySpec(
@@ -286,6 +336,12 @@ static void * MyOrcaTestExec(void *pv) {
 		pexpr->Release();
 		pexprPlan->Release();
 		GPOS_DELETE(pqc);
+	// deallocate autooptctxt
+		CTaskLocalStorageObject *ptlsobj =
+			ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxOptCtxt);
+		ITask::Self()->GetTls().Remove(ptlsobj);
+
+		GPOS_DELETE(ptlsobj);
 		
 		// mp safely deallocated when exiting the scope
 	}
