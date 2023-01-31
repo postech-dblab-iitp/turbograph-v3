@@ -147,16 +147,9 @@ CExpression * genLogicalGet2(CMemoryPool *mp) {
 	return CTestUtils::PexprLogicalGet(mp, ptabdesc, &strAlias);
 }
 
-CExpression * genPlan(gpos::CMemoryPool* mp) {
-	// TODO genplan
-	return nullptr;
-}
-
 static void * MyOrcaTestExec(void *pv) {
 	std::cout << "[TEST] inside MyOrcaTestExec()" << std::endl;
 	CMainArgs *pma = (CMainArgs *) pv;
-
-	
 
 // init dxl and cache
 	InitDXL();
@@ -172,6 +165,7 @@ static void * MyOrcaTestExec(void *pv) {
 		//auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly.mdp";
 		//auto md_path = "../tbgpp-compiler/test/minidumps/pretty_mdp.mdp";
 		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly-simplified.mdp";
+		//auto md_path = "../tbgpp-compiler/test/minidumps/pretty_mdp.mdp";
 
 		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
 		// detach safety
@@ -413,7 +407,7 @@ int _main(int argc, char** argv) {
 	gpopt_init();
 
 	INT iArgs = 3;
-	const std::vector<std::string> arguments = { "/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };
+	const std::vector<std::string> arguments = { "/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };	// TODO argument not used
 	std::vector<const char*> argvv;
 	for (const auto& arg : arguments)
 		argvv.push_back((const char*)arg.data());
