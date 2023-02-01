@@ -35,6 +35,7 @@
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"
 
+#include "planner/planner.hpp"
 
 #include "naucrates/init.h"
 
@@ -206,7 +207,7 @@ static void * MyOrcaTestExec(void *pv) {
 				
 	// to generate accessor, provide local pool, global cache and provider
 			// TODO what is m_sysidDefault for, systemid
-		CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);	
+		CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 	// install opt context in TLS
 		auto m_cost_model_params = GPOS_NEW(mp) CCostModelParamsGPDB(mp);
 		//m_cost_model_params->SetParam(39, 1.0, 1.0, 1.0);	// single machine cost - may need to make this alive
@@ -217,8 +218,6 @@ static void * MyOrcaTestExec(void *pv) {
 		m_cost_model_params->SetParam(17, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
 		m_cost_model_params->SetParam(18, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
 		gpdbcost::CCostModelGPDB* pcm = GPOS_NEW(mp) CCostModelGPDB(mp, 1, m_cost_model_params);	// one segment
-
-		
 
 	// optimizer context (from CAutoOptCtxt.cpp)
 		//CAutoOptCtxt aoc(mp, &mda, NULL, /* pceeval */ pcm);
@@ -350,11 +349,21 @@ static void * MyOrcaTestExec(void *pv) {
 int _main(int argc, char** argv) {
  
 	std::cout << "compiler test start" << std::endl;
+	std::vector <std::string> _tokens;
+	for (int i=1; i < argc; ++i) {
+		_tokens.push_back(std::string(argv[i]));
+	}
+
 	// std::string query = "MATCH (n) RETURN n;";
 	//std::string query = "EXPLAIN MATCH (n) RETURN n;";
 	//std::string query = "MATCH (n), (m)-[r]->(z) WITH n,m,r,z MATCH (x), (y) RETURN m,n,x,y UNION MATCH (n) RETURN n;";
-	std::string query = "MATCH (a)-[x]->(b), (b)-[y]->(c) MATCH (c)-[z]->(d) MATCH (e) RETURN a,x,b,y,c,z,d,e";
+	//std::string query = "MATCH (a:Person1:Person|Person3)-[x]->(b), (bbb)-[y]->(c) MATCH (c)-[z]->(d) MATCH (e) RETURN a.name,x,b,bbb,y,c,z,d,e";
 	// TODO in return clause, cases like id(n) should be considered as well.
+
+	std::string query = "";
+	for (auto t: _tokens) {
+		query += t;
+	}
 	
 	//std::string query = "MATCH (n) RETURN n;";
 
@@ -396,53 +405,57 @@ int _main(int argc, char** argv) {
 	printer.print();
 	std::cout << std::endl;
 
+// our logical plan
+	auto planner = s62::Planner();
+	planner.execute(bst);
 
-// bind orca
+// bind orca (legacy)
 
-	std::cout << "[TEST] orca init / params" << std::endl;
-	struct gpos_init_params gpos_params = {NULL};
+	// std::cout << "[TEST] orca init / params" << std::endl;
+	// struct gpos_init_params gpos_params = {NULL};
 
-	gpos_init(&gpos_params);
-	gpdxl_init();
-	gpopt_init();
+	// gpos_init(&gpos_params);
+	// gpdxl_init();
+	// gpopt_init();
 
-	INT iArgs = 3;
-	const std::vector<std::string> arguments = { "/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };	// TODO argument not used
-	std::vector<const char*> argvv;
-	for (const auto& arg : arguments)
-		argvv.push_back((const char*)arg.data());
-	argvv.push_back(nullptr);
-	const CHAR** rgszArgs = argvv.data();
+	// INT iArgs = 3;
+	// const std::vector<std::string> arguments = { "/turbograph-v3/build/tbgpp-compiler/kuzu_integration_test", "-U", "CEngineTest" };	// TODO argument not used
+	// std::vector<const char*> argvv;
+	// for (const auto& arg : arguments)
+	// 	argvv.push_back((const char*)arg.data());
+	// argvv.push_back(nullptr);
+	// const CHAR** rgszArgs = argvv.data();
 
-	CMainArgs ma(iArgs, rgszArgs, "uU:d:xT:i:");
-	//CUnittest::Init(rgut, GPOS_ARRAY_SIZE(rgut), ConfigureTests, Cleanup);
-	// the static members in CUnitTest.cpp is re-defined in our file
-	m_rgut = rgut;
-	m_ulTests = GPOS_ARRAY_SIZE(rgut);
-	m_pfConfig = ConfigureTests;
-	m_pfCleanup = Cleanup;
+	// CMainArgs ma(iArgs, rgszArgs, "uU:d:xT:i:");
+	// //CUnittest::Init(rgut, GPOS_ARRAY_SIZE(rgut), ConfigureTests, Cleanup);
+	// // the static members in CUnitTest.cpp is re-defined in our file
+	// m_rgut = rgut;
+	// m_ulTests = GPOS_ARRAY_SIZE(rgut);
+	// m_pfConfig = ConfigureTests;
+	// m_pfCleanup = Cleanup;
 
-	gpos_exec_params params;
-	params.func = MyOrcaTestExec;
-	params.arg = &ma;
-	params.stack_start = &params;
-	params.error_buffer = NULL;
-	params.error_buffer_size = -1;
-	params.abort_requested = NULL;
+	// gpos_exec_params params;
+	// params.func = MyOrcaTestExec;
+	// params.arg = &ma;
+	// params.stack_start = &params;
+	// params.error_buffer = NULL;
+	// params.error_buffer_size = -1;
+	// params.abort_requested = NULL;
 
-	// std::cout << "[TEST] orca memory pool" << std::endl;
-	std::cout << "[TEST] orca engine" << std::endl;
-	auto gpos_output_code = gpos_exec(&params);
-	std::cout << "[TEST] function outuput " << gpos_output_code << std::endl;
+	// // std::cout << "[TEST] orca memory pool" << std::endl;
+	// std::cout << "[TEST] orca engine" << std::endl;
+	// auto gpos_output_code = gpos_exec(&params);
+	// std::cout << "[TEST] function outuput " << gpos_output_code << std::endl;
 
-	std::cout << "compiler test end" << std::endl;
-	return 0;
+	// std::cout << "compiler test end" << std::endl;
+	// return 0;
 }
 
 int main(int argc, char** argv) {
-	try{
-		int out = _main(argc, argv);
-	} catch (CException ex) {
-		std::cerr << ex.Major() << " " << ex.Minor() << std::endl;
-	}
+	// try{
+	// 	int out = _main(argc, argv);
+	// } catch (CException ex) {
+	// 	std::cerr << ex.Major() << " " << ex.Minor() << std::endl;
+	// }
+	int out = _main(argc, argv);
 }
