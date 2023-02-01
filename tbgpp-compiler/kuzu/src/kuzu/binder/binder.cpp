@@ -31,7 +31,7 @@ shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parse
     return whereExpression;
 }
 
-// TODO jhko do nothing
+// Not used - commented to cut dependency
 table_id_t Binder::bindRelTableID(const string& tableName) const {
     return 0;
     // if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
@@ -40,7 +40,7 @@ table_id_t Binder::bindRelTableID(const string& tableName) const {
     // return catalog.getReadOnlyVersion()->getRelTableIDFromName(tableName);
 }
 
-// TODO jhko do nothing
+// Not used - commented to cut dependency
 table_id_t Binder::bindNodeTableID(const string& tableName) const {
     return 0;
     // if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {

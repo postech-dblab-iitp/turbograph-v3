@@ -41,6 +41,9 @@ unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& read
         }
     }
     boundMatchClause->setWhereExpression(std::move(whereExpression));
+
+    // S62 add edge isomorphism in the edge syntax
+
     return boundMatchClause;
 }
 

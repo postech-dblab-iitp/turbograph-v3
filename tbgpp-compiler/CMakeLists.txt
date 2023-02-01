@@ -26,6 +26,27 @@ endif()
 add_compile_options(-DUSE_CMAKE)
 
 ####################################################
+# FIND PACKAGES
+####################################################
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+# dependencies - boost
+#set(Boost_DEBUG 1)
+
+#dependencies - threads
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
+include_directories(${TBB_INCLUDE_DIRS})
+link_directories(${TBB_LIBRARY_DIRS})
+link_libraries(${TBB_LIBRARIES})
+
+# dependencies - openmp
+find_package(OpenMP REQUIRED)
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+
+####################################################
 # DECLARE TARGETS
 ####################################################
 add_library(tbgpp-compiler STATIC)
@@ -53,6 +74,8 @@ target_include_directories(tbgpp-compiler PUBLIC
 	# third_party
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/antlr4"
 	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
+	# tbgpp-client
+	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/main"
 	# tbgpp-common
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common"
@@ -65,7 +88,7 @@ target_include_directories(tbgpp-compiler PUBLIC
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
-#target_link_libraries(tbgpp-compiler tbgpp-common-lib)
+target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main)
 target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
 # gpdb
 #target_link_libraries(tbgpp-compiler gpdb)

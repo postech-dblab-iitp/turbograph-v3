@@ -35,7 +35,7 @@ public:
     }
 
     std::string getName() override {
-        return "[RelExpr] src=" + srcNode->getRawName() + ", dst=" + dstNode->getRawName(); }
+        return "[RelExpr] src=" + srcNode->getRawName() + ", dst=" + dstNode->getRawName() ; }
     std::list<ParseTreeNode*> getChildren() override { 
         std::list<ParseTreeNode*> result;
         return result;

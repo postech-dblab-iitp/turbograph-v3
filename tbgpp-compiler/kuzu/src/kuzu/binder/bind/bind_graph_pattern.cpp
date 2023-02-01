@@ -15,7 +15,7 @@ namespace binder {
 // with other predicates specified in WHERE clause.
 pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>>
 Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern) {
-    auto propertyCollection = make_unique<PropertyKeyValCollection>();
+    auto propertyCollection = make_unique<PropertyKeyValCollection>();  // filters for properties appearing in node/edge pattern (a -> (k,value), ...)
     auto queryGraphCollection = make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
         queryGraphCollection->addAndMergeQueryGraphIfConnected(
@@ -40,7 +40,6 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
     return queryGraph;
 }
 
-// TODO JHKO changed
 // E.g. MATCH (:person)-[:studyAt]->(:person) ...
 // static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpression& rel,
 //     const NodeExpression& srcNode, const NodeExpression& dstNode) {
@@ -132,11 +131,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     queryRel->setAlias(parsedName);
     queryRel->setRawName(parsedName);
 
-// TODO jhko disabled
+// S62 change table ids to relations
+
     //validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
     // resolve properties associate with rel table
     vector<RelTableSchema*> relTableSchemas;
-// TODO disabled
     // for (auto tableID : tableIDs) {
     //     relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     // }
@@ -192,15 +191,19 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to single node a with both labels
         if (!nodePattern.getTableNames().empty()) {
+            // S62 change table ids to relations
             auto otherTableIDs = bindNodeTableIDs(nodePattern.getTableNames());
             queryNode->addTableIDs(otherTableIDs);
         }
     } else {
         queryNode = createQueryNode(nodePattern);
     }
+
+    // bind for e.g. (a:P {prop: val}) -> why necessary?
     for (auto i = 0u; i < nodePattern.getNumPropertyKeyValPairs(); ++i) {
         const auto& propertyName = nodePattern.getProperty(i).first;
         const auto& rhs = nodePattern.getProperty(i).second;
+        // refer binder and bind node property expression
         auto boundLhs = expressionBinder.bindNodePropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
@@ -212,25 +215,29 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
+// S62 change table ids to relations
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
     
-// TODO jhko disabled
     // resolve properties associate with node table
     vector<NodeTableSchema*> nodeTableSchemas;
     // for (auto tableID : tableIDs) {
     //     nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
     // }
 
+// S62 union schema process.
+    // create properties all properties for given tables
     for (auto& propertyPair :
         getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
         auto& propertyName = propertyPair.first;
         auto& propertySchemas  = propertyPair.second;
         auto propertyExpression =
             expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
+
+        // Each distinct (name, type) is returned
         queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
     }
     if (!parsedName.empty()) {
@@ -239,11 +246,13 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     return queryNode;
 }
 
+// S62 access catalog and  change to mdids
 vector<table_id_t> Binder::bindTableIDs(
     const vector<string>& tableNames, DataTypeID nodeOrRelType) {
     unordered_set<table_id_t> tableIDs;
 
-// TODO jhko do nothing
+    // syntax is strange. each tablename is considered intersection.
+
     return vector<table_id_t>();
     // switch (nodeOrRelType) {
     // case NODE: {
