@@ -4,6 +4,7 @@
 
 namespace s62 {
 
+
 Planner::Planner(duckdb::ClientContext* context)
 	: context(context) {
 

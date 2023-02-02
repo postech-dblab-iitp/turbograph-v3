@@ -1757,7 +1757,7 @@ RelationIdGetRelation(duckdb::idx_t relationId)
 	duckdb::PropertySchemaCatalogEntry *ps_cat;
 	duckdb::ClientContext client(db);
 
-	ps_cat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, relationId);
+	//ps_cat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, relationId);
 	
 	return ps_cat;
 }

@@ -44,8 +44,6 @@
 #include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CScalarIdent.h"
 
-#include "planner/planner.hpp"
-
 #include "naucrates/init.h"
 
 #include "gpopt/operators/CLogicalInnerJoin.h"
@@ -64,15 +62,14 @@
 #include "naucrates/traceflags/traceflags.h"
 
 
-
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
 
+using namespace kuzu::binder;
+using namespace gpopt;
 
 
 namespace s62 {
-
-using namespace kuzu::binder;
 
 class ClientContext;
 class Planner {

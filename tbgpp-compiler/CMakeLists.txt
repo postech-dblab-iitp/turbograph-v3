@@ -61,10 +61,13 @@ add_library(tbgpp-compiler STATIC)
 target_include_directories(tbgpp-compiler PUBLIC
 	# include
 	"${PROJECT_SOURCE_DIR}/include"
+	"${PROJECT_SOURCE_DIR}/include/mdprovider"
+	"${PROJECT_SOURCE_DIR}/include/planner"
 	# kuzu
 	"${PROJECT_SOURCE_DIR}/kuzu/include"
 	# gpdb
 	"${PROJECT_SOURCE_DIR}/gpdb/src/include"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/include/gpopt"
 	# gporca
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpos/include"
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libnaucrates/include"
@@ -90,7 +93,7 @@ target_include_directories(tbgpp-compiler PUBLIC
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
-target_link_libraries(tbgpp-compiler tbgpp-common-lib)
+target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main)
 target_link_libraries(tbgpp-compiler "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 # gpdb
 target_link_libraries(tbgpp-compiler gpdb)
