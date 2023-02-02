@@ -12,6 +12,7 @@ extern "C" {
 }
 
 #include "enums/index_type.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
 namespace duckdb {
 
@@ -19,7 +20,7 @@ namespace duckdb {
 IndexType GetLogicalIndexType(Oid index_oid);
 
 // get relation with given oid
-Relation GetRelation(Oid rel_oid);
+PropertySchemaCatalogEntry* GetRelation(idx_t rel_oid);
 
 } // duckdb
 

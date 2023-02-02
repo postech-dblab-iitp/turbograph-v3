@@ -13,6 +13,7 @@ namespace duckdb {
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
 	typedef boost::interprocess::allocator<bool, segment_manager_t> bool_allocator;
 	typedef boost::interprocess::allocator<idx_t, segment_manager_t> idx_t_allocator;
+    typedef boost::interprocess::allocator<void*, segment_manager_t> void_pointer_allocator;
 	typedef boost::interprocess::allocator<char, segment_manager_t> char_allocator;
 	typedef boost::interprocess::allocator<transaction_t, segment_manager_t> transaction_t_allocator;
     typedef boost::interprocess::allocator<PartitionID, segment_manager_t> partitionid_allocator;
@@ -22,6 +23,7 @@ namespace duckdb {
     typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
     typedef boost::interprocess::allocator<char_string, segment_manager_t> string_allocator;
     typedef boost::interprocess::vector<idx_t, idx_t_allocator> idx_t_vector;
+    typedef boost::interprocess::vector<void*, void_pointer_allocator> void_pointer_vector;
     typedef boost::interprocess::vector<char_string, string_allocator> string_vector;
     typedef boost::interprocess::vector<PartitionID, partitionid_allocator> PartitionID_vector;
     typedef boost::interprocess::vector<PropertyKeyID, propertykeyid_allocator> PropertyKeyID_vector;
@@ -30,11 +32,13 @@ namespace duckdb {
     typedef std::pair<const char_string, VertexLabelID> vertexlabel_id_map_value_type;
     typedef std::pair<const char_string, EdgeTypeID> edgetype_id_map_value_type;
     typedef std::pair<const char_string, PropertyKeyID> propertykey_id_map_value_type;
-    typedef std::pair<EdgeTypeID, PartitionID> type_to_partition_map_value_type;
-    typedef std::pair<VertexLabelID, PartitionID_vector> label_to_partitionvec_map_value_type;
+    typedef std::pair<idx_t, void*> idx_t_to_void_ptr_value_type;
+    typedef std::pair<EdgeTypeID, idx_t> type_to_partition_map_value_type;
+    typedef std::pair<VertexLabelID, idx_t_vector> label_to_partitionvec_map_value_type;
     typedef std::pair<PropertyKeyID, PropertySchemaID_vector> property_to_propertyschemavec_map_value_type;
     typedef boost::interprocess::allocator<vertexlabel_id_map_value_type, segment_manager_t> vertexlabel_id_map_value_type_allocator;
     typedef boost::interprocess::allocator<edgetype_id_map_value_type, segment_manager_t> edgetype_id_map_value_type_allocator;
+    typedef boost::interprocess::allocator<idx_t_to_void_ptr_value_type, segment_manager_t> idx_t_to_void_ptr_value_type_allocator;
     typedef boost::interprocess::allocator<propertykey_id_map_value_type, segment_manager_t> propertykey_id_map_value_type_allocator;
     typedef boost::interprocess::allocator<type_to_partition_map_value_type, segment_manager_t> type_to_partition_map_value_type_allocator;
     typedef boost::interprocess::allocator<label_to_partitionvec_map_value_type, segment_manager_t> label_to_partitionvec_map_value_type_allocator;

@@ -67,7 +67,7 @@ extern "C" {
 #include "naucrates/md/CMDTypeOidGPDB.h"
 
 // TBGPP related classes
-#include "tbgppdbwrappers.h"
+#include "tbgppdbwrappers.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "translate/CTranslatorTBGPPToDXL.h"
@@ -570,7 +570,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 	CheckUnsupportedRelation(oid);
 
-	Relation rel = duckdb::GetRelation(oid);
+	duckdb::PropertySchemaCatalogEntry *rel = duckdb::GetRelation(oid);
 
 	if (NULL == rel)
 	{
@@ -620,7 +620,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	GPOS_TRY
 	{
 		// get rel name
-		mdname = GetRelName(mp, rel);
+		// mdname = GetRelName(mp, rel);
 
 		// get storage type
 		// rel_storage_type = RetrieveRelStorageType(rel->rd_rel->relstorage);

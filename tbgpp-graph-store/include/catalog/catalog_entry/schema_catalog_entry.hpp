@@ -51,6 +51,11 @@ struct DropInfo;
 
 //! A schema in the catalog
 class SchemaCatalogEntry : public CatalogEntry {
+	typedef boost::unordered_map< idx_t, void*
+       	, boost::hash<idx_t>, std::equal_to<idx_t>
+		, idx_t_to_void_ptr_value_type_allocator>
+	OidToCatalogEntryPtrUnorderedMap;
+	// maybe useless typedefs.. TODO
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
 	typedef boost::interprocess::managed_unique_ptr<CatalogEntry, fixed_managed_mapped_file>::type unique_ptr_type;
 	typedef boost::interprocess::managed_unique_ptr<GraphCatalogEntry, fixed_managed_mapped_file>::type graph_unique_ptr_type;
@@ -96,6 +101,8 @@ private:
 	CatalogSet types;
 	*/
 	fixed_managed_mapped_file *catalog_segment;
+	//! oid to catalog entry array
+	OidToCatalogEntryPtrUnorderedMap oid_to_catalog_entry_array; // TODO change this to array data structure
 
 public:
 	//! Scan the specified catalog set, invoking the callback method for every entry
@@ -114,6 +121,8 @@ public:
 
 	//! Creates an index with the given name in the schema
 	//CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
+
+	CatalogEntry *GetCatalogEntryFromOid(idx_t oid);
 
 private:
 	//! Creates a graph with the given name in the schema

@@ -1,4 +1,5 @@
-#include "tbgppdbwrappers.h"
+#include "tbgppdbwrappers.hpp"
+#include "utils/tbgppcache.hpp"
 // #include <setjmp.h>
 
 // #define GP_WRAP_START                                            \
@@ -35,8 +36,8 @@ duckdb::GetLogicalIndexType(Oid index_oid)
 	return IndexType::ART;
 }
 
-Relation
-duckdb::GetRelation(Oid rel_oid)
+duckdb::PropertySchemaCatalogEntry*
+duckdb::GetRelation(duckdb::idx_t rel_oid)
 {
 	// GP_WRAP_START;
 	{

@@ -527,47 +527,47 @@ icecream::ic.disable();
 	std::string query_str;
 	std::vector<CypherPipelineExecutor*> executors;
 icecream::ic.disable();
-// 	while(true) {
-// 		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
-// 		// check termination
-// 		if( query_str.compare(":exit") == 0 ) {
-// 			break;
-// 		}
+	while(true) {
+		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
+		// check termination
+		if( query_str.compare(":exit") == 0 ) {
+			break;
+		}
 
-// 		std::cout << "Query => " << std::endl << query_str << std::endl;
-// 		auto inputStream = ANTLRInputStream(query_str);
+		std::cout << "Query => " << std::endl << query_str << std::endl;
+		auto inputStream = ANTLRInputStream(query_str);
 
-// // Lexer
-// 		std::cout << "[TEST] calling lexer" << std::endl;
-// 		auto cypherLexer = CypherLexer(&inputStream);
-// 		//cypherLexer.removeErrorListeners();
-// 		//cypherLexer.addErrorListener(&parserErrorListener);
-// 		auto tokens = CommonTokenStream(&cypherLexer);
-// 		tokens.fill();
+// Lexer
+		std::cout << "[TEST] calling lexer" << std::endl;
+		auto cypherLexer = CypherLexer(&inputStream);
+		//cypherLexer.removeErrorListeners();
+		//cypherLexer.addErrorListener(&parserErrorListener);
+		auto tokens = CommonTokenStream(&cypherLexer);
+		tokens.fill();
 
-// // Parser
-// 		std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
-// 		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+// Parser
+		std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
+		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
-// // Sematic parsing
-// 		// Transformer
-// 		std::cout << "[TEST] generating transformer" << std::endl;
-// 		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-// 		std::cout << "[TEST] calling transformer" << std::endl;
-// 		auto statement = transformer.transform();
+// Sematic parsing
+		// Transformer
+		std::cout << "[TEST] generating transformer" << std::endl;
+		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+		std::cout << "[TEST] calling transformer" << std::endl;
+		auto statement = transformer.transform();
 		
-// 		// Binder
-// 		std::cout << "[TEST] generating binder" << std::endl;
-// 		auto binder = kuzu::binder::Binder();
-// 		std::cout << "[TEST] calling binder" << std::endl;
-// 		auto boundStatement = binder.bind(*statement);
-// 		kuzu::binder::BoundStatement * bst = boundStatement.get();
-// 		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildren, &kuzu::binder::BoundStatement::getName);
-// 		// WARNING - printer should be disabled when processing following compilation step.
-// 		std::cout << "Tree => " << std::endl;
-// 		printer.print();
-// 		std::cout << std::endl;
-// 	}
+		// Binder
+		std::cout << "[TEST] generating binder" << std::endl;
+		auto binder = kuzu::binder::Binder();
+		std::cout << "[TEST] calling binder" << std::endl;
+		auto boundStatement = binder.bind(*statement);
+		kuzu::binder::BoundStatement * bst = boundStatement.get();
+		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildren, &kuzu::binder::BoundStatement::getName);
+		// WARNING - printer should be disabled when processing following compilation step.
+		std::cout << "Tree => " << std::endl;
+		printer.print();
+		std::cout << std::endl;
+	}
 
 	std::cout << "[TEST] orca engine" << std::endl;
 	auto gpos_output_code = gpos_exec(&params);

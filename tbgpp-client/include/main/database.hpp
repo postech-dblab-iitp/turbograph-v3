@@ -23,6 +23,7 @@
 namespace duckdb {
 //class StorageManager;
 class Catalog;
+class CatalogWrapper;
 //class TransactionManager;
 //class ConnectionManager;
 //class FileSystem;
@@ -42,6 +43,7 @@ public:
 public:
 	DUCKDB_API StorageManager &GetStorageManager();
 	DUCKDB_API Catalog &GetCatalog();
+	DUCKDB_API CatalogWrapper &GetCatalogWrapper();
 	DUCKDB_API FileSystem &GetFileSystem();
 	//DUCKDB_API TransactionManager &GetTransactionManager();
 	//DUCKDB_API TaskScheduler &GetScheduler();
@@ -61,6 +63,7 @@ private:
 private:
 	unique_ptr<StorageManager> storage;
 	unique_ptr<Catalog> catalog;
+	unique_ptr<CatalogWrapper> catalog_wrapper; // for compiler
 	//unique_ptr<TransactionManager> transaction_manager;
 	//unique_ptr<TaskScheduler> scheduler;
 	//unique_ptr<ObjectCache> object_cache;
