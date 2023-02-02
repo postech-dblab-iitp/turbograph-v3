@@ -106,7 +106,7 @@ TEST_CASE ("Json Reader Open File & Read Test", "[tile]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");

@@ -1,6 +1,7 @@
 #include "main/database.hpp"
 
 #include "catalog/catalog.hpp"
+#include "catalog/catalog_wrapper.hpp"
 //#include "common/virtual_file_system.hpp"
 #include "main/client_context.hpp"
 //#include "parallel/task_scheduler.hpp"
@@ -192,6 +193,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		catalog = make_unique<Catalog>(*this);
 		catalog->LoadCatalog(catalog_shm, object_names);
 	}
+	catalog_wrapper = make_unique<CatalogWrapper>(*this);
 	//transaction_manager = make_unique<TransactionManager>(*this);
 	//scheduler = make_unique<TaskScheduler>(*this);
 	//object_cache = make_unique<ObjectCache>();
@@ -230,6 +232,10 @@ StorageManager &DatabaseInstance::GetStorageManager() {
 
 Catalog &DatabaseInstance::GetCatalog() {
 	return *catalog;
+}
+
+CatalogWrapper &DatabaseInstance::GetCatalogWrapper() {
+	return *catalog_wrapper;
 }
 
 fixed_managed_mapped_file *DatabaseInstance::GetCatalogSHM() {
