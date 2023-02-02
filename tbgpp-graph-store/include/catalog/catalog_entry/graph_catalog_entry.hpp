@@ -33,11 +33,11 @@ class GraphCatalogEntry : public StandardEntry {
        	, boost::hash<char_string>, std::equal_to<char_string>
 		, propertykey_id_map_value_type_allocator>
 	PropertyKeyIDUnorderedMap;
-	typedef boost::unordered_map< EdgeTypeID, PartitionID
+	typedef boost::unordered_map< EdgeTypeID, idx_t
        	, boost::hash<EdgeTypeID>, std::equal_to<EdgeTypeID>
 		, type_to_partition_map_value_type_allocator>
 	EdgeTypeToPartitionUnorderedMap;
-	typedef boost::unordered_map< VertexLabelID, PartitionID_vector
+	typedef boost::unordered_map< VertexLabelID, idx_t_vector
        	, boost::hash<VertexLabelID>, std::equal_to<VertexLabelID>
 		, label_to_partitionvec_map_value_type_allocator>
 	VertexLabelToPartitionVecUnorderedMap;
@@ -64,15 +64,15 @@ public:
 	atomic<PartitionID> partition_id_version;
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids);
-	void AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels);
-	void AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID edge_type_id);
-	void AddEdgePartition(ClientContext &context, PartitionID pid, string type);
+	void AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<VertexLabelID>& label_ids);
+	void AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels);
+	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, EdgeTypeID edge_type_id);
+	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, string type);
 
-	PartitionID LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
+	vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 	void GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids);
 
-	PartitionID_vector Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
+	vector<idx_t> Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();
 	EdgeTypeID GetEdgeTypeID();
 	PropertyKeyID GetPropertyKeyID();

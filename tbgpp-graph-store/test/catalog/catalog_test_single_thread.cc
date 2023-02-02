@@ -111,7 +111,7 @@ TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 }
 
 TEST_CASE ("Create an edge partition catalog", "[catalog]") {
@@ -132,7 +132,7 @@ TEST_CASE ("Create an edge partition catalog", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddEdgePartition(*client.get(), 0, edge_type);
+  graph_cat->AddEdgePartition(*client.get(), 0, partition_cat->GetOid(), edge_type);
 }
 
 TEST_CASE ("Create a property schema catalog", "[catalog]") {
@@ -153,7 +153,7 @@ TEST_CASE ("Create a property schema catalog", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
@@ -182,7 +182,7 @@ TEST_CASE ("Create multiple property schemas in a partition catalog", "[catalog]
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   for (int i = 0; i < 100; i++) {
     vector<string> property_keys;
@@ -217,7 +217,7 @@ TEST_CASE ("Create an extent catalog", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
@@ -250,7 +250,7 @@ TEST_CASE ("Create an chunk definition catalogs", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
@@ -334,7 +334,7 @@ TEST_CASE ("Get extent catalog", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");
@@ -373,7 +373,7 @@ TEST_CASE ("Change delta store to extent store", "[catalog]") {
   CreatePartitionInfo partition_info("main", "partition1");
   PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
   
-  graph_cat->AddVertexPartition(*client.get(), 0, vertex_labels);
+  graph_cat->AddVertexPartition(*client.get(), 0, partition_cat->GetOid(), vertex_labels);
 
   vector<string> property_keys = {"attribute1", "attrubute2"};
   CreatePropertySchemaInfo propertyschema_info("main", "propertyschema1");

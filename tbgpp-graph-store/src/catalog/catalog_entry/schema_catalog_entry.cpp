@@ -98,7 +98,8 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
 	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
 	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
-	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")) {
+	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
+	oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
 IC();
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
@@ -138,6 +139,7 @@ CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, StandardEntry
 			return nullptr;
 		}
 	}
+	oid_to_catalog_entry_array.insert({result->GetOid(), (void *)result});
 	return result;
 }
 
@@ -505,6 +507,11 @@ string SchemaCatalogEntry::ToSQL() {
 	std::stringstream ss;
 	ss << "CREATE SCHEMA " << name << ";";
 	return ss.str();
+}
+
+CatalogEntry *SchemaCatalogEntry::GetCatalogEntryFromOid(idx_t oid) {
+	auto cat_entry = (CatalogEntry *)oid_to_catalog_entry_array.at(oid);
+	return cat_entry;
 }
 
 CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {

@@ -280,10 +280,10 @@ static duckdb::fixed_managed_mapped_file *catalog_shm;
 // 		  int natts, const FormData_pg_attribute *attrs);
 
 // static HeapTuple ScanPgRelation(Oid targetRelId, bool indexOK, bool force_non_historic);
-static Relation AllocateRelationDesc(/*Form_pg_class relp*/);
+// static Relation AllocateRelationDesc(/*Form_pg_class relp*/);
 // static void RelationParseRelOptions(Relation relation, HeapTuple tuple);
 // static void RelationBuildTupleDesc(Relation relation);
-static Relation RelationBuildDesc(Oid targetRelId, bool insertIt);
+// static Relation RelationBuildDesc(Oid targetRelId, bool insertIt);
 // static void RelationInitPhysicalAddr(Relation relation);
 // static void RelationInitAppendOnlyInfo(Relation relation);
 // static void load_critical_index(Oid indexoid, Oid heapoid);
@@ -390,53 +390,53 @@ static Relation RelationBuildDesc(Oid targetRelId, bool insertIt);
  *		This is used to allocate memory for a new relation descriptor
  *		and initialize the rd_rel field from the given pg_class tuple.
  */
-static Relation
-AllocateRelationDesc(/*Form_pg_class relp*/)
-{
-	Relation	relation;
-	// MemoryContext oldcxt;
-	// Form_pg_class relationForm;
+// static Relation // TODO we don't need this maybe..
+// AllocateRelationDesc(/*Form_pg_class relp*/)
+// {
+// 	Relation	relation;
+// 	// MemoryContext oldcxt;
+// 	// Form_pg_class relationForm;
 
-	// /* Relcache entries must live in CacheMemoryContext */
-	// oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
+// 	// /* Relcache entries must live in CacheMemoryContext */
+// 	// oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
 
-	// /*
-	//  * allocate and zero space for new relation descriptor
-	//  */
-	// relation = (Relation) palloc0(sizeof(RelationData));
+// 	// /*
+// 	//  * allocate and zero space for new relation descriptor
+// 	//  */
+// 	// relation = (Relation) palloc0(sizeof(RelationData));
 
-	// /* make sure relation is marked as having no open file yet */
-	// relation->rd_smgr = NULL;
+// 	// /* make sure relation is marked as having no open file yet */
+// 	// relation->rd_smgr = NULL;
 
-	// /*
-	//  * Copy the relation tuple form
-	//  *
-	//  * We only allocate space for the fixed fields, ie, CLASS_TUPLE_SIZE. The
-	//  * variable-length fields (relacl, reloptions) are NOT stored in the
-	//  * relcache --- there'd be little point in it, since we don't copy the
-	//  * tuple's nulls bitmap and hence wouldn't know if the values are valid.
-	//  * Bottom line is that relacl *cannot* be retrieved from the relcache. Get
-	//  * it from the syscache if you need it.  The same goes for the original
-	//  * form of reloptions (however, we do store the parsed form of reloptions
-	//  * in rd_options).
-	//  */
-	// relationForm = (Form_pg_class) palloc(CLASS_TUPLE_SIZE);
+// 	// /*
+// 	//  * Copy the relation tuple form
+// 	//  *
+// 	//  * We only allocate space for the fixed fields, ie, CLASS_TUPLE_SIZE. The
+// 	//  * variable-length fields (relacl, reloptions) are NOT stored in the
+// 	//  * relcache --- there'd be little point in it, since we don't copy the
+// 	//  * tuple's nulls bitmap and hence wouldn't know if the values are valid.
+// 	//  * Bottom line is that relacl *cannot* be retrieved from the relcache. Get
+// 	//  * it from the syscache if you need it.  The same goes for the original
+// 	//  * form of reloptions (however, we do store the parsed form of reloptions
+// 	//  * in rd_options).
+// 	//  */
+// 	// relationForm = (Form_pg_class) palloc(CLASS_TUPLE_SIZE);
 
-	// memcpy(relationForm, relp, CLASS_TUPLE_SIZE);
+// 	// memcpy(relationForm, relp, CLASS_TUPLE_SIZE);
 
-	// /* initialize relation tuple form */
-	// relation->rd_rel = relationForm;
+// 	// /* initialize relation tuple form */
+// 	// relation->rd_rel = relationForm;
 
-	// /* and allocate attribute tuple form storage */
-	// relation->rd_att = CreateTemplateTupleDesc(relationForm->relnatts,
-	// 										   relationForm->relhasoids);
-	// /* which we mark as a reference-counted tupdesc */
-	// relation->rd_att->tdrefcount = 1;
+// 	// /* and allocate attribute tuple form storage */
+// 	// relation->rd_att = CreateTemplateTupleDesc(relationForm->relnatts,
+// 	// 										   relationForm->relhasoids);
+// 	// /* which we mark as a reference-counted tupdesc */
+// 	// relation->rd_att->tdrefcount = 1;
 
-	// MemoryContextSwitchTo(oldcxt);
+// 	// MemoryContextSwitchTo(oldcxt);
 
-	return relation;
-}
+// 	return relation;
+// }
 
 // /*
 //  * RelationParseRelOptions
@@ -887,189 +887,189 @@ AllocateRelationDesc(/*Form_pg_class relp*/)
  *		(suggesting we are trying to access a just-deleted relation).
  *		Any other error is reported via elog.
  */
-static Relation
-RelationBuildDesc(Oid targetRelId, bool insertIt)
-{
-	Relation	relation;
-	Oid			relid;
-	// HeapTuple	pg_class_tuple;
-	// Form_pg_class relp;
-	duckdb::PropertySchemaCatalogEntry *pscat;
-	duckdb::ClientContext client(db);
+// static Relation
+// RelationBuildDesc(Oid targetRelId, bool insertIt)
+// {
+// 	Relation	relation;
+// 	Oid			relid;
+// 	// HeapTuple	pg_class_tuple;
+// 	// Form_pg_class relp;
+// 	duckdb::PropertySchemaCatalogEntry *pscat;
+// 	duckdb::ClientContext client(db);
 
-	pscat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
+// 	pscat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
 
-	/*
-	 * find the tuple in pg_class corresponding to the given relation id
-	 */
-	// pg_class_tuple = ScanPgRelation(targetRelId, true, false);
+// 	/*
+// 	 * find the tuple in pg_class corresponding to the given relation id
+// 	 */
+// 	// pg_class_tuple = ScanPgRelation(targetRelId, true, false);
 
-	/*
-	 * if no such tuple exists, return NULL
-	 */
-	// if (!HeapTupleIsValid(pg_class_tuple))
-	// 	return NULL;
+// 	/*
+// 	 * if no such tuple exists, return NULL
+// 	 */
+// 	// if (!HeapTupleIsValid(pg_class_tuple))
+// 	// 	return NULL;
 
-	/*
-	 * get information from the pg_class_tuple
-	 */
-	// relid = HeapTupleGetOid(pg_class_tuple);
-	// relp = (Form_pg_class) GETSTRUCT(pg_class_tuple);
-	// Assert(relid == targetRelId);
+// 	/*
+// 	 * get information from the pg_class_tuple
+// 	 */
+// 	// relid = HeapTupleGetOid(pg_class_tuple);
+// 	// relp = (Form_pg_class) GETSTRUCT(pg_class_tuple);
+// 	// Assert(relid == targetRelId);
 
-	/*
-	 * allocate storage for the relation descriptor, and copy pg_class_tuple
-	 * to relation->rd_rel and new fields into relation->rd_newfields.
-	 */
-	relation = AllocateRelationDesc(/*relp*/);
+// 	/*
+// 	 * allocate storage for the relation descriptor, and copy pg_class_tuple
+// 	 * to relation->rd_rel and new fields into relation->rd_newfields.
+// 	 */
+// 	relation = AllocateRelationDesc(/*relp*/);
 
-	/*
-	 * initialize the relation's relation id (relation->rd_id)
-	 */
-	RelationGetRelid(relation) = relid;
+// 	/*
+// 	 * initialize the relation's relation id (relation->rd_id)
+// 	 */
+// 	RelationGetRelid(relation) = relid;
 
-	/*
-	 * normal relations are not nailed into the cache; nor can a pre-existing
-	 * relation be new.  It could be temp though.  (Actually, it could be new
-	 * too, but it's okay to forget that fact if forced to flush the entry.)
-	 */
-	relation->rd_refcnt = 0;
-	relation->rd_isnailed = false;
-	relation->rd_createSubid = InvalidSubTransactionId;
-	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
-	// switch (relation->rd_rel->relpersistence)
-	// {
-	// 	case RELPERSISTENCE_UNLOGGED:
-	// 	case RELPERSISTENCE_PERMANENT:
-	// 		relation->rd_backend = InvalidBackendId;
-	// 		relation->rd_islocaltemp = false;
-	// 		break;
-	// 	case RELPERSISTENCE_TEMP:
-	// 		if (isTempOrToastNamespace(relation->rd_rel->relnamespace))
-	// 		{
-	// 			relation->rd_backend = TempRelBackendId;
-	// 			relation->rd_islocaltemp = true;
-	// 		}
-	// 		else
-	// 		{
-	// 			/*
-	// 			 * If it's a temp table, but not one of ours, we have to use
-	// 			 * the slow, grotty method to figure out the owning backend.
-	// 			 *
-	// 			 * Note: it's possible that rd_backend gets set to MyBackendId
-	// 			 * here, in case we are looking at a pg_class entry left over
-	// 			 * from a crashed backend that coincidentally had the same
-	// 			 * BackendId we're using.  We should *not* consider such a
-	// 			 * table to be "ours"; this is why we need the separate
-	// 			 * rd_islocaltemp flag.  The pg_class entry will get flushed
-	// 			 * if/when we clean out the corresponding temp table namespace
-	// 			 * in preparation for using it.
-	// 			 */
-	// 			relation->rd_backend = TempRelBackendId;
-	// 			Assert(relation->rd_backend != InvalidBackendId);
-	// 			relation->rd_islocaltemp = false;
-	// 		}
-	// 		break;
-	// 	default:
-	// 		elog(ERROR, "invalid relpersistence: %c",
-	// 			 relation->rd_rel->relpersistence);
-	// 		break;
-	// }
-	// temporary
-	relation->rd_backend = InvalidBackendId;
-	relation->rd_islocaltemp = false;
+// 	/*
+// 	 * normal relations are not nailed into the cache; nor can a pre-existing
+// 	 * relation be new.  It could be temp though.  (Actually, it could be new
+// 	 * too, but it's okay to forget that fact if forced to flush the entry.)
+// 	 */
+// 	relation->rd_refcnt = 0;
+// 	relation->rd_isnailed = false;
+// 	relation->rd_createSubid = InvalidSubTransactionId;
+// 	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
+// 	// switch (relation->rd_rel->relpersistence)
+// 	// {
+// 	// 	case RELPERSISTENCE_UNLOGGED:
+// 	// 	case RELPERSISTENCE_PERMANENT:
+// 	// 		relation->rd_backend = InvalidBackendId;
+// 	// 		relation->rd_islocaltemp = false;
+// 	// 		break;
+// 	// 	case RELPERSISTENCE_TEMP:
+// 	// 		if (isTempOrToastNamespace(relation->rd_rel->relnamespace))
+// 	// 		{
+// 	// 			relation->rd_backend = TempRelBackendId;
+// 	// 			relation->rd_islocaltemp = true;
+// 	// 		}
+// 	// 		else
+// 	// 		{
+// 	// 			/*
+// 	// 			 * If it's a temp table, but not one of ours, we have to use
+// 	// 			 * the slow, grotty method to figure out the owning backend.
+// 	// 			 *
+// 	// 			 * Note: it's possible that rd_backend gets set to MyBackendId
+// 	// 			 * here, in case we are looking at a pg_class entry left over
+// 	// 			 * from a crashed backend that coincidentally had the same
+// 	// 			 * BackendId we're using.  We should *not* consider such a
+// 	// 			 * table to be "ours"; this is why we need the separate
+// 	// 			 * rd_islocaltemp flag.  The pg_class entry will get flushed
+// 	// 			 * if/when we clean out the corresponding temp table namespace
+// 	// 			 * in preparation for using it.
+// 	// 			 */
+// 	// 			relation->rd_backend = TempRelBackendId;
+// 	// 			Assert(relation->rd_backend != InvalidBackendId);
+// 	// 			relation->rd_islocaltemp = false;
+// 	// 		}
+// 	// 		break;
+// 	// 	default:
+// 	// 		elog(ERROR, "invalid relpersistence: %c",
+// 	// 			 relation->rd_rel->relpersistence);
+// 	// 		break;
+// 	// }
+// 	// temporary
+// 	relation->rd_backend = InvalidBackendId;
+// 	relation->rd_islocaltemp = false;
 
-	// /*
-	//  * initialize the tuple descriptor (relation->rd_att).
-	//  */
-	// RelationBuildTupleDesc(relation);
+// 	// /*
+// 	//  * initialize the tuple descriptor (relation->rd_att).
+// 	//  */
+// 	// RelationBuildTupleDesc(relation);
 
-	/*
-	 * Fetch rules and triggers that affect this relation
-	 */
-	// if (relation->rd_rel->relhasrules)
-	// 	RelationBuildRuleLock(relation);
-	// else
-	// {
-	// 	relation->rd_rules = NULL;
-	// 	relation->rd_rulescxt = NULL;
-	// }
+// 	/*
+// 	 * Fetch rules and triggers that affect this relation
+// 	 */
+// 	// if (relation->rd_rel->relhasrules)
+// 	// 	RelationBuildRuleLock(relation);
+// 	// else
+// 	// {
+// 	// 	relation->rd_rules = NULL;
+// 	// 	relation->rd_rulescxt = NULL;
+// 	// }
 
-	// if (relation->rd_rel->relhastriggers)
-	// 	RelationBuildTriggers(relation);
-	// else
-	// 	relation->trigdesc = NULL;
+// 	// if (relation->rd_rel->relhastriggers)
+// 	// 	RelationBuildTriggers(relation);
+// 	// else
+// 	// 	relation->trigdesc = NULL;
 
-	/*
-	 * if it's an index, initialize index-related information
-	 */
-	// if (OidIsValid(relation->rd_rel->relam))
-	// 	RelationInitIndexAccessInfo(relation);
+// 	/*
+// 	 * if it's an index, initialize index-related information
+// 	 */
+// 	// if (OidIsValid(relation->rd_rel->relam))
+// 	// 	RelationInitIndexAccessInfo(relation);
 
-	/*
-	 * if it's an append-only table, get information from pg_appendonly
-	 */
-	// if (relation->rd_rel->relstorage == RELSTORAGE_AOROWS ||
-	// 	relation->rd_rel->relstorage == RELSTORAGE_AOCOLS)
-	// {
-	// 	RelationInitAppendOnlyInfo(relation);
-	// }
+// 	/*
+// 	 * if it's an append-only table, get information from pg_appendonly
+// 	 */
+// 	// if (relation->rd_rel->relstorage == RELSTORAGE_AOROWS ||
+// 	// 	relation->rd_rel->relstorage == RELSTORAGE_AOCOLS)
+// 	// {
+// 	// 	RelationInitAppendOnlyInfo(relation);
+// 	// }
 
-	// /* extract reloptions if any */
-	// RelationParseRelOptions(relation, pg_class_tuple);
+// 	// /* extract reloptions if any */
+// 	// RelationParseRelOptions(relation, pg_class_tuple);
 
-	// /*
-	//  * initialize the relation lock manager information
-	//  */
-	// RelationInitLockInfo(relation);		/* see lmgr.c */
+// 	// /*
+// 	//  * initialize the relation lock manager information
+// 	//  */
+// 	// RelationInitLockInfo(relation);		/* see lmgr.c */
 
-	// /*
-	//  * initialize physical addressing information for the relation
-	//  */
-	// RelationInitPhysicalAddr(relation);
+// 	// /*
+// 	//  * initialize physical addressing information for the relation
+// 	//  */
+// 	// RelationInitPhysicalAddr(relation);
 
-	/* make sure relation is marked as having no open file yet */
-	relation->rd_smgr = NULL;
+// 	/* make sure relation is marked as having no open file yet */
+// 	relation->rd_smgr = NULL;
 
-    // /*
-    //  * initialize Greenplum Database partitioning info
-    //  */
-    // if ((relation->rd_rel->relkind == RELKIND_RELATION &&
-	// 	 !IsSystemRelation(relation)) ||
-	// 	relation->rd_rel->relkind == RELKIND_MATVIEW)
-	// {
-	// 	MemoryContext oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
-	// 	relation->rd_cdbpolicy = GpPolicyFetch(targetRelId);
-	// 	MemoryContextSwitchTo(oldcontext);
-	// }
+//     // /*
+//     //  * initialize Greenplum Database partitioning info
+//     //  */
+//     // if ((relation->rd_rel->relkind == RELKIND_RELATION &&
+// 	// 	 !IsSystemRelation(relation)) ||
+// 	// 	relation->rd_rel->relkind == RELKIND_MATVIEW)
+// 	// {
+// 	// 	MemoryContext oldcontext = MemoryContextSwitchTo(CacheMemoryContext);
+// 	// 	relation->rd_cdbpolicy = GpPolicyFetch(targetRelId);
+// 	// 	MemoryContextSwitchTo(oldcontext);
+// 	// }
 
-    // relation->rd_cdbDefaultStatsWarningIssued = false;
+//     // relation->rd_cdbDefaultStatsWarningIssued = false;
 
-	// /*
-	//  * now we can free the memory allocated for pg_class_tuple
-	//  */
-	// heap_freetuple(pg_class_tuple);
+// 	// /*
+// 	//  * now we can free the memory allocated for pg_class_tuple
+// 	//  */
+// 	// heap_freetuple(pg_class_tuple);
 
-	// /*
-	//  * Insert newly created relation into relcache hash table, if requested.
-	//  *
-	//  * There is one scenario in which we might find a hashtable entry already
-	//  * present, even though our caller failed to find it: if the relation is a
-	//  * system catalog or index that's used during relcache load, we might have
-	//  * recursively created the same relcache entry during the preceding steps.
-	//  * So allow RelationCacheInsert to delete any already-present relcache
-	//  * entry for the same OID.  The already-present entry should have refcount
-	//  * zero (else somebody forgot to close it); in the event that it doesn't,
-	//  * we'll elog a WARNING and leak the already-present entry.
-	//  */
-	// if (insertIt)
-	// 	RelationCacheInsert(relation, true);
+// 	// /*
+// 	//  * Insert newly created relation into relcache hash table, if requested.
+// 	//  *
+// 	//  * There is one scenario in which we might find a hashtable entry already
+// 	//  * present, even though our caller failed to find it: if the relation is a
+// 	//  * system catalog or index that's used during relcache load, we might have
+// 	//  * recursively created the same relcache entry during the preceding steps.
+// 	//  * So allow RelationCacheInsert to delete any already-present relcache
+// 	//  * entry for the same OID.  The already-present entry should have refcount
+// 	//  * zero (else somebody forgot to close it); in the event that it doesn't,
+// 	//  * we'll elog a WARNING and leak the already-present entry.
+// 	//  */
+// 	// if (insertIt)
+// 	// 	RelationCacheInsert(relation, true);
 
-	/* It's fully valid */
-	relation->rd_isvalid = true;
+// 	/* It's fully valid */
+// 	relation->rd_isvalid = true;
 
-	return relation;
-}
+// 	return relation;
+// }
 
 // /*
 //  * Initialize the physical addressing info (RelFileNode) for a relcache entry
@@ -1751,56 +1751,15 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
  *		Caller should eventually decrement count.  (Usually,
  *		that happens by calling RelationClose().)
  */
-Relation
-RelationIdGetRelation(Oid relationId)
+duckdb::PropertySchemaCatalogEntry*
+RelationIdGetRelation(duckdb::idx_t relationId)
 {
-	Relation	rd;
+	duckdb::PropertySchemaCatalogEntry *ps_cat;
+	duckdb::ClientContext client(db);
 
-	/* Make sure we're in an xact, even if this ends up being a cache hit */
-	// Assert(IsTransactionState());
-
-	/*
-	 * first try to find reldesc in the cache
-	 */
-	// RelationIdCacheLookup(relationId, rd);
-
-	// if (RelationIsValid(rd))
-	// {
-	// 	RelationIncrementReferenceCount(rd);
-	// 	/* revalidate cache entry if necessary */
-	// 	if (!rd->rd_isvalid)
-	// 	{
-	// 		/*
-	// 		 * Indexes only have a limited number of possible schema changes,
-	// 		 * and we don't want to use the full-blown procedure because it's
-	// 		 * a headache for indexes that reload itself depends on.
-	// 		 */
-	// 		if (rd->rd_rel->relkind == RELKIND_INDEX)
-	// 			RelationReloadIndexInfo(rd);
-	// 		else
-	// 			RelationClearRelation(rd, true);
-
-	// 		/*
-	// 		 * Normally entries need to be valid here, but before the relcache
-	// 		 * has been initialized, not enough infrastructure exists to
-	// 		 * perform pg_class lookups. The structure of such entries doesn't
-	// 		 * change, but we still want to update the rd_rel entry. So
-	// 		 * rd_isvalid = false is left in place for a later lookup.
-	// 		 */
-	// 		Assert(rd->rd_isvalid ||
-	// 			   (rd->rd_isnailed && !criticalRelcachesBuilt));
-	// 	}
-	// 	return rd;
-	// }
-
-	/*
-	 * no reldesc in the cache, so have RelationBuildDesc() build one and add
-	 * it.
-	 */
-	rd = RelationBuildDesc(relationId, true);
-	// if (RelationIsValid(rd))
-	// 	RelationIncrementReferenceCount(rd);
-	return rd;
+	ps_cat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, relationId);
+	
+	return ps_cat;
 }
 
 // /* ----------------------------------------------------------------

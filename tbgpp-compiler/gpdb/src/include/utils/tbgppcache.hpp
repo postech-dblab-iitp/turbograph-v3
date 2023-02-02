@@ -18,8 +18,10 @@
 
 // #include "access/tupdesc.h"
 // #include "nodes/bitmapset.h"
+#include "common/common.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
-typedef struct RelationData *Relation;
+// typedef struct RelationData *Relation;
 
 /* ----------------
  *		RelationPtr is used in the executor to support index scans
@@ -27,12 +29,12 @@ typedef struct RelationData *Relation;
  *		array.  -cim 9/10/89
  * ----------------
  */
-typedef Relation *RelationPtr;
+// typedef Relation *RelationPtr;
 
 /*
  * Routines to open (lookup) and close a relcache entry
  */
-extern Relation RelationIdGetRelation(Oid relationId);
+extern duckdb::PropertySchemaCatalogEntry* RelationIdGetRelation(duckdb::idx_t relationId);
 // extern void RelationClose(Relation relation);
 
 // /*

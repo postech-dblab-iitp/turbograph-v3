@@ -50,7 +50,7 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 
 Catalog::Catalog(DatabaseInstance &db)
     : db(db), dependency_manager(make_unique<DependencyManager>(*this)) {
-	catalog_version = 0;
+	catalog_version = 0; // TODO we need to load this
 }
 
 Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment_)
@@ -377,30 +377,24 @@ SimilarCatalogEntry Catalog::SimilarEntryInSchemas(ClientContext &context, const
 
 CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type, const string &schema_name,
                                         const string &name, bool if_exists) { //, QueryErrorContext error_context) {
-// IC();
 	if (!schema_name.empty()) {
 		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
-// IC();
+
 		if (!schema) {
 			D_ASSERT(if_exists);
 			return {nullptr, nullptr};
 		}
-// icecream::ic.enable();
-// IC(schema_name);
-// IC(name);
-// icecream::ic.disable();
+
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
-// fprintf(stdout, "type %d schema_name %s, name %s, entry %p\n", (uint8_t)type, schema_name.c_str(), name.c_str(), entry);
-// IC();
+
 		if (!entry && !if_exists) {
 			D_ASSERT(false);
 			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
 		}
-// IC();
 
 		return {schema, entry};
 	}
-// IC();
+
 //	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
 	const auto paths = vector<string>();
 	for (const auto &path : paths) {
@@ -410,7 +404,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 			return lookup;
 		}
 	}
-// IC();
+
 	if (!if_exists) {
 		vector<SchemaCatalogEntry *> schemas;
 		for (const auto &path : paths) {
@@ -423,7 +417,6 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 		D_ASSERT(false);
 		//throw CreateMissingEntryException(context, name, type, schemas, error_context);
 	}
-// IC();
 
 	return {nullptr, nullptr};
 }
@@ -446,6 +439,31 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const 
                                 bool if_exists) { //, QueryErrorContext error_context) {
 	//return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
 	return LookupEntry(context, type, schema_name, name, if_exists).entry;
+}
+
+CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, idx_t oid, bool if_exists) {
+	if (!schema_name.empty()) {
+		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
+
+		if (!schema) {
+			D_ASSERT(if_exists);
+			return nullptr;
+		}
+
+		auto entry = schema->GetCatalogEntryFromOid(oid);
+
+		if (!entry && !if_exists) {
+			D_ASSERT(false);
+			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
+		}
+
+		return entry;
+	}
+
+//	const auto &paths = ClientData::Get(context).catalog_search_path->Get();
+// TODO remove logics using search paths..
+
+	return nullptr;
 }
 
 template <>

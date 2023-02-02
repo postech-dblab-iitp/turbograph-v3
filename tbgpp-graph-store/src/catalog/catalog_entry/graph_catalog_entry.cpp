@@ -38,20 +38,20 @@ unique_ptr<CatalogEntry> GraphCatalogEntry::Copy(ClientContext &context) {
 	//auto create_info = make_unique<CreateGraphInfo>(schema->name, name);
 	//return make_unique<GraphCatalogEntry>(catalog, schema, create_info.get());
 }
-void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, EdgeTypeID edge_type_id) {
+void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, EdgeTypeID edge_type_id) {
 	auto target_id = type_to_partition_index.find(edge_type_id);
 	if (target_id != type_to_partition_index.end()) {
 		// found ?
 		D_ASSERT(false);
 	} else {
 		// not found
-		type_to_partition_index.insert({edge_type_id, pid});
+		type_to_partition_index.insert({edge_type_id, oid});
 	}
 	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
 	MkDir(partition_dir_path, true);
 }
 
-void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, string type) {
+void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, string type) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string type_(temp_charallocator);
 	type_ = type.c_str();
@@ -70,22 +70,22 @@ void GraphCatalogEntry::AddEdgePartition(ClientContext &context, PartitionID pid
 		D_ASSERT(false);
 	} else {
 		// not found
-		type_to_partition_index.insert({edge_type_id, pid});
+		type_to_partition_index.insert({edge_type_id, oid});
 	}
 	string partition_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid);
 	MkDir(partition_dir_path, true);
 }
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<VertexLabelID>& label_ids) {
+void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<VertexLabelID>& label_ids) {
 	for (size_t i = 0; i < label_ids.size(); i++) {
 		auto target_ids = label_to_partition_index.find(label_ids[i]);
 		if (target_ids != label_to_partition_index.end()) {
 			// found
-			target_ids->second.push_back(pid);
+			target_ids->second.push_back(oid);
 		} else {
 			// not found
 			void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
-			PartitionID_vector tmp_vec(void_alloc);
-			tmp_vec.push_back(pid);
+			idx_t_vector tmp_vec(void_alloc);
+			tmp_vec.push_back(oid);
 			label_to_partition_index.insert({label_ids[i], tmp_vec});
 		}
 	}
@@ -93,7 +93,7 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 	MkDir(partition_dir_path, true);
 }
 
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, vector<string>& labels) {
+void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string label_(temp_charallocator);
 	
@@ -111,12 +111,12 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 		auto target_ids = label_to_partition_index.find(vertex_label_id);
 		if (target_ids != label_to_partition_index.end()) {
 			// found
-			target_ids->second.push_back(pid);
+			target_ids->second.push_back(oid);
 		} else {
 			// not found
 			void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
-			PartitionID_vector tmp_vec(void_alloc);
-			tmp_vec.push_back(pid);
+			idx_t_vector tmp_vec(void_alloc);
+			tmp_vec.push_back(oid);
 			label_to_partition_index.insert({vertex_label_id, tmp_vec});
 		}
 	}
@@ -124,13 +124,14 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 	MkDir(partition_dir_path, true);
 }
 
-PartitionID_vector GraphCatalogEntry::Intersection(ClientContext &context, vector<VertexLabelID>& label_ids) {
+vector<idx_t> GraphCatalogEntry::Intersection(ClientContext &context, vector<VertexLabelID>& label_ids) {
 	void_allocator void_alloc (context.db->GetCatalog().catalog_segment->get_segment_manager());
-    PartitionID_vector curr_intersection(void_alloc);
-	PartitionID_vector last_intersection(label_to_partition_index.at(label_ids[0]), void_alloc); // copy
-	//for (std::size_t i = 0; i < label_to_partition_index.at(label_ids[0]).size(); i++) {
-	//	last_intersection.push_back(label_to_partition_index.at(label_ids[0])[i]);
-	//}
+    // PartitionID_vector curr_intersection(void_alloc);
+	vector<idx_t> curr_intersection;
+	vector<idx_t> last_intersection;
+	for (std::size_t i = 0; i < label_to_partition_index.at(label_ids[0]).size(); i++) {
+		last_intersection.push_back(label_to_partition_index.at(label_ids[0])[i]);
+	}
 
     for (std::size_t i = 1; i < label_ids.size(); ++i) {
         std::set_intersection(last_intersection.begin(), last_intersection.end(),
@@ -142,9 +143,11 @@ PartitionID_vector GraphCatalogEntry::Intersection(ClientContext &context, vecto
     return last_intersection;
 }
 
-PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
+// TODO avoid copy & change name keys -> labelset_name?
+vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string key_(temp_charallocator);
+	vector<idx_t> return_pids;
 
 	if (graph_component_type == GraphComponentType::EDGE) {
 		D_ASSERT(keys.size() == 1);
@@ -152,12 +155,12 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 		auto target_id = edgetype_map.find(key_);
 		if (target_id != edgetype_map.end()) {
 			// found
-			return type_to_partition_index[target_id->second];
+			return_pids.push_back(type_to_partition_index[target_id->second]);
 		} else {
 			// not found
 			//return nullptr;
 			// AddPartition always??
-			return -1; //TODO return another value?.. or throw error?
+			// return -1; //TODO return another value?.. or throw error?
 		}
 	} else if (graph_component_type == GraphComponentType::VERTEX) {
 		size_t key_len = keys.size();
@@ -174,14 +177,13 @@ PartitionID GraphCatalogEntry::LookupPartition(ClientContext &context, vector<st
 				//break;
 				// not found
 				// AddPartition always??
-				return -1; //TODO return another value?.. or throw error?
+				// return -1; //TODO return another value?.. or throw error?
 			}
 		}
-		PartitionID_vector return_pids = Intersection(context, label_ids);
-		D_ASSERT(return_pids.size() == 1); // this is not true..
-		return return_pids[0];
+		return_pids = Intersection(context, label_ids);
+		// D_ASSERT(return_pids.size() == 1); // this is not true..
 	}
-	return -1;
+	return return_pids;
 }
 
 void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids) {

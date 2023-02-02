@@ -19,7 +19,7 @@
 // #include "nodes/pg_list.h"
 // #include "parser/parse_coerce.h"
 // #include "utils/relcache.h"
-#include "utils/tbgppcache.h"
+// #include "utils/tbgppcache.h"
 
 /* Result list element for get_op_btree_interpretation */
 typedef struct OpBtreeInterpretation
