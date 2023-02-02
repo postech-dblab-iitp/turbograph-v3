@@ -130,7 +130,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     CreatePartitionInfo partition_info("main", partition_name.c_str());
     PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
     PartitionID new_pid = graph_cat->GetNewPartitionID();
-    graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
+    graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
     
     fprintf(stdout, "Init GraphCSVFile\n");
     auto init_csv_start = std::chrono::high_resolution_clock::now();
@@ -253,7 +253,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     CreatePartitionInfo partition_info("main", partition_name.c_str());
     PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
     PartitionID new_pid = graph_cat->GetNewPartitionID();
-    graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
+    graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
 
     // Initialize CSVFileReader
     GraphSIMDCSVFileParser reader;

@@ -53,8 +53,8 @@
 #include "naucrates/traceflags/traceflags.h"
 
 
-using namespace gpopt;
 
+#include "mdprovider/MDProviderTBGPP.h"
 
 using namespace antlr4;
 using namespace gpopt;
@@ -156,7 +156,7 @@ static void * MyOrcaTestExec(void *pv) {
 	InitDXL();
 	CMDCache::Init();
 // load metadata objects into provider file
-	CMDProviderMemory * provider = NULL;
+	MDProviderTBGPP * provider = NULL;
 	CMemoryPool *mp = NULL; 
 	{
 		CAutoMemoryPool amp;
@@ -168,7 +168,7 @@ static void * MyOrcaTestExec(void *pv) {
 		auto md_path = "../tbgpp-compiler/test/minidumps/q1_metaonly-simplified.mdp";
 		//auto md_path = "../tbgpp-compiler/test/minidumps/pretty_mdp.mdp";
 
-		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
+		provider = new (mp, __FILE__, __LINE__) MDProviderTBGPP(mp);
 		// detach safety
 		(void) amp.Detach();
 	}
@@ -198,7 +198,7 @@ static void * MyOrcaTestExec(void *pv) {
 		CAutoTraceFlag atf9(gpos::EOptTraceFlag::EopttraceEnumeratePlans, true /*fSet*/);
 		CAutoTraceFlag atf10(gpos::EOptTraceFlag::EopttracePrintOptimizationContext, true /*fSet*/);
 	// connect provider
-		CMDProviderMemory *pmdp = provider;
+		MDProviderTBGPP *pmdp = provider;
 		pmdp->AddRef();
 
 	// separate memory pool used for accessor
@@ -238,9 +238,9 @@ static void * MyOrcaTestExec(void *pv) {
 		
 	// define join plan expression
 		CExpression *lhs_get = genLogicalGet1(mp);
-		CExpression *rhs_get = genLogicalGet2(mp);
-		CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
-		//CExpression* pexpr = lhs_get;
+		// CExpression *rhs_get = genLogicalGet2(mp);
+		// CExpression *pexpr = CTestUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs_get, rhs_get);
+		CExpression* pexpr = lhs_get;
 
 		{
 			std::cout << "[TEST] logical plan string" << std::endl;
@@ -413,8 +413,7 @@ int _main(int argc, char** argv) {
 
 	// std::cout << "[TEST] orca init / params" << std::endl;
 	// struct gpos_init_params gpos_params = {NULL};
-
-	// gpos_init(&gpos_params);
+	
 	// gpdxl_init();
 	// gpopt_init();
 

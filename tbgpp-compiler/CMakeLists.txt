@@ -64,7 +64,7 @@ target_include_directories(tbgpp-compiler PUBLIC
 	# kuzu
 	"${PROJECT_SOURCE_DIR}/kuzu/include"
 	# gpdb
-	"${PROJECT_SOURCE_DIR}/gpdb/src/include/gpopt"
+	"${PROJECT_SOURCE_DIR}/gpdb/src/include"
 	# gporca
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpos/include"
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libnaucrates/include"
@@ -84,14 +84,16 @@ target_include_directories(tbgpp-compiler PUBLIC
   	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" 
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/third_party/TreePrinter/TreePrinter/src"
+	# tbgpp-graph-store
+	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include"
 )
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
-target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main)
-target_link_libraries(tbgpp-compiler pthread aio numa rt hwloc tbb)
+target_link_libraries(tbgpp-compiler tbgpp-common-lib)
+target_link_libraries(tbgpp-compiler "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 # gpdb
-#target_link_libraries(tbgpp-compiler gpdb)
+target_link_libraries(tbgpp-compiler gpdb)
 target_link_libraries(tbgpp-compiler gpos naucrates gpdbcost gpopt gporca_test_lib)
 # kuzu
 target_link_libraries(tbgpp-compiler kuzu)

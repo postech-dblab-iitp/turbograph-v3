@@ -15,6 +15,7 @@
 #include <functional>
 #include "common/atomic.hpp"
 #include "common/boost.hpp"
+#include "common/boost_typedefs.hpp"
 
 namespace duckdb {
 struct CreateSchemaInfo;
@@ -102,7 +103,7 @@ public:
 	unique_ptr<DependencyManager> dependency_manager;
 	//! Write lock for the catalog
 	mutex write_lock;
-	// Shared memory manager
+	//! Shared memory manager
 	fixed_managed_mapped_file *catalog_segment;
 
 public:
@@ -212,6 +213,7 @@ public:
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, CatalogType type, const string &schema,
 	                                  const string &name, bool if_exists = false);
 	                                  //QueryErrorContext error_context = QueryErrorContext());
+	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &schema, idx_t oid, bool if_exists = false);
 
 	//! Gets the "schema.name" entry without a specified type, if entry does not exist an exception is thrown
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &schema, const string &name);

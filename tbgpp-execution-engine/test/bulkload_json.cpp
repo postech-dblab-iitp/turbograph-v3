@@ -554,7 +554,7 @@ icecream::ic.disable();
 				PartitionID new_pid = graph_cat->GetNewPartitionID();
 				CreatePartitionInfo partition_info("main", partition_name.c_str(), new_pid);
 				PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-				graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
+				graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
 
 				DataChunk data;
 				reader.IterateJson(json_file_vertices[idx][vertex_idx].first.c_str(), json_file_vertices[idx][vertex_idx].second.c_str(), data, JsonFileType::JSON, graph_cat, partition_cat);
@@ -586,7 +586,7 @@ icecream::ic.disable();
 		CreatePartitionInfo partition_info("main", partition_name.c_str());
 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		PartitionID new_pid = graph_cat->GetNewPartitionID();
-		graph_cat->AddVertexPartition(*client.get(), new_pid, vertex_labels);
+		graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
 		
 		fprintf(stdout, "Load & Parse GraphCSVFile\n");
 		auto init_csv_start = std::chrono::high_resolution_clock::now();
@@ -759,7 +759,7 @@ icecream::ic.disable();
 		CreatePartitionInfo partition_info("main", partition_name.c_str());
 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		PartitionID new_pid = graph_cat->GetNewPartitionID();
-		graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
+		graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
 
 		// Initialize CSVFileReader
 		GraphSIMDCSVFileParser reader;
@@ -1152,7 +1152,7 @@ icecream::ic.disable();
 		// // CreatePartitionInfo partition_info("main", partition_name.c_str());
 		// // PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		// // PartitionID new_pid = graph_cat->GetNewPartitionID();
-		// // graph_cat->AddEdgePartition(*client.get(), new_pid, edge_type);
+		// // graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
 
 		// // Initialize CSVFileReader
 		// GraphSIMDCSVFileParser reader;
