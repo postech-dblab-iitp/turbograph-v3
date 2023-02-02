@@ -39,6 +39,10 @@
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"
 #include "gpopt/base/CColRef.h"
+#include "gpopt/operators/CScalarProjectList.h"
+#include "gpopt/operators/CScalarProjectElement.h"
+#include "gpopt/operators/CLogicalProject.h"
+#include "gpopt/operators/CScalarIdent.h"
 
 #include "planner/planner.hpp"
 
@@ -57,10 +61,13 @@
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
 
+#include "naucrates/traceflags/traceflags.h"
+
+
 
 #include "BTNode.h"
+#include "planner/logical_plan.hpp"
 
-#include "naucrates/traceflags/traceflags.h"
 
 
 namespace s62 {
@@ -91,23 +98,25 @@ private:
 	/* Generating orca logical plan */
 	CExpression* lGetLogicalPlan();
 	CExpression* lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
-	void lPlanQueryPart(
-        const NormalizedQueryPart& queryPart, CExpression** plan);
-	void lPlanReadingClause(
-        BoundReadingClause* boundReadingClause, CExpression** plan);
-	void lPlanMatchClause(
-		BoundReadingClause* boundReadingClause, CExpression** plan);
-	void lPlanUnwindClause(
-        BoundReadingClause* boundReadingClause, CExpression** plan);
-	void lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
-        expression_vector& predicates, CExpression** plan);
+	LogicalPlan* lPlanQueryPart(
+        const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanReadingClause(
+        BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanMatchClause(
+		BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanUnwindClause(
+        BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
+        expression_vector& predicates, LogicalPlan* prev_plan);
 	
-	
+	/* Helper for generating orca logical plans */
+	LogicalPlan* lExprLogicalGetNode(string name);
+	LogicalPlan* lExprLogicalGetEdge(string name);
 
-		// TODO fixme
-	CExpression * lExprLogicalGetNode();
-	CExpression * lExprLogicalGetEdge();
-	CExpression * lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs, uint64_t lhs_pos, uint64_t rhs_pos);
+	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
+
+	CExpression* lExprScalarProjectionOnColIds(CExpression* relation, vector<uint64_t> col_ids);
+	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs, uint64_t lhs_pos, uint64_t rhs_pos);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);

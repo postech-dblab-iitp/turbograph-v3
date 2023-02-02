@@ -12,6 +12,7 @@ enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
  */
 class RelPattern : public NodePattern {
 public:
+    //  will get 
     RelPattern(string name, vector<string> tableNames, string lowerBound, string upperBound,
         ArrowDirection arrowDirection,
         vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
@@ -20,6 +21,12 @@ public:
           arrowDirection{arrowDirection} {}
 
     ~RelPattern() = default;
+
+    inline vector<string> getLabelOrTypeNames() const { 
+        // when accessing edge, the expression should be 
+        // [T1|T2|T3] => which is represented in [T1,T2,T3], which is an union between edge labels
+        return labelNames;
+     }
 
     inline string getLowerBound() const { return lowerBound; }
 

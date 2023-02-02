@@ -114,7 +114,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
-    auto tableIDs = bindRelTableIDs(relPattern.getTableNames());
+    auto tableIDs = bindRelTableIDs(relPattern.getLabelOrTypeNames());
     // bind node to rel
     auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
     auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
@@ -190,9 +190,9 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to single node a with both labels
-        if (!nodePattern.getTableNames().empty()) {
-            // S62 change table ids to relations
-            auto otherTableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+        if (!nodePattern.getLabelOrTypeNames().empty()) {
+// S62 change table ids to relations
+            auto otherTableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
             queryNode->addTableIDs(otherTableIDs);
         }
     } else {
@@ -216,7 +216,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
 // S62 change table ids to relations
-    auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+    auto tableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
@@ -251,37 +251,23 @@ vector<table_id_t> Binder::bindTableIDs(
     const vector<string>& tableNames, DataTypeID nodeOrRelType) {
     unordered_set<table_id_t> tableIDs;
 
+    // TODO tablenames should be vector of vector considering the union over labelsets
+        // e.g. (A:B | C:D) => [[A,B], [C,D]] 
+
     // syntax is strange. each tablename is considered intersection.
-
     return vector<table_id_t>();
-    // switch (nodeOrRelType) {
-    // case NODE: {
-    //     if (tableNames.empty()) {
-    //         for (auto tableID : catalog.getReadOnlyVersion()->getNodeTableIDs()) {
-    //             tableIDs.insert(tableID);
-    //         }
-    //     } else {
-    //         for (auto& tableName : tableNames) {
-    //             tableIDs.insert(bindNodeTableID(tableName));
-    //         }
-    //     }
 
-    // } break;
-    // case REL: {
-    //     if (tableNames.empty()) {
-    //         for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
-    //             tableIDs.insert(tableID);
-    //         }
-    //     }
-    //     for (auto& tableName : tableNames) {
-    //         tableIDs.insert(bindRelTableID(tableName));
-    //     }
-    // } break;
-    // default:
-    //     throw NotImplementedException(
-    //         "bindTableIDs(" + Types::dataTypeToString(nodeOrRelType) + ").");
-    // }
-    // auto result = vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
+    switch (nodeOrRelType) {
+        case NODE:
+            // if empty, pass []
+            // this is an intersection semantics
+        case REL:
+            // if empty, return all edges
+            // otherwise, union table of all edges
+            // this is an union semantics
+        default:
+            assert(false);
+    }    
     // std::sort(result.begin(), result.end());
     // return result;
 }

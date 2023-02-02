@@ -258,7 +258,7 @@
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg> -->
-      <dxl:Relation Mdid="6.10000.1.1" Name="V" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
+      <dxl:Relation Mdid="6.10000.0.0" Name="V" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
         <dxl:Columns>
           <dxl:Column Name="_id" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
@@ -271,12 +271,12 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.10000.1.1" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.10000.0.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Relation Mdid="6.20000.1.1" Name="R" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
+      <dxl:Relation Mdid="6.20000.0.0" Name="R" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
         <dxl:Columns>
           <dxl:Column Name="_id" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
@@ -295,24 +295,24 @@
           </dxl:Column>
         </dxl:Columns>
         <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.12345.1.1" IsPartial="false"/>
-          <dxl:IndexInfo Mdid="0.20000.1.1" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.12345.0.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.20000.0.0" IsPartial="false"/>
         </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <!-- jhko custom index -->
-      <dxl:Index Mdid="0.10000.1.1" Name="VIdIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2">
+      <dxl:Index Mdid="0.10000.0.0" Name="VIdIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2">
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
       </dxl:Index>
-      <dxl:Index Mdid="0.12345.1.1" Name="RAdjIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2">
+      <dxl:Index Mdid="0.12345.0.0" Name="RAdjIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2">
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
       </dxl:Index>
-      <dxl:Index Mdid="0.20000.1.1" Name="RIdIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4">
+      <dxl:Index Mdid="0.20000.0.0" Name="RIdIdx" IsClustered="false" IndexType="B-tree" PhysicalIndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4">
         <dxl:Opfamilies>
           <dxl:Opfamily Mdid="0.1978.1.0"/>
         </dxl:Opfamilies>
