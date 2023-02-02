@@ -210,6 +210,8 @@ unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
     const Expression& nodeOrRel, const vector<Property>& properties) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
+
+// conform data type between multi table access
     validatePropertiesWithSameDataType(
         properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
     return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,

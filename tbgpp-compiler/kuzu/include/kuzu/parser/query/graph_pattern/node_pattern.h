@@ -17,14 +17,17 @@ class NodePattern {
 public:
     NodePattern(string name, vector<string> tableNames,
         vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
-        : variableName{std::move(name)}, tableNames{std::move(tableNames)},
+        : variableName{std::move(name)}, labelNames{std::move(tableNames)},
           propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
     virtual ~NodePattern() = default;
 
     inline string getVariableName() const { return variableName; }
 
-    inline vector<string> getTableNames() const { return tableNames; }
+    inline vector<string> getLabelOrTypeNames() const {
+        // MATCH (A:B) => [A,B] (intersection between labels - return labels having both A and B)
+        return labelNames;
+    }
 
     inline uint32_t getNumPropertyKeyValPairs() const { return propertyKeyValPairs.size(); }
     inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
@@ -33,7 +36,7 @@ public:
 
 protected:
     string variableName;
-    vector<string> tableNames;
+    vector<string> labelNames;
     vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs;
 };
 
