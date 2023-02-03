@@ -46,6 +46,7 @@ target_include_directories(tbgpp-main PUBLIC
 target_include_directories(tbgpp-main PUBLIC
 	# tbgpp-compiler
 	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/include/planner"
 	# kuzu
 	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/kuzu/include"
 	# gpdb
@@ -57,7 +58,7 @@ target_include_directories(tbgpp-main PUBLIC
 	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/gpdb/src/backend/gporca/libgpopt/include"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/gpdb/src/backend/gporca/server/include"
 	# third_party
-	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/third_party/antlr4_cypher/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/third_party/antlr4_cypher/antlr4"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-compiler/third_party/antlr4_runtime/src"
 )
 target_include_directories(tbgpp-main PUBLIC

@@ -249,19 +249,22 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
 // S62 access catalog and  change to mdids
 vector<table_id_t> Binder::bindTableIDs(
     const vector<string>& tableNames, DataTypeID nodeOrRelType) {
+    
     unordered_set<table_id_t> tableIDs;
 
     // TODO tablenames should be vector of vector considering the union over labelsets
         // e.g. (A:B | C:D) => [[A,B], [C,D]] 
 
     // syntax is strange. each tablename is considered intersection.
-    return vector<table_id_t>();
+    
 
     switch (nodeOrRelType) {
         case NODE:
-            // if empty, pass []
-            // this is an intersection semantics
+            // TODO 0202 uncomment me
+            // vector<uint64_t> oids = (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), tableNames));
+            // /return oids;
         case REL:
+            assert(false);
             // if empty, return all edges
             // otherwise, union table of all edges
             // this is an union semantics
@@ -269,7 +272,9 @@ vector<table_id_t> Binder::bindTableIDs(
             assert(false);
     }    
     // std::sort(result.begin(), result.end());
+
     // return result;
+    return vector<table_id_t>();    // TODO fixme
 }
 
 } // namespace binder
