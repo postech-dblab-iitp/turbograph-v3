@@ -427,7 +427,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 
 LogicalPlan* Planner::lExprLogicalGetNode(string name, uint64_t oid) {
 												// TODO 0202 replace 3 with #columns of the table to scan
-	auto expr = lExprLogicalGet(oid, name, 3);	// TODO get 3 by calling the API
+	auto expr = lExprLogicalGet(oid, name, 10);	// TODO get 3 by calling the API
 	auto plan = new LogicalPlan(expr);
 	// TODO update schema
 	plan->bindNode(name);
