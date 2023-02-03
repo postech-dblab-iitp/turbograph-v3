@@ -259,9 +259,7 @@ icecream::ic.disable();
 	// TODO 0202 this should work.
 	// Test catalog access to get object id
 	vector<idx_t> oids;
-	(client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"vpart_Person"}), oids);
-	for (int i = 0; i < oids.size(); i++) fprintf(stdout, "oid %ld, ", oids[i]);
-	fprintf(stdout, "\n");
+	(client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
 	// TODO why does this function return void??
 
 	

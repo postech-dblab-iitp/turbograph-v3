@@ -131,22 +131,17 @@ vector<idx_t> GraphCatalogEntry::Intersection(ClientContext &context, vector<Ver
     // PartitionID_vector curr_intersection(void_alloc);
 	vector<idx_t> curr_intersection;
 	vector<idx_t> last_intersection;
-	icecream::ic.enable(); IC(); icecream::ic.disable();
 	for (std::size_t i = 0; i < label_to_partition_index.at(label_ids[0]).size(); i++) {
 		last_intersection.push_back(label_to_partition_index.at(label_ids[0])[i]);
 	}
-	icecream::ic.enable(); IC(); icecream::ic.disable();
 
-	icecream::ic.enable(); IC(); icecream::ic.disable();
     for (std::size_t i = 1; i < label_ids.size(); ++i) {
-		icecream::ic.enable(); IC(); icecream::ic.disable();
         std::set_intersection(last_intersection.begin(), last_intersection.end(),
             label_to_partition_index.at(label_ids[i]).begin(), label_to_partition_index.at(label_ids[i]).end(),
             std::back_inserter(curr_intersection));
         std::swap(last_intersection, curr_intersection);
         curr_intersection.clear();
     }
-	icecream::ic.enable(); IC(); icecream::ic.disable();
     return last_intersection;
 }
 
@@ -156,7 +151,6 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 	char_string key_(temp_charallocator);
 	vector<idx_t> return_pids;
 
-	icecream::ic.enable(); IC(); icecream::ic.disable();
 	if (graph_component_type == GraphComponentType::EDGE) {
 		D_ASSERT(keys.size() == 1);
 		key_ = keys[0].c_str();
@@ -171,20 +165,15 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 			// return -1; //TODO return another value?.. or throw error?
 		}
 	} else if (graph_component_type == GraphComponentType::VERTEX) {
-		icecream::ic.enable(); IC(); icecream::ic.disable();
 		size_t key_len = keys.size();
 		vector<VertexLabelID> label_ids;
 		bool not_found = false;
-		icecream::ic.enable(); IC(); icecream::ic.disable();
 		for (size_t i = 0; i < key_len; i++) {
-			icecream::ic.enable(); IC(); icecream::ic.disable();
 			key_ = keys[i].c_str();
 			auto target_id = vertexlabel_map.find(key_);
 			if (target_id != vertexlabel_map.end()) {
-				icecream::ic.enable(); IC(); icecream::ic.disable();
 				label_ids.push_back(target_id->second);
 			} else {
-				icecream::ic.enable(); IC(); icecream::ic.disable();
 				//return nullptr;
 				//not_found = true;
 				//break;
@@ -193,10 +182,7 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 				// return -1; //TODO return another value?.. or throw error?
 			}
 		}
-		icecream::ic.enable(); IC(); icecream::ic.disable();
 		return_pids = Intersection(context, label_ids);
-		icecream::ic.enable(); IC(); icecream::ic.disable();
-		// D_ASSERT(return_pids.size() == 1); // this is not true..
 	}
 	return return_pids;
 }

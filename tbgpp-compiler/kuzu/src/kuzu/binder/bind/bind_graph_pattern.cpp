@@ -2,6 +2,8 @@
 
 #include "binder/binder.h"
 #include "common/type_utils.h"
+#include "database.hpp"
+#include "catalog_wrapper.hpp"
 
 namespace kuzu {
 namespace binder {
@@ -259,10 +261,11 @@ vector<table_id_t> Binder::bindTableIDs(
     
 
     switch (nodeOrRelType) {
-        case NODE:
-            // TODO 0202 uncomment me
-            // vector<uint64_t> oids = (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), tableNames));
-            // /return oids;
+        case NODE: {
+            vector<uint64_t> oids;
+            client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+            return oids;
+        }
         case REL:
             assert(false);
             // if empty, return all edges
