@@ -7,6 +7,8 @@
 #include "cache/disk_aio/TypeDef.hpp"
 #include "common/directory_helper.hpp"
 
+#include "icecream.hpp"
+
 #include <memory>
 #include <algorithm>
 
@@ -181,7 +183,6 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 			}
 		}
 		return_pids = Intersection(context, label_ids);
-		// D_ASSERT(return_pids.size() == 1); // this is not true..
 	}
 	return return_pids;
 }
