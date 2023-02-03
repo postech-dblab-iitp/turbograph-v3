@@ -6,6 +6,8 @@
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
 
+#include "main/client_context.hpp"
+
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
 
@@ -25,8 +27,8 @@ class Binder {
 public:
     // explicit Binder(const Catalog& catalog)
     //     : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
-        explicit Binder()
-        : lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+        explicit Binder(duckdb::ClientContext* client)
+        : client(client), lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
@@ -177,6 +179,9 @@ private:
 
 private:
     // const Catalog& catalog;
+
+    duckdb::ClientContext* client;
+
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;

@@ -1,4 +1,5 @@
 #include "planner/planner.hpp"
+#include "mdprovider/MDProviderTBGPP.h"
 
 #include <string>
 
@@ -128,6 +129,23 @@ CMDProviderMemory* Planner::_orcaGetProviderMemory() {
 	return provider;
 }
 
+gpmd::MDProviderTBGPP* Planner::_orcaGetProviderTBGPP() {
+	gpmd::MDProviderTBGPP * provider = nullptr;
+	CMemoryPool *mp = nullptr; 
+	{
+		CAutoMemoryPool amp;
+		mp = amp.Pmp();
+		provider = new (mp, __FILE__, __LINE__) gpmd::MDProviderTBGPP(mp);
+		// detach safety
+		(void) amp.Detach();
+	}
+	D_ASSERT( provider != nullptr );
+	provider->AddRef();
+
+	return provider;
+}
+
+
 void Planner::_orcaInitXForm() {
 	// TODO i want to remove this.
 	CXformFactory::Pxff()->Shutdown();	// for allowing scan
@@ -186,7 +204,8 @@ void * Planner::_orcaExec(void* planner_ptr) {
 	InitDXL();
 	planner->_orcaInitXForm();
 	CMDCache::Init();
-	CMDProviderMemory* provider = planner->_orcaGetProviderMemory();
+	//CMDProviderMemory* provider = planner->_orcaGetProviderMemory();
+	MDProviderTBGPP* provider = planner->_orcaGetProviderTBGPP();
 
 	/* Core area */ 
 	{	// this area should be enforced
@@ -343,9 +362,19 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 
 	LogicalPlan* plan = nullptr;
 
-	// auto* gq = queryGraphCollection.getQueryGraph(0);
-	// vector<shared_ptr<NodeExpression>> query_nodes = gq->getQueryNodes();
-	// vector<shared_ptr<RelExpression>> query_edges = gq->getQueryRels();
+// TODO 0202 testcase - return scan on "n"
+	auto* qg = qgc.getQueryGraph(0);
+	vector<shared_ptr<NodeExpression>> query_nodes = qg->getQueryNodes();
+	auto node1 = query_nodes[0].get();
+
+	auto oids = node1->getTableIDs();
+	D_ASSERT(oids.size() >= 1);
+	// currently generate scan on only one table
+	plan = lExprLogicalGetNode("n", oids[0]);	// id, vp1, vp2
+	return plan;
+
+	// auto* qg = qgc.getQueryGraph(0);
+	// vector<shared_ptr<NodeExpression>> query_nodes = qg->getQueryNodes();
 	// auto node1 = query_nodes[0].get();
 	// auto edge = query_edges[0].get();
 	// auto node2 = query_nodes[1].get();
@@ -356,53 +385,57 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 	// auto secondjoin = lExprLogicalJoinOnId(firstjoin, lnode2, 5, 0);	// tid = id
 	// auto leaf_plan_obj = new LogicalPlan(secondjoin);
 
+
+
+
 	// TODO bidirectional matching not considered yet.
 	
-	auto num_qgs = qgc.getNumQueryGraphs();
-	vector<vector<string>> bound_nodes(num_qgs, vector<string>());	// for each qg
-	vector<vector<string>> bound_edges(num_qgs, vector<string>());
-	vector<LogicalPlan*> gq_plans(num_qgs, nullptr);
+	// auto num_qgs = qgc.getNumQueryGraphs();
+	// vector<vector<string>> bound_nodes(num_qgs, vector<string>());	// for each qg
+	// vector<vector<string>> bound_edges(num_qgs, vector<string>());
+	// vector<LogicalPlan*> gq_plans(num_qgs, nullptr);
 
 	
-	for(int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
-		QueryGraph* qg = qgc.getQueryGraph(idx);
+	// for(int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
+	// 	QueryGraph* qg = qgc.getQueryGraph(idx);
 
-		LogicalPlan* qg_plan = nullptr;
+	// 	LogicalPlan* qg_plan = nullptr;
 
-		for(int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
-			auto shd_edge = qg->getQueryRel(edge_idx);
-			RelExpression* qedge = shd_edge.get();
-			string edge_name = qedge->getUniqueName();
-			string lhs_name = qedge->getSrcNodeName();
-			string rhs_name = qedge->getDstNodeName();
+	// 	for(int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
+	// 		auto shd_edge = qg->getQueryRel(edge_idx);
+	// 		RelExpression* qedge = shd_edge.get();
+	// 		string edge_name = qedge->getUniqueName();
+	// 		string lhs_name = qedge->getSrcNodeName();
+	// 		string rhs_name = qedge->getDstNodeName();
 
-			bool isLHSBound = false;
-			bool isRHSBound = false;
-			if(!qg_plan) {
-				isLHSBound = qg_plan->isNodeBound(lhs_name) ? true : false;
-				isRHSBound = qg_plan->isNodeBound(rhs_name) ? true : false;
-			}
+	// 		bool isLHSBound = false;
+	// 		bool isRHSBound = false;
+	// 		if(!qg_plan) {
+	// 			isLHSBound = qg_plan->isNodeBound(lhs_name) ? true : false;
+	// 			isRHSBound = qg_plan->isNodeBound(rhs_name) ? true : false;
+	// 		}
 
-			// TODO continue logic;
-		}
+	// 		// TODO continue logic;
+	// 	}
 			
-		// append qg plan;
-	}
+	// 	// append qg plan;
+	// }
 
 	// now join 
 	return nullptr;
 }
 
-LogicalPlan* Planner::lExprLogicalGetNode(string name) {
-	auto expr = lExprLogicalGet(10000, "V", 3);	// TODO get 3 by calling the API
+LogicalPlan* Planner::lExprLogicalGetNode(string name, uint64_t oid) {
+												// TODO 0202 replace 3 with #columns of the table to scan
+	auto expr = lExprLogicalGet(oid, name, 10);	// TODO get 3 by calling the API
 	auto plan = new LogicalPlan(expr);
 	// TODO update schema
 	plan->bindNode(name);
 	return plan;
 }
 
-LogicalPlan* Planner::lExprLogicalGetEdge(string name) {
-	auto scan_expr = lExprLogicalGet(20000, "E", 5);
+LogicalPlan* Planner::lExprLogicalGetEdge(string name, uint64_t oid) {
+	auto scan_expr = lExprLogicalGet(oid, name, 5);
 	//return scan_expr;
 	// projection
 	// lExprScalarProjectionOnColIds(scan_expr, vector<uint64_t>({0,1,2})); 	// use only id, src, tgt
