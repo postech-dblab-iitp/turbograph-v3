@@ -70,14 +70,18 @@
 using namespace kuzu::binder;
 using namespace gpopt;
 
-
 namespace s62 {
+
+enum class MDProviderType {
+	MEMORY,
+	TBGPP
+};
 
 class ClientContext;
 class Planner {
 
 public:
-	Planner(duckdb::ClientContext* context = nullptr);	// TODO change client signature to reference
+	Planner(MDProviderType mdp_type, duckdb::ClientContext* context, string memory_mdp_path = "");	// TODO change client signature to reference
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
@@ -110,10 +114,11 @@ private:
         expression_vector& predicates, LogicalPlan* prev_plan);
 	
 	/* Helper for generating orca logical plans */
-	LogicalPlan* lExprLogicalGetNode(string name, uint64_t oid);	// TODO api wrong
-	LogicalPlan* lExprLogicalGetEdge(string name, uint64_t oid);
+	LogicalPlan* lExprLogicalGetNode(string name, vector<uint64_t> oids);	// TODO api wrong
+	LogicalPlan* lExprLogicalGetEdge(string name, vector<uint64_t> oids);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
+	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
 	CExpression* lExprScalarProjectionOnColIds(CExpression* relation, vector<uint64_t> col_ids);
 	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs, uint64_t lhs_pos, uint64_t rhs_pos);
@@ -129,9 +134,13 @@ private:
 	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:
+	// config
+	const MDProviderType mdp_type;
+	const std::string memory_mdp_filepath;
+
+	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
-
 	BoundStatement* bound_statement;
 
 	// TODO maybe, add logical query context.

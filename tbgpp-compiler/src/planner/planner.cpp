@@ -1,3 +1,5 @@
+#include "gpopt/operators/CLogicalUnionAll.h"
+
 #include "planner/planner.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
 
@@ -5,10 +7,13 @@
 
 namespace s62 {
 
+Planner::Planner(MDProviderType mdp_type, duckdb::ClientContext* context, std::string memory_mdp_path)
+	: mdp_type(mdp_type), context(context), memory_mdp_filepath(memory_mdp_path) {
 
-Planner::Planner(duckdb::ClientContext* context)
-	: context(context) {
-
+	if(mdp_type == MDProviderType::MEMORY) {
+		assert(memory_mdp_filepath != "");
+		//  "filepath should be provided in memory provider mode"
+	}
 	this->orcaInit();	
 }
 
@@ -117,9 +122,8 @@ CMDProviderMemory* Planner::_orcaGetProviderMemory() {
 	{
 		CAutoMemoryPool amp;
 		mp = amp.Pmp();
-		// TODO fix hard coding
-		auto md_path = "../tbgpp-compiler/test/minidumps/gdb_test1_a-r-b.mdp";
-		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path);
+		std::string md_path = this->memory_mdp_filepath;
+		provider = new (mp, __FILE__, __LINE__) CMDProviderMemory(mp, md_path.c_str());
 		// detach safety
 		(void) amp.Detach();
 	}
@@ -204,9 +208,12 @@ void * Planner::_orcaExec(void* planner_ptr) {
 	InitDXL();
 	planner->_orcaInitXForm();
 	CMDCache::Init();
-	//CMDProviderMemory* provider = planner->_orcaGetProviderMemory();
-	MDProviderTBGPP* provider = planner->_orcaGetProviderTBGPP();
-
+	IMDProvider* provider;
+	if( planner->mdp_type == MDProviderType::MEMORY ) {
+		provider = (IMDProvider*) planner->_orcaGetProviderMemory();
+	} else {
+		provider = (IMDProvider*) planner->_orcaGetProviderTBGPP();
+	}
 	/* Core area */ 
 	{	// this area should be enforced
 		/* Optimizer components */
@@ -370,7 +377,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 	auto oids = node1->getTableIDs();
 	D_ASSERT(oids.size() >= 1);
 	// currently generate scan on only one table
-	plan = lExprLogicalGetNode("n", oids[0]);	// id, vp1, vp2
+	plan = lExprLogicalGetNode("V", oids);	// id, vp1, vp2
 	return plan;
 
 	// auto* qg = qgc.getQueryGraph(0);
@@ -378,15 +385,12 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 	// auto node1 = query_nodes[0].get();
 	// auto edge = query_edges[0].get();
 	// auto node2 = query_nodes[1].get();
-	// auto lnode1 = lExprLogicalGetNode();	// id, vp1, vp2
-	// auto ledge = lExprLogicalGetEdge();		// id, sid, tid
-	// auto lnode2 = lExprLogicalGetNode();	// id, vp1, vp2
-	// auto firstjoin = lExprLogicalJoinOnId(lnode1, ledge, 0, 1);	// id = sid
+	// auto lnode1 = lExprLogicalGetNode("V", 10000);	// id, vp1, vp2
+	// auto ledge = lExprLogicalGetEdge("R", 20000);		// id, sid, tid
+	// auto lnode2 = lExprLogicalGetNode("V", 10000);	// id, vp1, vp2
+	// auto firstjoin = lExprLogicalJoinOnId(lnode1->getPlanExpr, ledge, 0, 1);	// id = sid
 	// auto secondjoin = lExprLogicalJoinOnId(firstjoin, lnode2, 5, 0);	// tid = id
 	// auto leaf_plan_obj = new LogicalPlan(secondjoin);
-
-
-
 
 	// TODO bidirectional matching not considered yet.
 	
@@ -425,17 +429,33 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 	return nullptr;
 }
 
-LogicalPlan* Planner::lExprLogicalGetNode(string name, uint64_t oid) {
+LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> oids) {
 												// TODO 0202 replace 3 with #columns of the table to scan
-	auto expr = lExprLogicalGet(oid, name, 10);	// TODO get 3 by calling the API
-	auto plan = new LogicalPlan(expr);
-	// TODO update schema
+	CExpression* union_plan = nullptr;
+	for( auto& oid: oids) {
+		CExpression * expr;
+		if(this->mdp_type == MDProviderType::TBGPP) {
+			expr = lExprLogicalGet(oid, name, 10);	// TODO get 3 by calling the API
+		} else {
+			expr = lExprLogicalGet(oid, name, 3);	// TODO get 3 by calling the API
+			// TODO may need projection after all
+		}
+
+		if(union_plan == nullptr) {
+			union_plan = expr;
+		} else {
+			union_plan = lExprLogicalUnionAll(union_plan, expr);
+		}
+	}
+	
+	auto plan = new LogicalPlan(union_plan);
+	// TODO add schema
 	plan->bindNode(name);
 	return plan;
 }
 
-LogicalPlan* Planner::lExprLogicalGetEdge(string name, uint64_t oid) {
-	auto scan_expr = lExprLogicalGet(oid, name, 5);
+LogicalPlan* Planner::lExprLogicalGetEdge(string name, vector<uint64_t> oids) {
+	auto scan_expr = lExprLogicalGet(oids[0], name, 5);	// TODO fixme
 	//return scan_expr;
 	// projection
 	// lExprScalarProjectionOnColIds(scan_expr, vector<uint64_t>({0,1,2})); 	// use only id, src, tgt
@@ -469,6 +489,33 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_
 		ref->MarkAsUsed();
 	}
 	return scan_expr;
+}
+
+CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	// refer /home/jhko/dev/turbograph-v3/tbgpp-compiler/gpdb/src/backend/gporca/libgpopt/src/xforms/CXformExpandFullOuterJoin.cpp
+	
+	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	
+	// output columns of the union
+	pdrgpcrOutput->AppendArray(lhs->DeriveOutputColumns()->Pdrgpcr(mp));
+	pdrgpcrOutput->AddRef();
+	pdrgdrgpcrInput->Append(pdrgpcrOutput);
+
+	CColRefSet *pcrsProjOnly = GPOS_NEW(mp) CColRefSet(mp);
+	pcrsProjOnly->Include(rhs->DeriveOutputColumns());
+	CColRefArray *pdrgpcrProj = pcrsProjOnly->Pdrgpcr(mp);
+	pcrsProjOnly->Release();
+	pdrgdrgpcrInput->Append(pdrgpcrProj);
+
+	CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+		lhs, rhs);
+
+	return pexprUnionAll;
 }
 
 CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation, vector<uint64_t> col_ids) {

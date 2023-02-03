@@ -97,6 +97,7 @@ static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPr
     for (auto& nodeTableSchema : nodeTableSchemas) {
         for (auto& property : nodeTableSchema->properties) {
             if (!(propertyNamesToSchemas.find(property.name) != propertyNamesToSchemas.end())) {
+                // if name not found
                 propertyNames.push_back(property.name);
                 propertyNamesToSchemas.insert({property.name, vector<Property>{}});
             }
@@ -194,6 +195,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         // We bind to single node a with both labels
         if (!nodePattern.getLabelOrTypeNames().empty()) {
 // S62 change table ids to relations
+            assert(false);  // S62 logic is strange - may crash when considering schema.
             auto otherTableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
             queryNode->addTableIDs(otherTableIDs);
         }
@@ -218,12 +220,26 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
 // S62 change table ids to relations
+// S62 change table ids to relations
+
     auto tableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
     
+
+    // S62 modify like this.
+    // TODO get all schemas of each table id from catalog
+    // starting from first schema
+        // construct union schema : (name, type)
+        // while, check if schema conforms
+
+    // for each schema
+        // generate projection mapping( given name, return pos )
+    
+    // in querynode, store unionschema, projectionmappings
+
     // resolve properties associate with node table
     vector<NodeTableSchema*> nodeTableSchemas;
     // for (auto tableID : tableIDs) {
@@ -234,8 +250,8 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     // create properties all properties for given tables
     for (auto& propertyPair :
         getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
-        auto& propertyName = propertyPair.first;
-        auto& propertySchemas  = propertyPair.second;
+        auto& propertyName = propertyPair.first;            // name
+        auto& propertySchemas  = propertyPair.second;       // properties linked to the names.
         auto propertyExpression =
             expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
 
@@ -258,13 +274,17 @@ vector<table_id_t> Binder::bindTableIDs(
         // e.g. (A:B | C:D) => [[A,B], [C,D]] 
 
     // syntax is strange. each tablename is considered intersection.
-    
-
     switch (nodeOrRelType) {
         case NODE: {
             vector<uint64_t> oids;
-            client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
-            return oids;
+            // TODO fixme
+            if (client != nullptr) {
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                return oids;
+            } else {
+                return vector<uint64_t>({10000, 10000});    // try two
+            }
+            
         }
         case REL:
             assert(false);
@@ -273,7 +293,7 @@ vector<table_id_t> Binder::bindTableIDs(
             // this is an union semantics
         default:
             assert(false);
-    }    
+    }
     // std::sort(result.begin(), result.end());
 
     // return result;

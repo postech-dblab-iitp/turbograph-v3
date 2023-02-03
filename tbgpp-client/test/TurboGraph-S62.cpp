@@ -308,7 +308,7 @@ icecream::ic.disable();
 		printer.print();
 		std::cout << std::endl;
 
-		auto planner = s62::Planner(client.get());
+		auto planner = s62::Planner(s62::MDProviderType::TBGPP, client.get());
 		planner.execute(bst);
 
 	}
