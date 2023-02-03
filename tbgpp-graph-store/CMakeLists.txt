@@ -114,7 +114,7 @@ target_include_directories(store PUBLIC
   #"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
   # parser
 	"${PROJECT_SOURCE_DIR}/../include/parser"
-	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data" 
+	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data"
 )
 target_link_libraries(store lightning)
 target_link_libraries(store tbgpp-common-lib)
