@@ -64,6 +64,8 @@
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
+#include "mdprovider/MDProviderTBGPP.h"
+
 
 using namespace kuzu::binder;
 using namespace gpopt;
@@ -88,6 +90,7 @@ private:
 	void _orcaSetTraceFlags();
 	CQueryContext* _orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_plan);
 	CMDProviderMemory* _orcaGetProviderMemory();
+	MDProviderTBGPP* _orcaGetProviderTBGPP();
 	void _orcaInitXForm();
 	gpdbcost::CCostModelGPDB* _orcaGetCostModel(CMemoryPool* mp);
 	void _orcaSetOptCtxt(CMemoryPool* mp, CMDAccessor* mda, gpdbcost::CCostModelGPDB* pcm);
@@ -107,8 +110,8 @@ private:
         expression_vector& predicates, LogicalPlan* prev_plan);
 	
 	/* Helper for generating orca logical plans */
-	LogicalPlan* lExprLogicalGetNode(string name);
-	LogicalPlan* lExprLogicalGetEdge(string name);
+	LogicalPlan* lExprLogicalGetNode(string name, uint64_t oid);	// TODO api wrong
+	LogicalPlan* lExprLogicalGetEdge(string name, uint64_t oid);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
 

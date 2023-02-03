@@ -395,7 +395,9 @@ int _main(int argc, char** argv) {
 	
 	// Binder
 	std::cout << "[TEST] generating binder" << std::endl;
-	auto binder = kuzu::binder::Binder();
+	D_ASSERT(false);
+	// "deprecating!"
+	auto binder = kuzu::binder::Binder(nullptr);
 	std::cout << "[TEST] calling binder" << std::endl;
 	auto boundStatement = binder.bind(*statement);
 	kuzu::binder::BoundStatement * bst = boundStatement.get();

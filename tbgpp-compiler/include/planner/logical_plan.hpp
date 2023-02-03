@@ -44,7 +44,7 @@
 #include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CScalarIdent.h"
 
-#include "planner/planner.hpp"
+// #include "planner/planner.hpp"
 
 #include "naucrates/init.h"
 
