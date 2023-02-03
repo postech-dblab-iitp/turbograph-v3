@@ -420,7 +420,7 @@ icecream::ic.disable();
 		
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
 		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
@@ -604,7 +604,7 @@ icecream::ic.disable();
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
 
@@ -990,7 +990,7 @@ icecream::ic.disable();
 		// // PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		// // vector<PropertyKeyID> property_key_ids;
 		// // graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		// // partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		// // partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		// // property_schema_cat->SetTypes(types);
 		// // property_schema_cat->SetKeys(key_names);
 

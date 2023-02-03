@@ -60,10 +60,12 @@ public:
 	void SetKeys(ClientContext &context, vector<string> &key_names);
 	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	vector<string> GetKeys();
+	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);
 	void AppendKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
+	uint64_t GetTypeSize(idx_t i);
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
 	vector<idx_t> GetKeyColumnIdxs();
 
@@ -78,6 +80,8 @@ public:
 	void AddExtent(ExtentID eid);
 	ExtentID GetNewExtentID();
 	PartitionID GetPartitionID();
+
+	uint64_t GetNumberOfColumns();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:

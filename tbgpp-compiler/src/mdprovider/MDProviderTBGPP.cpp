@@ -4,7 +4,7 @@
 #include "gpopt/mdcache/CMDAccessor.h"
 #include "mdprovider/MDProviderTBGPP.h"
 // #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
-#include "translate/CTranslatorTBGPPToDXL.h"
+#include "translate/CTranslatorTBGPPToDXL.hpp"
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/exception.h"
 

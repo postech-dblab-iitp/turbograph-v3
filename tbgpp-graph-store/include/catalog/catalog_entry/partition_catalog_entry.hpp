@@ -44,12 +44,14 @@ public:
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
 	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
+	PropertySchemaID_vector property_schema_array;
 	//vector<Constraints> constraints;
 	PartitionID pid;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
+	void GetPropertySchemaIDs(vector<idx_t> &psids);
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();
