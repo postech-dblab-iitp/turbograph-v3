@@ -112,4 +112,16 @@ PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
 	return pid;
 }
 
+uint64_t PropertySchemaCatalogEntry::GetNumberOfColumns() {
+	return property_key_names.size();
+}
+
+string PropertySchemaCatalogEntry::GetPropertyKeyName(idx_t i) {
+	return string(property_key_names[i]);
+}
+
+uint64_t PropertySchemaCatalogEntry::GetTypeSize(idx_t i) {
+	return GetTypeIdSize(LogicalType(property_typesid[i]).InternalType());
+}
+
 } // namespace duckdb

@@ -70,7 +70,7 @@ using namespace kuzu::binder;
 class LogicalPlan {
 
 public:
-	LogicalPlan(CExpression* leaf_operator) { }
+	LogicalPlan(CExpression* leaf_operator) : tree_root(leaf_operator) { }
 	~LogicalPlan() {}
 
 	void addUnaryParentOp(CExpression* parent) {

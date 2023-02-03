@@ -47,6 +47,8 @@
 #include "naucrates/md/IMDType.h"
 #include "naucrates/traceflags/traceflags.h"
 
+#include <cstdio> // TODO remove this
+
 using namespace gpos;
 using namespace gpmd;
 using namespace gpopt;

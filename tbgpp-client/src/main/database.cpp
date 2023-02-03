@@ -138,7 +138,9 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
 	vector<vector<string>> object_names;
+	vector<vector<void*>> object_ptrs; // for debugging
 	object_names.resize(20);
+	object_ptrs.resize(20);
 	for(; named_beg != named_end; ++named_beg) {
 		// A pointer to the name of the named object
 		const void *value = named_beg->value();
@@ -150,10 +152,12 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 			object_names[1].push_back(name);
 		} else if (startsWith(name, "vpart")) { // VertexPartitionCatalogEntry
 			object_names[2].push_back(name);
+			object_ptrs[2].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "epart")) { // EdgePartitionCatalogEntry
 			object_names[3].push_back(name);
 		} else if (startsWith(name, "vps")) { // VertexPropertySchemaCatalogEntry
 			object_names[4].push_back(name);
+			object_ptrs[4].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "eps")) { // EdgePropertySchemaCatalogEntry
 			object_names[5].push_back(name);
 		} else if (startsWith(name, "ext")) { // ExtentCatalogEntry
@@ -169,12 +173,12 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
 	// fprintf(stdout, "GraphCatalogEntry\n");
 	// for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
-	// fprintf(stdout, "VertexPartitionCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s\n", object_names[2][i].c_str());
+	fprintf(stdout, "VertexPartitionCatalogEntry\n");
+	for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s %p\n", object_names[2][i].c_str(), object_ptrs[2][i]);
 	// fprintf(stdout, "EdgePartitionCatalogEntry\n");
 	// for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
-	// fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s\n", object_names[4][i].c_str());
+	fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
+	for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s %p\n", object_names[4][i].c_str(), object_ptrs[4][i]);
 	// fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
 	// for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
 	// fprintf(stdout, "ExtentCatalogEntry\n");

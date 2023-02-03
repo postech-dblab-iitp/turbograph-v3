@@ -11,12 +11,15 @@
 namespace duckdb {
 
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc), property_schema_index(void_alloc) {
+    : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc),
+	  property_schema_index(void_alloc), property_schema_array(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 }
 
+// TODO psid is now oid.. do we need PropertySchemaID?
 void PartitionCatalogEntry::AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas) {
+	property_schema_array.push_back(psid);
 	for (int i = 0; i < property_schemas.size(); i++) {
 		auto target_partitions = property_schema_index.find(property_schemas[i]);
 		if (target_partitions != property_schema_index.end()) {
@@ -40,6 +43,12 @@ unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
 
 PartitionID PartitionCatalogEntry::GetPartitionID() {
 	return pid;
+}
+
+void PartitionCatalogEntry::GetPropertySchemaIDs(vector<idx_t> &psids) {
+	for (auto &psid : property_schema_array) {
+		psids.push_back(psid);
+	}
 }
 
 } // namespace duckdb

@@ -18,11 +18,18 @@ public:
     void GetSubPartitionIDs(ClientContext &context, vector<string> labelset_names, vector<idx_t> &oids) {
         auto &catalog = db.GetCatalog();
         GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, "main", "graph1");
-        oids = gcat->LookupPartition(context, labelset_names, GraphComponentType::VERTEX); // TODO type?
+        vector<idx_t> pids = gcat->LookupPartition(context, labelset_names, GraphComponentType::VERTEX); // TODO type?
 
-        // for (auto &oid : oids) {
-        //     PartitionCatalogEntry *p_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, "main", oid);
-        // }
+        for (auto &pid : pids) {
+            PartitionCatalogEntry *p_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, "main", pid);
+            p_cat->GetPropertySchemaIDs(oids);
+        }
+    }
+
+    PropertySchemaCatalogEntry *RelationIdGetRelation(ClientContext &context, idx_t rel_oid) {
+        auto &catalog = db.GetCatalog();
+        PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, "main", rel_oid);
+        return ps_cat;
     }
 
 private:

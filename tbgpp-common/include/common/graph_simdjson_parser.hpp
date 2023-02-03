@@ -129,7 +129,7 @@ public:
 		
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), most_common_key_paths, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(most_common_schema);
 		property_schema_cat->SetKeys(*client.get(), most_common_key_paths);
 		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);

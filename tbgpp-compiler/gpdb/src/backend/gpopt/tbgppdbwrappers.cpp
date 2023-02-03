@@ -1,5 +1,7 @@
 #include "tbgppdbwrappers.hpp"
 #include "utils/tbgppcache.hpp"
+#include "client_context.hpp"
+#include "catalog/catalog_wrapper.hpp"
 // #include <setjmp.h>
 
 // #define GP_WRAP_START                                            \
@@ -23,6 +25,12 @@ using namespace duckdb;
 
 bool assert_enabled = true; // TODO
 
+void
+duckdb::SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWrapper> catalog_wrapper_) {
+	client_wrapper = client_;
+	catalog_wrapper = catalog_wrapper_;
+}
+
 IndexType
 duckdb::GetLogicalIndexType(Oid index_oid)
 {
@@ -42,7 +50,7 @@ duckdb::GetRelation(duckdb::idx_t rel_oid)
 	// GP_WRAP_START;
 	{
 		/* catalog tables: relcache */
-		return RelationIdGetRelation(rel_oid);
+		return catalog_wrapper->RelationIdGetRelation(*client_wrapper.get(), rel_oid);
 	}
 	// GP_WRAP_END;
 	return NULL;

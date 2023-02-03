@@ -69,8 +69,7 @@ extern "C" {
 // TBGPP related classes
 #include "tbgppdbwrappers.hpp"
 #include "catalog/catalog.hpp"
-#include "catalog/catalog_entry/list.hpp"
-#include "translate/CTranslatorTBGPPToDXL.h"
+#include "translate/CTranslatorTBGPPToDXL.hpp"
 
 using namespace gpdxl;
 using namespace gpopt;
@@ -249,10 +248,10 @@ CTranslatorTBGPPToDXL::RetrieveObjectGPDB(CMemoryPool *mp, IMDId *mdid,
 //
 //---------------------------------------------------------------------------
 CMDName *
-CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, Relation rel)
+CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
-	CHAR *relname; // = NameStr(rel->rd_rel->relname);
+	CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
 	CWStringDynamic *relname_str =
 		CDXLUtils::CreateDynamicStringFromCharArray(mp, relname);
 	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, relname_str);
@@ -269,9 +268,9 @@ CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, Relation rel)
 //
 //---------------------------------------------------------------------------
 CMDIndexInfoArray *
-CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, Relation rel)
+CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
 {
-	GPOS_ASSERT(true); // TODO don't have index catalog yet..
+	// GPOS_ASSERT(true); // TODO don't have index catalog yet..
 	// GPOS_ASSERT(NULL != rel);
 	// if (gpdb::RelPartIsNone(rel->rd_id) || gpdb::IsLeafPartition(rel->rd_id))
 	// {
@@ -283,10 +282,10 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, Relation rel)
 	// }
 	// else
 	// {
-	// 	// interior partition: do not consider indexes
-	// 	CMDIndexInfoArray *md_index_info_array =
-	// 		GPOS_NEW(mp) CMDIndexInfoArray(mp);
-	// 	return md_index_info_array;
+		// interior partition: do not consider indexes
+		CMDIndexInfoArray *md_index_info_array =
+			GPOS_NEW(mp) CMDIndexInfoArray(mp);
+		return md_index_info_array;
 	// }
 }
 
@@ -449,10 +448,9 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 //
 //---------------------------------------------------------------------------
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, Relation rel)
+CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
 {
-	GPOS_ASSERT(true); // TODO don't have triggers yet..
-	// GPOS_ASSERT(NULL != rel);
+	GPOS_ASSERT(NULL != rel);
 	// if (rel->rd_rel->relhastriggers && NULL == rel->trigdesc)
 	// {
 	// 	gpdb::BuildRelationTriggers(rel);
@@ -462,7 +460,7 @@ CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, Relation rel)
 	// 	}
 	// }
 
-	// IMdIdArray *mdid_triggers_array = GPOS_NEW(mp) IMdIdArray(mp);
+	IMdIdArray *mdid_triggers_array = GPOS_NEW(mp) IMdIdArray(mp);
 	// if (rel->rd_rel->relhastriggers)
 	// {
 	// 	const ULONG ulTriggers = rel->trigdesc->numtriggers;
@@ -477,7 +475,7 @@ CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, Relation rel)
 	// 	}
 	// }
 
-	// return mdid_triggers_array;
+	return mdid_triggers_array;
 }
 
 //---------------------------------------------------------------------------
@@ -491,8 +489,7 @@ CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, Relation rel)
 IMdIdArray *
 CTranslatorTBGPPToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
 {
-	GPOS_ASSERT(true); // TODO don't have this yet..
-	// IMdIdArray *check_constraint_mdids = GPOS_NEW(mp) IMdIdArray(mp);
+	IMdIdArray *check_constraint_mdids = GPOS_NEW(mp) IMdIdArray(mp);
 	// List *check_constraints = gpdb::GetCheckConstraintOids(oid);
 
 	// ListCell *lc = NULL;
@@ -505,7 +502,7 @@ CTranslatorTBGPPToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
 	// 	check_constraint_mdids->Append(mdid_check_constraint);
 	// }
 
-	// return check_constraint_mdids;
+	return check_constraint_mdids;
 }
 
 //---------------------------------------------------------------------------
@@ -620,24 +617,24 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	GPOS_TRY
 	{
 		// get rel name
-		// mdname = GetRelName(mp, rel);
+		mdname = GetRelName(mp, rel);
 
 		// get storage type
 		// rel_storage_type = RetrieveRelStorageType(rel->rd_rel->relstorage);
 		rel_storage_type = RetrieveRelStorageType('c'); // temporary
 
-		// // get relation columns
-		// mdcol_array =
-		// 	RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
-		// const ULONG max_cols =
-		// 	GPDXL_SYSTEM_COLUMNS + (ULONG) rel->rd_att->natts + 1;
-		// ULONG *attno_mapping = ConstructAttnoMapping(mp, mdcol_array, max_cols);
+		// get relation columns
+		mdcol_array =
+			RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
+		const ULONG max_cols =
+			/*GPDXL_SYSTEM_COLUMNS + */(ULONG) rel->GetNumberOfColumns() + 1;
+		ULONG *attno_mapping = ConstructAttnoMapping(mp, mdcol_array, max_cols);
 
-		// // get distribution policy
-		// GpPolicy *gp_policy = gpdb::GetDistributionPolicy(rel);
-		// dist = GetRelDistribution(gp_policy);
+		// TODO we do not support distributed environment now
+		// get distribution policy
+		dist = IMDRelation::EreldistrMasterOnly;
 
-		// // get distribution columns
+		// get distribution columns
 		// if (IMDRelation::EreldistrHash == dist)
 		// {
 		// 	distr_cols = RetrieveRelDistributionCols(mp, gp_policy, mdcol_array,
@@ -648,35 +645,37 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 		// convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel);
 
-		// // collect relation indexes
-		// md_index_info_array = RetrieveRelIndexInfo(mp, rel);
+		// collect relation indexes // TODO
+		md_index_info_array = RetrieveRelIndexInfo(mp, rel);
 
-		// // collect relation triggers
-		// mdid_triggers_array = RetrieveRelTriggers(mp, rel);
+		// collect relation triggers // TODO we don't need this know
+		mdid_triggers_array = RetrieveRelTriggers(mp, rel);
 
-		// // get partition keys
+		// get partition keys
 		// if (IMDRelation::ErelstorageExternal != rel_storage_type)
 		// {
 		// 	RetrievePartKeysAndTypes(mp, rel, oid, &part_keys, &part_types);
 		// }
 		// is_partitioned = (NULL != part_keys && 0 < part_keys->Size());
 
-		// // get number of leaf partitions
+		// get number of leaf partitions
 		// if (gpdb::RelPartIsRoot(oid))
 		// {
 		// 	num_leaf_partitions = gpdb::CountLeafPartTables(oid);
 		// }
 
-		// // get key sets
-		// BOOL should_add_default_keys =
-		// 	RelHasSystemColumns(rel->rd_rel->relkind);
-		// keyset_array = RetrieveRelKeysets(mp, oid, should_add_default_keys,
-		// 								  is_partitioned, attno_mapping);
+		// TODO implement
+		// get key sets
+		BOOL should_add_default_keys =
+			RelHasSystemColumns('temporary'); // TODO
+		keyset_array = RetrieveRelKeysets(mp, oid, should_add_default_keys,
+										  is_partitioned, attno_mapping);
 
-		// // collect all check constraints
-		// check_constraint_mdids = RetrieveRelCheckConstraints(mp, oid);
+		// collect all check constraints
+		check_constraint_mdids = RetrieveRelCheckConstraints(mp, oid);
 
 		// is_temporary = (rel->rd_rel->relpersistence == RELPERSISTENCE_TEMP);
+		// TODO implement
 		// has_oids = rel->rd_rel->relhasoids;
 
 		// if (gpdb::HasExternalPartition(oid))
@@ -702,12 +701,12 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 	// Retrieve full part constraints partitioned tables with indexes or external partitions;
 	// returns NULL for non-partitioned tables
-	BOOL construct_full_partcnstr_expr =
-		(md_index_info_array->Size() > 0 ||
-		 (external_partitions != NULL && external_partitions->Size() > 0) ||
-		 IMDRelation::ErelstorageExternal == rel_storage_type);
+	BOOL construct_full_partcnstr_expr = false;
+		// (md_index_info_array->Size() > 0 ||
+		//  (external_partitions != NULL && external_partitions->Size() > 0) ||
+		//  IMDRelation::ErelstorageExternal == rel_storage_type);
 
-	CMDPartConstraintGPDB *mdpart_constraint; // = RetrievePartConstraintForRel(
+	CMDPartConstraintGPDB *mdpart_constraint = NULL; // = RetrievePartConstraintForRel(
 		// mp, md_accessor, oid, mdcol_array, construct_full_partcnstr_expr);
 
 	if (IMDRelation::ErelstorageExternal == rel_storage_type)
@@ -749,79 +748,81 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 //---------------------------------------------------------------------------
 CMDColumnArray *
 CTranslatorTBGPPToDXL::RetrieveRelColumns(
-	CMemoryPool *mp, CMDAccessor *md_accessor, Relation rel,
+	CMemoryPool *mp, CMDAccessor *md_accessor, duckdb::PropertySchemaCatalogEntry *rel,
 	IMDRelation::Erelstoragetype rel_storage_type)
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
 
-	// for (ULONG ul = 0; ul < (ULONG) rel->rd_att->natts; ul++)
-	// {
-	// 	Form_pg_attribute att = rel->rd_att->attrs[ul];
-	// 	CMDName *md_colname =
-	// 		CDXLUtils::CreateMDNameFromCharArray(mp, NameStr(att->attname));
+	for (ULONG ul = 0; ul < (ULONG) rel->GetNumberOfColumns(); ul++)
+	{
+		// Form_pg_attribute att = rel->rd_att->attrs[ul];
+		CMDName *md_colname =
+			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
 
-	// 	// translate the default column value
-	// 	CDXLNode *dxl_default_col_val = NULL;
+		// translate the default column value
+		CDXLNode *dxl_default_col_val = NULL;
 
-	// 	if (!att->attisdropped)
-	// 	{
-	// 		dxl_default_col_val = GetDefaultColumnValue(
-	// 			mp, md_accessor, rel->rd_att, att->attnum);
-	// 	}
+		// TODO we don't have default col val..
+		// if (!att->attisdropped)
+		// {
+		// 	dxl_default_col_val = GetDefaultColumnValue(
+		// 		mp, md_accessor, rel->rd_att, att->attnum);
+		// }
 
-	// 	ULONG col_len = gpos::ulong_max;
-	// 	CMDIdGPDB *mdid_col =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, att->atttypid);
-	// 	HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
+		ULONG col_len = gpos::ulong_max;
+		CMDIdGPDB *mdid_col =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0); // TODO we need type id in our catalog
+		// HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
 
-	// 	// Column width priority:
-	// 	// 1. If there is average width kept in the stats for that column, pick that value.
-	// 	// 2. If not, if it is a fixed length text type, pick the size of it. E.g if it is
-	// 	//    varchar(10), assign 10 as the column length.
-	// 	// 3. Else if it not dropped and a fixed length type such as int4, assign the fixed
-	// 	//    length.
-	// 	// 4. Otherwise, assign it to default column width which is 8.
-	// 	if (HeapTupleIsValid(stats_tup))
-	// 	{
-	// 		Form_pg_statistic form_pg_stats =
-	// 			(Form_pg_statistic) GETSTRUCT(stats_tup);
+		// Column width priority:
+		// 1. If there is average width kept in the stats for that column, pick that value.
+		// 2. If not, if it is a fixed length text type, pick the size of it. E.g if it is
+		//    varchar(10), assign 10 as the column length.
+		// 3. Else if it not dropped and a fixed length type such as int4, assign the fixed
+		//    length.
+		// 4. Otherwise, assign it to default column width which is 8.
+		col_len = rel->GetTypeSize(ul);
+		// if (HeapTupleIsValid(stats_tup))
+		// {
+		// 	Form_pg_statistic form_pg_stats =
+		// 		(Form_pg_statistic) GETSTRUCT(stats_tup);
 
-	// 		// column width
-	// 		col_len = form_pg_stats->stawidth;
-	// 		gpdb::FreeHeapTuple(stats_tup);
-	// 	}
-	// 	else if ((mdid_col->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
-	// 			  mdid_col->Equals(&CMDIdGPDB::m_mdid_varchar)) &&
-	// 			 (VARHDRSZ < att->atttypmod))
-	// 	{
-	// 		col_len = (ULONG) att->atttypmod - VARHDRSZ;
-	// 	}
-	// 	else
-	// 	{
-	// 		DOUBLE width = CStatistics::DefaultColumnWidth.Get();
-	// 		col_len = (ULONG) width;
+		// 	// column width
+		// 	col_len = form_pg_stats->stawidth;
+		// 	gpdb::FreeHeapTuple(stats_tup);
+		// }
+		// else if ((mdid_col->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
+		// 		  mdid_col->Equals(&CMDIdGPDB::m_mdid_varchar)) &&
+		// 		 (VARHDRSZ < att->atttypmod))
+		// {
+		// 	col_len = (ULONG) att->atttypmod - VARHDRSZ;
+		// }
+		// else
+		// {
+		// 	DOUBLE width = CStatistics::DefaultColumnWidth.Get();
+		// 	col_len = (ULONG) width;
 
-	// 		if (!att->attisdropped)
-	// 		{
-	// 			IMDType *md_type =
-	// 				CTranslatorTBGPPToDXL::RetrieveType(mp, mdid_col);
-	// 			if (md_type->IsFixedLength())
-	// 			{
-	// 				col_len = md_type->Length();
-	// 			}
-	// 			md_type->Release();
-	// 		}
-	// 	}
+		// 	if (!att->attisdropped)
+		// 	{
+		// 		IMDType *md_type =
+		// 			CTranslatorTBGPPToDXL::RetrieveType(mp, mdid_col);
+		// 		if (md_type->IsFixedLength())
+		// 		{
+		// 			col_len = md_type->Length();
+		// 		}
+		// 		md_type->Release();
+		// 	}
+		// }
 
-	// 	CMDColumn *md_col = GPOS_NEW(mp)
-	// 		CMDColumn(md_colname, att->attnum, mdid_col, att->atttypmod,
-	// 				  !att->attnotnull, att->attisdropped,
-	// 				  dxl_default_col_val /* default value */, col_len);
+		CMDColumn *md_col = GPOS_NEW(mp)
+			CMDColumn(md_colname, ul+1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
+					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
+					  dxl_default_col_val /* default value */, col_len);
 
-	// 	mdcol_array->Append(md_col);
-	// }
+		mdcol_array->Append(md_col);
+	}
 
-	// // add system columns
+	// add system columns // TODO what is this?
 	// if (RelHasSystemColumns(rel->rd_rel->relkind))
 	// {
 	// 	BOOL is_ao_table =
@@ -2290,7 +2291,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 	IMDId *mdid_rel = m_rel_stats_mdid->GetRelMdId();
 	OID rel_oid = CMDIdGPDB::CastMdid(mdid_rel)->Oid();
 
-	Relation rel;// = gpdb::GetRelation(rel_oid);
+	PropertySchemaCatalogEntry *rel = duckdb::GetRelation(rel_oid);
 	if (NULL == rel)
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
@@ -2305,7 +2306,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 	GPOS_TRY
 	{
 		// get rel name
-		CHAR *relname;// = NameStr(rel->rd_rel->relname);
+		CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
 		CWStringDynamic *relname_str =
 			CDXLUtils::CreateDynamicStringFromCharArray(mp, relname);
 		mdname = GPOS_NEW(mp) CMDName(mp, relname_str);
@@ -3220,8 +3221,8 @@ CTranslatorTBGPPToDXL::ConstructAttnoMapping(CMemoryPool *mp,
 		const IMDColumn *md_col = (*mdcol_array)[ul];
 		INT attno = md_col->AttrNum();
 
-		// ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
-		// attno_mapping[idx] = ul;
+		ULONG idx = (ULONG)(/*GPDXL_SYSTEM_COLUMNS + */attno);
+		attno_mapping[idx] = ul;
 	}
 
 	return attno_mapping;
@@ -3241,6 +3242,7 @@ CTranslatorTBGPPToDXL::RetrieveRelKeysets(CMemoryPool *mp, OID oid,
 											 BOOL is_partitioned,
 											 ULONG *attno_mapping)
 {
+	// TODO what is key sets??
 	ULongPtr2dArray *key_sets = GPOS_NEW(mp) ULongPtr2dArray(mp);
 
 	// List *rel_keys = gpdb::GetRelationKeys(oid);

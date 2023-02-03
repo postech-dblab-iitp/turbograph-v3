@@ -116,6 +116,7 @@ using namespace tblr;
 #include "mdprovider/MDProviderTBGPP.h"
 
 #include "catalog/catalog_wrapper.hpp"
+#include "tbgppdbwrappers.hpp"
 
 using namespace antlr4;
 using namespace gpopt;
@@ -255,11 +256,14 @@ icecream::ic.disable();
 	icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
+	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
 
 	// TODO 0202 this should work.
 	// Test catalog access to get object id
 	vector<idx_t> oids;
 	(client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
+	for (auto &k : oids) fprintf(stdout, "oid %ld, ", k);
+	fprintf(stdout, "\n");
 	// TODO why does this function return void??
 
 	
