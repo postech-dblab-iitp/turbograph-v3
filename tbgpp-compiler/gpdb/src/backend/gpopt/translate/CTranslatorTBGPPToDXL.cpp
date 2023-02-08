@@ -251,7 +251,8 @@ CMDName *
 CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
-	CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
+	CHAR *relname = std::strcpy(new char[rel->GetName().length() + 1], rel->GetName().c_str());
+	// CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
 	CWStringDynamic *relname_str =
 		CDXLUtils::CreateDynamicStringFromCharArray(mp, relname);
 	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, relname_str);
@@ -2306,7 +2307,8 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 	GPOS_TRY
 	{
 		// get rel name
-		CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
+		CHAR *relname = std::strcpy(new char[rel->GetName().length() + 1], rel->GetName().c_str()); // TODO free
+		// CHAR *relname = const_cast<CHAR *>(rel->GetName().c_str());
 		CWStringDynamic *relname_str =
 			CDXLUtils::CreateDynamicStringFromCharArray(mp, relname);
 		mdname = GPOS_NEW(mp) CMDName(mp, relname_str);
