@@ -401,12 +401,12 @@ icecream::ic.disable();
 		fprintf(stdout, ")\n");
 
 		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
+			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(src_column_name) != string::npos; });
 		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
 		unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
 		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
+			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(dst_column_name) != string::npos; });
 		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
@@ -440,8 +440,18 @@ icecream::ic.disable();
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
+		vector<idx_t> vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input source key corresponds to multiple vertex partitions.");
+
+		vector<idx_t> vertex_ps_cat_oids;
+		PartitionCatalogEntry *vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		// vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
@@ -683,12 +693,12 @@ icecream::ic.disable();
 		fprintf(stdout, ")\n");
 
 		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
+			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(src_column_name) != string::npos; });
 		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Src Lid to Pid Map does not exists");
 		unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
 		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
+			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(dst_column_name) != string::npos; });
 		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Dst Lid to Pid Map does not exists");
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
@@ -711,8 +721,18 @@ icecream::ic.disable();
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
+		vector<idx_t> vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input source key corresponds to multiple vertex partitions.");
+
+		vector<idx_t> vertex_ps_cat_oids;
+		PartitionCatalogEntry *vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
