@@ -16,7 +16,8 @@ public:
     virtual std::string getName() { return "[_ParseTreeNode] _base"; }
 
     ParseTreeNode* generateLeafNode(std::string name, std::string content) {
-        
+        assert(false);
+        return nullptr;
     }
 };
 
