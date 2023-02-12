@@ -77,7 +77,9 @@ int _main(int argc, char** argv) {
 	for (auto t: _tokens) {
 		query += t;
 	}
-	
+	if( query == "" ) {
+		return 1;
+	}
 	//std::string query = "MATCH (n) RETURN n;";
 
 	std::cout << "Query => " << std::endl << query << std::endl ;

@@ -113,15 +113,23 @@ private:
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan* prev_plan);
 	
-	/* Helper for generating orca logical plans */
-	LogicalPlan* lExprLogicalGetNode(string name, vector<uint64_t> oids);	// TODO api wrong
+	/* Helper functions for generating orca logical plans */
+	LogicalPlan* lExprLogicalGetNode(
+		string name, vector<uint64_t> oids,
+		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping = nullptr
+	);
 	LogicalPlan* lExprLogicalGetEdge(string name, vector<uint64_t> oids);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
-	CExpression* lExprScalarProjectionOnColIds(CExpression* relation, vector<uint64_t> col_ids);
-	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs, uint64_t lhs_pos, uint64_t rhs_pos);
+	CExpression* lExprScalarProjectionOnColIds(
+		CExpression* relation, vector<uint64_t> col_ids_to_project,
+		vector<pair<IMDId*, gpos::INT>>* target_schema_types = nullptr
+	);
+	CExpression* lExprScalarProjectionExceptColIds(CExpression* relation, vector<uint64_t> col_ids_to_project_out);
+	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
+		uint64_t lhs_pos, uint64_t rhs_pos,bool project_out_lhs_key, bool project_out_rhs_key);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);
@@ -131,6 +139,11 @@ private:
 		gpos::BOOL is_nullable  // define nullable columns
 	);
 
+	inline CMDAccessor* lGetMDAccessor() { return COptCtxt::PoctxtFromTLS()->Pmda(); };
+	inline CMDIdGPDB* lGenRelMdid(uint64_t obj_id) { return GPOS_NEW(this->memory_pool) CMDIdGPDB(IMDId::EmdidRel, obj_id, 0, 0); }
+	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
+		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
+	}
 	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:

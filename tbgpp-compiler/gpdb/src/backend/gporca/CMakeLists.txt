@@ -69,7 +69,7 @@ endif()
 # Turn on GPOS_DEBUG define for DEBUG builds.
 cmake_policy(SET CMP0043 NEW)
 
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+#SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_compile_options(-DGPOS_Darwin)

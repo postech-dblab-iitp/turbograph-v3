@@ -86,8 +86,8 @@ public:
 		// TODO after integrating information, lhs must deallocate rhs after merge.
 	}
 
-	inline bool bindNode(string name) { bound_nodes.push_back(name); }	// TODO maybe need to add schema
-	inline bool bindEdge(string name) { bound_edges.push_back(name); } // // TODO maybe need to add schema
+	inline void bindNode(string name) { bound_nodes.push_back(name); }	// TODO maybe need to add schema
+	inline void bindEdge(string name) { bound_edges.push_back(name); } // // TODO maybe need to add schema
 
 	inline CExpression* getPlanExpr() { return tree_root; }
 	inline bool isNodeBound(string name) { 
