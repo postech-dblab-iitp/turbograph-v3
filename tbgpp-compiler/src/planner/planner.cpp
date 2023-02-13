@@ -502,6 +502,7 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 		}
 	}
 
+	CColRefArray* idx1_output_array;
 	for( int idx = 0; idx < relation_oids.size(); idx++) {
 		auto& oid = relation_oids[idx];
 
@@ -524,12 +525,27 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 		}
 		
 		// add union
-		if(union_plan == nullptr) {
+		CColRefArray* expr_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+		CColRefArray* output_array = GPOS_NEW(mp) CColRefArray(mp);
+		for(int i = 0; i<expr_array->Size(); i++) {
+			if(do_schema_mapping && (i < num_cols)) { continue; }
+			output_array->Append(expr_array->operator[](i));
+		}
+		if(idx == 0) {
+			// REL
 			union_plan = expr;
+			idx1_output_array = output_array;
+		} else if (idx == 1) {
+			// REL + REL
+			union_plan = lExprLogicalUnionAllWithMapping(
+				union_plan, expr, idx1_output_array, output_array);
 		} else {
-			union_plan = lExprLogicalUnionAll(union_plan, expr);
+			// UNION + REL
+			union_plan = lExprLogicalUnionAllWithMapping(
+				union_plan, expr, union_plan->DeriveOutputColumns()->Pdrgpcr(mp), output_array);
 		}
 	}
+
 	auto plan = new LogicalPlan(union_plan);
 	// TODO add schema
 	plan->bindNode(name);
@@ -568,12 +584,12 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_
 	CColRefArray *arr = pop->PdrgpcrOutput();
 	for (ULONG ul = 0; ul < arr->Size(); ul++) {
 		CColRef *ref = (*arr)[ul];
-		// ref->MarkAsUnknown();
+		ref->MarkAsUnknown();
 	}
 	return scan_expr;
 }
 
-CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) {
+CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping) {
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -582,24 +598,30 @@ CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) 
 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
 	
 	// output columns of the union
-	pdrgpcrOutput->AppendArray(lhs->DeriveOutputColumns()->Pdrgpcr(mp));
+	pdrgpcrOutput->AppendArray(lhs_mapping);
 	pdrgpcrOutput->AddRef();
-	pdrgdrgpcrInput->Append(pdrgpcrOutput);
-
-	// CColRefSet *pcrsProjOnly = GPOS_NEW(mp) CColRefSet(mp);
-	// pcrsProjOnly->Include(rhs->DeriveOutputColumns());
-	// CColRefArray *pdrgpcrProj = pcrsProjOnly->Pdrgpcr(mp);
-	// pcrsProjOnly->Release();
-	// pdrgdrgpcrInput->Append(pdrgpcrProj);
-	pdrgdrgpcrInput->Append(rhs->DeriveOutputColumns()->Pdrgpcr(mp));
+	pdrgdrgpcrInput->Append(lhs_mapping);
+	pdrgdrgpcrInput->Append(rhs_mapping);
 
 	CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
 		lhs, rhs);
 
 	return pexprUnionAll;
+
 }
 
+CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) {
+
+	CMemoryPool* mp = this->memory_pool;
+	return lExprLogicalUnionAllWithMapping(
+				lhs, rhs, lhs->DeriveOutputColumns()->Pdrgpcr(mp),
+				rhs->DeriveOutputColumns()->Pdrgpcr(mp));
+
+}
+
+
+// Output Schema: RELATION + COL_IDS_TO_PROJECT
 CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
 	vector<uint64_t> col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>>* target_schema_types
 ) {
@@ -609,8 +631,8 @@ CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
 
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
+	CColRefArray* old_colrefs = GPOS_NEW(mp) CColRefArray(mp);
 	CColRefArray* colref_array = GPOS_NEW(mp) CColRefArray(mp);
-	
 
 	uint64_t target_col_id = 0;
 	for(auto col_id: col_ids_to_project) {
@@ -624,7 +646,6 @@ CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
 			const CWStringConst col_name_str(GPOS_WSZ_LIT("const_null"));
 			CName col_name(&col_name_str);
 			CColRef *new_colref = col_factory->PcrCreate( lGetMDAccessor()->RetrieveType(type_info.first), type_info.second, col_name);
-			new_colref->MarkAsUsed();
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
 				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), null_expr);
 
@@ -640,34 +661,26 @@ CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
 				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
 
+			old_colrefs->Append(colref);
 			colref_array->Append(new_colref);
 			proj_array->Append(scalar_proj_elem);	
 		}
 		target_col_id++;
 	}
+
+	// project nothing 
 	CExpression *pexprPrjList =
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
 	CExpression *proj_expr = CUtils::PexprLogicalProject(mp, relation, pexprPrjList, false);
 
 	return proj_expr;
-	// project only selected columns
-// 	CExpressionArray *final_proj_array = GPOS_NEW(mp) CExpressionArray(mp);
-// 	for(int i = 0; i < col_ids_to_project.size(); i++) {
-// 		CColRef* col = colref_array->operator[](i);
-// 		CColRef *new_colref = col_factory->PcrCreate(col);	// generate new reference
-// 		CExpression* ident_expr = GPOS_NEW(mp)
-// 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, col));
-// 		auto proj_elem = GPOS_NEW(mp) CExpression(
-// 				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
-// 		final_proj_array->Append(proj_elem);
-// 	}
-// 	CExpression *final_pexprPrjList =
-// 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
-	
-// 	CExpression *final_result = 
-// 		GPOS_NEW(mp) 
+	// UlongToColRefMap *colref_mapping = GPOS_NEW(mp) UlongToColRefMap(mp);
+	// for(uint64_t colid = 0 ; colid < col_ids_to_project.size(); colid++) {
+	// 	colref_mapping->Insert(GPOS_NEW(mp) ULONG(colid), colref_array->operator[](colid));
+	// }
 
-// 	return final_proj_expr;
+	// auto final_expr = proj_expr->PexprCopyWithRemappedColumns(mp, colref_mapping, true);
+	// return final_expr;
 }
 
 CExpression* Planner::lExprScalarProjectionExceptColIds(CExpression* relation, vector<uint64_t> col_ids_to_project_out) {
