@@ -21,23 +21,32 @@ public:
 	}
 	~LogicalSchema() { }
 
-	/* Append to the last column of the schema */
-	void appendKey(string& k1, string& k2, bool is_node = false, bool is_edge = true) {
-
-		// TODO temporary resolve me!
-		size_t dot_pos = k2.find_last_of(".");
-		// make sure the poisition is valid
-		if (dot_pos != string::npos)
-			k2 = k2.substr(dot_pos+1);
-
-		D_ASSERT( k2 != "" );
-		D_ASSERT( !(is_node && is_edge) );
-		if(is_node) { bound_nodes.insert(k1); }
-		else if(is_edge) { bound_edges.insert(k1); }
-		else { D_ASSERT(k2 != "_id"); }	// property with _id indicates _node or _id
-
-		schema.push_back(make_pair(k1, k2));
+	void appendSchema(LogicalSchema* sch1) {
+		// TODO ASSERT key does not collapse
+		// schema
+		auto& sch = *sch1;
+		for( auto& prop: sch.schema) {
+			this->schema.push_back(prop);
+		}
+		// bound variables
+		for( auto& it: sch.bound_nodes) {
+			this->bound_nodes.insert(it);
+		}
+		for( auto& it: sch.bound_edges) {
+			this->bound_edges.insert(it);
+		}
 	}
+	void appendNodeProperty(string& k1, string& k2) {
+		appendKey(k1, k2, true, false);
+	}
+	void appendEdgeProperty(string& k1, string& k2) {
+		appendKey(k1, k2, false, true);
+	}
+	void appendColumn(string& k1) {
+		string none = "";
+		appendKey(k1, none, false, false);
+	}
+	
 	uint64_t getNumPropertiesOfKey(string& k1) {
 		uint64_t cnt = 0;
 		for( auto& col: schema) {
@@ -71,6 +80,27 @@ public:
 	}
 
 private:
+
+/* Append to the last column of the schema */
+	void appendKey(string& k1, string& k2, bool is_node, bool is_edge) {
+
+		// TODO temporary resolve me!
+		size_t dot_pos = k2.find_last_of(".");
+		// make sure the poisition is valid
+		if (dot_pos != string::npos)
+			k2 = k2.substr(dot_pos+1);
+
+		D_ASSERT( k2 != "" );
+		D_ASSERT( !(is_node && is_edge) );
+		if(is_node) { bound_nodes.insert(k1); }
+		else if(is_edge) { bound_edges.insert(k1); }
+		else { D_ASSERT(k2 != "_id"); }	// property with _id indicates _node or _id
+
+		schema.push_back(make_pair(k1, k2));
+	}
+
+private:
+
 	vector<pair<string, string>> schema;
 	set<string> bound_nodes;
 	set<string> bound_edges;

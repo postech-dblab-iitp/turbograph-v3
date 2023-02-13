@@ -164,7 +164,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         {
             string propertyName = "_tid";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 3, 20000);
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 2, 20000);
             prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
