@@ -61,6 +61,9 @@
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
 
+#include "assert.hpp"	
+#include "logical_schema.hpp"
+
 // TODO need to cleanup imports
 
 namespace s62 {
@@ -70,8 +73,9 @@ using namespace kuzu::binder;
 class LogicalPlan {
 
 public:
-	LogicalPlan(CExpression* leaf_operator): tree_root(leaf_operator) {
-		assert( tree_root != nullptr );
+	LogicalPlan(CExpression* tree_root, LogicalSchema root_schema)
+		: tree_root(tree_root), root_schema(root_schema) {
+		D_ASSERT( tree_root != nullptr );
 	}
 	~LogicalPlan() {}
 
@@ -86,23 +90,14 @@ public:
 		// TODO after integrating information, lhs must deallocate rhs after merge.
 	}
 
-	inline void bindNode(string name) { bound_nodes.push_back(name); }	// TODO maybe need to add schema
-	inline void bindEdge(string name) { bound_edges.push_back(name); } // // TODO maybe need to add schema
-
-	inline CExpression* getPlanExpr() { return tree_root; }
-	inline bool isNodeBound(string name) { 
-		return std::find(bound_nodes.begin(), bound_nodes.end(), name) != bound_nodes.end();
-	}
-	inline bool isEdgeBound(string name) {
-		return std::find(bound_edges.begin(), bound_edges.end(), name) != bound_edges.end();
-	}
+ 	inline CExpression* getPlanExpr() { return tree_root; }
+	inline LogicalSchema* getSchema() { return &root_schema; }
+	
 
 private:
 	CExpression* tree_root;
+	LogicalSchema root_schema;
 
-	vector<string> bound_nodes;
-	vector<string> bound_edges;
-	// TODO there are more states to bind
 };
 
 
