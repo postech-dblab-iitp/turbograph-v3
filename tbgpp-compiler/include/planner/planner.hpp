@@ -121,6 +121,7 @@ private:
 	LogicalPlan* lExprLogicalGetEdge(string name, vector<uint64_t> oids);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
+	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
 	CExpression* lExprScalarProjectionOnColIds(
