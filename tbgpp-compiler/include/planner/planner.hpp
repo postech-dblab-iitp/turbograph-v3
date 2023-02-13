@@ -112,24 +112,24 @@ private:
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr);
 	
 	/* Helper functions for generating orca logical plans */
-	LogicalPlan* lExprLogicalGetNode(
+	CExpression* lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping = nullptr
 	);
-	LogicalPlan* lExprLogicalGetEdge(string name, vector<uint64_t> oids);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
-	CExpression* lExprScalarAddSchemaConformProject(
+	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
 		CExpression* relation, vector<uint64_t> col_ids_to_project,
 		vector<pair<IMDId*, gpos::INT>>* target_schema_types
 	);
 	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
-		uint64_t lhs_pos, uint64_t rhs_pos,bool project_out_lhs_key, bool project_out_rhs_key);
+		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);

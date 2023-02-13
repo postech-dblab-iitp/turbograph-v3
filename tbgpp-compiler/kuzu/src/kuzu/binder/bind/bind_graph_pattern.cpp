@@ -143,16 +143,55 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     //     relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     // }
     // we don't support reading property for variable length rel yet.
-    if (!queryRel->isVariableLength()) {
-        for (auto& propertyPair:
-            getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-            auto& propertyName = propertyPair.first;
-            auto& propertySchemas = propertyPair.second;
-            auto propertyExpression =
-                expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
-            queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+
+    if( client == nullptr) {
+        {
+            string propertyName = "_id";
+            vector<Property> prop_id;
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 0, 20000);
+            prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
+        {
+            string propertyName = "_sid";
+            vector<Property> prop_id;
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 20000);
+            prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "_tid";
+            vector<Property> prop_id;
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 3, 20000);
+            prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "rp1";
+            vector<Property> prop_id;
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 3, 20000);
+            prop_id.push_back(p1);
+            // prop_id.push_back(p2);
+            // prop_id.push_back(p3);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+
     }
+
+    // if (!queryRel->isVariableLength()) {
+    //     for (auto& propertyPair:
+    //         getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
+    //         auto& propertyName = propertyPair.first;
+    //         auto& propertySchemas = propertyPair.second;
+    //         auto propertyExpression =
+    //             expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
+    //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+    //     }
+    // }
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
@@ -321,9 +360,9 @@ vector<table_id_t> Binder::bindTableIDs(
         // e.g. (A:B | C:D) => [[A,B], [C,D]] 
 
     // syntax is strange. each tablename is considered intersection.
+    vector<uint64_t> oids;
     switch (nodeOrRelType) {
         case NODE: {
-            vector<uint64_t> oids;
             // TODO fixme
             if (client != nullptr) {
                 client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
@@ -333,11 +372,20 @@ vector<table_id_t> Binder::bindTableIDs(
                 return vector<uint64_t>({10000, 10001, 10002});    // try two
             }
         }
-        case REL:
-            assert(false);
+        case REL: {
             // if empty, return all edges
             // otherwise, union table of all edges
             // this is an union semantics
+             if (client != nullptr) {
+                // TODO fixme
+                assert(false);
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                return oids;
+            } else {
+                // Testcase
+                return vector<uint64_t>({20000});    // try two
+            }
+        }
         default:
             assert(false);
     }
