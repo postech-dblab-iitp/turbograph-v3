@@ -385,13 +385,14 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
 
+	vector<LogicalPlan*> qg_plans;
+
+	D_ASSERT( qgc.getNumQueryGraphs() > 0 );
 	for(int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
 		QueryGraph* qg = qgc.getQueryGraph(idx);
-
 		LogicalPlan* qg_plan = nullptr;
 
 		for(int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
-
 			RelExpression* qedge = qg->getQueryRel(edge_idx).get();
 			NodeExpression* lhs = qedge->getSrcNode().get();
 			NodeExpression* rhs = qedge->getDstNode().get();
@@ -407,12 +408,12 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 			}
 
 			// Scan R
-			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge);
+			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
 			LogicalPlan* lhs_plan;
 			
 			// A join R
 			if( !is_lhs_bound ) {
-				lhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)lhs);
+				lhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)lhs, true);
 			} else {
 				lhs_plan = qg_plan;
 			}
@@ -421,37 +422,52 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 				lhs_plan->getSchema()->getIdxOfKey(lhs_name, ID_COLNAME),
 				edge_plan->getSchema()->getIdxOfKey(edge_name, SID_COLNAME)
 			);
-			LogicalSchema garb_sch;
+			lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
 			lhs_plan->addBinaryParentOp(join_expr, edge_plan);
 			
-			return lhs_plan;
-				// if a not bound 
-					// a_plan = getnode
-				// else
-					// a_plan = qg_plan
-				 
-				// qg_plan = genjoinplan (qg_plan, r)
+			// R join B
 			
-			// R join A
-				// if b not bound
-					// b_plan = getnode
-				// else
-					// b_plan = qg_plan
-
-			// TODO continue logic;
+			if( is_lhs_bound && is_rhs_bound ) {
+				// no join necessary - add filter predicate
+				D_ASSERT(false);
+				qg_plan = qg_plan; // TODO fixme
+			} else {
+				LogicalPlan* rhs_plan;
+				// join necessary
+				if(!is_rhs_bound) {
+					rhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)rhs, true);
+				} else {
+					// lhs unbound and rhs bound
+					rhs_plan = qg_plan;
+				}
+				// (AR) join B
+				auto join_expr = lExprLogicalJoinOnId(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
+					lhs_plan->getSchema()->getIdxOfKey(edge_name, TID_COLNAME),
+					rhs_plan->getSchema()->getIdxOfKey(rhs_name, ID_COLNAME)
+				);
+				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
+				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
+				qg_plan = lhs_plan;
+			}
 		}
-			
-		// do cartesian product
 
-
+		// if no edge, this is single node scan case
+		if( qg_plan == nullptr) {
+			D_ASSERT( qg->getQueryNodes().size() == 1 );
+			qg_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qg->getQueryNodes()[0].get(), true);
+		}
+		D_ASSERT(qg_plan != nullptr);
+		qg_plans.push_back(qg_plan);
 	}
-// fin logic
 
-	// now join 
-	return nullptr;
+	// the querygraphs are not correlated. do cartesian product between query graph
+	// TODO add cartesian product
+	LogicalPlan* final_plan = qg_plans[0];
+	return final_plan;
+
 }
 
-LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr) {
+LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
 
 	auto table_oids = node_expr->getTableIDs();
 	D_ASSERT(table_oids.size() >= 1);
@@ -498,8 +514,12 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr) {
 	for(int col_idx = 0; col_idx < prop_exprs.size(); col_idx++ ) {
 		auto& _prop_expr = prop_exprs[col_idx];
 		PropertyExpression* expr = static_cast<PropertyExpression*>(_prop_expr.get());
-		string expr_name = expr->getUniqueName();
-		schema.appendKey(node_name, expr_name);
+		string expr_name = expr->getRawName();
+		if( is_node ) {
+			schema.appendNodeProperty(node_name, expr_name);
+		}  else {
+			schema.appendEdgeProperty(node_name, expr_name);
+		}
 	}
 	D_ASSERT( schema.getNumPropertiesOfKey(node_name) == prop_exprs.size() );
 

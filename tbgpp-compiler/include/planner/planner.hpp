@@ -112,7 +112,7 @@ private:
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr);
+	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression* lExprLogicalGetNodeOrEdge(
