@@ -124,11 +124,10 @@ private:
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
-	CExpression* lExprScalarProjectionOnColIds(
+	CExpression* lExprScalarAddSchemaConformProject(
 		CExpression* relation, vector<uint64_t> col_ids_to_project,
-		vector<pair<IMDId*, gpos::INT>>* target_schema_types = nullptr
+		vector<pair<IMDId*, gpos::INT>>* target_schema_types
 	);
-	CExpression* lExprScalarProjectionExceptColIds(CExpression* relation, vector<uint64_t> col_ids_to_project_out);
 	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 		uint64_t lhs_pos, uint64_t rhs_pos,bool project_out_lhs_key, bool project_out_rhs_key);
 	
