@@ -502,7 +502,7 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 		}
 	}
 
-	CColRefArray* idx1_output_array;
+	CColRefArray* idx0_output_array;
 	for( int idx = 0; idx < relation_oids.size(); idx++) {
 		auto& oid = relation_oids[idx];
 
@@ -512,7 +512,7 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 		D_ASSERT(num_cols != 0);
 		expr = lExprLogicalGet(oid, name, num_cols);
 
-		// add projection if exists
+		// conform schema if necessary
 		if(do_schema_mapping) {
 			auto& mapping = (*schema_proj_mapping)[oid];
 			assert(num_proj_cols == mapping.size());
@@ -521,9 +521,9 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 				project_cols.push_back(mapping.find(proj_col_idx)->second);
 			}
 			D_ASSERT(project_cols.size() > 0);
-			expr = lExprScalarProjectionOnColIds(expr, project_cols, &union_schema_types);
+			expr = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
 		}
-		
+
 		// add union
 		CColRefArray* expr_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
 		CColRefArray* output_array = GPOS_NEW(mp) CColRefArray(mp);
@@ -538,14 +538,13 @@ LogicalPlan* Planner::lExprLogicalGetNode(string name, vector<uint64_t> relation
 		} else if (idx == 1) {
 			// REL + REL
 			union_plan = lExprLogicalUnionAllWithMapping(
-				union_plan, expr, idx1_output_array, output_array);
+				union_plan, expr, idx0_output_array, output_array);
 		} else {
 			// UNION + REL
 			union_plan = lExprLogicalUnionAllWithMapping(
 				union_plan, expr, union_plan->DeriveOutputColumns()->Pdrgpcr(mp), output_array);
 		}
 	}
-
 	auto plan = new LogicalPlan(union_plan);
 	// TODO add schema
 	plan->bindNode(name);
@@ -622,7 +621,7 @@ CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) 
 
 
 // Output Schema: RELATION + COL_IDS_TO_PROJECT
-CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
+CExpression* Planner::lExprScalarAddSchemaConformProject(CExpression* relation,
 	vector<uint64_t> col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>>* target_schema_types
 ) {
 	// col_ids_to_project may include std::numeric_limits<uint64_t>::max(),
@@ -683,40 +682,7 @@ CExpression* Planner::lExprScalarProjectionOnColIds(CExpression* relation,
 	// return final_expr;
 }
 
-CExpression* Planner::lExprScalarProjectionExceptColIds(CExpression* relation, vector<uint64_t> col_ids_to_project_out) {
 
-	CMemoryPool* mp = this->memory_pool;
-
-	assert(false); // TODO need to change projection mechnaism like lExprScalarProjectionOnColIds
-	return nullptr;
-	// CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
-	// CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
-	
-	// for(int col_id = 0; col_id < relation->DeriveOutputColumns()->Size(); col_id++ ) {
-	// 	if( col_id == std::numeric_limits<uint64_t>::max()) {
-	// 		// schemaless case not implemented yet.
-	// 		assert(false);
-	// 	}
-	// 	// bypass ids to project
-	// 	for(auto& neg_id: col_ids_to_project_out){
-	// 		if( col_id == neg_id ) continue;
-	// 	}
-	// 	CExpression* scalar_proj_elem;
-	// 	CColRef *colref = lGetIthColRef(relation->DeriveOutputColumns(), col_id);
-	// 	CColRef *new_colref = col_factory->PcrCreate(colref);	// generate new reference
-	// 	scalar_proj_elem = GPOS_NEW(mp) CExpression(
-	// 			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref),
-	// 			GPOS_NEW(mp)
-	// 				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref)));
-	// 	proj_array->Append(scalar_proj_elem);
-	// }
-	// CExpression *pexprPrjList =
-	// 	GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
-	// CExpression* proj_expr =  GPOS_NEW(mp) CExpression(
-	// 		mp, GPOS_NEW(mp) CLogicalProject(mp), relation, pexprPrjList);
-	// return proj_expr;
-
-}
 
 CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key, bool project_out_rhs_key) {
@@ -736,10 +702,11 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 	auto join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
 
-	if( project_out_lhs_key || project_out_rhs_key ) {
-		uint64_t idx_to_project_out = (project_out_lhs_key == true) ? (lhs_pos) : (lhs_size + rhs_pos);
-		join_result = lExprScalarProjectionExceptColIds(join_result, vector<uint64_t>({idx_to_project_out}));
-	}
+	// TODO need function for join projection
+	// if( project_out_lhs_key || project_out_rhs_key ) {
+	// 	uint64_t idx_to_project_out = (project_out_lhs_key == true) ? (lhs_pos) : (lhs_size + rhs_pos);
+	// 	join_result = lExprScalarProjectionExceptColIds(join_result, vector<uint64_t>({idx_to_project_out}));
+	// }
 
 	return join_result;
 }
