@@ -134,7 +134,7 @@ public:
     inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
 
     std::string getName() override { return "[QueryGraph]"; }
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         // nodes
         for( auto& qn: queryNodes) {
@@ -171,7 +171,7 @@ public:
     unique_ptr<QueryGraphCollection> copy() const;
 
     std::string getName() override { return "[QueryGraphCollection]"; }
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         for( auto& a: queryGraphs) {
             result.push_back((ParseTreeNode*)a.get());

@@ -104,6 +104,7 @@ private:
 	CExpression* lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
 	LogicalPlan* lPlanQueryPart(
         const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);
 	LogicalPlan* lPlanReadingClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanMatchClause(
@@ -113,6 +114,7 @@ private:
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
+	LogicalPlan* lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression* lExprLogicalGetNodeOrEdge(
@@ -130,6 +132,7 @@ private:
 	);
 	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
+	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);

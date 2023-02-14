@@ -114,7 +114,7 @@ int _main(int argc, char** argv) {
 	std::cout << "[TEST] calling binder" << std::endl;
 	auto boundStatement = binder.bind(*statement);
 	kuzu::binder::BoundStatement * bst = boundStatement.get();
-	BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildren, &kuzu::binder::BoundStatement::getName);
+	BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 	// WARNING - printer should be disabled when processing following compilation step.
 	std::cout << "Tree => " << std::endl;
 	printer.print();

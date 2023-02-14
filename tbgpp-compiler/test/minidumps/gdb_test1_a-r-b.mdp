@@ -335,9 +335,9 @@
           <dxl:Column Name="rp1" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rp2" Attno="5" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+          <!-- <dxl:Column Name="rp2" Attno="5" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
-          </dxl:Column>
+          </dxl:Column> -->
         </dxl:Columns>
         <dxl:IndexInfoList>
           <dxl:IndexInfo Mdid="0.12345.0.0" IsPartial="false"/>
