@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace binder {
 
-class RelExpression : public NodeOrRelExpression, ParseTreeNode {
+class RelExpression : public NodeOrRelExpression {
 public:
     RelExpression(const string& uniqueName, vector<table_id_t> tableIDs,
         shared_ptr<NodeExpression> srcNode, shared_ptr<NodeExpression> dstNode, uint64_t lowerBound,
@@ -36,7 +36,7 @@ public:
 
     std::string getName() override {
         return "[RelExpr] src=" + srcNode->getRawName() + ", dst=" + dstNode->getRawName() ; }
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         return result;
     }

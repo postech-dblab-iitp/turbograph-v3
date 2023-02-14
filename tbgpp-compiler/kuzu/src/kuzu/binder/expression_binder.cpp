@@ -147,12 +147,14 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     auto propertyName = propertyExpression.getPropertyName();
-    if (TableSchema::isReservedPropertyName(propertyName)) {
-        // Note we don't expose direct access to internal properties in case user tries to modify
-        // them. However, we can expose indirect read-only access through function e.g. ID().
-        throw BinderException(
-            propertyName + " is reserved for system usage. External access is not allowed.");
-    }
+    
+// TODO s62 disabled
+    // if (TableSchema::isReservedPropertyName(propertyName)) {
+    //     // Note we don't expose direct access to internal properties in case user tries to modify
+    //     // them. However, we can expose indirect read-only access through function e.g. ID().
+    //     throw BinderException(
+    //         propertyName + " is reserved for system usage. External access is not allowed.");
+    // }
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
     if (NODE == child->dataType.typeID) {

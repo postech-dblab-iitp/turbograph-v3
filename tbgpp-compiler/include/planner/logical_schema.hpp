@@ -78,6 +78,18 @@ public:
 	bool isEmpty() {
 		return schema.size() == 0 && bound_edges.size() == 0 && bound_nodes.size() == 0;
 	}
+	std::string toString() {
+		std::string output = "SCHEMA => \n";
+		for(int idx=0; idx < schema.size(); idx++) {
+			auto& sch = schema[idx];
+			output += " - ["  + std::to_string(idx) + "]" + sch.first;
+			if (sch.second != "") {
+				output += "." + sch.second;
+			}
+			output += "\n";
+		}
+		return output;
+	}
 
 private:
 

@@ -148,7 +148,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         {
             string propertyName = "_id";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 0, 20000);
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);
             prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
@@ -156,7 +156,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         {
             string propertyName = "_sid";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 20000);
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
             prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
@@ -164,7 +164,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         {
             string propertyName = "_tid";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 2, 20000);
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
             prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
@@ -172,7 +172,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         {
             string propertyName = "rp1";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 3, 20000);
+            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
             prop_id.push_back(p1);
             // prop_id.push_back(p2);
             // prop_id.push_back(p3);
@@ -291,9 +291,9 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         {
             string propertyName = "_id";
             vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 0, 10000);
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 0, 10001);
-            auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 0, 10002);
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10000);
+            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10001);
+            auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10002);
             prop_id.push_back(p1);
             prop_id.push_back(p2);
             prop_id.push_back(p3);
@@ -303,9 +303,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         {
             string propertyName = "vp1";
             vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 10000);
-            // auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 10001);
-            // auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 10002);
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10000);
             prop_id.push_back(p1);
             // prop_id.push_back(p2);
             // prop_id.push_back(p3);
@@ -315,8 +313,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         {
             string propertyName = "vp2";
             vector<Property> prop_id;
-            // auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 2, 10000);
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 10001);
+            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10001);
             // prop_id.push_back(p1);
             prop_id.push_back(p2);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
@@ -325,7 +322,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         {
             string propertyName = "vp3";
             vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::ANY), 1, 10002);
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10002);
             prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
