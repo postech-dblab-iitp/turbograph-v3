@@ -36,7 +36,7 @@ class BTNode
 	static childrenGetterFcn childrenGetter;
 	static dataGetterFcn	 dataGetter;
 
-	std::list<T *> getChildren();
+	std::list<T *> getChildNodes();
 	std::string    getData();
 
   /**

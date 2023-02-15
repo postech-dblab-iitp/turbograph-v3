@@ -97,6 +97,7 @@ static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPr
     for (auto& nodeTableSchema : nodeTableSchemas) {
         for (auto& property : nodeTableSchema->properties) {
             if (!(propertyNamesToSchemas.find(property.name) != propertyNamesToSchemas.end())) {
+                // if name not found
                 propertyNames.push_back(property.name);
                 propertyNamesToSchemas.insert({property.name, vector<Property>{}});
             }
@@ -142,16 +143,58 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     //     relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     // }
     // we don't support reading property for variable length rel yet.
-    if (!queryRel->isVariableLength()) {
-        for (auto& propertyPair:
-            getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-            auto& propertyName = propertyPair.first;
-            auto& propertySchemas = propertyPair.second;
-            auto propertyExpression =
-                expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
-            queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+
+    if( client != nullptr) {
+        /* TBGPP MDP */
+        assert(false);
+        // S62 fixme
+    } else {
+        /* Testing - MemoryMDP */
+         {
+            string propertyName = "_id";
+            vector<Property> prop_id;
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);  // colid in table, tableid // datatype is not important for now!
+                prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "_sid";
+            vector<Property> prop_id;
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
+                prop_id.push_back(p1);
+                auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "_tid";
+            vector<Property> prop_id;
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
+                prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "rp1";
+            vector<Property> prop_id;
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
+                prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
     }
+
+    // if (!queryRel->isVariableLength()) {
+    //     for (auto& propertyPair:
+    //         getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
+    //         auto& propertyName = propertyPair.first;
+    //         auto& propertySchemas = propertyPair.second;
+    //         auto propertyExpression =
+    //             expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
+    //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+    //     }
+    // }
+
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
@@ -194,6 +237,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         // We bind to single node a with both labels
         if (!nodePattern.getLabelOrTypeNames().empty()) {
 // S62 change table ids to relations
+            assert(false);  // S62 logic is strange - may crash when considering schema.
             auto otherTableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
             queryNode->addTableIDs(otherTableIDs);
         }
@@ -218,12 +262,26 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
 // S62 change table ids to relations
+// S62 change table ids to relations
+
     auto tableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
     
+
+    // S62 modify like this.
+    // TODO get all schemas of each table id from catalog
+    // starting from first schema
+        // construct union schema : (name, type)
+        // while, check if schema conforms
+
+    // for each schema
+        // generate projection mapping( given name, return pos )
+    
+    // in querynode, store unionschema, projectionmappings
+
     // resolve properties associate with node table
     vector<NodeTableSchema*> nodeTableSchemas;
     // for (auto tableID : tableIDs) {
@@ -232,16 +290,64 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
 
 // S62 union schema process.
     // create properties all properties for given tables
-    for (auto& propertyPair :
-        getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
-        auto& propertyName = propertyPair.first;
-        auto& propertySchemas  = propertyPair.second;
-        auto propertyExpression =
-            expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
-
-        // Each distinct (name, type) is returned
-        queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
+    if( client != nullptr) {
+        /* TBGPP MDP */
+        assert(false);
+        // S62 fixme
+    } else {
+        /* Test - MemoryMDP*/
+        {
+            string propertyName = "_id";
+            vector<Property> prop_id;
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10000);
+            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10001);
+            auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10002);
+            prop_id.push_back(p1);
+            prop_id.push_back(p2);
+            prop_id.push_back(p3);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "vp1";
+            vector<Property> prop_id;
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10000);
+            prop_id.push_back(p1);
+            // prop_id.push_back(p2);
+            // prop_id.push_back(p3);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "vp2";
+            vector<Property> prop_id;
+            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10001);
+            // prop_id.push_back(p1);
+            prop_id.push_back(p2);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+        {
+            string propertyName = "vp3";
+            vector<Property> prop_id;
+            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10002);
+            prop_id.push_back(p1);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
     }
+    // for (auto& propertyPair :
+    //     getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
+    //     auto& propertyName = propertyPair.first;            // name
+    //     auto& propertySchemas  = propertyPair.second;       // properties linked to the names. (e.g. <t1.pid3, t2.pid5, ...>)
+    //     auto propertyExpression =
+    //         expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
+
+    //     // Each distinct (name, type) is returned
+    //     queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
+    // }
+
+
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryNode});
     }
@@ -258,22 +364,35 @@ vector<table_id_t> Binder::bindTableIDs(
         // e.g. (A:B | C:D) => [[A,B], [C,D]] 
 
     // syntax is strange. each tablename is considered intersection.
-    
-
+    vector<uint64_t> oids;
     switch (nodeOrRelType) {
         case NODE: {
-            vector<uint64_t> oids;
-            client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
-            return oids;
+            // TODO fixme
+            if (client != nullptr) {
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                return oids;
+            } else {
+                // Testcase
+                return vector<uint64_t>({10000, 10001, 10002});    // try two
+            }
         }
-        case REL:
-            assert(false);
+        case REL: {
             // if empty, return all edges
             // otherwise, union table of all edges
             // this is an union semantics
+             if (client != nullptr) {
+                // TODO fixme 0 is same api ok??????????
+                assert(false);
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                return oids;
+            } else {
+                // Testcase
+                return vector<uint64_t>({20000});    // try two
+            }
+        }
         default:
             assert(false);
-    }    
+    }
     // std::sort(result.begin(), result.end());
 
     // return result;

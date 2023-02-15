@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace binder {
 
-class NodeExpression : public NodeOrRelExpression, ParseTreeNode  {
+class NodeExpression : public NodeOrRelExpression  {
 public:
     NodeExpression(const string& uniqueName, vector<table_id_t> tableIDs)
         : NodeOrRelExpression{NODE, uniqueName, std::move(tableIDs)} {}
@@ -27,7 +27,7 @@ public:
 
     std::string getName() override {
         return "[NodeExpr] rn=" + internalIDExpression->getRawName(); }
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         return result;
     }

@@ -23,6 +23,10 @@ You can see the system components and their dependencies using the following com
 cmake -GNinja -DCMAKE_BUILD_TYPE=Debug --graphviz=graphviz/dependencies.dot ..
 ```
 
+To build specific target,
+```
+ninja -j [TARGET_NAME]
+```
 ## Development
 
 For developer guidelines, please refer to documents in `dev/` directory. This directory contains all kinds of information related to development of the project.

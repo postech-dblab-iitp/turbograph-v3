@@ -48,7 +48,7 @@ public:
 
     expression_vector getPropertiesToRead() const;
 
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         for( auto& a: readingClauses) {
             result.push_back((ParseTreeNode*)a.get());
