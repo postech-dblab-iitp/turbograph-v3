@@ -144,42 +144,44 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     // }
     // we don't support reading property for variable length rel yet.
 
-    if( client == nullptr) {
-        {
+    if( client != nullptr) {
+        /* TBGPP MDP */
+        assert(false);
+        // S62 fixme
+    } else {
+        /* Testing - MemoryMDP */
+         {
             string propertyName = "_id";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);
-            prop_id.push_back(p1);
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);  // colid in table, tableid // datatype is not important for now!
+                prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
         {
             string propertyName = "_sid";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
-            prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
+                prop_id.push_back(p1);
+                auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
         {
             string propertyName = "_tid";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
-            prop_id.push_back(p1);
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
+                prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
         {
             string propertyName = "rp1";
             vector<Property> prop_id;
-            auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
-            prop_id.push_back(p1);
-            // prop_id.push_back(p2);
-            // prop_id.push_back(p3);
+                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
+                prop_id.push_back(p1);
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
-
     }
 
     // if (!queryRel->isVariableLength()) {
@@ -192,6 +194,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
     //     }
     // }
+
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});
     }
@@ -287,7 +290,12 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
 
 // S62 union schema process.
     // create properties all properties for given tables
-    if( client == nullptr) {
+    if( client != nullptr) {
+        /* TBGPP MDP */
+        assert(false);
+        // S62 fixme
+    } else {
+        /* Test - MemoryMDP*/
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -327,7 +335,6 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
-
     }
     // for (auto& propertyPair :
     //     getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
@@ -374,7 +381,7 @@ vector<table_id_t> Binder::bindTableIDs(
             // otherwise, union table of all edges
             // this is an union semantics
              if (client != nullptr) {
-                // TODO fixme
+                // TODO fixme 0 is same api ok??????????
                 assert(false);
                 client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
                 return oids;
