@@ -8,6 +8,8 @@ project(tbgpp-compiler)
 ####################################################
 # ADD SUBDIRECTORIES
 ####################################################
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+
 add_subdirectory(third_party)
 add_subdirectory(kuzu)
 add_subdirectory(gpdb)

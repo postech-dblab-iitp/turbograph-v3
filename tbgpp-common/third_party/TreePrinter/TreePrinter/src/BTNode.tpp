@@ -28,7 +28,7 @@ void BTNode<T>::initializeClass(childrenGetterFcn f1, dataGetterFcn f2)
 }
 
 template <class T>
-std::list<T *> BTNode<T>::getChildren() {
+std::list<T *> BTNode<T>::getChildNodes() {
 	return CALL_MEMBER_FN(*_nd,childrenGetter)();
 }
 
@@ -62,7 +62,7 @@ BTNode<T>::BTNode(T* node) {
 	_wblock = 0;
 
 	// Create new list of nodes, imitating the structure of the passed node
-	std::list<T *> ls = getChildren();
+	std::list<T *> ls = getChildNodes();
 	for (auto & child: ls)
 	{
 		// Create unique pointer to a child

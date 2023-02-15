@@ -59,7 +59,7 @@ public:
     }
 
     std::string getName() override { return "[BoundMatchClause]"; }
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
         result.push_back((ParseTreeNode*)queryGraphCollection.get());
         //result.push_back((ParseTreeNode*)whereExpression.get());

@@ -688,7 +688,8 @@ CXformUtils::FCanPushGbAggBelowJoin(CColRefSet *pcrsGrpCols,
 BOOL
 CXformUtils::FSameDatatype(CColRef2dArray *pdrgpdrgpcrInput)
 {
-	GPOS_ASSERT(1 < pdrgpdrgpcrInput->Size());
+	// S62 remove assertion for generalization
+	//GPOS_ASSERT(1 < pdrgpdrgpcrInput->Size());
 
 	CColRefArray *pdrgpcrOuter = (*pdrgpdrgpcrInput)[0];
 

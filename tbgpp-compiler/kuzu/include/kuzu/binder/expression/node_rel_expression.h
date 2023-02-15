@@ -48,6 +48,7 @@ public:
 protected:
     vector<table_id_t> tableIDs;
     unordered_map<std::string, size_t> propertyNameToIdx;
+    // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
 };
 

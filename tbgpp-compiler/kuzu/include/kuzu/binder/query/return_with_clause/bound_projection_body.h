@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {
@@ -53,11 +52,17 @@ public:
         return make_unique<BoundProjectionBody>(*this);
     }
 
-    std::list<ParseTreeNode*> getChildren() override { 
+    std::list<ParseTreeNode*> getChildNodes() override { 
         std::list<ParseTreeNode*> result;
+        for( auto& a: projectionExpressions) {
+            result.push_back((ParseTreeNode*)a.get());
+        }
+        for( auto& a: orderByExpressions) {
+            result.push_back((ParseTreeNode*)a.get());
+        }
         return result;
     }
-    std::string getName() override { return "[BoundProjectionBody]"; }
+    std::string getName() override { return "[BoundProjectionBody] projsz="+std::to_string(projectionExpressions.size()) + " orderbysz="+std::to_string(orderByExpressions.size()); }
 
 private:
     bool isDistinct;

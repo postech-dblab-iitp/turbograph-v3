@@ -9,6 +9,9 @@
 #include "common/expression_type.h"
 #include "common/types/types_include.h"
 
+#include "binder/parse_tree_node.h"
+
+
 using namespace kuzu::common;
 using namespace std;
 
@@ -19,7 +22,7 @@ class Expression;
 using expression_vector = vector<shared_ptr<Expression>>;
 using expression_pair = pair<shared_ptr<Expression>, shared_ptr<Expression>>;
 
-class Expression : public enable_shared_from_this<Expression> {
+class Expression : public ParseTreeNode, enable_shared_from_this<Expression> {
 
 public:
     Expression(ExpressionType expressionType, DataType dataType, expression_vector children,
@@ -88,6 +91,12 @@ public:
     virtual unique_ptr<Expression> copy() const {
         throw InternalException("Unimplemented expression copy().");
     }
+
+    std::list<ParseTreeNode*> getChildNodes() override { 
+        std::list<ParseTreeNode*> result;
+        return result;
+    }
+    std::string getName() override { return "[Expr] " + uniqueName + "(" + rawName + ")"; }
 
 protected:
     bool hasSubExpressionOfType(

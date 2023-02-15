@@ -70,14 +70,18 @@
 using namespace kuzu::binder;
 using namespace gpopt;
 
-
 namespace s62 {
+
+enum class MDProviderType {
+	MEMORY,
+	TBGPP
+};
 
 class ClientContext;
 class Planner {
 
 public:
-	Planner(duckdb::ClientContext* context = nullptr);	// TODO change client signature to reference
+	Planner(MDProviderType mdp_type, duckdb::ClientContext* context, string memory_mdp_path = "");	// TODO change client signature to reference
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
@@ -100,6 +104,7 @@ private:
 	CExpression* lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
 	LogicalPlan* lPlanQueryPart(
         const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);
 	LogicalPlan* lPlanReadingClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanMatchClause(
@@ -108,15 +113,26 @@ private:
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
         expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
+	LogicalPlan* lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
 	
-	/* Helper for generating orca logical plans */
-	LogicalPlan* lExprLogicalGetNode(string name, uint64_t oid);	// TODO api wrong
-	LogicalPlan* lExprLogicalGetEdge(string name, uint64_t oid);
+	/* Helper functions for generating orca logical plans */
+	CExpression* lExprLogicalGetNodeOrEdge(
+		string name, vector<uint64_t> oids,
+		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping = nullptr
+	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
+	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
+	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
-	CExpression* lExprScalarProjectionOnColIds(CExpression* relation, vector<uint64_t> col_ids);
-	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs, uint64_t lhs_pos, uint64_t rhs_pos);
+	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
+		CExpression* relation, vector<uint64_t> col_ids_to_project,
+		vector<pair<IMDId*, gpos::INT>>* target_schema_types
+	);
+	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
+		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
+	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);
@@ -126,12 +142,21 @@ private:
 		gpos::BOOL is_nullable  // define nullable columns
 	);
 
+	inline CMDAccessor* lGetMDAccessor() { return COptCtxt::PoctxtFromTLS()->Pmda(); };
+	inline CMDIdGPDB* lGenRelMdid(uint64_t obj_id) { return GPOS_NEW(this->memory_pool) CMDIdGPDB(IMDId::EmdidRel, obj_id, 0, 0); }
+	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
+		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
+	}
 	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:
+	// config
+	const MDProviderType mdp_type;
+	const std::string memory_mdp_filepath;
+
+	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
-
 	BoundStatement* bound_statement;
 
 	// TODO maybe, add logical query context.

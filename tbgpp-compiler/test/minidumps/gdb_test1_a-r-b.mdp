@@ -258,7 +258,7 @@
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg> -->
-      <dxl:Relation Mdid="6.10000.0.0" Name="V" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
+      <dxl:Relation Mdid="6.10000.0.0" Name="V1" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
         <dxl:Columns>
           <dxl:Column Name="_id" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
@@ -266,7 +266,52 @@
           <dxl:Column Name="vp1" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="vp2" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+          <!-- <dxl:Column Name="vp2" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <dxl:Column Name="vp3" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column> -->
+        </dxl:Columns>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.10000.0.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:Relation Mdid="6.10001.0.0" Name="V2" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
+        <dxl:Columns>
+          <dxl:Column Name="_id" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <!-- <dxl:Column Name="vp1" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column> -->
+          <dxl:Column Name="vp2" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <!-- <dxl:Column Name="vp3" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column> -->
+        </dxl:Columns>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.10000.0.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
+        <dxl:Triggers/>
+        <dxl:CheckConstraints/>
+      </dxl:Relation>
+      <dxl:Relation Mdid="6.10002.0.0" Name="V3" IsTemporary="false" StorageType="Heap" DistributionPolicy="MasterOnly">
+        <dxl:Columns>
+          <dxl:Column Name="_id" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column>
+          <!-- <dxl:Column Name="vp1" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column> -->
+          <!-- <dxl:Column Name="vp2" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+            <dxl:DefaultValue/>
+          </dxl:Column> -->
+          <dxl:Column Name="vp3" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -290,9 +335,9 @@
           <dxl:Column Name="rp1" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rp2" Attno="5" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
+          <!-- <dxl:Column Name="rp2" Attno="5" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
-          </dxl:Column>
+          </dxl:Column> -->
         </dxl:Columns>
         <dxl:IndexInfoList>
           <dxl:IndexInfo Mdid="0.12345.0.0" IsPartial="false"/>
