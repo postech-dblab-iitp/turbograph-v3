@@ -271,8 +271,7 @@ CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalog
 CMDIndexInfoArray *
 CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
 {
-	// GPOS_ASSERT(true); // TODO don't have index catalog yet..
-	// GPOS_ASSERT(NULL != rel);
+	GPOS_ASSERT(NULL != rel);
 	// if (gpdb::RelPartIsNone(rel->rd_id) || gpdb::IsLeafPartition(rel->rd_id))
 	// {
 	// 	return RetrieveRelIndexInfoForNonPartTable(mp, rel);
@@ -353,8 +352,7 @@ CMDIndexInfoArray *
 CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 															  Relation rel)
 {
-	GPOS_ASSERT(true); // TODO don't have index catalog yet..
-	// CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
+	CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
 
 	// // not a partitioned table: obtain indexes directly from the catalog
 	// List *index_oids = gpdb::GetRelationIndexes(rel);
@@ -402,7 +400,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 	// 	GPOS_CATCH_END;
 	// }
 
-	// return md_index_info_array;
+	return md_index_info_array;
 }
 
 //---------------------------------------------------------------------------
