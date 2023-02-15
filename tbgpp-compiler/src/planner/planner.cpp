@@ -458,10 +458,8 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 			}
 
 			LogicalPlan* hop_plan;
-			// Scan R
-			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+
 			LogicalPlan* lhs_plan;
-			
 			// A join R
 			if( !is_lhs_bound ) {
 				lhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)lhs, true);
@@ -470,6 +468,9 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 				lhs_plan = qg_plan;
 			}
 			D_ASSERT(lhs_plan != nullptr);
+			// Scan R
+			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+			
 			// TODO need to make this as a function
 			auto join_expr = lExprLogicalJoinOnId(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
 				lhs_plan->getSchema()->getIdxOfKey(lhs_name, ID_COLNAME),
@@ -835,6 +836,9 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 	CColRef *pcrLeft = lGetIthColRef(lcols, lhs_pos);
 	CColRef *pcrRight = lGetIthColRef(rcols, rhs_pos);
 
+	lhs->AddRef();
+	rhs->AddRef();
+
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 	auto join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
 
@@ -913,13 +917,24 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 
 }
 
-CColRef* Planner::lGetIthColRef(CColRefSet* refset, uint64_t idx) {
-	// TODO bug set does not preserve order.
-	CColRefSetIter crsi(*refset);
-	for(int i = 0; i <= idx; i++) {	// advance idx+1 times
-		crsi.Advance();
+CColRef* Planner::lGetIthColRef(CColRefSet* refset, uint64_t target_idx) {
+	
+	CMemoryPool* mp = this->memory_pool;
+
+	ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
+	refset->ExtractColIds(mp, colids);
+
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	const ULONG size = colids->Size();
+	for (ULONG idx = 0; idx < size; idx++) {
+		ULONG colid = *((*colids)[idx]);
+		if(idx == target_idx) {
+			return col_factory->LookupColRef(colid);
+		}
 	}
-	return crsi.Pcr();
+	D_ASSERT(false);
+	return nullptr; // to prevent compiler warning
+	
 }
 
 
