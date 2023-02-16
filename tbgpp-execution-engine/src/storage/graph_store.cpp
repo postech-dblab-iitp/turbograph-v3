@@ -16,6 +16,7 @@
 #include "catalog/catalog.hpp"
 #include "extent/extent_iterator.hpp"
 #include "catalog/catalog_entry/list.hpp"
+#include "common/boost_typedefs.hpp"
 
 
 #include "icecream.hpp"
@@ -294,28 +295,28 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, 
 	PropertySchemaCatalogEntry* ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
 
-	vector<LogicalType> l_types = move(ps_cat_entry->GetTypes());
-	vector<string> keys = move(ps_cat_entry->GetKeys());
-	D_ASSERT(l_types.size() == keys.size());
+	LogicalTypeId_vector *l_types = ps_cat_entry->GetTypes();
+	string_vector *keys = ps_cat_entry->GetKeys();
+	D_ASSERT(l_types->size() == keys->size());
 // icecream::ic.enable(); for( auto& key : keys) { IC(key); } icecream::ic.disable();
 // icecream::ic.enable(); IC(l_types.size(), keys.size()); icecream::ic.disable();
 	if (expand_dir == ExpandDirection::OUTGOING) {
-		for (int i = 0; i < l_types.size(); i++)
-			if ((l_types[i] == LogicalType::FORWARD_ADJLIST) && edge_labels.contains(keys[i])) {
+		for (int i = 0; i < l_types->size(); i++)
+			if (((*l_types)[i] == LogicalType::FORWARD_ADJLIST) && edge_labels.contains(std::string((*keys)[i]))) {
 				adjColIdxs.push_back(i);
 				adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
 			}
 	} else if (expand_dir == ExpandDirection::INCOMING) {
-		for (int i = 0; i < l_types.size(); i++)
-			if ((l_types[i] == LogicalType::BACKWARD_ADJLIST) && edge_labels.contains(keys[i])) {
+		for (int i = 0; i < l_types->size(); i++)
+			if (((*l_types)[i] == LogicalType::BACKWARD_ADJLIST) && edge_labels.contains(std::string((*keys)[i]))) {
 				adjColIdxs.push_back(i);
 				adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
 			}
 	} else if (expand_dir == ExpandDirection::BOTH) {
-		for (int i = 0; i < l_types.size(); i++) {
-			if (edge_labels.contains(keys[i])) {
-				if (l_types[i] == LogicalType::FORWARD_ADJLIST) adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
-				else if (l_types[i] == LogicalType::BACKWARD_ADJLIST) adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
+		for (int i = 0; i < l_types->size(); i++) {
+			if (edge_labels.contains(std::string((*keys)[i]))) {
+				if ((*l_types)[i] == LogicalType::FORWARD_ADJLIST) adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
+				else if ((*l_types)[i] == LogicalType::BACKWARD_ADJLIST) adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
 				adjColIdxs.push_back(i);
 			}
 		}

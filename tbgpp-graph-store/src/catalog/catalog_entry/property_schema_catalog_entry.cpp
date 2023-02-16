@@ -39,7 +39,15 @@ ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
 	return new_eid + local_extent_id_version++;
 }
 
-vector<LogicalType> PropertySchemaCatalogEntry::GetTypes() {
+LogicalTypeId_vector *PropertySchemaCatalogEntry::GetTypes() {
+	return &this->property_typesid;
+}
+
+LogicalTypeId PropertySchemaCatalogEntry::GetType(idx_t i) {
+	return property_typesid[i];
+}
+
+vector<LogicalType> PropertySchemaCatalogEntry::GetTypesWithCopy() {
 	vector<LogicalType> types;
 	for (auto &it : this->property_typesid) {
 		LogicalType type(it);
@@ -81,7 +89,12 @@ void PropertySchemaCatalogEntry::SetKeyColumnIdxs(vector<idx_t> &key_column_idxs
 	}
 }
 
-vector<string> PropertySchemaCatalogEntry::GetKeys() {
+string_vector *PropertySchemaCatalogEntry::GetKeys() {
+	// TODO remove adjlist column
+	return &property_key_names;
+}
+
+vector<string> PropertySchemaCatalogEntry::GetKeysWithCopy() {
 	vector<string> output;
 	for (auto &it : property_key_names) {
 		output.push_back(std::string(it));
@@ -110,6 +123,18 @@ void PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) {
 
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
 	return pid;
+}
+
+uint64_t PropertySchemaCatalogEntry::GetNumberOfColumns() {
+	return property_key_names.size();
+}
+
+string PropertySchemaCatalogEntry::GetPropertyKeyName(idx_t i) {
+	return string(property_key_names[i]);
+}
+
+uint64_t PropertySchemaCatalogEntry::GetTypeSize(idx_t i) {
+	return GetTypeIdSize(LogicalType(property_typesid[i]).InternalType());
 }
 
 } // namespace duckdb

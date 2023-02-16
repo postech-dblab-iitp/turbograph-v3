@@ -94,11 +94,12 @@ namespace duckdb {
 
 SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_mapped_file *&catalog_segment)
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p), (void_allocator) catalog_segment->get_segment_manager()), 
-	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")), 
+	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")),
 	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
 	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
 	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
 	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
+	indexes(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes")),
 	oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
 IC();
 	this->internal = internal;
@@ -247,9 +248,6 @@ CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, Create
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	auto partition = catalog_segment->find_or_construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
-	//auto partition = boost::interprocess::make_managed_unique_ptr(
-	//	catalog_segment->construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info),
-	//	*catalog_segment);
 	return AddEntry(context, move(partition), info->on_conflict, dependencies);
 }
 
@@ -257,9 +255,6 @@ CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, C
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	auto propertyschema = catalog_segment->find_or_construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
-	//auto propertyschema = boost::interprocess::make_managed_unique_ptr(
-	//	catalog_segment->construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info),
-	//	*catalog_segment);
 	return AddEntry(context, move(propertyschema), info->on_conflict, dependencies);
 }
 
@@ -267,9 +262,6 @@ CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExt
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	auto extent = catalog_segment->find_or_construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
-	//auto extent = boost::interprocess::make_managed_unique_ptr(
-	//	catalog_segment->construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info),
-	//	*catalog_segment);
 	return AddEntry(context, move(extent), info->on_conflict, dependencies);
 }
 
@@ -277,10 +269,15 @@ CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, 
 	unordered_set<CatalogEntry *> dependencies;
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	auto chunkdefinition = catalog_segment->find_or_construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
-	//auto chunkdefinition = boost::interprocess::make_managed_unique_ptr(
-	//	catalog_segment->construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info),
-	//	*catalog_segment);
 	return AddEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
+}
+
+CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info, PartitionCatalogEntry *table) {
+	unordered_set<CatalogEntry *> dependencies;
+	// dependencies.insert(table);
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	auto index = catalog_segment->find_or_construct<IndexCatalogEntry>(info->index_name.c_str())(catalog, this, info, alloc_inst);
+	return AddEntry(context, move(index), info->on_conflict, dependencies);
 }
 
 /*
@@ -321,14 +318,7 @@ CatalogEntry *SchemaCatalogEntry::CreateView(ClientContext &context, CreateViewI
 	return AddEntry(context, move(view), info->on_conflict);
 }
 */
-/*
-CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table) {
-	unordered_set<CatalogEntry *> dependencies;
-	dependencies.insert(table);
-	auto index = make_unique<IndexCatalogEntry>(catalog, this, info);
-	return AddEntry(context, move(index), info->on_conflict, dependencies);
-}
-*/
+
 /*
 CatalogEntry *SchemaCatalogEntry::CreateCollation(ClientContext &context, CreateCollationInfo *info) {
 	auto collation = make_unique<CollateCatalogEntry>(catalog, this, info);
@@ -486,17 +476,12 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 }
 
 void SchemaCatalogEntry::LoadCatalogSet() {
-IC();
 	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
-IC();
 	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
-IC();
 	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
-IC();
 	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
-IC();
 	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
-IC();
+	indexes.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes"));
 }
 
 void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment) {
@@ -526,11 +511,11 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 		return extents;
 	case CatalogType::CHUNKDEFINITION_ENTRY:
 		return chunkdefinitions;
+	case CatalogType::INDEX_ENTRY:
+		return indexes;
 	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;
-	case CatalogType::INDEX_ENTRY:
-		return indexes;
 	case CatalogType::TABLE_FUNCTION_ENTRY:
 	case CatalogType::TABLE_MACRO_ENTRY:
 		return table_functions;

@@ -47,7 +47,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     current_idx = 0;
     current_idx_in_this_extent = 0;
     max_idx = property_schema_cat_entry->extent_ids.size();
-    ext_property_types = move(property_schema_cat_entry->GetTypes());
+    ext_property_types = move(property_schema_cat_entry->GetTypesWithCopy());
 
     for (int i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
@@ -492,13 +492,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
     }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
-    vector<string> pks = move(ps_cat_entry->GetKeys());
-    auto idx = std::find(pks.begin(), pks.end(), filterKey);
-    if (idx == pks.end()) throw InvalidInputException("");
+    string_vector *pks = ps_cat_entry->GetKeys();
+    auto idx = std::find(pks->begin(), pks->end(), filterKey);
+    if (idx == pks->end()) throw InvalidInputException("");
     output_eid = ext_ids_to_iterate[previous_idx];
     ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
     filter_cdf_id = filter_cdf_id << 32;
-    filter_cdf_id = filter_cdf_id + (idx - pks.begin());
+    filter_cdf_id = filter_cdf_id + (idx - pks->begin());
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // For the case: scanSchema != ext_property_types
     vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));

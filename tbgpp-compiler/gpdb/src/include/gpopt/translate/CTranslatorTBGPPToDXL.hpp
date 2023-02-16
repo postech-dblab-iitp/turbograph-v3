@@ -50,6 +50,8 @@ typedef int16 AttrNumber; // From src/include/access/attnum.h
 #include "naucrates/statistics/CHistogram.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 
+#include "common/common.hpp"
+#include "catalog/catalog_entry/list.hpp"
 // fwd decl
 struct RelationData;
 typedef struct RelationData *Relation;
@@ -246,7 +248,7 @@ private:
 
 	// get the relation columns
 	static CMDColumnArray *RetrieveRelColumns(
-		CMemoryPool *mp, CMDAccessor *md_accessor, Relation rel,
+		CMemoryPool *mp, CMDAccessor *md_accessor, duckdb::PropertySchemaCatalogEntry *rel,
 		IMDRelation::Erelstoragetype rel_storage_type);
 
 	// return the dxl representation of the column's default value
@@ -296,11 +298,11 @@ private:
 	// 	ULongPtrArray *level_with_default_part_array, BOOL is_unbounded);
 
 	// return relation name
-	static CMDName *GetRelName(CMemoryPool *mp, Relation rel);
+	static CMDName *GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
 
 	// return the index info list defined on the given relation
 	static CMDIndexInfoArray *RetrieveRelIndexInfo(CMemoryPool *mp,
-												   Relation rel);
+												   duckdb::PropertySchemaCatalogEntry *rel);
 
 	// return index info list of indexes defined on a partitioned table
 	static CMDIndexInfoArray *RetrieveRelIndexInfoForPartTable(
@@ -329,7 +331,7 @@ private:
 	// 										const IMDRelation *md_rel);
 
 	// return the triggers defined on the given relation
-	static IMdIdArray *RetrieveRelTriggers(CMemoryPool *mp, Relation rel);
+	static IMdIdArray *RetrieveRelTriggers(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
 
 	// return the check constraints defined on the relation with the given oid
 	static IMdIdArray *RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid);

@@ -2,6 +2,7 @@
 
 #include "common/common.hpp"
 #include "common/boost.hpp"
+#include "common/types.hpp"
 
 namespace duckdb {
     // typedefs for shared memory object
@@ -22,6 +23,7 @@ namespace duckdb {
     typedef boost::interprocess::allocator<ChunkDefinitionID, segment_manager_t> chunkdefinitionid_allocator;
     typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
     typedef boost::interprocess::allocator<char_string, segment_manager_t> string_allocator;
+    typedef boost::interprocess::allocator<LogicalTypeId, segment_manager_t> logicaltypeid_allocator;
     typedef boost::interprocess::vector<idx_t, idx_t_allocator> idx_t_vector;
     typedef boost::interprocess::vector<void*, void_pointer_allocator> void_pointer_vector;
     typedef boost::interprocess::vector<char_string, string_allocator> string_vector;
@@ -29,6 +31,7 @@ namespace duckdb {
     typedef boost::interprocess::vector<PropertyKeyID, propertykeyid_allocator> PropertyKeyID_vector;
     typedef boost::interprocess::vector<PropertySchemaID, propertyschemaid_allocator> PropertySchemaID_vector;
     typedef boost::interprocess::vector<ChunkDefinitionID, chunkdefinitionid_allocator> ChunkDefinitionID_vector;
+    typedef boost::interprocess::vector<LogicalTypeId, logicaltypeid_allocator> LogicalTypeId_vector;
     typedef std::pair<const char_string, VertexLabelID> vertexlabel_id_map_value_type;
     typedef std::pair<const char_string, EdgeTypeID> edgetype_id_map_value_type;
     typedef std::pair<const char_string, PropertyKeyID> propertykey_id_map_value_type;
