@@ -8,7 +8,7 @@ project(tbgpp-compiler)
 ####################################################
 # ADD SUBDIRECTORIES
 ####################################################
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+#SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
 
 add_subdirectory(third_party)
 add_subdirectory(kuzu)
@@ -23,6 +23,7 @@ set(CMAKE_CXX_STANDARD 17)
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
+#SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
 
 # apply gporca configurations
 add_compile_options(-DUSE_CMAKE)

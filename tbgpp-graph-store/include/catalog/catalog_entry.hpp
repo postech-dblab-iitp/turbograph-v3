@@ -57,6 +57,7 @@ public:
 
 public:
 	idx_t GetOid() { return oid; }
+	string GetName() { return string(name); }
 
 	virtual unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info);
 

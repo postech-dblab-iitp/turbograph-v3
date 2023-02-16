@@ -16,11 +16,19 @@ extern "C" {
 
 namespace duckdb {
 
+class ClientContext;
+class CatalogWrapper;
+
+void SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWrapper> catalog_wrapper_);
+
 // return the logical index type for a given logical index oid
 IndexType GetLogicalIndexType(Oid index_oid);
 
 // get relation with given oid
 PropertySchemaCatalogEntry* GetRelation(idx_t rel_oid);
+
+static shared_ptr<ClientContext> client_wrapper;
+static shared_ptr<CatalogWrapper> catalog_wrapper;
 
 } // duckdb
 

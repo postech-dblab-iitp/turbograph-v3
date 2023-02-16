@@ -80,11 +80,11 @@ private:
 	CatalogSet extents;
 	//! The catalog set holding the chunkdefinitions
 	CatalogSet chunkdefinitions;
+	//! The catalog set holding the indexes
+	CatalogSet indexes;
 	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
-	//! The catalog set holding the indexes
-	CatalogSet indexes;
 	//! The catalog set holding the table functions
 	CatalogSet table_functions;
 	//! The catalog set holding the copy functions
@@ -120,7 +120,7 @@ public:
 	string ToSQL() override;
 
 	//! Creates an index with the given name in the schema
-	//CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, TableCatalogEntry *table);
+	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, PartitionCatalogEntry *partition);
 
 	CatalogEntry *GetCatalogEntryFromOid(idx_t oid);
 

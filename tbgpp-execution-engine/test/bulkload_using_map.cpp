@@ -108,6 +108,161 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
+void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
+	std::istringstream iss(labelset);
+	string label;
+
+	while (std::getline(iss, label, ':')) {
+		parsed_labelset.push_back(label);
+	}
+}
+
+void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+											 vector<std::pair<string, unordered_map<idx_t, idx_t>>> &lid_to_pid_map) {
+	for (auto &vertex_file: vertex_files) {
+		auto vertex_file_start = std::chrono::high_resolution_clock::now();
+		fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
+		// Create Partition for each vertex (partitioned by labelset)
+		vector<string> vertex_labels;
+		ParseLabelSet(vertex_file.first, vertex_labels);
+		
+		string partition_name = "vpart_" + vertex_file.first;
+		CreatePartitionInfo partition_info("main", partition_name.c_str());
+		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
+		PartitionID new_pid = graph_cat->GetNewPartitionID();
+		graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
+		
+		fprintf(stdout, "Init GraphCSVFile\n");
+		auto init_csv_start = std::chrono::high_resolution_clock::now();
+		// Initialize CSVFileReader
+		GraphSIMDCSVFileParser reader;
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
+		auto init_csv_end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
+		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
+
+		// Initialize Property Schema Catalog Entry using Schema of the vertex
+		vector<string> key_names;
+		vector<LogicalType> types;
+		if (!reader.GetSchemaFromHeader(key_names, types)) {
+			throw InvalidInputException("");
+		}
+		
+		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+		
+		string property_schema_name = "vps_" + vertex_file.first;
+		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
+		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+		
+		vector<PropertyKeyID> property_key_ids;
+		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
+		property_schema_cat->SetTypes(types);
+		property_schema_cat->SetKeys(*client.get(), key_names);
+		
+		// Initialize DataChunk
+		DataChunk data;
+		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
+
+		// Initialize LID_TO_PID_MAP
+		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
+		ART *index;
+		if (load_edge) {
+			lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
+			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
+			lid_to_pid_map_instance->reserve(approximated_num_rows);
+			// vector<column_t> column_ids;
+			// for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
+			// index = new ART(column_ids, IndexConstraintType::NONE);
+			// std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
+			// lid_to_pid_index.push_back(pair_to_insert);
+		}
+
+		// Read CSV File into DataChunk & CreateVertexExtent
+		auto read_chunk_start = std::chrono::high_resolution_clock::now();
+		while (!reader.ReadCSVFile(key_names, types, data)) {
+			auto read_chunk_end = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
+			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
+
+			// Create Vertex Extent by Extent Manager
+			auto create_extent_start = std::chrono::high_resolution_clock::now();
+			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+			auto create_extent_end = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
+			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+			property_schema_cat->AddExtent(new_eid);
+			
+			if (load_edge) {
+				// Initialize pid base
+				idx_t pid_base = (idx_t) new_eid;
+				pid_base = pid_base << 32;
+
+				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
+				auto map_build_start = std::chrono::high_resolution_clock::now();
+				if (key_column_idxs[0] < 0) continue;
+				idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData(); // XXX idx_t type?
+				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+					lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
+				}
+				auto map_build_end = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
+				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+
+				// Build Index
+// 				auto index_build_start = std::chrono::high_resolution_clock::now();
+// 				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
+// 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
+// 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
+// 					// IC(seqno, row_ids_data[seqno]);
+// 				}
+// 				DataChunk tmp_chunk;
+// 				vector<LogicalType> tmp_types;
+// 				tmp_types.resize(1);
+// 				if (key_column_idxs.size() == 1) {
+// 					tmp_types[0] = LogicalType::UBIGINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else if (key_column_idxs.size() == 2) {
+// 					tmp_types[0] = LogicalType::HUGEINT;
+// 					tmp_chunk.Initialize(tmp_types, data.size());
+// 					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
+// 					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+// 						hugeint_t key_val;
+// 						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
+// 						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
+// 						tmp_chunk_data[seqno] = key_val;
+// 						// IC(key_val.upper, key_val.lower);
+// 						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
+// 					}
+// 					tmp_chunk.SetCardinality(data.size());
+// 				} else {
+// 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+// 				}
+// // IC();
+// 				// tmp_types.resize(key_column_idxs.size());
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
+// 				// tmp_chunk.Initialize(tmp_types);
+// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
+// 				// IC(tmp_chunk.size());
+// 				IndexLock lock;
+// 				index->Insert(lock, tmp_chunk, row_ids);
+// 				auto index_build_end = std::chrono::high_resolution_clock::now();
+// 				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
+// 				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
+			}
+			read_chunk_start = std::chrono::high_resolution_clock::now();
+		}
+		auto vertex_file_end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
+
+		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
+	}
+}
+
 class InputParser{
   public:
     InputParser (int &argc, char **argv){
@@ -190,7 +345,6 @@ icecream::ic.disable();
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	
 	// Initialize ClientContext
-icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
@@ -209,153 +363,7 @@ icecream::ic.disable();
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
 	// Read Vertex CSV File & CreateVertexExtents
-	// unique_ptr<Index> index; // Temporary..
-	for (auto &vertex_file: vertex_files) {
-		auto vertex_file_start = std::chrono::high_resolution_clock::now();
-		fprintf(stdout, "Start to load %s, %s\n", vertex_file.first.c_str(), vertex_file.second.c_str());
-		// Create Partition for each vertex (partitioned by label)
-		vector<string> vertex_labels = {vertex_file.first};
-		string partition_name = "vpart_" + vertex_file.first;
-		CreatePartitionInfo partition_info("main", partition_name.c_str());
-		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-		PartitionID new_pid = graph_cat->GetNewPartitionID();
-		graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
-		
-		fprintf(stdout, "Init GraphCSVFile\n");
-		auto init_csv_start = std::chrono::high_resolution_clock::now();
-		// Initialize CSVFileReader
-		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file.second.c_str(), GraphComponentType::VERTEX, '|');
-		auto init_csv_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
-		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
-
-		// Initialize Property Schema Catalog Entry using Schema of the vertex
-		vector<string> key_names;
-		vector<LogicalType> types;
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("");
-		}
-		
-		vector<int64_t> key_column_idxs = reader.GetKeyColumnIndexFromHeader();
-		
-		string property_schema_name = "vps_" + vertex_file.first;
-		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
-		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
-		
-		vector<PropertyKeyID> property_key_ids;
-		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
-		property_schema_cat->SetTypes(types);
-		property_schema_cat->SetKeys(*client.get(), key_names);
-// IC();
-		
-		// Initialize DataChunk
-		DataChunk data;
-		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
-// IC();
-
-		// Initialize LID_TO_PID_MAP
-		unordered_map<idx_t, idx_t> *lid_to_pid_map_instance;
-		ART *index;
-		if (load_edge) {
-			lid_to_pid_map.emplace_back(vertex_file.first, unordered_map<idx_t, idx_t>());
-			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
-			lid_to_pid_map_instance->reserve(approximated_num_rows);
-			// vector<column_t> column_ids;
-			// for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
-			// index = new ART(column_ids, IndexConstraintType::NONE);
-			// std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
-			// lid_to_pid_index.push_back(pair_to_insert);
-		}
-// IC();
-
-		// Read CSV File into DataChunk & CreateVertexExtent
-		auto read_chunk_start = std::chrono::high_resolution_clock::now();
-		while (!reader.ReadCSVFile(key_names, types, data)) {
-			// IC();
-			auto read_chunk_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> chunk_duration = read_chunk_end - read_chunk_start;
-			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", chunk_duration.count());
-			//continue;
-			//fprintf(stderr, "%s\n", data.ToString().c_str());
-			// Create Vertex Extent by Extent Manager
-			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
-			auto create_extent_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
-			property_schema_cat->AddExtent(new_eid);
-			
-			if (load_edge) {
-				// Initialize pid base
-				idx_t pid_base = (idx_t) new_eid;
-				pid_base = pid_base << 32;
-
-				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
-				auto map_build_start = std::chrono::high_resolution_clock::now();
-				if (key_column_idxs[0] < 0) continue;
-				idx_t* key_column = (idx_t*) data.data[key_column_idxs[0]].GetData(); // XXX idx_t type?
-				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-					lid_to_pid_map_instance->emplace(key_column[seqno], pid_base + seqno);
-				}
-				auto map_build_end = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
-				// Build Index
-// 				auto index_build_start = std::chrono::high_resolution_clock::now();
-// 				Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
-// 				int64_t *row_ids_data = (int64_t *)row_ids.GetData();
-// 				for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-// 					row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-// 					// IC(seqno, row_ids_data[seqno]);
-// 				}
-// 				DataChunk tmp_chunk;
-// 				vector<LogicalType> tmp_types;
-// 				tmp_types.resize(1);
-// 				if (key_column_idxs.size() == 1) {
-// 					tmp_types[0] = LogicalType::UBIGINT;
-// 					tmp_chunk.Initialize(tmp_types, data.size());
-// 					tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
-// 					tmp_chunk.SetCardinality(data.size());
-// 				} else if (key_column_idxs.size() == 2) {
-// 					tmp_types[0] = LogicalType::HUGEINT;
-// 					tmp_chunk.Initialize(tmp_types, data.size());
-// 					hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
-// 					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-// 						hugeint_t key_val;
-// 						key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
-// 						key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
-// 						tmp_chunk_data[seqno] = key_val;
-// 						// IC(key_val.upper, key_val.lower);
-// 						// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
-// 					}
-// 					tmp_chunk.SetCardinality(data.size());
-// 				} else {
-// 					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-// 				}
-// // IC();
-// 				// tmp_types.resize(key_column_idxs.size());
-// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
-// 				// tmp_chunk.Initialize(tmp_types);
-// 				// for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-// 				// IC(tmp_chunk.size());
-// 				IndexLock lock;
-// 				index->Insert(lock, tmp_chunk, row_ids);
-// 				auto index_build_end = std::chrono::high_resolution_clock::now();
-// 				std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-// 				fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
-			}
-			read_chunk_start = std::chrono::high_resolution_clock::now();
-		}
-		auto vertex_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
-
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
-	}
-
+	ReadVertexCSVFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
 	fprintf(stdout, "Vertex File Loading Done\n");
 
 	// Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
@@ -393,12 +401,12 @@ icecream::ic.disable();
 		fprintf(stdout, ")\n");
 
 		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
+			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(src_column_name) != string::npos; });
 		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file not loaded");
 		unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
 		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
+			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(dst_column_name) != string::npos; });
 		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file not loaded");
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
@@ -407,7 +415,7 @@ icecream::ic.disable();
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
 
@@ -432,8 +440,18 @@ icecream::ic.disable();
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
+		vector<idx_t> vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input source key corresponds to multiple vertex partitions.");
+
+		vector<idx_t> vertex_ps_cat_oids;
+		PartitionCatalogEntry *vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		// vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
@@ -675,12 +693,12 @@ icecream::ic.disable();
 		fprintf(stdout, ")\n");
 
 		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == src_column_name; });
+			[&src_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(src_column_name) != string::npos; });
 		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Src Lid to Pid Map does not exists");
 		unordered_map<idx_t, idx_t> &src_lid_to_pid_map_instance = src_it->second;
 
 		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
-			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first == dst_column_name; });
+			[&dst_column_name](const std::pair<string, unordered_map<idx_t, idx_t>> &element) { return element.first.find(dst_column_name) != string::npos; });
 		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Dst Lid to Pid Map does not exists");
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
@@ -689,7 +707,7 @@ icecream::ic.disable();
 		// PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		// vector<PropertyKeyID> property_key_ids;
 		// graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
-		// partition_cat->AddPropertySchema(*client.get(), 0, property_key_ids);
+		// partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		// property_schema_cat->SetTypes(types);
 		// property_schema_cat->SetKeys(key_names);
 
@@ -703,8 +721,18 @@ icecream::ic.disable();
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
+		vector<idx_t> vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input source key corresponds to multiple vertex partitions.");
+
+		vector<idx_t> vertex_ps_cat_oids;
+		PartitionCatalogEntry *vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + src_column_name);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
