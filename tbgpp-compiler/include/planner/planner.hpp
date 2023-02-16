@@ -43,6 +43,8 @@
 #include "gpopt/operators/CScalarProjectElement.h"
 #include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/operators/CLogicalUnionAll.h"
+#include "gpopt/operators/COperator.h"
 
 #include "naucrates/init.h"
 
@@ -60,7 +62,8 @@
 #include "kuzu/binder/expression/expression.h"
 
 #include "naucrates/traceflags/traceflags.h"
-
+#include "execution/cypher_pipeline.hpp"
+#include "execution/physical_operator/cypher_physical_operator.hpp"
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
@@ -87,7 +90,7 @@ public:
 	void execute(BoundStatement* bound_statement);
 
 private:
-
+	// planner.cpp
 	/* Orca Related */
 	void orcaInit();
 	static void * _orcaExec(void* planner_ptr);
@@ -99,6 +102,8 @@ private:
 	gpdbcost::CCostModelGPDB* _orcaGetCostModel(CMemoryPool* mp);
 	void _orcaSetOptCtxt(CMemoryPool* mp, CMDAccessor* mda, gpdbcost::CCostModelGPDB* pcm);
 
+private:
+	// planner_logical.cpp
 	/* Generating orca logical plan */
 	CExpression* lGetLogicalPlan();
 	CExpression* lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
@@ -150,6 +155,16 @@ private:
 	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:
+	// planner_physical.cpp
+	/* Generating orca physical plan */
+	void pGenPhysicalPlan(CExpression* orca_plan_root);
+	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* op);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* op);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* op);
+
+	bool pIsUnionAllOpScanExpression(CExpression* plan_expr);
+
+private:
 	// config
 	const MDProviderType mdp_type;
 	const std::string memory_mdp_filepath;
@@ -157,15 +172,9 @@ private:
 	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
-	BoundStatement* bound_statement;
 
-	// TODO maybe, add logical query context.
-
-	// TODO kuzu had following
-	// expression_vector propertiesToScan;
-    // JoinOrderEnumerator joinOrderEnumerator;
-    // ProjectionPlanner projectionPlanner;
-
+	BoundStatement* bound_statement;			// input parse statemnt
+	vector<duckdb::CypherPipeline> pipelines;	// output plan pipelines
 };
 
 }
