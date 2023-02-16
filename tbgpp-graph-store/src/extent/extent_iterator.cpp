@@ -125,6 +125,57 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     is_initialized = true;
 }
 
+void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<int64_t> &target_idxs_) {
+    ps_cat_entry = property_schema_cat_entry;
+    if (_CheckIsMemoryEnough()) {
+        support_double_buffering = true;
+        num_data_chunks = MAX_NUM_DATA_CHUNKS;
+        // Initialize Data Chunks
+        for (int i = 0; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = new DataChunk();
+    } else {
+        support_double_buffering = false;
+        num_data_chunks = 1;
+        // Initialize Data Chunks
+        data_chunks[0] = new DataChunk();
+        for (int i = 1; i < MAX_NUM_DATA_CHUNKS; i++) data_chunks[i] = nullptr;
+    }
+
+    toggle = 0;
+    current_idx = 0;
+    current_idx_in_this_extent = 0;
+    max_idx = property_schema_cat_entry->extent_ids.size();
+    ext_property_types = target_types_;
+    target_idxs = target_idxs_;
+    for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
+        ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
+
+    Catalog& cat_instance = context.db->GetCatalog();
+    // Request I/O for the first extent
+    {
+        ExtentCatalogEntry* extent_cat_entry = 
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+
+        size_t chunk_size = ext_property_types.size();
+        io_requested_cdf_ids[toggle].resize(chunk_size);
+        io_requested_buf_ptrs[toggle].resize(chunk_size);
+        io_requested_buf_sizes[toggle].resize(chunk_size);
+
+        int j = 0;
+        for (int i = 0; i < chunk_size; i++) {
+            if (ext_property_types[i] == LogicalType::ID) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                continue;
+            }
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
+            io_requested_cdf_ids[toggle][i] = cdf_id;
+            string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+            // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
+            ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+        }
+    }
+    is_initialized = true;
+}
+
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid) {
 // icecream::ic.enable(); IC(); icecream::ic.disable();    
     ps_cat_entry = property_schema_cat_entry;
