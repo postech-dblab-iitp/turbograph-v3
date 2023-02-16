@@ -58,7 +58,7 @@ public:
 	//! Otherwise this is left on INVALID_INDEX
 	//! The batch index is a globally unique, increasing index that should be used to maintain insertion order
 	//! //! in conjunction with parallelism
-	idx_t batch_index = DConstants::INVALID_INDEX;
+	idx_t batch_index = idx_t(-1);	// same as INVALID_INDEX
 };
 
 class GlobalSourceState {

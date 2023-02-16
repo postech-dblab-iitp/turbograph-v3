@@ -89,13 +89,17 @@ target_include_directories(tbgpp-compiler PUBLIC
   	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" 
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/third_party/TreePrinter/TreePrinter/src"
+	# tbgpp-execution-engine
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/execution"
+
 	# tbgpp-graph-store
 	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include"
 )
 
 file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-compiler PUBLIC ${SOURCES})
-target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main)
+target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main tbgpp-execution-engine-lib)
 target_link_libraries(tbgpp-compiler "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 # gpdb
 target_link_libraries(tbgpp-compiler gpdb)
