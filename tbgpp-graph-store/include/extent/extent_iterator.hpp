@@ -30,6 +30,8 @@ public:
     // Iterate all extents related to the PropertySchemaCatalogEntry
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_);
+    void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<int64_t> &target_idxs_); // TODO remove this..
+    // void Initialize(ClientContext &context, vector<PropertySchemaCatalogEntry *> &property_schema_cat_entry, vector<LogicalType> &target_types_, vector<vector<int64_t>> &target_idxs_); // TODO is generalizable? more general API..
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, vector<ExtentID> target_eids);
     int RequestNewIO(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid, ExtentID &evicted_eid);
