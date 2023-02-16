@@ -63,7 +63,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ex
 	return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<int64_t>> &projection_mapping, std::vector<duckdb::LogicalType> &scanSchema) {
+StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, std::vector<duckdb::LogicalType> &scanSchema) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(oids.size() == projection_mapping.size());
 	
@@ -122,8 +122,21 @@ StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, D
 	}
 }
 
-StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<int64_t>> projection_mapping, std::vector<duckdb::LogicalType> scanSchema) {
-
+StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> projection_mapping, std::vector<duckdb::LogicalType> scanSchema) {
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid);
+	if (scan_ongoing) {
+		//output.Reference(*output_);
+		return StoreAPIResult::OK;
+	} else {
+		ext_its.pop();
+		delete ext_it;
+		if (ext_its.size() > 0)
+			return StoreAPIResult::OK;
+		else
+			return StoreAPIResult::DONE;
+	}
 }
 
 StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema) {
