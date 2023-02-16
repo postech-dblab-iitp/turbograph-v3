@@ -663,6 +663,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 
 		CExpression * expr;
 		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
+		icecream::ic.enable(); IC(); IC(oid, num_cols); icecream::ic.disable();
 
 		D_ASSERT(num_cols != 0);
 		expr = lExprLogicalGet(oid, name, num_cols);

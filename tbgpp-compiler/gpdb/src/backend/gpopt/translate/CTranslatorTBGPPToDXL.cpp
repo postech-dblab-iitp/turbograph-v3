@@ -752,8 +752,32 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
 
+	ULONG attnum = 1;
+
+	// Insert physical id column
+	{
+		CMDName *md_colname =
+			CDXLUtils::CreateMDNameFromCharArray(mp, "_id");
+
+		// translate the default column value
+		CDXLNode *dxl_default_col_val = NULL;
+
+		ULONG col_len = sizeof(uint64_t);
+		CMDIdGPDB *mdid_col =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0); // TODO we need type id in our catalog
+		
+		CMDColumn *md_col = GPOS_NEW(mp)
+			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
+					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
+					  dxl_default_col_val /* default value */, col_len);
+
+		mdcol_array->Append(md_col);
+	}
+	
 	for (ULONG ul = 0; ul < (ULONG) rel->GetNumberOfColumns(); ul++)
 	{
+		if (rel->GetType(ul) == duckdb::LogicalType::FORWARD_ADJLIST ||
+			rel->GetType(ul) == duckdb::LogicalType::BACKWARD_ADJLIST) continue;
 		// Form_pg_attribute att = rel->rd_att->attrs[ul];
 		CMDName *md_colname =
 			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
@@ -814,7 +838,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		// }
 
 		CMDColumn *md_col = GPOS_NEW(mp)
-			CMDColumn(md_colname, ul+1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
+			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
 					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
 					  dxl_default_col_val /* default value */, col_len);
 
@@ -2360,7 +2384,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	ULONG pos = mdid_col_stats->Position();
 	OID rel_oid = CMDIdGPDB::CastMdid(mdid_rel)->Oid();
 
-	Relation rel;// = gpdb::GetRelation(rel_oid);
+	duckdb::PropertySchemaCatalogEntry *rel = duckdb::GetRelation(rel_oid);
 	if (NULL == rel)
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,

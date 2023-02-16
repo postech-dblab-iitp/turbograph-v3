@@ -260,8 +260,8 @@ icecream::ic.disable();
 
 	// TODO 0202 this should work.
 	// Test catalog access to get object id
-	vector<idx_t> oids;
-	(client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
+	// vector<idx_t> oids;
+	// (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
 	// TODO why does this function return void??
 
 	
@@ -304,7 +304,7 @@ icecream::ic.disable();
 		std::cout << "[TEST] calling binder" << std::endl;
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
-		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildren, &kuzu::binder::BoundStatement::getName);
+		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 		// WARNING - printer should be disabled when processing following compilation step.
 		std::cout << "Tree => " << std::endl;
 		printer.print();
