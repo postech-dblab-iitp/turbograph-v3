@@ -556,9 +556,11 @@ public:
         std::string type_name = key_and_type.substr(delim_pos + 1);
         LogicalType type = move(StringToLogicalType(type_name, i));
         if (type_name.find("START_ID") != std::string::npos) {
-          key_names.push_back(src_key_name + "_src_" + std::to_string(src_columns.size()));
+          // key_names.push_back(src_key_name + "_src_" + std::to_string(src_columns.size()));
+          key_names.push_back("_sid");
         } else {
-          key_names.push_back(dst_key_name + "_dst_" + std::to_string(dst_columns.size()));
+          // key_names.push_back(dst_key_name + "_dst_" + std::to_string(dst_columns.size()));
+          key_names.push_back("_tid");
         }
         key_types.push_back(move(type));
       } else {

@@ -759,7 +759,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "vps_" + vertex_file.first);
-    vector<LogicalType> column_types = move(vertex_ps_cat_entry->GetTypes());
+    vector<LogicalType> column_types = move(vertex_ps_cat_entry->GetTypesWithCopy());
     vector<idx_t> column_idxs;
     
     column_idxs.resize(column_types.size());
@@ -782,7 +782,7 @@ TEST_CASE ("LDBC Data Bulk Insert", "[tile]") {
     ExtentIterator ext_it;
     PropertySchemaCatalogEntry* edge_ps_cat_entry = 
       (PropertySchemaCatalogEntry*) cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, "main", "eps_" + edge_file.first);
-    vector<LogicalType> column_types = move(edge_ps_cat_entry->GetTypes());
+    vector<LogicalType> column_types = move(edge_ps_cat_entry->GetTypesWithCopy());
     vector<idx_t> column_idxs;
     column_idxs.resize(column_types.size());
     for (int i = 0; i < column_idxs.size(); i++) column_idxs[i] = i;

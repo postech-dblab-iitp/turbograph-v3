@@ -37,8 +37,6 @@ struct AlterForeignKeyInfo;
 
 //! A property schema catalog entry
 class PropertySchemaCatalogEntry : public StandardEntry {
-    typedef boost::interprocess::allocator<LogicalTypeId, segment_manager_t> logicaltypeid_allocator;
-	typedef boost::interprocess::vector<LogicalTypeId, logicaltypeid_allocator> LogicalTypeId_vector;
 
 public:
 	//! Create a real GraphCatalogEntry
@@ -59,12 +57,15 @@ public:
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
 	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
-	vector<string> GetKeys();
+	string_vector *GetKeys();
+	vector<string> GetKeysWithCopy();
 	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);
 	void AppendKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
-	vector<LogicalType> GetTypes();
+	LogicalTypeId_vector *GetTypes();
+	LogicalTypeId GetType(idx_t i);
+	vector<LogicalType> GetTypesWithCopy();
 	uint64_t GetTypeSize(idx_t i);
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
 	vector<idx_t> GetKeyColumnIdxs();

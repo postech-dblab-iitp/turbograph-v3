@@ -146,8 +146,29 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
 
     if( client != nullptr) {
         /* TBGPP MDP */
-        assert(false);
         // S62 fixme
+        // Get unordered map (property key -> corresponding (sub)table ids)
+        unordered_map<string, vector<uint64_t>> pkey_to_ps_map;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
+        {
+            string propertyName = "_id";
+            vector<Property> prop_id;
+            for (auto &table_id : tableIDs) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, table_id));
+            }
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+
+        // for each property, create property expression
+        for (auto &it : pkey_to_ps_map) {
+            vector<Property> prop_id;
+            for (auto &table_id : it.second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), 0, table_id));
+            }
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(it.first, std::move(prop_idexpr));
+        }
     } else {
         /* Testing - MemoryMDP */
          {
@@ -292,8 +313,31 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     // create properties all properties for given tables
     if( client != nullptr) {
         /* TBGPP MDP */
-        assert(false);
         // S62 fixme
+        // Get unordered map (property key -> corresponding (sub)table ids)
+        unordered_map<string, vector<uint64_t>> pkey_to_ps_map;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
+        {
+            string propertyName = "_id";
+            vector<Property> prop_id;
+            for (auto &table_id : tableIDs) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, table_id));
+            }
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
+        }
+
+        // for each property, create property expression
+        icecream::ic.enable(); IC(); icecream::ic.disable();
+        for (auto &it : pkey_to_ps_map) {
+            vector<Property> prop_id;
+            for (auto &table_id : it.second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), 0, table_id));
+            }
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(it.first, std::move(prop_idexpr));
+        }
+        icecream::ic.enable(); IC(); icecream::ic.disable();
     } else {
         /* Test - MemoryMDP*/
         {
@@ -367,9 +411,8 @@ vector<table_id_t> Binder::bindTableIDs(
     vector<uint64_t> oids;
     switch (nodeOrRelType) {
         case NODE: {
-            // TODO fixme
             if (client != nullptr) {
-                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids, duckdb::GraphComponentType::VERTEX);
                 return oids;
             } else {
                 // Testcase
@@ -381,9 +424,7 @@ vector<table_id_t> Binder::bindTableIDs(
             // otherwise, union table of all edges
             // this is an union semantics
              if (client != nullptr) {
-                // TODO fixme 0 is same api ok??????????
-                assert(false);
-                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids);
+                client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids, duckdb::GraphComponentType::EDGE);
                 return oids;
             } else {
                 // Testcase
