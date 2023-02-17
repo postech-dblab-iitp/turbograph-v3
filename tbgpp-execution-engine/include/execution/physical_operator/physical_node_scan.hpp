@@ -15,8 +15,7 @@ class PhysicalNodeScan: public CypherPhysicalOperator {
 
 public:
 	
-	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk);
-	PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, string filter_pushdown_key, Value filter_pushdown_value);
+	PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
 	~PhysicalNodeScan();
 
 public:
@@ -27,13 +26,13 @@ public:
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
-	// operator parameters
-	LabelSet labels;
-	PropertyKeys propertyKeys;
+	// scan parameters
+	mutable vector<idx_t> oids;
+	mutable vector<vector<uint64_t>> projection_mapping;
 
 	// filter pushdown
-	string filter_pushdown_key;
-	Value filter_pushdown_value;
+	mutable string filter_pushdown_key;
+	mutable Value filter_pushdown_value;
 
 	
 };	

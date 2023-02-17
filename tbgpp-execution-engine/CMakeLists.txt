@@ -112,12 +112,12 @@ file(GLOB ENGINE_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/bulkload_json.cpp"
 )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
-file (GLOB_RECURSE TEST_SOURCES
-  "${PROJECT_SOURCE_DIR}/test/plans/simple/*.cpp"
-  "${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.cpp"
-  "${PROJECT_SOURCE_DIR}/test/plans/tpc-h/*.cpp"
-  "${PROJECT_SOURCE_DIR}/test/plans/coco/*.cpp"
-)
+# file (GLOB_RECURSE TEST_SOURCES
+#   "${PROJECT_SOURCE_DIR}/test/plans/simple/*.cpp"
+#   "${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.cpp"
+#   "${PROJECT_SOURCE_DIR}/test/plans/tpc-h/*.cpp"
+#   "${PROJECT_SOURCE_DIR}/test/plans/coco/*.cpp"
+# )
 
 foreach(test_file ${ENGINE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)

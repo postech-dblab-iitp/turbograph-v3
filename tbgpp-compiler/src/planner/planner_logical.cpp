@@ -406,7 +406,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
 
 		D_ASSERT(num_cols != 0);
-		expr = lExprLogicalGet(oid, name, num_cols);
+		expr = lExprLogicalGet(oid, name);
 
 		// conform schema if necessary
 		CColRefArray* output_array;
@@ -445,15 +445,14 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 	return union_plan;
 }
 
-CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias) {
+CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string alias) {
 	CMemoryPool* mp = this->memory_pool;
 
 	if(alias == "") { alias = rel_name; }
-	D_ASSERT(rel_width > 0);
 
 	CWStringConst strName(std::wstring(rel_name.begin(), rel_name.end()).c_str());
 	CTableDescriptor *ptabdesc =
-		lCreateTableDesc(mp, rel_width,
+		lCreateTableDesc(mp,
 					   lGenRelMdid(obj_id),	// 6.objid.0.0
 					   CName(&strName));
 
@@ -604,10 +603,10 @@ CExpression * Planner::lExprLogicalCartProd(CExpression* lhs, CExpression* rhs) 
 	return prod_result;
 }
 
-CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
+CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned) {
 
-	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, num_cols, mdid,
+	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, mdid,
 										  GPOS_WSZ_LIT("column_%04d"),
 										  nameTable, true /* is_nullable */);
 	// if (fPartitioned) {
@@ -623,14 +622,10 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IM
 }
 
 CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
-		CMemoryPool *mp, ULONG num_cols, IMDId *mdid, const WCHAR *wszColNameFormat,
+		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
 		const CName &nameTable, gpos::BOOL is_nullable  // define nullable columns
 	) {
 
-	GPOS_ASSERT(0 < num_cols);
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-	const IMDTypeInt4 *pmdtypeint4 =
-		md_accessor->PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
 	CWStringDynamic *str_name = GPOS_NEW(mp) CWStringDynamic(mp);
 	CTableDescriptor *ptabdesc = GPOS_NEW(mp) CTableDescriptor(
 		mp, mdid, nameTable,
@@ -638,18 +633,21 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 		IMDRelation::EreldistrMasterOnly, IMDRelation::ErelstorageAppendOnlyCols,
 		0  // ulExecuteAsUser
 	);
+	
+	auto num_cols = lGetMDAccessor()->RetrieveRel(mdid)->ColumnCount();
 	for (ULONG i = 0; i < num_cols; i++) {
 		str_name->Reset();
 		str_name->AppendFormat(wszColNameFormat, i);
 
-// TODO access cmdacessor to get valid type mdid
-
+		IMDId* type_id = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->MdidType();
+		const IMDType* pmdtype = lGetMDAccessor()->RetrieveType(type_id);
+		INT type_modifier = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->TypeModifier();
 		// create a shallow constant string to embed in a name
 		CWStringConst strName(str_name->GetBuffer());
-		CName nameColumnInt(&strName);
+		CName colname(&strName);
 		CColumnDescriptor *pcoldescInt = GPOS_NEW(mp)
-			CColumnDescriptor(mp, pmdtypeint4, default_type_modifier,
-							  nameColumnInt, i + 1, is_nullable);
+			CColumnDescriptor(mp, pmdtype, type_modifier,
+							  colname, i + 1, is_nullable);
 		ptabdesc->AddColumn(pcoldescInt);
 	}
 

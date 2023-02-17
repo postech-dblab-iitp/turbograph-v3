@@ -53,8 +53,9 @@ public:
 	virtual std::string ToString() const { return ""; }
 
 	// operator metadata
-	CypherSchema schema;
-	vector<LogicalType> types;
+	// TODO remove mutable
+	mutable CypherSchema schema;
+	mutable vector<LogicalType> types;
 
 	// operator statistics
 		// TODO make this into timer struct with some functions

@@ -2,9 +2,7 @@
 
 #include <string>
 #include <limits>
-
-#include "mdprovider/MDProviderTBGPP.h"
-#include "execution/physical_operator/physical_produce_results.hpp"
+// orca operators
 
 
 namespace s62 {
@@ -20,13 +18,22 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 	D_ASSERT(final_pipeline_ops.size() > 0);
 	auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops);
 
-	this->pipelines.push_back(final_pipeline);
-
+	pipelines.push_back(final_pipeline);
+	
 	// validate plan
-
-	// final physical plan is generated in Planner::pipelines
-	D_ASSERT( pipelines.size() > 0 );
+	D_ASSERT( pValidatePipelines() );
+	
 	return;
+}
+
+bool Planner::pValidatePipelines() {
+	bool ok = true;
+	ok = ok && pipelines.size() > 0;
+	for( auto& pipeline: pipelines ) {
+		ok = ok && (pipeline->pipelineLength >= 2);
+	}
+	ok = ok && (pipelines[pipelines.size()-1]->GetSink()->ToString() == "ProduceResults");
+	return ok;
 }
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan(CExpression* plan_expr) {
@@ -39,7 +46,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 	switch(plan_expr->Pop()->Eopid()) {
 		case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
 			if( pIsUnionAllOpAccessExpression(plan_expr) ) {
-				// NodeScan / NodeIndexScan
+				/* UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan*/
 				return pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
 			} else {
 				// union all
@@ -48,7 +55,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			break;
 		}
 		case COperator::EOperatorId::EopPhysicalTableScan: {
-			
 			break;
 		}
 		default:
@@ -75,36 +81,44 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr) {
 
-	/* MATCH UnionAll -> ComputeScalar -> TableScan|IndexScan */
+	/* UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan*/
 	D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalSerialUnionAll);
 
 	// leaf node
 	auto result = new vector<duckdb::CypherPhysicalOperator*>();
 	vector<uint64_t> oids;
-	vector<vector<int64_t>> projection_mapping;
+	vector<vector<uint64_t>> projection_mapping;
 	
-	CExpressionArray *lv1_child = plan_expr->PdrgPexpr();
-	const ULONG lv1_child_size = lv1_child->Size();
-	for( int i=0; i<lv1_child_size; i++ ){
-		// generate 
+	CExpressionArray *projections = plan_expr->PdrgPexpr();
+	const ULONG projections_size = projections->Size();
+	for( int i=0; i<projections_size; i++ ){
+		CExpression* projection = projections->operator[](i);
+		CExpression* scan_expr = projection->PdrgPexpr()->operator[](0);
+		CExpression* proj_list_expr = projection->PdrgPexpr()->operator[](1);
+		
+		CPhysicalTableScan* scan_op = (CPhysicalTableScan*)scan_expr->Pop();
+// TODO for index scan
+		CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
+		OID table_obj_id = table_mdid->Oid();
+
+		// collect object ids
+		oids.push_back(table_obj_id);
+
+		// for each object id, generate projection mapping. (if null projection required, ulong::max)
+		// TODO fixme
+		
 	}
-
-	// collect object ids
-	
-
-
-	// for each object id, generate projection mapping. (if null projection required, add -1)
-
-		// assert vector all sized same
+	// TODO assert oids size = mapping size
 
 	// how to get types? -> access catalog?
+	// TODO dome
 		// this api nono...
 
-	// duckdb::CypherSchema tmp_schema;
-	// tmp_schema.setStoredTypes();
-	// duckdb::CypherPhysicalOperator* op =
-	// 	duckdb::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk);
-	// return add myoperator to the result
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(vector<duckdb::LogicalType>());
+	duckdb::CypherPhysicalOperator* op =
+		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
+	result->push_back(op);
 	
 	return result;
 }
