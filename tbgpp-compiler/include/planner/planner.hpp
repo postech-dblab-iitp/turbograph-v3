@@ -124,7 +124,7 @@ private:
 	/* Helper functions for generating orca logical plans */
 	CExpression* lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
-		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping = nullptr
+		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
@@ -158,11 +158,12 @@ private:
 	// planner_physical.cpp
 	/* Generating orca physical plan */
 	void pGenPhysicalPlan(CExpression* orca_plan_root);
-	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* op);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* op);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* op);
+	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
-	bool pIsUnionAllOpScanExpression(CExpression* plan_expr);
+	bool pMatchPhysicalOpPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0);
+	bool pIsUnionAllOpAccessExpression(CExpression* expr);
 
 private:
 	// config
@@ -174,7 +175,7 @@ private:
 	CMemoryPool* memory_pool;
 
 	BoundStatement* bound_statement;			// input parse statemnt
-	vector<duckdb::CypherPipeline> pipelines;	// output plan pipelines
+	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
 };
 
 }

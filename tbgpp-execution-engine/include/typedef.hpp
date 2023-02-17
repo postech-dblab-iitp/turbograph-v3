@@ -8,6 +8,7 @@
 #include <map>
 
 namespace duckdb {
+
 struct LogicalType;
 
 enum class StoreAPIResult {
@@ -93,8 +94,19 @@ public:
 	int getColIdxOfKey(std::string name) const;
 	std::vector<int> getColumnIndicesForResultSet() const;
 	std::string toString() const;
+
+	/* TODO S62 temporary!!!!!! - we do not track attribute info with CypherSchema from now*/
+	/* this is temporary DS to not change CypherPhysicalOperator interface */
+	//! TODO S62 this is a temporary to -> CypherSchema should be disabled by now
+	void setStoredTypes(std::vector<duckdb::LogicalType> types);
+	std::vector<duckdb::LogicalType> getStoredTypes();
+	std::vector<duckdb::LogicalType> stored_types;
+	/* TODO S62 temporary!!!!!! */
 	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
 	std::map<std::string, CypherSchema> nestedAttrs;
+
+	
+
 };
 }
