@@ -115,6 +115,11 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                 continue;
             }
+            if (target_idxs[j] == std::numeric_limits<uint64_t>::max()) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                j++;
+                continue;
+            }
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -313,6 +318,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                     continue;
                 }
+                if (!target_idxs.empty() && (target_idxs[j] == std::numeric_limits<uint64_t>::max())) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
+                    continue;
+                }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
@@ -345,6 +355,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST || ext_property_types[i] == LogicalType::ID) {
             continue;
         } else {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
             break;
@@ -367,6 +378,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
 // icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset);icecream::ic.disable();
     for (size_t i = 0; i < ext_property_types.size(); i++) {
+        if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) {
+            FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
+            continue;
+        }
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
             // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
