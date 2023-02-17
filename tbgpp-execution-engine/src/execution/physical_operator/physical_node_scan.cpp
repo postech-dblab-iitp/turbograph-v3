@@ -12,6 +12,7 @@
 #include "planner/expression/bound_columnref_expression.hpp"
 
 #include <cassert>
+#include <queue>
 
 namespace duckdb {
 class NodeScanState : public LocalSourceState {
@@ -23,7 +24,8 @@ public:
 	}
 public:
 	bool iter_inited;
-	ExtentIterator *ext_it;
+	std::queue<ExtentIterator *> ext_its;
+	ExtentIterator *ext_it; // TODO remove this
 	// TODO use for vectorized processing
 	DataChunk extent_cache;
 	// TODO remove after updating storage API	
@@ -69,17 +71,17 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_it, labels, state.null_els, state.null_adjopt, access_property_keys, access_schema );
+			context.client->graph_store->InitializeScan(state.ext_its, labels, state.null_els, state.null_adjopt, access_property_keys, access_schema );
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
 
 	}
-	D_ASSERT(state.ext_it != nullptr);
+	D_ASSERT(state.ext_its.size() > 0);
 	
 	// TODO need to split chunk in units of EXEC_ENGINE_VECTOR_SIZE
 	if( filter_pushdown_key.compare("") == 0 ) {
-		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
+		context.client->graph_store->doScan(state.ext_its, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
 	} else {
-		context.client->graph_store->doScan(state.ext_it, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
+		context.client->graph_store->doScan(state.ext_its, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
 	}
 // icecream::ic.enable();
 // if (chunk.size() > 0)
