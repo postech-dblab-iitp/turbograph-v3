@@ -105,11 +105,11 @@ target_link_libraries( tbgpp-execution-engine-lib
 # TESTS
 ####################################################
 file(GLOB ENGINE_TEST_SRC
-  "${PROJECT_SOURCE_DIR}/test/TurboGraph.cpp"
-  "${PROJECT_SOURCE_DIR}/test/bulkload_using_index.cpp"
+  #  "${PROJECT_SOURCE_DIR}/test/TurboGraph.cpp"
+  #  "${PROJECT_SOURCE_DIR}/test/bulkload_using_index.cpp"
   "${PROJECT_SOURCE_DIR}/test/bulkload_using_map.cpp"
-  "${PROJECT_SOURCE_DIR}/test/bulkload_using_map2.cpp"
-  "${PROJECT_SOURCE_DIR}/test/bulkload_json.cpp"
+  #  "${PROJECT_SOURCE_DIR}/test/bulkload_using_map2.cpp"
+  #  "${PROJECT_SOURCE_DIR}/test/bulkload_json.cpp"
 )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
 file (GLOB_RECURSE TEST_SOURCES

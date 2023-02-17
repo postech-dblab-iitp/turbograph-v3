@@ -1663,7 +1663,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// TypeCacheEntry *ptce; // = gpdb::LookupTypeCache(oid_type, iFlags);
 
 	// // get type name
-	// CMDName *mdname = GetTypeName(mp, mdid);
+	// CMDName *mdname = GetTypeName(mp, mdid); // TODO
 
 	// BOOL is_fixed_length = false;
 	// ULONG length = 0;

@@ -1,15 +1,15 @@
-//#include "function/scalar/date_functions.hpp"
+#include "function/scalar/date_functions.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "common/enums/date_part_specifier.hpp"
 #include "common/exception.hpp"
 #include "common/types/date.hpp"
 #include "common/types/timestamp.hpp"
-//#include "common/vector_operations/vector_operations.hpp"
+#include "common/vector_operations/vector_operations.hpp"
 #include "common/string_util.hpp"
-//#include "execution/expression_executor.hpp"
-//#include "function/scalar/nested_functions.hpp"
-//#include "planner/expression/bound_function_expression.hpp"
-//#include "storage/statistics/numeric_statistics.hpp"
+#include "execution/expression_executor.hpp"
+#include "function/scalar/nested_functions.hpp"
+#include "planner/expression/bound_function_expression.hpp"
+#include "storage/statistics/numeric_statistics.hpp"
 
 namespace duckdb {
 
@@ -83,7 +83,7 @@ DatePartSpecifier GetDatePartSpecifier(const string &specifier) {
 	}
 	return result;
 }
-/*
+
 DatePartSpecifier GetDateTypePartSpecifier(const string &specifier, LogicalType &type) {
 	const auto part = GetDatePartSpecifier(specifier);
 	switch (type.id()) {
@@ -1302,7 +1302,7 @@ struct StructDatePart {
 		    : VariableReturnBindData(stype), part_codes(part_codes_p) {
 		}
 
-		unique_ptr<FunctionData> Copy() const override {
+		unique_ptr<FunctionData> Copy() override {
 			return make_unique<BindData>(stype, part_codes);
 		}
 	};
@@ -1532,5 +1532,5 @@ void DatePartFun::RegisterFunction(BuiltinFunctions &set) {
 	date_part.name = "datepart";
 	set.AddFunction(date_part);
 }
-*/
+
 } // namespace duckdb

@@ -133,6 +133,8 @@ public:
 	DUCKDB_API CatalogEntry *CreateExtent(ClientContext &context, CreateExtentInfo *info);
 	//! Create a chunk definition in the catalog
 	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
+	//! Create a scalar or aggregate function in the catalog
+	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
 
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
@@ -149,6 +151,9 @@ public:
 	//! Create a chunk definition in the catalog
 	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, SchemaCatalogEntry *schema,
 	                                     CreateChunkDefinitionInfo *info);
+	//! Create a scalar or aggregate function in the catalog
+	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, SchemaCatalogEntry *schema,
+	                                        CreateFunctionInfo *info);
 
 	/*
 	//! Creates a table in the catalog.
@@ -161,8 +166,6 @@ public:
 	DUCKDB_API CatalogEntry *CreateCopyFunction(ClientContext &context, CreateCopyFunctionInfo *info);
 	//! Create a pragma function in the catalog
 	DUCKDB_API CatalogEntry *CreatePragmaFunction(ClientContext &context, CreatePragmaFunctionInfo *info);
-	//! Create a scalar or aggregate function in the catalog
-	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
 	//! Creates a table in the catalog.
 	DUCKDB_API CatalogEntry *CreateView(ClientContext &context, CreateViewInfo *info);
 	//! Creates a sequence in the catalog.
@@ -184,9 +187,6 @@ public:
 	//! Create a pragma function in the catalog
 	DUCKDB_API CatalogEntry *CreatePragmaFunction(ClientContext &context, SchemaCatalogEntry *schema,
 	                                              CreatePragmaFunctionInfo *info);
-	//! Create a scalar or aggregate function in the catalog
-	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, SchemaCatalogEntry *schema,
-	                                        CreateFunctionInfo *info);
 	//! Creates a table in the catalog.
 	DUCKDB_API CatalogEntry *CreateView(ClientContext &context, SchemaCatalogEntry *schema, CreateViewInfo *info);
 	//! Creates a table in the catalog.
@@ -222,12 +222,10 @@ public:
 	T *GetEntry(ClientContext &context, const string &schema_name, const string &name, bool if_exists = false);
 	            //QueryErrorContext error_context = QueryErrorContext());
 
-	/*
 	//! Append a scalar or aggregate function to the catalog
 	DUCKDB_API CatalogEntry *AddFunction(ClientContext &context, CreateFunctionInfo *info);
 	//! Append a scalar or aggregate function to the catalog
 	DUCKDB_API CatalogEntry *AddFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info);
-	*/
 
 	//! Alter an existing entry in the catalog.
 	DUCKDB_API void Alter(ClientContext &context, AlterInfo *info);

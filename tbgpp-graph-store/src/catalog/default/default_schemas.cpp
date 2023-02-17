@@ -24,7 +24,7 @@ DefaultSchemaGenerator::DefaultSchemaGenerator(Catalog &catalog) : DefaultGenera
 }
 
 unique_ptr<CatalogEntry> DefaultSchemaGenerator::CreateDefaultEntry(ClientContext &context, const string &entry_name) {
-	D_ASSERT(false); // Deprecated
+	D_ASSERT(false); // Deprecated // TODO
 	// if (GetDefaultSchema(entry_name)) {
 	// 	return make_unique_base<CatalogEntry, SchemaCatalogEntry>(&catalog, StringUtil::Lower(entry_name), true);
 	// }

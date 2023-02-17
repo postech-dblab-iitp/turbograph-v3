@@ -638,18 +638,19 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		}
 		return current;
 	}
-// IC();
+icecream::ic.enable(); IC(name);
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
+		IC();
 		return nullptr;
 	}
-// IC();
+IC();
 	// this catalog set has a default map defined
 	// check if there is a default entry that we can create with this name
 	// lock.unlock(); // XXX disable in debug phase..
 	auto entry = defaults->CreateDefaultEntry(context, name);
-// IC();
+IC(); icecream::ic.disable();
 	// lock.lock(); // XXX disable in debug phase
 	if (!entry) {
 		// no default entry
