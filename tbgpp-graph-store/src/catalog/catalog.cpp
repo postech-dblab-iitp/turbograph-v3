@@ -17,13 +17,13 @@
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
-/*
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
+#include "parser/parsed_data/create_scalar_function_info.hpp"
+/*
 #include "parser/parsed_data/create_collation_info.hpp"
 #include "parser/parsed_data/create_copy_function_info.hpp"
 #include "parser/parsed_data/create_index_info.hpp"
 #include "parser/parsed_data/create_pragma_function_info.hpp"
-#include "parser/parsed_data/create_scalar_function_info.hpp"
 */
 #include "parser/parsed_data/create_schema_info.hpp"
 /*
@@ -86,6 +86,7 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 // IC();
 	entry->LoadCatalogSet();
 // IC();
+// icecream::ic.disable();
 
 	// Load Other Catalog Entries
 	// Maybe we don't need this..?
@@ -146,6 +147,15 @@ CatalogEntry *Catalog::CreateChunkDefinition(ClientContext &context, CreateChunk
 
 CatalogEntry *Catalog::CreateChunkDefinition(ClientContext &context, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info) {
 	return schema->CreateChunkDefinition(context, info);
+}
+
+CatalogEntry *Catalog::CreateFunction(ClientContext &context, CreateFunctionInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreateFunction(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
+	return schema->CreateFunction(context, info);
 }
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
@@ -220,15 +230,6 @@ CatalogEntry *Catalog::CreatePragmaFunction(ClientContext &context, SchemaCatalo
 	return schema->CreatePragmaFunction(context, info);
 }
 
-CatalogEntry *Catalog::CreateFunction(ClientContext &context, CreateFunctionInfo *info) {
-	auto schema = GetSchema(context, info->schema);
-	return CreateFunction(context, schema, info);
-}
-
-CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
-	return schema->CreateFunction(context, info);
-}
-
 CatalogEntry *Catalog::CreateCollation(ClientContext &context, CreateCollationInfo *info) {
 	auto schema = GetSchema(context, info->schema);
 	return CreateCollation(context, schema, info);
@@ -300,14 +301,14 @@ void Catalog::DropEntry(ClientContext &context, DropInfo *info) {
 	lookup.schema->DropEntry(context, info);
 }
 
-/*CatalogEntry *Catalog::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
+CatalogEntry *Catalog::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
 	auto schema = GetSchema(context, info->schema);
 	return AddFunction(context, schema, info);
 }
 
 CatalogEntry *Catalog::AddFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
 	return schema->AddFunction(context, info);
-}*/
+}
 
 SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &schema_name, bool if_exists) {
                                        //QueryErrorContext error_context) {

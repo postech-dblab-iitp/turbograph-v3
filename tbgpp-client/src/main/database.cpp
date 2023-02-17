@@ -13,6 +13,9 @@
 //#include "main/extension_helper.hpp"
 #include "common/boost.hpp"
 
+// #include "catalog/catalog_entry/schema_catalog_entry.hpp" 
+#include "parser/parsed_data/create_schema_info.hpp" // TODO remove this..
+
 #ifndef DUCKDB_NO_THREADS
 #include "common/thread.hpp"
 #endif
@@ -189,7 +192,8 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
 	fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
 	
-	if (num_objects_in_catalog == 0) {
+	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
+	if (create_new_db) {
 		// Make a new catalog
 		catalog = make_unique<Catalog>(*this, catalog_shm);
 	} else {
@@ -203,8 +207,16 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	//object_cache = make_unique<ObjectCache>();
 	//connection_manager = make_unique<ConnectionManager>();
 
+	// We need create default schema.. how? TODO.. The code below is temporary
+	if (create_new_db) {
+		std::shared_ptr<ClientContext> client = 
+			std::make_shared<ClientContext>(this->shared_from_this());
+		CreateSchemaInfo schema_info;
+		catalog->CreateSchema(*client.get(), &schema_info);
+	}
+
 	// initialize the database
-	storage->Initialize();
+	storage->Initialize(create_new_db);
 
 	// only increase thread count after storage init because we get races on catalog otherwise
 	//scheduler->SetThreads(config.maximum_threads);

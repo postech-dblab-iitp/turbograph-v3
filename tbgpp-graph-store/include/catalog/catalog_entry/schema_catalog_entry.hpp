@@ -82,6 +82,8 @@ private:
 	CatalogSet chunkdefinitions;
 	//! The catalog set holding the indexes
 	CatalogSet indexes;
+	//! The catalog set holding the scalar and aggregate functions
+	CatalogSet functions;
 	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
@@ -91,8 +93,6 @@ private:
 	CatalogSet copy_functions;
 	//! The catalog set holding the pragma functions
 	CatalogSet pragma_functions;
-	//! The catalog set holding the scalar and aggregate functions
-	CatalogSet functions;
 	//! The catalog set holding the sequences
 	CatalogSet sequences;
 	//! The catalog set holding the collations
@@ -135,9 +135,9 @@ private:
 	CatalogEntry *CreateExtent(ClientContext &context, CreateExtentInfo *info);
 	//! Creates a chunk definition with the given name in the schema
 	CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
-	/*
 	//! Create a scalar or aggregate function within the given schema
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
+	/*
 	//! Creates a table with the given name in the schema
 	CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);
 	//! Creates a view with the given name in the schema
@@ -159,10 +159,8 @@ private:
 	//! Drops an entry from the schema
 	void DropEntry(ClientContext &context, DropInfo *info);
 
-	/*
 	//! Append a scalar or aggregate function within the given schema
 	CatalogEntry *AddFunction(ClientContext &context, CreateFunctionInfo *info);
-	*/
 
 	//! Alters a catalog entry
 	void Alter(ClientContext &context, AlterInfo *info);
