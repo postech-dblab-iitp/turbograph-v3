@@ -39,18 +39,21 @@
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"
 #include "gpopt/base/CColRef.h"
+
 #include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/operators/CScalarProjectElement.h"
 #include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
-
-#include "naucrates/init.h"
-
 #include "gpopt/operators/CLogicalInnerJoin.h"
 
+#include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+
+
+#include "naucrates/init.h"
+#include "naucrates/traceflags/traceflags.h"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
@@ -61,14 +64,14 @@
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
 
-#include "naucrates/traceflags/traceflags.h"
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "execution/physical_operator/physical_produce_results.hpp"
+#include "execution/physical_operator/physical_node_scan.hpp"
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
-
 
 using namespace kuzu::binder;
 using namespace gpopt;
@@ -127,7 +130,7 @@ private:
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
 	);
 
-	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, uint64_t rel_width, string alias = "");
+	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
@@ -139,10 +142,10 @@ private:
 		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
-	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, ULONG num_cols, IMDId *mdid,
+	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);
 	CTableDescriptor * lTabdescPlainWithColNameFormat(
-		CMemoryPool *mp, ULONG num_cols, IMDId *mdid, const WCHAR *wszColNameFormat,
+		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
 		const CName &nameTable,
 		gpos::BOOL is_nullable  // define nullable columns
 	);
@@ -158,6 +161,7 @@ private:
 	// planner_physical.cpp
 	/* Generating orca physical plan */
 	void pGenPhysicalPlan(CExpression* orca_plan_root);
+	bool pValidatePipelines();
 	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);

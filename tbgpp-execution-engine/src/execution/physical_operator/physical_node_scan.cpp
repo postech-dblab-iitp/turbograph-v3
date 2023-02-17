@@ -15,29 +15,23 @@
 #include <queue>
 
 namespace duckdb {
+	
 class NodeScanState : public LocalSourceState {
 public:
 	explicit NodeScanState() {
 		iter_inited = false;
-		// TODO remove
-		null_adjopt = LoadAdjListOption::NONE;
 	}
 public:
 	bool iter_inited;
 	std::queue<ExtentIterator *> ext_its;
-	ExtentIterator *ext_it; // TODO remove this
 	// TODO use for vectorized processing
 	DataChunk extent_cache;
-	// TODO remove after updating storage API	
-	std::vector<LabelSet> null_els;
-	LoadAdjListOption null_adjopt;
 };
 
-PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk):
-		CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk), filter_pushdown_key("") { }
-		
-PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, LabelSet labels, PropertyKeys pk, string filter_pushdown_key, Value filter_pushdown_value):
-	CypherPhysicalOperator(sch), labels(labels), propertyKeys(pk), filter_pushdown_key(filter_pushdown_key), filter_pushdown_value(filter_pushdown_value) { }
+PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
+		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping), filter_pushdown_key("") { }
+
+// TODO need to revive nodescan with pushdown
 
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
@@ -48,47 +42,42 @@ unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState(ExecutionCont
 	return make_unique<NodeScanState>();
 }
 
+// StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> projection_mapping, std::vector<duckdb::LogicalType> scanSchema);
+
 void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const {
 	auto &state = (NodeScanState &)lstate;
-// icecream::ic.enable();
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
 	if (!state.iter_inited) {
 		state.iter_inited = true;
-		// select properties to access
-		PropertyKeys access_property_keys = propertyKeys;
-		vector<LogicalType> access_schema = schema.getTypes();
-		if( filter_pushdown_key.compare("") != 0 ) {
-			// check to add filterkey to access
-			bool isFilterKeyFound = false;
-			for( auto& key: propertyKeys ) {
-				if( key.compare(filter_pushdown_key) == 0 ) { isFilterKeyFound = true; break; }
-			}
-			// now add pushdown key to access keys
-			if( ! isFilterKeyFound ) {
-				access_property_keys.push_back( filter_pushdown_key );
-				access_schema.push_back( filter_pushdown_value.type() );
-			}
-		}
+
+// TODO revive keys for filter pushdown
+		// if( filter_pushdown_key.compare("") != 0 ) {
+		// 	// check to add filterkey to access
+		// 	bool isFilterKeyFound = false;
+		// 	for( auto& key: propertyKeys ) {
+		// 		if( key.compare(filter_pushdown_key) == 0 ) { isFilterKeyFound = true; break; }
+		// 	}
+		// 	// now add pushdown key to access keys
+		// 	if( ! isFilterKeyFound ) {
+		// 		access_property_keys.push_back( filter_pushdown_key );
+		// 		access_schema.push_back( filter_pushdown_value.type() );
+		// 	}
+		// }
 
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_its, labels, state.null_els, state.null_adjopt, access_property_keys, access_schema );
+			context.client->graph_store->InitializeScan(state.ext_its, oids, projection_mapping, types);
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
 
 	}
 	D_ASSERT(state.ext_its.size() > 0);
-	
-	// TODO need to split chunk in units of EXEC_ENGINE_VECTOR_SIZE
+
 	if( filter_pushdown_key.compare("") == 0 ) {
-		context.client->graph_store->doScan(state.ext_its, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes());
+		context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types);
 	} else {
-		context.client->graph_store->doScan(state.ext_its, chunk, labels, state.null_els, state.null_adjopt, propertyKeys, schema.getTypes(), filter_pushdown_key, filter_pushdown_value);
+		D_ASSERT(false);
+		// currently does not support filter pushdown
 	}
-// icecream::ic.enable();
-// if (chunk.size() > 0)
-// 	IC(chunk.ToString(std::min(chunk.size(), (idx_t)10)));
-// icecream::ic.disable();
-	
-	// GetData() should return empty chunk to indicate scan is finished.
+	/* GetData() should return empty chunk to indicate scan is finished. */
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {
