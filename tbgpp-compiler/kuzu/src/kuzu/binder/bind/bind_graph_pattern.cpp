@@ -134,19 +134,10 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     queryRel->setAlias(parsedName);
     queryRel->setRawName(parsedName);
 
-// S62 change table ids to relations
-
-    //validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
-    // resolve properties associate with rel table
-    vector<RelTableSchema*> relTableSchemas;
-    // for (auto tableID : tableIDs) {
-    //     relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
-    // }
     // we don't support reading property for variable length rel yet.
 
-    if( client != nullptr) {
+    if(client != nullptr) {
         /* TBGPP MDP */
-        // S62 fixme
         // Get unordered map (property key -> corresponding (sub)table ids)
         unordered_map<string, vector<uint64_t>> pkey_to_ps_map;
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
@@ -282,34 +273,14 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
-// S62 change table ids to relations
-// S62 change table ids to relations
 
     auto tableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
-    
 
-    // S62 modify like this.
-    // TODO get all schemas of each table id from catalog
-    // starting from first schema
-        // construct union schema : (name, type)
-        // while, check if schema conforms
-
-    // for each schema
-        // generate projection mapping( given name, return pos )
-    
-    // in querynode, store unionschema, projectionmappings
-
-    // resolve properties associate with node table
-    vector<NodeTableSchema*> nodeTableSchemas;
-    // for (auto tableID : tableIDs) {
-    //     nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
-    // }
-
-// S62 union schema process.
+    // S62 union schema process.
     // create properties all properties for given tables
     if( client != nullptr) {
         /* TBGPP MDP */

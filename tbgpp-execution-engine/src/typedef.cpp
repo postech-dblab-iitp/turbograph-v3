@@ -271,4 +271,16 @@ std::vector<int> CypherSchema::getColumnIndicesForResultSet() const {
 	}
 	return result;
 }
+
+void CypherSchema::setStoredTypes(std::vector<duckdb::LogicalType> types) {
+	types.clear();
+	for( auto& t: types) {
+		stored_types.push_back(t);
+	}
+}
+
+std::vector<duckdb::LogicalType> CypherSchema::getStoredTypes() {
+	return stored_types;
+}
+
 }

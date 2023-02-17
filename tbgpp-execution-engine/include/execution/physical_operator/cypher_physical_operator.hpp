@@ -26,7 +26,9 @@ class CypherPhysicalOperator {
 public:
 
 	CypherPhysicalOperator() {} // sink does not define types
-	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getTypes()) {
+
+	// TODO S62 further need to not store cypherschema
+	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getStoredTypes()) {	
 		timer_started = false;
 		processed_tuples = 0;
 	}

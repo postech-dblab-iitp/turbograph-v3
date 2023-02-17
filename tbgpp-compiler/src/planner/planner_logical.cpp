@@ -336,10 +336,10 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name_print = node_expr->getRawName();
 	if( table_oids.size() == 1) {
 		// no schema projection necessary
-		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids);
+		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false);
 	} else {
 		// generate scan with projection mapping
-		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping);	// id, vp1, vp2
+		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);	// id, vp1, vp2
 	}
 
 	// insert node schema
@@ -363,41 +363,39 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 }
 
 CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> relation_oids,
-	map<uint64_t, map<uint64_t, uint64_t>>* schema_proj_mapping) {
+	map<uint64_t, map<uint64_t, uint64_t>>* schema_proj_mapping, bool insert_projection) {
 	
 	CMemoryPool* mp = this->memory_pool;
 
 	CExpression* union_plan = nullptr;
-	const bool do_schema_mapping = (schema_proj_mapping != nullptr);
+	const bool do_schema_mapping = insert_projection;
 	D_ASSERT(relation_oids.size() > 0);
 
-	// generate type hints to the projected schema
+	// generate type infos to the projected schema
 	uint64_t num_proj_cols;								// size of the union schema
 	vector<pair<gpmd::IMDId*, gpos::INT>> union_schema_types;	// mdid type and type modifier for both types
-	if(do_schema_mapping) {
-		num_proj_cols =
-			(*schema_proj_mapping)[relation_oids[0]].size() > 0
-				? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
-				: 0;
-		// iterate schema_projection mapping
-		for( int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
-			// foreach mappings
-			uint64_t valid_oid;
-			uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
+	num_proj_cols =
+		(*schema_proj_mapping)[relation_oids[0]].size() > 0
+			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
+			: 0;
+	// iterate schema_projection mapping
+	for( int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
+		// foreach mappings
+		uint64_t valid_oid;
+		uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
 
-			for( auto& oid: relation_oids) {
-				uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
-				if (idx_to_try != std::numeric_limits<uint64_t>::max() ) {
-					valid_oid = oid;
-					valid_cid = idx_to_try;
-				}
-			}			
-			D_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
-			// extract info and maintain vector of column type infos
-			gpmd::IMDId* col_type_imdid = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->MdidType();
-			gpos::INT col_type_modifier = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->TypeModifier();
-			union_schema_types.push_back( make_pair(col_type_imdid, col_type_modifier) );
-		}
+		for( auto& oid: relation_oids) {
+			uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
+			if (idx_to_try != std::numeric_limits<uint64_t>::max() ) {
+				valid_oid = oid;
+				valid_cid = idx_to_try;
+			}
+		}			
+		D_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+		// extract info and maintain vector of column type infos
+		gpmd::IMDId* col_type_imdid = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->MdidType();
+		gpos::INT col_type_modifier = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->TypeModifier();
+		union_schema_types.push_back( make_pair(col_type_imdid, col_type_modifier) );
 	}
 
 	CColRefArray* idx0_output_array;
@@ -598,7 +596,7 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 CExpression * Planner::lExprLogicalCartProd(CExpression* lhs, CExpression* rhs) {
 	/* Perform cartesian product = inner join on predicate true	*/
 
-	CMemoryPool* mp = this->memory_pool;
+	CMemoryPool* mp = this->memory_pool; 
 
 	CExpression *pexprTrue = CUtils::PexprScalarConstBool(mp, true, false);
 	auto prod_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprTrue);
