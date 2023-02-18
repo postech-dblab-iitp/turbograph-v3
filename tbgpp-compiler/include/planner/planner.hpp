@@ -165,11 +165,14 @@ private:
 	void pGenPhysicalPlan(CExpression* orca_plan_root);
 	bool pValidatePipelines();
 	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* plan_expr);
+	
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForProjection(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
+	bool pIsUnionAllForProjection(CExpression* expr);
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);

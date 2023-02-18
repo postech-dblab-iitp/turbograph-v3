@@ -352,13 +352,25 @@ icecream::ic.disable();
 		if (num_total_tuples != 0) {
 			auto& firstchunk = resultChunks[0];
 			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
-				t << firstchunk->GetTypes()[colIdx].ToString() ;
+			// TODO deprecate
+			// for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+			// 	t << firstchunk->GetTypes()[colIdx].ToString() ;
+			// }
+			// t << endr;
+			// for( int idx = 0 ; idx < LIMIT ; idx++) {
+			// 	for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+			// 		t << firstchunk->GetValue(colIdx, idx).ToString();
+			// 	}
+			// 	t << endr;
+			// }
+
+			for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+				t << firstchunk->GetTypes()[i].ToString() ;
 			}
 			t << endr;
 			for( int idx = 0 ; idx < LIMIT ; idx++) {
-				for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
-					t << firstchunk->GetValue(colIdx, idx).ToString();
+				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+					t << firstchunk->GetValue(i, idx).ToString();
 				}
 				t << endr;
 			}
