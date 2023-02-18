@@ -27,6 +27,11 @@ IndexType GetLogicalIndexType(Oid index_oid);
 // get relation with given oid
 PropertySchemaCatalogEntry* GetRelation(idx_t rel_oid);
 
+// get type related informations
+string GetTypeName(idx_t type_id);
+idx_t GetTypeSize(idx_t type_id);
+bool isTypeFixedLength(idx_t type_id);
+
 static shared_ptr<ClientContext> client_wrapper;
 static shared_ptr<CatalogWrapper> catalog_wrapper;
 

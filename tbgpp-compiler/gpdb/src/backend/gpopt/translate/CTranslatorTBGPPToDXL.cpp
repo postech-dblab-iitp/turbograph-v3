@@ -1636,7 +1636,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 	// check for supported base types
 	// TODO change this to our system
-	switch (oid_type)
+	/*switch (oid_type)
 	{
 		case GPDB_INT2_OID:
 			return GPOS_NEW(mp) CMDTypeInt2GPDB(mp);
@@ -1652,7 +1652,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 		case GPDB_OID_OID:
 			return GPOS_NEW(mp) CMDTypeOidGPDB(mp);
-	}
+	}*/
 
 	// TODO
 	// continue to construct a generic type
@@ -1663,69 +1663,72 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// TypeCacheEntry *ptce; // = gpdb::LookupTypeCache(oid_type, iFlags);
 
 	// // get type name
-	// CMDName *mdname = GetTypeName(mp, mdid); // TODO
+	CMDName *mdname = GetTypeName(mp, mdid);
 
-	// BOOL is_fixed_length = false;
-	// ULONG length = 0;
+	BOOL is_fixed_length = false;
+	ULONG length = 0;
 
+	is_fixed_length = duckdb::isTypeFixedLength(oid_type);
+	length = duckdb::GetTypeSize(oid_type);
 	// if (0 < ptce->typlen)
 	// {
 	// 	is_fixed_length = true;
 	// 	length = ptce->typlen;
 	// }
 
-	// BOOL is_passed_by_value = ptce->typbyval;
+	//BOOL is_passed_by_value = ptce->typbyval;
+	BOOL is_passed_by_value = true;
 
-	// // collect ids of different comparison operators for types
-	// CMDIdGPDB *mdid_op_eq =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, ptce->eq_opr);
-	// CMDIdGPDB *mdid_op_neq = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetInverseOp(ptce->eq_opr));
-	// CMDIdGPDB *mdid_op_lt =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, ptce->lt_opr);
-	// CMDIdGPDB *mdid_op_leq = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetInverseOp(ptce->gt_opr));
-	// CMDIdGPDB *mdid_op_gt =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, ptce->gt_opr);
-	// CMDIdGPDB *mdid_op_geq = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetInverseOp(ptce->lt_opr));
-	// CMDIdGPDB *mdid_op_cmp =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, ptce->cmp_proc);
-	// BOOL is_hashable = gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type);
-	// BOOL is_merge_joinable = gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type);
-	// BOOL is_composite_type = gpdb::IsCompositeType(oid_type);
-	// BOOL is_text_related_type = gpdb::IsTextRelatedType(oid_type);
+	// collect ids of different comparison operators for types
+	CMDIdGPDB *mdid_op_eq =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->eq_opr*/);
+	CMDIdGPDB *mdid_op_neq = GPOS_NEW(mp)
+		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->eq_opr)*/);
+	CMDIdGPDB *mdid_op_lt =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->lt_opr*/);
+	CMDIdGPDB *mdid_op_leq = GPOS_NEW(mp)
+		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->gt_opr)*/);
+	CMDIdGPDB *mdid_op_gt =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->gt_opr*/);
+	CMDIdGPDB *mdid_op_geq = GPOS_NEW(mp)
+		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->lt_opr)*/);
+	CMDIdGPDB *mdid_op_cmp =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->cmp_proc*/);
+	BOOL is_hashable = false;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type);
+	BOOL is_merge_joinable = false;//gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type);
+	BOOL is_composite_type = false;//gpdb::IsCompositeType(oid_type);
+	BOOL is_text_related_type = false;//gpdb::IsTextRelatedType(oid_type);
 
 	// // get standard aggregates
-	// CMDIdGPDB *mdid_min = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetAggregate("min", oid_type, 1));
-	// CMDIdGPDB *mdid_max = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetAggregate("max", oid_type, 1));
-	// CMDIdGPDB *mdid_avg = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetAggregate("avg", oid_type, 1));
-	// CMDIdGPDB *mdid_sum = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetAggregate("sum", oid_type, 1));
+	CMDIdGPDB *mdid_min = GPOS_NEW(mp)
+	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("min", oid_type, 1)*/);
+	CMDIdGPDB *mdid_max = GPOS_NEW(mp)
+	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("max", oid_type, 1)*/);
+	CMDIdGPDB *mdid_avg = GPOS_NEW(mp)
+	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("avg", oid_type, 1)*/);
+	CMDIdGPDB *mdid_sum = GPOS_NEW(mp)
+	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("sum", oid_type, 1)*/);
 
-	// // count aggregate is the same for all types
-	// CMDIdGPDB *mdid_count =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, COUNT_ANY_OID);
+	// count aggregate is the same for all types
+	CMDIdGPDB *mdid_count =
+	 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 2147/*COUNT_ANY_OID*/);
 
-	// // check if type is composite
-	// CMDIdGPDB *mdid_type_relid = NULL;
+	// check if type is composite
+	CMDIdGPDB *mdid_type_relid = NULL;
 	// if (is_composite_type)
 	// {
 	// 	mdid_type_relid = GPOS_NEW(mp)
 	// 		CMDIdGPDB(IMDId::EmdidRel, gpdb::GetTypeRelid(oid_type));
 	// }
 
-	// // get array type mdid
-	// CMDIdGPDB *mdid_type_array = GPOS_NEW(mp)
-	// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetArrayType(oid_type));
+	// get array type mdid
+	CMDIdGPDB *mdid_type_array = GPOS_NEW(mp)
+	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetArrayType(oid_type)*/);
 
-	// OID distr_opfamily = gpdb::GetDefaultDistributionOpfamilyForType(oid_type);
+	OID distr_opfamily = 0;//gpdb::GetDefaultDistributionOpfamilyForType(oid_type);
 
-	// BOOL is_redistributable = false;
-	// CMDIdGPDB *mdid_distr_opfamily = NULL;
+	BOOL is_redistributable = false;
+	CMDIdGPDB *mdid_distr_opfamily = NULL;
 	// if (distr_opfamily != InvalidOid)
 	// {
 	// 	mdid_distr_opfamily =
@@ -1733,7 +1736,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// 	is_redistributable = true;
 	// }
 
-	// CMDIdGPDB *mdid_legacy_distr_opfamily = NULL;
+	CMDIdGPDB *mdid_legacy_distr_opfamily = NULL;
 	// OID legacy_opclass = gpdb::GetLegacyCdbHashOpclassForBaseType(oid_type);
 	// if (legacy_opclass != InvalidOid)
 	// {
@@ -1742,14 +1745,14 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, legacy_opfamily);
 	// }
 
-	// mdid->AddRef();
-	// return GPOS_NEW(mp) CMDTypeGenericGPDB(
-	// 	mp, mdid, mdname, is_redistributable, is_fixed_length, length,
-	// 	is_passed_by_value, mdid_distr_opfamily, mdid_legacy_distr_opfamily,
-	// 	mdid_op_eq, mdid_op_neq, mdid_op_lt, mdid_op_leq, mdid_op_gt,
-	// 	mdid_op_geq, mdid_op_cmp, mdid_min, mdid_max, mdid_avg, mdid_sum,
-	// 	mdid_count, is_hashable, is_merge_joinable, is_composite_type,
-	// 	is_text_related_type, mdid_type_relid, mdid_type_array, ptce->typlen);
+	mdid->AddRef();
+	return GPOS_NEW(mp) CMDTypeGenericGPDB(
+	 	mp, mdid, mdname, is_redistributable, is_fixed_length, length,
+	 	is_passed_by_value, mdid_distr_opfamily, mdid_legacy_distr_opfamily,
+	 	mdid_op_eq, mdid_op_neq, mdid_op_lt, mdid_op_leq, mdid_op_gt,
+	 	mdid_op_geq, mdid_op_cmp, mdid_min, mdid_max, mdid_avg, mdid_sum,
+	 	mdid_count, is_hashable, is_merge_joinable, is_composite_type,
+	 	is_text_related_type, mdid_type_relid, mdid_type_array, 0/*ptce->typlen*/);
 }
 
 
@@ -2188,7 +2191,8 @@ CTranslatorTBGPPToDXL::GetTypeName(CMemoryPool *mp, IMDId *mdid)
 
 	GPOS_ASSERT(InvalidOid != oid_type);
 
-	CHAR *typename_str; // = gpdb::GetTypeName(oid_type);
+	CHAR *typename_str = std::strcpy(new char[duckdb::GetTypeName(oid_type).length() + 1], duckdb::GetTypeName(oid_type).c_str());
+	//CHAR *typename_str = const_cast<char *>(duckdb::GetTypeName(oid_type).c_str());
 	GPOS_ASSERT(NULL != typename_str);
 
 	CWStringDynamic *str_name =
