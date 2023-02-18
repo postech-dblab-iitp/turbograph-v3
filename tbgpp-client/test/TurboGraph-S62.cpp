@@ -267,7 +267,6 @@ icecream::ic.disable();
 	
 	// run queries by query name
 	std::string query_str;
-	std::vector<CypherPipelineExecutor*> executors;
 icecream::ic.disable();
 	while(true) {
 		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
@@ -312,6 +311,61 @@ icecream::ic.disable();
 
 		auto planner = s62::Planner(s62::MDProviderType::TBGPP, client.get());
 		planner.execute(bst);
+
+		auto pipelines = planner.getConstructedPipelines();
+
+		std::vector<CypherPipelineExecutor*> executors;
+		for( auto& pipe: pipelines) {
+			auto* new_ctxt = new ExecutionContext(client.get());
+			auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
+			executors.push_back(pipe_exec);
+		}
+		if( executors.size() == 0 ) { continue; }
+
+		// debug plan before executing
+		std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
+
+		// start timer
+		boost::timer::cpu_timer query_timer;
+		query_timer.start();
+		int idx = 0;
+		for( auto exec : executors ) { 
+			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			exec->ExecutePipeline();
+			std::cout << "done pipeline execution!!" << std::endl;
+		}
+		// end_timer
+		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+	
+		// dump result
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+		Table t;
+		t.layout(unicode_box_light());
+
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+			for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+				t << firstchunk->GetTypes()[colIdx].ToString() ;
+			}
+			t << endr;
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
+					t << firstchunk->GetValue(colIdx, idx).ToString();
+				}
+				t << endr;
+			}
+			std::cout << t << std::endl;
+		}
+		std::cout << "===================================================" << std::endl;
+		std::cout << "\nFinished query execution in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
 	}
 
