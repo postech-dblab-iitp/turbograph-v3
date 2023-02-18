@@ -204,7 +204,6 @@ const vector<LogicalType> LogicalType::Numeric() {
 	                             LogicalType::DOUBLE,    LogicalTypeId::DECIMAL, LogicalType::UTINYINT,
 	                             LogicalType::USMALLINT, LogicalType::UINTEGER,  LogicalType::UBIGINT,
 								 
-								 LogicalType::ID
 								 };
 	return types;
 }
@@ -214,7 +213,6 @@ const vector<LogicalType> LogicalType::Integral() {
 	                             LogicalType::BIGINT,    LogicalType::HUGEINT,  LogicalType::UTINYINT,
 	                             LogicalType::USMALLINT, LogicalType::UINTEGER, LogicalType::UBIGINT,
 								 
-								 LogicalType::ID
 								 };
 	return types;
 }
