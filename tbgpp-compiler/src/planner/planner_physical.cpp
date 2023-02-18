@@ -91,10 +91,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	
 	CExpressionArray *projections = plan_expr->PdrgPexpr();
 	const ULONG projections_size = projections->Size();
+
+	vector<duckdb::LogicalType> global_types;
+
 	for( int i=0; i<projections_size; i++ ){
 		CExpression* projection = projections->operator[](i);
 		CExpression* scan_expr = projection->PdrgPexpr()->operator[](0);
 		CExpression* proj_list_expr = projection->PdrgPexpr()->operator[](1);
+		const ULONG proj_list_expr_size = proj_list_expr->PdrgPexpr()->Size();
 		
 		CPhysicalTableScan* scan_op = (CPhysicalTableScan*)scan_expr->Pop();
 // TODO for index scan
@@ -103,19 +107,49 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 		// collect object ids
 		oids.push_back(table_obj_id);
-
-		// for each object id, generate projection mapping. (if null projection required, ulong::max)
-		// TODO fixme
+		vector<duckdb::LogicalType> local_types;
 		
+		// for each object id, generate projection mapping. (if null projection required, ulong::max)
+		projection_mapping.push_back( vector<uint64_t>() );
+		for(int j = 0; j < proj_list_expr_size; j++) {
+			CExpression* proj_elem = proj_list_expr->PdrgPexpr()->operator[](j);
+			auto scalarident_pattern = vector<COperator::EOperatorId>({
+				COperator::EOperatorId::EopScalarProjectElement,
+				COperator::EOperatorId::EopScalarIdent });
+
+			CExpression* proj_item;
+			if( pMatchExprPattern(proj_elem, scalarident_pattern) ) {
+				/* CScalarProjectList - CScalarIdent */
+				CScalarIdent* ident_op = (CScalarIdent*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				auto col_idx = pGetColIdxOfColref( scan_expr->DeriveOutputColumns(), ident_op->Pcr());	// compare using colref positions
+				projection_mapping[i].push_back(col_idx);
+				// add local types
+				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
+				OID type_oid = type_mdid->Oid();
+				local_types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+				
+			} else {
+				/* CScalarProjectList - CScalarConst (null) */
+				projection_mapping[i].push_back(std::numeric_limits<uint64_t>::max());
+				CScalarConst* const_null_op = (CScalarConst*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				// add local types
+				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid( const_null_op->MdidType() );
+				OID type_oid = type_mdid->Oid();
+				local_types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+			}
+		}
+		// aggregate local types to global types
+		if( i == 0 ) {
+			for(auto& t: local_types) {
+				global_types.push_back( t );
+			}
+		}
+		// TODO else check if type conforms
 	}
 	// TODO assert oids size = mapping size
 
-	// how to get types? -> access catalog?
-	// TODO dome
-		// this api nono...
-
 	duckdb::CypherSchema tmp_schema;
-	tmp_schema.setStoredTypes(vector<duckdb::LogicalType>());
+	tmp_schema.setStoredTypes(global_types);
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
 	result->push_back(op);
@@ -146,7 +180,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 // }
 
-bool Planner::pMatchPhysicalOpPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx) {
+bool Planner::pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx, bool physical_op_only) {
 
 	D_ASSERT(pattern.size() > 0);
 	D_ASSERT(pattern_root_idx < pattern.size());
@@ -163,11 +197,11 @@ bool Planner::pMatchPhysicalOpPattern(CExpression* root, vector<COperator::EOper
 	for( int i=0; i<children_size; i++ ){
 		CExpression* child_expr = children->operator[](i);
 		// check pattern for child
-		if( !child_expr->Pop()->FPhysical() ) {
+		if( physical_op_only && !child_expr->Pop()->FPhysical() ) {
 			// dont care other than phyiscal operator
 			continue;
 		}
-		match = match && pMatchPhysicalOpPattern(child_expr, pattern, pattern_root_idx+1);
+		match = match && pMatchExprPattern(child_expr, pattern, pattern_root_idx+1, physical_op_only);
 	}
 	// check pattern for root
 	match = match && root->Pop()->Eopid() == pattern[pattern_root_idx];
@@ -187,7 +221,28 @@ bool Planner::pIsUnionAllOpAccessExpression(CExpression* expr) {
 		COperator::EOperatorId::EopPhysicalComputeScalar,
 		COperator::EOperatorId::EopPhysicalIndexScan,
 	});
-	return pMatchPhysicalOpPattern(expr, p1) || pMatchPhysicalOpPattern(expr, p2);
+	return pMatchExprPattern(expr, p1, 0, true) || pMatchExprPattern(expr, p2, 0, true);
+}
+
+uint64_t Planner::pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col) {
+	
+	CMemoryPool* mp = this->memory_pool;
+
+	ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
+	refset->ExtractColIds(mp, colids);
+
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	const ULONG size = colids->Size();
+	for (ULONG idx = 0; idx < size; idx++) {
+		ULONG colid = *((*colids)[idx]);
+		auto test = col_factory->LookupColRef(colid);
+		if( CColRef::Equals(test, target_col) ) {
+			return idx;
+		}
+	}
+	D_ASSERT(false);
+	return 0; // to prevent compiler warning
+	
 }
 
 

@@ -3,6 +3,7 @@
 #include "main/client_context.hpp"
 
 #include <iostream>
+#include <type_traits>
 
 #include "gpos/_api.h"
 #include "naucrates/init.h"
@@ -166,8 +167,13 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalTableScan(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
-	bool pMatchPhysicalOpPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0);
+	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
+	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
+	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
+		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);
+		return duckdb::LogicalType( (duckdb::LogicalTypeId) type_id);
+	}
 
 private:
 	// config
