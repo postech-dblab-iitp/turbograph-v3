@@ -92,6 +92,7 @@ public:
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
+	inline vector<duckdb::CypherPipeline*> getConstructedPipelines() { return pipelines; }
 
 private:
 	// planner.cpp
