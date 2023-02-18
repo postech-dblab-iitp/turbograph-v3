@@ -29,9 +29,9 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 //#include "parser/parsed_data/create_collation_info.hpp"
 //#include "parser/parsed_data/create_copy_function_info.hpp"
-//#include "parser/parsed_data/create_index_info.hpp"
+#include "parser/parsed_data/create_index_info.hpp"
 //#include "parser/parsed_data/create_pragma_function_info.hpp"
-//#include "parser/parsed_data/create_scalar_function_info.hpp"
+#include "parser/parsed_data/create_scalar_function_info.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 //#include "parser/parsed_data/create_sequence_info.hpp"
 //#include "parser/parsed_data/create_table_function_info.hpp"
@@ -100,6 +100,7 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
 	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
 	indexes(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes")),
+	functions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions")),
 	oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
 IC();
 	this->internal = internal;
@@ -338,29 +339,33 @@ CatalogEntry *SchemaCatalogEntry::CreateCopyFunction(ClientContext &context, Cre
 CatalogEntry *SchemaCatalogEntry::CreatePragmaFunction(ClientContext &context, CreatePragmaFunctionInfo *info) {
 	auto pragma_function = make_unique<PragmaFunctionCatalogEntry>(catalog, this, info);
 	return AddEntry(context, move(pragma_function), info->on_conflict);
-}
+}*/
 
 CatalogEntry *SchemaCatalogEntry::CreateFunction(ClientContext &context, CreateFunctionInfo *info) {
-	unique_ptr<StandardEntry> function;
+	// unique_ptr<StandardEntry> function;
+	StandardEntry *function;
+	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	switch (info->type) {
 	case CatalogType::SCALAR_FUNCTION_ENTRY:
-		function = make_unique_base<StandardEntry, ScalarFunctionCatalogEntry>(catalog, this,
-		                                                                       (CreateScalarFunctionInfo *)info);
+		function = catalog_segment->find_or_construct<ScalarFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
+																										(CreateScalarFunctionInfo *)info, alloc_inst);
 		break;
 	case CatalogType::MACRO_ENTRY:
+		D_ASSERT(false);
 		// create a macro function
-		function = make_unique_base<StandardEntry, ScalarMacroCatalogEntry>(catalog, this, (CreateMacroInfo *)info);
+		// function = make_unique_base<StandardEntry, ScalarMacroCatalogEntry>(catalog, this, (CreateMacroInfo *)info);
 		break;
 
 	case CatalogType::TABLE_MACRO_ENTRY:
+		D_ASSERT(false);
 		// create a macro function
-		function = make_unique_base<StandardEntry, TableMacroCatalogEntry>(catalog, this, (CreateMacroInfo *)info);
+		// function = make_unique_base<StandardEntry, TableMacroCatalogEntry>(catalog, this, (CreateMacroInfo *)info);
 		break;
 	case CatalogType::AGGREGATE_FUNCTION_ENTRY:
 		D_ASSERT(info->type == CatalogType::AGGREGATE_FUNCTION_ENTRY);
 		// create an aggregate function
-		function = make_unique_base<StandardEntry, AggregateFunctionCatalogEntry>(catalog, this,
-		                                                                          (CreateAggregateFunctionInfo *)info);
+		function = catalog_segment->find_or_construct<AggregateFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
+																										(CreateAggregateFunctionInfo *)info, alloc_inst);
 		break;
 	default:
 		throw InternalException("Unknown function type \"%s\"", CatalogTypeToString(info->type));
@@ -398,7 +403,7 @@ CatalogEntry *SchemaCatalogEntry::AddFunction(ClientContext &context, CreateFunc
 	}
 	return CreateFunction(context, info);
 }
-*/
+
 void SchemaCatalogEntry::DropEntry(ClientContext &context, DropInfo *info) {
 	auto &set = GetCatalogSet(info->type);
 
@@ -476,12 +481,21 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 }
 
 void SchemaCatalogEntry::LoadCatalogSet() {
+	// fprintf(stdout, "Load Graph Catalog\n");
 	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
+	// fprintf(stdout, "Load Partition Catalog\n");
 	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
+	// fprintf(stdout, "Load PropertySchema Catalog\n");
 	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
+	// fprintf(stdout, "Load Extent Catalog\n");
 	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
+	// fprintf(stdout, "Load ChunkDefinitions Catalog\n");
 	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
+	// fprintf(stdout, "Load Indexes Catalog\n");
 	indexes.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes"));
+	// fprintf(stdout, "Load Functions Catalog\n");
+	functions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions"));
+	// fprintf(stdout, "Load CatalogSet Done\n");
 }
 
 void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment) {
@@ -513,6 +527,10 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 		return chunkdefinitions;
 	case CatalogType::INDEX_ENTRY:
 		return indexes;
+	case CatalogType::AGGREGATE_FUNCTION_ENTRY:
+	case CatalogType::SCALAR_FUNCTION_ENTRY:
+	case CatalogType::MACRO_ENTRY:
+		return functions;
 	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;
@@ -523,10 +541,6 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 		return copy_functions;
 	case CatalogType::PRAGMA_FUNCTION_ENTRY:
 		return pragma_functions;
-	case CatalogType::AGGREGATE_FUNCTION_ENTRY:
-	case CatalogType::SCALAR_FUNCTION_ENTRY:
-	case CatalogType::MACRO_ENTRY:
-		return functions;
 	case CatalogType::SEQUENCE_ENTRY:
 		return sequences;
 	case CatalogType::COLLATION_ENTRY:

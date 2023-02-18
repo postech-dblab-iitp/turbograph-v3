@@ -356,8 +356,8 @@ icecream::ic.disable();
 
 	// Initialize Catalog Informations
 	// Create Schema, Graph
-	CreateSchemaInfo schema_info;
-	cat_instance.CreateSchema(*client.get(), &schema_info);
+	// CreateSchemaInfo schema_info;
+	// cat_instance.CreateSchema(*client.get(), &schema_info);
 
 	CreateGraphInfo graph_info("main", "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);

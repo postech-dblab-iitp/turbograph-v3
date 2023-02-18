@@ -764,7 +764,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = sizeof(uint64_t);
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0); // TODO we need type id in our catalog
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID);
 		
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
@@ -794,7 +794,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = gpos::ulong_max;
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0); // TODO we need type id in our catalog
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) rel->GetType(ul));
 		// HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
 
 		// Column width priority:
@@ -1663,7 +1663,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// TypeCacheEntry *ptce; // = gpdb::LookupTypeCache(oid_type, iFlags);
 
 	// // get type name
-	// CMDName *mdname = GetTypeName(mp, mdid);
+	// CMDName *mdname = GetTypeName(mp, mdid); // TODO
 
 	// BOOL is_fixed_length = false;
 	// ULONG length = 0;

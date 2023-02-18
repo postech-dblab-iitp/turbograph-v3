@@ -81,6 +81,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include/"
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")

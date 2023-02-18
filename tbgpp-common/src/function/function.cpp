@@ -1,13 +1,13 @@
 #include "function/function.hpp"
 
-// #include "catalog/catalog.hpp"
-// #include "catalog/catalog_entry/scalar_function_catalog_entry.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/scalar_function_catalog_entry.hpp"
 #include "common/types/hash.hpp"
 #include "common/limits.hpp"
 #include "common/string_util.hpp"
 #include "function/aggregate_function.hpp"
 #include "function/cast_rules.hpp"
-// #include "function/scalar/string_functions.hpp"
+#include "function/scalar/string_functions.hpp"
 #include "function/scalar_function.hpp"
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
@@ -108,13 +108,13 @@ void BuiltinFunctions::Initialize() {
 	// RegisterHolisticAggregates();
 	RegisterRegressiveAggregates();
 
-	// RegisterDateFunctions();
+	RegisterDateFunctions();
 	// RegisterEnumFunctions();
 	// RegisterGenericFunctions();
-	// RegisterMathFunctions();
-	// RegisterOperators();
+	RegisterMathFunctions();
+	RegisterOperators();
 	// RegisterSequenceFunctions();
-	// RegisterStringFunctions();
+	RegisterStringFunctions();
 	// RegisterNestedFunctions();
 	// RegisterTrigonometricsFunctions();
 
@@ -137,12 +137,12 @@ BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog) : c
 
 void BuiltinFunctions::AddFunction(AggregateFunctionSet set) {
 	CreateAggregateFunctionInfo info(move(set));
-	// catalog.CreateFunction(context, &info);
+	catalog.CreateFunction(context, &info);
 }
 
 void BuiltinFunctions::AddFunction(AggregateFunction function) {
 	CreateAggregateFunctionInfo info(move(function));
-	// catalog.CreateFunction(context, &info);
+	catalog.CreateFunction(context, &info);
 }
 
 // void BuiltinFunctions::AddFunction(PragmaFunction function) {
@@ -157,7 +157,7 @@ void BuiltinFunctions::AddFunction(AggregateFunction function) {
 
 void BuiltinFunctions::AddFunction(ScalarFunction function) {
 	CreateScalarFunctionInfo info(move(function));
-	// catalog.CreateFunction(context, &info);
+	catalog.CreateFunction(context, &info);
 }
 
 void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction function) { // NOLINT: false positive
@@ -169,7 +169,7 @@ void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction f
 
 void BuiltinFunctions::AddFunction(ScalarFunctionSet set) {
 	CreateScalarFunctionInfo info(move(set));
-	// catalog.CreateFunction(context, &info);
+	catalog.CreateFunction(context, &info);
 }
 
 // void BuiltinFunctions::AddFunction(TableFunction function) {
