@@ -55,3 +55,18 @@ duckdb::GetRelation(duckdb::idx_t rel_oid)
 	// GP_WRAP_END;
 	return NULL;
 }
+
+string
+duckdb::GetTypeName(idx_t type_id) {
+	return catalog_wrapper->GetTypeName(type_id);
+}
+
+idx_t
+duckdb::GetTypeSize(idx_t type_id) {
+	return catalog_wrapper->GetTypeSize(type_id);
+}
+
+bool
+duckdb::isTypeFixedLength(idx_t type_id) {
+	return catalog_wrapper->isTypeFixedLength(type_id);
+}

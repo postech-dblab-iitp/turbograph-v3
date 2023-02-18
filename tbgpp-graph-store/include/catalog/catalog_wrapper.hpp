@@ -53,6 +53,20 @@ public:
         }
     }
 
+    string GetTypeName(idx_t type_id) {
+        return LogicalTypeIdToString((LogicalTypeId) type_id);
+    }
+
+    idx_t GetTypeSize(idx_t type_id) {
+        LogicalType tmp_type((LogicalTypeId) type_id);
+        return GetTypeIdSize(tmp_type.InternalType());
+    }
+
+    bool isTypeFixedLength(idx_t type_id) {
+        LogicalType tmp_type((LogicalTypeId) type_id);
+        return TypeIsConstantSize(tmp_type.InternalType());
+    }
+
 private:
     //! Reference to the database
 	DatabaseInstance &db;
