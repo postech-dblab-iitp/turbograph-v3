@@ -71,6 +71,13 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ex
 	for (idx_t i = 0; i < oids.size(); i++) {
 		PropertySchemaCatalogEntry* ps_cat_entry = 
       		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, "main", oids[i]); // TODO change "main" -> DefaultSchema
+// icecream::ic.enable();
+// 		IC();
+// 		IC(i, oids[i], ps_cat_entry->GetName());
+// 		for (int j = 0; j < scanSchema.size(); j++) {
+// 			IC((uint8_t)scanSchema[j].id(), projection_mapping[i][j]);
+// 		}
+// icecream::ic.disable();
 		
 		auto ext_it = new ExtentIterator();
 		ext_it->Initialize(client, ps_cat_entry, scanSchema, projection_mapping[i]);

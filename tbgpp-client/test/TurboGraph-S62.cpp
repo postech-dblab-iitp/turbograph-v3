@@ -279,7 +279,7 @@ icecream::ic.disable();
 		auto inputStream = ANTLRInputStream(query_str);
 
 // Lexer
-		std::cout << "[TEST] calling lexer" << std::endl;
+		// std::cout << "[TEST] calling lexer" << std::endl;
 		auto cypherLexer = CypherLexer(&inputStream);
 		//cypherLexer.removeErrorListeners();
 		//cypherLexer.addErrorListener(&parserErrorListener);
@@ -287,27 +287,27 @@ icecream::ic.disable();
 		tokens.fill();
 
 // Parser
-		std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
+		// std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
 		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
 // Sematic parsing
 		// Transformer
-		std::cout << "[TEST] generating transformer" << std::endl;
+		// std::cout << "[TEST] generating transformer" << std::endl;
 		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-		std::cout << "[TEST] calling transformer" << std::endl;
+		// std::cout << "[TEST] calling transformer" << std::endl;
 		auto statement = transformer.transform();
 		
 		// Binder
-		std::cout << "[TEST] generating binder" << std::endl;
+		// std::cout << "[TEST] generating binder" << std::endl;
 		auto binder = kuzu::binder::Binder(client.get());
-		std::cout << "[TEST] calling binder" << std::endl;
+		// std::cout << "[TEST] calling binder" << std::endl;
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 		// WARNING - printer should be disabled when processing following compilation step.
-		std::cout << "Tree => " << std::endl;
-		printer.print();
-		std::cout << std::endl;
+		// std::cout << "Tree => " << std::endl;
+		// printer.print();
+		// std::cout << std::endl;
 
 		auto planner = s62::Planner(s62::MDProviderType::TBGPP, client.get());
 		planner.execute(bst);
