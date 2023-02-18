@@ -113,15 +113,19 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         for (int i = 0; i < chunk_size; i++) {
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
+                j++;
                 continue;
             }
             if (target_idxs[j] == std::numeric_limits<uint64_t>::max()) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
                 j++;
                 continue;
             }
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++] - 1];
             io_requested_cdf_ids[toggle][i] = cdf_id;
+            // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
@@ -316,6 +320,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             for (int i = 0; i < chunk_size; i++) {
                 if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
                     io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
                     continue;
                 }
                 if (!target_idxs.empty() && (target_idxs[j] == std::numeric_limits<uint64_t>::max())) {
@@ -324,7 +329,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     continue;
                 }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
+                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++] - 1];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
                 string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
                 // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
@@ -351,17 +356,22 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     int idx_for_cardinality = -1;
     CompressionHeader comp_header;
     // TODO record data cardinality in Chunk Definition?
+//icecream::ic.enable(); IC(); IC(ps_cat_entry->GetName()); icecream::ic.disable();
     for (size_t i = 0; i < ext_property_types.size(); i++) {
+        //icecream::ic.enable(); IC(); IC(i); IC((uint8_t) ext_property_types[i].id()); icecream::ic.disable();
         if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST || ext_property_types[i] == LogicalType::ID) {
+            //icecream::ic.enable(); IC(); icecream::ic.disable();
             continue;
         } else {
+            //icecream::ic.enable(); IC(); icecream::ic.disable();
             if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+            //icecream::ic.enable(); IC(); icecream::ic.disable();
             idx_for_cardinality = i;
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
             break;
         }
     }
-// IC();
+//icecream::ic.enable(); IC(); icecream::ic.disable();
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");
     } else {
@@ -375,10 +385,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // IC();
     idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
     idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, comp_header.data_len);
-    D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
-// icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset);icecream::ic.disable();
+// icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset, idx_for_cardinality, comp_header.data_len);icecream::ic.disable();
+    // D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) {
+        if ((ext_property_types[i] != LogicalType::ID) && (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max())) {
             FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
             continue;
         }
@@ -643,7 +653,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         }
     }
-// icecream::ic.enable(); IC(); icecream::ic.disable();
+icecream::ic.enable(); IC(); icecream::ic.disable();
 
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");

@@ -32,7 +32,7 @@ public:
         return ps_cat;
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<idx_t>> &pkey_to_ps_map) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<pair<idx_t, idx_t>>> &pkey_to_ps_map) {
         auto &catalog = db.GetCatalog();
         for (auto &oid : oids) {
             PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, "main", oid);
@@ -45,9 +45,9 @@ public:
                 string property_key = std::string((*property_keys)[i]);
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
-                    pkey_to_ps_map.emplace(property_key, std::vector<idx_t> {oid});
+                    pkey_to_ps_map.emplace(property_key, std::vector<pair<idx_t, idx_t>> {std::make_pair(oid, i + 1)});
                 } else {
-                    it->second.push_back(oid);
+                    it->second.push_back(std::make_pair(oid, i + 1));
                 }
             }
         }

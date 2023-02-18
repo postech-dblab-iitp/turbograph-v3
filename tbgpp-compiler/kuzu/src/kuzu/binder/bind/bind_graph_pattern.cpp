@@ -139,7 +139,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     if(client != nullptr) {
         /* TBGPP MDP */
         // Get unordered map (property key -> corresponding (sub)table ids)
-        unordered_map<string, vector<uint64_t>> pkey_to_ps_map;
+        unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
@@ -154,8 +154,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         // for each property, create property expression
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
-            for (auto &table_id : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), 0, table_id));
+            for (auto &tid_and_cid_pair : it.second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(it.first, std::move(prop_idexpr));
@@ -286,7 +286,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         /* TBGPP MDP */
         // S62 fixme
         // Get unordered map (property key -> corresponding (sub)table ids)
-        unordered_map<string, vector<uint64_t>> pkey_to_ps_map;
+        unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
@@ -299,16 +299,14 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         }
 
         // for each property, create property expression
-        icecream::ic.enable(); IC(); icecream::ic.disable();
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
-            for (auto &table_id : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), 0, table_id));
+            for (auto &tid_and_cid_pair : it.second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(it.first, std::move(prop_idexpr));
         }
-        icecream::ic.enable(); IC(); icecream::ic.disable();
     } else {
         /* Test - MemoryMDP*/
         {
