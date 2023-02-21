@@ -38,7 +38,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ex
 	for (auto &it : labels.data) entry_name += it;
 // icecream::ic.enable(); IC(); icecream::ic.disable();
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 // icecream::ic.enable(); IC(); icecream::ic.disable();
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
@@ -70,7 +70,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ex
 	vector<vector<idx_t>> column_idxs;
 	for (idx_t i = 0; i < oids.size(); i++) {
 		PropertySchemaCatalogEntry* ps_cat_entry = 
-      		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, "main", oids[i]); // TODO change "main" -> DefaultSchema
+      		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, DEFAULT_SCHEMA, oids[i]);
 // icecream::ic.enable();
 // 		IC();
 // 		IC(i, oids[i], ps_cat_entry->GetName());
@@ -153,7 +153,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -182,7 +182,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(ExtentIterator *&ext_
 	string entry_name = "vps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -258,7 +258,7 @@ StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(ExtentIterator *&ext_it
 	string entry_name = "eps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -287,7 +287,7 @@ StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(ExtentIterator *&ext_it
 	string entry_name = "eps_";
 	for (auto &it : labels.data) entry_name += it;
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 
 	D_ASSERT(edgeLabels.size() <= 1); // XXX Temporary
 	vector<string> properties_temp;
@@ -351,7 +351,7 @@ void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, 
 	for (auto &it : src_labels.data) entry_name += it;
 // icecream::ic.enable(); IC(); IC(entry_name); icecream::ic.disable();
 	PropertySchemaCatalogEntry* ps_cat_entry = 
-      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, "main", entry_name);
+      (PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, entry_name);
 
 	LogicalTypeId_vector *l_types = ps_cat_entry->GetTypes();
 	string_vector *keys = ps_cat_entry->GetKeys();

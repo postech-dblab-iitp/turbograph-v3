@@ -84,10 +84,10 @@ using namespace duckdb;
 	((bool)((relation)->rd_rel->relstorage == RELSTORAGE_FOREIGN)) // From src/include/utils/rel.h
 
 
-// static const ULONG cmp_type_mappings[][2] = {
-// 	{IMDType::EcmptEq, CmptEq},	  {IMDType::EcmptNEq, CmptNEq},
-// 	{IMDType::EcmptL, CmptLT},	  {IMDType::EcmptG, CmptGT},
-// 	{IMDType::EcmptGEq, CmptGEq}, {IMDType::EcmptLEq, CmptLEq}};
+static const ULONG cmp_type_mappings[][2] = {
+	{IMDType::EcmptEq, CmptEq},	  {IMDType::EcmptNEq, CmptNEq},
+	{IMDType::EcmptL, CmptLT},	  {IMDType::EcmptG, CmptGT},
+	{IMDType::EcmptGEq, CmptGEq}, {IMDType::EcmptLEq, CmptLEq}};
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -764,7 +764,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = sizeof(uint64_t);
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID);
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
 		
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
@@ -794,7 +794,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = gpos::ulong_max;
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) rel->GetType(ul));
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) rel->GetType(ul) + LOGICAL_TYPE_BASE_ID);
 		// HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
 
 		// Column width priority:
@@ -1677,43 +1677,43 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	// }
 
 	//BOOL is_passed_by_value = ptce->typbyval;
-	BOOL is_passed_by_value = true;
+	BOOL is_passed_by_value = true; // TODO
 
 	// collect ids of different comparison operators for types
 	CMDIdGPDB *mdid_op_eq =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->eq_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptEq)/*ptce->eq_opr*/);
 	CMDIdGPDB *mdid_op_neq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->eq_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptNEq)/*gpdb::GetInverseOp(ptce->eq_opr)*/);
 	CMDIdGPDB *mdid_op_lt =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->lt_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptLT)/*ptce->lt_opr*/);
 	CMDIdGPDB *mdid_op_leq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->gt_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptLEq)/*gpdb::GetInverseOp(ptce->gt_opr)*/);
 	CMDIdGPDB *mdid_op_gt =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->gt_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptGT)/*ptce->gt_opr*/);
 	CMDIdGPDB *mdid_op_geq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetInverseOp(ptce->lt_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::GetComparisonOperator(oid_type, oid_type, CmptGEq)/*gpdb::GetInverseOp(ptce->lt_opr)*/);
 	CMDIdGPDB *mdid_op_cmp =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->cmp_proc*/);
-	BOOL is_hashable = false;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type);
-	BOOL is_merge_joinable = false;//gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type);
-	BOOL is_composite_type = false;//gpdb::IsCompositeType(oid_type);
-	BOOL is_text_related_type = false;//gpdb::IsTextRelatedType(oid_type);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->cmp_proc*/); // TODO what is this? B-tree lookup?
+	BOOL is_hashable = false;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type); //TODO
+	BOOL is_merge_joinable = false;//gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type); //TODO
+	BOOL is_composite_type = false;//gpdb::IsCompositeType(oid_type); //TODO do not consider this type in this step
+	BOOL is_text_related_type = false;//gpdb::IsTextRelatedType(oid_type); //TODO
 
-	// // get standard aggregates
+	// get standard aggregates
 	CMDIdGPDB *mdid_min = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("min", oid_type, 1)*/);
+	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("min", oid_type, 1));
 	CMDIdGPDB *mdid_max = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("max", oid_type, 1)*/);
+	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("max", oid_type, 1));
 	CMDIdGPDB *mdid_avg = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("avg", oid_type, 1)*/);
+	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("avg", oid_type, 1));
 	CMDIdGPDB *mdid_sum = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, 0/*gpdb::GetAggregate("sum", oid_type, 1)*/);
+	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("sum", oid_type, 1));
 
 	// count aggregate is the same for all types
 	CMDIdGPDB *mdid_count =
 	 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 2147/*COUNT_ANY_OID*/);
 
-	// check if type is composite
+	// check if type is composite // TODO do not consider this type in this step
 	CMDIdGPDB *mdid_type_relid = NULL;
 	// if (is_composite_type)
 	// {
@@ -1771,103 +1771,104 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 
 	GPOS_ASSERT(InvalidOid != op_oid);
 
-	// // get operator name
-	// CHAR *name = gpdb::GetOpName(op_oid);
+	// get operator name
+	string name_str = duckdb::GetOpName(op_oid);
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); // TODO avoid copy?
 
-	// if (NULL == name)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid->GetBuffer());
-	// }
+	if (NULL == name)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid->GetBuffer());
+	}
 
-	// CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, name);
+	CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, name);
 
-	// OID left_oid = InvalidOid;
-	// OID right_oid = InvalidOid;
+	OID left_oid = InvalidOid;
+	OID right_oid = InvalidOid;
 
-	// // get operator argument types
-	// gpdb::GetOpInputTypes(op_oid, &left_oid, &right_oid);
+	// get operator argument types
+	duckdb::GetOpInputTypes(op_oid, &left_oid, &right_oid);
 
-	// CMDIdGPDB *mdid_type_left = NULL;
-	// CMDIdGPDB *mdid_type_right = NULL;
+	CMDIdGPDB *mdid_type_left = NULL;
+	CMDIdGPDB *mdid_type_right = NULL;
 
-	// if (InvalidOid != left_oid)
-	// {
-	// 	mdid_type_left = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, left_oid);
-	// }
+	if (InvalidOid != left_oid)
+	{
+		mdid_type_left = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, left_oid);
+	}
 
-	// if (InvalidOid != right_oid)
-	// {
-	// 	mdid_type_right =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, right_oid);
-	// }
+	if (InvalidOid != right_oid)
+	{
+		mdid_type_right =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, right_oid);
+	}
 
-	// // get comparison type
-	// CmpType cmpt = (CmpType) gpdb::GetComparisonType(op_oid);
-	// IMDType::ECmpType cmp_type = ParseCmpType(cmpt);
+	// get comparison type
+	CmpType cmpt = (CmpType) duckdb::GetComparisonType(op_oid);
+	IMDType::ECmpType cmp_type = ParseCmpType(cmpt);
 
-	// // get func oid
-	// OID func_oid = gpdb::GetOpFunc(op_oid);
-	// GPOS_ASSERT(InvalidOid != func_oid);
+	// get func oid
+	OID func_oid = duckdb::GetOpFunc(op_oid);
+	GPOS_ASSERT(InvalidOid != func_oid);
 
-	// CMDIdGPDB *mdid_func =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_oid);
+	CMDIdGPDB *mdid_func =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_oid);
 
-	// // get result type
-	// OID result_oid = gpdb::GetFuncRetType(func_oid);
+	// get result type
+	OID result_oid = 26;// TODO = gpdb::GetFuncRetType(func_oid);
 
-	// GPOS_ASSERT(InvalidOid != result_oid);
+	GPOS_ASSERT(InvalidOid != result_oid);
 
-	// CMDIdGPDB *result_type_mdid =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+	CMDIdGPDB *result_type_mdid =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
 
-	// // get commutator and inverse
-	// CMDIdGPDB *mdid_commute_opr = NULL;
+	// get commutator and inverse
+	CMDIdGPDB *mdid_commute_opr = NULL;
 
-	// OID commute_oid = gpdb::GetCommutatorOp(op_oid);
+	OID commute_oid = InvalidOid;//TODO = gpdb::GetCommutatorOp(op_oid);
 
-	// if (InvalidOid != commute_oid)
-	// {
-	// 	mdid_commute_opr =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, commute_oid);
-	// }
+	if (InvalidOid != commute_oid)
+	{
+		mdid_commute_opr =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, commute_oid);
+	}
 
-	// CMDIdGPDB *m_mdid_inverse_opr = NULL;
+	CMDIdGPDB *m_mdid_inverse_opr = NULL;
 
-	// OID inverse_oid = gpdb::GetInverseOp(op_oid);
+	OID inverse_oid = InvalidOid;//TODO = gpdb::GetInverseOp(op_oid);
 
-	// if (InvalidOid != inverse_oid)
-	// {
-	// 	m_mdid_inverse_opr =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, inverse_oid);
-	// }
+	if (InvalidOid != inverse_oid)
+	{
+		m_mdid_inverse_opr =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, inverse_oid);
+	}
 
-	// BOOL returns_null_on_null_input = gpdb::IsOpStrict(op_oid);
-	// BOOL is_ndv_preserving = gpdb::IsOpNDVPreserving(op_oid);
+	BOOL returns_null_on_null_input = true;//TODO = gpdb::IsOpStrict(op_oid);
+	BOOL is_ndv_preserving = true;//TODO = gpdb::IsOpNDVPreserving(op_oid);
 
-	// CMDIdGPDB *mdid_hash_opfamily = NULL;
-	// OID distr_opfamily = gpdb::GetCompatibleHashOpFamily(op_oid);
-	// if (InvalidOid != distr_opfamily)
-	// {
-	// 	mdid_hash_opfamily =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, distr_opfamily);
-	// }
+	CMDIdGPDB *mdid_hash_opfamily = NULL;
+	OID distr_opfamily;//TODO = gpdb::GetCompatibleHashOpFamily(op_oid);
+	if (InvalidOid != distr_opfamily)
+	{
+		mdid_hash_opfamily =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, distr_opfamily);
+	}
 
-	// CMDIdGPDB *mdid_legacy_hash_opfamily = NULL;
-	// OID legacy_distr_opfamily = gpdb::GetCompatibleLegacyHashOpFamily(op_oid);
-	// if (InvalidOid != legacy_distr_opfamily)
-	// {
-	// 	mdid_legacy_hash_opfamily =
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, legacy_distr_opfamily);
-	// }
+	CMDIdGPDB *mdid_legacy_hash_opfamily = NULL;
+	OID legacy_distr_opfamily;//TODO = gpdb::GetCompatibleLegacyHashOpFamily(op_oid);
+	if (InvalidOid != legacy_distr_opfamily)
+	{
+		mdid_legacy_hash_opfamily =
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, legacy_distr_opfamily);
+	}
 
-	// mdid->AddRef();
-	// CMDScalarOpGPDB *md_scalar_op = GPOS_NEW(mp) CMDScalarOpGPDB(
-	// 	mp, mdid, mdname, mdid_type_left, mdid_type_right, result_type_mdid,
-	// 	mdid_func, mdid_commute_opr, m_mdid_inverse_opr, cmp_type,
-	// 	returns_null_on_null_input, RetrieveScOpOpFamilies(mp, mdid),
-	// 	mdid_hash_opfamily, mdid_legacy_hash_opfamily, is_ndv_preserving);
-	// return md_scalar_op;
+	mdid->AddRef();
+	CMDScalarOpGPDB *md_scalar_op = GPOS_NEW(mp) CMDScalarOpGPDB(
+		mp, mdid, mdname, mdid_type_left, mdid_type_right, result_type_mdid,
+		mdid_func, mdid_commute_opr, m_mdid_inverse_opr, cmp_type,
+		returns_null_on_null_input, RetrieveScOpOpFamilies(mp, mdid),
+		mdid_hash_opfamily, mdid_legacy_hash_opfamily, is_ndv_preserving);
+	return md_scalar_op;
 }
 
 
@@ -2837,17 +2838,18 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 
 	OID left_oid = CMDIdGPDB::CastMdid(mdid_left)->Oid();
 	OID right_oid = CMDIdGPDB::CastMdid(mdid_right)->Oid();
-	// CmpType cmpt = (CmpType) GetComparisonType(cmp_type);
+	CmpType cmpt = (CmpType) GetComparisonType(cmp_type);
 
-	OID scalar_cmp_oid; // = gpdb::GetComparisonOperator(left_oid, right_oid, cmpt);
+	OID scalar_cmp_oid = duckdb::GetComparisonOperator(left_oid, right_oid, cmpt);
 
-	// if (InvalidOid == scalar_cmp_oid)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid->GetBuffer());
-	// }
+	if (InvalidOid == scalar_cmp_oid)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid->GetBuffer());
+	}
 
-	CHAR *name; // = gpdb::GetOpName(scalar_cmp_oid);
+	string name_str = duckdb::GetOpName(scalar_cmp_oid);
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); // TODO avoid copy?
 
 	if (NULL == name)
 	{
@@ -3632,16 +3634,16 @@ CTranslatorTBGPPToDXL::ParseCmpType(ULONG cmpt)
 ULONG
 CTranslatorTBGPPToDXL::GetComparisonType(IMDType::ECmpType cmp_type)
 {
-	// for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
-	// {
-	// 	const ULONG *mapping = cmp_type_mappings[ul];
-	// 	if (mapping[0] == cmp_type)
-	// 	{
-	// 		return (ULONG) mapping[1];
-	// 	}
-	// }
+	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
+	{
+		const ULONG *mapping = cmp_type_mappings[ul];
+		if (mapping[0] == cmp_type)
+		{
+			return (ULONG) mapping[1];
+		}
+	}
 
-	// return CmptOther;
+	return CmptOther;
 }
 
 //---------------------------------------------------------------------------
@@ -3697,7 +3699,7 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
 	// }
 
-	// return input_col_mdids;
+	return input_col_mdids;
 }
 
 // EOF

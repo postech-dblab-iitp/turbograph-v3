@@ -84,6 +84,11 @@ struct SimilarCatalogEntry {
 	DUCKDB_API string GetQualifiedName() const;
 };
 
+// Base ID (temporary)
+#define LOGICAL_TYPE_BASE_ID 10000000L
+#define EXPRESSION_TYPE_BASE_ID 20000000L
+#define OPERATOR_BASE_ID 30000000L
+
 //! The Catalog object represents the catalog of the database.
 class Catalog {
 	// typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;

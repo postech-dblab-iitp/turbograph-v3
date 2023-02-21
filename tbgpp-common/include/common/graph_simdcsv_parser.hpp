@@ -316,6 +316,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::UINTEGER:
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint32_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::UBIGINT:
+    case LogicalTypeId::ID:
     case LogicalTypeId::ADJLISTCOLUMN:
       // for (size_t j = start_offset; j < end_offset; j++) {
       //     std::cout << p[j];
@@ -809,6 +810,7 @@ private:
           }
 					// D_ASSERT(key_column == -1);
 					// key_column = column_idx;
+          return LogicalType::UBIGINT;
 				} else { // type == GraphComponentType::EDGE
 					// D_ASSERT((src_column == -1) || (dst_column == -1));
 					auto first_pos = type_name.find_first_of('(');
@@ -822,8 +824,8 @@ private:
             dst_key_name = move(label_name);
 						dst_columns.push_back(column_idx);
           }
+          return LogicalType::ID;
 				}
-				return LogicalType::UBIGINT;
       // } else if (type_name.find("ADJLIST") != std::string::npos) {
       //   D_ASSERT(type == GraphComponentType::VERTEX);
       //   return LogicalType::ADJLISTCOLUMN;
