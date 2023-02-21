@@ -86,6 +86,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	uint64_t cols_size = columns->Size();
 	
 	// oids / projection_mapping 
+// TODO refer to pdrgpcrOutput of scan operator!!!!!!!!!!!!!!!!!!!!!
 	vector<uint64_t> oids;
 	oids.push_back(table_obj_id);
 	vector<vector<uint64_t>> projection_mapping;
@@ -236,7 +237,11 @@ bool Planner::pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId
 			// dont care other than phyiscal operator
 			continue;
 		}
-		match = match && pMatchExprPattern(child_expr, pattern, pattern_root_idx+1, physical_op_only);
+		if( pattern_root_idx + 1 < pattern.size()) {
+			// more patterns to check
+			match = match && pMatchExprPattern(child_expr, pattern, pattern_root_idx+1, physical_op_only);	
+		}
+		
 	}
 	// check pattern for root
 	match = match && root->Pop()->Eopid() == pattern[pattern_root_idx];
@@ -261,11 +266,10 @@ bool Planner::pIsUnionAllOpAccessExpression(CExpression* expr) {
 
 bool Planner::pIsUnionAllForProjection(CExpression* expr) {
 	auto p1 = vector<COperator::EOperatorId>({
-		COperator::EOperatorId::EopPhysicalSerialUnionAll,
-		COperator::EOperatorId::EopPhysicalTableScan,
+		COperator::EOperatorId::EopPhysicalSerialUnionAll
 	});
 	bool is_unionall_with_single_child = expr->PdrgPexpr()->Size() == 1;
-	return pMatchExprPattern(expr, p1, 0, true) && is_unionall_with_single_child;
+	return is_unionall_with_single_child;
 }
 
 uint64_t Planner::pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col) {
