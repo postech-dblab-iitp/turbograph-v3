@@ -59,6 +59,9 @@
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/traceflags/traceflags.h"
 
+
+#include <vector>
+
 using namespace gpopt;
 
 // maximum number of equality predicates to be derived from existing equalities
@@ -2263,6 +2266,110 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 		}
 		pcrsUnusedLocal->Release();
 	}
+
+	// S62 added logic for pruning columns in Union All operators
+	if (COperator::EopLogicalUnionAll == pop->Eopid()) {
+
+		CLogicalSetOp* union_all_op = (CLogicalSetOp*) pop;
+		// unused =  output - used
+		CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp);
+		pcrsUnusedLocal->Include(union_all_op->PdrgpcrOutput());
+		pcrsUnusedLocal->Difference(pcrsReqd);
+
+		if( 0 < pcrsUnusedLocal-> Size()) {
+
+			// get ordered indices of column numbers in 
+			// find indices in union_all_op->PdrgpcrOutput()
+
+			CColRefArray* origOutputCols = union_all_op->PdrgpcrOutput();
+			std::vector<ULONG> used_indices;
+
+			
+			for(ULONG _i = 0; _i < origOutputCols->Size(); _i++ ) {
+				CColRef* cur_col = origOutputCols->operator[](_i);
+				if( pcrsReqd->FMember(cur_col) ) {
+					used_indices.push_back(_i);
+				}
+			}
+			GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
+
+			CColRefArray *new_pdrgpcrOutput;
+			CColRef2dArray *new_pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+
+			// project inputs
+			for( ULONG input_idx = 0; input_idx < union_all_op->PdrgpdrgpcrInput()->Size(); input_idx++ ) {
+				CColRefArray* input = union_all_op->PdrgpdrgpcrInput()->operator[](input_idx);
+				CColRefArray *new_input = GPOS_NEW(mp) CColRefArray(mp);
+				for( ULONG col_idx = 0; col_idx < input->Size(); col_idx++) {
+					for(ULONG ui_idx = 0; ui_idx < used_indices.size(); ui_idx++){
+						ULONG target_idx = used_indices[ui_idx];
+						if(target_idx == col_idx) {
+							new_input->Append(input->operator[](col_idx));
+							// mark as used columns
+							pcrsReqd->Include(input->operator[](col_idx));
+						}
+					}
+				}
+				new_pdrgdrgpcrInput->Append(new_input);
+			}
+			new_pdrgpcrOutput = new_pdrgdrgpcrInput->operator[](0);
+
+			// first, recursively optimize childs
+			CExpressionArray *optimized_pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);;
+			const ULONG ulChildren = pexpr->Arity();
+			for (ULONG ul = 0; ul < ulChildren; ul++) {
+				CExpression *pexprChild =
+					PexprPruneUnusedComputedColsRecursive(mp, (*pexpr)[ul], pcrsReqd);
+				optimized_pdrgpexpr->Append(pexprChild);
+			}
+			pop->AddRef();
+
+			// then return newly added operator
+			CExpression* optimized_union_all =  GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CLogicalUnionAll(mp, new_pdrgpcrOutput, new_pdrgdrgpcrInput),
+				optimized_pdrgpexpr);
+
+			return optimized_union_all;
+		}
+		// release unused 
+		pcrsUnusedLocal->Release();
+	}
+	// S62 eliminate unused columns for logical get
+	// else if( COperator::EopLogicalGet == pop->Eopid() ) {
+
+	// 	CLogicalGet* get_op = (CLogicalGet*) pop;
+	// 	// unused =  output - used
+	// 	CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp);
+	// 	pcrsUnusedLocal->Include(get_op->PdrgpcrOutput());
+	// 	pcrsUnusedLocal->Difference(pcrsReqd);
+
+	// 	if( 0 < pcrsUnusedLocal-> Size()) {
+	// 	// get ordered indices of column numbers in 
+	// 		// find indices in union_all_op->PdrgpcrOutput()
+
+	// 		CColRefArray* origOutputCols = get_op->PdrgpcrOutput();
+	// 		std::vector<ULONG> used_indices;
+	// 		for(ULONG _i = 0; _i < origOutputCols->Size(); _i++ ) {
+	// 			CColRef* cur_col = origOutputCols->operator[](_i);
+	// 			if( pcrsReqd->FMember(cur_col) ) {
+	// 				used_indices.push_back(_i);
+	// 			}
+	// 		}
+	// 		GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
+
+	// 		// generate new tabledesc
+	// 		// generate new outputarray
+	// 		CColRefArray *new_pdrgpcrOutput;
+	// 		CTableDescriptor* new_tableDesc; = blabla
+	// 		//
+	// 		ptabdesc->Pdrgpcoldesc()
+
+	// 		// since leaf, directly return newly added logical operator
+	// 		return  GPOS_NEW(mp) CExpression(
+	// 			mp, GPOS_NEW(mp) CLogicalGet(mp, get_op->Name(), /* tabledesc, output*/) );
+	// 	}
+
+	// }
 
 	if (pop->FLogical())
 	{
