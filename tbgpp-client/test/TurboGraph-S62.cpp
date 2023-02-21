@@ -218,67 +218,12 @@ class InputParser{
     std::vector <std::string> tokens;
 };
 
+void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 
-int main(int argc, char** argv) {
-icecream::ic.disable();
-	// Initialize System
-	InputParser input(argc, argv);
-	input.getCmdOption();
-	// set_signal_handler();
-	// setbuf(stdout, NULL);
-
-	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
-	// Initialize System Parameters
-	DiskAioParameters::NUM_THREADS = 1;
-	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
-	DiskAioParameters::NUM_CPU_SOCKETS = 1;
-	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = workspace;
-	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
-	
-	int res;
-	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
-	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
-
-	// Initialize ChunkCacheManager
-	// fprintf(stdout, "\nInitialize ChunkCacheManager\n");
-	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
-
-	// Run Catch Test
-	argc = 1;
-
-	// Initialize Database
-	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
-	std::unique_ptr<DuckDB> database;
-	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
-	
-	// Initialize ClientContext
-	icecream::ic.disable();
-	std::shared_ptr<ClientContext> client = 
-		std::make_shared<ClientContext>(database->instance->shared_from_this());
-	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
-
-	// TODO 0202 this should work.
-	// Test catalog access to get object id
-	// vector<idx_t> oids;
-	// (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
-	// TODO why does this function return void??
-
-	
-	// run queries by query name
-	std::string query_str;
-icecream::ic.disable();
-	while(true) {
-		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
-		// check termination
-		if( query_str.compare(":exit") == 0 ) {
-			break;
-		}
-
-		std::cout << "Query => " << std::endl << query_str << std::endl;
+	std::cout << "Query => " << std::endl << query_str << std::endl;
 		auto inputStream = ANTLRInputStream(query_str);
 
-// Lexer
+// Lexer		
 		// std::cout << "[TEST] calling lexer" << std::endl;
 		auto cypherLexer = CypherLexer(&inputStream);
 		//cypherLexer.removeErrorListeners();
@@ -320,7 +265,7 @@ icecream::ic.disable();
 			auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
 			executors.push_back(pipe_exec);
 		}
-		if( executors.size() == 0 ) { continue; }
+		if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 		// debug plan before executing
 		std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
@@ -378,6 +323,73 @@ icecream::ic.disable();
 		}
 		std::cout << "===================================================" << std::endl;
 		std::cout << "\nFinished query execution in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+
+}
+
+
+int main(int argc, char** argv) {
+icecream::ic.disable();
+	// Initialize System
+	InputParser input(argc, argv);
+	input.getCmdOption();
+	// set_signal_handler();
+	// setbuf(stdout, NULL);
+
+	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
+	// Initialize System Parameters
+	DiskAioParameters::NUM_THREADS = 1;
+	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
+	DiskAioParameters::NUM_CPU_SOCKETS = 1;
+	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
+	DiskAioParameters::WORKSPACE = workspace;
+	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
+	
+	int res;
+	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
+	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
+
+	// Initialize ChunkCacheManager
+	// fprintf(stdout, "\nInitialize ChunkCacheManager\n");
+	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
+
+	// Run Catch Test
+	argc = 1;
+
+	// Initialize Database
+	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+	std::unique_ptr<DuckDB> database;
+	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
+	
+	// Initialize ClientContext
+	icecream::ic.disable();
+	std::shared_ptr<ClientContext> client = 
+		std::make_shared<ClientContext>(database->instance->shared_from_this());
+	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
+
+	// TODO 0202 this should work.
+	// Test catalog access to get object id
+	// vector<idx_t> oids;
+	// (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
+	// TODO why does this function return void??
+
+	
+	// run queries by query name
+	std::string query_str;
+icecream::ic.disable();
+	while(true) {
+		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
+		// check termination
+		if( query_str.compare(":exit") == 0 ) {
+			break;
+		}
+
+		try {
+			// protected code
+			CompileAndRun(query_str, client);
+		} catch( std::exception e1 ) {
+			std::cerr << e1.what() << std::endl;
+		}
+		
 
 	}
 
