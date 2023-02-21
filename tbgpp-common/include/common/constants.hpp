@@ -47,6 +47,14 @@ using std::make_shared;
 #define TEMP_SCHEMA    "temp"
 #define INVALID_SCHEMA ""
 
+#define DEFAULT_GRAPH "graph"
+#define DEFAULT_VERTEX_PARTITION_PREFIX "vpart_"
+#define DEFAULT_EDGE_PARTITION_PREFIX "epart_"
+#define DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX "vps_"
+#define DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX "eps_"
+#define DEFAULT_EXTENT_PREFIX "ext_"
+#define DEFAULT_CHUNKDEFINITION_PREFIX "cdf_"
+
 //! a saner size_t for loop indices etc
 typedef uint64_t idx_t;
 

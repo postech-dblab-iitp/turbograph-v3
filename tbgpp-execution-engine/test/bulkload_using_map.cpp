@@ -127,7 +127,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		ParseLabelSet(vertex_file.first, vertex_labels);
 		
 		string partition_name = "vpart_" + vertex_file.first;
-		CreatePartitionInfo partition_info("main", partition_name.c_str());
+		CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		PartitionID new_pid = graph_cat->GetNewPartitionID();
 		graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
@@ -152,7 +152,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		
 		string property_schema_name = "vps_" + vertex_file.first;
 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		
 		vector<PropertyKeyID> property_key_ids;
@@ -359,7 +359,7 @@ icecream::ic.disable();
 	// CreateSchemaInfo schema_info;
 	// cat_instance.CreateSchema(*client.get(), &schema_info);
 
-	CreateGraphInfo graph_info("main", "graph1");
+	CreateGraphInfo graph_info(DEFAULT_SCHEMA, "graph1");
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
 	// Read Vertex CSV File & CreateVertexExtents
@@ -373,7 +373,7 @@ icecream::ic.disable();
 		// Create Partition for each edge (partitioned by edge type)
 		string edge_type = edge_file.first;
 		string partition_name = "epart_" + edge_file.first;
-		CreatePartitionInfo partition_info("main", partition_name.c_str());
+		CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
 		PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		PartitionID new_pid = graph_cat->GetNewPartitionID();
 		graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
@@ -411,7 +411,7 @@ icecream::ic.disable();
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
 		string property_schema_name = "eps_" + edge_file.first;
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
@@ -446,17 +446,19 @@ icecream::ic.disable();
 
 		vector<idx_t> vertex_ps_cat_oids;
 		PartitionCatalogEntry *vertex_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_part_cat_oids[0]);
 		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
 		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[0]);
 		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		// vector<idx_t> src_column_idxs = move(src_lid_to_pid_index_instance->GetColumnIds());
+icecream::ic.enable();
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
+		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
@@ -468,7 +470,6 @@ icecream::ic.disable();
 		DataChunk vertex_id_chunk;
 		ExtentID current_vertex_eid;
 		vertex_id_chunk.Initialize({ LogicalType::UBIGINT }, STORAGE_STANDARD_VECTOR_SIZE);
-// IC();
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
@@ -658,7 +659,7 @@ icecream::ic.disable();
 		string edge_type = edge_file.first;
 		string partition_name = "epart_" + edge_file.first;
 		
-		// CreatePartitionInfo partition_info("main", partition_name.c_str());
+		// CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
 		// PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
 		// PartitionID new_pid = graph_cat->GetNewPartitionID();
 		// graph_cat->AddEdgePartition(*client.get(), new_pid,  partition_cat->GetOid(), edge_type);
@@ -703,7 +704,7 @@ icecream::ic.disable();
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
 		// string property_schema_name = "eps_" + edge_file.first;
-		// CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+		// CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
 		// PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		// vector<PropertyKeyID> property_key_ids;
 		// graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
@@ -727,15 +728,17 @@ icecream::ic.disable();
 
 		vector<idx_t> vertex_ps_cat_oids;
 		PartitionCatalogEntry *vertex_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), "main", vertex_part_cat_oids[0]);
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_part_cat_oids[0]);
 		vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
 		if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
 		PropertySchemaCatalogEntry* vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), "main", vertex_ps_cat_oids[0]);
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[0]);
 		fprintf(stdout, "Vertex ps cat name = %s\n", vertex_ps_cat_entry->GetName().c_str());
 		vector<string> key_column_name = { "id" };
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
-		vector<LogicalType> vertex_id_type = { LogicalType::UBIGINT };
+		vector<LogicalType> vertex_id_type;
+		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
+		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
@@ -750,7 +753,7 @@ icecream::ic.disable();
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-			//fprintf(stdout, "Read Edge CSV File Ongoing..\n");
+			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
 
 			// Convert lid to pid using LID_TO_PID_MAP
 			idx_t *src_key_column = (idx_t*) data.data[src_column_idx[0]].GetData();

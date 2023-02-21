@@ -56,7 +56,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = extent_cat_entry->chunks.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -102,7 +102,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
 
         size_t chunk_size = ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -111,6 +111,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
+            // icecream::ic.enable(); IC(); IC(i, (int)ext_property_types[i].id()); icecream::ic.disable();
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                 // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
@@ -164,7 +165,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     {
         // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = ext_property_types.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -200,7 +201,7 @@ int ExtentIterator::RequestNewIO(ClientContext &context, PropertySchemaCatalogEn
     // Request I/O for the new extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
             if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
@@ -259,7 +260,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
             // icecream::ic.enable(); IC(); icecream::ic.disable();
         
         size_t chunk_size = ext_property_types.size();
@@ -303,7 +304,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         int next_toggle = (toggle + 1) % num_data_chunks;
         if (current_idx < max_idx - 1) {
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
             
             // Unpin previous chunks
             for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
@@ -482,7 +483,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (support_double_buffering && current_idx < max_idx) {
         toggle = (toggle + 1) % num_data_chunks;
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
         
         // Unpin previous chunks
         if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
@@ -554,7 +555,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     idx_t scan_start_offset, scan_end_offset, scan_length;
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
-            (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, "main", "cdf_" + std::to_string(filter_cdf_id));
+            (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, DEFAULT_SCHEMA, "cdf_" + std::to_string(filter_cdf_id));
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // TODO move this logic to InitializeScan (We don't need to do I/O in this case)
     if (cdf_cat_entry->IsMinMaxArrayExist()) {
@@ -768,7 +769,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (support_double_buffering && current_idx < max_idx) {
 //            IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
             if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
                 // Unpin previous chunks
                 if (current_eid != std::numeric_limits<uint32_t>::max()) {
@@ -917,7 +918,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
                 ExtentCatalogEntry* extent_cat_entry = 
-                    (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+                    (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
                 
                 // Unpin previous chunks
                 if (current_eid != std::numeric_limits<uint32_t>::max()) {
