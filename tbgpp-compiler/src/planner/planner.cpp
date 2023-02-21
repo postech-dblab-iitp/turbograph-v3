@@ -162,12 +162,13 @@ void Planner::_orcaSetTraceFlags() {
 	//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotions, true /*fSet*/);
 	//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotionBroadcast, true /*fSet*/);
 	//CAutoTraceFlag atf2(gpos::EOptTraceFlag::EopttraceDisableMotionGather, true /*fSet*/);
-	// CAutoTraceFlag atf3(gpos::EOptTraceFlag::EopttracePrintXform, true /*fSet*/);
+	CAutoTraceFlag atf3(gpos::EOptTraceFlag::EopttracePrintXform, true /*fSet*/);
 	// CAutoTraceFlag atf4(gpos::EOptTraceFlag::EopttracePrintPlan, true /*fSet*/);
 	// CAutoTraceFlag atf5(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration, true /*fSet*/);
 	// CAutoTraceFlag atf6(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation, true /*fSet*/);
 	// CAutoTraceFlag atf7(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization, true /*fSet*/);
 	// CAutoTraceFlag atf8(gpos::EOptTraceFlag::EopttracePrintMemoEnforcement, true /*fSet*/);
+	CAutoTraceFlag atf8(gpos::EOptTraceFlag::EopttracePrintXformResults, true);
 	CAutoTraceFlag atf9(gpos::EOptTraceFlag::EopttraceEnumeratePlans, true /*fSet*/);
 	CAutoTraceFlag atf10(gpos::EOptTraceFlag::EopttracePrintOptimizationContext, true /*fSet*/);
 }
@@ -233,6 +234,16 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		}
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
+		/* LogicalRules */
+		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
+		{
+			std::cout << "[TEST] PREPROCESSED logical plan" << std::endl;
+			CWStringDynamic str(mp);
+			COstreamString oss(&str);
+			orca_logical_plan_after_logical_opt->OsPrint(oss);
+			GPOS_TRACE(str.GetBuffer());
+		}
+
 		eng.Init(pqc, NULL /*search_stage_array*/);
 		eng.Optimize();
 		CExpression *orca_physical_plan = eng.PexprExtractPlan();	// best plan
