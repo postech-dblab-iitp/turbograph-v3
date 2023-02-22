@@ -334,14 +334,11 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	CExpression* plan_expr;
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->getRawName();
-	if( table_oids.size() == 1) {
-		// no schema projection necessary
-		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
-	} else {
-		// generate scan with projection mapping
-		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);	// id, vp1, vp2
-	}
 
+	// always do schema mapping even when single table
+	plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+
+	
 	// insert node schema
 	LogicalSchema schema;
 	// _id and properties
@@ -369,6 +366,9 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	return plan;
 }
 
+/*
+	Single tables may not 
+*/
 CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> relation_oids,
 	map<uint64_t, map<uint64_t, uint64_t>>* schema_proj_mapping, bool insert_projection) {
 	
@@ -417,35 +417,36 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 
 		// conform schema if necessary
 		CColRefArray* output_array;
+		vector<uint64_t> project_cols;
 		if(do_schema_mapping) {
 			auto& mapping = (*schema_proj_mapping)[oid];
 			assert(num_proj_cols == mapping.size());
-			vector<uint64_t> project_cols;
 			for(int proj_col_idx = 0; proj_col_idx < num_proj_cols; proj_col_idx++) {
 				project_cols.push_back(mapping.find(proj_col_idx)->second);
 			}
 			D_ASSERT(project_cols.size() > 0);
 			//expr = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
 			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
+			// the proj_result MUST be wrapped with projection to remove unnecessary columns, using output_array
 			expr = proj_result.first;
 			output_array = proj_result.second;
 		} else {
 			output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
 		}
 
-		// add union
+		/* Single table might not have the identical column mapping with original table. Thus projection is required */
 		if(idx == 0) {
 			// REL
-			union_plan = expr;
+			union_plan = lExprLogicalUnionAllWithMapping(expr, output_array);
 			idx0_output_array = output_array;
 		} else if (idx == 1) {
 			// REL + REL
 			union_plan = lExprLogicalUnionAllWithMapping(
-				union_plan, expr, idx0_output_array, output_array);
+				union_plan, idx0_output_array, expr, output_array);
 		} else {
 			// UNION + REL
 			union_plan = lExprLogicalUnionAllWithMapping(
-				union_plan, expr, union_plan->DeriveOutputColumns()->Pdrgpcr(mp), output_array);
+				union_plan,  union_plan->DeriveOutputColumns()->Pdrgpcr(mp), expr, output_array);
 		}
 	}
 
@@ -477,11 +478,12 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 	return scan_expr;
 }
 
-CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping) {
+CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping) {
 
 	CMemoryPool* mp = this->memory_pool;
 
-	// refer to CXformExpandFullOuterJoin.cpp
+	/* rhs and rhs_mapping can be nullptr, as this works as a UNION ALL with single child => projection only operator */
+
 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
 	
@@ -489,22 +491,30 @@ CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpres
 	pdrgpcrOutput->AppendArray(lhs_mapping);
 	pdrgpcrOutput->AddRef();
 	pdrgdrgpcrInput->Append(lhs_mapping);
-	pdrgdrgpcrInput->Append(rhs_mapping);
-
-	CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
-		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-		lhs, rhs);
-
-	return pexprUnionAll;
-
+	if( rhs_mapping != nullptr) {
+		pdrgdrgpcrInput->Append(rhs_mapping);
+	}
+	
+	// Binary Union ALL
+	if( rhs != nullptr) {
+		return GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+			lhs, rhs);
+	// Unary Union ALL
+	} else {
+		return GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput), lhs);
+	}
+	D_ASSERT(false);
+	return nullptr;
 }
 
 CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) {
 
 	CMemoryPool* mp = this->memory_pool;
 	return lExprLogicalUnionAllWithMapping(
-				lhs, rhs, lhs->DeriveOutputColumns()->Pdrgpcr(mp),
-				rhs->DeriveOutputColumns()->Pdrgpcr(mp));
+				lhs, lhs->DeriveOutputColumns()->Pdrgpcr(mp),
+				rhs, rhs->DeriveOutputColumns()->Pdrgpcr(mp));
 
 }
 

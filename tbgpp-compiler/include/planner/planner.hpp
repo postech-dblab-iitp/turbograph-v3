@@ -135,7 +135,7 @@ private:
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
-	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CExpression* rhs, CColRefArray* lhs_mapping, CColRefArray* rhs_mapping);
+	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs = nullptr, CColRefArray* rhs_mapping = nullptr);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
