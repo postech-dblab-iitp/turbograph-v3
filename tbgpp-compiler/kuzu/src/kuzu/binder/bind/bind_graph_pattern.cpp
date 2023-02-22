@@ -155,6 +155,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
             for (auto &tid_and_cid_pair : it.second) {
+                fprintf(stdout, "it.first = %s, %ldth col\n", it.first.c_str(), tid_and_cid_pair.second);
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
@@ -302,6 +303,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
             for (auto &tid_and_cid_pair : it.second) {
+                fprintf(stdout, "it.first = %s, %ldth col\n", it.first.c_str(), tid_and_cid_pair.second);
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
