@@ -779,6 +779,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		if (rel->GetType(ul) == duckdb::LogicalType::FORWARD_ADJLIST ||
 			rel->GetType(ul) == duckdb::LogicalType::BACKWARD_ADJLIST) continue;
 		// Form_pg_attribute att = rel->rd_att->attrs[ul];
+		fprintf(stdout, "[RetrieveRelColumns] %d, %s", ul, rel->GetPropertyKeyName(ul).c_str());
 		CMDName *md_colname =
 			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
 
