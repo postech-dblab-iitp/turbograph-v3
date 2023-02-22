@@ -1823,7 +1823,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_oid);
 
 	// get result type
-	OID result_oid = 26;// TODO = gpdb::GetFuncRetType(func_oid);
+	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) LogicalTypeId::BOOLEAN;// TODO = gpdb::GetFuncRetType(func_oid);
 
 	GPOS_ASSERT(InvalidOid != result_oid);
 
@@ -1833,7 +1833,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 	// get commutator and inverse
 	CMDIdGPDB *mdid_commute_opr = NULL;
 
-	OID commute_oid = InvalidOid;//TODO = gpdb::GetCommutatorOp(op_oid);
+	OID commute_oid = duckdb::GetCommutatorOp(op_oid);
 
 	if (InvalidOid != commute_oid)
 	{
@@ -1843,7 +1843,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 
 	CMDIdGPDB *m_mdid_inverse_opr = NULL;
 
-	OID inverse_oid = InvalidOid;//TODO = gpdb::GetInverseOp(op_oid);
+	OID inverse_oid = duckdb::GetInverseOp(op_oid);
 
 	if (InvalidOid != inverse_oid)
 	{

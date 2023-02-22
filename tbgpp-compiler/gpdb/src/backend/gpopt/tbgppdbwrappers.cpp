@@ -142,3 +142,13 @@ idx_t
 duckdb::GetOpFunc(idx_t op_id) {
 	return catalog_wrapper->GetOpFunc(op_id);
 }
+
+idx_t 
+duckdb::GetCommutatorOp(idx_t op_id) {
+	return catalog_wrapper->GetCommutatorOp(op_id);
+}
+
+idx_t
+duckdb::GetInverseOp(idx_t op_id) {
+	return catalog_wrapper->GetInverseOp(op_id);
+}
