@@ -49,9 +49,7 @@ CQueryContext* Planner::_orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_
 	CColRefSetIter crsi(*pcrs);
 	while (crsi.Advance()) {
 		CColRef *colref = crsi.Pcr();
-		if (1 != colref->Id() % GPOPT_TEST_REL_WIDTH) {
-			pcrsOutput->Include(colref);
-		}
+		pcrsOutput->Include(colref);
 	}
 	pcrs->Release();
 
@@ -182,6 +180,9 @@ gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
 	m_cost_model_params->SetParam(16, 10000000.0, 10000000.0, 10000000.0);	// redistribute cs
 	m_cost_model_params->SetParam(17, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
 	m_cost_model_params->SetParam(18, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
+
+
+	m_cost_model_params->SetParam(24, 10000000.0, 10000000.0, 10000000.0);	// invalidate hash join
 
 	gpdbcost::CCostModelGPDB* pcm = GPOS_NEW(mp) CCostModelGPDB(mp, 1, m_cost_model_params);	// one segment
 	D_ASSERT(pcm != nullptr);
