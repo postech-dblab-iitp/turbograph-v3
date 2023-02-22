@@ -345,11 +345,18 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	// insert node schema
 	LogicalSchema schema;
 	// _id and properties
+	for (auto &schema_proj : schema_proj_mapping) {
+		fprintf(stdout, "%ld -> \n", schema_proj.first);
+		for (auto &k : schema_proj.second) {
+			fprintf(stdout, "\t(%ld, %ld)\n", k.first, k.second);
+		}
+	}
 	for(int col_idx = 0; col_idx < prop_exprs.size(); col_idx++ ) {
 		auto& _prop_expr = prop_exprs[col_idx];
 		PropertyExpression* expr = static_cast<PropertyExpression*>(_prop_expr.get());
 		string expr_name = expr->getRawName();
 		if( is_node ) {
+			fprintf(stdout, "col_idx %d, node_name %s, expr_name %s\n", col_idx, node_name.c_str(), expr_name.c_str());
 			schema.appendNodeProperty(node_name, expr_name);
 		}  else {
 			schema.appendEdgeProperty(node_name, expr_name);
