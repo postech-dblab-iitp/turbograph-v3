@@ -336,7 +336,7 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name_print = node_expr->getRawName();
 	if( table_oids.size() == 1) {
 		// no schema projection necessary
-		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false);
+		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
 	} else {
 		// generate scan with projection mapping
 		plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);	// id, vp1, vp2
