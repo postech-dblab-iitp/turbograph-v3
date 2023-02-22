@@ -779,7 +779,6 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		if (rel->GetType(ul) == duckdb::LogicalType::FORWARD_ADJLIST ||
 			rel->GetType(ul) == duckdb::LogicalType::BACKWARD_ADJLIST) continue;
 		// Form_pg_attribute att = rel->rd_att->attrs[ul];
-		fprintf(stdout, "[RetrieveRelColumns] %d, %s", ul, rel->GetPropertyKeyName(ul).c_str());
 		CMDName *md_colname =
 			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
 
@@ -1637,23 +1636,31 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 	// check for supported base types
 	// TODO change this to our system
-	/*switch (oid_type)
+	switch (oid_type)
 	{
 		case GPDB_INT2_OID:
-			return GPOS_NEW(mp) CMDTypeInt2GPDB(mp);
+			// return GPOS_NEW(mp) CMDTypeInt2GPDB(mp);
+			D_ASSERT(false);
+			break;
 
 		case GPDB_INT4_OID:
-			return GPOS_NEW(mp) CMDTypeInt4GPDB(mp);
+			// return GPOS_NEW(mp) CMDTypeInt4GPDB(mp);
+			D_ASSERT(false);
+			break;
 
 		case GPDB_INT8_OID:
-			return GPOS_NEW(mp) CMDTypeInt8GPDB(mp);
+			// return GPOS_NEW(mp) CMDTypeInt8GPDB(mp);
+			D_ASSERT(false);
+			break;
 
 		case GPDB_BOOL:
 			return GPOS_NEW(mp) CMDTypeBoolGPDB(mp);
 
 		case GPDB_OID_OID:
-			return GPOS_NEW(mp) CMDTypeOidGPDB(mp);
-	}*/
+			// return GPOS_NEW(mp) CMDTypeOidGPDB(mp);
+			D_ASSERT(false);
+			break;
+	}
 
 	// TODO
 	// continue to construct a generic type

@@ -74,6 +74,8 @@
 #include "planner/logical_plan.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
 
+#include "catalog/catalog.hpp"
+
 using namespace kuzu::binder;
 using namespace gpopt;
 
@@ -176,7 +178,7 @@ private:
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);
-		return duckdb::LogicalType( (duckdb::LogicalTypeId) type_id);
+		return duckdb::LogicalType( (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
 	}
 
 private:
