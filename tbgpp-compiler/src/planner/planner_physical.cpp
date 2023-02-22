@@ -229,7 +229,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForProjec
 		types.push_back( pConvertTypeOidToLogicalType(type_oid) );
 		// gen projection expression
 		proj_exprs.push_back(
-			make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)in_idx)
+			make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)in_idx )
 		);
 	}
 	D_ASSERT(types.size() == proj_exprs.size());
