@@ -202,6 +202,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForProjec
 	vector<duckdb::CypherPhysicalOperator*>* prev_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
 	// TODO currently ignoring simple projection expression.
+	vector<unique_ptr<duckdb::Expression>> proj_exprs;
+	
 
 	return prev_result;
 	//return new vector<duckdb::CypherPhysicalOperator*>();

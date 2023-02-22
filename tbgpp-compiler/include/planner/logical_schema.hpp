@@ -55,12 +55,10 @@ public:
 		return cnt;
 	}
 	uint64_t getIdxOfKey(string& k1, string& k2) {
-		fprintf(stdout, "getIdxOfKey %s, %s\n", k1.c_str(), k2.c_str());
 		bool found = false;
 		uint64_t found_idx = -1;
 		for(int idx = 0; idx < schema.size(); idx++) {
 			auto& col = schema[idx];
-			fprintf(stdout, "getIdxOfKey col[%d] %s, %s\n", idx, col.first.c_str(), col.second.c_str());
 			if(col.first == k1 && col.second == k2) {
 				found = true;
 				found_idx = idx;
