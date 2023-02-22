@@ -81,9 +81,17 @@ public:
             + ((right_type_id - LOGICAL_TYPE_BASE_ID));
     }
 
-    ExpressionType GetComparisonType(idx_t op_id) {
+    inline ExpressionType GetComparisonType(idx_t op_id) {
         ExpressionType etype = (ExpressionType) ((op_id - OPERATOR_BASE_ID) / (256 * 256));
         return etype;
+    }
+
+    inline idx_t GetLeftTypeId(idx_t op_id) {
+        return ((op_id - OPERATOR_BASE_ID) % (256 * 256)) / 256;
+    }
+
+    inline idx_t GetRightTypeId(idx_t op_id) {
+        return ((op_id - OPERATOR_BASE_ID) % (256));
     }
 
     string GetOpName(idx_t op_id) {
@@ -98,6 +106,43 @@ public:
 
     idx_t GetOpFunc(idx_t op_id) {
         return ((op_id - OPERATOR_BASE_ID) / (256 * 256)) + EXPRESSION_TYPE_BASE_ID;
+    }
+
+    idx_t GetCommutatorOp(idx_t op_id) {
+        idx_t left_type_id = GetLeftTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
+        idx_t right_type_id = GetRightTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
+        ExpressionType etype = GetComparisonType(op_id);
+        return GetComparisonOperator(right_type_id, left_type_id, etype);
+    }
+
+    idx_t GetInverseOp(idx_t op_id) {
+        idx_t left_type_id = GetLeftTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
+        idx_t right_type_id = GetRightTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
+        ExpressionType etype = GetComparisonType(op_id);
+        ExpressionType inv_etype;
+        switch (etype) {
+            case ExpressionType::COMPARE_EQUAL:
+                inv_etype = ExpressionType::COMPARE_NOTEQUAL;
+                break;
+            case ExpressionType::COMPARE_NOTEQUAL:
+                inv_etype = ExpressionType::COMPARE_EQUAL;
+                break;
+            case ExpressionType::COMPARE_LESSTHAN:
+                inv_etype = ExpressionType::COMPARE_GREATERTHANOREQUALTO;
+                break;
+            case ExpressionType::COMPARE_LESSTHANOREQUALTO:
+                inv_etype = ExpressionType::COMPARE_GREATERTHAN;
+                break;
+            case ExpressionType::COMPARE_GREATERTHAN:
+                inv_etype = ExpressionType::COMPARE_LESSTHANOREQUALTO;
+                break;
+            case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
+                inv_etype = ExpressionType::COMPARE_LESSTHAN;
+                break;
+            default:
+                throw NotImplementedException("InverseOp is not implemented yet");
+        }
+        return GetComparisonOperator(left_type_id, right_type_id, inv_etype);
     }
 
 private:
