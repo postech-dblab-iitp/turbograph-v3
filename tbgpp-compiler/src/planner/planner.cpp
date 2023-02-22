@@ -49,9 +49,7 @@ CQueryContext* Planner::_orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_
 	CColRefSetIter crsi(*pcrs);
 	while (crsi.Advance()) {
 		CColRef *colref = crsi.Pcr();
-		if (1 != colref->Id() % GPOPT_TEST_REL_WIDTH) {
-			pcrsOutput->Include(colref);
-		}
+		pcrsOutput->Include(colref);
 	}
 	pcrs->Release();
 

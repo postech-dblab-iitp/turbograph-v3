@@ -86,20 +86,27 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	uint64_t cols_size = columns->Size();
 	
 	// oids / projection_mapping 
-// TODO refer to pdrgpcrOutput of scan operator!!!!!!!!!!!!!!!!!!!!!
 	vector<uint64_t> oids;
 	oids.push_back(table_obj_id);
 	vector<vector<uint64_t>> projection_mapping;
 	vector<uint64_t> ident_mapping;
-	for(uint64_t i = 0 ; i < cols_size; i++) { ident_mapping.push_back(i); }
+	for(uint64_t i = 0 ; i < cols_size; i++) {
+		if( scan_op->PdrgpcrOutput()->IndexOf(lGetIthColRef(columns, i)) != gpos::ulong_max ) {
+			ident_mapping.push_back(i);
+		}
+	}
+	D_ASSERT(ident_mapping.size() == columns->Size());
 	projection_mapping.push_back(ident_mapping);
 
 	// types
 	for(uint64_t i = 0 ; i < cols_size; i++) {
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(lGetIthColRef(columns, i) ->RetrieveType()->MDId());
-		OID type_oid = type_mdid->Oid();
-		types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+		if( scan_op->PdrgpcrOutput()->IndexOf(lGetIthColRef(columns, i)) != gpos::ulong_max ) {
+			CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(lGetIthColRef(columns, i)->RetrieveType()->MDId());
+			OID type_oid = type_mdid->Oid();
+			types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+		}
 	}
+	D_ASSERT(types.size() == ident_mapping.size());
 
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
