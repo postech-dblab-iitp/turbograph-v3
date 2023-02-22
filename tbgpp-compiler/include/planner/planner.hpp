@@ -50,6 +50,7 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 
 #include "gpopt/operators/CPhysicalTableScan.h"
+#include "gpopt/operators/CPhysicalSerialUnionAll.h"
 #include "gpopt/metadata/CTableDescriptor.h"
 
 
@@ -67,8 +68,6 @@
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-#include "execution/physical_operator/physical_produce_results.hpp"
-#include "execution/physical_operator/physical_node_scan.hpp"
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
@@ -175,10 +174,16 @@ private:
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
 	bool pIsUnionAllForProjection(CExpression* expr);
+	
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
+	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
+
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
+		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
+	}
+	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
 		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);
-		return duckdb::LogicalType( (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
+		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
 
 private:
@@ -189,6 +194,7 @@ private:
 	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
+	std::map<OID, std::vector<CColRef*>> table_col_mapping;
 
 	BoundStatement* bound_statement;			// input parse statemnt
 	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines

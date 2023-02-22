@@ -464,6 +464,12 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 					   lGenRelMdid(obj_id),	// 6.objid.0.0
 					   CName(&strName));
 
+	// manage original table columns
+	if( !table_col_mapping.count(obj_id) ) {
+		table_col_mapping[obj_id] = std::vector<CColRef*>();
+	}
+
+
 	CWStringConst strAlias(std::wstring(alias.begin(), alias.end()).c_str());
 
 	CLogicalGet *pop = GPOS_NEW(mp) CLogicalGet(
@@ -473,6 +479,7 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 	CColRefArray *arr = pop->PdrgpcrOutput();
 	for (ULONG ul = 0; ul < arr->Size(); ul++) {
 		CColRef *ref = (*arr)[ul];
+		table_col_mapping[obj_id].push_back(ref);
 		ref->MarkAsUnknown();
 	}
 	return scan_expr;
