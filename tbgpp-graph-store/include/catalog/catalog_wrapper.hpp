@@ -27,10 +27,28 @@ public:
         }
     }
 
+    PartitionCatalogEntry *GetPartition(ClientContext &context, idx_t partition_oid) {
+        auto &catalog = db.GetCatalog();
+        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        return part_cat;
+    }
+
     PropertySchemaCatalogEntry *RelationIdGetRelation(ClientContext &context, idx_t rel_oid) {
         auto &catalog = db.GetCatalog();
         PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, rel_oid);
         return ps_cat;
+    }
+
+    idx_t_vector *GetRelationIndexes(ClientContext &context, idx_t partition_oid) {
+        auto &catalog = db.GetCatalog();
+        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        return part_cat->GetAdjIndexOidVec();
+    }
+
+    IndexCatalogEntry *GetIndex(ClientContext &context, idx_t index_oid) {
+        auto &catalog = db.GetCatalog();
+        IndexCatalogEntry *index_cat = (IndexCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, index_oid);
+        return index_cat;
     }
 
     void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<pair<idx_t, idx_t>>> &pkey_to_ps_map) {
@@ -100,8 +118,8 @@ public:
     }
 
     void GetOpInputTypes(idx_t op_oid, idx_t &left_type_id, idx_t &right_type_id) {
-        left_type_id = ((op_oid - OPERATOR_BASE_ID) % (256 * 256)) / 256;
-        right_type_id = ((op_oid - OPERATOR_BASE_ID) % (256));
+        left_type_id = ((op_oid - OPERATOR_BASE_ID) % (256 * 256)) / 256 + LOGICAL_TYPE_BASE_ID;
+        right_type_id = ((op_oid - OPERATOR_BASE_ID) % (256)) + LOGICAL_TYPE_BASE_ID;
     }
 
     idx_t GetOpFunc(idx_t op_id) {

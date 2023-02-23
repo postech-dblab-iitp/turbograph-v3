@@ -33,6 +33,7 @@ struct AlterTableInfo;
 struct CreateIndexInfo;
 struct CreateFunctionInfo;
 struct CreateCollationInfo;
+struct CreateIndexInfo;
 struct CreateViewInfo;
 struct BoundCreateTableInfo;
 struct CreatePragmaFunctionInfo;
@@ -119,9 +120,6 @@ public:
 
 	string ToSQL() override;
 
-	//! Creates an index with the given name in the schema
-	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info, PartitionCatalogEntry *partition);
-
 	CatalogEntry *GetCatalogEntryFromOid(idx_t oid);
 
 private:
@@ -137,6 +135,8 @@ private:
 	CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
 	//! Create a scalar or aggregate function within the given schema
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
+	//! Creates an index with the given name in the schema
+	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info);
 	/*
 	//! Creates a table with the given name in the schema
 	CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);

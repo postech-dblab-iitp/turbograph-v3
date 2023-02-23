@@ -29,6 +29,7 @@ struct CreateFunctionInfo;
 struct CreateViewInfo;
 struct CreateSequenceInfo;
 struct CreateCollationInfo;
+struct CreateIndexInfo;
 struct CreateTypeInfo;
 struct CreateTableInfo;
 struct CreateGraphInfo;
@@ -140,6 +141,8 @@ public:
 	DUCKDB_API CatalogEntry *CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info);
 	//! Create a scalar or aggregate function in the catalog
 	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
+	//! Creates an index in the catalog
+	DUCKDB_API CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info);
 
 	//! Creates a graph in the catalog.
 	DUCKDB_API CatalogEntry *CreateGraph(ClientContext &context, SchemaCatalogEntry *schema,
@@ -159,6 +162,9 @@ public:
 	//! Create a scalar or aggregate function in the catalog
 	DUCKDB_API CatalogEntry *CreateFunction(ClientContext &context, SchemaCatalogEntry *schema,
 	                                        CreateFunctionInfo *info);
+	//! Creates an index in the catalog
+	DUCKDB_API CatalogEntry *CreateIndex(ClientContext &context, SchemaCatalogEntry *schema,
+											CreateIndexInfo *info);
 
 	/*
 	//! Creates a table in the catalog.

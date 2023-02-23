@@ -824,7 +824,8 @@ private:
             dst_key_name = move(label_name);
 						dst_columns.push_back(column_idx);
           }
-          return LogicalType::ID;
+          // return LogicalType::ID;
+          return LogicalType::UBIGINT;
 				}
       // } else if (type_name.find("ADJLIST") != std::string::npos) {
       //   D_ASSERT(type == GraphComponentType::VERTEX);

@@ -274,7 +274,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatal
 	GPOS_ASSERT(NULL != rel);
 	// if (gpdb::RelPartIsNone(rel->rd_id) || gpdb::IsLeafPartition(rel->rd_id))
 	// {
-	// 	return RetrieveRelIndexInfoForNonPartTable(mp, rel);
+		return RetrieveRelIndexInfoForNonPartTable(mp, rel);
 	// }
 	// else if (gpdb::RelPartIsRoot(rel->rd_id))
 	// {
@@ -350,55 +350,52 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForPartTable(CMemoryPool *mp,
 // return index info list of indexes defined on regular, external tables or leaf partitions
 CMDIndexInfoArray *
 CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
-															  Relation rel)
+															  PropertySchemaCatalogEntry *rel)
 {
 	CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
 
-	// // not a partitioned table: obtain indexes directly from the catalog
-	// List *index_oids = gpdb::GetRelationIndexes(rel);
+	// not a partitioned table: obtain indexes directly from the catalog
+	idx_t partition_oid = rel->GetPartitionOID();
+	idx_t_vector *index_oids = duckdb::GetRelationIndexes(partition_oid);
 
-	// ListCell *lc = NULL;
+	for (idx_t i = 0; i < index_oids->size(); i++) {
+		idx_t index_oid = (*index_oids)[i];
 
-	// ForEach(lc, index_oids)
-	// {
-	// 	OID index_oid = lfirst_oid(lc);
+		IndexCatalogEntry *index_cat = duckdb::GetIndex(index_oid);
+	
+		if (NULL == index_cat)
+		{
+			WCHAR wstr[1024];
+			CWStringStatic str(wstr, 1024);
+			COstreamString oss(&str);
+			oss << (ULONG) index_oid;
+			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+					   str.GetBuffer());
+		}
 
-	// 	// only add supported indexes
-	// 	Relation index_rel = gpdb::GetRelation(index_oid);
+		// GPOS_ASSERT(NULL != index_rel->rd_indextuple);
 
-	// 	if (NULL == index_rel)
-	// 	{
-	// 		WCHAR wstr[1024];
-	// 		CWStringStatic str(wstr, 1024);
-	// 		COstreamString oss(&str);
-	// 		oss << (ULONG) index_oid;
-	// 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 				   str.GetBuffer());
-	// 	}
+		GPOS_TRY
+		{
+			if (IsIndexSupported(index_cat))
+			{
+				CMDIdGPDB *mdid_index =
+					GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidInd, index_oid);
+				// for a regular table, external table or leaf partition, an index is always complete
+				CMDIndexInfo *md_index_info = GPOS_NEW(mp)
+					CMDIndexInfo(mdid_index, false /* is_partial */);
+				md_index_info_array->Append(md_index_info);
+			}
 
-	// 	GPOS_ASSERT(NULL != index_rel->rd_indextuple);
-
-	// 	GPOS_TRY
-	// 	{
-	// 		if (IsIndexSupported(index_rel))
-	// 		{
-	// 			CMDIdGPDB *mdid_index =
-	// 				GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidInd, index_oid);
-	// 			// for a regular table, external table or leaf partition, an index is always complete
-	// 			CMDIndexInfo *md_index_info = GPOS_NEW(mp)
-	// 				CMDIndexInfo(mdid_index, false /* is_partial */);
-	// 			md_index_info_array->Append(md_index_info);
-	// 		}
-
-	// 		gpdb::CloseRelation(index_rel);
-	// 	}
-	// 	GPOS_CATCH_EX(ex)
-	// 	{
-	// 		gpdb::CloseRelation(index_rel);
-	// 		GPOS_RETHROW(ex);
-	// 	}
-	// 	GPOS_CATCH_END;
-	// }
+			// gpdb::CloseRelation(index_rel);
+		}
+		GPOS_CATCH_EX(ex)
+		{
+			// gpdb::CloseRelation(index_rel);
+			GPOS_RETHROW(ex);
+		}
+		GPOS_CATCH_END;
+	}
 
 	return md_index_info_array;
 }
@@ -644,7 +641,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 		// convert_hash_to_random = gpdb::IsChildPartDistributionMismatched(rel);
 
-		// collect relation indexes // TODO
+		// collect relation indexes
 		md_index_info_array = RetrieveRelIndexInfo(mp, rel);
 
 		// collect relation triggers // TODO we don't need this know
@@ -752,7 +749,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
 
-	ULONG attnum = 1;
+	ULONG attnum = 1; // start from 1 - refer pg_attribute.h
 
 	// Insert physical id column
 	{
@@ -1112,126 +1109,131 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 {
 	OID index_oid = CMDIdGPDB::CastMdid(mdid_index)->Oid();
 	GPOS_ASSERT(0 != index_oid);
-	// Relation index_rel = gpdb::GetRelation(index_oid);
+	IndexCatalogEntry *index_cat = duckdb::GetIndex(index_oid);
 
-	// if (NULL == index_rel)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid_index->GetBuffer());
-	// }
+	if (NULL == index_cat)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid_index->GetBuffer());
+	}
 
-	// const IMDRelation *md_rel = NULL;
+	const IMDRelation *md_rel = NULL;
+	const PartitionCatalogEntry *part_cat = NULL;
 	// Form_pg_index form_pg_index = NULL;
-	// CMDName *mdname = NULL;
-	// IMDIndex::EmdindexType index_type = IMDIndex::EmdindSentinel;
-	// IMDId *mdid_item_type = NULL;
-	// bool index_clustered = false;
-	// ULongPtrArray *index_key_cols_array = NULL;
-	// ULONG *attno_mapping = NULL;
+	CMDName *mdname = NULL;
+	IMDIndex::EmdindexType index_type = IMDIndex::EmdindSentinel;
+	IMDId *mdid_item_type = NULL;
+	bool index_clustered = false;
+	ULongPtrArray *index_key_cols_array = NULL;
+	ULONG *attno_mapping = NULL;
 
-	// GPOS_TRY
-	// {
-	// 	if (!IsIndexSupported(index_rel))
-	// 	{
-	// 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
-	// 				   GPOS_WSZ_LIT("Index type"));
-	// 	}
+	GPOS_TRY
+	{
+		if (!IsIndexSupported(index_cat))
+		{
+			GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
+					   GPOS_WSZ_LIT("Index type"));
+		}
 
-	// 	form_pg_index = index_rel->rd_index;
-	// 	GPOS_ASSERT(NULL != form_pg_index);
-	// 	index_clustered = form_pg_index->indisclustered;
+		// form_pg_index = index_rel->rd_index;
+		// GPOS_ASSERT(NULL != form_pg_index);
+		// index_clustered = form_pg_index->indisclustered;
 
-	// 	OID rel_oid = form_pg_index->indrelid;
+		// OID rel_oid = form_pg_index->indrelid;
+		idx_t pid = index_cat->GetPartitionID();
 
-	// 	if (gpdb::IsLeafPartition(rel_oid))
-	// 	{
-	// 		rel_oid = gpdb::GetRootPartition(rel_oid);
-	// 	}
+		// TODO we do not support partition currently
+		// if (gpdb::IsLeafPartition(rel_oid))
+		// {
+		// 	rel_oid = gpdb::GetRootPartition(rel_oid);
+		// }
 
-	// 	CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, rel_oid);
+		// CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, pid);
 
-	// 	md_rel = md_accessor->RetrieveRel(mdid_rel);
+		// md_rel = md_accessor->RetrieveRel(mdid_rel);
 
-	// 	if (md_rel->IsPartitioned())
-	// 	{
-	// 		LogicalIndexes *logical_indexes =
-	// 			gpdb::GetLogicalPartIndexes(rel_oid);
-	// 		GPOS_ASSERT(NULL != logical_indexes);
+		// TODO we do not support partition currently
+		// if (md_rel->IsPartitioned())
+		// {
+		// 	LogicalIndexes *logical_indexes =
+		// 		gpdb::GetLogicalPartIndexes(rel_oid);
+		// 	GPOS_ASSERT(NULL != logical_indexes);
 
-	// 		IMDIndex *index = RetrievePartTableIndex(
-	// 			mp, md_accessor, mdid_index, md_rel, logical_indexes);
+		// 	IMDIndex *index = RetrievePartTableIndex(
+		// 		mp, md_accessor, mdid_index, md_rel, logical_indexes);
 
-	// 		// cleanup
-	// 		gpdb::GPDBFree(logical_indexes);
+		// 	// cleanup
+		// 	gpdb::GPDBFree(logical_indexes);
 
-	// 		if (NULL != index)
-	// 		{
-	// 			mdid_rel->Release();
-	// 			gpdb::CloseRelation(index_rel);
-	// 			return index;
-	// 		}
-	// 	}
+		// 	if (NULL != index)
+		// 	{
+		// 		mdid_rel->Release();
+		// 		gpdb::CloseRelation(index_rel);
+		// 		return index;
+		// 	}
+		// }
 
-	// 	index_type = IMDIndex::EmdindBtree;
-	// 	mdid_item_type = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_ANY);
-	// 	if (GIN_AM_OID == index_rel->rd_rel->relam)
-	// 	{
-	// 		index_type = IMDIndex::EmdindGin;
-	// 	}
-	// 	else if (GIST_AM_OID == index_rel->rd_rel->relam)
-	// 	{
-	// 		index_type = IMDIndex::EmdindGist;
-	// 	}
-	// 	else if (BITMAP_AM_OID == index_rel->rd_rel->relam)
-	// 	{
-	// 		index_type = IMDIndex::EmdindBitmap;
-	// 	}
+		index_type = IMDIndex::EmdindBtree;
+		mdid_item_type = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_ANY);
+		if (IndexType::ART == index_cat->index_type)
+		{
+			index_type = IMDIndex::EmdindBtree;
+		}
+		else if (IndexType::CSR == index_cat->index_type) // TODO we need to add new index type
+		{
+			index_type = IMDIndex::EmdindBtree;
+		}
 
-	// 	// get the index name
-	// 	CHAR *index_name = NameStr(index_rel->rd_rel->relname);
-	// 	CWStringDynamic *str_name =
-	// 		CDXLUtils::CreateDynamicStringFromCharArray(mp, index_name);
-	// 	mdname = GPOS_NEW(mp) CMDName(mp, str_name);
-	// 	GPOS_DELETE(str_name);
+		// get the index name
+		string index_name_str = index_cat->GetName();
+		CHAR *index_name = const_cast<char *>(index_name_str.c_str());
+		CWStringDynamic *str_name =
+			CDXLUtils::CreateDynamicStringFromCharArray(mp, index_name);
+		mdname = GPOS_NEW(mp) CMDName(mp, str_name);
+		GPOS_DELETE(str_name);
 
-	// 	Relation table =
-	// 		gpdb::GetRelation(CMDIdGPDB::CastMdid(md_rel->MDId())->Oid());
-	// 	ULONG size = GPDXL_SYSTEM_COLUMNS + (ULONG) table->rd_att->natts + 1;
-	// 	gpdb::CloseRelation(table);	 // close relation as early as possible
+		// Relation table =
+		// 	gpdb::GetRelation(CMDIdGPDB::CastMdid(md_rel->MDId())->Oid());
+		part_cat = duckdb::GetPartition(pid);
+		ULONG size = part_cat->GetNumberOfColumns() + 1;
+			// = GPDXL_SYSTEM_COLUMNS + (ULONG) table->rd_att->natts + 1;
+		// gpdb::CloseRelation(table);	 // close relation as early as possible
 
-	// 	attno_mapping = PopulateAttnoPositionMap(mp, md_rel, size);
+		attno_mapping = PopulateAttnoPositionMap(mp, part_cat, size);
 
-	// 	// extract the position of the key columns
-	// 	index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
+		// extract the position of the key columns
+		index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
 
-	// 	for (int i = 0; i < form_pg_index->indnatts; i++)
-	// 	{
-	// 		INT attno = form_pg_index->indkey.values[i];
-	// 		GPOS_ASSERT(0 != attno && "Index expressions not supported");
+		idx_t_vector *index_key_columns = index_cat->GetIndexKeyColumns();
+		for (int i = 0; i < index_key_columns->size(); i++)
+		{
+			INT attno = (*index_key_columns)[i];
+			GPOS_ASSERT(0 != attno && "Index expressions not supported");
 
-	// 		index_key_cols_array->Append(
-	// 			GPOS_NEW(mp) ULONG(GetAttributePosition(attno, attno_mapping)));
-	// 	}
-	// 	mdid_rel->Release();
-	// 	gpdb::CloseRelation(index_rel);
-	// }
-	// GPOS_CATCH_EX(ex)
-	// {
-	// 	gpdb::CloseRelation(index_rel);
-	// 	GPOS_RETHROW(ex);
-	// }
-	// GPOS_CATCH_END;
+			index_key_cols_array->Append(
+				GPOS_NEW(mp) ULONG(GetAttributePosition(attno, attno_mapping)));
+		}
+		// mdid_rel->Release();
+		// gpdb::CloseRelation(index_rel);
+	}
+	GPOS_CATCH_EX(ex)
+	{
+		// gpdb::CloseRelation(index_rel);
+		GPOS_RETHROW(ex);
+	}
+	GPOS_CATCH_END;
 
 	// ULongPtrArray *included_cols = ComputeIncludedCols(mp, md_rel);
-	// mdid_index->AddRef();
-	// IMdIdArray *op_families_mdids = RetrieveIndexOpFamilies(mp, mdid_index);
+	ULongPtrArray *included_cols = ComputeIncludedCols(mp, part_cat);
+	mdid_index->AddRef();
+	IMdIdArray *op_families_mdids = RetrieveIndexOpFamilies(mp, mdid_index);
 
-	CMDIndexGPDB *index; // = GPOS_NEW(mp)
-	// 	CMDIndexGPDB(mp, mdid_index, mdname, index_clustered, index_type,
-	// 				 GetIndexTypeFromOid(index_oid), mdid_item_type,
-	// 				 index_key_cols_array, included_cols, op_families_mdids,
-	// 				 NULL  // mdpart_constraint
-	// 	);
+	CMDIndexGPDB *index = GPOS_NEW(mp)
+		CMDIndexGPDB(mp, mdid_index, mdname, index_clustered, index_type,
+					 GetIndexTypeFromOid(index_oid), mdid_item_type,
+					 index_key_cols_array, included_cols, op_families_mdids,
+					 NULL  // mdpart_constraint
+		);
 
 	// GPOS_DELETE_ARRAY(attno_mapping);
 	return index;
@@ -1542,19 +1544,19 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 //---------------------------------------------------------------------------
 ULongPtrArray *
 CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
-											  const IMDRelation *md_rel)
+											  const PartitionCatalogEntry *part_cat)
 {
 	// TODO: 3/19/2012; currently we assume that all the columns
 	// in the table are available from the index.
 
 	ULongPtrArray *included_cols = GPOS_NEW(mp) ULongPtrArray(mp);
-	const ULONG num_included_cols = md_rel->ColumnCount();
+	const ULONG num_included_cols = part_cat->GetNumberOfColumns();
 	for (ULONG ul = 0; ul < num_included_cols; ul++)
 	{
-		if (!md_rel->GetMdCol(ul)->IsDropped())
-		{
+		// if (!md_rel->GetMdCol(ul)->IsDropped()) // TODO we do not have column drop currently
+		// {
 			included_cols->Append(GPOS_NEW(mp) ULONG(ul));
-		}
+		// }
 	}
 
 	return included_cols;
@@ -1590,11 +1592,11 @@ CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
 //---------------------------------------------------------------------------
 ULONG *
 CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
-												   const IMDRelation *md_rel,
+												   const PartitionCatalogEntry *part_cat,
 												   ULONG size)
 {
-	GPOS_ASSERT(NULL != md_rel);
-	const ULONG num_included_cols = md_rel->ColumnCount();
+	GPOS_ASSERT(NULL != part_cat);
+	const ULONG num_included_cols = part_cat->GetNumberOfColumns();
 
 	GPOS_ASSERT(num_included_cols <= size);
 	ULONG *attno_mapping = GPOS_NEW_ARRAY(mp, ULONG, size);
@@ -1606,11 +1608,12 @@ CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
 
 	for (ULONG ul = 0; ul < num_included_cols; ul++)
 	{
-		const IMDColumn *md_col = md_rel->GetMdCol(ul);
+		// TODO we do not have partition object in mdcache
+		// const IMDColumn *md_col = md_rel->GetMdCol(ul);
 
-		INT attno = md_col->AttrNum();
+		// INT attno = md_col->AttrNum();
 
-		ULONG idx; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
+		ULONG idx = ul + 1; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 		GPOS_ASSERT(size > idx);
 		attno_mapping[idx] = ul;
 	}
@@ -1702,10 +1705,10 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 		CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::GetComparisonOperator(oid_type, oid_type, CmptGEq)/*gpdb::GetInverseOp(ptce->lt_opr)*/);
 	CMDIdGPDB *mdid_op_cmp =
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->cmp_proc*/); // TODO what is this? B-tree lookup?
-	BOOL is_hashable = false;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type); //TODO
-	BOOL is_merge_joinable = false;//gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type); //TODO
+	BOOL is_hashable = true;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type); //TODO
+	BOOL is_merge_joinable = true;//gpdb::IsOpMergeJoinable(ptce->eq_opr, oid_type); //TODO
 	BOOL is_composite_type = false;//gpdb::IsCompositeType(oid_type); //TODO do not consider this type in this step
-	BOOL is_text_related_type = false;//gpdb::IsTextRelatedType(oid_type); //TODO
+	BOOL is_text_related_type = false;// TODO
 
 	// get standard aggregates
 	CMDIdGPDB *mdid_min = GPOS_NEW(mp)
@@ -1931,6 +1934,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 CMDFunctionGPDB *
 CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 {
+	D_ASSERT(false);
 	OID func_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 	GPOS_ASSERT(InvalidOid != func_oid);
@@ -2008,6 +2012,7 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 CMDAggregateGPDB *
 CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 {
+	D_ASSERT(false);
 	OID agg_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
@@ -2068,6 +2073,7 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 CMDTriggerGPDB *
 CTranslatorTBGPPToDXL::RetrieveTrigger(CMemoryPool *mp, IMDId *mdid)
 {
+	D_ASSERT(false);
 	return nullptr; // TODO Disable currently
 	// OID trigger_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
@@ -2711,8 +2717,8 @@ CTranslatorTBGPPToDXL::RetrieveNumChildPartitions(OID rel_oid)
 	ULONG num_part_tables = gpos::ulong_max;
 	// if (gpdb::RelPartIsNone(rel_oid))
 	// {
-	// 	// not a partitioned table
-	// 	num_part_tables = 1;
+		// not a partitioned table
+		num_part_tables = 1;
 	// }
 	// else if (gpdb::IsLeafPartition(rel_oid))
 	// {
@@ -3376,28 +3382,29 @@ CTranslatorTBGPPToDXL::NormalizeFrequencies(float4 *freqs, ULONG length,
 #endif
 }
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::IsIndexSupported
-// //
-// //	@doc:
-// //		Check if index type is supported
-// //
-// //---------------------------------------------------------------------------
-// BOOL
-// CTranslatorTBGPPToDXL::IsIndexSupported(Relation index_rel)
-// {
-// 	HeapTupleData *tup = index_rel->rd_indextuple;
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::IsIndexSupported
+//
+//	@doc:
+//		Check if index type is supported
+//
+//---------------------------------------------------------------------------
+BOOL
+CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
+{
+	// HeapTupleData *tup = index_rel->rd_indextuple;
 
-// 	// index expressions and index constraints not supported
-// 	return gpdb::HeapAttIsNull(tup, Anum_pg_index_indexprs) &&
-// 		   gpdb::HeapAttIsNull(tup, Anum_pg_index_indpred) &&
-// 		   index_rel->rd_index->indisvalid &&
-// 		   (BTREE_AM_OID == index_rel->rd_rel->relam ||
-// 			BITMAP_AM_OID == index_rel->rd_rel->relam ||
-// 			GIST_AM_OID == index_rel->rd_rel->relam ||
-// 			GIN_AM_OID == index_rel->rd_rel->relam);
-// }
+	// // index expressions and index constraints not supported
+	// return gpdb::HeapAttIsNull(tup, Anum_pg_index_indexprs) &&
+	// 	   gpdb::HeapAttIsNull(tup, Anum_pg_index_indpred) &&
+	// 	   index_rel->rd_index->indisvalid &&
+	// 	   (BTREE_AM_OID == index_rel->rd_rel->relam ||
+	// 		BITMAP_AM_OID == index_rel->rd_rel->relam ||
+	// 		GIST_AM_OID == index_rel->rd_rel->relam ||
+	// 		GIN_AM_OID == index_rel->rd_rel->relam);
+	return true;
+}
 
 // //---------------------------------------------------------------------------
 // //	@function:
@@ -3674,9 +3681,13 @@ CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 
 	// ForEach(lc, op_families)
 	// {
-	// 	OID op_family_oid = lfirst_oid(lc);
-	// 	input_col_mdids->Append(
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
+		// OID op_family_oid = lfirst_oid(lc);
+		OID op_family_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
+			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
+			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
+			CmptEq);
+		input_col_mdids->Append(
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
 	// }
 
 	return input_col_mdids;

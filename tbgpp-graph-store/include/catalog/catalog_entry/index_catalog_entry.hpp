@@ -24,12 +24,17 @@ public:
 	IndexCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateIndexInfo *info, const void_allocator &void_alloc);
 	~IndexCatalogEntry() override;
 
-	Index *index;
+	IndexType index_type;
+	Index *index; // TODO maybe useless in SHM..
+	idx_t pid; // oid of the partition to which this index belongs
 	// shared_ptr<DataTableInfo> info;
 	// string sql;
+	idx_t_vector index_key_columns;
 
 public:
 	string ToSQL() override;
+	idx_t GetPartitionID();
+	idx_t_vector *GetIndexKeyColumns();
 };
 
 } // namespace duckdb

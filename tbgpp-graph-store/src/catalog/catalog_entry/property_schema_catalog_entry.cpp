@@ -15,6 +15,7 @@ PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaC
 	, local_extent_id_version(0), property_key_names(void_alloc), property_typesid(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
+	this->partition_oid = info->partition_oid;
 }
 
 unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context) {
@@ -135,6 +136,10 @@ string PropertySchemaCatalogEntry::GetPropertyKeyName(idx_t i) {
 
 uint64_t PropertySchemaCatalogEntry::GetTypeSize(idx_t i) {
 	return GetTypeIdSize(LogicalType(property_typesid[i]).InternalType());
+}
+
+idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
+	return partition_oid;
 }
 
 } // namespace duckdb

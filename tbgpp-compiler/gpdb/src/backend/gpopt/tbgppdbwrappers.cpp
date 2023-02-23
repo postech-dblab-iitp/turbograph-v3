@@ -44,9 +44,13 @@ duckdb::GetLogicalIndexType(Oid index_oid)
 	return IndexType::ART;
 }
 
+duckdb::PartitionCatalogEntry*
+duckdb::GetPartition(idx_t partition_oid) {
+	return catalog_wrapper->GetPartition(*client_wrapper.get(), partition_oid);
+}
+
 duckdb::PropertySchemaCatalogEntry*
-duckdb::GetRelation(duckdb::idx_t rel_oid)
-{
+duckdb::GetRelation(idx_t rel_oid) {
 	// GP_WRAP_START;
 	{
 		/* catalog tables: relcache */
@@ -54,6 +58,16 @@ duckdb::GetRelation(duckdb::idx_t rel_oid)
 	}
 	// GP_WRAP_END;
 	return NULL;
+}
+
+idx_t_vector*
+duckdb::GetRelationIndexes(idx_t partition_oid) {
+	return catalog_wrapper->GetRelationIndexes(*client_wrapper.get(), partition_oid);
+}
+
+IndexCatalogEntry*
+duckdb::GetIndex(idx_t index_oid) {
+	return catalog_wrapper->GetIndex(*client_wrapper.get(), index_oid);
 }
 
 string

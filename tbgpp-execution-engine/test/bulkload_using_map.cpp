@@ -152,7 +152,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		
 		string property_schema_name = "vps_" + vertex_file.first;
 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
+		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		
 		vector<PropertyKeyID> property_key_ids;
@@ -160,6 +160,10 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(types);
 		property_schema_cat->SetKeys(*client.get(), key_names);
+
+		// TODO need to merge below two functions into one function call
+		partition_cat->SetKeys(*client.get(), key_names);
+		partition_cat->SetTypes(types);
 		
 		// Initialize DataChunk
 		DataChunk data;
@@ -411,7 +415,7 @@ icecream::ic.disable();
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
 		string property_schema_name = "eps_" + edge_file.first;
-		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
+		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
 		PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
@@ -458,10 +462,15 @@ icecream::ic.enable();
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
+		// for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
+		
+		// Create Index Catalog & Add to PartitionCatalogEntry
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, {0});
+		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
+		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -738,10 +747,15 @@ icecream::ic.enable();
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
+		// for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
+		
+		// Create Index Catalog & Add to PartitionCatalogEntry
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, {0});
+		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
+		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
