@@ -24,8 +24,11 @@ void SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWrapp
 // return the logical index type for a given logical index oid
 IndexType GetLogicalIndexType(Oid index_oid);
 
-// get relation with given oid
-PropertySchemaCatalogEntry* GetRelation(idx_t rel_oid);
+// get catalog informations with given oid
+PartitionCatalogEntry *GetPartition(idx_t partition_oid);
+PropertySchemaCatalogEntry *GetRelation(idx_t rel_oid);
+idx_t_vector *GetRelationIndexes(idx_t partition_oid);
+IndexCatalogEntry *GetIndex(idx_t index_oid);
 
 // get type related informations
 string GetTypeName(idx_t type_id);

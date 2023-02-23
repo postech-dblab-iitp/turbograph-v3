@@ -267,15 +267,15 @@ private:
 										CMDColumnArray *mdcol_array,
 										ULONG max_cols);
 
-	// // check if index is supported
-	// static BOOL IsIndexSupported(Relation index_rel);
+	// check if index is supported
+	static BOOL IsIndexSupported(duckdb::IndexCatalogEntry *index_cat);
 
 	// // retrieve index info list of partitioned table
 	// static List *RetrievePartTableIndexInfo(Relation rel);
 
 	// compute the array of included columns
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
-											  const IMDRelation *md_rel);
+											  const duckdb::PartitionCatalogEntry *part_cat);
 
 	// // is given level included in the default partitions
 	// static BOOL LevelHasDefaultPartition(List *default_levels, ULONG level);
@@ -310,7 +310,7 @@ private:
 
 	// return index info list of indexes defined on regular, external tables or leaf partitions
 	static CMDIndexInfoArray *RetrieveRelIndexInfoForNonPartTable(
-		CMemoryPool *mp, Relation rel);
+		CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
 
 	// retrieve an index over a partitioned table from the relcache
 	static IMDIndex *RetrievePartTableIndex(CMemoryPool *mp,
@@ -393,7 +393,7 @@ public:
 
 	// populate the attribute number to position mapping
 	static ULONG *PopulateAttnoPositionMap(CMemoryPool *mp,
-										   const IMDRelation *md_rel,
+										   const duckdb::PartitionCatalogEntry *part_cat,
 										   ULONG size);
 
 	// return the position of a given attribute number

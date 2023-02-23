@@ -4,7 +4,10 @@
 namespace duckdb {
 
 IndexCatalogEntry::IndexCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateIndexInfo *info, const void_allocator &void_alloc)
-    : StandardEntry(CatalogType::INDEX_ENTRY, schema, catalog, info->index_name, void_alloc), index(nullptr) {
+    : StandardEntry(CatalogType::INDEX_ENTRY, schema, catalog, info->index_name, void_alloc), index(nullptr), index_type(info->index_type),
+	index_key_columns(void_alloc) {
+	for (idx_t i = 0; i < info->column_ids.size(); i++)
+		index_key_columns.push_back(info->column_ids[i]);
 }
 
 IndexCatalogEntry::~IndexCatalogEntry() {
@@ -16,6 +19,14 @@ IndexCatalogEntry::~IndexCatalogEntry() {
 }
 
 string IndexCatalogEntry::ToSQL() {
+}
+
+idx_t IndexCatalogEntry::GetPartitionID() {
+	return pid;
+}
+
+idx_t_vector *IndexCatalogEntry::GetIndexKeyColumns() {
+	return &index_key_columns;
 }
 
 } // namespace duckdb
