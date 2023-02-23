@@ -24,8 +24,11 @@ void SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWrapp
 // return the logical index type for a given logical index oid
 IndexType GetLogicalIndexType(Oid index_oid);
 
-// get relation with given oid
-PropertySchemaCatalogEntry* GetRelation(idx_t rel_oid);
+// get catalog informations with given oid
+PartitionCatalogEntry *GetPartition(idx_t partition_oid);
+PropertySchemaCatalogEntry *GetRelation(idx_t rel_oid);
+idx_t_vector *GetRelationIndexes(idx_t partition_oid);
+IndexCatalogEntry *GetIndex(idx_t index_oid);
 
 // get type related informations
 string GetTypeName(idx_t type_id);
@@ -37,6 +40,8 @@ CmpType GetComparisonType(idx_t op_id);
 string GetOpName(idx_t op_id);
 void GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id, uint32_t *right_type_id);
 idx_t GetOpFunc(idx_t op_id);
+idx_t GetCommutatorOp(idx_t op_id);
+idx_t GetInverseOp(idx_t op_id);
 
 static shared_ptr<ClientContext> client_wrapper;
 static shared_ptr<CatalogWrapper> catalog_wrapper;

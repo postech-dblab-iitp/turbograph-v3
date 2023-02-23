@@ -47,11 +47,21 @@ public:
 	PropertySchemaID_vector property_schema_array;
 	//vector<Constraints> constraints;
 	PartitionID pid;
+	idx_t_vector adjlist_indexes;
+	idx_t_vector property_indexes;
+	LogicalTypeId_vector global_property_typesid;
+	string_vector global_property_key_names;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
 	void GetPropertySchemaIDs(vector<idx_t> &psids);
+	void AddAdjIndex(ClientContext &context, idx_t index_oid);
+	void AddPropertyIndex(ClientContext &context, idx_t index_oid);
+	void SetTypes(vector<LogicalType> &types);
+	void SetKeys(ClientContext &context, vector<string> &key_names);
+	idx_t_vector *GetAdjIndexOidVec();
+	uint64_t GetNumberOfColumns() const;
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();
@@ -63,7 +73,5 @@ public:
 	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
-
-
 };
 } // namespace duckdb

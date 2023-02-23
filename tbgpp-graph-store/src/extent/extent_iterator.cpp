@@ -97,6 +97,14 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     target_idxs = target_idxs_;
     for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
+    
+    target_idxs_offset = 0;
+    for (int i = 0; i < ext_property_types.size(); i++) {
+        if (ext_property_types[i] == LogicalType::ID) {
+            target_idxs_offset = 1;
+            break;
+        }
+    }
 
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
@@ -124,7 +132,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
                 j++;
                 continue;
             }
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++] - 1];
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset]; // TODO bug..
             io_requested_cdf_ids[toggle][i] = cdf_id;
             // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
@@ -330,7 +338,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     continue;
                 }
                 ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++] - 1];
+                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
                 string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
                 // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();

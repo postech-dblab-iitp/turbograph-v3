@@ -19,10 +19,10 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 #include "parser/parsed_data/create_scalar_function_info.hpp"
+#include "parser/parsed_data/create_index_info.hpp"
 /*
 #include "parser/parsed_data/create_collation_info.hpp"
 #include "parser/parsed_data/create_copy_function_info.hpp"
-#include "parser/parsed_data/create_index_info.hpp"
 #include "parser/parsed_data/create_pragma_function_info.hpp"
 */
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -156,6 +156,15 @@ CatalogEntry *Catalog::CreateFunction(ClientContext &context, CreateFunctionInfo
 
 CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
 	return schema->CreateFunction(context, info);
+}
+
+CatalogEntry *Catalog::CreateIndex(ClientContext &context, CreateIndexInfo *info) {
+	auto schema = GetSchema(context, info->schema);
+	return CreateIndex(context, schema, info);
+}
+
+CatalogEntry *Catalog::CreateIndex(ClientContext &context, SchemaCatalogEntry *schema, CreateIndexInfo *info) {
+	return schema->CreateIndex(context, info);
 }
 
 /*CatalogEntry *Catalog::CreateTable(ClientContext &context, BoundCreateTableInfo *info) {
