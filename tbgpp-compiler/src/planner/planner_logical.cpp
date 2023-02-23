@@ -654,7 +654,7 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 	CTableDescriptor *ptabdesc = GPOS_NEW(mp) CTableDescriptor(
 		mp, mdid, nameTable,
 		false,	// convert_hash_to_random
-		IMDRelation::EreldistrMasterOnly, IMDRelation::ErelstorageAppendOnlyCols,
+		IMDRelation::EreldistrMasterOnly, IMDRelation::ErelstorageHeap,
 		0  // ulExecuteAsUser
 	);
 	

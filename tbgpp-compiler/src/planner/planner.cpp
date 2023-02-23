@@ -155,20 +155,24 @@ void Planner::_orcaInitXForm() {
 }
 
 void Planner::_orcaSetTraceFlags() {
-	/* Set AutoTraceFlags */
-	// refer to CConfigParamMapping.cpp
-	//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotions, true /*fSet*/);
-	//CAutoTraceFlag atf(gpos::EOptTraceFlag::EopttraceDisableMotionBroadcast, true /*fSet*/);
-	//CAutoTraceFlag atf2(gpos::EOptTraceFlag::EopttraceDisableMotionGather, true /*fSet*/);
-	CAutoTraceFlag atf3(gpos::EOptTraceFlag::EopttracePrintXform, true /*fSet*/);
-	// CAutoTraceFlag atf4(gpos::EOptTraceFlag::EopttracePrintPlan, true /*fSet*/);
-	// CAutoTraceFlag atf5(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration, true /*fSet*/);
-	// CAutoTraceFlag atf6(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation, true /*fSet*/);
-	// CAutoTraceFlag atf7(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization, true /*fSet*/);
-	// CAutoTraceFlag atf8(gpos::EOptTraceFlag::EopttracePrintMemoEnforcement, true /*fSet*/);
-	CAutoTraceFlag atf8(gpos::EOptTraceFlag::EopttracePrintXformResults, true);
-	CAutoTraceFlag atf9(gpos::EOptTraceFlag::EopttraceEnumeratePlans, true /*fSet*/);
-	CAutoTraceFlag atf10(gpos::EOptTraceFlag::EopttracePrintOptimizationContext, true /*fSet*/);
+
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintOptimizationContext);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceEnumeratePlans);
+
+	/* Always prefer NL join*/
+
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceForceComprehensiveJoinImplementation);
+	// Xform config controllable as well
+	// GPOPT_DISABLE_XFORM(CXform::ExfGet2TableScan);
+	GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
+
 }
 
 gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
