@@ -95,9 +95,6 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     max_idx = property_schema_cat_entry->extent_ids.size();
     ext_property_types = target_types_;
     target_idxs = target_idxs_;
-    for (auto &i : target_idxs) {
-        icecream::ic.enable(); IC(); IC(i); icecream::ic.disable();
-    }
     for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
     
@@ -122,24 +119,24 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            icecream::ic.enable(); IC(); IC(i, (int)ext_property_types[i].id()); icecream::ic.disable();
+            // icecream::ic.enable(); IC(); IC(i, (int)ext_property_types[i].id()); icecream::ic.disable();
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
+                // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
                 j++;
                 continue;
             }
             if (target_idxs[j] == std::numeric_limits<uint64_t>::max()) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
+                // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
                 j++;
                 continue;
             }
             ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset]; // TODO bug..
             io_requested_cdf_ids[toggle][i] = cdf_id;
-            icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
+            // icecream::ic.enable(); IC(); IC(i, io_requested_cdf_ids[toggle][i]); icecream::ic.disable();
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-            icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
+            // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
     }
@@ -406,12 +403,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            fprintf(stdout, "Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
-                            i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
-                            io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+            // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+            //                 i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
+            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+            //                 io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
         } else {
-            fprintf(stdout, "Load Column %ld\n", i);
+            // fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
