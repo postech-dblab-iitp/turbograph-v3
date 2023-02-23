@@ -42,7 +42,8 @@ public:
 	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
-	PartitionID pid; // foreign key
+	PartitionID pid;
+	idx_t partition_oid; // oid of parent partition
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
 	idx_t_vector key_column_idxs;
@@ -81,6 +82,7 @@ public:
 	void AddExtent(ExtentID eid);
 	ExtentID GetNewExtentID();
 	PartitionID GetPartitionID();
+	idx_t GetPartitionOID();
 
 	uint64_t GetNumberOfColumns();
 

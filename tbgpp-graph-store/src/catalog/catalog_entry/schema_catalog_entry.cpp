@@ -273,9 +273,8 @@ CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, 
 	return AddEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
 }
 
-CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info, PartitionCatalogEntry *table) {
+CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	// dependencies.insert(table);
 	void_allocator alloc_inst (catalog_segment->get_segment_manager());
 	auto index = catalog_segment->find_or_construct<IndexCatalogEntry>(info->index_name.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(index), info->on_conflict, dependencies);

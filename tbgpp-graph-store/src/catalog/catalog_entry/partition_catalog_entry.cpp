@@ -12,7 +12,8 @@ namespace duckdb {
 
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc),
-	  property_schema_index(void_alloc), property_schema_array(void_alloc) {
+	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc),
+	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 }
@@ -49,6 +50,40 @@ void PartitionCatalogEntry::GetPropertySchemaIDs(vector<idx_t> &psids) {
 	for (auto &psid : property_schema_array) {
 		psids.push_back(psid);
 	}
+}
+
+void PartitionCatalogEntry::AddAdjIndex(ClientContext &context, idx_t index_oid) {
+	adjlist_indexes.push_back(index_oid);
+}
+
+void PartitionCatalogEntry::AddPropertyIndex(ClientContext &context, idx_t index_oid) {
+	property_indexes.push_back(index_oid);
+}
+
+idx_t_vector *PartitionCatalogEntry::GetAdjIndexOidVec() {
+	return &adjlist_indexes;
+}
+
+void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
+	D_ASSERT(global_property_typesid.empty());
+	for (auto &it : types) {
+		global_property_typesid.push_back(it.id());
+	}
+}
+
+void PartitionCatalogEntry::SetKeys(ClientContext &context, vector<string> &key_names) {
+	// TODO add logic to generate global schema (ex. if size = 0, just insert, not, insert only new things
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	D_ASSERT(global_property_key_names.empty());
+	for (auto &it : key_names) {
+		char_string key_(temp_charallocator);
+		key_ = it.c_str();
+		global_property_key_names.push_back(move(key_));
+	}
+}
+
+uint64_t PartitionCatalogEntry::GetNumberOfColumns() const {
+	return global_property_key_names.size();
 }
 
 } // namespace duckdb

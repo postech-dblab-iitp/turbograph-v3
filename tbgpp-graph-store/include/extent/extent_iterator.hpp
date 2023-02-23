@@ -63,6 +63,7 @@ private:
     unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
     int num_data_chunks;
     int toggle;
+    int target_idxs_offset = 0;
     bool support_double_buffering;
     bool is_initialized = false;
     PropertySchemaCatalogEntry *ps_cat_entry;
