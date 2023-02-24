@@ -134,6 +134,8 @@ vector<std::pair<string, string>> vertex_files;
 vector<std::pair<string, string>> edge_files;
 vector<std::pair<string, string>> edge_files_backward;
 string workspace;
+string input_query_string;
+bool is_query_string_given = false;
 
 bool load_edge;
 bool load_backward_edge;
@@ -211,6 +213,9 @@ class InputParser{
         	load_backward_edge = true;
         } else if (std::strncmp(current_str.c_str(), "--workspace:", 12) == 0) {
 			workspace = std::string(*itr).substr(12);
+		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
+			input_query_string = std::string(*itr).substr(8);
+			is_query_string_given = true;
 		}
       }
     }
@@ -376,23 +381,29 @@ icecream::ic.disable();
 	// run queries by query name
 	std::string query_str;
 icecream::ic.disable();
-	while(true) {
-		std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
-		// check termination
-		if( query_str.compare(":exit") == 0 ) {
-			break;
-		}
-
+	if (is_query_string_given) {
 		try {
 			// protected code
-			CompileAndRun(query_str, client);
+			CompileAndRun(input_query_string, client);
 		} catch( std::exception e1 ) {
 			std::cerr << e1.what() << std::endl;
 		}
-		
+	} else {
+		while(true) {
+			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
+			// check termination
+			if( query_str.compare(":exit") == 0 ) {
+				break;
+			}
 
+			try {
+				// protected code
+				CompileAndRun(query_str, client);
+			} catch( std::exception e1 ) {
+				std::cerr << e1.what() << std::endl;
+			}
+		}
 	}
-
 
 	std::cout << "compiler test end" << std::endl;
 	// Goodbye
