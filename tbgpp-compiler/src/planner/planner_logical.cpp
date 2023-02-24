@@ -458,11 +458,15 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 
 	if(alias == "") { alias = rel_name; }
 
-	CWStringConst strName(std::wstring(rel_name.begin(), rel_name.end()).c_str());
+	const CWStringConst* table_name_cwstring = lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id))->Mdname().GetMDName();
+	wstring table_name_ws(table_name_cwstring->GetBuffer());
+	string table_name(table_name_ws.begin(), table_name_ws.end());
+	std::string print_name = "(" + rel_name + ") " + table_name;
+	CWStringConst strName(std::wstring(print_name.begin(), print_name.end()).c_str());
 	CTableDescriptor *ptabdesc =
 		lCreateTableDesc(mp,
 					   lGenRelMdid(obj_id),	// 6.objid.0.0
-					   CName(&strName));
+					   CName(&strName));	// debug purpose table string
 
 	// manage original table columns
 	if( !table_col_mapping.count(obj_id) ) {
@@ -562,7 +566,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 		} else {
 			// project non-null column
 			CColRef *colref = lGetIthColRef(relation->DeriveOutputColumns(), col_id);
-			CColRef *new_colref = col_factory->PcrCreate(colref);	// generate new reference
+			CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
 			output_col_array->Append(new_colref);
 			CExpression* ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
@@ -631,8 +635,9 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned) {
 
 	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, mdid,
-										  GPOS_WSZ_LIT("column_%04d"),
+										  GPOS_WSZ_LIT("column_%04d"),				// format notused
 										  nameTable, true /* is_nullable */);
+										
 	// if (fPartitioned) {
 	// 	D_ASSERT(false);
 	// 	ptabdesc->AddPartitionColumn(0);
@@ -660,19 +665,15 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 	
 	auto num_cols = lGetMDAccessor()->RetrieveRel(mdid)->ColumnCount();
 	for (ULONG i = 0; i < num_cols; i++) {
-		str_name->Reset();
-		str_name->AppendFormat(wszColNameFormat, i);
 
 		IMDId* type_id = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->MdidType();
 		const IMDType* pmdtype = lGetMDAccessor()->RetrieveType(type_id);
 		INT type_modifier = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->TypeModifier();
-		// create a shallow constant string to embed in a name
-		CWStringConst strName(str_name->GetBuffer());
-		CName colname(&strName);
-		CColumnDescriptor *pcoldescInt = GPOS_NEW(mp)
+		CName colname(lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->Mdname().GetMDName());
+		CColumnDescriptor *pcoldesc = GPOS_NEW(mp)
 			CColumnDescriptor(mp, pmdtype, type_modifier,
 							  colname, i + 1, is_nullable);
-		ptabdesc->AddColumn(pcoldescInt);
+		ptabdesc->AddColumn(pcoldesc);
 	}
 
 	GPOS_DELETE(str_name);
