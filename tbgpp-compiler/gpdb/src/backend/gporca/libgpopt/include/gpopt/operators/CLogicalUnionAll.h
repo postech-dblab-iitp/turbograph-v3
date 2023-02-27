@@ -33,6 +33,9 @@ private:
 	// id, otherwise this will be gpos::ulong_max
 	ULONG m_ulScanIdPartialIndex;
 
+	// S62 : this would enable production of multiple index scan below each union all child
+	BOOL m_allowIndexJoinBelowUnionAll;
+
 	// private copy ctor
 	CLogicalUnionAll(const CLogicalUnionAll &);
 
@@ -42,7 +45,9 @@ public:
 
 	CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
 					 CColRef2dArray *pdrgpdrgpcrInput,
-					 ULONG ulScanIdPartialIndex = gpos::ulong_max);
+					 ULONG ulScanIdPartialIndex = gpos::ulong_max,
+					 BOOL m_allowIndexJoinBelowUnionAll = false
+					 );
 
 	// dtor
 	virtual ~CLogicalUnionAll();

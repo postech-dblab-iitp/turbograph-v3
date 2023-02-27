@@ -327,6 +327,7 @@ CCostModelGPDB::FUnary(COperator::EOperatorId op_id)
 {
 	return COperator::EopPhysicalAssert == op_id ||
 		   COperator::EopPhysicalComputeScalar == op_id ||
+		   COperator::EopPhysicalComputeScalarColumnar == op_id ||	// S62 added
 		   COperator::EopPhysicalLimit == op_id ||
 		   COperator::EopPhysicalPartitionSelector == op_id ||
 		   COperator::EopPhysicalPartitionSelectorDML == op_id ||

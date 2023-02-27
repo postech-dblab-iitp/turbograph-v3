@@ -85,6 +85,9 @@ CColRefArray *
 CXformUnnestTVF::PdrgpcrSubqueries(CMemoryPool *mp, CExpression *pexprCTEProd,
 								   CExpression *pexprCTECons)
 {
+
+	GPOS_ASSERT(false); // S62 not used.
+
 	CExpression *pexprProject = (*pexprCTEProd)[0];
 	GPOS_ASSERT(COperator::EopLogicalProject == pexprProject->Pop()->Eopid());
 
