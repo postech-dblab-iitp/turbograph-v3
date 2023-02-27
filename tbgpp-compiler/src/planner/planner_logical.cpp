@@ -279,27 +279,59 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 
 	CMemoryPool* mp = this->memory_pool;
 
-	// refer to CXformExpandFullOuterJoin.cpp
-	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
 	
-	// output columns of the union
 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
-	for(auto& col_id: col_ids){
-		D_ASSERT( col_id < plan_cols->Size() );
-		pdrgpcrOutput->Append(plan_cols->operator[](col_id));
-	}
-	pdrgpcrOutput->AddRef();
-	pdrgdrgpcrInput->Append(pdrgpcrOutput);	// UnionAll with only one input relation
-	
-	// This is a trick to generate simple projection expression (columnar) in the row-major Orca.
-	CExpression* project_expr = GPOS_NEW(mp) CExpression(
-		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-		plan->getPlanExpr());	// Unary unionall!
 
-	plan->addUnaryParentOp(project_expr);
+	CExpression* scalar_proj_elem;
+	for(auto& col_id: col_ids){
+		CColRef *colref = plan_cols->operator[](col_id);
+		CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+		CExpression* ident_expr = GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
+		scalar_proj_elem = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
+		proj_array->Append(scalar_proj_elem);	
+	}
+
+	// Our columnar projection
+	CExpression *pexprPrjList =
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
+	CExpression *proj_expr =  GPOS_NEW(mp)
+		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), plan->getPlanExpr(), pexprPrjList);
+
+	plan->addUnaryParentOp(proj_expr);
 	return plan;
 }
+
+
+// // Old implementation using union all
+// LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids) {
+
+// 	CMemoryPool* mp = this->memory_pool;
+
+// 	// refer to CXformExpandFullOuterJoin.cpp
+// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	
+// 	// output columns of the union
+// 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
+// 	for(auto& col_id: col_ids){
+// 		D_ASSERT( col_id < plan_cols->Size() );
+// 		pdrgpcrOutput->Append(plan_cols->operator[](col_id));
+// 	}
+// 	pdrgpcrOutput->AddRef();
+// 	pdrgdrgpcrInput->Append(pdrgpcrOutput);	// UnionAll with only one input relation
+	
+// 	// This is a trick to generate simple projection expression (columnar) in the row-major Orca.
+// 	CExpression* project_expr = GPOS_NEW(mp) CExpression(
+// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+// 		plan->getPlanExpr());	// Unary unionall!
+
+// 	plan->addUnaryParentOp(project_expr);
+// 	return plan;
+// }
 
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
 
@@ -338,22 +370,13 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	// always do schema mapping even when single table
 	plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
 
-	
 	// insert node schema
 	LogicalSchema schema;
-	// _id and properties
-	for (auto &schema_proj : schema_proj_mapping) {
-		fprintf(stdout, "%ld -> \n", schema_proj.first);
-		for (auto &k : schema_proj.second) {
-			fprintf(stdout, "\t(%ld, %ld)\n", k.first, k.second);
-		}
-	}
 	for(int col_idx = 0; col_idx < prop_exprs.size(); col_idx++ ) {
 		auto& _prop_expr = prop_exprs[col_idx];
 		PropertyExpression* expr = static_cast<PropertyExpression*>(_prop_expr.get());
 		string expr_name = expr->getRawName();
 		if( is_node ) {
-			fprintf(stdout, "col_idx %d, node_name %s, expr_name %s\n", col_idx, node_name.c_str(), expr_name.c_str());
 			schema.appendNodeProperty(node_name, expr_name);
 		}  else {
 			schema.appendEdgeProperty(node_name, expr_name);
@@ -425,9 +448,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 				project_cols.push_back(mapping.find(proj_col_idx)->second);
 			}
 			D_ASSERT(project_cols.size() > 0);
-			//expr = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
 			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
-			// the proj_result MUST be wrapped with projection to remove unnecessary columns, using output_array
 			expr = proj_result.first;
 			output_array = proj_result.second;
 		} else {
@@ -437,7 +458,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 		/* Single table might not have the identical column mapping with original table. Thus projection is required */
 		if(idx == 0) {
 			// REL
-			union_plan = lExprLogicalUnionAllWithMapping(expr, output_array);
+			union_plan = expr;
 			idx0_output_array = output_array;
 		} else if (idx == 1) {
 			// REL + REL
@@ -491,9 +512,9 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 
 CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping) {
 
-	CMemoryPool* mp = this->memory_pool;
+	D_ASSERT( rhs_mapping != nullptr ); // must be binary
 
-	/* rhs and rhs_mapping can be nullptr, as this works as a UNION ALL with single child => projection only operator */
+	CMemoryPool* mp = this->memory_pool;
 
 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
@@ -502,22 +523,13 @@ CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRef
 	pdrgpcrOutput->AppendArray(lhs_mapping);
 	pdrgpcrOutput->AddRef();
 	pdrgdrgpcrInput->Append(lhs_mapping);
-	if( rhs_mapping != nullptr) {
-		pdrgdrgpcrInput->Append(rhs_mapping);
-	}
+	pdrgdrgpcrInput->Append(rhs_mapping);
 	
 	// Binary Union ALL
-	if( rhs != nullptr) {
-		return GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-			lhs, rhs);
-	// Unary Union ALL
-	} else {
-		return GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput), lhs);
-	}
-	D_ASSERT(false);
-	return nullptr;
+	return GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+		lhs, rhs);
+
 }
 
 CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) {
@@ -530,9 +542,7 @@ CExpression * Planner::lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs) 
 }
 
 /*
- * CExpression* returns result of CLogicalProject, which has schema of (relation + projected schema)
- * CColRefAray* returns colrefs only for (projected schema). Thus this colref should be passed
- * to CLoigcalUnionAll to actually perform projection
+ * CExpression* returns result of projected schema.
 */
 std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProject(CExpression* relation,
 	vector<uint64_t> col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>>* target_schema_types
@@ -567,21 +577,23 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			// project non-null column
 			CColRef *colref = lGetIthColRef(relation->DeriveOutputColumns(), col_id);
 			CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
-			output_col_array->Append(new_colref);
+			
 			CExpression* ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
 				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
 
 			proj_array->Append(scalar_proj_elem);	
+			output_col_array->Append(new_colref);
 		}
 		target_col_id++;
 	}
 
-	// project nothing 
+	// Our columnar projection
 	CExpression *pexprPrjList =
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
-	CExpression *proj_expr = CUtils::PexprLogicalProject(mp, relation, pexprPrjList, false);
+	CExpression *proj_expr =  GPOS_NEW(mp)
+		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), relation, pexprPrjList);
 
 	return make_pair(proj_expr, output_col_array);
 

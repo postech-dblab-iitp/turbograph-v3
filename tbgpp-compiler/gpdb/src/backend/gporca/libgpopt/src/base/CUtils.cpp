@@ -4108,7 +4108,7 @@ CUtils::PexprCollapseProjects(CMemoryPool *mp, CExpression *pexpr)
 		CExpression *pexprPrE = (*pexprScalar)[ul1];
 
 		CColRefSet *pcrsUsed =
-			GPOS_NEW(mp) CColRefSet(mp, *pexprPrE->DeriveUsedColumns());
+			GPOS_NEW(mp) CColRefSet(mp, *pexprPrE->DeriveUsedColumns());	// used cols in parent
 
 		pexprPrE->AddRef();
 
@@ -4202,6 +4202,98 @@ CUtils::PexprCollapseProjects(CMemoryPool *mp, CExpression *pexpr)
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp),
 								 pdrgpexprPrEl));
 }
+
+
+// Collapse the top two columanrproject nodes like this, if unable return NULL;
+// Referred from function above
+CExpression * CUtils::PexprCollapseColumnarProjects(CMemoryPool *mp,
+											  CExpression *pexpr)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (pexpr->Pop()->Eopid() != COperator::EopLogicalProjectColumnar) {
+		// not a project node
+		return NULL;
+	}
+	// parent rel - scalar
+	CExpression *pexprRel = (*pexpr)[0];
+	CExpression *pexprScalar = (*pexpr)[1];
+
+	if (pexprRel->Pop()->Eopid() != COperator::EopLogicalProjectColumnar) {
+		// not a project node
+		return NULL;
+	}
+	// child rel - scalar
+	CExpression *pexprChildRel = (*pexprRel)[0];
+	CExpression *pexprChildScalar = (*pexprRel)[1];
+
+	// child output columns
+	CColRefSet *pcrsDefinedChild =
+		GPOS_NEW(mp) CColRefSet(mp, *pexprChildScalar->DeriveDefinedColumns());
+
+	CExpressionArray *pdrgpexprPrElChild = GPOS_NEW(mp) CExpressionArray(mp);
+	CExpressionArray *pdrgpexprPrEl = GPOS_NEW(mp) CExpressionArray(mp);
+
+	// Iterate parent projections
+	ULONG ulLenPr = pexprScalar->Arity();
+	for (ULONG ul1 = 0; ul1 < ulLenPr; ul1++) {
+		
+		CExpression *pexprPrE = (*pexprScalar)[ul1];
+		CColRefSet *pcrsUsed =
+			GPOS_NEW(mp) CColRefSet(mp, *pexprPrE->DeriveUsedColumns());	// used cols in parent
+		pexprPrE->AddRef();
+
+		GPOS_ASSERT(!pexprPrE->DeriveHasNonScalarFunction()); // TODO S62 set returning function not supported yet.
+															  // refer to google for set returning function in postgres
+
+		pcrsUsed->Intersection(pcrsDefinedChild);
+		ULONG ulIntersect = pcrsUsed->Size();
+
+		if (0 == ulIntersect) {
+			pdrgpexprPrElChild->Append(pexprPrE);
+		} else {
+			pdrgpexprPrEl->Append(pexprPrE);
+		}
+		pcrsUsed->Release();
+	}
+
+	// add all project elements of the origin child project node
+	ULONG ulLenChild = pexprChildScalar->Arity();
+	for (ULONG ul = 0; ul < ulLenChild; ul++) {
+		CExpression *pexprPrE = (*pexprChildScalar)[ul];
+		pexprPrE->AddRef();
+		pdrgpexprPrElChild->Append(pexprPrE);
+	}
+
+	if (ulLenPr == pdrgpexprPrEl->Size()) {
+		// no candidate project element found for collapsing
+		pdrgpexprPrElChild->Release();
+		pdrgpexprPrEl->Release();
+		return NULL;
+	}
+
+	pexprChildRel->AddRef();
+	CExpression *pexprProject = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalProject(mp), pexprChildRel,
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp),
+								 pdrgpexprPrElChild));
+
+	if (0 == pdrgpexprPrEl->Size()) {
+		// no residual project elements, return only child project
+		pdrgpexprPrEl->Release();
+
+		return pexprProject;
+	}
+
+	// conditionally return parent project
+	return GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalProject(mp), pexprProject,
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp),
+								 pdrgpexprPrEl));
+
+}
+
+
 
 // append expressions in the source array to destination array
 void

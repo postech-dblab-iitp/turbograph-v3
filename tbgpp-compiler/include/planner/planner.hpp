@@ -44,6 +44,7 @@
 #include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/operators/CScalarProjectElement.h"
 #include "gpopt/operators/CLogicalProject.h"
+#include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
@@ -134,7 +135,7 @@ private:
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
-	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs = nullptr, CColRefArray* rhs_mapping = nullptr);
+	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping);
 	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
