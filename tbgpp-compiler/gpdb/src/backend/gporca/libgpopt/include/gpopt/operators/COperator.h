@@ -104,7 +104,8 @@ public:
 		EopLogicalGbAgg,
 		EopLogicalGbAggDeduplicate,
 		EopLogicalLimit,
-		EopLogicalProject,
+		EopLogicalProject,						// PSQL operator - row major
+		EopLogicalProjectColumnar,				// S62 Added
 		EopLogicalRename,
 		EopLogicalInnerApply,
 		EopLogicalInnerCorrelatedApply,
@@ -190,6 +191,7 @@ public:
 		EopPhysicalExternalScan,
 		EopPhysicalIndexScan,
 		EopPhysicalIndexOnlyScan,
+		EopPhysicalMultiTableIndexOnlyScan,				// S62 added for AdjIdxScan
 		EopPhysicalBitmapTableScan,
 		EopPhysicalFilter,
 		EopPhysicalInnerNLJoin,
@@ -238,7 +240,8 @@ public:
 
 		EopPhysicalSort,
 		EopPhysicalLimit,
-		EopPhysicalComputeScalar,
+		EopPhysicalComputeScalar,					// PSQL operator - Row major
+		EopPhysicalComputeScalarColumnar,			// S62 Added
 		EopPhysicalSpool,
 		EopPhysicalPartitionSelector,
 		EopPhysicalPartitionSelectorDML,

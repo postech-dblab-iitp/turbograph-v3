@@ -28,7 +28,7 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp)
-	: CLogicalUnion(mp), m_ulScanIdPartialIndex(0)
+	: CLogicalUnion(mp), m_ulScanIdPartialIndex(0), m_allowIndexJoinBelowUnionAll(false)
 {
 	m_fPattern = true;
 }
@@ -38,14 +38,17 @@ CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp)
 //		CLogicalUnionAll::CLogicalUnionAll
 //
 //	@doc:
-//		Ctor
+//		Ctor - extended for S62
 //
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
 								   CColRef2dArray *pdrgpdrgpcrInput,
-								   ULONG ulScanIdPartialIndex)
+								   ULONG ulScanIdPartialIndex,			// default ulong max
+								   BOOL allowIndexJoinBelowUnionAll		// default false
+								   )
 	: CLogicalUnion(mp, pdrgpcrOutput, pdrgpdrgpcrInput),
-	  m_ulScanIdPartialIndex(ulScanIdPartialIndex)
+	  m_ulScanIdPartialIndex(ulScanIdPartialIndex),
+	  m_allowIndexJoinBelowUnionAll(allowIndexJoinBelowUnionAll)	
 {
 }
 
@@ -135,6 +138,7 @@ CLogicalUnionAll::PxfsCandidates(CMemoryPool *mp) const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 	(void) xform_set->ExchangeSet(CXform::ExfImplementUnionAll);
+	// TODO S62 may need to implement more rules?
 
 	return xform_set;
 }
