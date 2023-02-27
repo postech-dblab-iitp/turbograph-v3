@@ -224,6 +224,12 @@ public:
 		ExfLeftJoin2RightJoin,
 		ExfRightOuterJoin2HashJoin,
 		ExfImplementInnerJoin,
+
+		// S62 custom added
+		ExfProject2ComputeScalarColumnar,
+		ExfCollapseProjectColumnar,
+		// S62 done
+
 		ExfInvalid,
 		ExfSentinel = ExfInvalid
 	};

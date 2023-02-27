@@ -323,6 +323,10 @@ CLogicalProjectColumnar::PxfsCandidates(CMemoryPool *mp) const
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
 
 	// TODO S62 assign me
+	(void) xform_set->ExchangeSet(CXform::ExfProject2ComputeScalarColumnar);
+	(void) xform_set->ExchangeSet(CXform::ExfCollapseProjectColumnar);
+
+	// original project includes:
 	// (void) xform_set->ExchangeSet(CXform::ExfSimplifyProjectWithSubquery);
 	// (void) xform_set->ExchangeSet(CXform::ExfProject2Apply);
 	// (void) xform_set->ExchangeSet(CXform::ExfProject2ComputeScalar);

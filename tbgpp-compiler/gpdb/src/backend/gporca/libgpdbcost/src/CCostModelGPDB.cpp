@@ -2095,7 +2095,7 @@ CCostModelGPDB::Cost(
 	GPOS_ASSERT(NULL != pci);
 
 	COperator::EOperatorId op_id = exprhdl.Pop()->Eopid();
-	if (op_id == COperator::EopPhysicalComputeScalar)
+	if (op_id == COperator::EopPhysicalComputeScalar || op_id == COperator::EopPhysicalComputeScalarColumnar)	// S62 columnar projection uses the same operator
 	{
 		return CostComputeScalar(m_mp, exprhdl, pci, m_cost_model_params, this);
 	}

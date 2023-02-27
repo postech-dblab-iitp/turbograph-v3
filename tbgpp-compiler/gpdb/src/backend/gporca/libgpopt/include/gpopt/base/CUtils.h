@@ -930,6 +930,10 @@ public:
 	static CExpression *PexprCollapseProjects(CMemoryPool *mp,
 											  CExpression *pexpr);
 
+	// S62 collapse the top two projectcolumnar nodes, if unable return NULL
+	static CExpression *PexprCollapseColumnarProjects(CMemoryPool *mp,
+											  CExpression *pexpr);
+
 	// match function between index get/scan operators
 	template <class T>
 	static BOOL FMatchIndex(T *pop1, COperator *pop2);
