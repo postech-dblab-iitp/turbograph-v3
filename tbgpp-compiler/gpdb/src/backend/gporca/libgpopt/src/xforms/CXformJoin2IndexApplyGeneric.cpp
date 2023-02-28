@@ -13,6 +13,7 @@
 #include "gpopt/operators/CLogicalDynamicGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGet.h"
+#include "gpopt/operators/CScalarIdent.h"
 
 using namespace gpmd;
 using namespace gpopt;
@@ -185,6 +186,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 
 			case COperator::EopLogicalGbAgg:
 			case COperator::EopLogicalProject:
+			case COperator::EopLogicalProjectColumnar:
 				// We tolerate these operators in the tree (with some conditions, see below) and will
 				// just copy them into the result of the transform, any selects above this node won't
 				// be used for index predicates.
@@ -201,12 +203,14 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 						pexprOuter->DeriveOutputColumns());
 					joinPredUsedCols->Exclude(
 						(*pexprCurrInnerChild)[0]->DeriveOutputColumns());
-					BOOL joinPredUsesProjectedColumns =
+					BOOL joinPredUsesProjectedColumnsRowMajor =
 						(0 < joinPredUsedCols->Size());
-					joinPredUsedCols->Release();
+					
 
-					if (joinPredUsesProjectedColumns)
+					if (pexprCurrInnerChild->Pop()->Eopid() != COperator::EopLogicalProjectColumnar
+						&&joinPredUsesProjectedColumnsRowMajor)
 					{
+						// For COperator::EopLogicalGbAgg and COperator::EopLogicalProject
 						// The join predicate uses columns that neither come from the outer table
 						// nor from the child of this node, therefore it must reference columns that
 						// are produced by pexprCurrInnerChild. Note that in the future we could
@@ -214,6 +218,26 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 						// that can be applied to the get.
 						return;
 					}
+
+					// Logic for columnar project - projecting ident column is allowed for index join
+					if( pexprCurrInnerChild->Pop()->Eopid() == COperator::EopLogicalProjectColumnar ) {
+						// even for outer columns, 
+						CExpression *pexprProjList = pexprCurrInnerChild->operator[](1);
+						for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
+							CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
+							CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
+							if( pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent ) {
+								// when lower expr is Ident, exclude colref of ProjElement
+								joinPredUsedCols->Exclude( ((CScalarProjectElement*)pexprProjElem->Pop())->Pcr() );
+							}
+						}
+						BOOL joinPredUsesProjectedColumnsColumnar = (0 < joinPredUsedCols->Size());
+						if( joinPredUsesProjectedColumnsColumnar ) {
+							return;
+						}
+					}
+
+					joinPredUsedCols->Release();
 
 					if (COperator::EopLogicalGbAgg ==
 						pexprCurrInnerChild->Pop()->Eopid())
