@@ -128,6 +128,10 @@ private:
 	static CExpression *PexprCollapseProjects(CMemoryPool *mp,
 											  CExpression *pexpr);
 
+	// S62 added
+	static CExpression *PexprCollapseColumnarProjects(CMemoryPool *mp,
+											  CExpression *pexpr);
+
 	// add dummy project element below scalar subquery when the output column is an outer reference
 	static CExpression *PexprProjBelowSubquery(CMemoryPool *mp,
 											   CExpression *pexpr,
