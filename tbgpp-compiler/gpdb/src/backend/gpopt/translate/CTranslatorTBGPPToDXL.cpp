@@ -1575,7 +1575,7 @@ ULONG
 CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
 											   ULONG *GetAttributePosition)
 {
-	ULONG idx; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
+	ULONG idx = attno; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 	ULONG pos = GetAttributePosition[idx];
 	GPOS_ASSERT(gpos::ulong_max != pos);
 
