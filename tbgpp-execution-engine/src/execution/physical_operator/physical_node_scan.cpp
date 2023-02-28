@@ -42,8 +42,6 @@ unique_ptr<LocalSourceState> PhysicalNodeScan::GetLocalSourceState(ExecutionCont
 	return make_unique<NodeScanState>();
 }
 
-// StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> projection_mapping, std::vector<duckdb::LogicalType> scanSchema);
-
 void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const {
 	auto &state = (NodeScanState &)lstate;
 	// If first time here, call doScan and get iterator from iTbgppGraphStore

@@ -1154,6 +1154,45 @@ CExpressionPreprocessor::PexprCollapseProjects(CMemoryPool *mp,
 	return pexprCollapsed;
 }
 
+// collapse cascaded columnar logical project operators
+CExpression *
+CExpressionPreprocessor::PexprCollapseColumnarProjects(CMemoryPool *mp,
+											   CExpression *pexpr)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+
+	const ULONG arity = pexpr->Arity();
+	// recursively process children
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CExpression *pexprChild = PexprCollapseColumnarProjects(mp, (*pexpr)[ul]);
+		pdrgpexpr->Append(pexprChild);
+	}
+
+	COperator *pop = pexpr->Pop();
+	pop->AddRef();
+
+	CExpression *pexprNew = GPOS_NEW(mp) CExpression(mp, pop, pdrgpexpr);
+	CExpression *pexprCollapsed = CUtils::PexprCollapseColumnarProjects(mp, pexprNew);
+
+	if (NULL == pexprCollapsed)
+	{
+		return pexprNew;
+	}
+
+	pexprNew->Release();
+
+	return pexprCollapsed;
+}
+
+
+
+
 // insert dummy project element below scalar subquery when the (a) the scalar
 // subquery is below a project and (b) output column is an outer reference
 CExpression *
@@ -2242,6 +2281,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 	}
 
 	if (COperator::EopLogicalProject == pop->Eopid() ||
+		COperator::EopLogicalProjectColumnar == pop->Eopid() || 	// S62 added
 		COperator::EopLogicalGbAgg == pop->Eopid())
 	{
 		CExpression *pexprProjList = (*pexpr)[1];
@@ -2433,6 +2473,7 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg(
 	pcrsReqdNew->Include(pcrsReqd);
 
 	GPOS_ASSERT(COperator::EopLogicalProject == pop->Eopid() ||
+				COperator::EopLogicalProjectColumnar == pop->Eopid() || 	// S62 added
 				COperator::EopLogicalGbAgg == pop->Eopid());
 
 	CExpression *pexprRelational = (*pexpr)[0];
@@ -2449,6 +2490,10 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg(
 			pexprRelationalNew = PexprPruneUnusedComputedColsRecursive(
 				mp, pexprRelational, pcrsReqdNew);
 			pexprResult = pexprRelationalNew;
+		}
+		else if(COperator::EopLogicalProjectColumnar == pop->Eopid()) {
+			// In columnar, this cannot happen. At least one projection should be alive.
+			GPOS_ASSERT(false);
 		}
 		else
 		{
@@ -3107,9 +3152,16 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprPruned->Release();
 
+	// S62 collapse projects columnar
+	CExpression * pExprCollapseColumnarProjects =
+		pexprCollapsedProjects;
+		//PexprCollapseColumnarProjects(mp, pexprCollapsedProjects);
+	// GPOS_CHECK_ABORT;
+	// pexprCollapsedProjects->Release();
+
 	// (24) insert dummy project when the scalar subquery is under a project and returns an outer reference
 	CExpression *pexprSubquery = PexprProjBelowSubquery(
-		mp, pexprCollapsedProjects, false /* fUnderPrList */);
+		mp, pExprCollapseColumnarProjects, false /* fUnderPrList */);
 	GPOS_CHECK_ABORT;
 	pexprCollapsedProjects->Release();
 

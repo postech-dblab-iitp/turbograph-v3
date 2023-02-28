@@ -5,7 +5,6 @@
 
 // orca operators
 
-
 // locally used duckdb operators
 #include "execution/physical_operator/physical_produce_results.hpp"
 #include "execution/physical_operator/physical_node_scan.hpp"
@@ -48,25 +47,31 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 
 	vector<duckdb::CypherPhysicalOperator*>* result = nullptr;
 
+	/* Matching order
+		- UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan
+		- Projection => Projection
+	
+		- TableScan => EdgeScan
+	
+	*/
+
 	// based on op pass call to the corresponding func
 	D_ASSERT( plan_expr != nullptr );
 	D_ASSERT( plan_expr->Pop()->FPhysical() );
 	switch(plan_expr->Pop()->Eopid()) {
 		case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
 			if( pIsUnionAllOpAccessExpression(plan_expr) ) {
-				/* UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan*/
 				return pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
-			} else if ( pIsUnionAllForProjection(plan_expr) ) {
-				/* UnionAll => Projection */
-// TODO here, unionall is a projection operator temporary. need projection operator
-				return pTransformEopUnionAllForProjection(plan_expr);
 			} else {
 				D_ASSERT(false);
 			}
 			break;
 		}
+		case COperator::EOperatorId::EopPhysicalComputeScalarColumnar: {
+			return pTransformEopProjectionColumnar(plan_expr);
+		}				
 		case COperator::EOperatorId::EopPhysicalTableScan: {
-			/* TableScan => EdgeScan*/
+			
 			return pTransformEopTableScan(plan_expr);
 		}
 		default:
@@ -167,7 +172,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 			if( pMatchExprPattern(proj_elem, scalarident_pattern) ) {
 				/* CScalarProjectList - CScalarIdent */
 				CScalarIdent* ident_op = (CScalarIdent*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
-				auto col_idx = pGetColIdxFromTable( table_obj_id, ident_op->Pcr());
+				auto col_idx = pGetColIdxFromTable(table_obj_id, ident_op->Pcr());
 
 				projection_mapping[i].push_back(col_idx);
 				// add local types
@@ -205,7 +210,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 }
 
 
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForProjection(CExpression* plan_expr) {
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumnar(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
 
 	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
@@ -213,26 +220,36 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForProjec
 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
 	vector<duckdb::LogicalType> types;
 
-	// refer to output
-	CPhysicalSerialUnionAll* union_all_op = (CPhysicalSerialUnionAll*) plan_expr->Pop();
-	CColRef2dArray* _input_arrays = union_all_op->PdrgpdrgpcrInput();
-	D_ASSERT(_input_arrays->Size() == 1);
+	CPhysicalComputeScalarColumnar* proj_op = (CPhysicalComputeScalarColumnar*) plan_expr->Pop();
+	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
+	CColRefArray* child_cols = pexprProjRelational->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 
-	CColRefArray* input_array = _input_arrays->operator[](0);
-	CColRefArray* output_array = union_all_op->PdrgpcrOutput();
-
-	for(ULONG out_idx=0; out_idx < output_array->Size(); out_idx++) {
-		ULONG in_idx = input_array->IndexOf( output_array->operator[](out_idx) );
-		D_ASSERT( in_idx != gpos::ulong_max);
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid( output_array->operator[](out_idx)->RetrieveType()->MDId() );
-		OID type_oid = type_mdid->Oid();
-		types.push_back( pConvertTypeOidToLogicalType(type_oid) );
-		// gen projection expression
-		proj_exprs.push_back(
-			make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)in_idx )
-		);
+	for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
+		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);	// CScalarProjectElement
+		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
+// TODO need to recursively build plan!!! - need separate function for this.
+		switch (pexprScalarExpr->Pop()->Eopid()) {
+			case COperator::EopScalarIdent: {
+				CScalarIdent* ident_op = (CScalarIdent*)pexprScalarExpr->Pop();
+				// which operator it belongs to???
+				ULONG child_index = child_cols->IndexOf(ident_op->Pcr());
+				D_ASSERT(child_index != gpos::ulong_max);
+				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId() );
+				OID type_oid = type_mdid->Oid();
+				types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+				proj_exprs.push_back(
+					make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)child_index )
+				);
+				break;
+			}
+			default: {
+				D_ASSERT(false); // NOT implemented yet
+			}
+		}
 	}
-	D_ASSERT(types.size() == proj_exprs.size());
+
+	D_ASSERT( pexprProjList->Arity() == proj_exprs.size() );
 
 	/* Generate operator and push */
 	duckdb::CypherSchema tmp_schema;
@@ -297,23 +314,15 @@ bool Planner::pIsUnionAllOpAccessExpression(CExpression* expr) {
 
 	auto p1 = vector<COperator::EOperatorId>({
 		COperator::EOperatorId::EopPhysicalSerialUnionAll,
-		COperator::EOperatorId::EopPhysicalComputeScalar,
+		COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
 		COperator::EOperatorId::EopPhysicalTableScan,
 	});
 	auto p2 = vector<COperator::EOperatorId>({
 		COperator::EOperatorId::EopPhysicalSerialUnionAll,
-		COperator::EOperatorId::EopPhysicalComputeScalar,
+		COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
 		COperator::EOperatorId::EopPhysicalIndexScan,
 	});
 	return pMatchExprPattern(expr, p1, 0, true) || pMatchExprPattern(expr, p2, 0, true);
-}
-
-bool Planner::pIsUnionAllForProjection(CExpression* expr) {
-	auto p1 = vector<COperator::EOperatorId>({
-		COperator::EOperatorId::EopPhysicalSerialUnionAll
-	});
-	bool is_unionall_with_single_child = expr->PdrgPexpr()->Size() == 1;
-	return is_unionall_with_single_child;
 }
 
 uint64_t Planner::pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col) {

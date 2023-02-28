@@ -53,6 +53,7 @@
 #include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/operators/CPhysicalSerialUnionAll.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 
 
 #include "naucrates/init.h"
@@ -169,12 +170,11 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* plan_expr);
 	
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForProjection(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
-	bool pIsUnionAllForProjection(CExpression* expr);
 	
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
