@@ -62,7 +62,7 @@ public:
 	vector<string> GetKeysWithCopy();
 	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);
-	void AppendKey(ClientContext &context, string key_name);
+	idx_t AppendKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	LogicalTypeId_vector *GetTypes();
 	LogicalTypeId GetType(idx_t i);
