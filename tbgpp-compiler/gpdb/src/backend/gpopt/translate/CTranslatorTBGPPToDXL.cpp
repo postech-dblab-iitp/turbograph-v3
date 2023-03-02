@@ -3170,7 +3170,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStorageType(CHAR storage_type)
 	// 	default:
 	// 		GPOS_ASSERT(!"Unsupported relation type");
 	// }
-	rel_storage_type = IMDRelation::ErelstorageAppendOnlyCols; // TODO temporary
+	rel_storage_type = IMDRelation::ErelstorageHeap; // TODO temporary
 
 	return rel_storage_type;
 }
