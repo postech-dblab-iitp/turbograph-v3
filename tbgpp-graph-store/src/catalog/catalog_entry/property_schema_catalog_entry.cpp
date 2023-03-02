@@ -115,11 +115,12 @@ void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
 	property_typesid.push_back(move(type.id()));
 }
 
-void PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) {
+idx_t PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) {
 	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
 	char_string key_(temp_charallocator);
 	key_ = key.c_str();
 	property_key_names.push_back(move(key_));
+	return property_key_names.size() - 1;
 }
 
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
