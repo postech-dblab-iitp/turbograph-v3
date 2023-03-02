@@ -30,6 +30,7 @@ public:
 	// shared_ptr<DataTableInfo> info;
 	// string sql;
 	idx_t_vector index_key_columns;
+	idx_t adj_col_idx;
 
 public:
 	string ToSQL() override;
