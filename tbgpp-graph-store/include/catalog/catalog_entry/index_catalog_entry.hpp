@@ -36,6 +36,8 @@ public:
 	string ToSQL() override;
 	idx_t GetPartitionID();
 	idx_t_vector *GetIndexKeyColumns();
+	IndexType GetIndexType();
+	idx_t GetAdjColIdx();
 };
 
 } // namespace duckdb
