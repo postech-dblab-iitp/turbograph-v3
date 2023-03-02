@@ -340,6 +340,23 @@ bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels) {
 	return true;
 }
 
+void iTbgppGraphStore::getAdjColIdxs(idx_t index_cat_oid, vector<int> &adjColIdxs, vector<LogicalType> &adjColTypes) {
+	Catalog &cat_instance = client.db->GetCatalog();
+	IndexCatalogEntry *index_cat = 
+		(IndexCatalogEntry *)cat_instance.GetEntry(client, DEFAULT_SCHEMA, index_cat_oid);
+	
+	adjColIdxs.push_back(index_cat->GetAdjColIdx());
+
+	if (index_cat->GetIndexType() == IndexType::FORWARD_CSR) {
+		adjColTypes.push_back(LogicalType::FORWARD_ADJLIST);
+	} else if (index_cat->GetIndexType() == IndexType::BACKWARD_CSR) {
+		adjColTypes.push_back(LogicalType::BACKWARD_ADJLIST);
+	} else {
+		throw InvalidInputException("IndexType should be one of FORWARD/BACKWARD CSR");
+	}
+}
+
+// TODO deprecate this API
 void iTbgppGraphStore::getAdjColIdxs(LabelSet src_labels, LabelSet edge_labels, ExpandDirection expand_dir, vector<int> &adjColIdxs, vector<LogicalType> &adjColTypes) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(src_labels.size() == 1); // XXX Temporary

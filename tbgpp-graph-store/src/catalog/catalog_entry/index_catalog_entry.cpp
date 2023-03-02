@@ -29,4 +29,12 @@ idx_t_vector *IndexCatalogEntry::GetIndexKeyColumns() {
 	return &index_key_columns;
 }
 
+IndexType IndexCatalogEntry::GetIndexType() {
+	return index_type;
+}
+
+idx_t IndexCatalogEntry::GetAdjColIdx() {
+	return adj_col_idx;
+}
+
 } // namespace duckdb
