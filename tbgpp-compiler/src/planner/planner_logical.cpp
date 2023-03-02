@@ -287,11 +287,11 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	CExpression* scalar_proj_elem;
 	for(auto& col_id: col_ids){
 		CColRef *colref = plan_cols->operator[](col_id);
-		CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+		//CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
 		CExpression* ident_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 		scalar_proj_elem = GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
+			mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr);
 		proj_array->Append(scalar_proj_elem);	
 	}
 
@@ -304,34 +304,6 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	plan->addUnaryParentOp(proj_expr);
 	return plan;
 }
-
-
-// // Old implementation using union all
-// LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids) {
-
-// 	CMemoryPool* mp = this->memory_pool;
-
-// 	// refer to CXformExpandFullOuterJoin.cpp
-// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
-	
-// 	// output columns of the union
-// 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
-// 	for(auto& col_id: col_ids){
-// 		D_ASSERT( col_id < plan_cols->Size() );
-// 		pdrgpcrOutput->Append(plan_cols->operator[](col_id));
-// 	}
-// 	pdrgpcrOutput->AddRef();
-// 	pdrgdrgpcrInput->Append(pdrgpcrOutput);	// UnionAll with only one input relation
-	
-// 	// This is a trick to generate simple projection expression (columnar) in the row-major Orca.
-// 	CExpression* project_expr = GPOS_NEW(mp) CExpression(
-// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-// 		plan->getPlanExpr());	// Unary unionall!
-
-// 	plan->addUnaryParentOp(project_expr);
-// 	return plan;
-// }
 
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
 
@@ -576,15 +548,15 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 		} else {
 			// project non-null column
 			CColRef *colref = lGetIthColRef(relation->DeriveOutputColumns(), col_id);
-			CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+			//CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
 			
 			CExpression* ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
-				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
+				mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr);
 
 			proj_array->Append(scalar_proj_elem);	
-			output_col_array->Append(new_colref);
+			output_col_array->Append(colref);
 		}
 		target_col_id++;
 	}
@@ -609,12 +581,13 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 
 	CMemoryPool* mp = this->memory_pool;
 
-	CColRefSet* lcols = lhs->DeriveOutputColumns();
+	CColRefArray* lcols = lhs->DeriveOutputColumns()->Pdrgpcr(mp);
 	auto lhs_size = lcols->Size();
-	CColRefSet* rcols = rhs->DeriveOutputColumns();
+	CColRefArray* rcols = rhs->DeriveOutputColumns()->Pdrgpcr(mp);
 	auto rhs_size = rcols->Size();
-	CColRef *pcrLeft = lGetIthColRef(lcols, lhs_pos);
-	CColRef *pcrRight = lGetIthColRef(rcols, rhs_pos);
+
+	CColRef *pcrLeft = lcols->operator[](lhs_pos);
+	CColRef *pcrRight =  rcols->operator[](rhs_pos);
 
 	lhs->AddRef();
 	rhs->AddRef();
@@ -691,26 +664,6 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 	GPOS_DELETE(str_name);
 	return ptabdesc;
 
-}
-
-CColRef* Planner::lGetIthColRef(CColRefSet* refset, uint64_t target_idx) {
-	
-	CMemoryPool* mp = this->memory_pool;
-
-	ULongPtrArray *colids = GPOS_NEW(mp) ULongPtrArray(mp);
-	refset->ExtractColIds(mp, colids);
-
-	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
-	const ULONG size = colids->Size();
-	for (ULONG idx = 0; idx < size; idx++) {
-		ULONG colid = *((*colids)[idx]);
-		if(idx == target_idx) {
-			return col_factory->LookupColRef(colid);
-		}
-	}
-	D_ASSERT(false);
-	return nullptr; // to prevent compiler warning
-	
 }
 
 

@@ -160,7 +160,6 @@ private:
 	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
-	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:
 	// planner_physical.cpp
