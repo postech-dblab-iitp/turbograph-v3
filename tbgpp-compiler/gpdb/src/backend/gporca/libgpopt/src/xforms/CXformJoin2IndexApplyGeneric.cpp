@@ -166,8 +166,6 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CLogicalDynamicGet *popDynamicGet = NULL;
 	CAutoRef<CColRefSet> groupingColsToCheck;
 
-	// flag to handle union all
-	bool isUnionAllIncluded = false;
 
 	// walk down the right child tree, accepting some unary operators
 	// like project and GbAgg and select, until we find a logical get
@@ -179,7 +177,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 		{
 			case COperator::EopLogicalUnionAll:
 				// S62 handle this case totally specially, using different set of internal functions
-				return TransformOnUnionAllInner(pxfctxt, pxfres, pexpr);
+				//return TransformOnUnionAllInner(pxfctxt, pxfres, pexpr);
 			case COperator::EopLogicalSelect:
 				// if the select pred has a subquery, don't generate alternatives
 				if ((*pexprCurrInnerChild)[1]->DeriveHasSubquery())
@@ -377,76 +375,76 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 
 
 // S62 this enables index join on union all inner expression
-void CXformJoin2IndexApplyGeneric::TransformOnUnionAllInner(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) {
+// void CXformJoin2IndexApplyGeneric::TransformOnUnionAllInner(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) {
 
-	CMemoryPool *mp = pxfctxt->Pmp();
+// 	CMemoryPool *mp = pxfctxt->Pmp();
 
-	// extract components
-	CExpression *pexprOuter = (*pexpr)[0];
-	CExpression *pexprInner = (*pexpr)[1];
-	CExpression *pexprScalar = (*pexpr)[2];
+// 	// extract components
+// 	CExpression *pexprOuter = (*pexpr)[0];
+// 	CExpression *pexprInner = (*pexpr)[1];
+// 	CExpression *pexprScalar = (*pexpr)[2];
 
-	// all predicates that could be used as index predicates, this includes the
-	// join predicates and selection predicates of selects right above the get
-	CExpression *pexprAllPredicates = pexprScalar;
+// 	// all predicates that could be used as index predicates, this includes the
+// 	// join predicates and selection predicates of selects right above the get
+// 	CExpression *pexprAllPredicates = pexprScalar;
 
-	// a select node that sits right on top of the get node (if it exists, NULL otherwise)
-	CExpression *selectThatIsParentOfGet = NULL;
+// 	// a select node that sits right on top of the get node (if it exists, NULL otherwise)
+// 	CExpression *selectThatIsParentOfGet = NULL;
 
-	// the logical get node (dynamic or regular get) at the bottom of the inner tree
-	CExpression *pexprGet = NULL;
+// 	// the logical get node (dynamic or regular get) at the bottom of the inner tree
+// 	CExpression *pexprGet = NULL;
 
-	// the highest node of the right child that gets inserted above the index get
-	// into the alternative, or NULL if there is no such node
-	// (this is a project, GbAgg or a select node above a project or GbAgg)
-	CExpression *nodesToInsertAboveIndexGet = NULL;
+// 	// the highest node of the right child that gets inserted above the index get
+// 	// into the alternative, or NULL if there is no such node
+// 	// (this is a project, GbAgg or a select node above a project or GbAgg)
+// 	CExpression *nodesToInsertAboveIndexGet = NULL;
 
-	// the cut-off point for "nodesAboveIndexGet", this node is below nodesAboveIndexGet
-	// but it doesn't get inserted into the alternative anymore
-	// (or NULL, if nodesAboveIndexGet == NULL)
-	CExpression *endOfNodesToInsertAboveIndexGet = NULL;
+// 	// the cut-off point for "nodesAboveIndexGet", this node is below nodesAboveIndexGet
+// 	// but it doesn't get inserted into the alternative anymore
+// 	// (or NULL, if nodesAboveIndexGet == NULL)
+// 	CExpression *endOfNodesToInsertAboveIndexGet = NULL;
 
-	// Example:
-	//
-	//      Join (with join preds)
-	//      /   \                        .
-	//   Leaf   Select (not used as an index pred)  <== nodesToInsertAboveIndexGet
-	//            \                      .
-	//            GbAgg
-	//              \                    .
-	//              Project
-	//                \                  .
-	//               Select (index/residual preds)  <== selectThatIsParentOfGet,
-	//                  \                               endOfNodesToInsertAboveIndexGet
-	//                  Get                         <== pexprGet
-	//
-	// Generated alternative:
-	//
-	//      Apply                                   <== new apply node (inner/outer)
-	//      /   \                        .
-	//   Leaf   select (not used as an index pred)  \\ .
-	//            \                                 || this stack of unary nodes is
-	//            GbAgg                             || transferred from the pattern
-	//              \                               || above (unchanged)
-	//              Project                         //
-	//                \                  .
-	//               IndexGet                       <== new IndexGet node with
-	//                                                  index/residual preds
+// 	// Example:
+// 	//
+// 	//      Join (with join preds)
+// 	//      /   \                        .
+// 	//   Leaf   Select (not used as an index pred)  <== nodesToInsertAboveIndexGet
+// 	//            \                      .
+// 	//            GbAgg
+// 	//              \                    .
+// 	//              Project
+// 	//                \                  .
+// 	//               Select (index/residual preds)  <== selectThatIsParentOfGet,
+// 	//                  \                               endOfNodesToInsertAboveIndexGet
+// 	//                  Get                         <== pexprGet
+// 	//
+// 	// Generated alternative:
+// 	//
+// 	//      Apply                                   <== new apply node (inner/outer)
+// 	//      /   \                        .
+// 	//   Leaf   select (not used as an index pred)  \\ .
+// 	//            \                                 || this stack of unary nodes is
+// 	//            GbAgg                             || transferred from the pattern
+// 	//              \                               || above (unchanged)
+// 	//              Project                         //
+// 	//                \                  .
+// 	//               IndexGet                       <== new IndexGet node with
+// 	//                                                  index/residual preds
 
-	// info on the get node (a get node or a dynamic get)
-	CTableDescriptor *ptabdescInner = NULL;
-	const CColRefSet *distributionCols = NULL;
-	CLogicalDynamicGet *popDynamicGet = NULL;
-	CAutoRef<CColRefSet> groupingColsToCheck;
+// 	// info on the get node (a get node or a dynamic get)
+// 	CTableDescriptor *ptabdescInner = NULL;
+// 	const CColRefSet *distributionCols = NULL;
+// 	CLogicalDynamicGet *popDynamicGet = NULL;
+// 	CAutoRef<CColRefSet> groupingColsToCheck;
 
-	// flag to handle union all
-	bool isUnionAllIncluded = false;
+// 	// flag to handle union all
+// 	bool isUnionAllIncluded = false;
 
-	// TODO implement recursive
+// 	// TODO implement recursive
 
-	// TODO recursive inner function should be called for recursive manner.
+// 	// TODO recursive inner function should be called for recursive manner.
 
-	// if all childs possible, then add indexjoin plan
+// 	// if all childs possible, then add indexjoin plan
 
 
-}
+// }
