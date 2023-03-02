@@ -21,6 +21,7 @@
 #include "gpopt/base/CConstraintNegation.h"
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CColRefTable.h"
 #include "gpopt/exception.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CLogicalAssert.h"
@@ -2251,6 +2252,8 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 		{
 			ulPos = pmdindex->KeyAt(ul);
 		}
+		// ulPos = pos of the column in the Relation
+
 		ULONG ulPosNonDropped = pmdrel->NonDroppedColAt(ulPos);
 
 		if (gpos::ulong_max == ulPosNonDropped ||
@@ -2264,13 +2267,33 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 			// partition to construct index metadata. If we detect a mismatch
 			// in the index and relation metadata, then we will not consider
 			// index columns.
-			pdrgpcrIndex->Release();
-			return GPOS_NEW(mp) CColRefArray(mp);
+
+			GPOS_ASSERT(false); // S62 does not support dropped columns
+			// pdrgpcrIndex->Release();
+			// return GPOS_NEW(mp) CColRefArray(mp);
 		}
 
-		GPOS_ASSERT(ulPosNonDropped < colref_array->Size());
+		ULONG ulPosInColRefArray = gpos::ulong_max;
+		for(ULONG idx = 0; idx < colref_array->Size(); idx++ ){
+			CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](idx);
+			INT attr_no = colref_table->AttrNum();
+			if( attr_no < 1 ) { // bypass system columns
+				continue;
+			}
+			if (ulPosNonDropped == (ULONG)attr_no - 2 ) {	// TODO s62 this should be attr_no -1 
+				ulPosInColRefArray = idx;
+				break;
+			}
 
-		CColRef *colref = (*colref_array)[ulPosNonDropped];
+		}
+ 		if( ulPosInColRefArray == gpos::ulong_max) { // index not found
+			continue;
+		}
+		GPOS_ASSERT(ulPosInColRefArray < gpos::ulong_max);	// index must be found
+
+		GPOS_ASSERT(ulPosInColRefArray < colref_array->Size());
+
+		CColRef *colref = (*colref_array)[ulPosInColRefArray];
 		pdrgpcrIndex->Append(colref);
 	}
 
