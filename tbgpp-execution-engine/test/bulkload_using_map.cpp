@@ -425,6 +425,10 @@ icecream::ic.disable();
 
 		// for (size_t i = 0; i < property_key_ids.size(); i++) IC(property_key_ids[i]);
 
+		// TODO need to merge below two functions into one function call
+		partition_cat->SetKeys(*client.get(), key_names);
+		partition_cat->SetTypes(types);
+
 		// Initialize DataChunk
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
