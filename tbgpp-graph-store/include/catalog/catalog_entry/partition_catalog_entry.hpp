@@ -51,6 +51,7 @@ public:
 	idx_t_vector property_indexes;
 	LogicalTypeId_vector global_property_typesid;
 	string_vector global_property_key_names;
+	idx_t num_columns;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
