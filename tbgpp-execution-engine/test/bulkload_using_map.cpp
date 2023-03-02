@@ -468,9 +468,9 @@ icecream::ic.enable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, vertex_part_cat_entry->GetOid(), {0});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::FORWARD_CSR, partition_cat->GetOid(), {1});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
-		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
+		partition_cat->AddAdjIndex(*client.get(), index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -668,10 +668,8 @@ icecream::ic.enable();
 		string edge_type = edge_file.first;
 		string partition_name = "epart_" + edge_file.first;
 		
-		// CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
-		// PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-		// PartitionID new_pid = graph_cat->GetNewPartitionID();
-		// graph_cat->AddEdgePartition(*client.get(), new_pid,  partition_cat->GetOid(), edge_type);
+		PartitionCatalogEntry *partition_cat = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, partition_name);
 
 		// Initialize CSVFileReader
 		GraphSIMDCSVFileParser reader;
@@ -753,9 +751,9 @@ icecream::ic.enable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, vertex_part_cat_entry->GetOid(), {0});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::BACKWARD_CSR, partition_cat->GetOid(), {2});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
-		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
+		partition_cat->AddAdjIndex(*client.get(), index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;

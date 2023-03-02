@@ -1179,7 +1179,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		{
 			index_type = IMDIndex::EmdindBtree;
 		}
-		else if (IndexType::CSR == index_cat->index_type) // TODO we need to add new index type
+		else if (IndexType::FORWARD_CSR == index_cat->index_type || IndexType::BACKWARD_CSR == index_cat->index_type) // TODO we need to add new index type
 		{
 			index_type = IMDIndex::EmdindBtree;
 		}
