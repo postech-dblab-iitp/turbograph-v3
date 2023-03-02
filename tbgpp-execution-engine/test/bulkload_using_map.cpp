@@ -468,7 +468,7 @@ icecream::ic.enable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, {0});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, vertex_part_cat_entry->GetOid(), {0});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
 		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
 
@@ -753,7 +753,7 @@ icecream::ic.enable();
 		vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, {0});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::CSR, vertex_part_cat_entry->GetOid(), {0});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
 		vertex_part_cat_entry->AddAdjIndex(*client.get(), index_cat->GetOid());
 
