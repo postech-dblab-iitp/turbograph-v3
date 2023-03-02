@@ -67,6 +67,10 @@ public:
 	virtual void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 						   CExpression *pexpr) const;
 
+	// S62 this enables index join on union all inner expression
+	void TransformOnUnionAllInner(CXformContext *pxfctxt, CXformResult *pxfres,
+						   CExpression *pexpr);
+
 	// Return true if xform should be applied only once.
 	// For now return true. We may need to revisit this if we find that
 	// there are multiple bindings and we miss interesting bindings because
