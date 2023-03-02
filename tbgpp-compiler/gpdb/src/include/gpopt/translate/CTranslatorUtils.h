@@ -1,21 +1,21 @@
-// //---------------------------------------------------------------------------
-// //	Greenplum Database
-// //	Copyright (C) 2012 EMC Corp.
-// //
-// //	@filename:
-// //		CTranslatorUtils.h
-// //
-// //	@doc:
-// //		Class providing utility methods for translating GPDB's PlannedStmt/Query
-// //		into DXL Tree
-// //
-// //	@test:
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2012 EMC Corp.
+//
+//	@filename:
+//		CTranslatorUtils.h
+//
+//	@doc:
+//		Class providing utility methods for translating GPDB's PlannedStmt/Query
+//		into DXL Tree
+//
+//	@test:
+//
+//---------------------------------------------------------------------------
 
-// #ifndef GPDXL_CTranslatorUtils_H
-// #define GPDXL_CTranslatorUtils_H
-// #define GPDXL_SYSTEM_COLUMNS 8
+#ifndef GPDXL_CTranslatorUtils_H
+#define GPDXL_CTranslatorUtils_H
+#define GPDXL_SYSTEM_COLUMNS 1
 
 // extern "C" {
 // #include "postgres.h"
@@ -372,6 +372,6 @@
 // };
 // }  // namespace gpdxl
 
-// #endif	// !GPDXL_CTranslatorUtils_H
+#endif	// !GPDXL_CTranslatorUtils_H
 
-// // EOF
+// EOF
