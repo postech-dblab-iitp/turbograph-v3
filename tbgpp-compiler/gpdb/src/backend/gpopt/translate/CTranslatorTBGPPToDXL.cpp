@@ -43,7 +43,7 @@ extern "C" {
 #include "gpopt/mdcache/CMDAccessor.h"
 // #include "gpopt/translate/CTranslatorTBGPPToDXL.h"
 // #include "gpopt/translate/CTranslatorScalarToDXL.h"
-// #include "gpopt/translate/CTranslatorUtils.h"
+#include "gpopt/translate/CTranslatorUtils.h"
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/dxl/gpdb_types.h"
 #include "naucrates/dxl/xml/dxltokens.h"
@@ -623,7 +623,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 		mdcol_array =
 			RetrieveRelColumns(mp, md_accessor, rel, rel_storage_type);
 		const ULONG max_cols =
-			/*GPDXL_SYSTEM_COLUMNS + */(ULONG) rel->GetNumberOfColumns() + 1;
+			GPDXL_SYSTEM_COLUMNS + (ULONG) rel->GetNumberOfColumns() + 1;
 		ULONG *attno_mapping = ConstructAttnoMapping(mp, mdcol_array, max_cols);
 
 		// TODO we do not support distributed environment now
@@ -749,9 +749,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
 
-	ULONG attnum = 1; // start from 1 - refer pg_attribute.h
-
-	// Insert physical id column
+	// Insert physical id column. Attno = -1
 	{
 		CMDName *md_colname =
 			CDXLUtils::CreateMDNameFromCharArray(mp, "_id");
@@ -764,12 +762,14 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
 		
 		CMDColumn *md_col = GPOS_NEW(mp)
-			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
+			CMDColumn(md_colname, -1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
 					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
 					  dxl_default_col_val /* default value */, col_len);
 
 		mdcol_array->Append(md_col);
 	}
+
+	ULONG attnum = 1; // start from 1 - refer pg_attribute.h
 	
 	for (ULONG ul = 0; ul < (ULONG) rel->GetNumberOfColumns(); ul++)
 	{
@@ -1195,7 +1195,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		// Relation table =
 		// 	gpdb::GetRelation(CMDIdGPDB::CastMdid(md_rel->MDId())->Oid());
 		part_cat = duckdb::GetPartition(pid);
-		ULONG size = part_cat->GetNumberOfColumns() + 1;
+		ULONG size = GPDXL_SYSTEM_COLUMNS + part_cat->GetNumberOfColumns() + 1;
 			// = GPDXL_SYSTEM_COLUMNS + (ULONG) table->rd_att->natts + 1;
 		// gpdb::CloseRelation(table);	 // close relation as early as possible
 
@@ -1575,7 +1575,7 @@ ULONG
 CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
 											   ULONG *GetAttributePosition)
 {
-	ULONG idx = attno; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
+	ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 	ULONG pos = GetAttributePosition[idx];
 	GPOS_ASSERT(gpos::ulong_max != pos);
 
@@ -1613,7 +1613,7 @@ CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
 
 		// INT attno = md_col->AttrNum();
 
-		ULONG idx = ul + 1; // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
+		ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + ul); // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 		GPOS_ASSERT(size > idx);
 		attno_mapping[idx] = ul;
 	}
@@ -3265,7 +3265,7 @@ CTranslatorTBGPPToDXL::ConstructAttnoMapping(CMemoryPool *mp,
 		const IMDColumn *md_col = (*mdcol_array)[ul];
 		INT attno = md_col->AttrNum();
 
-		ULONG idx = (ULONG)(/*GPDXL_SYSTEM_COLUMNS + */attno);
+		ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 		attno_mapping[idx] = ul;
 	}
 
