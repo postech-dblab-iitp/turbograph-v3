@@ -282,18 +282,18 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
 	
+// TODO fixme
 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
+	CColRefArray* proj_cols = GPOS_NEW(mp) CColRefArray(mp);
 
 	CExpression* scalar_proj_elem;
 	for(auto& col_id: col_ids){
 		CColRef *colref = plan_cols->operator[](col_id);
 		CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
-/// TODO S62 change to colref
 		CExpression* ident_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 		scalar_proj_elem = GPOS_NEW(mp) CExpression(
 			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
-// TODO S62 change to colref
 		proj_array->Append(scalar_proj_elem);	
 	}
 
@@ -304,6 +304,7 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), plan->getPlanExpr(), pexprPrjList);
 
 	plan->addUnaryParentOp(proj_expr);
+	// TODO FATAL!!!!!!!!!!!!!!!!!! need to update root_schema as well. need assertion
 	return plan;
 }
 

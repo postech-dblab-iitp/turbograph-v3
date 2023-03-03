@@ -86,6 +86,9 @@ public:
 	// return first member
 	CColRef *PcrFirst() const;
 
+	// return ith member
+	CColRef *PcrIth(ULONG idx) const;
+
 	// include column
 	void Include(const CColRef *colref);
 

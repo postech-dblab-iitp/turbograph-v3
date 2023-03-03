@@ -64,6 +64,7 @@ CXformJoin2IndexApply::Exfp(CExpressionHandle &exprhdl) const
 void
 CXformJoin2IndexApply::ComputeColumnSets(CMemoryPool *mp,
 										 CExpression *pexprInner,
+										 CExpression *pexprOuter,
 										 CExpression *pexprScalar,
 										 CColRefSet **ppcrsScalarExpr,
 										 CColRefSet **ppcrsOuterRefs,
@@ -73,6 +74,8 @@ CXformJoin2IndexApply::ComputeColumnSets(CMemoryPool *mp,
 	*ppcrsScalarExpr = pexprScalar->DeriveUsedColumns();
 	*ppcrsOuterRefs = GPOS_NEW(mp) CColRefSet(mp, **ppcrsScalarExpr);
 	(*ppcrsOuterRefs)->Difference(pcrsInnerOutput);
+
+	pexprOuter = pexprOuter;	// prevent compiler warning.
 
 	*ppcrsReqd = GPOS_NEW(mp) CColRefSet(mp);
 	(*ppcrsReqd)->Include(pcrsInnerOutput);
@@ -105,6 +108,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
 	GPOS_ASSERT(IMDIndex::EmdindBtree == emdtype ||
 				IMDIndex::EmdindBitmap == emdtype);
 
+	// TODO pexprInner = logical Get
+
 	const ULONG ulIndices = ptabdescInner->IndexCount();
 	if (0 == ulIndices)
 	{
@@ -115,7 +120,12 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
 	CColRefSet *pcrsScalarExpr = NULL;
 	CColRefSet *outer_refs = NULL;
 	CColRefSet *pcrsReqd = NULL;
-	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
+
+
+// TODO S62 using different inner. TOP of inner branch.
+	//ComputeColumnSets(mp, pexprInner, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
+	//				  &pcrsReqd);
+	ComputeColumnSets(mp, nodesToInsertAboveIndexGet, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
 					  &pcrsReqd);
 
 	if (IMDIndex::EmdindBtree == emdtype)
@@ -217,7 +227,7 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex(
 	CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet(
 		mp, md_accessor, pexprInner, joinOp->UlOpId(), pdrgpexprConjuncts,
 		pcrsReqd, pcrsScalarExpr, outer_refs, pmdindex, pmdrel,
-		false /*fAllowPartialIndex*/, ppartcnstrIndex);
+		false /*fAllowPartialIndex*/, ppartcnstrIndex, pexprInner);
 	if (NULL != pexprLogicalIndexGet)
 	{
 		// second child has residual predicates, create an apply of outer and inner
@@ -426,7 +436,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives(
 	CColRefSet *pcrsScalarExpr = NULL;
 	CColRefSet *outer_refs = NULL;
 	CColRefSet *pcrsReqd = NULL;
-	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
+	ComputeColumnSets(mp, pexprInner, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
 					  &pcrsReqd);
 
 	// find a candidate set of partial index combinations
