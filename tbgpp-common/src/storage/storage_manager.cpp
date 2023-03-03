@@ -45,7 +45,7 @@ bool StorageManager::InMemory() {
 	return path.empty() || path == ":memory:";
 }
 
-void StorageManager::Initialize(bool create_new_db) {
+void StorageManager::Initialize() {
 	// bool in_memory = InMemory();
 	bool in_memory = true;
 	if (in_memory && read_only) {
@@ -59,25 +59,12 @@ void StorageManager::Initialize(bool create_new_db) {
 
 	// auto &config = DBConfig::GetConfig(db);
 	// auto &catalog = Catalog::GetCatalog(*con.context);
-	auto &catalog = db.GetCatalog();
-	std::shared_ptr<ClientContext> client = 
-		std::make_shared<ClientContext>(db.shared_from_this());
 
 	// // create the default schema
 	// CreateSchemaInfo info;
 	// info.schema = DEFAULT_SCHEMA;
 	// info.internal = true;
 	// catalog.CreateSchema(*con.context, &info);
-
-	if (create_new_db) {
-	// if (config.initialize_default_database) {
-	// 	// initialize default functions
-		BuiltinFunctions builtin(*client.get(), catalog);
-		icecream::ic.enable(); IC(); icecream::ic.disable();
-		builtin.Initialize();
-		icecream::ic.enable(); IC(); icecream::ic.disable();
-	// }
-	}
 
 	// // commit transactions
 	// con.Commit();

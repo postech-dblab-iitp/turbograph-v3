@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/scalar_function_catalog_entry.hpp"
+#include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "common/types/hash.hpp"
 #include "common/limits.hpp"
 #include "common/string_util.hpp"
@@ -126,7 +127,8 @@ void BuiltinFunctions::Initialize() {
 	// AddCollation("nfc", NFCNormalizeFun::GetFunction());
 }
 
-BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog) : context(context), catalog(catalog) {
+BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog, bool is_catalog_already_exist) : context(context), catalog(catalog),
+	is_catalog_already_exist(is_catalog_already_exist) {
 }
 
 // void BuiltinFunctions::AddCollation(string name, ScalarFunction function, bool combinable,
@@ -136,13 +138,39 @@ BuiltinFunctions::BuiltinFunctions(ClientContext &context, Catalog &catalog) : c
 // }
 
 void BuiltinFunctions::AddFunction(AggregateFunctionSet set) {
-	CreateAggregateFunctionInfo info(move(set));
-	catalog.CreateFunction(context, &info);
+	unique_ptr<AggregateFunctionSet> set_ptr = make_unique<AggregateFunctionSet>(set.name);
+	set_ptr->functions = move(set.functions);
+	if (!is_catalog_already_exist) {
+		CreateAggregateFunctionInfo info(move(set_ptr));
+		catalog.CreateFunction(context, &info);
+	} else {
+		string func_name = set.name;
+		AggregateFunctionCatalogEntry *agg_func_cat = 
+			(AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name);
+		
+		if (agg_func_cat == nullptr) {
+			throw InvalidInputException("AggFuncCatalog error");
+		}
+		agg_func_cat->SetFunctions(move(set_ptr));
+	}
 }
 
 void BuiltinFunctions::AddFunction(AggregateFunction function) {
-	CreateAggregateFunctionInfo info(move(function));
-	catalog.CreateFunction(context, &info);
+	unique_ptr<AggregateFunctionSet> set_ptr = make_unique<AggregateFunctionSet>(function.name);
+	set_ptr->AddFunction(move(function));
+	if (!is_catalog_already_exist) {
+		CreateAggregateFunctionInfo info(move(set_ptr));
+		catalog.CreateFunction(context, &info);
+	} else {
+		string func_name = function.name;
+		AggregateFunctionCatalogEntry *agg_func_cat = 
+			(AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name);
+		
+		if (agg_func_cat == nullptr) {
+			throw InvalidInputException("AggFuncCatalog error");
+		}
+		agg_func_cat->SetFunctions(move(set_ptr));
+	}
 }
 
 // void BuiltinFunctions::AddFunction(PragmaFunction function) {
@@ -156,8 +184,21 @@ void BuiltinFunctions::AddFunction(AggregateFunction function) {
 // }
 
 void BuiltinFunctions::AddFunction(ScalarFunction function) {
-	CreateScalarFunctionInfo info(move(function));
-	catalog.CreateFunction(context, &info);
+	unique_ptr<ScalarFunctionSet> set_ptr = make_unique<ScalarFunctionSet>(function.name);
+	set_ptr->AddFunction(move(function));
+	if (!is_catalog_already_exist) {
+		CreateScalarFunctionInfo info(move(set_ptr));
+		catalog.CreateFunction(context, &info);
+	} else {
+		string func_name = function.name;
+		ScalarFunctionCatalogEntry *scalar_func_cat = 
+			(ScalarFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::SCALAR_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name);
+		
+		if (scalar_func_cat == nullptr) {
+			throw InvalidInputException("ScalarFuncCatalog error");
+		}
+		scalar_func_cat->SetFunctions(move(set_ptr));
+	}
 }
 
 void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction function) { // NOLINT: false positive
@@ -168,8 +209,21 @@ void BuiltinFunctions::AddFunction(const vector<string> &names, ScalarFunction f
 }
 
 void BuiltinFunctions::AddFunction(ScalarFunctionSet set) {
-	CreateScalarFunctionInfo info(move(set));
-	catalog.CreateFunction(context, &info);
+	unique_ptr<ScalarFunctionSet> set_ptr = make_unique<ScalarFunctionSet>(set.name);
+	set_ptr->functions = move(set.functions);
+	if (!is_catalog_already_exist) {
+		CreateScalarFunctionInfo info(move(set_ptr));
+		catalog.CreateFunction(context, &info);
+	} else {
+		string func_name = set.name;
+		ScalarFunctionCatalogEntry *scalar_func_cat = 
+			(ScalarFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::SCALAR_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name);
+		
+		if (scalar_func_cat == nullptr) {
+			throw InvalidInputException("ScalarFuncCatalog error");
+		}
+		scalar_func_cat->SetFunctions(move(set_ptr));
+	}
 }
 
 // void BuiltinFunctions::AddFunction(TableFunction function) {

@@ -69,5 +69,7 @@ public:
 
 	//! Convert the catalog entry to a SQL string that can be used to re-construct the catalog entry
 	virtual string ToSQL();
+
+	void SetCatalog(Catalog *catalog) { this->catalog = catalog; }
 };
 } // namespace duckdb
