@@ -58,7 +58,18 @@ Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segme
       dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 0;
 	catalog_segment = catalog_segment_;
+	
+	// create the default schema
+	std::shared_ptr<ClientContext> client = 
+		std::make_shared<ClientContext>(db.shared_from_this());
+	CreateSchemaInfo schema_info;
+	CreateSchema(*client.get(), &schema_info);
+
+	// initialize default functions
+	BuiltinFunctions builtin(*client.get(), *this, false);
+	builtin.Initialize();
 }
+
 Catalog::~Catalog() {
 }
 
@@ -72,6 +83,7 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
 	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
+	entry->SetCatalog(this);
 // IC();
 
 	std::shared_ptr<ClientContext> client = 
@@ -81,10 +93,15 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 	}
 // IC();
 
-	// Load CatalogSet
+	// Set SHM
 	entry->SetCatalogSegment(catalog_segment_);
-// IC();
+
+	// Load CatalogSet
 	entry->LoadCatalogSet();
+
+	// initialize default functions
+	BuiltinFunctions builtin(*client.get(), *this, true);
+	builtin.Initialize();
 // IC();
 // icecream::ic.disable();
 
