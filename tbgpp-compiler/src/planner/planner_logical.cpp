@@ -287,11 +287,13 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	CExpression* scalar_proj_elem;
 	for(auto& col_id: col_ids){
 		CColRef *colref = plan_cols->operator[](col_id);
-		//CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+		CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+/// TODO S62 change to colref
 		CExpression* ident_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 		scalar_proj_elem = GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr);
+			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
+// TODO S62 change to colref
 		proj_array->Append(scalar_proj_elem);	
 	}
 
@@ -439,7 +441,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 		} else {
 			// UNION + REL
 			union_plan = lExprLogicalUnionAllWithMapping(
-				union_plan,  union_plan->DeriveOutputColumns()->Pdrgpcr(mp), expr, output_array);
+				union_plan, union_plan->DeriveOutputColumns()->Pdrgpcr(mp), expr, output_array);
 		}
 	}
 
@@ -547,13 +549,13 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			
 		} else {
 			// project non-null column
-			CColRef *colref = lGetIthColRef(relation->DeriveOutputColumns(), col_id);
-			//CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
-			
+			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
+			CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+				// TODO S62 disable
 			CExpression* ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
-				mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr);
+				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // TODO S62 change to colref
 
 			proj_array->Append(scalar_proj_elem);	
 			output_col_array->Append(colref);

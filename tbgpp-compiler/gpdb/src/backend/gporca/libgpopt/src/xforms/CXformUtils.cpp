@@ -2354,9 +2354,10 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 		CXformUtils::PcrsIndexIncludedCols(mp, pdrgpcrOutput, pmdindex, pmdrel);
 	CColRefSet *pcrsIndexCols =
 		CXformUtils::PcrsIndexKeys(mp, pdrgpcrOutput, pmdindex, pmdrel);
-	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) ||	 // index is not covering
-		pcrsScalar->IsDisjoint(
-			pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
+//		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+// TODO s62 revive this predicate 230303
+		)
 	{
 		fApplicable = false;
 	}
