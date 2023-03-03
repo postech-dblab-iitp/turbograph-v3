@@ -51,6 +51,7 @@ public:
 	vector<LogicalType> property_types; // TODO SHM
 	LogicalTypeId_vector property_typesid;
 	string_vector property_key_names;
+	idx_t num_columns;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;

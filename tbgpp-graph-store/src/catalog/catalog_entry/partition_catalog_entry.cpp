@@ -16,6 +16,7 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntr
 	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
+	this->num_columns = 0;
 }
 
 // TODO psid is now oid.. do we need PropertySchemaID?
@@ -67,6 +68,7 @@ idx_t_vector *PartitionCatalogEntry::GetAdjIndexOidVec() {
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(global_property_typesid.empty());
 	for (auto &it : types) {
+		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
 		global_property_typesid.push_back(it.id());
 	}
 }
@@ -83,7 +85,7 @@ void PartitionCatalogEntry::SetKeys(ClientContext &context, vector<string> &key_
 }
 
 uint64_t PartitionCatalogEntry::GetNumberOfColumns() const {
-	return global_property_key_names.size();
+	return num_columns;
 }
 
 } // namespace duckdb

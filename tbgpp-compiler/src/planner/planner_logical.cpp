@@ -652,14 +652,15 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 	
 	auto num_cols = lGetMDAccessor()->RetrieveRel(mdid)->ColumnCount();
 	for (ULONG i = 0; i < num_cols; i++) {
-
-		IMDId* type_id = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->MdidType();
+		const IMDColumn *md_col = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i);
+		IMDId *type_id = md_col->MdidType();
 		const IMDType* pmdtype = lGetMDAccessor()->RetrieveType(type_id);
-		INT type_modifier = lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->TypeModifier();
-		CName colname(lGetMDAccessor()->RetrieveRel(mdid)->GetMdCol(i)->Mdname().GetMDName());
+		INT type_modifier = md_col->TypeModifier();
+		CName colname(md_col->Mdname().GetMDName());
+		INT attno = md_col->AttrNum();
 		CColumnDescriptor *pcoldesc = GPOS_NEW(mp)
 			CColumnDescriptor(mp, pmdtype, type_modifier,
-							  colname, i + 1, is_nullable);
+							  colname, attno, is_nullable);
 		ptabdesc->AddColumn(pcoldesc);
 	}
 
