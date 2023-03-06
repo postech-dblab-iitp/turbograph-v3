@@ -275,7 +275,8 @@ private:
 
 	// compute the array of included columns
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
-											  const duckdb::PartitionCatalogEntry *part_cat);
+											  const IMDRelation *md_rel
+											  /*const duckdb::PartitionCatalogEntry *part_cat*/);
 
 	// // is given level included in the default partitions
 	// static BOOL LevelHasDefaultPartition(List *default_levels, ULONG level);
@@ -393,7 +394,8 @@ public:
 
 	// populate the attribute number to position mapping
 	static ULONG *PopulateAttnoPositionMap(CMemoryPool *mp,
-										   const duckdb::PartitionCatalogEntry *part_cat,
+										   const IMDRelation *md_rel,
+										   /*const duckdb::PartitionCatalogEntry *part_cat,*/
 										   ULONG size);
 
 	// return the position of a given attribute number

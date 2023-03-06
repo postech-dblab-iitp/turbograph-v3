@@ -1135,6 +1135,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 
 	const IMDRelation *md_rel = NULL;
 	const PartitionCatalogEntry *part_cat = NULL;
+	PropertySchemaCatalogEntry *ps_cat = NULL;
 	// Form_pg_index form_pg_index = NULL;
 	CMDName *mdname = NULL;
 	IMDIndex::EmdindexType index_type = IMDIndex::EmdindSentinel;
@@ -1156,7 +1157,8 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		// index_clustered = form_pg_index->indisclustered;
 
 		// OID rel_oid = form_pg_index->indrelid;
-		idx_t pid = index_cat->GetPartitionID();
+		// idx_t pid = index_cat->GetPartitionID();
+		idx_t psid = index_cat->GetPropertySchemaID();
 
 		// TODO we do not support partition currently
 		// if (gpdb::IsLeafPartition(rel_oid))
@@ -1164,9 +1166,9 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		// 	rel_oid = gpdb::GetRootPartition(rel_oid);
 		// }
 
-		// CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, pid);
+		CMDIdGPDB *mdid_rel = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, psid);
 
-		// md_rel = md_accessor->RetrieveRel(mdid_rel);
+		md_rel = md_accessor->RetrieveRel(mdid_rel);
 
 		// TODO we do not support partition currently
 		// if (md_rel->IsPartitioned())
@@ -1210,12 +1212,15 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 
 		// Relation table =
 		// 	gpdb::GetRelation(CMDIdGPDB::CastMdid(md_rel->MDId())->Oid());
-		part_cat = duckdb::GetPartition(pid);
-		ULONG size = GPDXL_SYSTEM_COLUMNS + part_cat->GetNumberOfColumns() + 1;
+		// part_cat = duckdb::GetPartition(pid);
+		ps_cat = duckdb::GetRelation(psid);
+		// ULONG size = GPDXL_SYSTEM_COLUMNS + part_cat->GetNumberOfColumns() + 1;
+		ULONG size = GPDXL_SYSTEM_COLUMNS + ps_cat->GetNumberOfColumns() + 1;
 			// = GPDXL_SYSTEM_COLUMNS + (ULONG) table->rd_att->natts + 1;
 		// gpdb::CloseRelation(table);	 // close relation as early as possible
 
-		attno_mapping = PopulateAttnoPositionMap(mp, part_cat, size);
+		// attno_mapping = PopulateAttnoPositionMap(mp, part_cat, size);
+		attno_mapping = PopulateAttnoPositionMap(mp, md_rel, size);
 
 		// extract the position of the key columns
 		index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
@@ -1239,8 +1244,8 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 	}
 	GPOS_CATCH_END;
 
-	// ULongPtrArray *included_cols = ComputeIncludedCols(mp, md_rel);
-	ULongPtrArray *included_cols = ComputeIncludedCols(mp, part_cat);
+	ULongPtrArray *included_cols = ComputeIncludedCols(mp, md_rel);
+	// ULongPtrArray *included_cols = ComputeIncludedCols(mp, part_cat);
 	mdid_index->AddRef();
 	IMdIdArray *op_families_mdids = RetrieveIndexOpFamilies(mp, mdid_index);
 
@@ -1560,13 +1565,15 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 //---------------------------------------------------------------------------
 ULongPtrArray *
 CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
-											  const PartitionCatalogEntry *part_cat)
+											  const IMDRelation *md_rel
+											  /*const PartitionCatalogEntry *part_cat*/)
 {
 	// TODO: 3/19/2012; currently we assume that all the columns
 	// in the table are available from the index.
 
 	ULongPtrArray *included_cols = GPOS_NEW(mp) ULongPtrArray(mp);
-	const ULONG num_included_cols = part_cat->GetNumberOfColumns();
+	// const ULONG num_included_cols = part_cat->GetNumberOfColumns();
+	const ULONG num_included_cols = md_rel->ColumnCount();
 	for (ULONG ul = 0; ul < num_included_cols; ul++)
 	{
 		// if (!md_rel->GetMdCol(ul)->IsDropped()) // TODO we do not have column drop currently
@@ -1608,11 +1615,12 @@ CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
 //---------------------------------------------------------------------------
 ULONG *
 CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
-												   const PartitionCatalogEntry *part_cat,
+												   const IMDRelation *md_rel,
+												   /*const PartitionCatalogEntry *part_cat,*/
 												   ULONG size)
 {
-	GPOS_ASSERT(NULL != part_cat);
-	const ULONG num_included_cols = part_cat->GetNumberOfColumns();
+	GPOS_ASSERT(NULL != md_rel);
+	const ULONG num_included_cols = md_rel->ColumnCount();
 
 	GPOS_ASSERT(num_included_cols <= size);
 	ULONG *attno_mapping = GPOS_NEW_ARRAY(mp, ULONG, size);
@@ -1625,11 +1633,11 @@ CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
 	for (ULONG ul = 0; ul < num_included_cols; ul++)
 	{
 		// TODO we do not have partition object in mdcache
-		// const IMDColumn *md_col = md_rel->GetMdCol(ul);
+		const IMDColumn *md_col = md_rel->GetMdCol(ul);
 
-		// INT attno = md_col->AttrNum();
+		INT attno = md_col->AttrNum();
 
-		ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + ul); // = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
+		ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
 		GPOS_ASSERT(size > idx);
 		attno_mapping[idx] = ul;
 	}
