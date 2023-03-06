@@ -89,6 +89,7 @@ target_compile_definitions(tbgpp-main PUBLIC ${CXX_DEFINITION})
 ####################################################
 file(GLOB CLIENT_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/TurboGraph-S62.cpp"
+  "${PROJECT_SOURCE_DIR}/test/dump_s62_mda.cpp"
 )
 
 foreach(test_file ${CLIENT_TEST_SRC})

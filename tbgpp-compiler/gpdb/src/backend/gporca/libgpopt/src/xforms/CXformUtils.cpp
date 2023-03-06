@@ -2274,25 +2274,26 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 		}
 
 		ULONG ulPosInColRefArray = gpos::ulong_max;
+	
+		CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](0);
+		CMDIdGPDB* rel = CMDIdGPDB::CastMdid( colref_table->GetMdidTable() );
+		const IMDRelation *rel_md = COptCtxt::PoctxtFromTLS()->Pmda()->RetrieveRel(rel);
+
+		// given ulPosNonDropped, find matching colref index() in array
+		gpos::INT target_attr_no = rel_md->GetMdCol(ulPos)->AttrNum();
+
 		for(ULONG idx = 0; idx < colref_array->Size(); idx++ ){
 			CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](idx);
 			INT attr_no = colref_table->AttrNum();
-
-// TODO 230303 system column에 대한 index도 있음....
-			if( attr_no < 1 ) { // bypass system columns
-				continue;
-			}
-			if (ulPosNonDropped == (ULONG)attr_no - 1 ) {	// TODO s62 this should be attr_no -1 
+			if(target_attr_no == attr_no) {
 				ulPosInColRefArray = idx;
-				break;
 			}
-
 		}
  		if( ulPosInColRefArray == gpos::ulong_max) { // index not found
 			continue;
 		}
-		GPOS_ASSERT(ulPosInColRefArray < gpos::ulong_max);	// index must be found
 
+		GPOS_ASSERT(ulPosInColRefArray < gpos::ulong_max);	// index must be found
 		GPOS_ASSERT(ulPosInColRefArray < colref_array->Size());
 
 		CColRef *colref = (*colref_array)[ulPosInColRefArray];

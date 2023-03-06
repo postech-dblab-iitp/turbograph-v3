@@ -29,13 +29,13 @@ public:
 	idx_t pid; // oid of the partition to which this index belongs
 	// shared_ptr<DataTableInfo> info;
 	// string sql;
-	idx_t_vector index_key_columns;
+	int64_t_vector index_key_columns;
 	idx_t adj_col_idx;
 
 public:
 	string ToSQL() override;
 	idx_t GetPartitionID();
-	idx_t_vector *GetIndexKeyColumns();
+	int64_t_vector *GetIndexKeyColumns();
 	IndexType GetIndexType();
 	idx_t GetAdjColIdx();
 };
