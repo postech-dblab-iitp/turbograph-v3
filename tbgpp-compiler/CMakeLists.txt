@@ -117,6 +117,7 @@ target_compile_definitions(tbgpp-compiler PUBLIC ${CXX_DEFINITION})
 ####################################################
 file(GLOB COMPILER_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/kuzu_integration_test.cpp"
+  "${PROJECT_SOURCE_DIR}/test/dump_s62_mda.cpp"
 )
 
 foreach(test_file ${COMPILER_TEST_SRC})

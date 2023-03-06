@@ -352,7 +352,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJoinToIdSeek(CExpression* plan_expr) {
 
 // TODO 230303 do me
-	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0)); // TODO ....
+	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
 	return result;
 }
@@ -446,7 +446,7 @@ uint64_t Planner::pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_c
 uint64_t Planner::pGetColIdxFromTable(OID table_oid, const CColRef* target_col) {
 
 	CMemoryPool* mp = this->memory_pool;
-// 230303 fuck
+// 230303 is using the mapping below OK?
 	// D_ASSERT( table_col_mapping.count(table_oid) );
 	// for(int orig_col_id = 0; orig_col_id < table_col_mapping[table_oid].size(); orig_col_id++) {
 	// 	if( target_col == table_col_mapping[table_oid][orig_col_id] ) {
@@ -465,9 +465,6 @@ uint64_t Planner::pGetColIdxFromTable(OID table_oid, const CColRef* target_col) 
 	} else{
 		return (uint64_t)attr_no;
 	}
-
-
 }
-
 
 }
