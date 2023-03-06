@@ -67,7 +67,7 @@ public:
 	virtual const CHAR *
 	SzId() const
 	{
-		return "CLogicalProjectColumnar";
+		return "CLogicalProject_";
 	}
 
 	//-------------------------------------------------------------------------------------
