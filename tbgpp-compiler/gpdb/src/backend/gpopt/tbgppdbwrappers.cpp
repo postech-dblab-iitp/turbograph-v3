@@ -60,9 +60,19 @@ duckdb::GetRelation(idx_t rel_oid) {
 	return NULL;
 }
 
+idx_t
+duckdb::GetRelationPhysicalIDIndex(idx_t partition_oid) {
+	return catalog_wrapper->GetRelationPhysicalIDIndex(*client_wrapper.get(), partition_oid);
+}
+
 idx_t_vector*
-duckdb::GetRelationIndexes(idx_t partition_oid) {
-	return catalog_wrapper->GetRelationIndexes(*client_wrapper.get(), partition_oid);
+duckdb::GetRelationAdjIndexes(idx_t partition_oid) {
+	return catalog_wrapper->GetRelationAdjIndexes(*client_wrapper.get(), partition_oid);
+}
+
+idx_t_vector*
+duckdb::GetRelationPropertyIndexes(idx_t partition_oid) {
+	return catalog_wrapper->GetRelationPropertyIndexes(*client_wrapper.get(), partition_oid);
 }
 
 IndexCatalogEntry*

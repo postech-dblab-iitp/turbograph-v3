@@ -39,10 +39,22 @@ public:
         return ps_cat;
     }
 
-    idx_t_vector *GetRelationIndexes(ClientContext &context, idx_t partition_oid) {
+    idx_t GetRelationPhysicalIDIndex(ClientContext &context, idx_t partition_oid) {
+        auto &catalog = db.GetCatalog();
+        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        return part_cat->GetPhysicalIDIndexOid();
+    }
+
+    idx_t_vector *GetRelationAdjIndexes(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
         PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetAdjIndexOidVec();
+    }
+
+    idx_t_vector *GetRelationPropertyIndexes(ClientContext &context, idx_t partition_oid) {
+        auto &catalog = db.GetCatalog();
+        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        return part_cat->GetPropertyIndexOidVec();
     }
 
     IndexCatalogEntry *GetIndex(ClientContext &context, idx_t index_oid) {
