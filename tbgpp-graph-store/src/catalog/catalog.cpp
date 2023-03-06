@@ -50,13 +50,13 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 
 Catalog::Catalog(DatabaseInstance &db)
     : db(db), dependency_manager(make_unique<DependencyManager>(*this)) {
-	catalog_version = 0; // TODO we need to load this
+	catalog_version = 1; // TODO we need to load this
 }
 
 Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment_)
     : db(db), schemas(make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this))),
       dependency_manager(make_unique<DependencyManager>(*this)) {
-	catalog_version = 0;
+	catalog_version = 1;
 	catalog_segment = catalog_segment_;
 	
 	// create the default schema

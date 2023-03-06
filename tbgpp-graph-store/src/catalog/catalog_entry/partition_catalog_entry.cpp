@@ -17,6 +17,7 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntr
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->num_columns = 0;
+	this->physical_id_index = INVALID_OID;
 }
 
 // TODO psid is now oid.. do we need PropertySchemaID?
@@ -53,16 +54,29 @@ void PartitionCatalogEntry::GetPropertySchemaIDs(vector<idx_t> &psids) {
 	}
 }
 
-void PartitionCatalogEntry::AddAdjIndex(ClientContext &context, idx_t index_oid) {
+void PartitionCatalogEntry::SetPhysicalIDIndex(idx_t index_oid) {
+	physical_id_index = index_oid;
+}
+
+void PartitionCatalogEntry::AddAdjIndex(idx_t index_oid) {
 	adjlist_indexes.push_back(index_oid);
 }
 
-void PartitionCatalogEntry::AddPropertyIndex(ClientContext &context, idx_t index_oid) {
+void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 	property_indexes.push_back(index_oid);
+}
+
+idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
+	D_ASSERT(physical_id_index != INVALID_OID);
+	return physical_id_index;
 }
 
 idx_t_vector *PartitionCatalogEntry::GetAdjIndexOidVec() {
 	return &adjlist_indexes;
+}
+
+idx_t_vector *PartitionCatalogEntry::GetPropertyIndexOidVec() {
+	return &property_indexes;
 }
 
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
