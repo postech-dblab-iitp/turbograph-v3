@@ -354,13 +354,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 {
 	CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
 
-	// not a partitioned table: obtain indexes directly from the catalog
-	idx_t partition_oid = rel->GetPartitionOID();
-	idx_t_vector *index_oids = duckdb::GetRelationIndexes(partition_oid);
-
-	for (idx_t i = 0; i < index_oids->size(); i++) {
-		idx_t index_oid = (*index_oids)[i];
-
+	auto append_index_md = [&](idx_t index_oid) {
 		IndexCatalogEntry *index_cat = duckdb::GetIndex(index_oid);
 	
 		if (NULL == index_cat)
@@ -395,6 +389,28 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 			GPOS_RETHROW(ex);
 		}
 		GPOS_CATCH_END;
+	};
+
+	// not a partitioned table: obtain indexes directly from the catalog
+	idx_t partition_oid = rel->GetPartitionOID();
+	PartitionCatalogEntry *part_cat = duckdb::GetPartition(partition_oid);
+
+	// Get PhysicalID Index
+	idx_t physical_id_index_oid = part_cat->GetPhysicalIDIndexOid();
+	append_index_md(physical_id_index_oid);
+
+	// Get AdjList Indexes
+	idx_t_vector *adj_index_oids = part_cat->GetAdjIndexOidVec();
+	for (idx_t i = 0; i < adj_index_oids->size(); i++) {
+		idx_t index_oid = (*adj_index_oids)[i];
+		append_index_md(index_oid);
+	}
+
+	// Get Property Indexes
+	idx_t_vector *property_index_oids = part_cat->GetPropertyIndexOidVec();
+	for (idx_t i = 0; i < property_index_oids->size(); i++) {
+		idx_t index_oid = (*property_index_oids)[i];
+		append_index_md(index_oid);
 	}
 
 	return md_index_info_array;

@@ -207,16 +207,8 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	//object_cache = make_unique<ObjectCache>();
 	//connection_manager = make_unique<ConnectionManager>();
 
-	// We need create default schema.. how? TODO.. The code below is temporary
-	if (create_new_db) {
-		std::shared_ptr<ClientContext> client = 
-			std::make_shared<ClientContext>(this->shared_from_this());
-		CreateSchemaInfo schema_info;
-		catalog->CreateSchema(*client.get(), &schema_info);
-	}
-
 	// initialize the database
-	storage->Initialize(create_new_db);
+	storage->Initialize();
 
 	// only increase thread count after storage init because we get races on catalog otherwise
 	//scheduler->SetThreads(config.maximum_threads);

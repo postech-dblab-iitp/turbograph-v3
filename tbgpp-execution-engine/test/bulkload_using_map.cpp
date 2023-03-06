@@ -164,6 +164,11 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		// TODO need to merge below two functions into one function call
 		partition_cat->SetKeys(*client.get(), key_names);
 		partition_cat->SetTypes(types);
+
+		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {});
+		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
+		partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 		
 		// Initialize DataChunk
 		DataChunk data;
@@ -429,6 +434,11 @@ icecream::ic.disable();
 		partition_cat->SetKeys(*client.get(), key_names);
 		partition_cat->SetTypes(types);
 
+		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {});
+		IndexCatalogEntry *id_index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &id_idx_info);
+		partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
+
 		// Initialize DataChunk
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
@@ -472,9 +482,9 @@ icecream::ic.enable();
 		idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::FORWARD_CSR, partition_cat->GetOid(), adj_col_idx, {0});
-		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
-		partition_cat->AddAdjIndex(*client.get(), index_cat->GetOid());
+		CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, edge_type, IndexType::FORWARD_CSR, partition_cat->GetOid(), adj_col_idx, {0});
+		IndexCatalogEntry *adj_index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &adj_idx_info);
+		partition_cat->AddAdjIndex(adj_index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;
@@ -757,7 +767,7 @@ icecream::ic.enable();
 		// Create Index Catalog & Add to PartitionCatalogEntry
 		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::BACKWARD_CSR, partition_cat->GetOid(), adj_col_idx, {1});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
-		partition_cat->AddAdjIndex(*client.get(), index_cat->GetOid());
+		partition_cat->AddAdjIndex(index_cat->GetOid());
 
 		// Initialize variables related to vertex extent
 		idx_t cur_src_id, cur_dst_id, cur_src_pid, cur_dst_pid;

@@ -22,14 +22,19 @@ class ScalarFunctionCatalogEntry : public StandardEntry {
 	// typedef boost::interprocess::vector<ScalarFunction, scalarfunction_allocator> ScalarFunction_vector;
 public:
 	ScalarFunctionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateScalarFunctionInfo *info, const void_allocator &void_alloc)
-	    : StandardEntry(CatalogType::SCALAR_FUNCTION_ENTRY, schema, catalog, info->name, void_alloc), functions(info->functions/*void_alloc*/) {
-		// for (int i = 0; i < info->functions.size(); i++} {
+	    : StandardEntry(CatalogType::SCALAR_FUNCTION_ENTRY, schema, catalog, info->name, void_alloc), functions(move(info->functions)) {
+		// for (int i = 0; i < info->functions.size(); i++) {
 		// 	functions.push_back(info->functions[i]);
 		// }
 	}
 
 	//! The scalar functions
-	vector<ScalarFunction> functions;
-	// ScalarFunction_vector functions;
+	// vector<ScalarFunction> functions;
+	unique_ptr<ScalarFunctionSet> functions;
+
+	void SetFunctions(unique_ptr<ScalarFunctionSet> set_ptr) {
+		functions.release(); // TODO this is tricky code.. not preferred
+		functions = move(set_ptr);
+	}
 };
 } // namespace duckdb

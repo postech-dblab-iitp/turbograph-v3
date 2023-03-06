@@ -39,7 +39,7 @@ public:
 	static StorageManager &GetStorageManager(DatabaseInstance &db);
 
 	//! Initialize a database or load an existing database from the given path
-	void Initialize(bool create_new_db);
+	void Initialize();
 	//! Get the WAL of the StorageManager, returns nullptr if in-memory
 	// WriteAheadLog *GetWriteAheadLog() {
 	// 	return wal.initialized ? &wal : nullptr;
