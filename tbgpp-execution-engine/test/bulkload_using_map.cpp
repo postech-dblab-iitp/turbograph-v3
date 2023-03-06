@@ -166,7 +166,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		partition_cat->SetTypes(types);
 
 		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {-1});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
 		partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 		
@@ -435,7 +435,7 @@ icecream::ic.disable();
 		partition_cat->SetTypes(types);
 
 		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {});
+		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {-1});
 		IndexCatalogEntry *id_index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &id_idx_info);
 		partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 

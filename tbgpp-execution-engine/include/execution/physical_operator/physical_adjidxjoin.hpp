@@ -16,6 +16,7 @@ class PhysicalAdjIdxJoin: public CypherPhysicalOperator {
 
 public:
 	//230303 TODO need to change this....
+		// adjidx_obj_id => multiple objects
 	PhysicalAdjIdxJoin(CypherSchema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid) 
 		: CypherPhysicalOperator(sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
 			enumerate(true), remaining_conditions(move(vector<JoinCondition>()))

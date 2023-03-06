@@ -25,7 +25,7 @@ idx_t IndexCatalogEntry::GetPartitionID() {
 	return pid;
 }
 
-idx_t_vector *IndexCatalogEntry::GetIndexKeyColumns() {
+int64_t_vector *IndexCatalogEntry::GetIndexKeyColumns() {
 	return &index_key_columns;
 }
 

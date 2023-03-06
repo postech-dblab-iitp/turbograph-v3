@@ -255,9 +255,9 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 		// WARNING - printer should be disabled when processing following compilation step.
-		// std::cout << "Tree => " << std::endl;
-		// printer.print();
-		// std::cout << std::endl;
+		std::cout << "Tree => " << std::endl;
+		printer.print();
+		std::cout << std::endl;
 
 		auto planner = s62::Planner(s62::MDProviderType::TBGPP, client.get());
 		planner.execute(bst);

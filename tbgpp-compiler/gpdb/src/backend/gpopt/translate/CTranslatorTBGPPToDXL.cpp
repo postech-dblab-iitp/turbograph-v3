@@ -1220,7 +1220,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		// extract the position of the key columns
 		index_key_cols_array = GPOS_NEW(mp) ULongPtrArray(mp);
 
-		idx_t_vector *index_key_columns = index_cat->GetIndexKeyColumns();
+		int64_t_vector *index_key_columns = index_cat->GetIndexKeyColumns();
 		for (int i = 0; i < index_key_columns->size(); i++)
 		{
 			INT attno = (INT) GPDXL_SYSTEM_COLUMNS + (*index_key_columns)[i];
