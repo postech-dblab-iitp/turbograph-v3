@@ -1228,13 +1228,13 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		int64_t_vector *index_key_columns = index_cat->GetIndexKeyColumns();
 		for (int i = 0; i < index_key_columns->size(); i++)
 		{
-			INT attno = (INT) GPDXL_SYSTEM_COLUMNS + (*index_key_columns)[i];
+			INT attno = (*index_key_columns)[i];
 			GPOS_ASSERT(0 != attno && "Index expressions not supported");
 
 			index_key_cols_array->Append(
 				GPOS_NEW(mp) ULONG(GetAttributePosition(attno, attno_mapping)));
 		}
-		// mdid_rel->Release();
+		mdid_rel->Release();
 		// gpdb::CloseRelation(index_rel);
 	}
 	GPOS_CATCH_EX(ex)
@@ -1256,7 +1256,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 					 NULL  // mdpart_constraint
 		);
 
-	// GPOS_DELETE_ARRAY(attno_mapping);
+	GPOS_DELETE_ARRAY(attno_mapping);
 	return index;
 }
 
