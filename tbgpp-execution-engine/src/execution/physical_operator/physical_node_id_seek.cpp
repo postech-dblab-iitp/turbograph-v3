@@ -16,7 +16,7 @@ public:
 		targetChunkInitialized = false;
 	}
 public:
-	ExtentIterator* ext_it = nullptr;
+	std::queue<ExtentIterator *> ext_its;
 	DataChunk targetChunk;	// initialized when first execute() is called
 	bool targetChunkInitialized;
 };
@@ -64,7 +64,8 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 	vector<ExtentID> target_eids;		// target extent ids to access
 	vector<idx_t> boundary_position;	// boundary position of the input chunk
 
-	context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
+	// context.client->graph_store->InitializeVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position);
+	context.client->graph_store->InitializeVertexIndexSeek(state.ext_its, oids, projection_mapping, input, nodeColIdx, targetTypes, target_eids, boundary_position);
 	D_ASSERT( target_eids.size() == boundary_position.size() );
 	if (target_eids.size() != boundary_position.size()) {
 		fprintf(stderr, "target_eids.size() = %ld, boundary_position.size() = %ld\n", target_eids.size(), boundary_position.size());
@@ -85,7 +86,8 @@ OperatorResultType PhysicalNodeIdSeek::Execute(ExecutionContext& context, DataCh
 		output_col_idx.push_back( colId-1+colIdxToStartFetch );
 	}
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
-		context.client->graph_store->doVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position, extentIdx, output_col_idx);
+		// context.client->graph_store->doVertexIndexSeek(state.ext_it, chunk, input, nodeColIdx, labels, empty_els, LoadAdjListOption::NONE, propertyKeys, targetTypes, target_eids, boundary_position, extentIdx, output_col_idx);
+		context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, targetTypes, target_eids, boundary_position, extentIdx, output_col_idx);
 	}
 icecream::ic.disable();
 
