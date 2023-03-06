@@ -382,12 +382,13 @@ icecream::ic.disable();
 	std::string query_str;
 icecream::ic.disable();
 	if (is_query_string_given) {
-		try {
-			// protected code
-			CompileAndRun(input_query_string, client);
-		} catch( std::exception e1 ) {
-			std::cerr << e1.what() << std::endl;
-		}
+		// try {
+		// 	// protected code
+		// 	CompileAndRun(input_query_string, client);
+		// } catch( std::exception e1 ) {
+		// 	std::cerr << e1.what() << std::endl;
+		// }
+		CompileAndRun(input_query_string, client);
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);

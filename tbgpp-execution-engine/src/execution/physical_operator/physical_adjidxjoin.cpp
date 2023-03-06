@@ -11,27 +11,29 @@
 
 namespace duckdb {
 
-PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
-	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
-	: PhysicalAdjIdxJoin(sch, srcName, srcLabelSet, edgeLabelSet, expandDir, tgtLabelSet, join_type, move(vector<JoinCondition>()), load_eid, enumerate) { }
+// PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
+// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
+// 	: PhysicalAdjIdxJoin(sch, srcName, srcLabelSet, edgeLabelSet, expandDir, tgtLabelSet, join_type, move(vector<JoinCondition>()), load_eid, enumerate) { }
 
-PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
-	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, vector<JoinCondition> remaining_conditions_p, bool load_eid, bool enumerate)
-	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), remaining_conditions(move(remaining_conditions_p)), load_eid(load_eid), enumerate(enumerate) {
+// PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
+// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, vector<JoinCondition> remaining_conditions_p, bool load_eid, bool enumerate)
+// 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), remaining_conditions(move(remaining_conditions_p)), load_eid(load_eid), enumerate(enumerate) {
 
-	// operator rules
-	bool check = (enumerate) ? true : (!load_eid);
-	D_ASSERT( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
+// 	// operator rules
+// 	bool check = (enumerate) ? true : (!load_eid);
+// 	D_ASSERT( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
 
-	D_ASSERT( enumerate == true && "always enumerate for now");
-	D_ASSERT( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
-	D_ASSERT( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
-	D_ASSERT( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
-	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
+// 	D_ASSERT( enumerate == true && "always enumerate for now");
+// 	D_ASSERT( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
+// 	D_ASSERT( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
+// 	D_ASSERT( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
+// 	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
 
-	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
-	
-}
+// 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
+// }
+
+
+
 
 //===--------------------------------------------------------------------===//
 // Operator
@@ -178,7 +180,9 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 	// fill in adjacency col info
 // DEBUG 
 	if( state.adj_col_idxs.size() == 0 ) {
-		context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);	
+		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id, state.adj_col_idxs, state.adj_col_types);
+		// 230303 changed api
+		//context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);	
 	}
 	
 	// resize join sizes using adj_col_idxs
@@ -302,7 +306,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 
 	if( !state.first_fetch ) {
 		// values used while processing
-		state.srcColIdx = schema.getColIdxOfKey(srcName);
+		//state.srcColIdx = schema.getColIdxOfKey(srcName);
+		state.srcColIdx = sid_col_idx;
 		state.edgeColIdx = input.ColumnCount();
 		state.tgtColIdx = input.ColumnCount() + int(load_eid);
 		// Get join matches (sizes) for the LHS. Initialized one time per LHS
@@ -351,14 +356,19 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteRangedInput(ExecutionContext& cont
 }
 
 OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-icecream::ic.enable();
-	if( schema.getCypherType(srcName) == CypherValueType::RANGE ) {
-		D_ASSERT( false && "currently not supporting when range is given as input");
-		return ExecuteRangedInput(context, input, chunk, lstate);
-	} else {
-		return ExecuteNaiveInput(context, input, chunk, lstate);
-	}
-icecream::ic.disable();
+
+	// 230303 
+	return ExecuteNaiveInput(context, input, chunk, lstate);
+
+
+// icecream::ic.enable();
+// 	if( schema.getCypherType(srcName) == CypherValueType::RANGE ) {
+// 		D_ASSERT( false && "currently not supporting when range is given as input");
+// 		return ExecuteRangedInput(context, input, chunk, lstate);
+// 	} else {
+// 		return ExecuteNaiveInput(context, input, chunk, lstate);
+// 	}
+// icecream::ic.disable();
 }
 
 std::string PhysicalAdjIdxJoin::ParamsToString() const {

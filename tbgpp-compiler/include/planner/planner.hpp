@@ -40,6 +40,7 @@
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"
 #include "gpopt/base/CColRef.h"
+#include "gpopt/base/CColRefTable.h"
 
 #include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/operators/CScalarProjectElement.h"
@@ -51,8 +52,12 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 
 #include "gpopt/operators/CPhysicalTableScan.h"
+#include "gpopt/operators/CPhysicalIndexScan.h"
 #include "gpopt/operators/CPhysicalSerialUnionAll.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
+#include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
+#include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 
 
@@ -160,7 +165,6 @@ private:
 	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
-	gpopt::CColRef* lGetIthColRef(CColRefSet* refset, uint64_t idx);
 
 private:
 	// planner_physical.cpp
@@ -172,6 +176,9 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToIdSeek(CExpression* plan_expr);
+
 
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);

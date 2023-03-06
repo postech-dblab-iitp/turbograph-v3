@@ -21,6 +21,7 @@
 #include "gpopt/base/CConstraintNegation.h"
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CColRefTable.h"
 #include "gpopt/exception.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CLogicalAssert.h"
@@ -2251,6 +2252,8 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 		{
 			ulPos = pmdindex->KeyAt(ul);
 		}
+		// ulPos = pos of the column in the Relation
+
 		ULONG ulPosNonDropped = pmdrel->NonDroppedColAt(ulPos);
 
 		if (gpos::ulong_max == ulPosNonDropped ||
@@ -2264,13 +2267,35 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 			// partition to construct index metadata. If we detect a mismatch
 			// in the index and relation metadata, then we will not consider
 			// index columns.
-			pdrgpcrIndex->Release();
-			return GPOS_NEW(mp) CColRefArray(mp);
+
+			GPOS_ASSERT(false); // S62 does not support dropped columns
+			// pdrgpcrIndex->Release();
+			// return GPOS_NEW(mp) CColRefArray(mp);
 		}
 
-		GPOS_ASSERT(ulPosNonDropped < colref_array->Size());
+		ULONG ulPosInColRefArray = gpos::ulong_max;
+		for(ULONG idx = 0; idx < colref_array->Size(); idx++ ){
+			CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](idx);
+			INT attr_no = colref_table->AttrNum();
 
-		CColRef *colref = (*colref_array)[ulPosNonDropped];
+// TODO 230303 system column에 대한 index도 있음....
+			if( attr_no < 1 ) { // bypass system columns
+				continue;
+			}
+			if (ulPosNonDropped == (ULONG)attr_no - 1 ) {	// TODO s62 this should be attr_no -1 
+				ulPosInColRefArray = idx;
+				break;
+			}
+
+		}
+ 		if( ulPosInColRefArray == gpos::ulong_max) { // index not found
+			continue;
+		}
+		GPOS_ASSERT(ulPosInColRefArray < gpos::ulong_max);	// index must be found
+
+		GPOS_ASSERT(ulPosInColRefArray < colref_array->Size());
+
+		CColRef *colref = (*colref_array)[ulPosInColRefArray];
 		pdrgpcrIndex->Append(colref);
 	}
 
@@ -2292,7 +2317,9 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 							  CColRefArray *pdrgpcrOutput, CColRefSet *pcrsReqd,
 							  CColRefSet *pcrsScalar,
 							  IMDIndex::EmdindexType emdindtype,
-							  IMDIndex::EmdindexType altindtype)
+							  IMDIndex::EmdindexType altindtype,
+							  CExpression* pexprInner
+							  )
 {
 	// GiST can match with either Btree or Bitmap indexes
 	if (pmdindex->IndexType() == IMDIndex::EmdindGist ||
@@ -2326,17 +2353,33 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 	}
 
 	BOOL fApplicable = true;
+	if ( false ){
+		CColRef* blabla = pcrsScalar->PcrIth(0);
+		blabla = blabla;
+	}
 
 	CColRefSet *pcrsIncludedCols =
 		CXformUtils::PcrsIndexIncludedCols(mp, pdrgpcrOutput, pmdindex, pmdrel);
 	CColRefSet *pcrsIndexCols =
 		CXformUtils::PcrsIndexKeys(mp, pdrgpcrOutput, pmdindex, pmdrel);
-	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) ||	 // index is not covering
-		pcrsScalar->IsDisjoint(
-			pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
-	{
+
+	// 230203 funny logic
+	if( ! (pcrsIndexCols->Size() > 0 && pcrsIncludedCols->Size() > 0 ) ) {
 		fApplicable = false;
 	}
+
+	pcrsReqd = pcrsReqd;
+	pexprInner = pexprInner;
+// 230303 lower pcrsReqd, inner
+// 230303 lower pcrscalar, inner
+
+//	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
+//		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+// TODO s62 revive this predicate 230303
+	// 	)
+	// {
+	// 	fApplicable = false;
+	// }
 
 	// clean up
 	pcrsIncludedCols->Release();
@@ -2790,7 +2833,7 @@ CXformUtils::PexprBuildIndexPlan(
 	const IMDIndex *pmdindex, const IMDRelation *pmdrel,
 	BOOL fAllowPartialIndex, CPartConstraint *ppartcnstrIndex,
 	IMDIndex::EmdindexType emdindtype, PDynamicIndexOpConstructor pdiopc,
-	PStaticIndexOpConstructor psiopc, PRewrittenIndexPath prip)
+	PStaticIndexOpConstructor psiopc, PRewrittenIndexPath prip, CExpression* pexprInner)
 {
 	GPOS_ASSERT(NULL != pexprGet);
 	GPOS_ASSERT(NULL != pdrgpexprConds);
@@ -2798,6 +2841,7 @@ CXformUtils::PexprBuildIndexPlan(
 	GPOS_ASSERT(NULL != pcrsScalarExpr);
 	GPOS_ASSERT(NULL != pmdindex);
 	GPOS_ASSERT(NULL != pmdrel);
+	// pexprInner may be NULL
 
 	COperator::EOperatorId op_id = pexprGet->Pop()->Eopid();
 	GPOS_ASSERT(CLogical::EopLogicalGet == op_id ||
@@ -2856,8 +2900,9 @@ CXformUtils::PexprBuildIndexPlan(
 			GPOS_NEW(mp) CWStringConst(mp, popGet->Name().Pstr()->GetBuffer());
 	}
 
+	// pdrgpcrOutput = output of the relation(LogicalGet) to scan
 	if (!FIndexApplicable(mp, pmdindex, pmdrel, pdrgpcrOutput, pcrsReqd,
-						  pcrsScalarExpr, emdindtype))
+						  pcrsScalarExpr, emdindtype, IMDIndex::EmdindSentinel, pexprInner))
 	{
 		GPOS_DELETE(alias);
 		CRefCount::SafeRelease(ppartcnstrIndex);
@@ -2865,16 +2910,32 @@ CXformUtils::PexprBuildIndexPlan(
 		return NULL;
 	}
 
+	pexprInner = pexprInner;
+
 	CColRefArray *pdrgppcrIndexCols =
 		PdrgpcrIndexKeys(mp, pdrgpcrOutput, pmdindex, pmdrel);
 	CExpressionArray *pdrgpexprIndex = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArray *pdrgpexprResidual = GPOS_NEW(mp) CExpressionArray(mp);
-	CPredicateUtils::ExtractIndexPredicates(
-		mp, md_accessor, pdrgpexprConds, pmdindex, pdrgppcrIndexCols,
-		pdrgpexprIndex, pdrgpexprResidual, outer_refs);
+
+	if( pdrgpexprConds->Size() > 1 ) {
+		//230303 currently single predicate
+		return NULL;
+	}
+
+	// 230303  - bypass logics
+	md_accessor = md_accessor;
+	// CPredicateUtils::ExtractIndexPredicates(
+	// 	mp, md_accessor, pdrgpexprConds, pmdindex, pdrgppcrIndexCols,
+	// 	pdrgpexprIndex, pdrgpexprResidual, outer_refs);
 	CColRefSet *outer_refs_in_index_get =
 		CUtils::PcrsExtractColumns(mp, pdrgpexprIndex);
-	outer_refs_in_index_get->Intersection(outer_refs);
+	// 230303 pass this
+	// outer_refs_in_index_get->Intersection(outer_refs);
+	outer_refs = outer_refs;
+	outer_refs_in_index_get = outer_refs_in_index_get;
+
+	// 230303 build index!
+	pdrgpexprIndex->Append(pdrgpexprConds->operator[](0));
 
 	// exit early if:
 	// (1) there are no index-able predicates or
@@ -2884,7 +2945,7 @@ CXformUtils::PexprBuildIndexPlan(
 	// expression must include outer references for it to be an alternative
 	// worth considering. Otherwise it has the same effect as a regular NLJ
 	// with an index lookup.
-	if (0 == pdrgpexprIndex->Size() || outer_refs_in_index_get->Size() == 0)
+	if (0 == pdrgpexprIndex->Size() )//|| outer_refs_in_index_get->Size() == 0) // 230303
 	{
 		// clean up
 		GPOS_DELETE(alias);
