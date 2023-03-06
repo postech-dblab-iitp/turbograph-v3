@@ -27,6 +27,7 @@ public:
 	IndexType index_type;
 	Index *index; // TODO maybe useless in SHM..
 	idx_t pid; // oid of the partition to which this index belongs
+	idx_t psid; // oid of the segment to which this index belongs (temporary)
 	// shared_ptr<DataTableInfo> info;
 	// string sql;
 	int64_t_vector index_key_columns;
@@ -35,6 +36,7 @@ public:
 public:
 	string ToSQL() override;
 	idx_t GetPartitionID();
+	idx_t GetPropertySchemaID();
 	int64_t_vector *GetIndexKeyColumns();
 	IndexType GetIndexType();
 	idx_t GetAdjColIdx();

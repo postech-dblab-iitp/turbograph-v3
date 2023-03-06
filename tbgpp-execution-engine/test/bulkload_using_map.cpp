@@ -166,7 +166,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		partition_cat->SetTypes(types);
 
 		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {-1});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
 		partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 		
@@ -435,7 +435,7 @@ icecream::ic.disable();
 		partition_cat->SetTypes(types);
 
 		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), 0, {-1});
+		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_file.first + "_id", IndexType::PHYSICAL_ID, partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
 		IndexCatalogEntry *id_index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &id_idx_info);
 		partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 
@@ -482,7 +482,7 @@ icecream::ic.enable();
 		idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, edge_type, IndexType::FORWARD_CSR, partition_cat->GetOid(), adj_col_idx, {0});
+		CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, edge_type + "_fwd", IndexType::FORWARD_CSR, partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, {1});
 		IndexCatalogEntry *adj_index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &adj_idx_info);
 		partition_cat->AddAdjIndex(adj_index_cat->GetOid());
 
@@ -724,7 +724,9 @@ icecream::ic.enable();
 		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("[Error] Dst Lid to Pid Map does not exists");
 		unordered_map<idx_t, idx_t> &dst_lid_to_pid_map_instance = dst_it->second;
 
-		// string property_schema_name = "eps_" + edge_file.first;
+		string property_schema_name = "eps_" + edge_file.first;
+		PropertySchemaCatalogEntry *property_schema_cat = 
+			(PropertySchemaCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, property_schema_name);
 		// CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid);
 		// PropertySchemaCatalogEntry* property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
 		// vector<PropertyKeyID> property_key_ids;
@@ -765,7 +767,7 @@ icecream::ic.enable();
 		idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
 		
 		// Create Index Catalog & Add to PartitionCatalogEntry
-		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type, IndexType::BACKWARD_CSR, partition_cat->GetOid(), adj_col_idx, {1});
+		CreateIndexInfo idx_info(DEFAULT_SCHEMA, edge_type + "_bwd", IndexType::BACKWARD_CSR, partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, {2});
 		IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
 		partition_cat->AddAdjIndex(index_cat->GetOid());
 

@@ -20,8 +20,8 @@ struct CreateIndexInfo : public CreateInfo {
 	CreateIndexInfo() : CreateInfo(CatalogType::INDEX_ENTRY) {
 	}
 
-	CreateIndexInfo(string schema, string name, IndexType itype, idx_t partition_oid, idx_t adj_col_idx, vector<int64_t> idx_column_ids) : CreateInfo(CatalogType::INDEX_ENTRY, schema), 
-		index_name(name), index_type(itype), partition_oid(partition_oid), adj_col_idx(adj_col_idx) {
+	CreateIndexInfo(string schema, string name, IndexType itype, idx_t partition_oid, idx_t propertyschema_oid, idx_t adj_col_idx, vector<int64_t> idx_column_ids) : CreateInfo(CatalogType::INDEX_ENTRY, schema), 
+		index_name(name), index_type(itype), partition_oid(partition_oid), propertyschema_oid(propertyschema_oid), adj_col_idx(adj_col_idx) {
 		column_ids = move(idx_column_ids);
 	}
 
@@ -38,6 +38,7 @@ struct CreateIndexInfo : public CreateInfo {
 	// vector<unique_ptr<ParsedExpression>> parsed_expressions;
 	//! Partition OID
 	idx_t partition_oid;
+	idx_t propertyschema_oid;
 	idx_t adj_col_idx;
 
 	vector<int64_t> column_ids;
