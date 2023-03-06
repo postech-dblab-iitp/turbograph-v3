@@ -160,7 +160,7 @@ public:
 
 class BuiltinFunctions {
 public:
-	BuiltinFunctions(ClientContext &transaction, Catalog &catalog);
+	BuiltinFunctions(ClientContext &transaction, Catalog &catalog, bool is_catalog_already_exist = false);
 
 	//! Initialize a catalog with all built-in functions
 	void Initialize();
@@ -183,6 +183,7 @@ public:
 private:
 	ClientContext &context;
 	Catalog &catalog;
+	bool is_catalog_already_exist;
 
 private:
 	template <class T>

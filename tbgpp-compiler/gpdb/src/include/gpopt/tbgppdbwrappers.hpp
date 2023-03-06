@@ -27,7 +27,9 @@ IndexType GetLogicalIndexType(Oid index_oid);
 // get catalog informations with given oid
 PartitionCatalogEntry *GetPartition(idx_t partition_oid);
 PropertySchemaCatalogEntry *GetRelation(idx_t rel_oid);
-idx_t_vector *GetRelationIndexes(idx_t partition_oid);
+idx_t GetRelationPhysicalIDIndex(idx_t partition_oid);
+idx_t_vector *GetRelationAdjIndexes(idx_t partition_oid);
+idx_t_vector *GetRelationPropertyIndexes(idx_t partition_oid);
 IndexCatalogEntry *GetIndex(idx_t index_oid);
 
 // get type related informations

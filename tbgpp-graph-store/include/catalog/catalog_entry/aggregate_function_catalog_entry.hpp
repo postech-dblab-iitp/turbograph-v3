@@ -20,10 +20,16 @@ class AggregateFunctionCatalogEntry : public StandardEntry {
 public:
 	AggregateFunctionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateAggregateFunctionInfo *info, const void_allocator &void_alloc)
 	    : StandardEntry(CatalogType::AGGREGATE_FUNCTION_ENTRY, schema, catalog, info->name, void_alloc),
-	      functions(info->functions.functions) {
+	      functions(move(info->functions)) {
 	}
 
+	unique_ptr<AggregateFunctionSet> functions; // TODO how..
 	//! The aggregate functions
-	vector<AggregateFunction> functions;
+	// vector<AggregateFunction> *functions;
+
+	void SetFunctions(unique_ptr<AggregateFunctionSet> set_ptr) {
+		functions.release(); // TODO this is tricky code.. not preferred
+		functions = move(set_ptr);
+	}
 };
 } // namespace duckdb

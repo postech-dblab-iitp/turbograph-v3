@@ -14,27 +14,28 @@
 namespace duckdb {
 
 struct CreateAggregateFunctionInfo : public CreateFunctionInfo {
-	explicit CreateAggregateFunctionInfo(AggregateFunction function)
-	    : CreateFunctionInfo(CatalogType::AGGREGATE_FUNCTION_ENTRY), functions(function.name) {
-		this->name = function.name;
-		functions.AddFunction(move(function));
-	}
+	// deprecated
+	// explicit CreateAggregateFunctionInfo(AggregateFunction function)
+	//     : CreateFunctionInfo(CatalogType::AGGREGATE_FUNCTION_ENTRY), functions(function.name) {
+	// 	this->name = function.name;
+	// 	functions.AddFunction(move(function));
+	// }
 
-	explicit CreateAggregateFunctionInfo(AggregateFunctionSet set)
-	    : CreateFunctionInfo(CatalogType::AGGREGATE_FUNCTION_ENTRY), functions(move(set)) {
-		this->name = functions.name;
-		for (auto &func : functions.functions) {
-			func.name = functions.name;
+	explicit CreateAggregateFunctionInfo(unique_ptr<AggregateFunctionSet> set_ptr)
+	    : CreateFunctionInfo(CatalogType::AGGREGATE_FUNCTION_ENTRY), functions(move(set_ptr)) {
+		this->name = functions->name;
+		for (auto &func : functions->functions) {
+			func.name = functions->name;
 		}
 	}
 
-	AggregateFunctionSet functions;
+	unique_ptr<AggregateFunctionSet> functions;
 
 public:
 	unique_ptr<CreateInfo> Copy() const override {
-		auto result = make_unique<CreateAggregateFunctionInfo>(functions);
-		CopyProperties(*result);
-		return move(result);
+		// auto result = make_unique<CreateAggregateFunctionInfo>(functions);
+		// CopyProperties(*result);
+		// return move(result);
 	}
 };
 

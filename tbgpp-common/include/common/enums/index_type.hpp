@@ -16,10 +16,11 @@ namespace duckdb {
 // Index Types
 //===--------------------------------------------------------------------===//
 enum class IndexType : uint8_t {
-	INVALID = 0, // invalid index type
-	ART = 1,      // Adaptive Radix Tree
+	INVALID = 0, 		// invalid index type
+	ART = 1,      		// Adaptive Radix Tree
 	FORWARD_CSR = 2,	// CSR (adjacency list index)
 	BACKWARD_CSR = 3,	// CSR (adjacency list index)
+	PHYSICAL_ID = 4,	// Physical Tuple ID (we can directly access to tuple using this ID)
 };
 
 // //===--------------------------------------------------------------------===//
