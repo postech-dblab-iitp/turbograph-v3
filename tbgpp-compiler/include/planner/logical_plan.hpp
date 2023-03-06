@@ -28,6 +28,9 @@
 #include "gpos/test/CUnittest.h"
 #include "gpos/types.h"
 
+#include "gpopt/base/CColRef.h"
+
+
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CStatisticsConfig.h"
 #include "gpopt/init.h"
@@ -73,8 +76,16 @@ using namespace kuzu::binder;
 class LogicalPlan {
 
 public:
+	LogicalPlan(CExpression* tree_root, LogicalSchema root_schema, CColRefArray* root_colref_array)
+		: tree_root(tree_root), root_schema(root_schema), root_colref_array(root_colref_array) {
+
+		D_ASSERT( tree_root != nullptr );
+		D_ASSERT( root_colref_array != nullptr);
+		D_ASSERT(root_schema.size() == root_colref_array->Size());
+	}
 	LogicalPlan(CExpression* tree_root, LogicalSchema root_schema)
-		: tree_root(tree_root), root_schema(root_schema) {
+		: tree_root(tree_root), root_schema(root_schema){
+			
 		D_ASSERT( tree_root != nullptr );
 	}
 	~LogicalPlan() {}
@@ -92,11 +103,15 @@ public:
 
  	inline CExpression* getPlanExpr() { return tree_root; }
 	inline LogicalSchema* getSchema() { return &root_schema; }
+	inline CColRefArray* getColRefArray() { return root_colref_array; }
 	
 
 private:
 	CExpression* tree_root;
 	LogicalSchema root_schema;
+	CColRefArray* root_colref_array;
+
+
 
 };
 

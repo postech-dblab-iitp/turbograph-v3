@@ -1223,7 +1223,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		idx_t_vector *index_key_columns = index_cat->GetIndexKeyColumns();
 		for (int i = 0; i < index_key_columns->size(); i++)
 		{
-			INT attno = (*index_key_columns)[i];
+			INT attno = (INT) GPDXL_SYSTEM_COLUMNS + (*index_key_columns)[i];
 			GPOS_ASSERT(0 != attno && "Index expressions not supported");
 
 			index_key_cols_array->Append(
@@ -3186,7 +3186,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStorageType(CHAR storage_type)
 	// 	default:
 	// 		GPOS_ASSERT(!"Unsupported relation type");
 	// }
-	rel_storage_type = IMDRelation::ErelstorageAppendOnlyCols; // TODO temporary
+	rel_storage_type = IMDRelation::ErelstorageHeap; // TODO temporary
 
 	return rel_storage_type;
 }

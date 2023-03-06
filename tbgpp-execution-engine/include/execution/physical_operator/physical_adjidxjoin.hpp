@@ -15,20 +15,11 @@ namespace duckdb {
 class PhysicalAdjIdxJoin: public CypherPhysicalOperator {
 
 public:
-	PhysicalAdjIdxJoin(CypherSchema& sch,
-		std::string srcName, LabelSet srcLabelSet,				// source
-		LabelSet edgeLabelSet, ExpandDirection expandDir,		// edge			// serves as first join condtion (lhs.vid = rhs.vid)
-		LabelSet tgtLabelSet,									// target		// serves as second join condition (label(rhs.vid) == XX)
-		JoinType join_type,										// join type
-		bool load_eid, bool enumerate);							// details
-
-	PhysicalAdjIdxJoin(CypherSchema& sch,
-		std::string srcName, LabelSet srcLabelSet,				// source
-		LabelSet edgeLabelSet, ExpandDirection expandDir,		// edge
-		LabelSet tgtLabelSet,									// target
-		JoinType join_type,										// join type
-		vector<JoinCondition> remaining_conditions,				// join conditions // remaining join conditions  
-		bool load_eid, bool enumerate);							// details
+	//230303 TODO need to change this....
+	PhysicalAdjIdxJoin(CypherSchema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid) 
+		: CypherPhysicalOperator(sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>()))
+		{ }
 
 	~PhysicalAdjIdxJoin() {}
 
@@ -48,24 +39,16 @@ public:
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
-// operator parameters
-	std::string srcName;
-	// this is not actually necessary... src should be already given as node list. should further be removed.
-	LabelSet srcLabelSet;
-	// list of edges to scan (empty means all possible edges, otherwise, union items).
-	// Equivalent as performing join with multiple tables : e.g. R join S U R join S' -> R join (S U S')
-	LabelSet edgeLabelSet;
-	ExpandDirection expandDir;
-
-	// join condition (filter) on target labels (empty means all existing nodes, intersection on multiple labels)
-	LabelSet tgtLabelSet;
-	// join type
+	uint64_t adjidx_obj_id;	// 230303 current single adjidx object
+	uint64_t sid_col_idx;	// source id column
+	
 	JoinType join_type;
+
 	// remaining join conditions
 	vector<JoinCondition> remaining_conditions;
+
 	bool load_eid;
 	bool enumerate;
-
 };
 
 }

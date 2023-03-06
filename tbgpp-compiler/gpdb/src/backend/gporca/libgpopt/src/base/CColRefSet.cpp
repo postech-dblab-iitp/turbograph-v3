@@ -126,6 +126,22 @@ CColRefSet::PcrFirst() const
 	return NULL;
 }
 
+CColRef* CColRefSet::PcrIth(ULONG target_idx) const {
+	
+	CColRefSetIter crsi(*this);
+	ULONG idx = 0;
+	while (crsi.Advance())
+	{
+		if(target_idx == idx) {
+			return crsi.Pcr();
+		}
+		idx +=1;
+	}
+	return NULL;
+}
+
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CColRefSet::Include
