@@ -48,7 +48,7 @@ public:
 	virtual const CHAR *
 	SzId() const
 	{
-		return "CPhysicalComputeScalarColumnar";
+		return "CPhysicalComputeScalarC";
 	}
 
 	// match function
