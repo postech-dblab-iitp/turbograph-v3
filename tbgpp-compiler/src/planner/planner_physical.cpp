@@ -25,11 +25,15 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 
 	vector<duckdb::CypherPhysicalOperator*> final_pipeline_ops = *pTraverseTransformPhysicalPlan(orca_plan_root);
 	
+	// pop if necessary
+	// final_pipeline_ops.pop_back();
+
 	// Append PhysicalProduceResults
 	duckdb::CypherSchema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
 	auto op = new duckdb::PhysicalProduceResults(final_output_schema);
 
 	final_pipeline_ops.push_back(op);
+
 	D_ASSERT(final_pipeline_ops.size() > 0);
 	auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops);
 
@@ -373,7 +377,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	}
 
 	// THE Extend IdSeek Operator DO NOT PUT Physical ID in result relation!!!!
-	for(ULONG col_idx = 1; col_idx < inner_cols->Size(); col_idx++){
+	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++){
 		CColRef* col = inner_cols->operator[](col_idx);
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
