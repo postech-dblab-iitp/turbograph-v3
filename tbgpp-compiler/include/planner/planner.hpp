@@ -1,6 +1,11 @@
 #pragma once
 
 #include "main/client_context.hpp"
+#include "common/enums/index_type.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/index_catalog_entry.hpp"
+#include "main/database.hpp"
+
 
 #include <iostream>
 #include <type_traits>
@@ -80,7 +85,7 @@
 #include "planner/logical_plan.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
 
-#include "catalog/catalog.hpp"
+
 
 using namespace kuzu::binder;
 using namespace gpopt;
@@ -177,8 +182,9 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToIdSeek(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 
+	bool pIsIndexJoinOnPhysicalID(CExpression* plan_expr);
 
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);

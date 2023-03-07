@@ -10,12 +10,13 @@
 #include "execution/physical_operator/physical_node_scan.hpp"
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
-#include "execution/physical_operator/physical_node_id_seek.hpp"
+#include "execution/physical_operator/physical_id_seek.hpp"
 
 
 #include "planner/expression/bound_reference_expression.hpp"
 
 #include "common/enums/join_type.hpp"
+
 
 
 namespace s62 {
@@ -27,8 +28,6 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 	// Append PhysicalProduceResults
 	duckdb::CypherSchema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
 	auto op = new duckdb::PhysicalProduceResults(final_output_schema);
-
-	final_pipeline_ops.pop_back();	// TODO tmp 230303
 
 	final_pipeline_ops.push_back(op);
 	D_ASSERT(final_pipeline_ops.size() > 0);
@@ -76,13 +75,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			}
 			break;
 		}
-		case COperator::EOperatorId::EopPhysicalInnerNLJoin: {
-			// Seek
-			return pTransformEopPhysicalInnerNLJoinToIdSeek(plan_expr);
-		}
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin: {
-			// adjidxjoin
-			return pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr);
+			if( pIsIndexJoinOnPhysicalID(plan_expr) ) {
+				return pTransformEopPhysicalInnerIndexNLJoinToIdSeek(plan_expr);
+			} else {
+				return pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr);
+			}
 		}
 		case COperator::EOperatorId::EopPhysicalComputeScalarColumnar: {
 			return pTransformEopProjectionColumnar(plan_expr);
@@ -349,10 +347,90 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	return result;
 }
 
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJoinToIdSeek(CExpression* plan_expr) {
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr) {
 
-// TODO 230303 do me
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	vector<duckdb::LogicalType> types;
+
+	CPhysicalInnerIndexNLJoin* proj_op = (CPhysicalInnerIndexNLJoin*) plan_expr->Pop();
+	CExpression *pexprOuter = (*plan_expr)[0];
+	CColRefArray* outer_cols = pexprOuter->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprInner = (*plan_expr)[1];
+	CColRefArray* inner_cols = pexprInner->DeriveOutputColumns()->Pdrgpcr(mp);
+
+	uint64_t sid_col_idx = outer_cols->Size()-2; // 230303 not generally true	// TODO _tid ordering is strange.
+
+	// generate types (outer and than inner)
+	for(ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
+		CColRef* col = outer_cols->operator[](col_idx);
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		OID type_oid = type_mdid->Oid();
+		types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+	}
+
+	// THE Extend IdSeek Operator DO NOT PUT Physical ID in result relation!!!!
+	for(ULONG col_idx = 1; col_idx < inner_cols->Size(); col_idx++){
+		CColRef* col = inner_cols->operator[](col_idx);
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		OID type_oid = type_mdid->Oid();
+		types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+	}
+
+	uint64_t idx_obj_id;	// 230303
+	CExpression* inner_root = pexprInner;
+
+	vector<uint64_t> oids;
+	vector<vector<uint64_t>> projection_mapping;
+	vector<uint64_t> first_table_mapping;
+
+	while(true) {
+		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
+			// IdxScan
+			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
+			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
+			gpos::ULONG oid = index_mdid->Oid();
+			idx_obj_id = (uint64_t)oid;
+
+			// TODO 230303 there may be additional projection - we CURRENTLY do not consider projection
+			CColRefArray* output = idxscan_op->PdrgpcrOutput();
+			for( ULONG i = 0; i < output->Size(); i++) {
+				CColRef* colref = output->operator[](i);
+				CColRefTable* tabcolref = (CColRefTable*) colref;
+				IMDId* tab_mdid = tabcolref->GetMdidTable();
+				CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( tab_mdid );
+				OID table_obj_id = table_mdid->Oid();
+				if( i == 0  ) {
+					oids.push_back((uint64_t)table_obj_id);
+				}
+				auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
+				first_table_mapping.push_back(table_col_idx);
+			}
+		}
+		// reached to the bottom
+		if( inner_root->Arity() == 0 ) {
+			break;
+		} else {
+			inner_root = inner_root->operator[](0);	// pass first child in linear plan
+		}
+	}
+
+	projection_mapping.push_back(first_table_mapping);
+	D_ASSERT(inner_root != pexprInner);
+
+	D_ASSERT(oids.size() == 1);
+	D_ASSERT(projection_mapping.size() == 1);
+
+	/* Generate operator and push */
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	duckdb::CypherPhysicalOperator* op =
+		new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, projection_mapping);	// 230303 schema conforms by coincidence
+
+	result->push_back(op);
 
 	return result;
 }
@@ -373,6 +451,45 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJo
 // 	return new vector<duckdb::CypherPhysicalOperator*>();
 
 // }
+
+
+bool Planner::pIsIndexJoinOnPhysicalID(CExpression* plan_expr) {
+	// if id seek then true, else adjidxjoin
+
+	D_ASSERT( plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalInnerIndexNLJoin );
+
+	CPhysicalInnerIndexNLJoin* proj_op = (CPhysicalInnerIndexNLJoin*) plan_expr->Pop();
+	CExpression *pexprInner = (*plan_expr)[1];
+
+	CExpression* inner_root = pexprInner;
+	uint64_t idx_obj_id;
+	while(true) {
+		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
+			// IdxScan
+			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
+			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
+			gpos::ULONG oid = index_mdid->Oid();
+			idx_obj_id = (uint64_t) oid;
+		}
+		// reached to the bottom
+		if( inner_root->Arity() == 0 ) {
+			break;
+		} else {
+			inner_root = inner_root->operator[](0);	// pass first child in linear plan
+		}
+	}
+	D_ASSERT(inner_root != pexprInner);
+
+	// search catalog
+	duckdb::Catalog &cat_instance = context->db->GetCatalog();
+	duckdb::IndexCatalogEntry *index_cat = 
+		(duckdb::IndexCatalogEntry *)cat_instance.GetEntry(*context, DEFAULT_SCHEMA, idx_obj_id);
+	if( index_cat->GetIndexType() == duckdb::IndexType::PHYSICAL_ID ) {
+		return true;
+ 	} else {
+		return false;
+	}
+}
 
 bool Planner::pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx, bool physical_op_only) {
 
@@ -446,6 +563,7 @@ uint64_t Planner::pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_c
 uint64_t Planner::pGetColIdxFromTable(OID table_oid, const CColRef* target_col) {
 
 	CMemoryPool* mp = this->memory_pool;
+
 // 230303 is using the mapping below OK?
 	// D_ASSERT( table_col_mapping.count(table_oid) );
 	// for(int orig_col_id = 0; orig_col_id < table_col_mapping[table_oid].size(); orig_col_id++) {
