@@ -66,7 +66,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	// 	throw InvalidInputException("target_eids.size() != boundary_position.size()");
 	// }
 	vector<idx_t> output_col_idx;
-	for (idx_t colId = input.size()-1; colId < chunk.size(); colId++) {
+	for (idx_t colId = input.ColumnCount()-1; colId < chunk.ColumnCount(); colId++) {
 		output_col_idx.push_back( colId );
 	}
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
@@ -75,7 +75,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 icecream::ic.disable();
 
 	// for original ones reference existing columns
-	for(int i = 0; i < input.size() ; i++) {
+	for(int i = 0; i < input.ColumnCount() ; i++) {
 		chunk.data[i].Reference( input.data[i] );
 	}
 	chunk.SetCardinality( input.size() );

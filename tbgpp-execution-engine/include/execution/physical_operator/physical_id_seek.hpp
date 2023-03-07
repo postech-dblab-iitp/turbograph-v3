@@ -18,9 +18,8 @@ public:
 			// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
 			// schema = (original cols, projected cols)
 			// 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
-			target_types.push_back(LogicalType::ID); 	// for node ids
 			for(int col_idx = sch.getStoredTypes().size() - projection_mapping[0].size()
-					; col_idx < sch.getStoredTypes().size() - 1 ; col_idx++) {
+					; col_idx < sch.getStoredTypes().size() ; col_idx++) {
 					
 					target_types.push_back(sch.getStoredTypes()[col_idx]);
 			}
