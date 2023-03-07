@@ -71,13 +71,13 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ex
 	for (idx_t i = 0; i < oids.size(); i++) {
 		PropertySchemaCatalogEntry* ps_cat_entry = 
       		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, DEFAULT_SCHEMA, oids[i]);
-icecream::ic.enable();
-		IC();
-		IC(i, oids[i], ps_cat_entry->GetName());
-		for (int j = 0; j < scanSchema.size(); j++) {
-			IC((uint8_t)scanSchema[j].id(), projection_mapping[i][j]);
-		}
-icecream::ic.disable();
+// icecream::ic.enable();
+// 		IC();
+// 		IC(i, oids[i], ps_cat_entry->GetName());
+// 		for (int j = 0; j < scanSchema.size(); j++) {
+// 			IC((uint8_t)scanSchema[j].id(), projection_mapping[i][j]);
+// 		}
+// icecream::ic.disable();
 		
 		auto ext_it = new ExtentIterator();
 		ext_it->Initialize(client, ps_cat_entry, scanSchema, projection_mapping[i]);
@@ -231,13 +231,13 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIter
 	for (idx_t i = 0; i < oids.size(); i++) {
 		PropertySchemaCatalogEntry* ps_cat_entry = 
       		(PropertySchemaCatalogEntry*) cat_instance.GetEntry(client, DEFAULT_SCHEMA, oids[i]);
-icecream::ic.enable();
-		IC();
-		IC(i, oids[i], ps_cat_entry->GetName());
-		for (int j = 0; j < scanSchema.size(); j++) {
-			IC((uint8_t)scanSchema[j].id(), projection_mapping[i][j]);
-		}
-icecream::ic.disable();
+// icecream::ic.enable();
+// 		IC();
+// 		IC(i, oids[i], ps_cat_entry->GetName());
+// 		for (int j = 0; j < scanSchema.size(); j++) {
+// 			IC((uint8_t)scanSchema[j].id(), projection_mapping[i][j]);
+// 		}
+// icecream::ic.disable();
 
 		ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
 		for (size_t i = 0; i < input.size(); i++) {

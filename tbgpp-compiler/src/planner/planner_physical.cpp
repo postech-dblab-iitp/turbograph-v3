@@ -366,7 +366,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	CExpression *pexprInner = (*plan_expr)[1];
 	CColRefArray* inner_cols = pexprInner->DeriveOutputColumns()->Pdrgpcr(mp);
 
-	uint64_t sid_col_idx = outer_cols->Size()-2; // 230303 not generally true	// TODO _tid ordering is strange.
+	uint64_t sid_col_idx = outer_cols->Size()-1; // 230303 not generally true	// TODO _tid ordering is strange.
 
 	// generate types (outer and than inner)
 	for(ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
