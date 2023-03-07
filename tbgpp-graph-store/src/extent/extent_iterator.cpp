@@ -264,6 +264,14 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     for (size_t i = 0; i < target_eids.size(); i++)
         ext_ids_to_iterate.push_back(target_eids[i]);
 
+    target_idxs_offset = 0;
+    for (int i = 0; i < ext_property_types.size(); i++) {
+        if (ext_property_types[i] == LogicalType::ID) {
+            target_idxs_offset = 1;
+            break;
+        }
+    }
+
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
     {
@@ -280,9 +288,15 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
         for (int i = 0; i < chunk_size; i++) {
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                j++;
                 continue;
             }
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
+            if (target_idxs[j] == std::numeric_limits<uint64_t>::max()) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                j++;
+                continue;
+            }
+            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
@@ -946,10 +960,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 for (int i = 0; i < chunk_size; i++) {
                     if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
                         io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                        j++;
+                        continue;
+                    }
+                    if (!target_idxs.empty() && (target_idxs[j] == std::numeric_limits<uint64_t>::max())) {
+                        io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                        j++;
                         continue;
                     }
                     ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                        extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
+                        extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset];
                     io_requested_cdf_ids[next_toggle][i] = cdf_id;
                     string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
                     // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();

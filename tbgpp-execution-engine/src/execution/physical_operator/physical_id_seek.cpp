@@ -66,7 +66,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	// 	throw InvalidInputException("target_eids.size() != boundary_position.size()");
 	// }
 	vector<idx_t> output_col_idx;
-	for (idx_t colId = input.ColumnCount()-1; colId < chunk.ColumnCount(); colId++) {
+	for (idx_t colId = input.ColumnCount(); colId < chunk.ColumnCount(); colId++) {
 		output_col_idx.push_back( colId );
 	}
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
