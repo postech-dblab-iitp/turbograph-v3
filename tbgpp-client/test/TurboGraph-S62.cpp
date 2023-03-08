@@ -137,6 +137,8 @@ string workspace;
 string input_query_string;
 bool is_query_string_given = false;
 
+s62::PlannerConfig planner_config;
+
 bool load_edge;
 bool load_backward_edge;
 
@@ -216,6 +218,9 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;
+		} else if (std::strncmp(current_str.c_str(), "--debug-planner", 14) == 0) {
+			planner_config.DEBUG_PRINT = true;
+			planner_config.ORCA_DEBUG_PRINT = true;
 		}
       }
     }
@@ -226,114 +231,116 @@ class InputParser{
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 
 	std::cout << "Query => " << std::endl << query_str << std::endl;
-		auto inputStream = ANTLRInputStream(query_str);
+	
+	boost::timer::cpu_timer compile_timer;
+	compile_timer.start();
 
-// Lexer		
-		// std::cout << "[TEST] calling lexer" << std::endl;
-		auto cypherLexer = CypherLexer(&inputStream);
-		//cypherLexer.removeErrorListeners();
-		//cypherLexer.addErrorListener(&parserErrorListener);
-		auto tokens = CommonTokenStream(&cypherLexer);
-		tokens.fill();
+/*
+	COMPILATION
+*/
+	auto inputStream = ANTLRInputStream(query_str);
 
-// Parser
-		// std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
-		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+	// Lexer		
+	auto cypherLexer = CypherLexer(&inputStream);
+	//cypherLexer.removeErrorListeners();
+	//cypherLexer.addErrorListener(&parserErrorListener);
+	auto tokens = CommonTokenStream(&cypherLexer);
+	tokens.fill();
 
-// Sematic parsing
-		// Transformer
-		// std::cout << "[TEST] generating transformer" << std::endl;
-		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-		// std::cout << "[TEST] calling transformer" << std::endl;
-		auto statement = transformer.transform();
-		
-		// Binder
-		// std::cout << "[TEST] generating binder" << std::endl;
-		auto binder = kuzu::binder::Binder(client.get());
-		// std::cout << "[TEST] calling binder" << std::endl;
-		auto boundStatement = binder.bind(*statement);
-		kuzu::binder::BoundStatement * bst = boundStatement.get();
+	// Parser
+	auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+
+	// Sematic parsing
+	// Transformer
+	kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+	auto statement = transformer.transform();
+	
+	// Binder
+	auto binder = kuzu::binder::Binder(client.get());
+	auto boundStatement = binder.bind(*statement);
+	kuzu::binder::BoundStatement * bst = boundStatement.get();
+
+	if(planner_config.DEBUG_PRINT) {
 		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-		// WARNING - printer should be disabled when processing following compilation step.
 		std::cout << "Tree => " << std::endl;
 		printer.print();
 		std::cout << std::endl;
+	}
 
-		auto planner = s62::Planner(s62::MDProviderType::TBGPP, client.get());
-		planner.execute(bst);
+	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+	boost::timer::cpu_timer orca_compile_timer;
+	orca_compile_timer.start();
+	planner.execute(bst);
 
-		auto pipelines = planner.getConstructedPipelines();
+	int compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+	int orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
 
-		std::vector<CypherPipelineExecutor*> executors;
-		for( auto& pipe: pipelines) {
-			auto* new_ctxt = new ExecutionContext(client.get());
-			auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
-			executors.push_back(pipe_exec);
+/*
+	EXECUTE QUERY
+*/
+	auto pipelines = planner.getConstructedPipelines();
+	std::vector<CypherPipelineExecutor*> executors;
+	for( auto& pipe: pipelines) {
+		auto* new_ctxt = new ExecutionContext(client.get());
+		auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
+		executors.push_back(pipe_exec);
+	}
+	if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
+
+	// start timer
+	boost::timer::cpu_timer query_timer;
+	query_timer.start();
+	int idx = 0;
+	for( auto exec : executors ) { 
+		std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+		exec->ExecutePipeline();
+		std::cout << "done pipeline execution!!" << std::endl;
+	}
+	// end_timer
+	int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+
+/*
+	DUMP RESULT
+*/
+	int LIMIT = 10;
+	size_t num_total_tuples = 0;
+	D_ASSERT( executors.back()->context->query_results != nullptr );
+	auto& resultChunks = *(executors.back()->context->query_results);
+	auto& schema = executors.back()->pipeline->GetSink()->schema;
+	for (auto &it : resultChunks) num_total_tuples += it->size();
+	std::cout << "===================================================" << std::endl;
+	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+	Table t;
+	t.layout(unicode_box_light());
+
+	if (num_total_tuples != 0) {
+		auto& firstchunk = resultChunks[0];
+		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+
+		for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+			t << firstchunk->GetTypes()[i].ToString() ;
 		}
-		if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
-
-		// debug plan before executing
-		std::string curtime = boost::posix_time::to_simple_string( boost::posix_time::second_clock::universal_time() );
-
-		// start timer
-		boost::timer::cpu_timer query_timer;
-		query_timer.start();
-		int idx = 0;
-		for( auto exec : executors ) { 
-			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-			exec->ExecutePipeline();
-			std::cout << "done pipeline execution!!" << std::endl;
-		}
-		// end_timer
-		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
-	
-		// dump result
-		int LIMIT = 10;
-		size_t num_total_tuples = 0;
-		D_ASSERT( executors.back()->context->query_results != nullptr );
-		auto& resultChunks = *(executors.back()->context->query_results);
-		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		for (auto &it : resultChunks) num_total_tuples += it->size();
-		std::cout << "===================================================" << std::endl;
-		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
-		Table t;
-		t.layout(unicode_box_light());
-
-		if (num_total_tuples != 0) {
-			auto& firstchunk = resultChunks[0];
-			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-			// TODO deprecate
-			// for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
-			// 	t << firstchunk->GetTypes()[colIdx].ToString() ;
-			// }
-			// t << endr;
-			// for( int idx = 0 ; idx < LIMIT ; idx++) {
-			// 	for( auto& colIdx: schema.getColumnIndicesForResultSet() ) {
-			// 		t << firstchunk->GetValue(colIdx, idx).ToString();
-			// 	}
-			// 	t << endr;
-			// }
-
+		t << endr;
+		for( int idx = 0 ; idx < LIMIT ; idx++) {
 			for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-				t << firstchunk->GetTypes()[i].ToString() ;
+				t << firstchunk->GetValue(i, idx).ToString();
 			}
 			t << endr;
-			for( int idx = 0 ; idx < LIMIT ; idx++) {
-				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-					t << firstchunk->GetValue(i, idx).ToString();
-				}
-				t << endr;
-			}
-			std::cout << t << std::endl;
 		}
-		std::cout << "===================================================" << std::endl;
-		std::cout << "\nFinished query execution in: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+		std::cout << t << std::endl;
+	}
+	std::cout << "===================================================" << std::endl;
+	std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)/ " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
 }
 
 
 int main(int argc, char** argv) {
 icecream::ic.disable();
+
+	// Init planner config
+	planner_config = s62::PlannerConfig();
+
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
@@ -406,7 +413,6 @@ icecream::ic.disable();
 		}
 	}
 
-	std::cout << "compiler test end" << std::endl;
 	// Goodbye
 	std::cout << "Bye." << std::endl;
 

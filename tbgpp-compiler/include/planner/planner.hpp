@@ -98,10 +98,24 @@ enum class MDProviderType {
 };
 
 class ClientContext;
+
+class PlannerConfig {
+public:
+	bool DEBUG_PRINT;
+	bool ORCA_DEBUG_PRINT;
+	bool DISABLE_HASH_JOIN;
+
+	PlannerConfig() :
+		DEBUG_PRINT(false),
+		ORCA_DEBUG_PRINT(false),
+		DISABLE_HASH_JOIN(false)
+		{ }
+};
+
 class Planner {
 
 public:
-	Planner(MDProviderType mdp_type, duckdb::ClientContext* context, string memory_mdp_path = "");	// TODO change client signature to reference
+	Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientContext* context, string memory_mdp_path = "");	// TODO change client signature to reference
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
@@ -202,6 +216,7 @@ private:
 
 private:
 	// config
+	const PlannerConfig config;
 	const MDProviderType mdp_type;
 	const std::string memory_mdp_filepath;
 
