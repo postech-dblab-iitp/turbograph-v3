@@ -7,8 +7,8 @@
 
 namespace s62 {
 
-Planner::Planner(MDProviderType mdp_type, duckdb::ClientContext* context, std::string memory_mdp_path)
-	: mdp_type(mdp_type), context(context), memory_mdp_filepath(memory_mdp_path) {
+Planner::Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientContext* context, std::string memory_mdp_path)
+	: config(config), mdp_type(mdp_type), context(context), memory_mdp_filepath(memory_mdp_path) {
 
 	if(mdp_type == MDProviderType::MEMORY) {
 		assert(memory_mdp_filepath != "");
@@ -147,7 +147,6 @@ gpmd::MDProviderTBGPP* Planner::_orcaGetProviderTBGPP() {
 	return provider;
 }
 
-
 void Planner::_orcaInitXForm() {
 	// TODO i want to remove this.
 	CXformFactory::Pxff()->Shutdown();	// for allowing scan
@@ -156,23 +155,25 @@ void Planner::_orcaInitXForm() {
 
 void Planner::_orcaSetTraceFlags() {
 
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintOptimizationContext);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceEnumeratePlans);
+	if(config.ORCA_DEBUG_PRINT) {
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintOptimizationContext);
+		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
+	}
 
 	/* Always prefer NL join*/
-
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceForceComprehensiveJoinImplementation);
+	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceForceComprehensiveJoinImplementation);	// Enable NLJoin
 	// Xform config controllable as well
 	// GPOPT_DISABLE_XFORM(CXform::ExfGet2TableScan);
-	GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
 
+	if(config.DISABLE_HASH_JOIN) {
+		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
+	}
 }
 
 gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
@@ -184,9 +185,6 @@ gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
 	m_cost_model_params->SetParam(16, 10000000.0, 10000000.0, 10000000.0);	// redistribute cs
 	m_cost_model_params->SetParam(17, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
 	m_cost_model_params->SetParam(18, 10000000.0, 10000000.0, 10000000.0);	// broadcast cost
-
-
-	m_cost_model_params->SetParam(24, 10000000.0, 10000000.0, 10000000.0);	// invalidate hash join
 
 	gpdbcost::CCostModelGPDB* pcm = GPOS_NEW(mp) CCostModelGPDB(mp, 1, m_cost_model_params);	// one segment
 	D_ASSERT(pcm != nullptr);
@@ -231,33 +229,39 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		/* Optimize */
 		CExpression *orca_logical_plan = planner->lGetLogicalPlan();
 		{
-			std::cout << "[TEST] logical plan string" << std::endl;
-			CWStringDynamic str(mp);
-			COstreamString oss(&str);
-			orca_logical_plan->OsPrint(oss);
-			GPOS_TRACE(str.GetBuffer());
+			if(planner->config.DEBUG_PRINT) {
+				std::cout << "[TEST] logical plan string" << std::endl;
+				CWStringDynamic str(mp);
+				COstreamString oss(&str);
+				orca_logical_plan->OsPrint(oss);
+				GPOS_TRACE(str.GetBuffer());
+			}
 		}
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
 		/* LogicalRules */
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
 		{
-			std::cout << "[TEST] PREPROCESSED logical plan" << std::endl;
-			CWStringDynamic str(mp);
-			COstreamString oss(&str);
-			orca_logical_plan_after_logical_opt->OsPrint(oss);
-			GPOS_TRACE(str.GetBuffer());
+			if(planner->config.DEBUG_PRINT) {
+				std::cout << "[TEST] PREPROCESSED logical plan" << std::endl;
+				CWStringDynamic str(mp);
+				COstreamString oss(&str);
+				orca_logical_plan_after_logical_opt->OsPrint(oss);
+				GPOS_TRACE(str.GetBuffer());
+			}
 		}
 
 		eng.Init(pqc, NULL /*search_stage_array*/);
 		eng.Optimize();
 		CExpression *orca_physical_plan = eng.PexprExtractPlan();	// best plan
 		{
-			std::cout << "[TEST] best physical plan string" << std::endl;
-			CWStringDynamic str(mp);
-			COstreamString oss(&str);
-			orca_physical_plan->OsPrint(oss);
-			GPOS_TRACE(str.GetBuffer());
+			if(planner->config.DEBUG_PRINT) {
+				std::cout << "[TEST] best physical plan string" << std::endl;
+				CWStringDynamic str(mp);
+				COstreamString oss(&str);
+				orca_physical_plan->OsPrint(oss);
+				GPOS_TRACE(str.GetBuffer());
+			}
 		}
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
 		// TODO convert orca plan into ours
