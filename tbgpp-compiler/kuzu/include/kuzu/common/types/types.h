@@ -47,7 +47,7 @@ enum DataTypeID : uint8_t {
     // physical fixed size types
     NODE_ID = 108,
     BOOL = 10,
-    INT64 = 14,
+    INT64 = 14,     // BIGINT
     DOUBLE = 23,
     DATE = 15,
     TIMESTAMP = 19,

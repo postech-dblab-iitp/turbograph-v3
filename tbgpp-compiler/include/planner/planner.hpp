@@ -39,6 +39,8 @@
 #include "gpopt/init.h"
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/mdcache/CMDCache.h"
+#include "gpopt/mdcache/CMDAccessorUtils.h"
+
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/xforms/CXformFactory.h"
@@ -68,6 +70,9 @@
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
+#include "naucrates/md/IMDTypeGeneric.h"
+#include "naucrates/base/IDatumGeneric.h"
+#include "naucrates/base/CDatumGenericGPDB.h"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
@@ -78,6 +83,8 @@
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
 #include "kuzu/binder/expression/function_expression.h"
+#include "kuzu/binder/expression/literal_expression.h"
+#include "kuzu/binder/expression/property_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
@@ -160,9 +167,9 @@ private:
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression* lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarComparisonExpr(Expression* expression);
+	CExpression* lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression* lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarLiteralExpr(Expression* expression);
+	CExpression* lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 
 
 	CExpression* lExprLogicalGetNodeOrEdge(
