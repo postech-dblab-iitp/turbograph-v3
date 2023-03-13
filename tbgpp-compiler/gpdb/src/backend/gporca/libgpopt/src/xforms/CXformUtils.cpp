@@ -2268,7 +2268,7 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 			// in the index and relation metadata, then we will not consider
 			// index columns.
 
-			GPOS_ASSERT(false); // S62 does not support dropped columns
+			// GPOS_ASSERT(false); // S62 does not support dropped columns
 			// pdrgpcrIndex->Release();
 			// return GPOS_NEW(mp) CColRefArray(mp);
 		}
@@ -2374,13 +2374,12 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 // 230303 lower pcrsReqd, inner
 // 230303 lower pcrscalar, inner
 
-//	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
-//		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
+		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
 // TODO s62 revive this predicate 230303
-	// 	)
-	// {
-	// 	fApplicable = false;
-	// }
+	{
+		fApplicable = false;
+	}
 
 	// clean up
 	pcrsIncludedCols->Release();

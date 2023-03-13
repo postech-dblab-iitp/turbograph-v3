@@ -93,7 +93,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 			D_ASSERT(false);
 		}
 	}
-	plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
+	// plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
 	
 	/* OrderBy */
 	if(proj_body->hasOrderByExpressions()) {
@@ -343,7 +343,8 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name_print = node_expr->getRawName();
 
 	// always do schema mapping even when single table
-	plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+	// plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+	plan_expr = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false);
 
 	// insert node schema
 	LogicalSchema schema;
@@ -458,7 +459,9 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 	wstring table_name_ws(table_name_cwstring->GetBuffer());
 	string table_name(table_name_ws.begin(), table_name_ws.end());
 	std::string print_name = "(" + rel_name + ") " + table_name;
-	CWStringConst strName(std::wstring(print_name.begin(), print_name.end()).c_str());
+	std::wstring w_print_name = L"";
+	w_print_name.assign(print_name.begin(), print_name.end());
+	CWStringConst strName(w_print_name.c_str());
 	CTableDescriptor *ptabdesc =
 		lCreateTableDesc(mp,
 					   lGenRelMdid(obj_id),	// 6.objid.0.0
@@ -469,8 +472,9 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 		table_col_mapping[obj_id] = std::vector<CColRef*>();
 	}
 
-
-	CWStringConst strAlias(std::wstring(alias.begin(), alias.end()).c_str());
+	std::wstring w_alias = L"";
+	w_alias.assign(alias.begin(), alias.end());
+	CWStringConst strAlias(w_alias.c_str());
 
 	CLogicalGet *pop = GPOS_NEW(mp) CLogicalGet(
 		mp, GPOS_NEW(mp) CName(mp, CName(&strAlias)), ptabdesc);

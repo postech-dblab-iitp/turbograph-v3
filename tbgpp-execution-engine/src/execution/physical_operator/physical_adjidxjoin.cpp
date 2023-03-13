@@ -73,6 +73,10 @@ public:
 	idx_t srcColIdx;
 	idx_t edgeColIdx;
 	idx_t tgtColIdx;
+
+	// input -> output col mapping information
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
 	
 	// join state - initialized per output
 	idx_t output_idx;
@@ -225,13 +229,16 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 // }
 // icecream::ic.disable();
 	
-	uint64_t* adj_start;
-	uint64_t* adj_end;
+	uint64_t *adj_start, *adj_end, *tgt_adj_column, *eid_adj_column;
 	uint64_t src_vid;
-	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
-	uint64_t *tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
-	uint64_t *eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	size_t adjlist_size;
+	
+	D_ASSERT(state.srcColIdx < input.ColumnCount());
+	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
+
+	D_ASSERT(state.tgtColIdx < chunk.ColumnCount() && state.edgeColIdx < chunk.ColumnCount());
+	tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 
 	// iterate source vids
 	while( state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size() ) {
@@ -279,11 +286,19 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		}
 	}
 	// chunk determined. now fill in lhs using slice operation
+	D_ASSERT(input.ColumnCount() == state.outer_col_map.size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-		chunk.data[colId].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+		D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
+		chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
+
+// icecream::ic.enable();
+// IC(chunk.size());
+// if (chunk.size() != 0)
+// 	IC(chunk.ToString(std::min(10, (int)chunk.size())));
+// icecream::ic.disable();
 }
 
 void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
@@ -308,8 +323,14 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// values used while processing
 		//state.srcColIdx = schema.getColIdxOfKey(srcName);
 		state.srcColIdx = sid_col_idx;
-		state.edgeColIdx = input.ColumnCount();
-		state.tgtColIdx = input.ColumnCount() + int(load_eid);
+		// state.edgeColIdx = input.ColumnCount();
+		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
+		D_ASSERT(inner_col_map.size() == 2);
+		state.edgeColIdx = inner_col_map[0];
+		state.tgtColIdx = inner_col_map[1];
+		
+		state.outer_col_map = move(outer_col_map);
+		state.inner_col_map = move(inner_col_map);
 		// Get join matches (sizes) for the LHS. Initialized one time per LHS
 		GetJoinMatches(context, input, lstate);
 		state.first_fetch = true;

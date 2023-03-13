@@ -123,10 +123,10 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives(
 
 
 // TODO S62 using different inner. TOP of inner branch.
-	//ComputeColumnSets(mp, pexprInner, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
-	//				  &pcrsReqd);
-	ComputeColumnSets(mp, nodesToInsertAboveIndexGet, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
+	ComputeColumnSets(mp, pexprInner, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
 					  &pcrsReqd);
+	// ComputeColumnSets(mp, nodesToInsertAboveIndexGet, pexprOuter, pexprScalar, &pcrsScalarExpr, &outer_refs,
+	// 				  &pcrsReqd);
 
 	if (IMDIndex::EmdindBtree == emdtype)
 	{
