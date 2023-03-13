@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "common/type_utils.h"
+#include "common/tuple.hpp"
 #include "database.hpp"
 #include "catalog_wrapper.hpp"
 
@@ -139,7 +140,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     if(client != nullptr) {
         /* TBGPP MDP */
         // Get unordered map (property key -> corresponding (sub)table ids)
-        unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
+        unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
@@ -286,7 +287,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         /* TBGPP MDP */
         // S62 fixme
         // Get unordered map (property key -> corresponding (sub)table ids)
-        unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
+        unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
