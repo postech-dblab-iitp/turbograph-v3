@@ -18,9 +18,15 @@ protected:
                 definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
             }
         }
+        // for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL}) {
+        //     definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
+        // }
+
+        // S62 extended as we 
         for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
+
         definitions.push_back(getDefinition<FUNC>(name, DATE, TIMESTAMP));
         definitions.push_back(getDefinition<FUNC>(name, TIMESTAMP, DATE));
         return definitions;

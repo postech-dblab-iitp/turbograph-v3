@@ -36,22 +36,73 @@ enum DataTypeID : uint8_t {
     //    - bind (static evaluate) functions work on node/rel table.
     //      E.g. ID(a "datatype:NODE") -> node ID property "datatype:NODE_ID"
 
+    // S62 ID changed to match that of Duckdb::LogicalTypeId
+    // refer to /turbograph-v3/tbgpp-common/include/common/types.hpp
+
     // logical  types
-    ANY = 0,
-    NODE = 10,
-    REL = 11,
+    ANY = 3,
+    NODE = 201, // NON-existent in DuckDB
+    REL = 202,  // NON-existent in DuckDB
 
     // physical fixed size types
-    NODE_ID = 21,
-    BOOL = 22,
-    INT64 = 23,
-    DOUBLE = 24,
-    DATE = 25,
-    TIMESTAMP = 26,
+    NODE_ID = 108,
+    BOOL = 10,
+    INT64 = 14,
+    DOUBLE = 23,
+    DATE = 15,
+    TIMESTAMP = 19,
     INTERVAL = 27,
 
-    STRING = 50,
-    LIST = 52,
+    STRING = 25,
+    LIST = 101,
+
+    // not existent in kuzu, but existent in duckdb
+    INVALID = 0,
+	SQLNULL = 1, /* NULL type, used for constant NULL */
+	UNKNOWN = 2, /* unknown type, used for parameter expressions */
+//	ANY = 3,     /* ANY type, used for functions that accept any type as parameter */
+	USER = 4, /* A User Defined Type (e.g., ENUMs before the binder) */
+//	BOOLEAN = 10,
+	TINYINT = 11,
+	SMALLINT = 12,
+	INTEGER = 13,
+//	BIGINT = 14,
+//	DATE = 15,
+	TIME = 16,
+	TIMESTAMP_SEC = 17,
+	TIMESTAMP_MS = 18,
+//	TIMESTAMP = 19, //! us
+	TIMESTAMP_NS = 20,
+	DECIMAL = 21,
+	FLOAT = 22,
+//	DOUBLE = 23,
+	CHAR = 24,
+//	VARCHAR = 25,
+	BLOB = 26,
+//	INTERVAL = 27,
+	UTINYINT = 28,
+	USMALLINT = 29,
+	UINTEGER = 30,
+	UBIGINT = 31,
+	TIMESTAMP_TZ = 32,
+	TIME_TZ = 34,
+	JSON = 35,
+	HUGEINT = 50,
+	POINTER = 51,
+	HASH = 52,
+	VALIDITY = 53,
+	UUID = 54,
+	STRUCT = 100,
+//	LIST = 101,
+	MAP = 102,
+	TABLE = 103,
+	ENUM = 104,
+	AGGREGATE_STATE = 105,
+	// TBGPP-specific
+	FORWARD_ADJLIST = 106,
+	BACKWARD_ADJLIST = 107,
+//  ID = 108,
+	ADJLISTCOLUMN = 109
 };
 
 class DataType {
@@ -70,11 +121,18 @@ public:
         : typeID{other.typeID}, childType{std::move(other.childType)} {}
 
     static inline std::vector<DataTypeID> getNumericalTypeIDs() {
-        return std::vector<DataTypeID>{INT64, DOUBLE};
+        // S62 extended
+        return std::vector<DataTypeID>{
+            INT64, DOUBLE, TINYINT, SMALLINT, INTEGER, DECIMAL, FLOAT, UTINYINT, USMALLINT, UINTEGER, UBIGINT// added in duckdb
+            };
     }
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {
+        // S62 extended
         return std::vector<DataTypeID>{
-            NODE_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
+            NODE_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST,
+            SQLNULL, USER, TINYINT, SMALLINT, INTEGER, TIME, TIMESTAMP_SEC, TIMESTAMP_MS, TIMESTAMP_NS,
+            DECIMAL, FLOAT, CHAR, BLOB, UTINYINT, USMALLINT, UINTEGER, UBIGINT, TIMESTAMP_TZ, TIME_TZ, JSON, HUGEINT, POINTER, HASH, UUID, STRUCT, MAP, TABLE, ENUM, FORWARD_ADJLIST, BACKWARD_ADJLIST, ADJLISTCOLUMN  
+            };
     }
 
     DataType& operator=(const DataType& other);

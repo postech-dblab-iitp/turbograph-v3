@@ -110,9 +110,6 @@ private:
 	CExpression* tree_root;
 	LogicalSchema root_schema;
 	CColRefArray* root_colref_array;
-
-
-
 };
 
 
