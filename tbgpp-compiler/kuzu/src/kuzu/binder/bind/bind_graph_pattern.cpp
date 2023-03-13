@@ -146,7 +146,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
             string propertyName = "_id";
             vector<Property> prop_id;
             for (auto &table_id : tableIDs) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, table_id));
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
@@ -156,45 +156,16 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
             for (auto &tid_and_cid_pair : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
+                uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
+                DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(it.first, std::move(prop_idexpr));
         }
     } else {
         /* Testing - MemoryMDP */
-         {
-            string propertyName = "_id";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);  // colid in table, tableid // datatype is not important for now!
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "_sid";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
-                prop_id.push_back(p1);
-                auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "_tid";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "rp1";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
+        assert(false);
     }
 
     // if (!queryRel->isVariableLength()) {
@@ -293,7 +264,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
             string propertyName = "_id";
             vector<Property> prop_id;
             for (auto &table_id : tableIDs) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, table_id));
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
@@ -303,52 +274,16 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         for (auto &it : pkey_to_ps_map) {
             vector<Property> prop_id;
             for (auto &tid_and_cid_pair : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
+                uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
+                DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(it.first, std::move(prop_idexpr));
         }
     } else {
         /* Test - MemoryMDP*/
-        {
-            string propertyName = "_id";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10000);
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10001);
-            auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10002);
-            prop_id.push_back(p1);
-            prop_id.push_back(p2);
-            prop_id.push_back(p3);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp1";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10000);
-            prop_id.push_back(p1);
-            // prop_id.push_back(p2);
-            // prop_id.push_back(p3);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp2";
-            vector<Property> prop_id;
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10001);
-            // prop_id.push_back(p1);
-            prop_id.push_back(p2);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp3";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10002);
-            prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
+        assert(false);
     }
     // for (auto& propertyPair :
     //     getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
@@ -386,7 +321,7 @@ vector<table_id_t> Binder::bindTableIDs(
                 return oids;
             } else {
                 // Testcase
-                return vector<uint64_t>({10000, 10001, 10002});    // try two
+                assert(false);
             }
         }
         case REL: {
@@ -397,8 +332,7 @@ vector<table_id_t> Binder::bindTableIDs(
                 client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, oids, duckdb::GraphComponentType::EDGE);
                 return oids;
             } else {
-                // Testcase
-                return vector<uint64_t>({20000});    // try two
+                assert(false);
             }
         }
         default:

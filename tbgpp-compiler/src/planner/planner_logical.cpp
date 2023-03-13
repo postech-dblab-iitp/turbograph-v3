@@ -293,7 +293,12 @@ LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, Logica
 	}
 
 	// orca supports N-ary AND
-	CExpression* selection_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
+	CExpression* selection_expr;
+	if( cnf_exprs->Size() > 1 ) {
+		selection_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
+	} else {
+		selection_expr = cnf_exprs->operator[](0);
+	}
 	prev_plan->addUnaryParentOp(selection_expr);
 
 	// schema is never changed
@@ -395,42 +400,113 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 
 	auto expr_type = expression->expressionType;
 	if( isExpressionComparison(expr_type) ) {
-		return lExprScalarComparisonExpr(expression);
+		return lExprScalarComparisonExpr(expression, prev_plan);
 	} else if( PROPERTY == expr_type) {
 		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
 	} else if ( isExpressionLiteral(expr_type) ) {
-		return lExprScalarLiteralExpr(expression);
+		return lExprScalarLiteralExpr(expression, prev_plan);
 	} else {
-		D_ASSERT(false);
+		D_ASSERT(false);	// TODO Not yet
 	}
 }
 
-CExpression* Planner::lExprScalarComparisonExpr(Expression* expression) {
+CExpression* Planner::lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan) {
 
+	CMemoryPool* mp = this->memory_pool;
 	ScalarFunctionExpression* comp_expr = (ScalarFunctionExpression*) expression;
 	D_ASSERT( comp_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
+	auto children = comp_expr->getChildren();
 	// lhs, rhs
-	// CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get());
-	// CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get());
+	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan);
+	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan);
 
-	// access MDA and serach function mdid regarding oid type
-		// todo write convert function from duckdb oid to target oid
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	// map comparison type
+	IMDType::ECmpType cmp_type;
+	switch (comp_expr->expressionType) {
+		case ExpressionType::EQUALS: 
+			cmp_type = IMDType::ECmpType::EcmptEq; break;
+		case ExpressionType::NOT_EQUALS:
+			cmp_type = IMDType::ECmpType::EcmptNEq; break;
+		case ExpressionType::GREATER_THAN:
+			cmp_type = IMDType::ECmpType::EcmptG; break;
+		case ExpressionType::GREATER_THAN_EQUALS:
+			cmp_type = IMDType::ECmpType::EcmptGEq; break;
+		case ExpressionType::LESS_THAN:
+			cmp_type = IMDType::ECmpType::EcmptL; break;
+		case ExpressionType::LESS_THAN_EQUALS:
+			cmp_type = IMDType::ECmpType::EcmptLEq; break;
+		default:
+			D_ASSERT(false);
+	}
+
+	IMDId *left_mdid = CScalar::PopConvert(lhs_scalar_expr->Pop())->MdidType();
+	IMDId *right_mdid = CScalar::PopConvert(rhs_scalar_expr->Pop())->MdidType();
+
+	IMDId* func_mdid = 
+		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);	// test if function exists
+	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
+
+	return CUtils::PexprScalarCmp(mp, lhs_scalar_expr, rhs_scalar_expr, cmp_type);
 	
 	// return corresponding expression
 }	
 
 CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan) {
 
-	// TODO generate scalarident
-		// from 
+	CMemoryPool* mp = this->memory_pool;
+
+	PropertyExpression* prop_expr = (PropertyExpression*) expression;
+	string k1 = prop_expr->getVariableName();
+	string k2 = prop_expr->getPropertyName();
+	uint64_t idx = prev_plan->getSchema()->getIdxOfKey(k1, k2);
 	
+	CColRefArray* cols = prev_plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
+	CColRef* target_colref = cols->operator[](idx);
+
+	CExpression* ident_expr = GPOS_NEW(mp)
+			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+	
+	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarLiteralExpr(Expression* expression) {
+CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan) {
 
-	// TODO generate scalar const
+	CMemoryPool* mp = this->memory_pool;
 
+	LiteralExpression* lit_expr = (LiteralExpression*) expression;
+	DataType type = lit_expr->literal.get()->dataType;
 
+	D_ASSERT( !lit_expr->isNull() && "currently null not supported");
+
+	CExpression* pexpr = nullptr;
+	CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, LOGICAL_TYPE_BASE_ID + (OID)type.typeID, 1, 0);
+	
+	void* serialized_literal = NULL;
+	uint64_t serialized_literal_length = 0;
+
+	// serialize datum
+	switch(type.typeID) {
+		case DataTypeID::INT64 : {
+			// TODO add data!!
+			break;
+		}
+		case DataTypeID::STRING : {
+			break;
+		}
+		default: {
+			D_ASSERT(false);
+			break;
+		}
+	}
+
+	IDatumGeneric *datum = (IDatumGeneric*) GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, NULL, 0, false, (LINT)0, (CDouble)0.0);
+	pexpr = GPOS_NEW(mp)
+		CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
+
+	D_ASSERT(pexpr != nullptr);
+	return pexpr;
 }
 
 

@@ -81,7 +81,9 @@ void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& exp
 }
 
 void Binder::validateProjectionColumnHasNoInternalType(const expression_vector& expressions) {
-    auto internalTypes = unordered_set<DataTypeID>{NODE_ID};
+
+    // S62 no constraint on internal type
+    auto internalTypes = unordered_set<DataTypeID>{};
     for (auto& expression : expressions) {
         if (internalTypes.find(expression->dataType.typeID) != internalTypes.end()) {
             throw BinderException("Cannot return expression " + expression->getRawName() +
