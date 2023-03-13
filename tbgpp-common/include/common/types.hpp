@@ -327,6 +327,10 @@ enum class PhysicalType : uint8_t {
 // SQL Types
 //===--------------------------------------------------------------------===//
 enum class LogicalTypeId : uint8_t {
+
+	// S62 one-one mapping should be applied to that of kuzuDB's type id information
+	// refer to /turbograph-v3/tbgpp-compiler/kuzu/include/kuzu/common/types/types.h
+
 	INVALID = 0,
 	SQLNULL = 1, /* NULL type, used for constant NULL */
 	UNKNOWN = 2, /* unknown type, used for parameter expressions */

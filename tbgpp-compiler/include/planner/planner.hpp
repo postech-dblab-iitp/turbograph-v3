@@ -52,6 +52,7 @@
 #include "gpopt/operators/CLogicalProject.h"
 #include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/operators/CScalarBoolOp.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
@@ -65,7 +66,6 @@
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 
-
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
 
@@ -77,6 +77,7 @@
 #include "kuzu/binder/query/reading_clause/bound_reading_clause.h"
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
+#include "kuzu/binder/expression/function_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
@@ -84,7 +85,6 @@
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
-
 
 
 using namespace kuzu::binder;
@@ -110,6 +110,11 @@ public:
 		ORCA_DEBUG_PRINT(false),
 		DISABLE_HASH_JOIN(false)
 		{ }
+};
+
+class PlannerUtils {
+
+public:
 };
 
 class Planner {
@@ -151,8 +156,15 @@ private:
 	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan* lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
+	LogicalPlan* lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
 	
 	/* Helper functions for generating orca logical plans */
+	CExpression* lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
+	CExpression* lExprScalarComparisonExpr(Expression* expression);
+	CExpression* lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression* lExprScalarLiteralExpr(Expression* expression);
+
+
 	CExpression* lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
@@ -205,6 +217,7 @@ private:
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
 
+// TODO move to PlannerUtils
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
 	}

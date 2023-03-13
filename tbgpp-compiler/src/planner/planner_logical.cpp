@@ -144,8 +144,8 @@ LogicalPlan* Planner::lPlanMatchClause(
 
 	auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
-    expression_vector predicates = boundMatchClause->hasWhereExpression() ?
-                          boundMatchClause->getWhereExpression()->splitOnAND() :
+    expression_vector predicates = boundMatchClause->hasWhereExpression() ?	
+                          boundMatchClause->getWhereExpression()->splitOnAND() :	// CNF form
                           expression_vector{};
 
 	LogicalPlan* plan;
@@ -156,15 +156,17 @@ LogicalPlan* Planner::lPlanMatchClause(
 		plan = lPlanRegularMatch(*queryGraphCollection, prev_plan);
     }
 
-	
-
-
-
 	// TODO append edge isomorphism
 		// TODO need to know about the label info...
 		// for each qg in qgc, 
 			// list all edges
 				// nested for loops
+
+
+	// plan selection on match clause
+	if( predicates.size() > 0 ) {
+		plan = lPlanSelection(std::move(predicates), plan);
+	}
 
 	return plan;
 }
@@ -280,6 +282,24 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 
 }
 
+LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan) {
+
+	CMemoryPool* mp = this->memory_pool;
+	// the predicates are in CNF form
+	
+	CExpressionArray* cnf_exprs = GPOS_NEW(mp) CExpressionArray(mp);
+	for(auto& pred: predicates) {
+		cnf_exprs->Append(lExprScalarExpression(pred.get(), prev_plan));
+	}
+
+	// orca supports N-ary AND
+	CExpression* selection_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
+	prev_plan->addUnaryParentOp(selection_expr);
+
+	// schema is never changed
+	return prev_plan;
+}
+
 LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids) {
 
 	CMemoryPool* mp = this->memory_pool;
@@ -291,6 +311,7 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
 	CColRefArray* proj_cols = GPOS_NEW(mp) CColRefArray(mp);
 
+	LogicalSchema schema;
 	CExpression* scalar_proj_elem;
 	for(auto& col_id: col_ids){
 		CColRef *colref = plan_cols->operator[](col_id);
@@ -309,7 +330,7 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), plan->getPlanExpr(), pexprPrjList);
 
 	plan->addUnaryParentOp(proj_expr);
-	// TODO FATAL!!!!!!!!!!!!!!!!!! need to update root_schema as well. need assertion
+	// TODO add schema here!!
 	return plan;
 }
 
@@ -368,6 +389,50 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
 	return plan;
 }
+
+
+CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
+
+	auto expr_type = expression->expressionType;
+	if( isExpressionComparison(expr_type) ) {
+		return lExprScalarComparisonExpr(expression);
+	} else if( PROPERTY == expr_type) {
+		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
+	} else if ( isExpressionLiteral(expr_type) ) {
+		return lExprScalarLiteralExpr(expression);
+	} else {
+		D_ASSERT(false);
+	}
+}
+
+CExpression* Planner::lExprScalarComparisonExpr(Expression* expression) {
+
+	ScalarFunctionExpression* comp_expr = (ScalarFunctionExpression*) expression;
+	D_ASSERT( comp_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
+	// lhs, rhs
+	// CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get());
+	// CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get());
+
+	// access MDA and serach function mdid regarding oid type
+		// todo write convert function from duckdb oid to target oid
+	
+	// return corresponding expression
+}	
+
+CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan) {
+
+	// TODO generate scalarident
+		// from 
+	
+}
+
+CExpression* Planner::lExprScalarLiteralExpr(Expression* expression) {
+
+	// TODO generate scalar const
+
+
+}
+
 
 /*
 	Single tables may not 
