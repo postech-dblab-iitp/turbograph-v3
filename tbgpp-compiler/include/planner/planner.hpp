@@ -148,8 +148,7 @@ private:
 		BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanUnwindClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection,
-        expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
 	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan* lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
 	

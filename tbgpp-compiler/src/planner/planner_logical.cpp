@@ -4,16 +4,17 @@
 #include <string>
 #include <limits>
 
+// Refer to https://s3.amazonaws.com/artifacts.opencypher.org/railroad/Cypher.html
 
 namespace s62 {
 
 CExpression* Planner::lGetLogicalPlan() {
 
-	D_ASSERT( this->bound_statement != nullptr );
+	GPOS_ASSERT( this->bound_statement != nullptr );
 	auto& regularQuery = *((BoundRegularQuery*)(this->bound_statement));
 
 	// TODO need union between single queries
-	D_ASSERT( regularQuery.getNumSingleQueries() == 1);
+	GPOS_ASSERT( regularQuery.getNumSingleQueries() == 1);
 	vector<CExpression*> childLogicalPlans(regularQuery.getNumSingleQueries());
 	for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
 		childLogicalPlans[i] = lPlanSingleQuery(*regularQuery.getSingleQuery(i));
@@ -28,7 +29,7 @@ CExpression* Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery)
     	// propertiesToScan.clear();
 
 	CExpression* plan;
-	D_ASSERT(singleQuery.getNumQueryParts() == 1);
+	GPOS_ASSERT(singleQuery.getNumQueryParts() == 1);
 	for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
 		// TODO plan object may need to be pushed up once again. thus the function signature need to be changed as well.
         auto plan_obj = lPlanQueryPart(*singleQuery.getQueryPart(i), nullptr);
@@ -44,19 +45,20 @@ LogicalPlan* Planner::lPlanQueryPart(
 	for (auto i = 0u; i < queryPart.getNumReadingClause(); i++) {
         cur_plan = lPlanReadingClause(queryPart.getReadingClause(i), cur_plan);
     }
-	D_ASSERT( queryPart.getNumUpdatingClause() == 0);
+	GPOS_ASSERT( queryPart.getNumUpdatingClause() == 0);
 	// plan projectionBody after reading clauses
 	if (queryPart.hasProjectionBody()) {
-		// Plan normalized filter
+		
+		// WITH ...
+		cur_plan = lPlanProjectionBody(cur_plan, queryPart.getProjectionBody());
+		
 		if (queryPart.hasProjectionBodyPredicate()) {
-			// TODO S62 fixme. wtf is this?
-			// Need to check semantics on whether filter or project should be planned first on behalf of other.
+			// WITH ... WHERE ...
+				// Need to check semantics on whether filter or project should be planned first on behalf of other.
 				// maybe filter first?
-			D_ASSERT(false); // filter not yet implemented.
+			GPOS_ASSERT(false); // filter not yet implemented.
 			// appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
         }
-		// Plan normalized projection
-		cur_plan = lPlanProjectionBody(cur_plan, queryPart.getProjectionBody());
     }
 	return cur_plan;
 }
@@ -65,7 +67,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 
 	/* Aggregate - generate LogicalGbAgg series */
 	if(proj_body->hasAggregationExpressions()) {
-		D_ASSERT(false);
+		GPOS_ASSERT(false);
 		// TODO plan is manipulated
 		// maybe need to split function without agg and with agg.
 	}
@@ -90,7 +92,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 			simple_proj_colids.push_back(idx);
 		} else {
 			// currently do not allow other cases
-			D_ASSERT(false);
+			GPOS_ASSERT(false);
 		}
 	}
 	plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
@@ -99,21 +101,21 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	if(proj_body->hasOrderByExpressions()) {
 		// orderByExpressions
 		// isAscOrders
-		D_ASSERT(false);
+		GPOS_ASSERT(false);
 	}
 	
 	/* Skip limit */
 	if( proj_body->hasSkipOrLimit() ) {
 		// CLogicalLimit
-		D_ASSERT(false);
+		GPOS_ASSERT(false);
 	}
 
 	/* Distinct */
 	if(proj_body->getIsDistinct()) {
-		D_ASSERT(false);
+		GPOS_ASSERT(false);
 	}
 
-	D_ASSERT(plan != nullptr);
+	GPOS_ASSERT(plan != nullptr);
 	return plan;
 }
 
@@ -131,7 +133,7 @@ LogicalPlan* Planner::lPlanReadingClause(
         plan = lPlanUnwindClause(boundReadingClause, prev_plan);
     } break;
     default:
-        D_ASSERT(false);
+        GPOS_ASSERT(false);
     }
 
 	return plan;
@@ -148,11 +150,15 @@ LogicalPlan* Planner::lPlanMatchClause(
 
 	LogicalPlan* plan;
     if (boundMatchClause->getIsOptional()) {
-        D_ASSERT(false);
+        GPOS_ASSERT(false);
 		// TODO optionalmatch
     } else {
-		plan = lPlanRegularMatch(*queryGraphCollection, predicates, prev_plan);
+		plan = lPlanRegularMatch(*queryGraphCollection, prev_plan);
     }
+
+	
+
+
 
 	// TODO append edge isomorphism
 		// TODO need to know about the label info...
@@ -165,12 +171,11 @@ LogicalPlan* Planner::lPlanMatchClause(
 
 LogicalPlan* Planner::lPlanUnwindClause(
 	BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan) {
-	D_ASSERT(false);
+	GPOS_ASSERT(false);
 	return nullptr;
 }
 
-LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
-	expression_vector& predicates, LogicalPlan* prev_plan) {
+LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, LogicalPlan* prev_plan) {
 
 	LogicalPlan* plan = nullptr;
 
@@ -181,7 +186,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 
 	LogicalPlan* qg_plan = prev_plan;
 
-	D_ASSERT( qgc.getNumQueryGraphs() > 0 );
+	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
 	for(int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
 		QueryGraph* qg = qgc.getQueryGraph(idx);
 
@@ -210,7 +215,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 				// lhs bound
 				lhs_plan = qg_plan;
 			}
-			D_ASSERT(lhs_plan != nullptr);
+			GPOS_ASSERT(lhs_plan != nullptr);
 			// Scan R
 			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
 			
@@ -225,7 +230,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 			// R join B
 			if( is_lhs_bound && is_rhs_bound ) {
 				// no join necessary - add filter predicate
-				D_ASSERT(false);
+				GPOS_ASSERT(false);
 				hop_plan = qg_plan; // TODO fixme
 			} else {
 				LogicalPlan* rhs_plan;
@@ -245,7 +250,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
 				hop_plan = lhs_plan;
 			}
-			D_ASSERT(hop_plan != nullptr);
+			GPOS_ASSERT(hop_plan != nullptr);
 			// When lhs, rhs is unbound, qg_plan is not merged with the hop_plan. Thus cartprod.
 			if ( (qg_plan != nullptr) && (!is_lhs_bound) && (!is_rhs_bound)) {
 				auto cart_expr = lExprLogicalCartProd(qg_plan->getPlanExpr(), hop_plan->getPlanExpr());
@@ -254,7 +259,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 			} else {
 				qg_plan = hop_plan;
 			}
-			D_ASSERT(qg_plan != nullptr);
+			GPOS_ASSERT(qg_plan != nullptr);
 		}
 		// if no edge, this is single node scan case
 		if(qg->getQueryNodes().size() == 1) {
@@ -268,7 +273,7 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc,
 				qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
 			}
 		}
-		D_ASSERT(qg_plan != nullptr);
+		GPOS_ASSERT(qg_plan != nullptr);
 	}
 
 	return qg_plan;
@@ -311,13 +316,13 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
 
 	auto table_oids = node_expr->getTableIDs();
-	D_ASSERT(table_oids.size() >= 1);
+	GPOS_ASSERT(table_oids.size() >= 1);
 
 	map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
 	for( auto& t_oid: table_oids) {
 		schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
 	}
-	D_ASSERT(schema_proj_mapping.size() == table_oids.size());
+	GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
 
 	// these properties include system columns (e.g. _id)
 	auto& prop_exprs = node_expr->getPropertyExpressions();
@@ -357,10 +362,10 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 			schema.appendEdgeProperty(node_name, expr_name);
 		}
 	}
-	D_ASSERT( schema.getNumPropertiesOfKey(node_name) == prop_exprs.size() );
+	GPOS_ASSERT( schema.getNumPropertiesOfKey(node_name) == prop_exprs.size() );
 
 	LogicalPlan* plan = new LogicalPlan(plan_expr, schema);
-	D_ASSERT( !plan->getSchema()->isEmpty() );
+	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
 	return plan;
 }
 
@@ -374,7 +379,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 
 	CExpression* union_plan = nullptr;
 	const bool do_schema_mapping = insert_projection;
-	D_ASSERT(relation_oids.size() > 0);
+	GPOS_ASSERT(relation_oids.size() > 0);
 
 	// generate type infos to the projected schema
 	uint64_t num_proj_cols;								// size of the union schema
@@ -396,7 +401,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 				valid_cid = idx_to_try;
 			}
 		}			
-		D_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
 		// extract info and maintain vector of column type infos
 		gpmd::IMDId* col_type_imdid = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->MdidType();
 		gpos::INT col_type_modifier = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->TypeModifier();
@@ -410,7 +415,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 		CExpression * expr;
 		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
 
-		D_ASSERT(num_cols != 0);
+		GPOS_ASSERT(num_cols != 0);
 		expr = lExprLogicalGet(oid, name);
 
 		// conform schema if necessary
@@ -422,7 +427,7 @@ CExpression* Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> re
 			for(int proj_col_idx = 0; proj_col_idx < num_proj_cols; proj_col_idx++) {
 				project_cols.push_back(mapping.find(proj_col_idx)->second);
 			}
-			D_ASSERT(project_cols.size() > 0);
+			GPOS_ASSERT(project_cols.size() > 0);
 			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_cols, &union_schema_types);
 			expr = proj_result.first;
 			output_array = proj_result.second;
@@ -487,7 +492,7 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 
 CExpression * Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping) {
 
-	D_ASSERT( rhs_mapping != nullptr ); // must be binary
+	GPOS_ASSERT( rhs_mapping != nullptr ); // must be binary
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -534,7 +539,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 	for(auto col_id: col_ids_to_project) {
 		CExpression* scalar_proj_elem;
 		if( col_id == std::numeric_limits<uint64_t>::max()) {
-			D_ASSERT(target_schema_types != nullptr);
+			GPOS_ASSERT(target_schema_types != nullptr);
 			// project null column
 			auto& type_info = (*target_schema_types)[target_col_id];
 			CExpression* null_expr =
@@ -615,7 +620,7 @@ CExpression * Planner::lExprLogicalCartProd(CExpression* lhs, CExpression* rhs) 
 
 	CExpression *pexprTrue = CUtils::PexprScalarConstBool(mp, true, false);
 	auto prod_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprTrue);
-	D_ASSERT( CUtils::FCrossJoin(prod_result) );
+	GPOS_ASSERT( CUtils::FCrossJoin(prod_result) );
 	return prod_result;
 }
 
@@ -627,7 +632,7 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 										  nameTable, true /* is_nullable */);
 										
 	// if (fPartitioned) {
-	// 	D_ASSERT(false);
+	// 	GPOS_ASSERT(false);
 	// 	ptabdesc->AddPartitionColumn(0);
 	// }
 	// create a keyset containing the first column

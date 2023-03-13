@@ -1,51 +1,51 @@
-// #pragma once
+#pragma once
 
-// #include "expression.h"
-// // #include "function/aggregate/aggregate_function.h"
-// // #include "function/vector_operations.h"
+#include "expression.h"
+// #include "function/aggregate/aggregate_function.h"
+#include "function/vector_operations.h"
 
-// using namespace kuzu::function;
+using namespace kuzu::function;
 
-// namespace kuzu {
-// namespace binder {
+namespace kuzu {
+namespace binder {
 
-// class FunctionExpression : public Expression {
+class FunctionExpression : public Expression {
 
-// protected:
-//     FunctionExpression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
-//         : Expression{expressionType, move(dataType), uniqueName} {}
+protected:
+    FunctionExpression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
+        : Expression{expressionType, move(dataType), uniqueName} {}
 
-//     FunctionExpression(ExpressionType expressionType, DataType dataType,
-//         const shared_ptr<Expression>& child, const string& uniqueName)
-//         : Expression{expressionType, move(dataType), child, uniqueName} {}
+    FunctionExpression(ExpressionType expressionType, DataType dataType,
+        const shared_ptr<Expression>& child, const string& uniqueName)
+        : Expression{expressionType, move(dataType), child, uniqueName} {}
 
-//     FunctionExpression(ExpressionType expressionType, DataType dataType, expression_vector children,
-//         const string& uniqueName)
-//         : Expression{expressionType, move(dataType), move(children), uniqueName} {}
-// };
+    FunctionExpression(ExpressionType expressionType, DataType dataType, expression_vector children,
+        const string& uniqueName)
+        : Expression{expressionType, move(dataType), move(children), uniqueName} {}
+};
 
-// class ScalarFunctionExpression : public FunctionExpression {
+class ScalarFunctionExpression : public FunctionExpression {
 
-// public:
-//     ScalarFunctionExpression(ExpressionType expressionType, const DataType& dataType,
-//         expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc,
-//         const string& uniqueName)
-//         : FunctionExpression{expressionType, dataType, move(children), uniqueName},
-//           execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
+public:
+    ScalarFunctionExpression(ExpressionType expressionType, const DataType& dataType,
+        expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc,
+        const string& uniqueName)
+        : FunctionExpression{expressionType, dataType, move(children), uniqueName},
+          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
 
-//     static inline string getUniqueName(const string& functionName, expression_vector& children) {
-//         auto result = functionName + "(";
-//         for (auto& child : children) {
-//             result += child->getUniqueName() + ", ";
-//         }
-//         result += ")";
-//         return result;
-//     }
+    static inline string getUniqueName(const string& functionName, expression_vector& children) {
+        auto result = functionName + "(";
+        for (auto& child : children) {
+            result += child->getUniqueName() + ", ";
+        }
+        result += ")";
+        return result;
+    }
 
-// public:
-//     scalar_exec_func execFunc;
-//     scalar_select_func selectFunc;
-// };
+public:
+    scalar_exec_func execFunc;
+    scalar_select_func selectFunc;
+};
 
 // class AggregateFunctionExpression : public FunctionExpression {
 
@@ -79,5 +79,5 @@
 //     unique_ptr<AggregateFunction> aggregateFunction;
 // };
 
-// } // namespace binder
-// } // namespace kuzu
+} // namespace binder
+} // namespace kuzu

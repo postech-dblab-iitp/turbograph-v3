@@ -8,8 +8,12 @@
 
 #include "main/client_context.hpp"
 
+#include "function/built_in_vector_operations.h"
+
+
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
@@ -28,7 +32,10 @@ public:
     // explicit Binder(const Catalog& catalog)
     //     : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
         explicit Binder(duckdb::ClientContext* client)
-        : client(client), lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+        : client(client), lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {
+            
+            builtInVectorOperations = std::make_unique<BuiltInVectorOperations>();
+        }
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
 
@@ -185,6 +192,9 @@ private:
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
+
+    // kuzu catalog builtin functions migrated to here
+    unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
 };
 
 } // namespace binder
