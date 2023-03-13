@@ -2,6 +2,7 @@
 
 #include "main/database.hpp"
 #include "common/common.hpp"
+#include "common/tuple.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
@@ -63,7 +64,7 @@ public:
         return index_cat;
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<pair<idx_t, idx_t>>> &pkey_to_ps_map) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<tuple<idx_t, idx_t, LogicalTypeId>>> &pkey_to_ps_map) {
         auto &catalog = db.GetCatalog();
         for (auto &oid : oids) {
             PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
@@ -76,9 +77,9 @@ public:
                 string property_key = std::string((*property_keys)[i]);
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
-                    pkey_to_ps_map.emplace(property_key, std::vector<pair<idx_t, idx_t>> {std::make_pair(oid, i + 1)});
+                    pkey_to_ps_map.emplace(property_key, std::vector<tuple<idx_t, idx_t, LogicalTypeId>> {std::make_tuple(oid, i + 1, (*property_key_types)[i])});
                 } else {
-                    it->second.push_back(std::make_pair(oid, i + 1));
+                    it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }
             }
         }
