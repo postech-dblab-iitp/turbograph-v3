@@ -293,12 +293,14 @@ LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, Logica
 	}
 
 	// orca supports N-ary AND
-	CExpression* selection_expr;
+	CExpression* pred_expr;
 	if( cnf_exprs->Size() > 1 ) {
-		selection_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
+		pred_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
 	} else {
-		selection_expr = cnf_exprs->operator[](0);
+		pred_expr = cnf_exprs->operator[](0);
 	}
+
+	CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, prev_plan->getPlanExpr(), pred_expr);
 	prev_plan->addUnaryParentOp(selection_expr);
 
 	// schema is never changed
