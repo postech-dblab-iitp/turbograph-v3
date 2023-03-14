@@ -140,7 +140,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         /* TBGPP MDP */
         // Get unordered map (property key -> corresponding (sub)table ids)
         unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
+        vector<string> universal_schema; // TODO temporary
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -152,48 +153,17 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         }
 
         // for each property, create property expression
-        for (auto &it : pkey_to_ps_map) {
+        for (uint64_t i = 0; i < universal_schema.size(); i++) {
+            auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
-            for (auto &tid_and_cid_pair : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
+            for (auto &tid_and_cid_pair : it->second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(it.first, std::move(prop_idexpr));
+            queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
     } else {
-        /* Testing - MemoryMDP */
-         {
-            string propertyName = "_id";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 20000);  // colid in table, tableid // datatype is not important for now!
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "_sid";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 20000);
-                prop_id.push_back(p1);
-                auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "_tid";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 2, 20000);
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "rp1";
-            vector<Property> prop_id;
-                auto p1 = Property::constructRelProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 3, 20000);
-                prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
+        D_ASSERT(false);
     }
 
     // if (!queryRel->isVariableLength()) {
@@ -287,7 +257,8 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         // S62 fixme
         // Get unordered map (property key -> corresponding (sub)table ids)
         unordered_map<string, vector<pair<uint64_t, uint64_t>>> pkey_to_ps_map;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
+        vector<string> universal_schema; // TODO temporary
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -299,55 +270,17 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
         }
 
         // for each property, create property expression
-        for (auto &it : pkey_to_ps_map) {
+        for (uint64_t i = 0; i < universal_schema.size(); i++) {
+            auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
-            for (auto &tid_and_cid_pair : it.second) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(it.first, DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
+            for (auto &tid_and_cid_pair : it->second) {
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], DataTypeID::INT64), tid_and_cid_pair.second, tid_and_cid_pair.first));
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(it.first, std::move(prop_idexpr));
+            queryNode->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
     } else {
-        /* Test - MemoryMDP*/
-        {
-            string propertyName = "_id";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10000);
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10001);
-            auto p3 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 0, 10002);
-            prop_id.push_back(p1);
-            prop_id.push_back(p2);
-            prop_id.push_back(p3);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp1";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10000);
-            prop_id.push_back(p1);
-            // prop_id.push_back(p2);
-            // prop_id.push_back(p3);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp2";
-            vector<Property> prop_id;
-            auto p2 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10001);
-            // prop_id.push_back(p1);
-            prop_id.push_back(p2);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-        {
-            string propertyName = "vp3";
-            vector<Property> prop_id;
-            auto p1 = Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::INT64), 1, 10002);
-            prop_id.push_back(p1);
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
+        D_ASSERT(false);
     }
     // for (auto& propertyPair :
     //     getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
