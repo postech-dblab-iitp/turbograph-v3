@@ -1702,9 +1702,15 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 	BOOL is_fixed_length = false;
 	ULONG length = 0;
+	INT gpdb_length = 0;
 
 	is_fixed_length = duckdb::isTypeFixedLength(oid_type);
 	length = duckdb::GetTypeSize(oid_type);
+	if (is_fixed_length) { // TODO tricky code
+		gpdb_length = length;
+	} else {
+		gpdb_length = -1;
+	}
 	// if (0 < ptce->typlen)
 	// {
 	// 	is_fixed_length = true;
@@ -1787,7 +1793,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	 	mdid_op_eq, mdid_op_neq, mdid_op_lt, mdid_op_leq, mdid_op_gt,
 	 	mdid_op_geq, mdid_op_cmp, mdid_min, mdid_max, mdid_avg, mdid_sum,
 	 	mdid_count, is_hashable, is_merge_joinable, is_composite_type,
-	 	is_text_related_type, mdid_type_relid, mdid_type_array, 0/*ptce->typlen*/);
+	 	is_text_related_type, mdid_type_relid, mdid_type_array, gpdb_length/*ptce->typlen*/);
 }
 
 

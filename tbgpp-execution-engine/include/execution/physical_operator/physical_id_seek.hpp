@@ -10,8 +10,10 @@ namespace duckdb {
 class PhysicalIdSeek: public CypherPhysicalOperator {
 
 public:
-	PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping)
-		: CypherPhysicalOperator(sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping) { 
+	PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map)
+		: CypherPhysicalOperator(sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
+		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)) { 
 			
 			D_ASSERT(projection_mapping.size() == 1 ); // 230303
 		
@@ -43,6 +45,8 @@ public:
 
 	mutable vector<LogicalType> target_types;	// used to initialize output chunks. 
 
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
 };
 
 }
