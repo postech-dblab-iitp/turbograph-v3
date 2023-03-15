@@ -2,7 +2,6 @@
 
 #include "main/database.hpp"
 #include "common/common.hpp"
-#include "common/tuple.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
@@ -80,7 +79,7 @@ public:
                     universal_schema.push_back(property_key);
                     pkey_to_ps_map.emplace(property_key, std::vector<pair<idx_t, idx_t>> {std::make_pair(oid, i + 1)});
                 } else {
-                    it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
+                    it->second.push_back(std::make_pair(oid, i + 1));
                 }
             }
         }
