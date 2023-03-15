@@ -56,7 +56,7 @@ public:
 			case duckdb::LogicalType::BIGINT: {
 				D_ASSERT(length == 8);
 				int64_t value = *((int64_t*)mem_ptr);
-				return duckdb::Value::BIGINT(value);	// TODO to BIGINT
+				return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
 			}
 			default:
 				D_ASSERT(false);

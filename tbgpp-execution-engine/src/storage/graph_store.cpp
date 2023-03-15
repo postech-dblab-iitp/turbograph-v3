@@ -150,8 +150,8 @@ StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, d
 StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, std::vector<duckdb::LogicalType> &scanSchema, idx_t filterKeyColIdx, duckdb::Value filterValue) {
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
-	vector<idx_t> output_column_idxs; // TODO this should be generated in physical planning step
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, filterValue, output_column_idxs, scanSchema);
+	vector<idx_t> output_column_idxs; // TODO this should be generated in physical planning step // TODO s62 change me
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, filterValue, projection_mapping[0], scanSchema); 
 	if (scan_ongoing) {
 		//output.Reference(*output_);
 		return StoreAPIResult::OK;
