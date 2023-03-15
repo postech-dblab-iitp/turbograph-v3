@@ -375,7 +375,7 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, Logic
 
 	CLogicalLimit *popLimit = GPOS_NEW(mp)
 		CLogicalLimit(mp, pos, true /* fGlobal */, false /* fHasCount */,
-					  false /*fTopLimitUnderDML*/);
+					  true /*fTopLimitUnderDML*/);
 	CExpression *pexprLimitOffset = CUtils::PexprScalarConstInt8(mp, 0/*ulOffSet*/);
 	CExpression *pexprLimitCount = CUtils::PexprScalarConstInt8(mp, 0/*count*/, true/*is_null*/);
 
