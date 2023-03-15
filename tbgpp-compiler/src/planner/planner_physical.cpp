@@ -87,6 +87,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			}
 		}
 		case COperator::EOperatorId::EopPhysicalComputeScalarColumnar: {
+			// TODO fixme need to check if P - S - C pattern or P - C pattern is applied
 			return pTransformEopProjectionColumnar(plan_expr);
 		}				
 		case COperator::EOperatorId::EopPhysicalTableScan: {
@@ -391,39 +392,57 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	vector<vector<uint64_t>> projection_mapping;
 	vector<uint64_t> first_table_mapping;
 
-	while(true) {
-		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
-			// IdxScan
-			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
-			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
-			gpos::ULONG oid = index_mdid->Oid();
-			idx_obj_id = (uint64_t)oid;
+	if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
+		/* IdxScan */
+		CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
+		CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
+		gpos::ULONG oid = index_mdid->Oid();
+		idx_obj_id = (uint64_t)oid;
 
-			// TODO 230303 there may be additional projection - we CURRENTLY do not consider projection
-			CColRefArray* output = idxscan_op->PdrgpcrOutput();
-			for( ULONG i = 0; i < output->Size(); i++) {
-				CColRef* colref = output->operator[](i);
-				CColRefTable* tabcolref = (CColRefTable*) colref;
-				IMDId* tab_mdid = tabcolref->GetMdidTable();
-				CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( tab_mdid );
-				OID table_obj_id = table_mdid->Oid();
-				if( i == 0  ) {
-					oids.push_back((uint64_t)table_obj_id);
-				}
-				auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
-				first_table_mapping.push_back(table_col_idx);
+		CColRefArray* output = idxscan_op->PdrgpcrOutput();	// no projection - retrieve whole output
+		for( ULONG i = 0; i < output->Size(); i++) {
+			CColRef* colref = output->operator[](i);
+			CColRefTable* tabcolref = (CColRefTable*) colref;
+			IMDId* tab_mdid = tabcolref->GetMdidTable();
+			CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( tab_mdid );
+			OID table_obj_id = table_mdid->Oid();
+			if( i == 0  ) {
+				oids.push_back((uint64_t)table_obj_id);
 			}
+			auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
+			first_table_mapping.push_back(table_col_idx);
 		}
-		// reached to the bottom
-		if( inner_root->Arity() == 0 ) {
-			break;
-		} else {
-			inner_root = inner_root->operator[](0);	// pass first child in linear plan
+	} else if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalComputeScalarColumnar) {
+		/* Projection + IdxScan */
+		D_ASSERT( inner_root->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan);
+		D_ASSERT( pIsColumnarProjectionSimpleProject(inner_root) );
+		
+		CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->operator[](0)->Pop();
+		CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
+		gpos::ULONG oid = index_mdid->Oid();
+		idx_obj_id = (uint64_t)oid;
+
+		CColRefArray* proj_cols = inner_root->DeriveOutputColumns()->Pdrgpcr(mp);
+		CColRefArray* output = pGetUnderlyingColRefsOfColumnarProjection(proj_cols, inner_root);
+		// get underlying colrefs
+		// TODO logic duplicated. need to cleanup the logic
+		for( ULONG i = 0; i < output->Size(); i++) {
+			CColRef* colref = output->operator[](i);
+			CColRefTable* tabcolref = (CColRefTable*) colref;
+			IMDId* tab_mdid = tabcolref->GetMdidTable();
+			CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( tab_mdid );
+			OID table_obj_id = table_mdid->Oid();
+			if( i == 0  ) {
+				oids.push_back((uint64_t)table_obj_id);
+			}
+			auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
+			first_table_mapping.push_back(table_col_idx);
 		}
+	} else {
+		D_ASSERT(false); // other cases not supported
 	}
 
 	projection_mapping.push_back(first_table_mapping);
-	D_ASSERT(inner_root != pexprInner);
 
 	D_ASSERT(oids.size() == 1);
 	D_ASSERT(projection_mapping.size() == 1);
@@ -568,18 +587,6 @@ uint64_t Planner::pGetColIdxFromTable(OID table_oid, const CColRef* target_col) 
 
 	CMemoryPool* mp = this->memory_pool;
 
-// 230303 is using the mapping below OK?
-	// D_ASSERT( table_col_mapping.count(table_oid) );
-	// for(int orig_col_id = 0; orig_col_id < table_col_mapping[table_oid].size(); orig_col_id++) {
-	// 	if( target_col == table_col_mapping[table_oid][orig_col_id] ) {
-	// 		return (uint64_t)orig_col_id;
-	// 	}
-	// }
-	// D_ASSERT(false);
-	// return 0;
-
-// TODO assert of table possible
-
 	CColRefTable* colref_table = (CColRefTable*) target_col;
 	INT attr_no = colref_table->AttrNum();
 	if( attr_no == (INT)-1 ) { 
@@ -588,5 +595,56 @@ uint64_t Planner::pGetColIdxFromTable(OID table_oid, const CColRef* target_col) 
 		return (uint64_t)attr_no;
 	}
 }
+
+bool Planner::pIsColumnarProjectionSimpleProject(CExpression* proj_expr) {
+
+	// check if all projetion expressions are CscalarIdent
+	D_ASSERT(proj_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalComputeScalarColumnar );
+	D_ASSERT(proj_expr->Arity() == 2);	// 0 prev 1 projlist
+
+	bool result = true;
+	ULONG proj_size = proj_expr->operator[](1)->Arity();
+	for(ULONG proj_idx = 0; proj_idx < proj_size; proj_idx++) {
+		result = result &&
+					// list -> idx'th element -> ident
+					(proj_expr->operator[](1)->operator[](proj_idx)->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+	}
+	return result;
+}
+
+CColRefArray* Planner::pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr) {
+
+	// the input output_colrefs should only contain output columns in the output columns of proj_expr
+	D_ASSERT(proj_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalComputeScalarColumnar );
+	D_ASSERT(proj_expr->Arity() == 2);	// 0 prev 1 projlist
+
+	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	CColRefArray* result = GPOS_NEW(mp) CColRefArray(mp);
+	result->AddRef();
+
+	ULONG proj_size = proj_expr->operator[](1)->Arity();
+	for(ULONG idx = 0; idx < output_colrefs->Size(); idx++) {
+		int found_idx = -1;
+		// find colref
+		for(ULONG proj_idx = 0; proj_idx < proj_size; proj_idx++) {
+			// list -> idx'th element -> ident
+			CScalarProjectElement* op = (CScalarProjectElement*) proj_expr->operator[](1)->operator[](proj_idx)->Pop();
+			if( op->Pcr()->Id() == output_colrefs->operator[](idx)->Id() ) {
+				// found
+				found_idx = proj_idx;
+				CScalarIdent* matching_ident = (CScalarIdent*) proj_expr->operator[](1)->operator[](proj_idx)->operator[](0)->Pop();
+				result->Append(col_factory->LookupColRef(matching_ident->Pcr()->Id()));
+				
+			}
+		}
+		D_ASSERT(found_idx >= 0);
+	}
+	D_ASSERT( output_colrefs->Size() == result->Size() );
+	return result;
+}
+
+
 
 }

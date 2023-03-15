@@ -224,6 +224,9 @@ private:
 	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
 
+	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);;
+	CColRefArray* pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr);
+
 // TODO move to PlannerUtils
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
