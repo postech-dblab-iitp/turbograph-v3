@@ -18,8 +18,11 @@ project(turbograph-v3)
 ### Set environment ###
 #######################
 set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2")
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
-set (CMAKE_CXX_STANDARD 17)
+# set S62 Debug type and Orca Debug type same
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+endif()
+set(CMAKE_CXX_STANDARD 17)
 
 ##########################
 ### Add subdirectories ###
