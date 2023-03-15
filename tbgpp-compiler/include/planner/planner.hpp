@@ -63,10 +63,14 @@
 #include "gpopt/operators/CPhysicalIndexScan.h"
 #include "gpopt/operators/CPhysicalSerialUnionAll.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/operators/CPhysicalFilter.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
+
+#include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/operators/CScalarConst.h"
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -91,6 +95,8 @@
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
+#include "planner/value_ser_des.hpp"
+
 #include "mdprovider/MDProviderTBGPP.h"
 
 
@@ -210,9 +216,16 @@ private:
 	bool pValidatePipelines();
 	vector<duckdb::CypherPhysicalOperator*>* pTraverseTransformPhysicalPlan(CExpression* plan_expr);
 	
+	// scan
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopFilterWithScanPushdown(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
+
+	// pipelined ops
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
+	
+
+	// joins
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 

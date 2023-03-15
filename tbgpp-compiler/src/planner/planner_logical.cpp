@@ -484,30 +484,24 @@ CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan
 	D_ASSERT( !lit_expr->isNull() && "currently null not supported");
 
 	CExpression* pexpr = nullptr;
-	CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, LOGICAL_TYPE_BASE_ID + (OID)type.typeID, 1, 0);
+	uint32_t literal_type_id = LOGICAL_TYPE_BASE_ID + (OID)type.typeID;
+	CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, literal_type_id, 1, 0);
+	type_mdid->AddRef();
 	
 	void* serialized_literal = NULL;
 	uint64_t serialized_literal_length = 0;
-
-	// serialize datum
-	switch(type.typeID) {
-		case DataTypeID::INT64 : {
-			// TODO add data!!
-			break;
-		}
-		case DataTypeID::STRING : {
-			break;
-		}
-		default: {
-			D_ASSERT(false);
-			break;
-		}
+	if( !lit_expr->isNull() ) {
+		DatumSerDes::SerializeKUZULiteralIntoOrcaByteArray(literal_type_id, lit_expr->literal.get(), serialized_literal, serialized_literal_length);
+		D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
 	}
 
-	IDatumGeneric *datum = (IDatumGeneric*) GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, NULL, 0, false, (LINT)0, (CDouble)0.0);
+	IDatumGeneric *datum = (IDatumGeneric*) GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0);
+	datum->AddRef();
 	pexpr = GPOS_NEW(mp)
 		CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
+	pexpr->AddRef();
 
+	
 	D_ASSERT(pexpr != nullptr);
 	return pexpr;
 }

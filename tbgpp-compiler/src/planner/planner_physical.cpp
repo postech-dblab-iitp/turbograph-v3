@@ -90,7 +90,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		case COperator::EOperatorId::EopPhysicalComputeScalarColumnar: {
 			// TODO fixme need to check if P - S - C pattern or P - C pattern is applied
 			return pTransformEopProjectionColumnar(plan_expr);
-		}				
+		}
+		case COperator::EOperatorId::EopPhysicalFilter: {
+			// TODO currently only support Filter + Scan
+			D_ASSERT( plan_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalTableScan );
+			return pTransformEopFilterWithScanPushdown(plan_expr);
+		}
 		case COperator::EOperatorId::EopPhysicalTableScan: {
 			return pTransformEopTableScan(plan_expr);
 		}
@@ -149,6 +154,82 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	result->push_back(op);
 	
 	return result;	
+}
+
+// TODO need to integrate with table scan
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopFilterWithScanPushdown(CExpression* plan_expr) {
+	/* Filter + Scan */
+	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter);
+	D_ASSERT(plan_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalTableScan);
+
+	auto result = new vector<duckdb::CypherPhysicalOperator*>();
+	
+	CPhysicalFilter* filter_op = (CPhysicalFilter*)plan_expr->Pop();
+	CExpression *scan_expr = plan_expr->operator[](0);
+	CExpression *filter_expr = plan_expr->operator[](1);
+	CPhysicalTableScan* scan_op = (CPhysicalTableScan*)scan_expr->Pop();
+	
+
+	// Find predicates
+	// TODO we currently support predicate patterns with X = 1; where X is a property
+	D_ASSERT( filter_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp );
+	D_ASSERT( filter_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
+	D_ASSERT( filter_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst );
+
+	// find predicate paramters
+	CColRefTable *lhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_expr->operator[](0)->Pop())->Pcr()->Id() ));
+	gpos::INT lhs_attrnum = lhs_colref->AttrNum();
+	gpos::ULONG attr_pos = lGetMDAccessor()->RetrieveRel(lhs_colref->GetMdidTable())->GetPosFromAttno(lhs_attrnum);
+	
+	// TODO get value
+
+
+	// apply casting
+
+
+
+	CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
+	OID table_obj_id = table_mdid->Oid();
+	vector<duckdb::LogicalType> types;
+	CColRefSet* columns = scan_expr->DeriveOutputColumns();
+	uint64_t cols_size = columns->Size();
+	
+	// oids / projection_mapping 
+	vector<uint64_t> oids;
+	oids.push_back(table_obj_id);
+	vector<vector<uint64_t>> projection_mapping;
+	vector<uint64_t> ident_mapping;
+	for(uint64_t i = 0 ; i < cols_size; i++) {
+		if( scan_op->PdrgpcrOutput()->IndexOf(columns->Pdrgpcr(mp)->operator[](i)) != gpos::ulong_max ) {		// check if column is scanned
+			auto table_col_idx = pGetColIdxFromTable(table_obj_id, columns->Pdrgpcr(mp)->operator[](i));
+			ident_mapping.push_back(table_col_idx);
+		}
+	}
+	D_ASSERT(ident_mapping.size() == columns->Size());
+	projection_mapping.push_back(ident_mapping);
+
+	// types
+	for(uint64_t i = 0 ; i < cols_size; i++) {
+		if( scan_op->PdrgpcrOutput()->IndexOf(columns->Pdrgpcr(mp)->operator[](i)) != gpos::ulong_max ) {
+			CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(columns->Pdrgpcr(mp)->operator[](i)->RetrieveType()->MDId());
+			OID type_oid = type_mdid->Oid();
+			types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+		}
+	}
+	D_ASSERT(types.size() == ident_mapping.size());
+
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	duckdb::CypherPhysicalOperator* op =
+		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
+	result->push_back(op);
+	
+	return result;
+
+
 }
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr) {
@@ -230,6 +311,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	
 	return result;
 }
+
+
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumnar(CExpression* plan_expr) {
 
