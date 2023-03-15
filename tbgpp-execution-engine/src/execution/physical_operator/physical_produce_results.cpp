@@ -27,15 +27,9 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 	// std::cout << "sinked tuples: " << input.size() << std::endl;
 
 	auto copyChunk = new DataChunk();
-	// std::cout << "A: " << input.size() << std::endl;
 	copyChunk->Initialize( input.GetTypes() );
-	// std::cout << "B" << input.size() << std::endl;
-	// std::cout << input.ColumnCount() << "\n" << input.ToString(1) << std::endl;
-	input.Copy(*copyChunk, 0);
-	// std::cout << "C " << input.size() << std::endl;
+	copyChunk->Reference(input);
 	state.resultChunks.push_back(copyChunk);
-
-	//state.resultChunks.Append(*copyChunk);
 
 	return SinkResultType::NEED_MORE_INPUT;
 }
