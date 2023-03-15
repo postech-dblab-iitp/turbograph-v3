@@ -36,6 +36,12 @@ public:
 			this->bound_edges.insert(it);
 		}
 	}
+	void copySchema(LogicalSchema *other, vector<uint64_t> sel_vector) {
+		for (int i = 0; i < sel_vector.size(); i++) {
+			D_ASSERT(sel_vector[i] < other->size());
+			this->schema.push_back(other->getSchema()[sel_vector[i]]);
+		}
+	}
 	void appendNodeProperty(string& k1, string& k2) {
 		appendKey(k1, k2, true, false);
 	}
@@ -70,6 +76,9 @@ public:
 	bool isNodeBound(string k1) { return bound_nodes.size() > 0 && (bound_nodes.find(k1) != bound_nodes.end()); }
 	bool isEdgeBound(string k1) { return bound_edges.size() > 0 && (bound_edges.find(k1) != bound_edges.end()); }
 	uint64_t size() { return schema.size(); }
+	vector<pair<string, string>> &getSchema() {
+		return schema;
+	}
 	void clear() {
 		schema.clear();
 		bound_edges.clear();
