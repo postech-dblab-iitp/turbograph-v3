@@ -204,6 +204,10 @@ private:
 	static CExpression *PexprTransposeSelectAndProject(CMemoryPool *mp,
 													   CExpression *pexpr);
 
+	// S62 swap logical select over logical project columnar
+	static CExpression *PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
+													   			CExpression *pexpr);
+
 	static CExpression *CollapseSelectAndReplaceColref(CMemoryPool *mp,
 													   CExpression *expr,
 													   CColRef *pcolref,
