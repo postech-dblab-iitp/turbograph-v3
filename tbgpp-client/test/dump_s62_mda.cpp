@@ -123,16 +123,23 @@ void* mda_print(void* args) {
 
 	// now do whatever you want to do
 	vector<uint32_t> rel_ids_to_inspect({(uint32_t)305,});	// 305 = Person
+	rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
 	rel_ids_to_inspect.push_back(521);	// KNOWS : 521
 	
 	for (auto& rel_obj_id: rel_ids_to_inspect) {
 		print_depth("[Inspecting Rel - mdid=" + std::to_string(rel_obj_id) + "]");
-		auto* rel_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, rel_obj_id, 0, 0);
-		print_depth("HasDroppedColumns(): " + std::to_string(mda->RetrieveRel(rel_mdid)->HasDroppedColumns()), 2);
-		print_depth("ColumnCount(): " + std::to_string(mda->RetrieveRel(rel_mdid)->ColumnCount()), 2);
-		print_depth("SystemColumnsCount(): " + std::to_string(mda->RetrieveRel(rel_mdid)->SystemColumnsCount()), 2);
-		for( gpos::ULONG i = 0; i < mda->RetrieveRel(rel_mdid)->ColumnCount(); i++ ) {
-			auto* col_mdid = mda->RetrieveRel(rel_mdid)->GetMdCol(i);
+		auto *rel_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, rel_obj_id, 0, 0);
+		auto *rel = mda->RetrieveRel(rel_mdid);
+		CMDRelationGPDB *gpdb_rel = (CMDRelationGPDB *)rel;
+		auto relname = gpdb_rel->Mdname().GetMDName();
+		std::wstring relname_ws(relname->GetBuffer());
+		string relname_str(relname_ws.begin(), relname_ws.end());
+		print_depth("RelName: " + relname_str, 2);
+		print_depth("HasDroppedColumns(): " + std::to_string(rel->HasDroppedColumns()), 2);
+		print_depth("ColumnCount(): " + std::to_string(rel->ColumnCount()), 2);
+		print_depth("SystemColumnsCount(): " + std::to_string(rel->SystemColumnsCount()), 2);
+		for( gpos::ULONG i = 0; i < rel->ColumnCount(); i++ ) {
+			auto* col_mdid = rel->GetMdCol(i);
 			auto colname = col_mdid->Mdname().GetMDName();
 			std::wstring colname_ws(colname->GetBuffer());
 			string colname_str(colname_ws.begin(), colname_ws.end());
@@ -147,10 +154,12 @@ void* mda_print(void* args) {
 		print_depth("IndexCount(): " + std::to_string(mda->RetrieveRel(rel_mdid)->IndexCount()), 2);
 		for( gpos::ULONG i = 0; i < mda->RetrieveRel(rel_mdid)->IndexCount(); i++ ) {
 			IMDId* index_mdid = mda->RetrieveRel(rel_mdid)->IndexMDidAt(i);
+			uint64_t idx_obj_id = (uint64_t) CMDIdGPDB::CastMdid(index_mdid)->Oid();
 			const IMDIndex * index = mda->RetrieveIndex(index_mdid);
 			print_depth(std::to_string(i) +" th index info => ", 4);
 			std::wstring idxtyp_ws( index->GetDXLStr(index->IndexType())->GetBuffer() );
 			string idxtype_str(idxtyp_ws.begin(), idxtyp_ws.end());
+			print_depth("IndexCat_Oid: " + std::to_string(idx_obj_id), 6);
 			print_depth("IndexType(): " + idxtype_str, 6);
 			print_depth("Keys(): " + std::to_string(index->Keys()), 6);
 			for (ULONG ul = 0; ul < index->Keys(); ul++) {

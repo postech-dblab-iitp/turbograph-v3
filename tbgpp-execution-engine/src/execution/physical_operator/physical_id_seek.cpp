@@ -33,7 +33,16 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
+// icecream::ic.enable();
+// IC(input.size());
+// if (input.size() > 0) {
+// 	IC(input.ToString(std::min((idx_t)10, input.size())));
+// }
+// IC(id_col_idx);
+// icecream::ic.disable();
+
 	idx_t nodeColIdx = id_col_idx;
+	D_ASSERT(nodeColIdx < input.ColumnCount());
 
 // IC();
 
@@ -66,8 +75,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	// 	throw InvalidInputException("target_eids.size() != boundary_position.size()");
 	// }
 	vector<idx_t> output_col_idx;
-	for (idx_t colId = input.ColumnCount(); colId < chunk.ColumnCount(); colId++) {
-		output_col_idx.push_back( colId );
+	for (idx_t i = 0; i < inner_col_map.size(); i++) {
+		output_col_idx.push_back(inner_col_map[i]);
 	}
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
 		context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx);
@@ -75,8 +84,10 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 icecream::ic.disable();
 
 	// for original ones reference existing columns
-	for(int i = 0; i < input.ColumnCount() ; i++) {
-		chunk.data[i].Reference( input.data[i] );
+	D_ASSERT(input.ColumnCount() == outer_col_map.size());
+	for(int i = 0; i < input.ColumnCount(); i++) {
+		D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
+		chunk.data[outer_col_map[i]].Reference(input.data[i]);
 	}
 	chunk.SetCardinality( input.size() );
 
