@@ -1658,10 +1658,12 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	// 2. output tuple cost: this is handled by the Filter on top of IndexScan, if no Filter exists, we add output cost
 	// when we sum-up children cost
 
-	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
-							   dTableWidth * dIndexScanTupCostUnit;
+	// S62 in Adjacency Index case, IndexFilterCostUnit may be 0
+	CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
+	// CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+	// 						   dTableWidth * dIndexScanTupCostUnit;
 	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor));
+				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
 }
 
 

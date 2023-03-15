@@ -312,6 +312,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		CColRef *col = (*output_cols)[col_idx];
 		ULONG col_id = col->Id();
 		id_map.insert(std::make_pair(col_id, col_idx));
+		// fprintf(stdout, "AdjIdxJoin Insert %d %d\n", col_id, col_idx);
 
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
@@ -364,7 +365,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		}
 	}
 	D_ASSERT(sid_col_idx_found);
+	// fprintf(stdout, "AdjIdxJoin found = %s, sid_col_idx = %ld\n", sid_col_idx_found ? "true": "false", sid_col_idx);
 	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+		if (col_idx == 0 || col_idx >= 3) continue; // skip _id and other properties for edge table.. TODO temporary
 		CColRef* col = inner_cols->operator[](col_idx);
 		ULONG col_id = col->Id();
 		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
@@ -412,7 +415,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		CColRef *col = (*output_cols)[col_idx];
 		ULONG col_id = col->Id();
 		id_map.insert(std::make_pair(col_id, col_idx));
-		fprintf(stdout, "Insert %d %d\n", col_id, col_idx);
+		// fprintf(stdout, "IdSeek Insert %d %d\n", col_id, col_idx);
 
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
@@ -523,7 +526,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			const WCHAR *w_str_buffer = L"_tid";
 			CWStringConst colid_name(w_str_buffer);
 			if (col->Name().Pstr()->Equals(&colid_name)) { // temporary..
-				sid_col_idx = col_idx + 1;
+				// sid_col_idx = col_idx + 1;
+				sid_col_idx = col_idx;
 			} else {
 				sid_col_idx = col_idx;
 			}
@@ -531,14 +535,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		}
 	}
 	D_ASSERT(sid_col_idx_found);
-	fprintf(stdout, "found = %s, sid_col_idx = %ld\n", sid_col_idx_found ? "true": "false", sid_col_idx);
+	// fprintf(stdout, "IdSeek found = %s, sid_col_idx = %ld\n", sid_col_idx_found ? "true": "false", sid_col_idx);
 	
 	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
 		CColRef* col = inner_cols->operator[](col_idx);
 		ULONG col_id = col->Id();
 		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
 		inner_col_map.push_back(id_idx);
-		fprintf(stdout, "inner_col_map push %d %ld\n", col_id, id_idx);
+		// fprintf(stdout, "inner_col_map push %d %ld\n", col_id, id_idx);
 	}
 
 	/* Generate operator and push */

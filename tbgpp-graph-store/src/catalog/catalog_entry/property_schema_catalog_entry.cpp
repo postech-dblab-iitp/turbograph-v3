@@ -145,4 +145,13 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 	return partition_oid;
 }
 
+uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately() {
+	// # of extents * # rows per extent
+	return extent_ids.size() * STORAGE_STANDARD_VECTOR_SIZE;
+}
+
+uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
+	return extent_ids.size();
+}
+
 } // namespace duckdb

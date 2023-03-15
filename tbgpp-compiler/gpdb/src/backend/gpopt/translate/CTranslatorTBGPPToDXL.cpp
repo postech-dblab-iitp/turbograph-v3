@@ -2386,10 +2386,11 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 		// CMDName ctor created a copy of the string
 		GPOS_DELETE(relname_str);
 
-		num_rows = 0;// gpdb::CdbEstimatePartitionedNumTuples(rel);
+		// S62 TODO change this to exact num_rows
+		num_rows = rel->GetNumberOfRowsApproximately();// gpdb::CdbEstimatePartitionedNumTuples(rel);
 
-		// relpages = rel->rd_rel->relpages;
-		// relallvisible = rel->rd_rel->relallvisible;
+		relpages = rel->GetNumberOfExtents();//rel->rd_rel->relpages;
+		relallvisible = relpages;//rel->rd_rel->relallvisible;
 
 		m_rel_stats_mdid->AddRef();
 		// gpdb::CloseRelation(rel);
@@ -2447,7 +2448,8 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// number of rows from pg_class
 	double num_rows;
 
-	num_rows = 0;// gpdb::CdbEstimatePartitionedNumTuples(rel);
+	// S62 TODO change this to exact num_rows
+	num_rows = rel->GetNumberOfRowsApproximately();// gpdb::CdbEstimatePartitionedNumTuples(rel);
 
 	// extract column name and type
 	CMDName *md_colname =
@@ -2502,7 +2504,8 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// }
 
 	// column width
-	CDouble width(0.0);// = CDouble(form_pg_stats->stawidth);
+	// CDouble width(0.0);
+	CDouble width = CDouble(duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);
