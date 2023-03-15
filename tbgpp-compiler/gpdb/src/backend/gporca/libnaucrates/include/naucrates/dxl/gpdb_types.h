@@ -17,9 +17,9 @@ using namespace gpos;
 
 typedef ULONG OID;
 
-#define GPDB_INT2 OID(21)
-#define GPDB_INT4 OID(23)
-#define GPDB_INT8 OID(20)
+#define GPDB_INT2 OID(1000000000 + 21) // S62
+#define GPDB_INT4 OID(1000000000 + 23) // S62
+#define GPDB_INT8 OID(1000000000 + 20) // S62 
 #define GPDB_BOOL OID(1000000000 + 16) // TODO remove..
 #define GPDB_TID OID(27)
 #define GPDB_OID OID(26)

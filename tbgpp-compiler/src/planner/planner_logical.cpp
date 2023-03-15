@@ -101,7 +101,8 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	if(proj_body->hasOrderByExpressions()) {
 		// orderByExpressions
 		// isAscOrders
-		GPOS_ASSERT(false);
+		const expression_vector &orderby_expr = proj_body->getOrderByExpressions();
+		plan = lPlanOrderBy(orderby_expr, plan);
 	}
 	
 	/* Skip limit */
@@ -339,6 +340,50 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	plan->addUnaryParentOp(proj_expr);
 	// TODO add schema here!!
 	return plan;
+}
+
+LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+
+	// TODO we need to check ASC, DESC
+	vector<uint64_t> sort_keys;
+	for (auto &orderby_expr: orderby_exprs) {
+		auto &orderby_expr_type = orderby_expr.get()->expressionType;
+		if(orderby_expr_type == kuzu::common::ExpressionType::PROPERTY) {
+			// first depth projection = simple projection
+			PropertyExpression *prop_expr = (PropertyExpression *)(orderby_expr.get());
+			string k1 = prop_expr->getVariableName();
+			string k2 = prop_expr->getPropertyName();
+			uint64_t idx = prev_plan->getSchema()->getIdxOfKey(k1, k2);
+			fprintf(stdout, "idx = %ld\n", idx);
+			sort_keys.push_back(idx);
+		} else {
+			// currently do not allow other cases
+			GPOS_ASSERT(false);
+		}
+	}
+
+	COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
+
+	// CColRefArray *plan_cols = prev_plan->getColRefArray();
+	CColRefArray* plan_cols = prev_plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
+	for (uint64_t i = 0; i < sort_keys.size(); i++) {
+		CColRef *colref = plan_cols->operator[](sort_keys[i]);
+		IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(IMDType::EcmptL); // TODO cmptype?
+		pos->Append(mdid, colref, COrderSpec::EntLast); // TODO what is EntLast?
+	}
+
+	CLogicalLimit *popLimit = GPOS_NEW(mp)
+		CLogicalLimit(mp, pos, true /* fGlobal */, false /* fHasCount */,
+					  false /*fTopLimitUnderDML*/);
+	CExpression *pexprLimitOffset = CUtils::PexprScalarConstInt8(mp, 0/*ulOffSet*/);
+	CExpression *pexprLimitCount = CUtils::PexprScalarConstInt8(mp, 0/*count*/, true/*is_null*/);
+
+	CExpression *plan_orderby_expr = GPOS_NEW(mp)
+		CExpression(mp, popLimit, prev_plan->getPlanExpr(), pexprLimitOffset, pexprLimitCount);
+
+	prev_plan->addUnaryParentOp(plan_orderby_expr); // TODO ternary op?..
+	return prev_plan;
 }
 
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {

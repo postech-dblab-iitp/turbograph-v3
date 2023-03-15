@@ -58,6 +58,7 @@
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
+#include "gpopt/operators/CLogicalLimit.h"
 
 #include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/operators/CPhysicalIndexScan.h"
@@ -70,6 +71,7 @@
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
+#include "naucrates/md/IMDType.h"
 #include "naucrates/md/IMDTypeGeneric.h"
 #include "naucrates/base/IDatumGeneric.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
@@ -149,30 +151,31 @@ private:
 private:
 	// planner_logical.cpp
 	/* Generating orca logical plan */
-	CExpression* lGetLogicalPlan();
-	CExpression* lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
-	LogicalPlan* lPlanQueryPart(
+	CExpression *lGetLogicalPlan();
+	CExpression *lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
+	LogicalPlan *lPlanQueryPart(
         const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);
-	LogicalPlan* lPlanReadingClause(
+	LogicalPlan *lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);
+	LogicalPlan *lPlanReadingClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanMatchClause(
+	LogicalPlan *lPlanMatchClause(
 		BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanUnwindClause(
+	LogicalPlan *lPlanUnwindClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
-	LogicalPlan* lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
-	LogicalPlan* lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
-	LogicalPlan* lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
+	LogicalPlan *lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
+	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, LogicalPlan *prev_plan);
 	
 	/* Helper functions for generating orca logical plans */
-	CExpression* lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 
 
-	CExpression* lExprLogicalGetNodeOrEdge(
+	CExpression *lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
 	);
