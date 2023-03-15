@@ -554,7 +554,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output_eid = ext_ids_to_iterate[previous_idx];
     ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
     filter_cdf_id = filter_cdf_id << 32;
-    filter_cdf_id = filter_cdf_id + filterKeyColIdx;
+    filter_cdf_id = filter_cdf_id + filterKeyColIdx - target_idxs_offset;
     // filter_cdf_id = filter_cdf_id + (idx - pks->begin());
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // For the case: scanSchema != ext_property_types
