@@ -6,8 +6,7 @@
 #include "kuzu/common/types/literal.h"
 
 #include "common/assert.hpp"
-
-#include "common/assert.h"
+#include "common/types.hpp"
 #include "types/value.hpp"
 
 #include <cstdlib>
@@ -25,7 +24,7 @@ public:
 	static void SerializeKUZULiteralIntoOrcaByteArray(uint32_t type_id, kuzu::common::Literal* kuzu_literal, void*& out_mem_ptr, uint64_t& out_length) {
 
 		DataType kuzu_type = kuzu_literal->dataType;
-		D_ASSERT( type_id ==LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
+		D_ASSERT( type_id == LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
 		
 		switch(kuzu_type.typeID) {
 			case DataTypeID::INT64: {
@@ -42,8 +41,29 @@ public:
 	}
 
 	// datum mp -> duckdb value
-	static void DeserializeOrcaByteArrayIntoDuckDBValue(void* mem_ptr, uint64_t length, duckdb::Value out_value) {
+		// TODO api should not copy return value
+	static duckdb::Value DeserializeOrcaByteArrayIntoDuckDBValue(uint32_t type_id, const void* mem_ptr, uint64_t length) {
 
+		duckdb::LogicalTypeId duckdb_type = (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
+
+		// TODO deallocation is responsible here
+		switch(duckdb_type) {
+			case duckdb::LogicalType::UBIGINT: {
+				D_ASSERT(length == 8);
+				uint64_t value = *((uint64_t*)mem_ptr);
+				return duckdb::Value::UBIGINT(value);
+			}
+			case duckdb::LogicalType::BIGINT: {
+				D_ASSERT(length == 8);
+				int64_t value = *((int64_t*)mem_ptr);
+				return duckdb::Value::BIGINT(value);	// TODO to BIGINT
+			}
+			default:
+				D_ASSERT(false);
+		}
+		
+
+		
 	}
 
 

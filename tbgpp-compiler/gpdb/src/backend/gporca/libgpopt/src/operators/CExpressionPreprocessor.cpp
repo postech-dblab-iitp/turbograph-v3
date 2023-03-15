@@ -3214,15 +3214,15 @@ CExpressionPreprocessor::PexprPreprocess(
 	pexprExistWithPredFromINSubq->Release();
 
 	// S62 swap logical select over logical project columnar
-	CExpression *pexprTransposeSelectAndProjectColumnar = 
-		PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
-	pexprTransposeSelectAndProject->Release();
+	// CExpression *pexprTransposeSelectAndProjectColumnar = 
+	// 	PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
+	// pexprTransposeSelectAndProject->Release();
 
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =
-		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProjectColumnar);
+		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProject);
 	GPOS_CHECK_ABORT;
-	pexprTransposeSelectAndProjectColumnar->Release();
+	pexprTransposeSelectAndProject->Release();
 
 	return pexprNormalized2;
 }

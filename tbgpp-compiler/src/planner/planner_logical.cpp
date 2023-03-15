@@ -495,13 +495,13 @@ CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan
 		D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
 	}
 
-	IDatumGeneric *datum = (IDatumGeneric*) GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0);
+	IDatumGeneric *datum = (IDatumGeneric*) (GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0));
 	datum->AddRef();
 	pexpr = GPOS_NEW(mp)
 		CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
 	pexpr->AddRef();
 
-	
+
 	D_ASSERT(pexpr != nullptr);
 	return pexpr;
 }
