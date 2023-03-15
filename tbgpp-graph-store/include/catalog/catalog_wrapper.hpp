@@ -64,7 +64,7 @@ public:
         return index_cat;
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<tuple<idx_t, idx_t, LogicalTypeId>>> &pkey_to_ps_map) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<pair<idx_t, idx_t>>> &pkey_to_ps_map, vector<string> &universal_schema) {
         auto &catalog = db.GetCatalog();
         for (auto &oid : oids) {
             PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
@@ -77,7 +77,8 @@ public:
                 string property_key = std::string((*property_keys)[i]);
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
-                    pkey_to_ps_map.emplace(property_key, std::vector<tuple<idx_t, idx_t, LogicalTypeId>> {std::make_tuple(oid, i + 1, (*property_key_types)[i])});
+                    universal_schema.push_back(property_key);
+                    pkey_to_ps_map.emplace(property_key, std::vector<pair<idx_t, idx_t>> {std::make_pair(oid, i + 1)});
                 } else {
                     it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }
@@ -150,7 +151,7 @@ public:
         idx_t left_type_id = GetLeftTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
         idx_t right_type_id = GetRightTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
         ExpressionType etype = GetComparisonType(op_id);
-        ExpressionType inv_etype;
+        ExpressionType inv_etype; // TODO get inv_etype using NegateComparisionExpression API
         switch (etype) {
             case ExpressionType::COMPARE_EQUAL:
                 inv_etype = ExpressionType::COMPARE_NOTEQUAL;

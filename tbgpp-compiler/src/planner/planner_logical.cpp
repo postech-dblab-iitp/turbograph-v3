@@ -95,7 +95,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 			GPOS_ASSERT(false);
 		}
 	}
-	// plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
+	plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
 	
 	/* OrderBy */
 	if(proj_body->hasOrderByExpressions()) {

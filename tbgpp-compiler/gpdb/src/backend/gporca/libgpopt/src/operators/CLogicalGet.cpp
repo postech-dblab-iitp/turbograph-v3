@@ -79,7 +79,7 @@ CLogicalGet::CLogicalGet(CMemoryPool *mp, const CName *pnameAlias,
 			mp, m_pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
 	}
 
-	m_pcrsDist = CLogical::PcrsDist(mp, m_ptabdesc, m_pdrgpcrOutput);
+	// m_pcrsDist = CLogical::PcrsDist(mp, m_ptabdesc, m_pdrgpcrOutput); // S62 disable
 }
 
 //---------------------------------------------------------------------------

@@ -86,6 +86,8 @@ public:
 	idx_t GetPartitionOID();
 
 	uint64_t GetNumberOfColumns();
+	uint64_t GetNumberOfRowsApproximately();
+	uint64_t GetNumberOfExtents();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:
