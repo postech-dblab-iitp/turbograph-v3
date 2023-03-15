@@ -319,7 +319,6 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	CColRefArray* plan_cols = plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
 	CColRefArray* proj_cols = GPOS_NEW(mp) CColRefArray(mp);
 
-	LogicalSchema schema;
 	CExpression* scalar_proj_elem;
 	for(auto& col_id: col_ids){
 		CColRef *colref = plan_cols->operator[](col_id);
@@ -328,8 +327,10 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 		scalar_proj_elem = GPOS_NEW(mp) CExpression(
 			mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr);
-		proj_array->Append(scalar_proj_elem);	
+		proj_array->Append(scalar_proj_elem);
 	}
+	LogicalSchema new_schema;
+	new_schema.copySchema(plan->getSchema(), col_ids);
 
 	// Our columnar projection
 	CExpression *pexprPrjList =
@@ -338,7 +339,7 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), plan->getPlanExpr(), pexprPrjList);
 
 	plan->addUnaryParentOp(proj_expr);
-	// TODO add schema here!!
+	plan->setSchema(move(new_schema));
 	return plan;
 }
 

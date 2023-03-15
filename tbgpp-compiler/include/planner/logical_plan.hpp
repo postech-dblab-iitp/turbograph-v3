@@ -101,6 +101,9 @@ public:
 		// TODO after integrating information, lhs must deallocate rhs after merge.
 	}
 
+	void setSchema(LogicalSchema root_schema_) {
+		root_schema = move(root_schema_);
+	}
  	inline CExpression* getPlanExpr() { return tree_root; }
 	inline LogicalSchema* getSchema() { return &root_schema; }
 	inline CColRefArray* getColRefArray() { return root_colref_array; }
