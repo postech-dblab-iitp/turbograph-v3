@@ -172,25 +172,25 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopFilterWithScanPus
 	CExpression *filter_expr = plan_expr->operator[](1);
 	CPhysicalTableScan* scan_op = (CPhysicalTableScan*)scan_expr->Pop();
 	
-
 	// Find predicates
-	// TODO we currently support predicate patterns with X = 1; where X is a property
+		// TODO we currently support predicate patterns with X = 1; where X is a property
 	D_ASSERT( filter_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp );
 	D_ASSERT( filter_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
 	D_ASSERT( filter_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst );
 
-	// find predicate paramters
 	CColRefTable *lhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_expr->operator[](0)->Pop())->Pcr()->Id() ));
 	gpos::INT lhs_attrnum = lhs_colref->AttrNum();
 	gpos::ULONG attr_pos = lGetMDAccessor()->RetrieveRel(lhs_colref->GetMdidTable())->GetPosFromAttno(lhs_attrnum);
+
+	CDatumGenericGPDB *datum = (CDatumGenericGPDB*)(((CScalarConst*)filter_expr->operator[](1)->Pop())->GetDatum());
 	
-	// TODO get value
+	duckdb::Value literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
+									CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
+									datum->GetByteArrayValue(),
+									(uint64_t) datum->Size());
 
 
-	// apply casting
-
-
-
+	// oids / projection_mapping 
 	CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
 	OID table_obj_id = table_mdid->Oid();
 	vector<duckdb::LogicalType> types;
