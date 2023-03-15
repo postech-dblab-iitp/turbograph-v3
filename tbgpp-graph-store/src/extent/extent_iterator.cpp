@@ -491,7 +491,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 // Get Next Extent with filterKey
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, duckdb::Value filterValue, vector<idx_t> &output_column_idxs, std::vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
+                                   idx_t filterKeyColIdx, duckdb::Value filterValue, vector<idx_t> &output_column_idxs, 
+                                   std::vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized) {
     // TODO we assume that there is only one tuple that matches the predicate
     // We should avoid data copy here.. but copy for demo temporarliy
     
@@ -546,13 +548,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
     }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
-    string_vector *pks = ps_cat_entry->GetKeys();
-    auto idx = std::find(pks->begin(), pks->end(), filterKey);
-    if (idx == pks->end()) throw InvalidInputException("");
+    // string_vector *pks = ps_cat_entry->GetKeys();
+    // auto idx = std::find(pks->begin(), pks->end(), filterKey);
+    // if (idx == pks->end()) throw InvalidInputException("");
     output_eid = ext_ids_to_iterate[previous_idx];
     ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
     filter_cdf_id = filter_cdf_id << 32;
-    filter_cdf_id = filter_cdf_id + (idx - pks->begin());
+    filter_cdf_id = filter_cdf_id + filterKeyColIdx;
+    // filter_cdf_id = filter_cdf_id + (idx - pks->begin());
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // For the case: scanSchema != ext_property_types
     // vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));
