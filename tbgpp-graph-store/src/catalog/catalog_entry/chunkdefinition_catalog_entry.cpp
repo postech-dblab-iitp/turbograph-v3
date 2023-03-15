@@ -39,6 +39,7 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 }
 
 vector<minmax_t> ChunkDefinitionCatalogEntry::GetMinMaxArray() {
+	// TODO do not copy this.. return pointer
 	vector<minmax_t> minmax;
 	for (auto it : min_max_array){
 		minmax.push_back(it);
