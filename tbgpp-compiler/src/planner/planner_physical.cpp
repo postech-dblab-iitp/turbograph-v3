@@ -180,7 +180,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopFilterWithScanPus
 
 	CColRefTable *lhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_expr->operator[](0)->Pop())->Pcr()->Id() ));
 	gpos::INT lhs_attrnum = lhs_colref->AttrNum();
-	gpos::ULONG attr_pos = lGetMDAccessor()->RetrieveRel(lhs_colref->GetMdidTable())->GetPosFromAttno(lhs_attrnum);
+	gpos::ULONG pred_attr_pos = lGetMDAccessor()->RetrieveRel(lhs_colref->GetMdidTable())->GetPosFromAttno(lhs_attrnum);
 
 	CDatumGenericGPDB *datum = (CDatumGenericGPDB*)(((CScalarConst*)filter_expr->operator[](1)->Pop())->GetDatum());
 	
@@ -224,7 +224,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopFilterWithScanPus
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	duckdb::CypherPhysicalOperator* op =
-		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
+		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping, pred_attr_pos, literal_val);
 	result->push_back(op);
 	
 	return result;
