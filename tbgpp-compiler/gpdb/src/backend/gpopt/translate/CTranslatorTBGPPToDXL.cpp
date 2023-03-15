@@ -1676,8 +1676,7 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 			break;
 
 		case GPDB_INT8_OID:
-			// return GPOS_NEW(mp) CMDTypeInt8GPDB(mp);
-			D_ASSERT(false);
+			return GPOS_NEW(mp) CMDTypeInt8GPDB(mp);
 			break;
 
 		case GPDB_BOOL:
