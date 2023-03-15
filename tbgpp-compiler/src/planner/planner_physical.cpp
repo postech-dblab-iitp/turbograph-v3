@@ -25,9 +25,6 @@ namespace s62 {
 void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 
 	vector<duckdb::CypherPhysicalOperator*> final_pipeline_ops = *pTraverseTransformPhysicalPlan(orca_plan_root);
-	
-	// pop if necessary
-	// final_pipeline_ops.pop_back();
 
 	// Append PhysicalProduceResults
 	duckdb::CypherSchema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
