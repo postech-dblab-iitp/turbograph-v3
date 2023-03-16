@@ -228,9 +228,8 @@ class InputParser{
     std::vector <std::string> tokens;
 };
 
-void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
+void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
 
-	std::cout << "Query => " << std::endl << query_str << std::endl;
 	
 	boost::timer::cpu_timer compile_timer;
 	compile_timer.start();
@@ -238,6 +237,11 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 /*
 	COMPILATION
 */
+
+	if(planner_config.DEBUG_PRINT) {
+		std::cout << "Query => " << std::endl << query_str << std::endl;
+	}
+
 	auto inputStream = ANTLRInputStream(query_str);
 
 	// Lexer		
@@ -267,7 +271,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 		std::cout << std::endl;
 	}
 
-	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 	boost::timer::cpu_timer orca_compile_timer;
 	orca_compile_timer.start();
 	planner.execute(bst);
@@ -278,13 +281,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 /*
 	EXECUTE QUERY
 */
-	auto pipelines = planner.getConstructedPipelines();
-	std::vector<CypherPipelineExecutor*> executors;
-	for( auto& pipe: pipelines) {
-		auto* new_ctxt = new ExecutionContext(client.get());
-		auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
-		executors.push_back(pipe_exec);
-	}
+	auto executors = planner.genPipelineExecutors();
 	if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 	// start timer
@@ -292,9 +289,13 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 	query_timer.start();
 	int idx = 0;
 	for( auto exec : executors ) { 
-		std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+		if(planner_config.DEBUG_PRINT) {
+			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+		}
 		exec->ExecutePipeline();
-		std::cout << "done pipeline execution!!" << std::endl;
+		if(planner_config.DEBUG_PRINT) {
+			std::cout << "done pipeline execution!!" << std::endl;
+		}
 	}
 	// end_timer
 	int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
@@ -330,7 +331,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 		std::cout << t << std::endl;
 	}
 	std::cout << "===================================================" << std::endl;
-	std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)/ " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+	std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
 }
 
@@ -378,12 +379,8 @@ icecream::ic.disable();
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
 
-	// TODO 0202 this should work.
-	// Test catalog access to get object id
-	// vector<idx_t> oids;
-	// (client->db).get()->GetCatalogWrapper().GetSubPartitionIDs(*(client.get()), vector<string>({"Person"}), oids);
-	// TODO why does this function return void??
-
+	// Run planner
+	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 	
 	// run queries by query name
 	std::string query_str;
@@ -395,7 +392,7 @@ icecream::ic.disable();
 		// } catch( std::exception e1 ) {
 		// 	std::cerr << e1.what() << std::endl;
 		// }
-		CompileAndRun(input_query_string, client);
+		CompileAndRun(input_query_string, client, planner);
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str);
@@ -406,7 +403,7 @@ icecream::ic.disable();
 
 			try {
 				// protected code
-				CompileAndRun(query_str, client);
+				CompileAndRun(query_str, client, planner);
 			} catch( std::exception e1 ) {
 				std::cerr << e1.what() << std::endl;
 			}

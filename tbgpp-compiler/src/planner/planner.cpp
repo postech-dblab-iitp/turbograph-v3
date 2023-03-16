@@ -14,11 +14,13 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientCo
 		assert(memory_mdp_filepath != "");
 		//  "filepath should be provided in memory provider mode"
 	}
-	this->orcaInit();	
+	this->orcaInit();
 }
 
 Planner::~Planner() {
 
+	CMDCache::Shutdown();
+	
 	// Destroy memory pool for orca
 	CMemoryPoolManager::GetMemoryPoolMgr()->Destroy(this->memory_pool);
 }
@@ -34,6 +36,17 @@ void Planner::orcaInit() {
 	CMemoryPool *mp = amp.Pmp();
 	amp.Detach();
 	this->memory_pool = mp;
+
+	CMDCache::Init();
+}
+
+void Planner::reset() {
+	
+	// reset planner context 
+	// note that we reuse orca memory pool
+	table_col_mapping.clear();
+	bound_statement = nullptr;
+	pipelines.clear();
 
 }
 
@@ -98,6 +111,9 @@ CQueryContext* Planner::_orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_
 
 void Planner::execute(kuzu::binder::BoundStatement* bound_statement) {
 	
+	// reset previous context
+	this->reset();
+
 	D_ASSERT(bound_statement != nullptr);
 	this->bound_statement = bound_statement;
 	gpos_exec_params params;
@@ -214,7 +230,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 	/* Initialize */
 	InitDXL();
 	planner->_orcaInitXForm();
-	CMDCache::Init();
+	
 	IMDProvider* provider;
 	if( planner->mdp_type == MDProviderType::MEMORY ) {
 		provider = (IMDProvider*) planner->_orcaGetProviderMemory();
@@ -279,11 +295,43 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		GPOS_DELETE(ptlsobj);
 	}
 
-	/* Shutdown */
 	CRefCount::SafeRelease(provider);
-	CMDCache::Shutdown();
 	
 	return nullptr;
+}
+
+vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
+
+	D_ASSERT(pipelines.size() > 0);
+
+	std::vector<duckdb::CypherPipelineExecutor*> executors;
+
+	for( auto& pipe: pipelines) {
+		// find children - the child ordering matters. 
+		// must run in ascending order of the vector
+		auto* new_ctxt = new duckdb::ExecutionContext(context);
+		vector<duckdb::CypherPipelineExecutor*> child_executors;
+
+		for( auto& ce: executors ) {
+			// if child pipeline exists, its executor must be previously be constructed
+			if ( pipe->GetSource() == ce->pipeline->GetSink() ) {
+				// pipelines are connected if prev.sink == now.source
+				// TODO s62  not generally true. consider hash join need to extend
+				// TODO this is compare pointer, any better?
+				child_executors.push_back(ce);
+			} 
+		}
+
+		duckdb::CypherPipelineExecutor *pipe_exec;
+		if (child_executors.size() > 0 ){
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, child_executors);
+		} else {
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe);
+		}
+		executors.push_back(pipe_exec);
+	}
+
+	return executors;
 }
 
 
