@@ -69,6 +69,7 @@
 #include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
+#include "gpopt/operators/CPhysicalSort.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
@@ -94,6 +95,7 @@
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "common/enums/order_type.hpp"
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
@@ -232,6 +234,10 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 
+	// limit, sort
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopLimit(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopSort(CExpression* plan_expr);
+
 	bool pIsIndexJoinOnPhysicalID(CExpression* plan_expr);
 
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -251,6 +257,8 @@ private:
 		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);
 		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
+
+	duckdb::OrderByNullType translateNullType(COrderSpec::ENullTreatment ent);
 
 private:
 	// config
