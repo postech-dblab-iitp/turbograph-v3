@@ -685,7 +685,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         }
     }
-icecream::ic.enable(); IC(); icecream::ic.disable();
 
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");
