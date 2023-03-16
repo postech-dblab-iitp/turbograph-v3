@@ -8,6 +8,7 @@
 #include "common/assert.hpp"
 #include "common/types.hpp"
 #include "types/value.hpp"
+#include "common/types/string_type.hpp"
 
 #include <cstdlib>
 
@@ -34,6 +35,13 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::STRING: {
+				out_length = strlen(kuzu_literal->strVal.c_str())+1;	// add null term
+				char* mem_ptr = (char*) malloc(out_length);
+				memcpy(mem_ptr, (char*)kuzu_literal->strVal.c_str(), out_length);
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			default:
 				D_ASSERT(false);
 		}
@@ -57,6 +65,11 @@ public:
 				D_ASSERT(length == 8);
 				int64_t value = *((int64_t*)mem_ptr);
 				return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
+			}
+			case duckdb::LogicalType::VARCHAR: {
+				string str_value((char*)mem_ptr);
+				duckdb::string_t value(str_value);
+				return duckdb::Value(value);
 			}
 			default:
 				D_ASSERT(false);

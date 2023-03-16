@@ -303,6 +303,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 /*
 	DUMP RESULT
 */
+	const auto BLUE = "\033[1;34m";
+	const auto CLEAR = "\033[0m";
+	const auto UNDERLINE = "\033[1;4m";
+	const auto GREEN = "\033[1;32m";
+
+
 	int LIMIT = 10;
 	size_t num_total_tuples = 0;
 	D_ASSERT( executors.back()->context->query_results != nullptr );
@@ -310,18 +316,31 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	auto& schema = executors.back()->pipeline->GetSink()->schema;
 	for (auto &it : resultChunks) num_total_tuples += it->size();
 	std::cout << "===================================================" << std::endl;
-	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. Showing top " << LIMIT <<":" << std::endl;
+	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+	if( LIMIT < num_total_tuples) {
+		std::cout << "Showing top " << LIMIT <<":" << std::endl;
+	} else {
+		std::cout << std::endl;
+	}
+	
 	Table t;
-	t.layout(unicode_box_light());
+	t.layout(unicode_box_light_headerline());
+
+	auto col_names = planner.getQueryOutputColNames();
+	for( int i = 0; i < col_names.size(); i++ ) {
+		t << col_names[i] ;
+	}
+	t << endr;
 
 	if (num_total_tuples != 0) {
 		auto& firstchunk = resultChunks[0];
 		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
 
-		for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-			t << firstchunk->GetTypes()[i].ToString() ;
-		}
-		t << endr;
+		// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+		// 	t << firstchunk->GetTypes()[i].ToString(); 
+		// }
+		// t << endr;
+		
 		for( int idx = 0 ; idx < LIMIT ; idx++) {
 			for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
 				t << firstchunk->GetValue(i, idx).ToString();

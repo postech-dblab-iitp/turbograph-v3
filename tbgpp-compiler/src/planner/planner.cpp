@@ -48,6 +48,7 @@ void Planner::reset() {
 	table_col_mapping.clear();
 	bound_statement = nullptr;
 	pipelines.clear();
+	output_col_names.clear();
 
 }
 
@@ -259,6 +260,14 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		}
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
+	
+		/* Register output column names */
+		CMDNameArray* result_col_names = pqc->Pdrgpmdname();
+		for(gpos::ULONG idx = 0; idx < result_col_names->Size(); idx++) {
+			std::wstring table_name_ws(result_col_names->operator[](idx)->GetMDName()->GetBuffer());
+			planner->output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
+		}
+	
 		/* LogicalRules */
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
 		{
@@ -284,7 +293,9 @@ void * Planner::_orcaExec(void* planner_ptr) {
 			}
 		}
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
-		// TODO convert orca plan into ours
+		
+		
+
 		orca_logical_plan->Release();
 		orca_physical_plan->Release();
 		GPOS_DELETE(pqc);
@@ -333,6 +344,12 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 	}
 
 	return executors;
+}
+
+vector<string> Planner::getQueryOutputColNames(){
+	
+	// TODO no asserts?
+	return output_col_names;
 }
 
 

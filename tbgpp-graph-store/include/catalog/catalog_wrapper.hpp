@@ -8,6 +8,8 @@
 
 #include "icecream.hpp"
 
+#include <tuple>
+
 namespace duckdb {
 
 class CatalogWrapper {
@@ -63,7 +65,7 @@ public:
         return index_cat;
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, vector<pair<idx_t, idx_t>>> &pkey_to_ps_map, vector<string> &universal_schema) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
         auto &catalog = db.GetCatalog();
         for (auto &oid : oids) {
             PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
@@ -77,9 +79,9 @@ public:
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
                     universal_schema.push_back(property_key);
-                    pkey_to_ps_map.emplace(property_key, std::vector<pair<idx_t, idx_t>> {std::make_pair(oid, i + 1)});
+                    pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{std::make_tuple(oid, i + 1, (*property_key_types)[i])} );
                 } else {
-                    it->second.push_back(std::make_pair(oid, i + 1));
+                    it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }
             }
         }
