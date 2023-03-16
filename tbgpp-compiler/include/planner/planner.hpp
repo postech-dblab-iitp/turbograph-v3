@@ -95,7 +95,6 @@
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
-
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/order_type.hpp"
 
@@ -143,11 +142,12 @@ public:
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
-	vector<duckdb::CypherPipelineExecutor*> getPipelineExecutors();
+	vector<duckdb::CypherPipelineExecutor*> genPipelineExecutors();
 
 private:
 	// planner.cpp
 	/* Orca Related */
+	void reset();
 	void orcaInit();
 	static void * _orcaExec(void* planner_ptr);
 	void _orcaSetTraceFlags();
@@ -271,9 +271,12 @@ private:
 	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
-	std::map<OID, std::vector<CColRef*>> table_col_mapping;
 
+	// used and initialized in each execution
 	BoundStatement* bound_statement;			// input parse statemnt
+	std::map<OID, std::vector<CColRef*>> table_col_mapping;
+	
+
 	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
 };
 
