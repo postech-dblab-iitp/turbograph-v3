@@ -2989,6 +2989,36 @@ CExpressionPreprocessor::PexprTransposeSelectAndProject(CMemoryPool *mp,
 	}
 }
 
+// S62 implementation added
+CExpression *CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
+													   			CExpression *pexpr) {
+
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	// if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
+	// 	(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {
+
+	// 	// CExpression *pproject = (*pexpr)[0];
+	// 	// CExpression *pprojectList = (*pproject)[1];
+	// 	// CExpression *pselectNew = pexpr;
+
+
+	// } else {
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+		{
+			pdrgpexprChildren->Append(
+				PexprTransposeSelectAndProjectColumnar(mp, (*pexpr)[ul]));
+		}
+		COperator *pop = pexpr->Pop();
+		pop->AddRef();
+		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+	// }
+}
+
+
+
 // main driver, pre-processing of input logical expression
 CExpression *
 CExpressionPreprocessor::PexprPreprocess(
@@ -3182,6 +3212,11 @@ CExpressionPreprocessor::PexprPreprocess(
 	CExpression *pexprTransposeSelectAndProject =
 		PexprTransposeSelectAndProject(mp, pexprExistWithPredFromINSubq);
 	pexprExistWithPredFromINSubq->Release();
+
+	// S62 swap logical select over logical project columnar
+	// CExpression *pexprTransposeSelectAndProjectColumnar = 
+	// 	PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
+	// pexprTransposeSelectAndProject->Release();
 
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =

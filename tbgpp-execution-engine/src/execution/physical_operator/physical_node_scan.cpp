@@ -29,9 +29,17 @@ public:
 };
 
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
-		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping), filter_pushdown_key("") { }
+		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping), filter_pushdown_key_idx(-1)
+		{ 
+			D_ASSERT(filter_pushdown_key_idx < 0);
+		}
 
-// TODO need to revive nodescan with pushdown
+PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue) :
+		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping),
+		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
+		 { 
+			D_ASSERT(filter_pushdown_key_idx >= 0);
+		 }
 
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
@@ -48,20 +56,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	if (!state.iter_inited) {
 		state.iter_inited = true;
 
-// TODO revive keys for filter pushdown
-		// if( filter_pushdown_key.compare("") != 0 ) {
-		// 	// check to add filterkey to access
-		// 	bool isFilterKeyFound = false;
-		// 	for( auto& key: propertyKeys ) {
-		// 		if( key.compare(filter_pushdown_key) == 0 ) { isFilterKeyFound = true; break; }
-		// 	}
-		// 	// now add pushdown key to access keys
-		// 	if( ! isFilterKeyFound ) {
-		// 		access_property_keys.push_back( filter_pushdown_key );
-		// 		access_schema.push_back( filter_pushdown_value.type() );
-		// 	}
-		// }
-
 		auto initializeAPIResult =
 			context.client->graph_store->InitializeScan(state.ext_its, oids, projection_mapping, types);
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
@@ -69,11 +63,12 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	}
 	D_ASSERT(state.ext_its.size() > 0);
 
-	if( filter_pushdown_key.compare("") == 0 ) {
+	if( filter_pushdown_key_idx < 0 ) {
+		// no filter pushdown
 		context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types);
 	} else {
-		D_ASSERT(false);
-		// currently does not support filter pushdown
+		// filter pushdown applied
+		context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
 	}
 	/* GetData() should return empty chunk to indicate scan is finished. */
 }
