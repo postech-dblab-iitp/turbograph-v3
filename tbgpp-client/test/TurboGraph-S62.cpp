@@ -278,13 +278,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client) {
 /*
 	EXECUTE QUERY
 */
-	auto pipelines = planner.getConstructedPipelines();
-	std::vector<CypherPipelineExecutor*> executors;
-	for( auto& pipe: pipelines) {
-		auto* new_ctxt = new ExecutionContext(client.get());
-		auto* pipe_exec = new CypherPipelineExecutor(new_ctxt, pipe);
-		executors.push_back(pipe_exec);
-	}
+	auto executors = planner.getPipelineExecutors();
 	if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 	// start timer

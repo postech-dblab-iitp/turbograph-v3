@@ -1,6 +1,7 @@
 #include "planner.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
 
+
 #include <string>
 #include <limits>
 
@@ -284,6 +285,40 @@ void * Planner::_orcaExec(void* planner_ptr) {
 	CMDCache::Shutdown();
 	
 	return nullptr;
+}
+
+vector<duckdb::CypherPipelineExecutor*> Planner::getPipelineExecutors() {
+
+	D_ASSERT(pipelines.size() > 0);
+
+	std::vector<duckdb::CypherPipelineExecutor*> executors;
+
+	for( auto& pipe: pipelines) {
+		// find children - the child ordering matters. 
+		// must run in ascending order of the vector
+		auto* new_ctxt = new duckdb::ExecutionContext(context);
+		vector<duckdb::CypherPipelineExecutor*> child_executors;
+
+		for( auto& ce: executors ) {
+			// if child pipeline exists, its executor must be previously be constructed
+			if ( pipe->GetSource() == ce->pipeline->GetSink() ) {
+				// pipelines are connected if prev.sink == now.source
+				// TODO s62  not generally true. consider hash join need to extend
+				// TODO this is compare pointer, any better?
+				child_executors.push_back(ce);
+			} 
+		}
+
+		duckdb::CypherPipelineExecutor *pipe_exec;
+		if (child_executors.size() > 0 ){
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, child_executors);
+		} else {
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe);
+		}
+		executors.push_back(pipe_exec);
+	}
+
+	return executors;
 }
 
 

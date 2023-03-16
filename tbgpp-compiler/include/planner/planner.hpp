@@ -94,6 +94,8 @@
 #include "kuzu/binder/expression/property_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
+#include "execution/cypher_pipeline_executor.hpp"
+
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/order_type.hpp"
 
@@ -141,7 +143,7 @@ public:
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
-	inline vector<duckdb::CypherPipeline*> getConstructedPipelines() { return pipelines; }
+	vector<duckdb::CypherPipelineExecutor*> getPipelineExecutors();
 
 private:
 	// planner.cpp
