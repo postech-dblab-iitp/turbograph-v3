@@ -788,6 +788,7 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 	rhs->AddRef();
 
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	pexprEquality->AddRef();
 	auto join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
 
 	// TODO need function for join projection
