@@ -91,6 +91,7 @@
 #include "kuzu/binder/expression/property_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
+#include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
 #include "BTNode.h"
@@ -137,11 +138,12 @@ public:
 	~Planner();
 
 	void execute(BoundStatement* bound_statement);
-	inline vector<duckdb::CypherPipeline*> getConstructedPipelines() { return pipelines; }
+	vector<duckdb::CypherPipelineExecutor*> genPipelineExecutors();
 
 private:
 	// planner.cpp
 	/* Orca Related */
+	void reset();
 	void orcaInit();
 	static void * _orcaExec(void* planner_ptr);
 	void _orcaSetTraceFlags();
