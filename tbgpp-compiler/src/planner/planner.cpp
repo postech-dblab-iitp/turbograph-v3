@@ -189,12 +189,10 @@ void Planner::_orcaSetTraceFlags() {
 	// Xform config controllable as well
 	// GPOPT_DISABLE_XFORM(CXform::ExfGet2TableScan);
 
-	if(config.DISABLE_HASH_JOIN) {
+	if(config.INDEX_JOIN_ONLY) {
 		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
+		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
 	}
-
-	// S62
-	GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
 }
 
 gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {

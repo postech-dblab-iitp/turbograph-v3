@@ -688,9 +688,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
 		
-		INT attrnum = 1;
-		unique_ptr<duckdb::Expression> order_expr = make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), attrnum); // TODO attrnum
-		duckdb::BoundOrderByNode order(duckdb::OrderType::ASCENDING, translateNullType(pos->Ent(ul)), move(order_expr)); // TODO how to determine ordertype??
+		unique_ptr<duckdb::Expression> order_expr =
+			make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), plan_expr->DeriveOutputColumns()->Pdrgpcr(mp)->IndexOf(col));
+
+		duckdb::OrderType order_type = 
+			IMDId::MDIdCompare( pos->GetMdIdSortOp(ul), col->RetrieveType()->GetMdidForCmpType(IMDType::EcmptG) )	// EcmptG => ">" => desc?? // TODO not sure...
+				== false ? duckdb::OrderType::ASCENDING : duckdb::OrderType::DESCENDING;
+
+		duckdb::BoundOrderByNode order(order_type, translateNullType(pos->Ent(ul)), move(order_expr));
 		orders.push_back(move(order));
 	}
 
@@ -698,7 +703,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	duckdb::CypherPhysicalOperator *last_op = result->back();
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
-		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 1000, 0); // TODO we have topn sort only..
+		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 10000, 0); // TODO we have topn sort only..
 	result->push_back(op);
 
 	// break pipeline
