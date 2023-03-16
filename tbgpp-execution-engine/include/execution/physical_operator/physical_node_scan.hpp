@@ -16,6 +16,9 @@ class PhysicalNodeScan: public CypherPhysicalOperator {
 public:
 	
 	PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
+
+	// TODO s62 change filterKeyIndex to vector
+	PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);	// filter pushdown for x = 1;
 	~PhysicalNodeScan();
 
 public:
@@ -31,8 +34,8 @@ public:
 	mutable vector<vector<uint64_t>> projection_mapping;
 
 	// filter pushdown
-	mutable string filter_pushdown_key;
-	mutable Value filter_pushdown_value;
+	mutable int64_t filter_pushdown_key_idx;	// when negative, no filter pushdown	
+	mutable Value filter_pushdown_value;		// do not use when filter_pushdown_key_idx < 0
 
 	
 };	

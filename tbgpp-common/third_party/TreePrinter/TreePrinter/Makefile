@@ -21,7 +21,7 @@ EX3_OBJS = BasicNode.o main.o
 CXX = g++
 LD = g++
 
-WARNINGS = -pedantic -Wall -Werror -Wfatal-errors -Wextra -Wno-unused-parameter -Wno-unused-variable
+WARNINGS = -pedantic -Wall -Werror -Wfatal-errors -Wextra
 CXXFLAGS = -std=c++1y -g3 -O0 $(WARNINGS) -c -fmessage-length=0
 INCLUDES = -I./$(SRC_DIR)
 LDFLAGS = -std=c++1y 

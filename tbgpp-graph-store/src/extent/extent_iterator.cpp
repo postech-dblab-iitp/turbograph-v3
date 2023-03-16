@@ -491,7 +491,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 }
 
 // Get Next Extent with filterKey
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, duckdb::Value filterValue, vector<string> &output_properties, std::vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
+                                   idx_t filterKeyColIdx, duckdb::Value filterValue, vector<idx_t> &output_column_idxs, 
+                                   std::vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized) {
     // TODO we assume that there is only one tuple that matches the predicate
     // We should avoid data copy here.. but copy for demo temporarliy
     
@@ -523,10 +525,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         for (int i = 0; i < chunk_size; i++) {
             if (!ext_property_types.empty() && ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                j++;
+                continue;
+            }
+            if (!target_idxs.empty() && (target_idxs[j] == std::numeric_limits<uint64_t>::max())) {
+                io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                j++;
                 continue;
             }
             ChunkDefinitionID cdf_id = target_idxs.empty() ? 
-                extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++]];
+                extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[j++] - target_idxs_offset];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
@@ -540,16 +548,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[prev_toggle][i], true, false);
     }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
-    string_vector *pks = ps_cat_entry->GetKeys();
-    auto idx = std::find(pks->begin(), pks->end(), filterKey);
-    if (idx == pks->end()) throw InvalidInputException("");
+    // string_vector *pks = ps_cat_entry->GetKeys();
+    // auto idx = std::find(pks->begin(), pks->end(), filterKey);
+    // if (idx == pks->end()) throw InvalidInputException("");
     output_eid = ext_ids_to_iterate[previous_idx];
     ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
     filter_cdf_id = filter_cdf_id << 32;
-    filter_cdf_id = filter_cdf_id + (idx - pks->begin());
+    filter_cdf_id = filter_cdf_id + filterKeyColIdx - target_idxs_offset;
+    // filter_cdf_id = filter_cdf_id + (idx - pks->begin());
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // For the case: scanSchema != ext_property_types
-    vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));
+    // vector<idx_t> output_column_idxs = move(ps_cat_entry->GetColumnIdxs(output_properties));
     vector<bool> valid_output;
     valid_output.resize(target_idxs.size());
     idx_t output_idx = 0;
@@ -676,7 +685,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         }
     }
-icecream::ic.enable(); IC(); icecream::ic.disable();
 
     if (idx_for_cardinality == -1) {
         throw InvalidInputException("ExtentIt Cardinality Bug");

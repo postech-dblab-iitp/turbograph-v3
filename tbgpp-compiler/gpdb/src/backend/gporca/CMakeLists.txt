@@ -29,10 +29,15 @@ if (COMPILER_HAS_WALL)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 endif()
 
-check_cxx_compiler_flag("-Werror" COMPILER_HAS_WERROR)
-if (COMPILER_HAS_WERROR)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # -Werror option only on debug
+  check_cxx_compiler_flag("-Werror" COMPILER_HAS_WERROR)
+  if (COMPILER_HAS_WERROR)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  endif()
 endif()
+
+
 
 check_cxx_compiler_flag("-Wextra" COMPILER_HAS_WEXTRA)
 if (COMPILER_HAS_WEXTRA)
@@ -108,7 +113,8 @@ include_directories(${XERCES_INCLUDE_DIRS})
 # GPOS.
 include_directories(libgpos/include)
 
-enable_testing()
+# S62 disable tests
+#enable_testing()
 
 # Sub-libraries.
 add_subdirectory(libgpos)
