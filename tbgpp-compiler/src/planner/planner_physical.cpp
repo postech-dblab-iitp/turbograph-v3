@@ -12,6 +12,8 @@
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_id_seek.hpp"
+#include "execution/physical_operator/physical_sort.hpp"
+#include "execution/physical_operator/physical_top_n_sort.hpp"
 
 
 #include "planner/expression/bound_reference_expression.hpp"
@@ -95,6 +97,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		}
 		case COperator::EOperatorId::EopPhysicalTableScan: {
 			return pTransformEopTableScan(plan_expr);
+		}
+		case COperator::EOperatorId::EopPhysicalLimit: {
+			return pTransformEopLimit(plan_expr);
+		}
+		case COperator::EOperatorId::EopPhysicalSort: {
+			return pTransformEopSort(plan_expr);
 		}
 		default:
 			D_ASSERT(false);
@@ -641,6 +649,58 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	return result;
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator*> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	// TODO currently Limit do not anything
+	return result;
+}
+
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	CPhysicalSort *proj_op = (CPhysicalSort*) plan_expr->Pop();
+
+	const COrderSpec *pos = proj_op->Pos();
+
+	vector<duckdb::BoundOrderByNode> orders;
+	for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
+		const CColRef *col = pos->Pcr(ul);
+		ULONG col_id= col->Id();
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		OID type_oid = type_mdid->Oid();
+		
+		INT attrnum = 1;
+		unique_ptr<duckdb::Expression> order_expr = make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), attrnum); // TODO attrnum
+		duckdb::BoundOrderByNode order(duckdb::OrderType::ASCENDING, translateNullType(pos->Ent(ul)), move(order_expr)); // TODO how to determine ordertype??
+		orders.push_back(move(order));
+	}
+
+	duckdb::CypherSchema tmp_schema;
+	duckdb::CypherPhysicalOperator *last_op = result->back();
+	tmp_schema.setStoredTypes(last_op->GetTypes());
+	duckdb::CypherPhysicalOperator *op =
+		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 1000, 0); // TODO we have topn sort only..
+	result->push_back(op);
+
+	// break pipeline
+	auto pipeline = new duckdb::CypherPipeline(*result);
+	pipelines.push_back(pipeline);
+
+	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
+	new_result->push_back(op);
+
+	return new_result;
+}
+
 
 // vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalFilter(CExpression* op) {
 
@@ -828,6 +888,18 @@ CColRefArray* Planner::pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* o
 	return result;
 }
 
+duckdb::OrderByNullType Planner::translateNullType(COrderSpec::ENullTreatment ent) {
+	switch (ent) {
+	case COrderSpec::ENullTreatment::EntAuto:
+		return duckdb::OrderByNullType::ORDER_DEFAULT;
+	case COrderSpec::ENullTreatment::EntFirst:
+		return duckdb::OrderByNullType::NULLS_FIRST;
+	case COrderSpec::ENullTreatment::EntLast:
+		return duckdb::OrderByNullType::NULLS_LAST;
+	case COrderSpec::ENullTreatment::EntSentinel:
+		D_ASSERT(false);
+	}
+}
 
 
 }
