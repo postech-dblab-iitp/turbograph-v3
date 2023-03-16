@@ -72,6 +72,28 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		// maybe need to split function without agg and with agg.
 	}
 
+	// TODO not sure about the orders between  projection expressions.. need to refer to Neo4j and kuzu
+
+	/* OrderBy */
+	if(proj_body->hasOrderByExpressions()) {
+		// orderByExpressions
+		// isAscOrders
+		const expression_vector &orderby_expr = proj_body->getOrderByExpressions(); 
+		const vector<bool> sort_orders = proj_body->getSortingOrders(); // if true asc
+		plan = lPlanOrderBy(orderby_expr, sort_orders, plan);
+	}
+	
+	/* Skip limit */
+	if( proj_body->hasSkipOrLimit() ) {
+		// CLogicalLimit
+		GPOS_ASSERT(false);
+	}
+
+	/* Distinct */
+	if(proj_body->getIsDistinct()) {
+		GPOS_ASSERT(false);
+	}
+
 	/* Scalar projection - using CLogicalProject */
 		// find all projection expressions that requires new columns
 		// generate logicalproiection and record the mappings
@@ -96,25 +118,6 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		}
 	}
 	plan = lPlanProjectionOnColIds(plan, simple_proj_colids);
-	
-	/* OrderBy */
-	if(proj_body->hasOrderByExpressions()) {
-		// orderByExpressions
-		// isAscOrders
-		const expression_vector &orderby_expr = proj_body->getOrderByExpressions();
-		plan = lPlanOrderBy(orderby_expr, plan);
-	}
-	
-	/* Skip limit */
-	if( proj_body->hasSkipOrLimit() ) {
-		// CLogicalLimit
-		GPOS_ASSERT(false);
-	}
-
-	/* Distinct */
-	if(proj_body->getIsDistinct()) {
-		GPOS_ASSERT(false);
-	}
 
 	GPOS_ASSERT(plan != nullptr);
 	return plan;
@@ -343,10 +346,11 @@ LogicalPlan* Planner::lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t
 	return plan;
 }
 
-LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, LogicalPlan *prev_plan) {
+LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan) {
 	CMemoryPool* mp = this->memory_pool;
 
-	// TODO we need to check ASC, DESC
+	D_ASSERT(orderby_exprs.size() == sort_orders.size());
+
 	vector<uint64_t> sort_keys;
 	for (auto &orderby_expr: orderby_exprs) {
 		auto &orderby_expr_type = orderby_expr.get()->expressionType;
@@ -356,7 +360,6 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, Logic
 			string k1 = prop_expr->getVariableName();
 			string k2 = prop_expr->getPropertyName();
 			uint64_t idx = prev_plan->getSchema()->getIdxOfKey(k1, k2);
-			fprintf(stdout, "idx = %ld\n", idx);
 			sort_keys.push_back(idx);
 		} else {
 			// currently do not allow other cases
@@ -370,8 +373,10 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, Logic
 	CColRefArray* plan_cols = prev_plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp);
 	for (uint64_t i = 0; i < sort_keys.size(); i++) {
 		CColRef *colref = plan_cols->operator[](sort_keys[i]);
-		IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(IMDType::EcmptL); // TODO cmptype?
-		pos->Append(mdid, colref, COrderSpec::EntLast); // TODO what is EntLast?
+
+		IMDType::ECmpType sort_type = sort_orders[i] == true ? IMDType::EcmptL : IMDType::EcmptG; 	// TODO not sure...
+		IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(sort_type); 
+		pos->Append(mdid, colref, COrderSpec::EntLast);
 	}
 
 	CLogicalLimit *popLimit = GPOS_NEW(mp)

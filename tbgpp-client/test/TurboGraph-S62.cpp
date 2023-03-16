@@ -221,6 +221,8 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--debug-planner", 14) == 0) {
 			planner_config.DEBUG_PRINT = true;
 			planner_config.ORCA_DEBUG_PRINT = true;
+		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 16) == 0) {
+			planner_config.INDEX_JOIN_ONLY = true;
 		}
       }
     }

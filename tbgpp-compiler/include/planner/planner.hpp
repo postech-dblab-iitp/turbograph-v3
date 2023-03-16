@@ -121,12 +121,12 @@ class PlannerConfig {
 public:
 	bool DEBUG_PRINT;
 	bool ORCA_DEBUG_PRINT;
-	bool DISABLE_HASH_JOIN;
+	bool INDEX_JOIN_ONLY;
 
 	PlannerConfig() :
 		DEBUG_PRINT(false),
 		ORCA_DEBUG_PRINT(false),
-		DISABLE_HASH_JOIN(false)
+		INDEX_JOIN_ONLY(false)
 		{ }
 };
 
@@ -177,7 +177,7 @@ private:
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan *lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
-	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
