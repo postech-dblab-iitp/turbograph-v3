@@ -63,17 +63,17 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		- UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan
 		- Projection => Projection
 		- TableScan => EdgeScan
-
 		// TODO fillme
 	*/
 
 	// based on op pass call to the corresponding func
 	D_ASSERT( plan_expr != nullptr );
 	D_ASSERT( plan_expr->Pop()->FPhysical() );
+
 	switch(plan_expr->Pop()->Eopid()) {
 		case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
 			if( pIsUnionAllOpAccessExpression(plan_expr) ) {
-				return pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
+				result = pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
 			} else {
 				D_ASSERT(false);
 			}
@@ -81,34 +81,44 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		}
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin: {
 			if( pIsIndexJoinOnPhysicalID(plan_expr) ) {
-				return pTransformEopPhysicalInnerIndexNLJoinToIdSeek(plan_expr);
+				result = pTransformEopPhysicalInnerIndexNLJoinToIdSeek(plan_expr);
 			} else {
-				return pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr);
+				result = pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr);
 			}
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalComputeScalarColumnar: {
 			// TODO fixme need to check if P - S - C pattern or P - C pattern is applied
-			return pTransformEopProjectionColumnar(plan_expr);
+			result = pTransformEopProjectionColumnar(plan_expr);
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalFilter: {
 			// TODO currently only support Filter + Scan
 			D_ASSERT( plan_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalTableScan );
-			return pTransformEopFilterWithScanPushdown(plan_expr);
+			result = pTransformEopFilterWithScanPushdown(plan_expr);
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalTableScan: {
-			return pTransformEopTableScan(plan_expr);
+			result = pTransformEopTableScan(plan_expr);
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalLimit: {
-			return pTransformEopLimit(plan_expr);
+			result = pTransformEopLimit(plan_expr);
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalSort: {
-			return pTransformEopSort(plan_expr);
+			result = pTransformEopSort(plan_expr);
+			break;
 		}
 		default:
 			D_ASSERT(false);
+			break;
 	}
-	// unreached
-	D_ASSERT(false);
+	D_ASSERT(result != nullptr);
+	
+	// ASSERT that 
+	
+	return result;
 }
 
 

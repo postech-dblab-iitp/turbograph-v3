@@ -143,6 +143,7 @@ public:
 
 	void execute(BoundStatement* bound_statement);
 	vector<duckdb::CypherPipelineExecutor*> genPipelineExecutors();
+	vector<string> getQueryOutputColNames();
 
 private:
 	// planner.cpp
@@ -275,9 +276,8 @@ private:
 	// used and initialized in each execution
 	BoundStatement* bound_statement;			// input parse statemnt
 	std::map<OID, std::vector<CColRef*>> table_col_mapping;
-	
-
 	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
+	vector<std::string> output_col_names;
 };
 
 }

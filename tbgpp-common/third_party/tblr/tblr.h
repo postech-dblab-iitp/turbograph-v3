@@ -551,6 +551,19 @@ inline Layout unicode_box_light() {
   return {ColSeparators{"│", "│", "│"}, rs};
 }
 
+/** Creates a box layout with light unicode borders */
+inline Layout unicode_box_light_headerline() {
+  ColSeparators top{"┌", "┬", "┐"};
+  ColSeparators mid{"├", "┼", "┤"};
+  ColSeparators bot{"└", "┴", "┘"};
+  RowSeparators rs{std::make_shared<RowSeparatorColwise>(std::move(top), "─"),
+                   std::make_shared<RowSeparatorColwise>(mid, "="),
+                   std::make_shared<RowSeparatorColwise>(std::move(mid), "─"),
+                   std::make_shared<RowSeparatorColwise>(std::move(bot), "─")};
+
+  return {ColSeparators{"│", "│", "│"}, rs};
+}
+
 } // namespace tblr
 
 #endif
