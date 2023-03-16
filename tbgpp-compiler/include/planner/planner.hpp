@@ -260,9 +260,12 @@ private:
 	// core
 	duckdb::ClientContext* context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool* memory_pool;
-	std::map<OID, std::vector<CColRef*>> table_col_mapping;
 
+	// used and initialized in each execution
 	BoundStatement* bound_statement;			// input parse statemnt
+	std::map<OID, std::vector<CColRef*>> table_col_mapping;
+	
+
 	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
 };
 
