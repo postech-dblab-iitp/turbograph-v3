@@ -263,7 +263,7 @@ private:
 		const IMDRelation *pmdrel, BOOL fAllowPartialIndex,
 		CPartConstraint *ppcForPartialIndexes,
 		IMDIndex::EmdindexType emdindtype, PDynamicIndexOpConstructor pdiopc,
-		PStaticIndexOpConstructor psiopc, PRewrittenIndexPath prip, CExpression* pexprInner = NULL);
+		PStaticIndexOpConstructor psiopc, PRewrittenIndexPath prip);
 
 	// create a dynamic operator for a btree index plan
 	static CLogical *
@@ -529,9 +529,7 @@ public:
 		CMemoryPool *mp, const IMDIndex *pmdindex, const IMDRelation *pmdrel,
 		CColRefArray *pdrgpcrOutput, CColRefSet *pcrsReqd,
 		CColRefSet *pcrsScalar, IMDIndex::EmdindexType emdindtype,
-		IMDIndex::EmdindexType altindtype = IMDIndex::EmdindSentinel,
-		CExpression* pexprInner = NULL
-		);
+		IMDIndex::EmdindexType altindtype = IMDIndex::EmdindSentinel);
 
 	// check whether a CTE should be inlined
 	static BOOL FInlinableCTE(ULONG ulCTEId);
@@ -577,14 +575,14 @@ public:
 						 CColRefSet *pcrsScalarExpr, CColRefSet *outer_refs,
 						 const IMDIndex *pmdindex, const IMDRelation *pmdrel,
 						 BOOL fAllowPartialIndex,
-						 CPartConstraint *ppcartcnstrIndex, CExpression* pexprInner = NULL)
+						 CPartConstraint *ppcartcnstrIndex)
 	{
 		return PexprBuildIndexPlan(
 			mp, md_accessor, pexprGet, ulOriginOpId, pdrgpexprConds, pcrsReqd,
 			pcrsScalarExpr, outer_refs, pmdindex, pmdrel, fAllowPartialIndex,
 			ppcartcnstrIndex, IMDIndex::EmdindBtree,
 			PopDynamicBtreeIndexOpConstructor, PopStaticBtreeIndexOpConstructor,
-			PexprRewrittenBtreeIndexPath, pexprInner);
+			PexprRewrittenBtreeIndexPath);
 	}
 
 	// helper for creating bitmap bool op expressions

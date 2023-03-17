@@ -166,12 +166,11 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CLogicalDynamicGet *popDynamicGet = NULL;
 	CAutoRef<CColRefSet> groupingColsToCheck;
 
-
 	// walk down the right child tree, accepting some unary operators
 	// like project and GbAgg and select, until we find a logical get
 	for (CExpression *pexprCurrInnerChild = pexprInner; NULL == pexprGet;
 		 pexprCurrInnerChild =
-			 (NULL == pexprGet ? (*pexprCurrInnerChild)[0] : NULL))	
+			 (NULL == pexprGet ? (*pexprCurrInnerChild)[0] : NULL))
 	{
 		switch (pexprCurrInnerChild->Pop()->Eopid())
 		{
@@ -227,6 +226,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 					if( pexprCurrInnerChild->Pop()->Eopid() == COperator::EopLogicalProjectColumnar ) {
 						// even for outer columns, 
 						CExpression *pexprProjList = pexprCurrInnerChild->operator[](1);
+						pexprProjList->AddRef();
 						for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
 							CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
 							CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
