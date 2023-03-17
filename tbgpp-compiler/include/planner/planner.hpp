@@ -118,16 +118,29 @@ enum class MDProviderType {
 class ClientContext;
 
 class PlannerConfig {
+
+public:
+enum JoinOrderType {
+	JOIN_ORDER_IN_QUERY = 1,
+	JOIN_ORDER_GREEDY_SEARCH = 2,
+	JOIN_ORDER_EXHAUSTIVE_SEARCH = 3,
+	JOIN_ORDER_EXHAUSTIVE2_SEARCH = 4
+};
+
 public:
 	bool DEBUG_PRINT;
 	bool ORCA_DEBUG_PRINT;
+
 	bool INDEX_JOIN_ONLY;
+	// TODO s62 configure optimizer_join_order_threshold!	 // this matters when exhastive2 and exhasutive
+	PlannerConfig::JoinOrderType JOIN_ORDER_TYPE;
 
 	PlannerConfig() :
 		DEBUG_PRINT(false),
 		ORCA_DEBUG_PRINT(false),
-		INDEX_JOIN_ONLY(false)
-		{ }
+		INDEX_JOIN_ONLY(false),
+		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH)
+	{ }
 };
 
 class PlannerUtils {
