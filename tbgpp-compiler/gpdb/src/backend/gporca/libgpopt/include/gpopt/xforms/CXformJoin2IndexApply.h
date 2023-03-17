@@ -63,7 +63,6 @@ private:
 	// based on the inner and the scalar expression, it computes scalar expression
 	// columns, outer references and required columns
 	void ComputeColumnSets(CMemoryPool *mp, CExpression *pexprInner,
-						   CExpression *pexprOuter,
 						   CExpression *pexprScalar,
 						   CColRefSet **ppcrsScalarExpr,
 						   CColRefSet **ppcrsOuterRefs,
