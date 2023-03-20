@@ -285,7 +285,13 @@ oC_NodeLabel
 RANGE : '..' ;
 
 oC_RangeLiteral
-            :  '*' SP? ( oC_IntegerLiteral SP? )? ( '..' SP? ( oC_IntegerLiteral SP? )? )? ;
+    :  '*' SP? ( oC_RangeStartLiteral SP? )? ( '..' SP? ( oC_RangeEndLiteral SP? )? )? ;
+
+oC_RangeStartLiteral
+    : oC_IntegerLiteral ;
+
+oC_RangeEndLiteral
+    : oC_IntegerLiteral ;
 
 
 oC_LabelName

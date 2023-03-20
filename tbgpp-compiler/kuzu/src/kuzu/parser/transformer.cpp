@@ -284,25 +284,25 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     string infBoundStr = "inf";
     if (relDetail->oC_RangeLiteral()) {
         if(relDetail->oC_RangeLiteral()->RANGE()) { // *X..Y
-            if(relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]) {  // lhs exists
-                lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
-                if(relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]) {   // lhs o rhs o
-                    upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
+            if(relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()) {  // lhs exists
+                lowerBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();
+                if(relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()) {   // lhs o rhs o
+                    upperBound = relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()->getText();
                 } else { // lhs o rhs x
                     upperBound = infBoundStr;                    
-                }s
+                }
             } else {    // lhs x
                 lowerBound = "1";
-                if(relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]) {   // lhs x rhs o    
-                    upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
+                if(relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()) {   // lhs x rhs o    
+                    upperBound = relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()->getText();
                 } else { // lhs x rhs x
                     upperBound = infBoundStr;
                 }
             }
         } else { // *X
-            if(relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]) {   // *X
-                lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();   
-                upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();   // same ones
+            if(relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()) {   // *X
+                lowerBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   
+                upperBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   // same ones
             } else {    // *
                 lowerBound = "1";
                 upperBound = infBoundStr;
