@@ -822,7 +822,7 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 
 	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, mdid,
 										  GPOS_WSZ_LIT("column_%04d"),				// format notused
-										  nameTable, true /* is_nullable */);
+										  nameTable, true /* is_nullable */);	// TODO retrieve isnullable from the storage!
 										
 	// if (fPartitioned) {
 	// 	GPOS_ASSERT(false);
