@@ -18,7 +18,11 @@ public:
         vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
         : NodePattern{std::move(name), std::move(tableNames), std::move(propertyKeyValPairs)},
           lowerBound{std::move(lowerBound)}, upperBound{std::move(upperBound)},
-          arrowDirection{arrowDirection} {}
+          arrowDirection{arrowDirection} {
+
+            
+
+          }
 
     ~RelPattern() = default;
 

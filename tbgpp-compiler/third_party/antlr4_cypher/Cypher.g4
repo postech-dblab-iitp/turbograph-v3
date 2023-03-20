@@ -277,8 +277,16 @@ oC_NodeLabels
 oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
+// oC_RangeLiteral
+//    :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+
+// S62 to support variable length expand
+
+RANGE : '..' ;
+
 oC_RangeLiteral
-    :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+            :  '*' SP? ( oC_IntegerLiteral SP? )? ( '..' SP? ( oC_IntegerLiteral SP? )? )? ;
+
 
 oC_LabelName
     : oC_SchemaName ;
