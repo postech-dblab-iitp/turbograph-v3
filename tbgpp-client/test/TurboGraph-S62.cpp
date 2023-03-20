@@ -218,11 +218,23 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;
-		} else if (std::strncmp(current_str.c_str(), "--debug-planner", 14) == 0) {
+		} else if (std::strncmp(current_str.c_str(), "--debug-planner", 15) == 0) {
 			planner_config.DEBUG_PRINT = true;
 			planner_config.ORCA_DEBUG_PRINT = true;
-		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 16) == 0) {
+		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 17) == 0) {
 			planner_config.INDEX_JOIN_ONLY = true;
+		} else if (std::strncmp(current_str.c_str(), "--join-order-optimizer:", 23) == 0) {
+			std::string optimizer_join_order = std::string(*itr).substr(23);
+			if(optimizer_join_order == "query") {
+				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
+			} else if (optimizer_join_order == "greedy") {
+				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_GREEDY_SEARCH;
+			} else if (optimizer_join_order == "exhaustive") {
+				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
+			} else {
+				// default
+				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH;
+			}
 		}
       }
     }
