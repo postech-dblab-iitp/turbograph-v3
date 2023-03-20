@@ -219,6 +219,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 						// are produced by pexprCurrInnerChild. Note that in the future we could
 						// also try to split off the join preds and any select preds above this node
 						// that can be applied to the get.
+						joinPredUsedCols->Release();
 						return;
 					}
 
