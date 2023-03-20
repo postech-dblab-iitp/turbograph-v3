@@ -191,6 +191,12 @@ public:
   virtual void enterOC_RangeLiteral(CypherParser::OC_RangeLiteralContext *ctx) = 0;
   virtual void exitOC_RangeLiteral(CypherParser::OC_RangeLiteralContext *ctx) = 0;
 
+  virtual void enterOC_RangeStartLiteral(CypherParser::OC_RangeStartLiteralContext *ctx) = 0;
+  virtual void exitOC_RangeStartLiteral(CypherParser::OC_RangeStartLiteralContext *ctx) = 0;
+
+  virtual void enterOC_RangeEndLiteral(CypherParser::OC_RangeEndLiteralContext *ctx) = 0;
+  virtual void exitOC_RangeEndLiteral(CypherParser::OC_RangeEndLiteralContext *ctx) = 0;
+
   virtual void enterOC_LabelName(CypherParser::OC_LabelNameContext *ctx) = 0;
   virtual void exitOC_LabelName(CypherParser::OC_LabelNameContext *ctx) = 0;
 
