@@ -1082,6 +1082,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // TODO
         } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             // throw InvalidInputException("Never occur");
+            Vector &vids = input.data[nodeColIdx];
+            idx_t physical_id_base = (idx_t)output_eid;
+            physical_id_base = physical_id_base << 32;
+            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            idx_t output_seqno = 0;
+            for (size_t seqno = start_seqno; seqno < end_seqno; seqno++) {
+                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+                id_column[seqno] = physical_id_base + target_seqno;
+                D_ASSERT(id_column[seqno] == getIdRefFromVectorTemp(vids, seqno));
+            }
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
