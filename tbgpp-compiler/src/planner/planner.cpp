@@ -173,6 +173,76 @@ void Planner::_orcaInitXForm() {
 
 void Planner::_orcaSetTraceFlags() {
 
+	CMemoryPool* mp = this->memory_pool;
+
+	CBitSet *enabled_trace_flags = NULL;
+	CBitSet *disabled_trace_flags = NULL;
+	CBitSet *traceflag_bitset = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+	CBitSet *join_heuristic_bitset = NULL;
+
+	// https://gpdb.docs.pivotal.io/6-14/ref_guide/config_params/guc-list.html
+
+        /*
+                When GPORCA is enabled (the default), this parameter sets the
+           join enumeration algorithm:
+
+		query - Uses the join order specified in the query.
+		greedy - Evaluates the join order specified in the query
+           and alternatives based on minimum cardinalities of the relations in
+           the joins.
+		exhaustive - Applies transformation rules to find and
+           evaluate up to a configurable threshold number
+           (optimizer_join_order_threshold, default 10) of n-way inner joins,
+           and then changes to and uses the greedy method beyond that. While
+           planning time drops significantly at that point, plan quality and
+           execution time may get worse.
+		exhaustive2 - Operates with an emphasis
+           on generating join orders that are suitable for dynamic partition
+           elimination. This algorithm applies transformation rules to find and
+           evaluate n-way inner and outer joins. When evaluating very large
+           joins with more than optimizer_join_order_threshold (default 10)
+           tables, this algorithm employs a gradual transition to the greedy
+           method; planning time goes up smoothly as the query gets more
+           complicated, and plan quality and execution time only gradually
+           degrade.
+
+        */
+
+	// the outputs of each modes are disabled(flag on)
+	// e.g. query/greedy/exhaustive all disables DPv2, and exhastive disables DPv1
+	switch( config.JOIN_ORDER_TYPE ) {
+		case PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY:
+			join_heuristic_bitset = CXform::PbsJoinOrderInQueryXforms(mp);
+			break;
+		case PlannerConfig::JoinOrderType::JOIN_ORDER_GREEDY_SEARCH:
+			join_heuristic_bitset = CXform::PbsJoinOrderOnGreedyXforms(mp);
+			break;
+		case PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH:
+			join_heuristic_bitset = CXform::PbsJoinOrderOnExhaustiveXforms(mp);
+			break;
+		case PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH:
+			join_heuristic_bitset = CXform::PbsJoinOrderOnExhaustive2Xforms(mp);
+			break;
+		default:
+			D_ASSERT(false);	// must be one of one options
+			break;
+	}
+	D_ASSERT(join_heuristic_bitset != NULL);
+	
+	if(config.INDEX_JOIN_ONLY) {
+		// disable hash join
+		CBitSet *hash_join_bitste = CXform::PbsHashJoinXforms(mp);
+		traceflag_bitset->Union(hash_join_bitste);
+		hash_join_bitste->Release();	
+		// disable nl join
+		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
+	}
+
+	traceflag_bitset->Union(join_heuristic_bitset);
+	join_heuristic_bitset->Release();
+
+	SetTraceflags(mp, traceflag_bitset, &enabled_trace_flags, &disabled_trace_flags);
+
 	if(config.ORCA_DEBUG_PRINT) {
 		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
 		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
@@ -184,15 +254,7 @@ void Planner::_orcaSetTraceFlags() {
 		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
 	}
 
-	/* Always prefer NL join*/
-	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceForceComprehensiveJoinImplementation);	// Enable NLJoin
-	// Xform config controllable as well
-	// GPOPT_DISABLE_XFORM(CXform::ExfGet2TableScan);
 
-	if(config.INDEX_JOIN_ONLY) {
-		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2HashJoin);
-		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
-	}
 }
 
 gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
