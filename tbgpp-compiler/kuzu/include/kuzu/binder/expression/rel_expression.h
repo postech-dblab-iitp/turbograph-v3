@@ -44,8 +44,8 @@ public:
 private:
     shared_ptr<NodeExpression> srcNode;
     shared_ptr<NodeExpression> dstNode;
-    uint64_t lowerBound;
-    uint64_t upperBound;
+    uint64_t lowerBound;    // can start from 0
+    uint64_t upperBound;    // can be -1, which is infinite loop
 };
 
 } // namespace binder
