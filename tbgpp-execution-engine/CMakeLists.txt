@@ -72,7 +72,9 @@ add_definitions(-DDUCKDB_VERSION="\""1"\"")
 ####################################################
 set_target_properties(tbgpp-execution-engine-lib PROPERTIES LINKER_LANGUAGE CXX)
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
+file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*" 
+	# for debugging purpose, temporary
+	"${PROJECT_SOURCE_DIR}/test/old_plans/simple/test12.cpp")
 target_include_directories( tbgpp-execution-engine-lib PUBLIC "${PROJECT_SOURCE_DIR}/include" )
 target_include_directories( tbgpp-execution-engine-lib PUBLIC
 	# tbgpp-common
@@ -112,12 +114,12 @@ file(GLOB ENGINE_TEST_SRC
   #  "${PROJECT_SOURCE_DIR}/test/bulkload_json.cpp"
 )
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*")
-# file (GLOB_RECURSE TEST_SOURCES
-#   "${PROJECT_SOURCE_DIR}/test/plans/simple/*.cpp"
+file (GLOB_RECURSE TEST_SOURCES
+   "${PROJECT_SOURCE_DIR}/test/old_plans/simple/test12.cpp"
 #   "${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.cpp"
 #   "${PROJECT_SOURCE_DIR}/test/plans/tpc-h/*.cpp"
 #   "${PROJECT_SOURCE_DIR}/test/plans/coco/*.cpp"
-# )
+)
 
 foreach(test_file ${ENGINE_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)

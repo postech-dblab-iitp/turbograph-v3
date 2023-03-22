@@ -70,23 +70,6 @@ private:
     PropertySchemaCatalogEntry *ps_cat_entry;
 };
 
-class AdjacencyListIterator {
-public:
-    AdjacencyListIterator() {}
-    ~AdjacencyListIterator() {}
-    bool Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
-    void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
-    void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
-    void getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized);
-
-private:
-    bool is_initialized = false;
-    ExtentIterator *ext_it = nullptr;
-    ExtentID cur_eid = std::numeric_limits<ExtentID>::max();
-    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
-    data_ptr_t cur_adj_list;
-};
-
 } // namespace duckdb
 
 #endif

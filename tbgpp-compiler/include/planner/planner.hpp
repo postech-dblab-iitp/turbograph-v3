@@ -133,6 +133,7 @@ enum JoinOrderType {
 public:
 	bool DEBUG_PRINT;
 	bool ORCA_DEBUG_PRINT;
+	bool RUN_PLAN_WO_COMPILE;
 
 	bool INDEX_JOIN_ONLY;
 	// TODO s62 configure optimizer_join_order_threshold!	 // this matters when exhastive2 and exhasutive
@@ -142,6 +143,7 @@ public:
 		DEBUG_PRINT(false),
 		ORCA_DEBUG_PRINT(false),
 		INDEX_JOIN_ONLY(false),
+		RUN_PLAN_WO_COMPILE(false),
 		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH)
 	{ }
 };
