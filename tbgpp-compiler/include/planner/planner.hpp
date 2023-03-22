@@ -58,7 +58,10 @@
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
+#include "gpopt/operators/CLogicalLeftOuterJoin.h"
 #include "gpopt/operators/CLogicalLimit.h"
+#include "gpopt/operators/CLogicalPathJoin.h"
+#include "gpopt/operators/CLogicalPathGet.h"
 
 #include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/operators/CPhysicalIndexScan.h"
@@ -188,6 +191,7 @@ private:
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
+	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
 	LogicalPlan *lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
@@ -214,6 +218,8 @@ private:
 	);
 	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
+	CExpression* lExprLogicalPathJoinOnId(CExpression* lhs, CExpression* rhs,
+		uint64_t lhs_pos, uint64_t rhs_pos, int32_t lower_bound, int32_t upper_bound);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,

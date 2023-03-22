@@ -125,6 +125,12 @@ public:
 	virtual IOstream &OsPrint(IOstream &os) const;
 
 };	// class CIndexDescriptor
+
+
+// dynamic array of tabledescs -- array owns columns
+typedef CDynamicPtrArray<CIndexDescriptor, CleanupRelease>
+	CIndexDescriptorArray;
+
 }  // namespace gpopt
 
 #endif	// !GPOPT_CIndexDescriptor_H

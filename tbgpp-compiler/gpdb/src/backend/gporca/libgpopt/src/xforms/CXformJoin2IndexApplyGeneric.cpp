@@ -15,6 +15,13 @@
 #include "gpopt/operators/CLogicalGet.h"
 #include "gpopt/operators/CScalarIdent.h"
 
+#include "gpopt/operators/CLogicalPathJoin.h"
+#include "gpopt/operators/CLogicalPathGet.h"
+#include "gpopt/operators/CLogicalIndexPathGet.h"
+#include "gpopt/operators/CLogicalIndexPathApply.h"
+
+#include <vector>
+
 using namespace gpmd;
 using namespace gpopt;
 
@@ -112,6 +119,11 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CExpression *pexprOuter = (*pexpr)[0];
 	CExpression *pexprInner = (*pexpr)[1];
 	CExpression *pexprScalar = (*pexpr)[2];
+
+	/* S62 check if variable length join */
+	if( pexprInner->Pop()->Eopid() == COperator::EopLogicalPathGet ) {
+		return TransformApplyOnPathGet(pxfctxt, pxfres, pexpr);
+	}
 
 	// all predicates that could be used as index predicates, this includes the
 	// join predicates and selection predicates of selects right above the get
@@ -371,6 +383,101 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 							   : IMDIndex::EmdindBtree));
 
 	CRefCount::SafeRelease(pexprAllPredicates);
+}
+
+void
+CXformJoin2IndexApplyGeneric::TransformApplyOnPathGet(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const {
+
+	GPOS_ASSERT(NULL != pxfctxt);
+	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
+	GPOS_ASSERT(FCheckPattern(pexpr));
+
+	CMemoryPool *mp = pxfctxt->Pmp();
+
+	// extract components
+	CExpression *pexprOuter = (*pexpr)[0];
+	CExpression *pexprInner = (*pexpr)[1];
+	CExpression *pexprScalar = (*pexpr)[2];
+
+	GPOS_ASSERT(pexprInner->Pop()->Eopid() == COperator::EopLogicalPathGet);
+
+	CLogicalPathJoin *op = (CLogicalPathJoin *) pexpr->Pop();
+
+	// derive the scalar and relational properties to build set of required columns
+	CColRefSet *pcrsScalarExpr = NULL;
+	CColRefSet *outer_refs = NULL;
+	CColRefSet *pcrsReqd = NULL;
+	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
+					  &pcrsReqd);
+	
+	CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);	// TODO this is wrong
+	colref_array->AddRef();
+	pexprScalar->AddRef();
+
+	// generate index scan
+	CExpression *pexprGenratedInnerIndexScan;
+	{
+		CLogicalPathGet *path_op = (CLogicalPathGet *) pexprInner->Pop();
+
+		// find indexes
+		CColRefArray *pdrgpcrOutput = path_op->PdrgpcrOutput();
+		pdrgpcrOutput->AddRef();
+
+		GPOS_ASSERT(path_op->PtabdescArray()->Size() == 1);
+		// TODO currently only one index
+		CTableDescriptor* first_table_desc = path_op->PtabdescArray()->operator[](0);
+
+		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+		const IMDRelation *pmdrel = md_accessor->RetrieveRel(first_table_desc->MDId());
+		const ULONG ulIndices = first_table_desc->IndexCount();
+
+		std::vector<const IMDIndex *> pmdindexarray;
+		for (ULONG ul = 0; ul < ulIndices; ul++)
+		{
+			IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
+			const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
+
+			// find index having key as "_sid"
+			if( pmdindex->KeyAt(0) == 1 ) {
+				pmdindexarray.push_back(pmdindex);
+			}
+		}
+		GPOS_ASSERT(pmdindexarray.size() == 1 );	// currently one index
+
+		pexprScalar->AddRef();
+		pexprGenratedInnerIndexScan = 
+			GPOS_NEW(mp) CExpression(
+				mp,
+				GPOS_NEW(mp) CLogicalIndexPathGet(
+					mp, 
+					pmdindexarray,
+					path_op->PtabdescArray(),
+					op->UlOpId(),
+					GPOS_NEW(mp) CName(mp, path_op->Name()),
+					pdrgpcrOutput,
+					path_op->LowerBound(),
+					path_op->UpperBound()
+				),
+				pexprScalar
+			);
+	}
+
+	// return indexouterapply
+	pexprOuter->AddRef();
+	CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
+		mp,
+		GPOS_NEW(mp)
+			CLogicalIndexPathApply(
+				mp,
+				op->LowerBound(),
+				op->UpperBound(),
+				colref_array,
+				false,	// currently, outerjoin is false.
+				pexprScalar),
+		pexprOuter, pexprGenratedInnerIndexScan,
+		CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));	// scalarconst(1)
+
+	pxfres->Add(pexprIndexApply);
 }
 
 

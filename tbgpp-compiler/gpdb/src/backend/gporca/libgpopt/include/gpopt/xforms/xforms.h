@@ -164,6 +164,10 @@
 #include "gpopt/xforms/CXformUpdate2DML.h"
 #include "gpopt/xforms/CXformUtils.h"
 
+#include "gpopt/xforms/CXformImplementIndexPathApply.h"
+#include "gpopt/xforms/CXformPathJoin2IndexPathApply.h"
+#include "gpopt/xforms/CXformIndexPathGet2IndexPathScan.h"
+
 #endif	// !GPOPT_xforms_H
 
 // EOF

@@ -296,8 +296,12 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_mp) CXformLeftJoin2RightJoin(m_mp));
 	Add(GPOS_NEW(m_mp) CXformRightOuterJoin2HashJoin(m_mp));
 	Add(GPOS_NEW(m_mp) CXformImplementInnerJoin(m_mp));
+	// S62 custom added
 	Add(GPOS_NEW(m_mp) CXformProject2ComputeScalarColumnar(m_mp));
 	Add(GPOS_NEW(m_mp) CXformCollapseProjectColumnar(m_mp));
+	Add(GPOS_NEW(m_mp) CXformPathJoin2IndexPathApply(m_mp));
+	Add(GPOS_NEW(m_mp) CXformImplementIndexPathApply(m_mp));
+	Add(GPOS_NEW(m_mp) CXformIndexPathGet2IndexPathScan(m_mp));
 	
 
 	GPOS_ASSERT(NULL != m_rgpxf[CXform::ExfSentinel - 1] &&
