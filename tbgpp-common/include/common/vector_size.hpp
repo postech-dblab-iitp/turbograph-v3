@@ -24,6 +24,7 @@ namespace duckdb {
 #ifndef EXEC_ENGINE_VECTOR_SIZE
 #define EXEC_ENGINE_VECTOR_SIZE 1024	// the value is determined to fit chunk while processing in L1 cache
 										//  of the recent processors thus to exploit advantages of vector-at-a-time processing model
+// #define EXEC_ENGINE_VECTOR_SIZE 1048576
 #endif
 
 #if ((STANDARD_VECTOR_SIZE & (STANDARD_VECTOR_SIZE - 1)) != 0)

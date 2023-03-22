@@ -3,6 +3,7 @@
 
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "extent/extent_iterator.hpp"
+#include "extent/adjlist_iterator.hpp"
 #include "common/types/selection_vector.hpp"
 #include "planner/joinside.hpp"
 

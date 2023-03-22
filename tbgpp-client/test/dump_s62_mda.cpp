@@ -78,6 +78,22 @@ void print_depth(string data, int depth=0) {
 	std::cout << std::endl;
 }
 
+void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
+	vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person"};
+	for (auto &ps_cat_name : ps_cat_list) {
+		PropertySchemaCatalogEntry *ps_cat =
+			(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
+		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	}
+	
+	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd"};
+	for (auto &index_cat_name : index_cat_list) {
+		IndexCatalogEntry *ps_cat =
+			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
+		fprintf(stdout, "%s oid %ld\n", index_cat_name.c_str(), ps_cat->GetOid());
+	}
+}
+
 void* mda_print(void* args) {
 
 	CAutoMemoryPool amp;
@@ -222,6 +238,8 @@ int main(int argc, char** argv) {
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
+
+	PrintCatalogEntryOid(client, database->instance->GetCatalog());
 
 	struct gpos_init_params gpos_params = {NULL};
 	gpos_init(&gpos_params);
