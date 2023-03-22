@@ -233,7 +233,7 @@ class InputParser{
 				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
 			} else {
 				// default
-				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH;
+				throw std::invalid_argument("wrong --join-order-optimizer parameter");
 			}
 		}
       }

@@ -211,8 +211,10 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 				is_rhs_bound = qg_plan->getSchema()->isNodeBound(rhs_name) ? true : false;
 			}
 
-			LogicalPlan* hop_plan;
+			// case for variable length join
+			bool is_pathjoin = qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
 
+			LogicalPlan* hop_plan;
 			LogicalPlan* lhs_plan;
 			// A join R
 			if( !is_lhs_bound ) {
@@ -222,16 +224,28 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 				lhs_plan = qg_plan;
 			}
 			GPOS_ASSERT(lhs_plan != nullptr);
+
+
 			// Scan R
-			LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+			if( ! is_pathjoin ) {
+				LogicalPlan* edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+				auto join_expr = lExprLogicalJoinOnId(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
+					lhs_plan->getSchema()->getIdxOfKey(lhs_name, ID_COLNAME),
+					edge_plan->getSchema()->getIdxOfKey(edge_name, SID_COLNAME)
+				);
+				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
+				lhs_plan->addBinaryParentOp(join_expr, edge_plan);
+			} else {
+				LogicalPlan* edge_plan = lPlanPathGet((RelExpression*)qedge);
+				auto join_expr = lExprLogicalPathJoinOnId(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
+					lhs_plan->getSchema()->getIdxOfKey(lhs_name, ID_COLNAME),
+					edge_plan->getSchema()->getIdxOfKey(edge_name, SID_COLNAME),
+					qedge->getLowerBound(), qedge->getUpperBound()
+				);
+				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
+				lhs_plan->addBinaryParentOp(join_expr, edge_plan);
+			}
 			
-			// TODO need to make this as a function
-			auto join_expr = lExprLogicalJoinOnId(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-				lhs_plan->getSchema()->getIdxOfKey(lhs_name, ID_COLNAME),
-				edge_plan->getSchema()->getIdxOfKey(edge_name, SID_COLNAME)
-			);
-			lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
-			lhs_plan->addBinaryParentOp(join_expr, edge_plan);
 			
 			// R join B
 			if( is_lhs_bound && is_rhs_bound ) {
@@ -390,6 +404,86 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 
 	prev_plan->addUnaryParentOp(plan_orderby_expr); // TODO ternary op?..
 	return prev_plan;
+}
+
+LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	auto table_oids = edge_expr->getTableIDs();
+
+	// generate three columns, based on the first table
+	CColRefArray* cols;
+	LogicalSchema schema;
+	auto edge_name = edge_expr->getUniqueName();
+	auto edge_name_expr = edge_expr->getRawName();
+
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRefArray *path_output_cols = GPOS_NEW(mp) CColRefArray(mp);
+
+	auto& prop_exprs = edge_expr->getPropertyExpressions();
+	for( int colidx=0; colidx < prop_exprs.size(); colidx++) {
+		auto& _prop_expr = prop_exprs[colidx];
+		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());
+
+		// if property name in _id, _sid, _tid		
+		if( expr->getPropertyName() == "_id" || expr->getPropertyName() == "_sid" || expr->getPropertyName() == "_tid") {
+			gpmd::IMDId* col_type_imdid = lGetRelMd(table_oids[0])->GetMdCol(expr->getPropertyID(table_oids[0]))->MdidType();
+			gpos::INT col_type_modifier = lGetRelMd(table_oids[0])->GetMdCol(expr->getPropertyID(table_oids[0]))->TypeModifier();
+
+			std::string property_name = expr->getPropertyName();
+			std::wstring property_print_name = L"";
+			property_print_name.assign(property_name.begin(), property_name.end());
+			const CWStringConst col_name_str(property_print_name.c_str());
+			CName col_name(&col_name_str);
+			
+			// add to schema
+			schema.appendEdgeProperty(edge_name, property_name);
+
+			// generate colref
+			CColRef *new_colref = col_factory->PcrCreate(
+				lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
+			path_output_cols->Append(new_colref);
+		}
+	}
+	D_ASSERT( schema.getNumPropertiesOfKey(edge_name) == 3);
+	D_ASSERT( path_output_cols->Size() == 3 );
+
+	// tabledescs for underlying table
+	CTableDescriptorArray *path_table_descs = GPOS_NEW(mp) CTableDescriptorArray(mp);
+	path_table_descs->AddRef();
+	for( auto& obj_id: table_oids ) {
+		const CWStringConst* table_name_cwstring = lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id))->Mdname().GetMDName();
+		wstring table_name_ws(table_name_cwstring->GetBuffer());
+		string table_name(table_name_ws.begin(), table_name_ws.end());
+		std::string print_name = "(" + edge_name + ") " + table_name;
+		std::wstring w_print_name = L"";
+		w_print_name.assign(print_name.begin(), print_name.end());
+		CWStringConst strName(w_print_name.c_str());
+		CTableDescriptor *ptabdesc =
+			lCreateTableDesc(mp,
+						lGenRelMdid(obj_id),	// 6.objid.0.0
+						CName(&strName));	// debug purpose table string
+
+		path_table_descs->Append(ptabdesc);
+	}
+	D_ASSERT(path_table_descs->Size() == table_oids.size() );
+	
+
+	// generate get expression
+	const CWStringConst path_name_str(GPOS_WSZ_LIT("PATH"));
+
+	CLogicalPathGet *pop = GPOS_NEW(mp) CLogicalPathGet(
+		mp, GPOS_NEW(mp) CName(mp, CName(&path_name_str)), path_table_descs, path_output_cols,
+		(gpos::INT) edge_expr->getLowerBound(), (gpos::INT) edge_expr->getUpperBound()
+	);
+	CExpression *path_get_expr = GPOS_NEW(mp) CExpression(mp, pop);
+
+	path_output_cols->AddRef();
+
+	LogicalPlan* plan = new LogicalPlan(path_get_expr, schema);
+	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
+	return plan;
 }
 
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
@@ -787,7 +881,7 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 	auto rhs_size = rcols->Size();
 
 	CColRef *pcrLeft = lcols->operator[](lhs_pos);
-	CColRef *pcrRight =  rcols->operator[](rhs_pos);
+	CColRef *pcrRight = rcols->operator[](rhs_pos);
 
 	lhs->AddRef();
 	rhs->AddRef();
@@ -803,6 +897,31 @@ CExpression * Planner::lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
 	// }
 
 	return join_result;
+}
+
+CExpression* Planner::lExprLogicalPathJoinOnId(CExpression* lhs, CExpression* rhs,
+		uint64_t lhs_pos, uint64_t rhs_pos, int32_t lower_bound, int32_t upper_bound) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	CColRefArray* lcols = lhs->DeriveOutputColumns()->Pdrgpcr(mp);
+	auto lhs_size = lcols->Size();
+	CColRefArray* rcols = rhs->DeriveOutputColumns()->Pdrgpcr(mp);
+	auto rhs_size = rcols->Size();
+
+	CColRef *pcrLeft = lcols->operator[](lhs_pos);
+	CColRef *pcrRight = rcols->operator[](rhs_pos);
+
+	lhs->AddRef();
+	rhs->AddRef();
+
+	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	pexprEquality->AddRef();
+
+	auto join_result = CUtils::PexprLogicalJoin<CLogicalLeftOuterJoin>(mp, lhs, rhs, pexprEquality);
+
+	return join_result;
+
 }
 
 

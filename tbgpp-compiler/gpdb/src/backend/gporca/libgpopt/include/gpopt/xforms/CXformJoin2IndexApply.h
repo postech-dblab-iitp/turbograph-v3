@@ -60,14 +60,6 @@ private:
 		CTableDescriptor *ptabdescInner, CColRefSet *outer_refs,
 		CColRefSet *pcrsReqd, CXformResult *pxfres) const;
 
-	// based on the inner and the scalar expression, it computes scalar expression
-	// columns, outer references and required columns
-	void ComputeColumnSets(CMemoryPool *mp, CExpression *pexprInner,
-						   CExpression *pexprScalar,
-						   CColRefSet **ppcrsScalarExpr,
-						   CColRefSet **ppcrsOuterRefs,
-						   CColRefSet **ppcrsReqd) const;
-
 	// create an index apply plan when applicable
 	void CreatePartialIndexApplyPlan(
 		CMemoryPool *mp, COperator *joinOp, CExpression *pexprOuter,
@@ -115,6 +107,15 @@ private:
 protected:
 	// is the logical join that is being transformed an outer join?
 	BOOL m_fOuterJoin;
+
+	// based on the inner and the scalar expression, it computes scalar expression
+	// columns, outer references and required columns
+	void ComputeColumnSets(CMemoryPool *mp, CExpression *pexprInner,
+						   CExpression *pexprScalar,
+						   CColRefSet **ppcrsScalarExpr,
+						   CColRefSet **ppcrsOuterRefs,
+						   CColRefSet **ppcrsReqd) const;
+
 
 	// helper to add IndexApply expression to given xform results container
 	// for homogeneous indexes
