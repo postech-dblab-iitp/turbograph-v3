@@ -21,8 +21,15 @@ class ClientContext;
 
 class AdjacencyListIterator {
 public:
-    AdjacencyListIterator() {}
+    AdjacencyListIterator() {
+        ext_it = std::make_shared<ExtentIterator>();
+        eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, int>>();
+    }
     ~AdjacencyListIterator() {}
+    AdjacencyListIterator(std::shared_ptr<ExtentIterator> share_ext_it, std::shared_ptr<unordered_map<ExtentID, int>> share_eid_to_bufptr_idx_map) {
+        ext_it = share_ext_it;
+        eid_to_bufptr_idx_map = share_eid_to_bufptr_idx_map;
+    }
     bool Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
     void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
     void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
@@ -30,15 +37,18 @@ public:
 
 private:
     bool is_initialized = false;
-    ExtentIterator *ext_it = nullptr;
+    std::shared_ptr<ExtentIterator> ext_it;
     ExtentID cur_eid = std::numeric_limits<ExtentID>::max();
-    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
+    std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
     data_ptr_t cur_adj_list;
 };
 
 class DFSIterator {
 public:
-    DFSIterator() {}
+    DFSIterator() {
+        ext_it = std::make_shared<ExtentIterator>();
+        eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, int>>();
+    }
     ~DFSIterator() {}
 
     void initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx);
@@ -57,7 +67,8 @@ private:
     vector<std::pair<uint64_t *, uint64_t *>> cur_start_end_offsets_per_level;
     vector<idx_t> cursor_per_level;
     vector<ExtentIterator *> ext_it_per_level;
-    unordered_map<ExtentID, int> eid_to_bufptr_idx_map;
+    std::shared_ptr<ExtentIterator> ext_it = nullptr;
+    std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
 };
 
 } // namespace duckdb
