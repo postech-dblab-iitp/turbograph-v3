@@ -21,20 +21,20 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
 // icecream::ic.enable();
 // IC();
   std::string partition_path = std::string(path);
-IC(partition_path);
+// IC(partition_path);
   for (const auto &partition_entry : std::filesystem::directory_iterator(partition_path)) { // /path/
     std::string partition_entry_path = std::string(partition_entry.path());
     std::string partition_entry_name = partition_entry_path.substr(partition_entry_path.find_last_of("/") + 1);
-    IC(partition_entry_name);
+    // IC(partition_entry_name);
     if (StringUtil::StartsWith(partition_entry_name, "part_")) {
       std::string extent_path = partition_entry_path + std::string("/");
-      IC(extent_path);
+      // IC(extent_path);
       for (const auto &extent_entry : std::filesystem::directory_iterator(extent_path)) { // /path/part_/
         std::string extent_entry_path = std::string(extent_entry.path());
         std::string extent_entry_name = extent_entry_path.substr(extent_entry_path.find_last_of("/") + 1);
         if (StringUtil::StartsWith(extent_entry_name, "ext_")) {
           std::string chunk_path = extent_entry_path + std::string("/");
-          IC(chunk_path);
+          // IC(chunk_path);
           for (const auto &chunk_entry : std::filesystem::directory_iterator(chunk_path)) { // /path/part_/ext_/
             std::string chunk_entry_path = std::string(chunk_entry.path());
             std::string chunk_entry_name = chunk_entry_path.substr(chunk_entry_path.find_last_of("/") + 1);

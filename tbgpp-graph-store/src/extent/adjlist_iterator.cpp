@@ -21,26 +21,27 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     cur_eid = target_eid;
     is_initialized = true;
     
-    if (ext_it == nullptr) {
-        ext_it = new ExtentIterator();
+    if (!ext_it ->IsInitialized()) {
+        // ext_it = std::make_shared<ExtentIterator>();
         ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
-        eid_to_bufptr_idx_map.insert( {target_eid, 0} );
+        eid_to_bufptr_idx_map->insert( {target_eid, 0} );
         // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, 0); icecream::ic.disable();
         return false;
     } else {
-        if (eid_to_bufptr_idx_map.find(target_eid) != eid_to_bufptr_idx_map.end()) {
+        if (eid_to_bufptr_idx_map->find(target_eid) != eid_to_bufptr_idx_map->end()) {
             // icecream::ic.enable(); IC(); icecream::ic.disable();
-            if (eid_to_bufptr_idx_map.at(target_eid) != -1) {
+            if (eid_to_bufptr_idx_map->at(target_eid) != -1) {
                 // Find! Nothing to do
+                // icecream::ic.enable(); IC(); icecream::ic.disable();
                 return true;
             } else {
                 // Evicted extent
                 ExtentID evicted_eid;
                 int bufptr_idx = ext_it->RequestNewIO(context, nullptr, target_types, target_idxs, target_eid, evicted_eid);
-                eid_to_bufptr_idx_map.at(target_eid) = bufptr_idx;
+                eid_to_bufptr_idx_map->at(target_eid) = bufptr_idx;
                 // eid_to_bufptr_idx_map[target_eid] = bufptr_idx;
                 // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, bufptr_idx, evicted_eid); icecream::ic.disable();
-                if (evicted_eid != std::numeric_limits<ExtentID>::max()) eid_to_bufptr_idx_map[evicted_eid] = -1;
+                if (evicted_eid != std::numeric_limits<ExtentID>::max()) (*eid_to_bufptr_idx_map)[evicted_eid] = -1;
                 return false;
             }
         } else {
@@ -48,9 +49,9 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
             // Fail to find
             ExtentID evicted_eid;
             int bufptr_idx = ext_it->RequestNewIO(context, nullptr, target_types, target_idxs, target_eid, evicted_eid);
-            eid_to_bufptr_idx_map.insert( {target_eid, bufptr_idx} );
+            eid_to_bufptr_idx_map->insert( {target_eid, bufptr_idx} );
             // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, bufptr_idx, evicted_eid); icecream::ic.disable();
-            if (evicted_eid != std::numeric_limits<ExtentID>::max()) eid_to_bufptr_idx_map[evicted_eid] = -1;
+            if (evicted_eid != std::numeric_limits<ExtentID>::max()) (*eid_to_bufptr_idx_map)[evicted_eid] = -1;
             return false;
         }
     }
@@ -96,8 +97,8 @@ void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, u
 void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized) {
     idx_t target_seqno = vid & 0x00000000FFFFFFFF;
     
-    D_ASSERT(eid_to_bufptr_idx_map.at(target_eid) != -1);
-    ext_it->GetExtent(cur_adj_list, eid_to_bufptr_idx_map.at(target_eid), is_initialized);
+    D_ASSERT(eid_to_bufptr_idx_map->at(target_eid) != -1);
+    ext_it->GetExtent(cur_adj_list, eid_to_bufptr_idx_map->at(target_eid), is_initialized);
     idx_t *adjListBase = (idx_t *)cur_adj_list;
     idx_t start_idx = target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
     idx_t end_idx = adjListBase[target_seqno];
@@ -112,9 +113,10 @@ void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t a
 
     ExtentID target_eid = src_id >> 32;
     bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST); // TODO adjColIdx, adjlist direction
+    // fprintf(stdout, "target_eid = %d, initialized = %s\n", target_eid, is_initialized ? "true" : "false");
     adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, cur_start_end_offsets_per_level[current_lv].first,
         cur_start_end_offsets_per_level[current_lv].second, is_initialized);
-    cursor_per_level[0] = 0;
+    for (int lv = 0; lv < cursor_per_level.size(); lv++) cursor_per_level[lv] = 0;
 }
 
 bool DFSIterator::getNextEdge(ClientContext &context, int lv, uint64_t &tgt, uint64_t &edge) {
@@ -157,13 +159,11 @@ void DFSIterator::initializeDSForNewLv(int new_lv) {
         cur_adjlist_ptr_per_level.push_back(nullptr);
         cur_start_end_offsets_per_level.push_back(std::make_pair<uint64_t *, uint64_t *>(nullptr, nullptr));
         cursor_per_level.push_back(0);
-        ext_it_per_level.push_back(new ExtentIterator());
-        adjlist_iter_per_level.push_back(new AdjacencyListIterator());
+        adjlist_iter_per_level.push_back(new AdjacencyListIterator(this->ext_it, this->eid_to_bufptr_idx_map));
 
         D_ASSERT(cur_adjlist_ptr_per_level.size() == max_lv + 1);
         D_ASSERT(cur_start_end_offsets_per_level.size() == max_lv + 1);
         D_ASSERT(cursor_per_level.size() == max_lv + 1);
-        D_ASSERT(ext_it_per_level.size() == max_lv + 1);
         D_ASSERT(adjlist_iter_per_level.size() == max_lv + 1);
     }
 }

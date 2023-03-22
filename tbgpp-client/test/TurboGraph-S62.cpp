@@ -376,12 +376,17 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		executors = suite.getTest(query_str);
 		if (executors.size() == 0) return;
 
+		// start timer
+		boost::timer::cpu_timer query_timer;
+		query_timer.start();
 		int idx = 0;
 		for( auto exec : executors ) { 
 			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 			exec->ExecutePipeline();
 			std::cout << "done pipeline execution!!" << std::endl;
 		}
+		// end_timer
+		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 
 		int LIMIT = 10;
 		size_t num_total_tuples = 0;
@@ -424,6 +429,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			std::cout << t << std::endl;
 		}
 		std::cout << "===================================================" << std::endl;
+		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}
 }
 

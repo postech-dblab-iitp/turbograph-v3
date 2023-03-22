@@ -87,6 +87,8 @@ public:
 	int start_lv;
 	int end_lv;
 	vector<uint64_t> current_path;
+	// vector<uint64_t> current_path_vid; // temp
+	bool first_time_in_this_loop = true;
 
 	// initialize rest of operator members
 	idx_t srcColIdx;
@@ -218,7 +220,9 @@ OperatorResultType PhysicalVarlenAdjIdxJoin::ExecuteNaiveInput(ExecutionContext&
 		state.start_lv = min_length;
 		state.end_lv = max_length;
 
+#ifdef CHECK_ISOMORPHISM
 		state.iso_checker->initialize(max_length - min_length + 1);
+#endif
 
 		D_ASSERT(inner_col_map.size() == 2);
 		state.edgeColIdx = inner_col_map[0];
@@ -311,6 +315,7 @@ void PhysicalVarlenAdjIdxJoin::ProcessVarlenEquiJoin(ExecutionContext& context, 
 		state.output_idx += num_found_paths;
 		if (state.output_idx >= STANDARD_VECTOR_SIZE) break;
 		state.lhs_idx++;
+		state.first_time_in_this_loop = true;
 	}
 
 	// chunk determined. now fill in lhs using slice operation
@@ -322,24 +327,36 @@ void PhysicalVarlenAdjIdxJoin::ProcessVarlenEquiJoin(ExecutionContext& context, 
 
 	D_ASSERT (state.output_idx <= STANDARD_VECTOR_SIZE);
 	chunk.SetCardinality(state.output_idx);
+
+// icecream::ic.enable();
+// IC(chunk.size());
+// if (chunk.size() > 0) {
+// 	IC(chunk.ToString(std::min((idx_t)10, chunk.size())));
+// }
+// icecream::ic.disable();
 }
 
 uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& context, uint64_t src_vid, DataChunk &chunk, OperatorState &lstate, int64_t remaining_output) const {
 	auto &state = (VarlenAdjIdxJoinState &)lstate;
 	uint64_t new_tgt_id, new_edge_id, num_found_paths = 0;
 	uint64_t *tgt_adj_column, *eid_adj_column;
-    // input parameter: start_lv, end_lv
-    // initialization: lv = 0; current_path = {}; new_edge_id = 0; num_found_paths = 0;
-    // output
+    
 	// fprintf(stdout, "Start to iterate vid %ld, remaining = %ld\n", src_vid, remaining_output);
 	// state.current_path.clear();
 	// state.current_path.push_back(src_vid);
 
-	if (state.cur_lv == 0)
-		state.dfs_it->initialize(*context.client, src_vid, state.adj_col_idxs[state.adj_idx]);
-
 	tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+
+	if (state.first_time_in_this_loop) {
+		state.first_time_in_this_loop = false;
+		// state.current_path_vid.clear(); // temp
+		// fprintf(stdout, "Add Src %ld to output\n", src_vid);
+		state.dfs_it->initialize(*context.client, src_vid, state.adj_col_idxs[state.adj_idx]);
+		addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, src_vid);
+		// state.current_path_vid.push_back(src_vid); // temp
+		if (++num_found_paths == remaining_output) return num_found_paths;
+	}
 
 	// if (state.start_lv == 0) {
 	// 	addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, src_vid);
@@ -355,6 +372,7 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 			state.iso_checker->removeFromSet(edgeid_to_remove);
 #endif
             state.current_path.pop_back();
+			// state.current_path_vid.pop_back(); // temp
             state.cur_lv--;
             continue;
         }
@@ -369,6 +387,7 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
             state.iso_checker->removeFromSet(edgeid_to_remove);
 #endif
             state.current_path.pop_back();
+			// state.current_path_vid.pop_back(); //temp
             state.cur_lv--;
             continue;
         }
@@ -381,24 +400,23 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
                 traverse_more = true;
             }
             // do not traverse more
-            if (!traverse_more) { continue; }
+            if (!traverse_more) continue;
         }
 		state.iso_checker->addToSet(new_edge_id);
 #endif
         // traverse more
         state.cur_lv++;
 		state.current_path.push_back(new_edge_id);
+		// state.current_path_vid.push_back(new_tgt_id); // temp
 
         if (state.cur_lv >= state.start_lv) {
 			addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, new_tgt_id);
-            if (++num_found_paths == remaining_output) {
-                break;
-            }
+            if (++num_found_paths == remaining_output) break;
         }
         
 		// fprintf(stdout, "src_vid %ld, cur_lv %d, Path: [", src_vid, state.cur_lv);
-		// for (int path_idx = 0; path_idx < state.current_path.size(); path_idx++) {
-		// 	fprintf(stdout, "%ld, ", state.current_path[path_idx]);
+		// for (int path_idx = 0; path_idx < state.current_path_vid.size(); path_idx++) {
+		// 	fprintf(stdout, "%ld, ", state.current_path_vid[path_idx]);
 		// }
 		// fprintf(stdout, "]\n");
     }
@@ -410,6 +428,7 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 
 void PhysicalVarlenAdjIdxJoin::addNewPathToOutput(uint64_t *tgt_adj_column, uint64_t *eid_adj_column, uint64_t output_idx, vector<uint64_t> &current_path, uint64_t new_edge_id) const {
 	// TODO maybe we need to store total path, or edge id
+	// fprintf(stdout, "output_idx %ld <-- edge %ld\n", output_idx, new_edge_id);
 	tgt_adj_column[output_idx] = new_edge_id;
 }
 

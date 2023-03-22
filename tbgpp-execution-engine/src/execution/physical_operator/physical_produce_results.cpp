@@ -28,7 +28,8 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 
 	auto copyChunk = new DataChunk();
 	copyChunk->Initialize( input.GetTypes() );
-	copyChunk->Reference(input);
+	// copyChunk->Reference(input);
+	input.Copy(*copyChunk, 0);
 	state.resultChunks.push_back(copyChunk);
 
 	return SinkResultType::NEED_MORE_INPUT;
