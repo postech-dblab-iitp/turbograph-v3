@@ -15,6 +15,7 @@
 #include "main/client_context.hpp"
 #include "catalog/catalog.hpp"
 #include "extent/extent_iterator.hpp"
+#include "extent/adjlist_iterator.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "common/boost_typedefs.hpp"
 

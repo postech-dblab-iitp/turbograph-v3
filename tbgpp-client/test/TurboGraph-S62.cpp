@@ -30,7 +30,7 @@ using json = nlohmann::json;
 #include <icecream.hpp>
 
 //#include "livegraph.hpp"
-// #include "plans/query_plan_suite.hpp"
+#include "old_plans/query_plan_suite.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 // #include "storage/livegraph_catalog.hpp"
@@ -223,6 +223,8 @@ class InputParser{
 			planner_config.ORCA_DEBUG_PRINT = true;
 		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 17) == 0) {
 			planner_config.INDEX_JOIN_ONLY = true;
+		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
+			planner_config.RUN_PLAN_WO_COMPILE = true;
 		} else if (std::strncmp(current_str.c_str(), "--join-order-optimizer:", 23) == 0) {
 			std::string optimizer_join_order = std::string(*itr).substr(23);
 			if(optimizer_join_order == "query") {
@@ -252,120 +254,177 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	COMPILATION
 */
 
-	if(planner_config.DEBUG_PRINT) {
+	if (planner_config.DEBUG_PRINT) {
 		std::cout << "Query => " << std::endl << query_str << std::endl;
 	}
 
-	auto inputStream = ANTLRInputStream(query_str);
+	if (!planner_config.RUN_PLAN_WO_COMPILE) {
+		auto inputStream = ANTLRInputStream(query_str);
 
-	// Lexer		
-	auto cypherLexer = CypherLexer(&inputStream);
-	//cypherLexer.removeErrorListeners();
-	//cypherLexer.addErrorListener(&parserErrorListener);
-	auto tokens = CommonTokenStream(&cypherLexer);
-	tokens.fill();
+		// Lexer		
+		auto cypherLexer = CypherLexer(&inputStream);
+		//cypherLexer.removeErrorListeners();
+		//cypherLexer.addErrorListener(&parserErrorListener);
+		auto tokens = CommonTokenStream(&cypherLexer);
+		tokens.fill();
 
-	// Parser
-	auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+		// Parser
+		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
-	// Sematic parsing
-	// Transformer
-	kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-	auto statement = transformer.transform();
-	
-	// Binder
-	auto binder = kuzu::binder::Binder(client.get());
-	auto boundStatement = binder.bind(*statement);
-	kuzu::binder::BoundStatement * bst = boundStatement.get();
+		// Sematic parsing
+		// Transformer
+		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+		auto statement = transformer.transform();
+		
+		// Binder
+		auto binder = kuzu::binder::Binder(client.get());
+		auto boundStatement = binder.bind(*statement);
+		kuzu::binder::BoundStatement * bst = boundStatement.get();
 
-	if(planner_config.DEBUG_PRINT) {
-		BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-		std::cout << "Tree => " << std::endl;
-		printer.print();
-		std::cout << std::endl;
-	}
-
-	boost::timer::cpu_timer orca_compile_timer;
-	orca_compile_timer.start();
-	planner.execute(bst);
-
-	int compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
-	int orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
-
-/*
-	EXECUTE QUERY
-*/
-	auto executors = planner.genPipelineExecutors();
-	if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
-
-	// start timer
-	boost::timer::cpu_timer query_timer;
-	query_timer.start();
-	int idx = 0;
-	for( auto exec : executors ) { 
 		if(planner_config.DEBUG_PRINT) {
-			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+			std::cout << "Tree => " << std::endl;
+			printer.print();
+			std::cout << std::endl;
 		}
-		exec->ExecutePipeline();
-		if(planner_config.DEBUG_PRINT) {
+
+		boost::timer::cpu_timer orca_compile_timer;
+		orca_compile_timer.start();
+		planner.execute(bst);
+
+		int compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+		int orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+
+	/*
+		EXECUTE QUERY
+	*/
+		auto executors = planner.genPipelineExecutors();
+		if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
+
+		// start timer
+		boost::timer::cpu_timer query_timer;
+		query_timer.start();
+		int idx = 0;
+		for( auto exec : executors ) { 
+			if(planner_config.DEBUG_PRINT) {
+				std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			}
+			exec->ExecutePipeline();
+			if(planner_config.DEBUG_PRINT) {
+				std::cout << "done pipeline execution!!" << std::endl;
+			}
+		}
+		// end_timer
+		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+
+	/*
+		DUMP RESULT
+	*/
+		const auto BLUE = "\033[1;34m";
+		const auto CLEAR = "\033[0m";
+		const auto UNDERLINE = "\033[1;4m";
+		const auto GREEN = "\033[1;32m";
+
+
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+		if( LIMIT < num_total_tuples) {
+			std::cout << "Showing top " << LIMIT <<":" << std::endl;
+		} else {
+			std::cout << std::endl;
+		}
+		
+		Table t;
+		t.layout(unicode_box_light_headerline());
+
+		auto col_names = planner.getQueryOutputColNames();
+		for( int i = 0; i < col_names.size(); i++ ) {
+			t << col_names[i] ;
+		}
+		t << endr;
+
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+
+			// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+			// 	t << firstchunk->GetTypes()[i].ToString(); 
+			// }
+			// t << endr;
+			
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+					t << firstchunk->GetValue(i, idx).ToString();
+				}
+				t << endr;
+			}
+			std::cout << t << std::endl;
+		}
+		std::cout << "===================================================" << std::endl;
+		std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+	} else { // For testing
+		// load plans
+		auto suite = QueryPlanSuite(*client.get());
+		std::vector<CypherPipelineExecutor *> executors;
+
+		executors = suite.getTest(query_str);
+		if (executors.size() == 0) return;
+
+		int idx = 0;
+		for( auto exec : executors ) { 
+			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+			exec->ExecutePipeline();
 			std::cout << "done pipeline execution!!" << std::endl;
 		}
-	}
-	// end_timer
-	int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 
-/*
-	DUMP RESULT
-*/
-	const auto BLUE = "\033[1;34m";
-	const auto CLEAR = "\033[0m";
-	const auto UNDERLINE = "\033[1;4m";
-	const auto GREEN = "\033[1;32m";
-
-
-	int LIMIT = 10;
-	size_t num_total_tuples = 0;
-	D_ASSERT( executors.back()->context->query_results != nullptr );
-	auto& resultChunks = *(executors.back()->context->query_results);
-	auto& schema = executors.back()->pipeline->GetSink()->schema;
-	for (auto &it : resultChunks) num_total_tuples += it->size();
-	std::cout << "===================================================" << std::endl;
-	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
-	if( LIMIT < num_total_tuples) {
-		std::cout << "Showing top " << LIMIT <<":" << std::endl;
-	} else {
-		std::cout << std::endl;
-	}
-	
-	Table t;
-	t.layout(unicode_box_light_headerline());
-
-	auto col_names = planner.getQueryOutputColNames();
-	for( int i = 0; i < col_names.size(); i++ ) {
-		t << col_names[i] ;
-	}
-	t << endr;
-
-	if (num_total_tuples != 0) {
-		auto& firstchunk = resultChunks[0];
-		LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-
-		// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-		// 	t << firstchunk->GetTypes()[i].ToString(); 
-		// }
-		// t << endr;
-		
-		for( int idx = 0 ; idx < LIMIT ; idx++) {
-			for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-				t << firstchunk->GetValue(i, idx).ToString();
-			}
-			t << endr;
+		int LIMIT = 10;
+		size_t num_total_tuples = 0;
+		D_ASSERT( executors.back()->context->query_results != nullptr );
+		auto& resultChunks = *(executors.back()->context->query_results);
+		auto& schema = executors.back()->pipeline->GetSink()->schema;
+		for (auto &it : resultChunks) num_total_tuples += it->size();
+		std::cout << "===================================================" << std::endl;
+		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+		if( LIMIT < num_total_tuples) {
+			std::cout << "Showing top " << LIMIT <<":" << std::endl;
+		} else {
+			std::cout << std::endl;
 		}
-		std::cout << t << std::endl;
-	}
-	std::cout << "===================================================" << std::endl;
-	std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+		
+		Table t;
+		t.layout(unicode_box_light_headerline());
 
+		auto col_names = planner.getQueryOutputColNames();
+		for( int i = 0; i < col_names.size(); i++ ) {
+			t << col_names[i] ;
+		}
+		t << endr;
+
+		if (num_total_tuples != 0) {
+			auto& firstchunk = resultChunks[0];
+			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+
+			// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+			// 	t << firstchunk->GetTypes()[i].ToString(); 
+			// }
+			// t << endr;
+			
+			for( int idx = 0 ; idx < LIMIT ; idx++) {
+				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+					t << firstchunk->GetValue(i, idx).ToString();
+				}
+				t << endr;
+			}
+			std::cout << t << std::endl;
+		}
+		std::cout << "===================================================" << std::endl;
+	}
 }
 
 
