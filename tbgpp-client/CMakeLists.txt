@@ -41,6 +41,7 @@ target_include_directories(tbgpp-main PUBLIC
 target_include_directories(tbgpp-main PUBLIC
 	# tbgpp-execution-engine
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/test"
 )
 target_include_directories(tbgpp-main PUBLIC
 	# tbgpp-compiler

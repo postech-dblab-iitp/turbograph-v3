@@ -76,6 +76,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
 	"${PROJECT_SOURCE_DIR}/third_party/tblr"
+	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client
@@ -84,11 +85,13 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include/"
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
+file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
+	# third_party
+	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/*.c*")
 
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb)
+target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto)
 target_link_libraries(tbgpp-common-lib duckdb_fastpforlib)
 target_link_libraries(tbgpp-common-lib turbograph_simdcsv)
 target_compile_options(tbgpp-common-lib PUBLIC ${CXX_FLAGS})
