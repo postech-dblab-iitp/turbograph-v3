@@ -21,6 +21,18 @@ int64_t TypeUtils::convertToInt64(const char* data) {
     return retVal;
 }
 
+uint64_t TypeUtils::convertToUint64(const char* data) {
+    char* eptr;
+    errno = 0;
+    auto retVal = strtoull(data, &eptr, 10);
+    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, INT64);
+    if ((ULLONG_MAX == retVal) && errno == ERANGE) {
+        throw ConversionException(
+            prefixConversionExceptionMessage(data, UBIGINT) + " Input out of range.");
+    }
+    return retVal;
+}
+
 uint32_t TypeUtils::convertToUint32(const char* data) {
     istringstream iss(data);
     uint32_t val;
@@ -62,6 +74,8 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
         return TypeUtils::toString(((bool*)overflowPtr)[pos]);
     case INT64:
         return TypeUtils::toString(((int64_t*)overflowPtr)[pos]);
+     case UBIGINT:
+        return TypeUtils::toString(((uint64_t*)overflowPtr)[pos]);
     case DOUBLE:
         return TypeUtils::toString(((double_t*)overflowPtr)[pos]);
     case DATE:
@@ -102,6 +116,8 @@ string TypeUtils::toString(const Literal& literal) {
         return TypeUtils::toString(literal.val.booleanVal);
     case INT64:
         return TypeUtils::toString(literal.val.int64Val);
+    case UBIGINT:
+        return TypeUtils::toString(literal.val.uint64Val);
     case DOUBLE:
         return TypeUtils::toString(literal.val.doubleVal);
     case NODE_ID:

@@ -483,6 +483,8 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targe
 
 shared_ptr<Expression> ExpressionBinder::implicitCast(
     const shared_ptr<Expression>& expression, DataType targetType) {
+
+    // INT64 to INT32
     throw BinderException("Expression " + expression->getRawName() + " has data type " +
                           Types::dataTypeToString(expression->dataType) + " but expect " +
                           Types::dataTypeToString(targetType) +

@@ -23,6 +23,10 @@ public:
 
     explicit Literal(bool value) : _isNull{false}, dataType(BOOL) { this->val.booleanVal = value; }
 
+    explicit Literal(uint64_t value) : _isNull{false}, dataType(UBIGINT) {
+        this->val.uint64Val = value;
+    }
+    
     explicit Literal(int64_t value) : _isNull{false}, dataType(INT64) {
         this->val.int64Val = value;
     }
@@ -68,6 +72,7 @@ public:
 
     union Val {
         bool booleanVal;
+        uint64_t uint64Val;
         int64_t int64Val;
         double doubleVal;
         nodeID_t nodeID;

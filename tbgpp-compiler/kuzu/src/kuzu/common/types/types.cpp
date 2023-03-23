@@ -113,7 +113,7 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
     case LIST:
         return "LIST";
     default:
-        return "data_type_to_string_not_marked_yet";
+        return "DataTypeID:" + std::to_string(dataTypeID);
     }
 }
 

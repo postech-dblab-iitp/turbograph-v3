@@ -529,7 +529,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	}
 
 	D_ASSERT( pathscan_op->Pindexdesc()->Size() == 1 );
+	D_ASSERT( pathscan_op->UpperBound() != -1 ); // TODO currently engine does not support infinite hop
 
+	
 	// Get JoinColumnID
 	std::vector<uint32_t> sccmp_colids;
 	for (uint32_t i = 0; i < pexprInner->operator[](0)->Arity(); i++) {

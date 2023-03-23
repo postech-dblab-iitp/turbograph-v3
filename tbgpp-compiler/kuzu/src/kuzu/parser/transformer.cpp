@@ -869,9 +869,19 @@ string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameCon
 
 unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
-    auto literal =
-        make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
-    return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());
+
+    // TODO need to improve deciding literal type => need reference!
+    try {
+        auto literal = make_unique<Literal>(TypeUtils::convertToUint64(ctx.DecimalInteger()->getText().c_str()));
+        return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
+    } catch (std::exception ex) {}
+
+    try {
+        auto literal = make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
+        return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
+    } catch (std::exception ex) {}
+
+    throw std::exception(ConversionException("literal binding failed"));
 }
 
 unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
