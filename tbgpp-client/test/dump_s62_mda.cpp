@@ -86,7 +86,7 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
 	}
 	
-	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd"};
+	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd", "HAS_CREATOR_bwd", "POST_HAS_CREATOR_fwd"};
 	for (auto &index_cat_name : index_cat_list) {
 		IndexCatalogEntry *ps_cat =
 			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);

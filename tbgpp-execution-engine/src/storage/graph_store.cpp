@@ -271,7 +271,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIter
 		target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
 
 		if (target_eids.size() == 0) return StoreAPIResult::DONE;
-		
+
 		auto ext_it = new ExtentIterator();
 		ext_it->Initialize(client, ps_cat_entry, scanSchema, projection_mapping[i], target_eids);
 		ext_its.push(ext_it);

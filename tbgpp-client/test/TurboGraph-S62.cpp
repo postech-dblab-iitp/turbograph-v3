@@ -30,7 +30,7 @@ using json = nlohmann::json;
 #include <icecream.hpp>
 
 //#include "livegraph.hpp"
-#include "old_plans/query_plan_suite.hpp"
+#include "plans/query_plan_suite.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 // #include "storage/livegraph_catalog.hpp"

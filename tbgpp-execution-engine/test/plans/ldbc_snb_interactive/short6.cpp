@@ -1,5 +1,5 @@
 
-#include "old_plans/query_plan_suite.hpp"
+#include "plans/query_plan_suite.hpp"
 
 namespace duckdb {
 
@@ -49,7 +49,7 @@ namespace duckdb {
 // }
 
 // LDBC IS6
-std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test12() {
+std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	CypherSchema schema;
 	vector<LogicalType> tmp_schema {LogicalType::ID, LogicalType::UBIGINT};
 	schema.setStoredTypes(move(tmp_schema));
