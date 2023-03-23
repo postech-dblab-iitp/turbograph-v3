@@ -229,7 +229,7 @@ std::string CypherSchema::toString() const{
 		}
 		result += ", ";
 	}
-	result.pop_back(); result.pop_back(); // delete last comma // XXX bad_alloc bug here
+	// result.pop_back(); result.pop_back(); // delete last comma // XXX bad_alloc bug here
 	result += ")";
 	return result;
 }
