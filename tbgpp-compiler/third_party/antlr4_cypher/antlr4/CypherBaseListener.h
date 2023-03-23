@@ -193,6 +193,12 @@ public:
   virtual void enterOC_RangeLiteral(CypherParser::OC_RangeLiteralContext * /*ctx*/) override { }
   virtual void exitOC_RangeLiteral(CypherParser::OC_RangeLiteralContext * /*ctx*/) override { }
 
+  virtual void enterOC_RangeStartLiteral(CypherParser::OC_RangeStartLiteralContext * /*ctx*/) override { }
+  virtual void exitOC_RangeStartLiteral(CypherParser::OC_RangeStartLiteralContext * /*ctx*/) override { }
+
+  virtual void enterOC_RangeEndLiteral(CypherParser::OC_RangeEndLiteralContext * /*ctx*/) override { }
+  virtual void exitOC_RangeEndLiteral(CypherParser::OC_RangeEndLiteralContext * /*ctx*/) override { }
+
   virtual void enterOC_LabelName(CypherParser::OC_LabelNameContext * /*ctx*/) override { }
   virtual void exitOC_LabelName(CypherParser::OC_LabelNameContext * /*ctx*/) override { }
 

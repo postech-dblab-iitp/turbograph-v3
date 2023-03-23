@@ -278,11 +278,36 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     auto relTypes = relDetail->oC_RelationshipTypes() ?
                         transformRelTypes(*relDetail->oC_RelationshipTypes()) :
                         vector<string>{};
-    string lowerBound = "1";
+    
+    string lowerBound = "1";    // default value
     string upperBound = "1";
+    string infBoundStr = "inf";
     if (relDetail->oC_RangeLiteral()) {
-        lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
-        upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
+        if(relDetail->oC_RangeLiteral()->RANGE()) { // *X..Y
+            if(relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()) {  // lhs exists
+                lowerBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();
+                if(relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()) {   // lhs o rhs o
+                    upperBound = relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()->getText();
+                } else { // lhs o rhs x
+                    upperBound = infBoundStr;                    
+                }
+            } else {    // lhs x
+                lowerBound = "1";
+                if(relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()) {   // lhs x rhs o    
+                    upperBound = relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()->getText();
+                } else { // lhs x rhs x
+                    upperBound = infBoundStr;
+                }
+            }
+        } else { // *X
+            if(relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()) {   // *X
+                lowerBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   
+                upperBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   // same ones
+            } else {    // *
+                lowerBound = "1";
+                upperBound = infBoundStr;
+            }
+        }
     }
     auto arrowHead = ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT;
     auto properties = relDetail->kU_Properties() ?

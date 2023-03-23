@@ -228,6 +228,9 @@ public:
 		// S62 custom added
 		ExfProject2ComputeScalarColumnar,
 		ExfCollapseProjectColumnar,
+		ExfPathJoin2IndexPathApply,
+		ExfImplementIndexPathApply,
+		ExfIndexPathGet2IndexPathScan,
 		// S62 done
 
 		ExfInvalid,

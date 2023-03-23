@@ -85,7 +85,9 @@ public:
 	{
 		EopLogicalGet,
 		EopLogicalExternalGet,
+		EopLogicalPathGet,					// S62VAR varlen added
 		EopLogicalIndexGet,
+		EopLogicalIndexPathGet,					// S62VAR  varlen added
 		EopLogicalBitmapTableGet,
 		EopLogicalSelect,
 		EopLogicalUnion,
@@ -95,6 +97,7 @@ public:
 		EopLogicalDifference,
 		EopLogicalDifferenceAll,
 		EopLogicalInnerJoin,
+		EopLogicalPathJoin,				// S62VAR added
 		EopLogicalNAryJoin,
 		EopLogicalLeftOuterJoin,
 		EopLogicalLeftSemiJoin,
@@ -108,8 +111,10 @@ public:
 		EopLogicalProjectColumnar,				// S62 Added
 		EopLogicalRename,
 		EopLogicalInnerApply,
+		EopLogicalPathApply,				// S62VAR added
 		EopLogicalInnerCorrelatedApply,
 		EopLogicalIndexApply,
+		EopLogicalIndexPathApply,			// S62VAR added
 		EopLogicalLeftOuterApply,
 		EopLogicalLeftOuterCorrelatedApply,
 		EopLogicalLeftSemiApply,
@@ -190,12 +195,14 @@ public:
 		EopPhysicalTableScan,
 		EopPhysicalExternalScan,
 		EopPhysicalIndexScan,
+		EopPhysicalIndexPathScan,						// S62VAR added for path - maybe its index only?
 		EopPhysicalIndexOnlyScan,
 		EopPhysicalMultiTableIndexOnlyScan,				// S62 added for AdjIdxScan
 		EopPhysicalBitmapTableScan,
 		EopPhysicalFilter,
 		EopPhysicalInnerNLJoin,
 		EopPhysicalInnerIndexNLJoin,
+		EopPhysicalIndexPathJoin,					// S62VAR added for path
 		EopPhysicalCorrelatedInnerNLJoin,
 		EopPhysicalLeftOuterNLJoin,
 		EopPhysicalLeftOuterIndexNLJoin,

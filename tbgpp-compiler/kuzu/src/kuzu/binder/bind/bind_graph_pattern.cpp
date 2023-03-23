@@ -200,15 +200,18 @@ pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
-    auto upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
+    uint32_t upperBound;
+    if( relPattern.getLowerBound() == "inf" ) {
+        upperBound = -1;    // -1 reserved for inifnite loop
+    } else {
+        upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
-    if (lowerBound == 0 || upperBound == 0) {
-        throw BinderException("Lower and upper bound of a rel must be greater than 0.");
+        if (lowerBound > upperBound) {
+            throw BinderException(
+                "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
+        }
     }
-    if (lowerBound > upperBound) {
-        throw BinderException(
-            "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
-    }
+    
     return make_pair(lowerBound, upperBound);
 }
 

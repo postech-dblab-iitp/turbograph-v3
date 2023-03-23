@@ -50,6 +50,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 
 	{COperator::EopPhysicalIndexOnlyScan, CostIndexOnlyScan},
 	{COperator::EopPhysicalIndexScan, CostIndexScan},
+	{COperator::EopPhysicalIndexPathScan, CostIndexPathScan},
 	{COperator::EopPhysicalDynamicIndexScan, CostIndexScan},
 	{COperator::EopPhysicalBitmapTableScan, CostBitmapTableScan},
 	{COperator::EopPhysicalDynamicBitmapTableScan, CostBitmapTableScan},
@@ -85,6 +86,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 
 	{COperator::EopPhysicalInnerIndexNLJoin, CostIndexNLJoin},
 	{COperator::EopPhysicalLeftOuterIndexNLJoin, CostIndexNLJoin},
+	{COperator::EopPhysicalIndexPathJoin, CostIndexNLJoin},
 
 	{COperator::EopPhysicalMotionGather, CostMotion},
 	{COperator::EopPhysicalMotionBroadcast, CostMotion},
@@ -103,6 +105,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 	{COperator::EopPhysicalCorrelatedInLeftSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedLeftAntiSemiNLJoin, CostNLJoin},
 	{COperator::EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin, CostNLJoin},
+	
 
 	{COperator::EopPhysicalFullMergeJoin, CostMergeJoin},
 };
@@ -1228,7 +1231,9 @@ CCostModelGPDB::CostIndexNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	GPOS_ASSERT(NULL != pci);
 	GPOS_ASSERT(
 		COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid() ||
-		COperator::EopPhysicalLeftOuterIndexNLJoin == exprhdl.Pop()->Eopid());
+		COperator::EopPhysicalLeftOuterIndexNLJoin == exprhdl.Pop()->Eopid() ||
+		COperator::EopPhysicalIndexPathJoin == exprhdl.Pop()->Eopid()
+		);
 
 	const DOUBLE num_rows_outer = pci->PdRows()[0];
 	const DOUBLE dWidthOuter = pci->GetWidth()[0];
@@ -1664,6 +1669,26 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	// 						   dTableWidth * dIndexScanTupCostUnit;
 	return CCost(pci->NumRebinds() *
 				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCostModelGPDB::CostIndexScan
+//
+//	@doc:
+//		Cost of index scan
+//
+//---------------------------------------------------------------------------
+CCost
+CCostModelGPDB::CostIndexPathScan(CMemoryPool *,  // mp
+							  CExpressionHandle &,
+							  const CCostModelGPDB *,
+							  const SCostingInfo *pci)
+{
+	GPOS_ASSERT(NULL != pci);
+
+	// S62VAR TODO fixme
+	return CCost( 3.66e-06 * pci->Rows() * 12.0);
 }
 
 
