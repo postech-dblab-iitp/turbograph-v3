@@ -35,6 +35,13 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::UBIGINT: {
+				out_length = 8;
+				uint64_t* mem_ptr = (uint64_t*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.uint64Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			case DataTypeID::STRING: {
 				out_length = strlen(kuzu_literal->strVal.c_str())+1;	// add null term
 				char* mem_ptr = (char*) malloc(out_length);

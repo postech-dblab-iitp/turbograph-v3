@@ -10,12 +10,14 @@ class TypeUtils {
 
 public:
     static int64_t convertToInt64(const char* data);
+    static uint64_t convertToUint64(const char* data);
     static double_t convertToDouble(const char* data);
     static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
     static inline string toString(bool boolVal) { return boolVal ? "True" : "False"; }
     static inline string toString(int64_t val) { return to_string(val); }
+    static inline string toString(uint64_t val) { return to_string(val); }
     static inline string toString(double val) { return to_string(val); }
     static inline string toString(const nodeID_t& val) {
         return to_string(val.tableID) + ":" + to_string(val.offset);
@@ -74,6 +76,13 @@ inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const Dat
         case INT64: {
             if (!isValueEqual(reinterpret_cast<int64_t*>(left.overflowPtr)[i],
                     reinterpret_cast<int64_t*>(right.overflowPtr)[i], *leftDataType.childType,
+                    *rightDataType.childType)) {
+                return false;
+            }
+        } break;
+        case UBIGINT: {
+            if (!isValueEqual(reinterpret_cast<uint64_t*>(left.overflowPtr)[i],
+                    reinterpret_cast<uint64_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }

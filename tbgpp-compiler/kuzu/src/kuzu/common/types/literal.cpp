@@ -13,6 +13,9 @@ Literal::Literal(uint8_t* value, const DataType& dataType) : _isNull{false}, dat
     case INT64:
         val.int64Val = *(int64_t*)value;
         break;
+    case UBIGINT:
+        val.uint64Val = *(uint64_t*)value;
+        break;
     case DOUBLE:
         val.doubleVal = *(double_t*)value;
         break;
@@ -50,6 +53,9 @@ void Literal::bind(const Literal& other) {
     } break;
     case INT64: {
         val.int64Val = other.val.int64Val;
+    } break;
+    case UBIGINT: {
+        val.uint64Val = other.val.uint64Val;
     } break;
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;

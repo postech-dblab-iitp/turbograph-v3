@@ -201,7 +201,7 @@ pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
     uint32_t upperBound;
-    if( relPattern.getLowerBound() == "inf" ) {
+    if( relPattern.getUpperBound() == "inf" ) {
         upperBound = -1;    // -1 reserved for inifnite loop
     } else {
         upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
