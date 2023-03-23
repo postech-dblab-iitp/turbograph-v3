@@ -138,9 +138,21 @@ void* mda_print(void* args) {
 	CMDAccessor* mda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	// now do whatever you want to do
+	/*
+		Post:Message 367
+		Comment:Message 333
+		Forum 391
+		Person 305
+		REPLY_OF_COMMENT_fwd 561
+		REPLY_OF_fwd 543
+		CONTAINER_OF_fwd 643
+		HAS_MODERATOR_fwd 595
+	
+	*/
 	vector<uint32_t> rel_ids_to_inspect({(uint32_t)305,});	// 305 = Person
 	rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
 	rel_ids_to_inspect.push_back(521);	// KNOWS : 521
+
 	
 	for (auto& rel_obj_id: rel_ids_to_inspect) {
 		print_depth("[Inspecting Rel - mdid=" + std::to_string(rel_obj_id) + "]");

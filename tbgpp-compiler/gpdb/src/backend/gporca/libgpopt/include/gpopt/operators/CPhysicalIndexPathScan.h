@@ -97,6 +97,18 @@ public:
 		return *m_pnameAlias;
 	}
 
+	INT
+	LowerBound()
+	{
+		return path_join_lower_bound;
+	}
+
+	INT
+	UpperBound()
+	{
+		return path_join_upper_bound;
+	}
+
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 	ULONG
 	UlOriginOpId() const
@@ -110,12 +122,12 @@ public:
 	// match function
 	BOOL Matches(COperator *pop) const;
 
-	// index descriptor
-	// CIndexDescriptor *
-	// Pindexdesc() const
-	// {
-	// 	return m_pindexdesc;
-	// }
+	//index descriptor
+	CIndexDescriptorArray *
+	Pindexdesc() const
+	{
+		return m_pindexdesc;
+	}
 
 	// sensitivity to order of inputs
 	virtual BOOL

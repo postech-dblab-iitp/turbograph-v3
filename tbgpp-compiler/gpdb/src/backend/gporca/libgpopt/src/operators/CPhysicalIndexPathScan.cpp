@@ -187,9 +187,10 @@ CPhysicalIndexPathScan::OsPrint(IOstream &os) const
 	// os << ", Table Name: (";
 	// m_ptabdesc->Name().OsPrint(os);
 	// os << ")";
-	// os << ", Columns: [";
-	// CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
-	// os << "]";
+	os << " Columns: [";
+	CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
+	os << "]";
+	os << ", Lower Bound: " << path_join_lower_bound << ", Upper Bound: " << path_join_upper_bound << " ";
 
 	return os;
 }
