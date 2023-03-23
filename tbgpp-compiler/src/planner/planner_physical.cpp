@@ -11,6 +11,8 @@
 #include "execution/physical_operator/physical_node_scan.hpp"
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
+#include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
+
 #include "execution/physical_operator/physical_id_seek.hpp"
 #include "execution/physical_operator/physical_sort.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
@@ -77,6 +79,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			} else {
 				D_ASSERT(false);
 			}
+			break;
+		}
+		case COperator::EOperatorId::EopPhysicalIndexPathJoin: {
+			result = pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(plan_expr);
 			break;
 		}
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin: {
@@ -323,7 +329,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
 	result->push_back(op);
-	
+
 	return result;
 }
 
@@ -398,10 +404,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	CPhysicalInnerIndexNLJoin* proj_op = (CPhysicalInnerIndexNLJoin*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->DeriveOutputColumns()->Pdrgpcr(mp);
 	CExpression *pexprOuter = (*plan_expr)[0];
-	CColRefArray* outer_cols = pexprOuter->DeriveOutputColumns()->Pdrgpcr(mp);	// size 1
+	CColRefArray* outer_cols = pexprOuter->DeriveOutputColumns()->Pdrgpcr(mp);
 	CExpression *pexprInner = (*plan_expr)[1];
-	CColRefArray* inner_cols = pexprInner->DeriveOutputColumns()->Pdrgpcr(mp);	// size 2 230303 (_tid, _sid) => we map to (_eid, _sid), which is ok for now....
-	// 230303 TODO  -> inner_cols last value 똥값. 0x0로찍힘.
+	CColRefArray* inner_cols = pexprInner->DeriveOutputColumns()->Pdrgpcr(mp);
 
 	unordered_map<ULONG, uint64_t> id_map;
 	std::vector<uint32_t> outer_col_map;
@@ -481,6 +486,91 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, duckdb::JoinType::INNER, sid_col_idx, true,
 									   outer_col_map, inner_col_map);	// 230303 schema conforms by coincidence
 
+	result->push_back(op);
+
+	output_cols->Release();
+	outer_cols->Release();
+	inner_cols->Release();
+
+	return result;
+}
+
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	vector<duckdb::LogicalType> types;
+	CPhysicalIndexPathJoin *join_op = (CPhysicalIndexPathJoin*) plan_expr->Pop();
+	CColRefArray* output_cols = plan_expr->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprOuter = (*plan_expr)[0];
+	CColRefArray* outer_cols = pexprOuter->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprInner = (*plan_expr)[1];
+	CColRefArray* inner_cols = pexprInner->DeriveOutputColumns()->Pdrgpcr(mp);
+
+	D_ASSERT(pexprInner->Pop()->Eopid() == COperator::EopPhysicalIndexPathScan);
+	CPhysicalIndexPathScan* pathscan_op = (CPhysicalIndexPathScan *) pexprInner->Pop();
+
+	unordered_map<ULONG, uint64_t> id_map;
+	std::vector<uint32_t> outer_col_map;
+	std::vector<uint32_t> inner_col_map;
+
+	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+		CColRef *col = (*output_cols)[col_idx];
+		ULONG col_id = col->Id();
+		id_map.insert(std::make_pair(col_id, col_idx));
+		// fprintf(stdout, "AdjIdxJoin Insert %d %d\n", col_id, col_idx);
+
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		OID type_oid = type_mdid->Oid();
+		types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	}
+
+	D_ASSERT( pathscan_op->Pindexdesc()->Size() == 1 );
+
+	// Get JoinColumnID
+	std::vector<uint32_t> sccmp_colids;
+	for (uint32_t i = 0; i < pexprInner->operator[](0)->Arity(); i++) {
+		CScalarIdent *sc_ident = (CScalarIdent *)(pexprInner->operator[](0)->operator[](i)->Pop());
+		sccmp_colids.push_back(sc_ident->Pcr()->Id());
+	}
+
+	uint64_t sid_col_idx = 0;
+	bool sid_col_idx_found = false;
+	// Construct mapping info
+	for(ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
+		CColRef* col = outer_cols->operator[](col_idx);
+		ULONG col_id = col->Id();
+		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
+		outer_col_map.push_back(id_idx);
+		auto it = std::find(sccmp_colids.begin(), sccmp_colids.end(), col_id);
+		if (it != sccmp_colids.end()) {
+			D_ASSERT(!sid_col_idx_found);
+			sid_col_idx = col_idx;
+			sid_col_idx_found = true;
+		}
+	}
+	D_ASSERT(sid_col_idx_found);
+	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+		if (col_idx == 0) continue;
+		CColRef* col = inner_cols->operator[](col_idx);
+		ULONG col_id = col->Id();
+		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
+		inner_col_map.push_back(id_idx);
+	}
+
+	D_ASSERT( pathscan_op->Pindexdesc()->Size() == 1 );
+	OID path_index_oid = CMDIdGPDB::CastMdid(pathscan_op->Pindexdesc()->operator[](0)->MDId())->Oid();
+
+	/* Generate operator and push */
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	duckdb::CypherPhysicalOperator* op =
+		new duckdb::PhysicalVarlenAdjIdxJoin(
+			tmp_schema, path_index_oid, duckdb::JoinType::INNER, sid_col_idx, false, pathscan_op->LowerBound(), pathscan_op->UpperBound(), outer_col_map, inner_col_map);
+	
 	result->push_back(op);
 
 	output_cols->Release();

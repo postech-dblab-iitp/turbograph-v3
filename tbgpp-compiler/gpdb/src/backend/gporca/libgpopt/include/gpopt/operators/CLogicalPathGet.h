@@ -1,0 +1,263 @@
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2009 Greenplum, Inc.
+//
+//	@filename:
+//		CLogicalPathGet.h
+//
+//	@doc:
+//		Basic table accessor
+//---------------------------------------------------------------------------
+#ifndef GPOPT_CLogicalPathGet_H
+#define GPOPT_CLogicalPathGet_H
+
+#include "gpos/base.h"
+
+#include "gpopt/operators/CLogical.h"
+
+namespace gpopt
+{
+// fwd declarations
+class CTableDescriptor;
+class CName;
+class CColRefSet;
+
+//---------------------------------------------------------------------------
+//	@class:
+//		CLogicalPathGet
+//
+//	@doc:
+//		Basic table accessor
+//
+//---------------------------------------------------------------------------
+class CLogicalPathGet : public CLogical
+{
+private:
+	// alias for table
+	const CName *m_pnameAlias;
+
+	// table descriptor array
+	CTableDescriptorArray *m_ptabdescArray;
+
+	// output columns - is not ColRefTable. is a separate column
+	CColRefArray *m_pdrgpcrOutput;
+
+	// partition keys
+	CColRef2dArray *m_pdrgpdrgpcrPart;
+
+	// distribution columns (empty for master only tables)
+	CColRefSet *m_pcrsDist;
+
+	INT path_join_lower_bound;
+	INT path_join_upper_bound;
+
+	void CreatePartCols(CMemoryPool *mp, const ULongPtrArray *pdrgpulPart);
+
+	// private copy ctor
+	CLogicalPathGet(const CLogicalPathGet &);
+
+public:
+	// ctors
+	explicit CLogicalPathGet(CMemoryPool *mp);
+
+	CLogicalPathGet(CMemoryPool *mp, const CName *pnameAlias,
+				CTableDescriptorArray *ptabdescArray,
+				CColRefArray *pdrgpcrOutput,
+				INT path_join_lower_bound,
+				INT path_join_upper_bound
+				);
+
+	// dtor
+	virtual ~CLogicalPathGet();
+
+	// ident accessors
+	virtual EOperatorId
+	Eopid() const
+	{
+		return EopLogicalPathGet;
+	}
+
+	// distribution columns
+	virtual const CColRefSet *
+	PcrsDist() const
+	{
+		return m_pcrsDist;
+	}
+
+	// return a string for operator name
+	virtual const CHAR *
+	SzId() const
+	{
+		return "CLogicalPathGet";
+	}
+
+	// accessors
+	CColRefArray *
+	PdrgpcrOutput() const
+	{
+		return m_pdrgpcrOutput;
+	}
+
+	// return table's name
+	const CName &
+	Name() const
+	{
+		return *m_pnameAlias;
+	}
+
+	// return table's descriptor
+	CTableDescriptorArray *
+	PtabdescArray() const
+	{
+		return m_ptabdescArray;
+	}
+
+	INT
+	LowerBound()
+	{
+		return path_join_lower_bound;
+	}
+
+	INT
+	UpperBound()
+	{
+		return path_join_upper_bound;
+	}
+
+
+	// partition columns
+	CColRef2dArray *
+	PdrgpdrgpcrPartColumns() const
+	{
+		return m_pdrgpdrgpcrPart;
+	}
+
+	// operator specific hash function
+	virtual ULONG HashValue() const;
+
+	// match function
+	BOOL Matches(COperator *pop) const;
+
+	// sensitivity to order of inputs
+	BOOL FInputOrderSensitive() const;
+
+	// return a copy of the operator with remapped columns
+	virtual COperator *PopCopyWithRemappedColumns(
+		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
+
+	//-------------------------------------------------------------------------------------
+	// Derived Relational Properties
+	//-------------------------------------------------------------------------------------
+
+	// derive output columns
+	virtual CColRefSet *DeriveOutputColumns(CMemoryPool *mp,
+											CExpressionHandle &exprhdl);
+
+	// derive not nullable output columns
+	virtual CColRefSet *DeriveNotNullColumns(CMemoryPool *mp,
+											 CExpressionHandle &exprhdl) const;
+
+	// derive partition consumer info
+	virtual CPartInfo *
+	DerivePartitionInfo(CMemoryPool *mp,
+						CExpressionHandle &	 // exprhdl
+	) const
+	{
+		return GPOS_NEW(mp) CPartInfo(mp);
+	}
+
+	// derive constraint property
+	virtual CPropConstraint *
+	DerivePropertyConstraint(CMemoryPool *mp,
+							 CExpressionHandle &  // exprhdl
+	) const
+	{
+		//return PpcDeriveConstraintFromTable(mp, m_ptabdesc, m_pdrgpcrOutput);
+
+		// no property
+		return GPOS_NEW(mp) CPropConstraint(
+			mp, GPOS_NEW(mp) CColRefSetArray(mp), NULL /*pcnstr*/);
+	}
+
+	// derive join depth
+	virtual ULONG
+	DeriveJoinDepth(CMemoryPool *,		 // mp
+					CExpressionHandle &	 // exprhdl
+	) const
+	{
+		return 1;
+	}
+
+	// derive table descriptor
+	// virtual CTableDescriptor *
+	// DeriveTableDescriptor(CMemoryPool *,	   // mp
+	// 					  CExpressionHandle &  // exprhdl
+	// ) const
+	// {
+	// 	return m_ptabdesc;
+	// }
+
+	//-------------------------------------------------------------------------------------
+	// Required Relational Properties
+	//-------------------------------------------------------------------------------------
+
+	// compute required stat columns of the n-th child
+	virtual CColRefSet *
+	PcrsStat(CMemoryPool *,		   // mp,
+			 CExpressionHandle &,  // exprhdl
+			 CColRefSet *,		   // pcrsInput
+			 ULONG				   // child_index
+	) const
+	{
+		GPOS_ASSERT(!"CLogicalPathGet has no children");
+		return NULL;
+	}
+
+	//-------------------------------------------------------------------------------------
+	// Transformations
+	//-------------------------------------------------------------------------------------
+
+	// candidate set of xforms
+	virtual CXformSet *PxfsCandidates(CMemoryPool *mp) const;
+
+	// derive key collections
+	virtual CKeyCollection *DeriveKeyCollection(
+		CMemoryPool *mp, CExpressionHandle &exprhdl) const;
+
+	// derive statistics
+	virtual IStatistics *PstatsDerive(CMemoryPool *mp,
+									  CExpressionHandle &exprhdl,
+									  IStatisticsArray *stats_ctxt) const;
+
+	// stat promise
+	virtual EStatPromise
+	Esp(CExpressionHandle &) const
+	{
+		return CLogical::EspHigh;
+	}
+
+	//-------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------
+
+	// conversion function
+	static CLogicalPathGet *
+	PopConvert(COperator *pop)
+	{
+		GPOS_ASSERT(NULL != pop);
+		GPOS_ASSERT(EopLogicalPathGet == pop->Eopid() );
+
+		return dynamic_cast<CLogicalPathGet *>(pop);
+	}
+
+	// debug print
+	virtual IOstream &OsPrint(IOstream &) const;
+
+};	// class CLogicalPathGet
+
+}  // namespace gpopt
+
+
+#endif	// !GPOPT_CLogicalPathGet_H
+
+// EOF

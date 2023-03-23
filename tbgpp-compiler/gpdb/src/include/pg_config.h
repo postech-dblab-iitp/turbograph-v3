@@ -91,7 +91,7 @@
 
 /* Define to 1 to build ORCA in debug (GPOS_DEBUG=1) */
 // #define GPOS_DEBUG 1
-#undef GPOS_DEBUG
+// #undef GPOS_DEBUG
 
 /* Define to 1 to build ORCA for MacOS (GPOS_Darwin=1) */
 /* #undef GPOS_Darwin */

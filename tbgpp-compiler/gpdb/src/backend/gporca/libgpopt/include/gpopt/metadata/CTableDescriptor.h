@@ -30,6 +30,7 @@ using namespace gpmd;
 typedef CDynamicPtrArray<CColumnDescriptor, CleanupRelease>
 	CColumnDescriptorArray;
 
+
 // dynamic array of bitsets
 typedef CDynamicPtrArray<CBitSet, CleanupRelease> CBitSetArray;
 
@@ -240,7 +241,18 @@ public:
 	}
 
 };	// class CTableDescriptor
+
+
+// dynamic array of tabledescs -- array owns columns
+typedef CDynamicPtrArray<CTableDescriptor, CleanupRelease>
+	CTableDescriptorArray;
+
+
 }  // namespace gpopt
+
+
+
+
 
 #endif	// !GPOPT_CTableDescriptor_H
 
