@@ -718,7 +718,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				// sid_col_idx = col_idx + 1;
 				sid_col_idx = col_idx;
 			} else {
-				sid_col_idx = col_idx;
+				sid_col_idx = col_idx + 1;
 			}
 			sid_col_idx_found = true;
 		}
