@@ -81,6 +81,11 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	for( u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++ ) {
 		context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx);
 	}
+	// TODO temporary code for deleting the existing iter
+	auto ext_it_exist = state.ext_its.front();
+	state.ext_its.pop();
+	delete ext_it_exist;
+	
 icecream::ic.disable();
 
 	// for original ones reference existing columns
