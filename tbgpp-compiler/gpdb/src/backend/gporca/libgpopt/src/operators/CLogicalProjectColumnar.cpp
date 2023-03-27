@@ -109,7 +109,8 @@ CLogicalProjectColumnar::PdrgpcrsEquivClassFromScIdent(CMemoryPool *mp,
 
 	CScalarIdent *popScIdent = CScalarIdent::PopConvert(pexprScalar->Pop());
 	const CColRef *pcrScIdent = popScIdent->Pcr();
-	GPOS_ASSERT(pcrPrEl->Id() != pcrScIdent->Id());
+	// S62 disable
+	// GPOS_ASSERT(pcrPrEl->Id() != pcrScIdent->Id());
 	GPOS_ASSERT(pcrPrEl->RetrieveType()->MDId()->Equals(
 		pcrScIdent->RetrieveType()->MDId()));
 

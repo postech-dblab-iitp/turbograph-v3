@@ -196,7 +196,7 @@ private:
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
-	LogicalPlan *lPlanProjectionOnColIds(LogicalPlan* plan, vector<uint64_t>& col_ids);
+	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan* plan, CColRefArray* colrefs);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	
@@ -207,25 +207,25 @@ private:
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 
 
-	CExpression *lExprLogicalGetNodeOrEdge(
+	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping);
-	CExpression * lExprLogicalUnionAll(CExpression* lhs, CExpression* rhs);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
 		CExpression* relation, vector<uint64_t> col_ids_to_project,
 		vector<pair<IMDId*, gpos::INT>>* target_schema_types
 	);
-	CExpression* lExprLogicalJoinOnId(CExpression* lhs, CExpression* rhs,
-		uint64_t lhs_pos, uint64_t rhs_pos, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
-	CExpression* lExprLogicalPathJoinOnId(CExpression* lhs, CExpression* rhs,
-		uint64_t lhs_pos, uint64_t rhs_pos, int32_t lower_bound, int32_t upper_bound);
+	CExpression* lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
+		CColRef* lhs_colref, CColRef* rhs_colref, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
+	CExpression* lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
+		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
+	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string print_name="");
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 						   const CName &nameTable, gpos::BOOL fPartitioned = false);
 	CTableDescriptor * lTabdescPlainWithColNameFormat(
