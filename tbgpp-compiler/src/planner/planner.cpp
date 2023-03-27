@@ -254,7 +254,7 @@ void Planner::_orcaSetTraceFlags() {
 		GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
 	}
 
-	GPOS_UNSET_TRACE(gpos::EOptTraceFlag::EopttraceEnableLOJInNAryJoin);
+	//GPOS_UNSET_TRACE(gpos::EOptTraceFlag::EopttraceEnableLOJInNAryJoin);
 	GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableOuterJoin2InnerJoinRewrite);
 }
 

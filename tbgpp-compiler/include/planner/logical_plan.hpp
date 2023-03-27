@@ -77,7 +77,7 @@ class LogicalPlan {
 
 public:
 	LogicalPlan(CExpression* tree_root, LogicalSchema root_schema, CColRefArray* root_colref_array)
-		: tree_root(tree_root), root_schema(root_schema), root_colref_array(root_colref_array) {
+		: tree_root(tree_root), root_schema(root_schema) {
 
 		D_ASSERT( tree_root != nullptr );
 		D_ASSERT( root_colref_array != nullptr);
@@ -106,13 +106,11 @@ public:
 	}
  	inline CExpression* getPlanExpr() { return tree_root; }
 	inline LogicalSchema* getSchema() { return &root_schema; }
-	inline CColRefArray* getColRefArray() { return root_colref_array; }
 	
 
 private:
 	CExpression* tree_root;
 	LogicalSchema root_schema;
-	CColRefArray* root_colref_array;
 };
 
 

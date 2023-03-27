@@ -130,6 +130,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     auto boundPair = bindVariableLengthRelBound(relPattern);
     auto& lowerBound = boundPair.first;
     auto& upperBound = boundPair.second;
+    bool isVariableLength = lowerBound != upperBound ? true : false;
     auto queryRel = make_shared<RelExpression>(
         getUniqueExpressionName(parsedName), tableIDs, srcNode, dstNode, lowerBound, upperBound);
     queryRel->setAlias(parsedName);
@@ -148,16 +149,22 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
             vector<Property> prop_id;
             for (auto &table_id : tableIDs) {
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
+                // TODO for variable length, id is not nodeid type. it is list!!
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
         }
 
         // for each property, create property expression
+        // for variable length join, cannot create property
          for (uint64_t i = 0; i < universal_schema.size(); i++) {
             auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
             for (auto &tid_and_cid_pair : it->second) {
+                if( isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid") ) {
+                    // when variable length, only fetch _sid and _tid, propery cannot be fetched
+                    continue;
+                }
                 uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
