@@ -344,6 +344,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		eng.Init(pqc, NULL /*search_stage_array*/);
 		eng.Optimize();
 		CExpression *orca_physical_plan = eng.PexprExtractPlan();	// best plan
+		(void) orca_physical_plan->PrppCompute(mp, pqc->Prpp());
 		{
 			if(planner->config.DEBUG_PRINT) {
 				std::cout << "[TEST] best physical plan string" << std::endl;

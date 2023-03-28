@@ -249,7 +249,6 @@ private:
 	
 	// scan
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopFilterWithScanPushdown(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
 	// pipelined ops
@@ -269,8 +268,10 @@ private:
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
 	
-	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
+	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* columns, vector<uint64_t>& out_mapping);
+	void pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
+	
 
 	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);;
 	CColRefArray* pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr);
@@ -284,7 +285,7 @@ private:
 		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
 
-	duckdb::OrderByNullType translateNullType(COrderSpec::ENullTreatment ent);
+	duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 
 private:
 	// config
