@@ -502,9 +502,8 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->getRawName();
 
-	// always do schema mapping even when single table
-	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
-	//auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false);
+	//auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
 	CExpression* plan_expr = get_output.first;
 	D_ASSERT( prop_exprs.size() == get_output.second->Size() );
 
@@ -803,7 +802,6 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			// project non-null column
 			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
 			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
-				// TODO S62 disable
 			CExpression* ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
@@ -811,6 +809,15 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 
 			proj_array->Append(scalar_proj_elem);	
 			output_col_array->Append(colref);
+			// ######
+			// CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
+			// CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
+			// CExpression* ident_expr = GPOS_NEW(mp)
+			// 		CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
+			// scalar_proj_elem = GPOS_NEW(mp) CExpression(
+			// 	mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // TODO S62 change to colref
+			// proj_array->Append(scalar_proj_elem);	
+			// output_col_array->Append(new_colref);
 		}
 		target_col_id++;
 	}
@@ -915,7 +922,7 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 
 	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, mdid,
 										  GPOS_WSZ_LIT("column_%04d"),				// format notused
-										  nameTable, true /* is_nullable */);	// TODO retrieve isnullable from the storage!
+										  nameTable, false /* is_nullable */);	// TODO retrieve isnullable from the storage!
 										
 	// if (fPartitioned) {
 	// 	GPOS_ASSERT(false);
