@@ -225,6 +225,9 @@ class InputParser{
 			planner_config.INDEX_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
 			planner_config.RUN_PLAN_WO_COMPILE = true;
+		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
+			std::string num_iter = std::string(*itr).substr(17);
+			planner_config.num_iterations = std::stoi(num_iter);
 		} else if (std::strncmp(current_str.c_str(), "--join-order-optimizer:", 23) == 0) {
 			std::string optimizer_join_order = std::string(*itr).substr(23);
 			if(optimizer_join_order == "query") {
@@ -292,83 +295,103 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		orca_compile_timer.start();
 		planner.execute(bst);
 
-		int compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
-		int orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+		auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
 
 	/*
 		EXECUTE QUERY
 	*/
-		auto executors = planner.genPipelineExecutors();
-		if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 		// start timer
-		boost::timer::cpu_timer query_timer;
-		query_timer.start();
-		int idx = 0;
-		for( auto exec : executors ) { 
-			if(planner_config.DEBUG_PRINT) {
-				std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-				std::cout << exec->pipeline->toString() << std::endl;
-			}
-			exec->ExecutePipeline();
-			if(planner_config.DEBUG_PRINT) {
-				std::cout << "done pipeline execution!!" << std::endl;
-			}
-		}
-		// end_timer
-		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+		vector<double> query_execution_times;
+		for (int i = 0; i < planner_config.num_iterations; i++) {
+			auto executors = planner.genPipelineExecutors();
+			if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
-	/*
-		DUMP RESULT
-	*/
-		const auto BLUE = "\033[1;34m";
-		const auto CLEAR = "\033[0m";
-		const auto UNDERLINE = "\033[1;4m";
-		const auto GREEN = "\033[1;32m";
-
-
-		int LIMIT = 10;
-		size_t num_total_tuples = 0;
-		D_ASSERT( executors.back()->context->query_results != nullptr );
-		auto& resultChunks = *(executors.back()->context->query_results);
-		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		for (auto &it : resultChunks) num_total_tuples += it->size();
-		std::cout << "===================================================" << std::endl;
-		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
-		if( LIMIT < num_total_tuples) {
-			std::cout << "Showing top " << LIMIT <<":" << std::endl;
-		} else {
-			std::cout << std::endl;
-		}
-		
-		Table t;
-		t.layout(unicode_box_light_headerline());
-
-		auto col_names = planner.getQueryOutputColNames();
-		for( int i = 0; i < col_names.size(); i++ ) {
-			t << col_names[i] ;
-		}
-		t << endr;
-
-		if (num_total_tuples != 0) {
-			auto& firstchunk = resultChunks[0];
-			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-
-			// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-			// 	t << firstchunk->GetTypes()[i].ToString(); 
-			// }
-			// t << endr;
-			
-			for( int idx = 0 ; idx < LIMIT ; idx++) {
-				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-					t << firstchunk->GetValue(i, idx).ToString();
+			boost::timer::cpu_timer query_timer;
+			query_timer.start();
+			int idx = 0;
+			for( auto exec : executors ) { 
+				if(planner_config.DEBUG_PRINT) {
+					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+					std::cout << exec->pipeline->toString() << std::endl;
 				}
-				t << endr;
+				exec->ExecutePipeline();
+				if(planner_config.DEBUG_PRINT) {
+					std::cout << "done pipeline execution!!" << std::endl;
+				}
 			}
-			std::cout << t << std::endl;
+			// end_timer
+			auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+			query_execution_times.push_back(query_exec_time_ms);
+
+		/*
+			DUMP RESULT
+		*/
+			const auto BLUE = "\033[1;34m";
+			const auto CLEAR = "\033[0m";
+			const auto UNDERLINE = "\033[1;4m";
+			const auto GREEN = "\033[1;32m";
+
+
+			int LIMIT = 10;
+			size_t num_total_tuples = 0;
+			D_ASSERT( executors.back()->context->query_results != nullptr );
+			auto& resultChunks = *(executors.back()->context->query_results);
+			auto& schema = executors.back()->pipeline->GetSink()->schema;
+			for (auto &it : resultChunks) num_total_tuples += it->size();
+			std::cout << "===================================================" << std::endl;
+			std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+			if( LIMIT < num_total_tuples) {
+				std::cout << "Showing top " << LIMIT <<":" << std::endl;
+			} else {
+				std::cout << std::endl;
+			}
+			
+			Table t;
+			t.layout(unicode_box_light_headerline());
+
+			auto col_names = planner.getQueryOutputColNames();
+			for( int i = 0; i < col_names.size(); i++ ) {
+				t << col_names[i] ;
+			}
+			t << endr;
+
+			if (num_total_tuples != 0) {
+				auto& firstchunk = resultChunks[0];
+				LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
+
+				// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+				// 	t << firstchunk->GetTypes()[i].ToString(); 
+				// }
+				// t << endr;
+				
+				for( int idx = 0 ; idx < LIMIT ; idx++) {
+					for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
+						t << firstchunk->GetValue(i, idx).ToString();
+					}
+					t << endr;
+				}
+				std::cout << t << std::endl;
+			}
+			std::cout << "===================================================" << std::endl;
+			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 		}
-		std::cout << "===================================================" << std::endl;
-		std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+		double max_exec_time = std::numeric_limits<double>::min();
+		double min_exec_time = std::numeric_limits<double>::max();
+		double accumulated_exec_time = 0.0;
+		for (int i = 0; i < query_execution_times.size(); i++) {
+			if (max_exec_time < query_execution_times[i]) max_exec_time = query_execution_times[i];
+			if (min_exec_time > query_execution_times[i]) min_exec_time = query_execution_times[i];
+			accumulated_exec_time += query_execution_times[i];
+		}
+		if (query_execution_times.size() >= 3) {
+			accumulated_exec_time -= max_exec_time;
+			accumulated_exec_time -= min_exec_time;
+			std::cout << "Average Query Execution Time (w/o min/max exec time): " << accumulated_exec_time / (query_execution_times.size() - 2) << " ms" << std::endl;
+		} else {
+			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size()) << " ms" << std::endl;
+		}
 	} else { // For testing
 		// load plans
 		auto suite = QueryPlanSuite(*client.get());
