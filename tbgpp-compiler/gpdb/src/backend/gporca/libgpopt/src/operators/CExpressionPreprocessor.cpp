@@ -34,6 +34,7 @@
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalNAryJoin.h"
 #include "gpopt/operators/CLogicalProject.h"
+#include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CLogicalSelect.h"
 #include "gpopt/operators/CLogicalSequenceProject.h"
 #include "gpopt/operators/CLogicalSetOp.h"
@@ -2996,15 +2997,45 @@ CExpression *CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMe
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexpr);
 
-	// if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
-	// 	(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {
+	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&						// Select
+		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {		// LogicalProjectColumnar
 
-	// 	// CExpression *pproject = (*pexpr)[0];
-	// 	// CExpression *pprojectList = (*pproject)[1];
-	// 	// CExpression *pselectNew = pexpr;
+		// if referencing cols of EopLogicalSelect is included in child of EopLogicalProjectColumnar, then pushdown is possible
+		CExpression *pselect = pexpr;
+		CExpression *pproject = (*pexpr)[0];
+		CExpression *pprojectList = (*pproject)[1];
+		CExpression *pprojectChildOpExpr = (*pproject)[0];
+		GPOS_ASSERT(pproject->Arity() == 2);
 
+		if( pprojectChildOpExpr->DeriveOutputColumns()->ContainsAll( pselect->DeriveOutputColumns() ) ) {
+			// TODO only when scalar function
 
-	// } else {
+			// generate filter
+			pprojectChildOpExpr->AddRef();
+			pselect->operator[](1)->AddRef();
+			CExpression *pselectNew = GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), pprojectChildOpExpr, pselect->operator[](1));
+			pselectNew->AddRef();
+
+			// generate project
+			CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+			pdrgpexpr->Append(pselectNew);
+			CExpressionArray *pdrgpprojelems = GPOS_NEW(mp) CExpressionArray(mp);
+
+			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
+			{
+				(*pprojectList)[ul]->AddRef();
+				pdrgpprojelems->Append((*pprojectList)[ul]);
+			}
+			pdrgpexpr->Append(GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpprojelems));
+
+			return GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
+		}
+		return pexpr;
+	} else {
+		// recurse child
 		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
 		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
 		{
@@ -3014,7 +3045,7 @@ CExpression *CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMe
 		COperator *pop = pexpr->Pop();
 		pop->AddRef();
 		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
-	// }
+	}
 }
 
 
@@ -3214,15 +3245,15 @@ CExpressionPreprocessor::PexprPreprocess(
 	pexprExistWithPredFromINSubq->Release();
 
 	// S62 swap logical select over logical project columnar
-	// CExpression *pexprTransposeSelectAndProjectColumnar = 
-	// 	PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
-	// pexprTransposeSelectAndProject->Release();
+	CExpression *pexprTransposeSelectAndProjectColumnar = 
+		PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
+	pexprTransposeSelectAndProject->Release();
 
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =
-		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProject);
+		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProjectColumnar);
 	GPOS_CHECK_ABORT;
-	pexprTransposeSelectAndProject->Release();
+	pexprTransposeSelectAndProjectColumnar->Release();
 
 	return pexprNormalized2;
 }
