@@ -141,6 +141,8 @@ public:
 	// TODO s62 configure optimizer_join_order_threshold!	 // this matters when exhastive2 and exhasutive
 	PlannerConfig::JoinOrderType JOIN_ORDER_TYPE;
 
+	int num_iterations = 1;
+
 	PlannerConfig() :
 		DEBUG_PRINT(false),
 		ORCA_DEBUG_PRINT(false),
