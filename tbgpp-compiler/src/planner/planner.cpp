@@ -279,7 +279,7 @@ void Planner::_orcaSetOptCtxt(CMemoryPool* mp, CMDAccessor* mda, gpdbcost::CCost
 	auto hint = GPOS_NEW(mp) CHint(
 			gpos::int_max, /* join_arity_for_associativity_commutativity */
 			gpos::int_max, /* array_expansion_threshold */
-			5,			 /*ulJoinOrderDPLimit*/
+			config.JOIN_ORDER_DP_THRESHOLD_CONFIG,			 /*ulJoinOrderDPLimit*/
 			BROADCAST_THRESHOLD,				 /*broadcast_threshold*/
 			true,								 /* enforce_constraint_on_dml */
 			PUSH_GROUP_BY_BELOW_SETOP_THRESHOLD, /* push_group_by_below_setop_threshold */
