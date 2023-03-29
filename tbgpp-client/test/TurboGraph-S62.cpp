@@ -240,6 +240,10 @@ class InputParser{
 				// default
 				throw std::invalid_argument("wrong --join-order-optimizer parameter");
 			}
+		} else if (std::strncmp(current_str.c_str(), "--join-order-dp-threshold:", 26) == 0) {
+			auto int_str = std::string(*itr).substr(26);
+			uint8_t threshold =  std::stoi(int_str);
+			planner_config.JOIN_ORDER_DP_THRESHOLD_CONFIG = threshold;
 		}
       }
     }
@@ -256,10 +260,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 /*
 	COMPILATION
 */
-
-	if (planner_config.DEBUG_PRINT) {
-		std::cout << "Query => " << std::endl << query_str << std::endl;
-	}
 
 	if (!planner_config.RUN_PLAN_WO_COMPILE) {
 		auto inputStream = ANTLRInputStream(query_str);
@@ -320,7 +320,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			// }
 		}
 		// end_timer
-		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+		double query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 
 	/*
 		DUMP RESULT
