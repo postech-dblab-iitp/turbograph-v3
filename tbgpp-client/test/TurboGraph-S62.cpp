@@ -218,9 +218,10 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;
-		} else if (std::strncmp(current_str.c_str(), "--debug-planner", 15) == 0) {
-			planner_config.DEBUG_PRINT = true;
+		} else if (std::strncmp(current_str.c_str(), "--debug-orca", 12) == 0) {
 			planner_config.ORCA_DEBUG_PRINT = true;
+		} else if (std::strncmp(current_str.c_str(), "--explain", 9) == 0) {
+			planner_config.DEBUG_PRINT = true;
 		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 17) == 0) {
 			planner_config.INDEX_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
@@ -233,6 +234,8 @@ class InputParser{
 				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_GREEDY_SEARCH;
 			} else if (optimizer_join_order == "exhaustive") {
 				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
+			} else if (optimizer_join_order == "exhaustive2") {
+				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH;
 			} else {
 				// default
 				throw std::invalid_argument("wrong --join-order-optimizer parameter");
@@ -282,10 +285,10 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 
 		if(planner_config.DEBUG_PRINT) {
-			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-			std::cout << "Tree => " << std::endl;
-			printer.print();
-			std::cout << std::endl;
+			// BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+			// std::cout << "Tree => " << std::endl;
+			// printer.print();
+			// std::cout << std::endl;
 		}
 
 		boost::timer::cpu_timer orca_compile_timer;
@@ -305,15 +308,16 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		boost::timer::cpu_timer query_timer;
 		query_timer.start();
 		int idx = 0;
+		std::cout << "[EXECUTION PLAN]" << std::endl;
 		for( auto exec : executors ) { 
 			if(planner_config.DEBUG_PRINT) {
-				std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+				std::cout << "  (pipeline " << 1 + idx++ << ")" << std::endl;
 				std::cout << exec->pipeline->toString() << std::endl;
 			}
 			exec->ExecutePipeline();
-			if(planner_config.DEBUG_PRINT) {
-				std::cout << "done pipeline execution!!" << std::endl;
-			}
+			// if(planner_config.DEBUG_PRINT) {
+			// 	std::cout << "done pipeline execution!!" << std::endl;
+			// }
 		}
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
