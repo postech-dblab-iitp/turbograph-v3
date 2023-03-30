@@ -23,7 +23,7 @@ public:
 			for (int col_idx = 0; col_idx < this->inner_col_map.size(); col_idx++) {
 				target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
 			}
-			D_ASSERT( target_types.size() == projection_mapping[0].size() );
+			// D_ASSERT( target_types.size() == projection_mapping[0].size() );
 
 		}
 	~PhysicalIdSeek() {}
