@@ -275,8 +275,25 @@ gpdbcost::CCostModelGPDB* Planner::_orcaGetCostModel(CMemoryPool* mp) {
 }
 
 void Planner::_orcaSetOptCtxt(CMemoryPool* mp, CMDAccessor* mda, gpdbcost::CCostModelGPDB* pcm) {
+	
+	auto hint = GPOS_NEW(mp) CHint(
+			gpos::int_max, /* join_arity_for_associativity_commutativity */
+			gpos::int_max, /* array_expansion_threshold */
+			config.JOIN_ORDER_DP_THRESHOLD_CONFIG,			 /*ulJoinOrderDPLimit*/
+			BROADCAST_THRESHOLD,				 /*broadcast_threshold*/
+			true,								 /* enforce_constraint_on_dml */
+			PUSH_GROUP_BY_BELOW_SETOP_THRESHOLD, /* push_group_by_below_setop_threshold */
+			XFORM_BIND_THRESHOLD,				 /* xform_bind_threshold */
+			SKEW_FACTOR							 /* skew_factor */
+		);
+
 	COptimizerConfig *optimizer_config =
-		COptimizerConfig::PoconfDefault(mp, pcm);
+		GPOS_NEW(mp) COptimizerConfig(
+			GPOS_NEW(mp) CEnumeratorConfig(mp, 0 /*plan_id*/, 0 /*ullSamples*/),
+			CStatisticsConfig::PstatsconfDefault(mp),
+			CCTEConfig::PcteconfDefault(mp), pcm, hint,
+			CWindowOids::GetWindowOids(mp));
+		
 	// use the default constant expression evaluator which cannot evaluate any expression
 	IConstExprEvaluator * pceeval = GPOS_NEW(mp) CConstExprEvaluatorDefault();
 	COptCtxt *poctxt =
@@ -312,7 +329,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CExpression *orca_logical_plan = planner->lGetLogicalPlan();
 		{
 			if(planner->config.DEBUG_PRINT) {
-				std::cout << "[TEST] logical plan string" << std::endl;
+				std::cout << "[LOGICAL PLAN]" << std::endl;
 				CWStringDynamic str(mp);
 				COstreamString oss(&str);
 				orca_logical_plan->OsPrint(oss);
@@ -333,7 +350,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
 		{
 			if(planner->config.DEBUG_PRINT) {
-				std::cout << "[TEST] PREPROCESSED logical plan" << std::endl;
+				std::cout << "[PREPROCESSED LOGICAL PLAN]" << std::endl;
 				CWStringDynamic str(mp);
 				COstreamString oss(&str);
 				orca_logical_plan_after_logical_opt->OsPrint(oss);
@@ -347,7 +364,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		(void) orca_physical_plan->PrppCompute(mp, pqc->Prpp());
 		{
 			if(planner->config.DEBUG_PRINT) {
-				std::cout << "[TEST] best physical plan string" << std::endl;
+				std::cout << "[PHYSICAL PLAN]" << std::endl;
 				CWStringDynamic str(mp);
 				COstreamString oss(&str);
 				orca_physical_plan->OsPrint(oss);
