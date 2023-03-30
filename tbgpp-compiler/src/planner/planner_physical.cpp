@@ -733,14 +733,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		ULONG col_id = col->Id();
 		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
 		inner_col_map.push_back(id_idx);
-		// fprintf(stdout, "inner_col_map push %d %ld\n", col_id, id_idx);
 	}
 
 	/* Generate operator and push */
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	duckdb::CypherPhysicalOperator* op =
-		new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, projection_mapping, outer_col_map, inner_col_map);	// 230303 schema conforms by coincidence
+		new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, projection_mapping, outer_col_map, inner_col_map);
 
 	result->push_back(op);
 
