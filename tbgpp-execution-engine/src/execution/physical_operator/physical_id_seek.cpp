@@ -91,8 +91,10 @@ icecream::ic.disable();
 	// for original ones reference existing columns
 	D_ASSERT(input.ColumnCount() == outer_col_map.size());
 	for(int i = 0; i < input.ColumnCount(); i++) {
-		D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
-		chunk.data[outer_col_map[i]].Reference(input.data[i]);
+		if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+			D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
+			chunk.data[outer_col_map[i]].Reference(input.data[i]);
+		}
 	}
 	chunk.SetCardinality( input.size() );
 
@@ -108,7 +110,12 @@ icecream::ic.disable();
 }
 
 std::string PhysicalIdSeek::ParamsToString() const {
-	return "IdSeek-params";
+	std::string result = "";
+	result += "id_col_idx=" + std::to_string(id_col_idx) + ", ";
+	result += "projection_mapping.size()=" + std::to_string(projection_mapping.size()) + ", ";
+	result += "projection_mapping[0].size()=" + std::to_string(projection_mapping[0].size()) + ", ";
+	result += "target_types.size()=" + std::to_string(target_types.size()) + ", ";	
+	return result;	
 }
 
 std::string PhysicalIdSeek::ToString() const {
