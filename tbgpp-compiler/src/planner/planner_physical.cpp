@@ -192,6 +192,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	vector<vector<uint64_t>> scan_projection_mapping;
 	vector<uint64_t> scan_ident_mapping;
 	pGenerateScanMappingAndFromTableID(table_obj_id, scan_cols->Pdrgpcr(mp), scan_ident_mapping);
+	vector<duckdb::LogicalType> scan_types;
+	pGenerateTypes(scan_cols->Pdrgpcr(mp), scan_types);
 	D_ASSERT(scan_ident_mapping.size() == scan_cols->Size());
 	scan_projection_mapping.push_back(scan_ident_mapping);
 
@@ -220,7 +222,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	if(!do_filter_pushdown) {
 		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping);
 	} else {
-		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_projection_mapping, pred_attr_pos, literal_val);
+		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, literal_val);
 	}
 
 	D_ASSERT(op != nullptr);
@@ -565,9 +567,19 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				CScalarIdent *sc_ident = (CScalarIdent *)(inner_root->operator[](0)->operator[](i)->Pop());
 				sccmp_colids.push_back(sc_ident->Pcr()->Id());
 			}
-
-			// TODO 230303 there may be additional projection - we CURRENTLY do not consider projection
+		
+			// TODO there may be additional projection - we CURRENTLY do not consider projection
 			CColRefArray* output = inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+			// try seek bypassing
+			if(
+				output->Size() == 0 ||
+				output->Size() == 1 && pGetColIdxFromTable( CMDIdGPDB::CastMdid(((CColRefTable*) output->operator[](0))->GetMdidTable())->Oid(), output->operator[](0)) == 0
+			) {
+				// nothing changes, we don't need seek, pass directly
+				return result;
+			}
+
 			for( ULONG i = 0; i < output->Size(); i++) {
 				CColRef* colref = output->operator[](i);
 				OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) colref)->GetMdidTable())->Oid();

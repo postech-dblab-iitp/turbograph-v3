@@ -285,10 +285,10 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 
 		if(planner_config.DEBUG_PRINT) {
-			// BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-			// std::cout << "Tree => " << std::endl;
-			// printer.print();
-			// std::cout << std::endl;
+			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+			std::cout << "Tree => " << std::endl;
+			printer.print();
+			std::cout << std::endl;
 		}
 
 		boost::timer::cpu_timer orca_compile_timer;
