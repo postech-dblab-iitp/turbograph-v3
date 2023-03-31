@@ -30,21 +30,24 @@ public:
 
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
 		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping), 
-		scan_projection_mapping(projection_mapping), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
+		scan_types(sch.getStoredTypes()), scan_projection_mapping(projection_mapping), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
 		{ 
 			D_ASSERT(filter_pushdown_key_idx < 0);
 		}
 
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-	vector<vector<uint64_t>> scan_projection_mapping,  int64_t filterKeyIndex, duckdb::Value filterValue) :
+	std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
+	int64_t filterKeyIndex, duckdb::Value filterValue) :
 		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping),
-		scan_projection_mapping(scan_projection_mapping), filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
+		scan_types(scan_types), scan_projection_mapping(scan_projection_mapping),
+		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
 		 { 
 			D_ASSERT(filter_pushdown_key_idx >= 0);
 		 }
-		
+	
+// TODO delete me!
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
-	: PhysicalNodeScan(sch, oids, projection_mapping, projection_mapping, filterKeyIndex, filterValue) { }
+	: PhysicalNodeScan(sch, oids, projection_mapping, sch.getStoredTypes(), projection_mapping, filterKeyIndex, filterValue) { }
 
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
@@ -62,7 +65,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		state.iter_inited = true;
 
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, types);
+			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, scan_types);
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
 
 	}

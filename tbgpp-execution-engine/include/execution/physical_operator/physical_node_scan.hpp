@@ -19,7 +19,8 @@ public:
 
 	// TODO s62 change filterKeyIndex to vector
 	PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		vector<vector<uint64_t>> scan_projection_mapping,  int64_t filterKeyIndex, duckdb::Value filterValue);
+		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
+		int64_t filterKeyIndex, duckdb::Value filterValue);
 	PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 	~PhysicalNodeScan();
 
@@ -34,6 +35,8 @@ public:
 	// scan parameters
 	mutable vector<idx_t> oids;
 	mutable vector<vector<uint64_t>> projection_mapping;	// projection mapping for operator output
+
+	mutable std::vector<duckdb::LogicalType> scan_types;  		// types scan
 	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
 
 	// filter pushdown
