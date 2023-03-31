@@ -155,12 +155,7 @@ LogicalPlan* Planner::lPlanMatchClause(
                           expression_vector{};
 
 	LogicalPlan* plan;
-    if (boundMatchClause->getIsOptional()) {
-        GPOS_ASSERT(false);
-		// TODO optionalmatch
-    } else {
-		plan = lPlanRegularMatch(*queryGraphCollection, prev_plan);
-    }
+	plan = lPlanRegularMatch(*queryGraphCollection, prev_plan, boundMatchClause->getIsOptional());
 
 	// TODO append edge isomorphism
 		// TODO need to know about the label info...
@@ -183,7 +178,7 @@ LogicalPlan* Planner::lPlanUnwindClause(
 	return nullptr;
 }
 
-LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, LogicalPlan* prev_plan) {
+LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, LogicalPlan* prev_plan, bool is_optional_match) {
 
 	LogicalPlan* plan = nullptr;
 
@@ -191,7 +186,13 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
 
-
+	s62::LogicalSchema* prev_plan_schema;	// maintain snapshot of the prev. schema, which is used for optional match
+	if(prev_plan == nullptr) {
+		prev_plan_schema = new s62::LogicalSchema();
+	} else {
+		prev_plan_schema = prev_plan->getSchema();
+	}
+	
 	LogicalPlan* qg_plan = prev_plan;
 
 	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
@@ -231,19 +232,24 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			// Scan R
 			LogicalPlan* edge_plan;
 			CExpression* a_r_join_expr;
+			auto ar_join_type = is_optional_match && prev_plan_schema->isNodeBound(lhs_name) ? // check optional match
+					gpopt::COperator::EOperatorId::EopLogicalLeftOuterJoin :
+					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 			if( ! is_pathjoin ) {
 				edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+				// A join R
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
 					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME)
-				);
+					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					ar_join_type);
 			} else {
 				edge_plan = lPlanPathGet((RelExpression*)qedge);
+				// A pathjoin R
 				a_r_join_expr = lExprLogicalPathJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
 					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
 					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
-					qedge->getLowerBound(), qedge->getUpperBound()
-				);
+					qedge->getLowerBound(), qedge->getUpperBound(),
+					ar_join_type);
 			}
 			lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
 			lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
@@ -263,10 +269,13 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 					rhs_plan = qg_plan;
 				}
 				// (AR) join B
+				auto rb_join_type = is_optional_match && prev_plan_schema->isNodeBound(rhs_name) ? // check optional match
+					gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
+					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
 					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
-					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME)
-				);
+					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					rb_join_type);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
 				hop_plan = lhs_plan;
@@ -833,13 +842,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 }
 
 CExpression * Planner::lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, bool project_out_lhs_key, bool project_out_rhs_key) {
+		CColRef* lhs_colref, CColRef* rhs_colref, gpopt::COperator::EOperatorId join_op) {
 		
-	/*
-		if V join R, set (project_out_lhs, project_out_rhs) as (0,1)
-		if R join V, set (project_out_lhs, project_out_rhs) as (1,0)
-	*/
-
 	CMemoryPool* mp = this->memory_pool;
 
 	CColRef *pcrLeft = lhs_colref;
@@ -850,21 +854,36 @@ CExpression * Planner::lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
 
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 	pexprEquality->AddRef();
-	auto join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
-
-	// TODO need function for join projection
-	// if( project_out_lhs_key || project_out_rhs_key ) {
-	// 	uint64_t idx_to_project_out = (project_out_lhs_key == true) ? (lhs_pos) : (lhs_size + rhs_pos);
-	// 	join_result = lExprScalarProjectionExceptColIds(join_result, vector<uint64_t>({idx_to_project_out}));
-	// }
+	
+	CExpression* join_result;
+	switch(join_op) {
+		case gpopt::COperator::EOperatorId::EopLogicalInnerJoin: {
+			join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
+break;
+		}
+		case gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin: {
+			join_result = CUtils::PexprLogicalJoin<CLogicalRightOuterJoin>(mp, lhs, rhs, pexprEquality);
+			break;
+		}
+		case gpopt::COperator::EOperatorId::EopLogicalLeftOuterJoin: {
+			join_result = CUtils::PexprLogicalJoin<CLogicalLeftOuterJoin>(mp, lhs, rhs, pexprEquality);
+			break;
+		}
+		default:
+			D_ASSERT(false);
+		
+	}
+	D_ASSERT(join_result != NULL);
 
 	return join_result;
 }
 
 CExpression* Planner::lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound) {
+		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound, gpopt::COperator::EOperatorId join_op) {
 
 	CMemoryPool* mp = this->memory_pool;
+
+	D_ASSERT(join_op == gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
 
 	CColRef *pcrLeft = lhs_colref;
 	CColRef *pcrRight = rhs_colref;

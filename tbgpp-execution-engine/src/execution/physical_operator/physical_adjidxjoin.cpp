@@ -230,16 +230,22 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 // }
 // icecream::ic.disable();
 	
-	uint64_t *adj_start, *adj_end, *tgt_adj_column, *eid_adj_column;
+	uint64_t *adj_start, *adj_end;
+	uint64_t *tgt_adj_column = nullptr;
+	uint64_t *eid_adj_column = nullptr;
 	uint64_t src_vid;
 	size_t adjlist_size;
 	
 	D_ASSERT(state.srcColIdx < input.ColumnCount());
 	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
 
-	D_ASSERT(state.tgtColIdx < chunk.ColumnCount() && state.edgeColIdx < chunk.ColumnCount());
+	D_ASSERT(state.tgtColIdx < chunk.ColumnCount());
+	if(load_eid) {
+		D_ASSERT(state.edgeColIdx >= 0 && state.edgeColIdx < chunk.ColumnCount());
+		eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	}
 	tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
-	eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+
 
 	// iterate source vids
 	while( state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size() ) {
@@ -272,6 +278,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++ ) {
 			tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
 			if( load_eid ) {
+				D_ASSERT(eid_adj_column != nullptr);
 				eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
 			}
 			state.output_idx++;
@@ -289,8 +296,11 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	// chunk determined. now fill in lhs using slice operation
 	D_ASSERT(input.ColumnCount() == state.outer_col_map.size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-		D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
-		chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+		if( state.outer_col_map[colId] != std::numeric_limits<uint32_t>::max() ) {
+			// when outer col map marked uint32_max, do not return
+			D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
+			chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+		}
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
@@ -326,9 +336,14 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		state.srcColIdx = sid_col_idx;
 		// state.edgeColIdx = input.ColumnCount();
 		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
-		D_ASSERT(inner_col_map.size() == 2);
-		state.edgeColIdx = inner_col_map[0];
-		state.tgtColIdx = inner_col_map[1];
+		//D_ASSERT(inner_col_map.size() == 2);
+		if( load_eid ) {
+			state.edgeColIdx = inner_col_map[0];
+			state.tgtColIdx = inner_col_map[1];
+		} else {
+			state.edgeColIdx = -1;
+			state.tgtColIdx = inner_col_map[0];
+		}
 		
 		state.outer_col_map = move(outer_col_map);
 		state.inner_col_map = move(inner_col_map);
@@ -394,7 +409,12 @@ OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext& context, DataCh
 }
 
 std::string PhysicalAdjIdxJoin::ParamsToString() const {
-	return "AdjIdxJoin-params-TODO";
+	std::string result = "";
+	result += "adjidx_obj_id=" + std::to_string(adjidx_obj_id) + ", ";
+	result += "sid_col_idx=" + std::to_string(sid_col_idx) + ", ";
+	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
+	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
+	return result;
 }
 
 std::string PhysicalAdjIdxJoin::ToString() const {

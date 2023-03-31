@@ -160,11 +160,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
          for (uint64_t i = 0; i < universal_schema.size(); i++) {
             auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
+            if( isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid") ) {
+                // when variable length, only fetch _sid and _tid, propery cannot be fetched
+                continue;
+            }
             for (auto &tid_and_cid_pair : it->second) {
-                if( isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid") ) {
-                    // when variable length, only fetch _sid and _tid, propery cannot be fetched
-                    continue;
-                }
                 uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));

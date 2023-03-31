@@ -13,7 +13,7 @@ public:
         : BoundStatement{StatementType::QUERY, std::move(statementResult)}, isUnionAll{std::move(
                                                                                 isUnionAll)} {}
 
-    ~BoundRegularQuery() = default;
+    ~BoundRegularQuery() { };
 
     inline bool isReadOnly() const override {
         for (auto& singleQuery : singleQueries) {
