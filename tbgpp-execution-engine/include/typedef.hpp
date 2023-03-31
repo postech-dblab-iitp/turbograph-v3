@@ -100,6 +100,7 @@ public:
 	//! TODO S62 this is a temporary to -> CypherSchema should be disabled by now
 	void setStoredTypes(std::vector<duckdb::LogicalType> types);
 	std::vector<duckdb::LogicalType> getStoredTypes();
+	std::string printStoredTypes();
 	std::vector<duckdb::LogicalType> stored_types;
 	/* TODO S62 temporary!!!!!! */
 	

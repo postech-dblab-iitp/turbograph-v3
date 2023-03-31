@@ -573,7 +573,10 @@ CPhysical::PcrsChildReqd(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	{
 		// include used columns and exclude defined columns of scalar child
 		pcrs->Union(exprhdl.DeriveUsedColumns(ulScalarIndex));
-		pcrs->Exclude(exprhdl.DeriveDefinedColumns(ulScalarIndex));
+		if(Eopid() != EopPhysicalComputeScalarColumnar) {
+			// if scalar columnar, do not exclude
+			pcrs->Exclude(exprhdl.DeriveDefinedColumns(ulScalarIndex));
+		}
 	}
 
 	// intersect computed column set with child's output columns

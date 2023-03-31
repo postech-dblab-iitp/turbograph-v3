@@ -282,4 +282,14 @@ std::vector<duckdb::LogicalType> CypherSchema::getStoredTypes() {
 	return stored_types;
 }
 
+std::string CypherSchema::printStoredTypes() {
+	std::string result = "(";
+	for(duckdb::LogicalType& type: stored_types) {
+		result += type.ToString();
+		result += ", ";
+	}
+	result += ")";
+	return result;
+}
+
 }

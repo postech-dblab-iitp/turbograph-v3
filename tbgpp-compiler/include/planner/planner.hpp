@@ -59,6 +59,7 @@
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
 #include "gpopt/operators/CLogicalLeftOuterJoin.h"
+#include "gpopt/operators/CLogicalRightOuterJoin.h"
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalPathJoin.h"
 #include "gpopt/operators/CLogicalPathGet.h"
@@ -140,6 +141,7 @@ public:
 	bool INDEX_JOIN_ONLY;
 	// TODO s62 configure optimizer_join_order_threshold!	 // this matters when exhastive2 and exhasutive
 	PlannerConfig::JoinOrderType JOIN_ORDER_TYPE;
+	uint8_t JOIN_ORDER_DP_THRESHOLD_CONFIG;
 
 	int num_iterations = 1;
 
@@ -148,7 +150,8 @@ public:
 		ORCA_DEBUG_PRINT(false),
 		INDEX_JOIN_ONLY(false),
 		RUN_PLAN_WO_COMPILE(false),
-		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH)
+		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH),
+		JOIN_ORDER_DP_THRESHOLD_CONFIG(10)
 	{ }
 };
 
@@ -195,7 +198,7 @@ private:
 		BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanUnwindClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan, bool is_optional_match);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
 	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan* plan, CColRefArray* colrefs);
@@ -222,9 +225,10 @@ private:
 		vector<pair<IMDId*, gpos::INT>>* target_schema_types
 	);
 	CExpression* lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, bool project_out_lhs_key=false, bool project_out_rhs_key=false);
+		CColRef* lhs_colref, CColRef* rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound);
+		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound,
+		 gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
 	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string print_name="");
@@ -251,7 +255,6 @@ private:
 	
 	// scan
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopTableScan(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopFilterWithScanPushdown(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr);
 
 	// pipelined ops
@@ -271,8 +274,10 @@ private:
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
 	
-	uint64_t pGetColIdxOfColref(CColRefSet* refset, const CColRef* target_col);
+	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* columns, vector<uint64_t>& out_mapping);
+	void pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
+	
 
 	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);;
 	CColRefArray* pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr);
@@ -286,7 +291,7 @@ private:
 		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
 
-	duckdb::OrderByNullType translateNullType(COrderSpec::ENullTreatment ent);
+	duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 
 private:
 	// config
