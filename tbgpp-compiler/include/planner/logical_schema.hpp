@@ -100,6 +100,7 @@ public:
 			}
 		}
 		D_ASSERT( found == true );
+		found_colref->MarkAsUsed();
 		return found_colref;
 	}
 	bool isNodeBound(string k1) { return bound_nodes.size() > 0 && (bound_nodes.find(k1) != bound_nodes.end()); }
