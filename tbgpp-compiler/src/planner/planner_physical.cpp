@@ -432,7 +432,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	std::vector<uint32_t> sccmp_colids;
 	CExpression* inner_root = pexprInner;
 	while(true) {
-		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
+		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan ||
+		   inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
 			// IdxScan
 			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
 			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
@@ -687,8 +688,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
 				first_table_mapping.push_back(table_col_idx);
 			}
-		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalComputeScalarColumnar) {
-
+		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
+			output_cols->Release();
+			outer_cols->Release();
+			inner_cols->Release();
+			return result;
 		}
 		// reached to the bottom
 		if( inner_root->Arity() == 0 ) {
@@ -837,7 +841,8 @@ bool Planner::pIsIndexJoinOnPhysicalID(CExpression* plan_expr) {
 	CExpression* inner_root = pexprInner;
 	uint64_t idx_obj_id;
 	while(true) {
-		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
+		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan ||
+		   inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
 			// IdxScan
 			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
 			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());

@@ -1664,11 +1664,11 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	// when we sum-up children cost
 
 	// S62 in Adjacency Index case, IndexFilterCostUnit may be 0
-	CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
-	// CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
-	// 						   dTableWidth * dIndexScanTupCostUnit;
+	// CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
+	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+							   dTableWidth * dIndexScanTupCostUnit;
 	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
+				 (dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor)); // S62 remove I/O factor
 }
 
 //---------------------------------------------------------------------------
@@ -1708,10 +1708,10 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 	const CDouble dTableWidth =
 		CPhysicalScan::PopConvert(pop)->PstatsBaseTable()->Width();
 
-	const CDouble dIndexFilterCostUnit =
-		pcmgpdb->GetCostModelParams()
-			->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)
-			->Get();
+	// const CDouble dIndexFilterCostUnit =
+	// 	pcmgpdb->GetCostModelParams()
+	// 		->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)
+	// 		->Get();
 	const CDouble dIndexScanTupCostUnit =
 		pcmgpdb->GetCostModelParams()
 			->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupCostUnit)
@@ -1720,7 +1720,7 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 		pcmgpdb->GetCostModelParams()
 			->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupRandomFactor)
 			->Get();
-	GPOS_ASSERT(0 < dIndexFilterCostUnit);
+	// GPOS_ASSERT(0 < dIndexFilterCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupRandomFactor);
 
@@ -1736,8 +1736,10 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 	// currently marked as all-visible. Planner has similar logic inside
 	// `cost_index()` to calculate pages fetched from index-only-scan.
 
-	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+	CDouble dCostPerIndexRow = ulIndexKeys * 0 +
 							   dTableWidth * dIndexScanTupCostUnit;
+	// CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+	// 						   dTableWidth * dIndexScanTupCostUnit;
 	CDouble dPartialVisFrac(1);
 	if (stats->RelPages() != 0)
 	{
@@ -1745,8 +1747,8 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 			1 - (CDouble(stats->RelAllVisible()) / CDouble(stats->RelPages()));
 	}
 	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow +
-				  dIndexScanTupRandomFactor * dPartialVisFrac));
+				 (dRowsIndex * dCostPerIndexRow/* +
+				  dIndexScanTupRandomFactor * dPartialVisFrac*/)); // S62 remove random I/O factor
 }
 
 CCost
