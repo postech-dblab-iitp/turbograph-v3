@@ -231,12 +231,12 @@ private:
 		 gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
-	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string print_name="");
+	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string rel_name="");
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
-						   const CName &nameTable, gpos::BOOL fPartitioned = false);
+						   const CName &nameTable, string rel_name, gpos::BOOL fPartitioned = false);
 	CTableDescriptor * lTabdescPlainWithColNameFormat(
 		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
-		const CName &nameTable,
+		const CName &nameTable, string rel_name,
 		gpos::BOOL is_nullable  // define nullable columns
 	);
 

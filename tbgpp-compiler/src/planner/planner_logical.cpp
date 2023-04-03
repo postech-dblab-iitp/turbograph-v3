@@ -909,37 +909,35 @@ CExpression * Planner::lExprLogicalCartProd(CExpression* lhs, CExpression* rhs) 
 }
 
 
-CTableDescriptor * Planner::lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string print_name) {
+CTableDescriptor * Planner::lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string rel_name) {
 
 	CMemoryPool* mp = this->memory_pool; 
 
 	const CWStringConst* table_name_cwstring = lGetMDAccessor()->RetrieveRel(rel_mdid)->Mdname().GetMDName();
 	wstring table_name_ws(table_name_cwstring->GetBuffer());
 	string table_name(table_name_ws.begin(), table_name_ws.end());
-	std::string pname;
-	if( print_name == "" ) {
-		pname = "(" + print_name + ") " + table_name;
-	} else {
-		pname = table_name;
-	}
 	std::wstring w_print_name = L"";
-	w_print_name.assign(pname.begin(), pname.end());
+	w_print_name.assign(table_name.begin(), table_name.end());
 	CWStringConst strName(w_print_name.c_str());
 	CTableDescriptor *ptabdesc =
 		lCreateTableDesc(mp,
-					   rel_mdid,	// 6.objid.0.0
-					   CName(&strName));	// debug purpose table string
+					   rel_mdid,			// 6.objid.0.0
+					   CName(&strName),	// debug purpose table string
+					   rel_name
+					   );	
 	
 	ptabdesc->AddRef();
 	return ptabdesc;
 }
 
 CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
-						   const CName &nameTable, gpos::BOOL fPartitioned) {
+						   const CName &nameTable, string rel_name, gpos::BOOL fPartitioned) {
 
 	CTableDescriptor *ptabdesc = lTabdescPlainWithColNameFormat(mp, mdid,
 										  GPOS_WSZ_LIT("column_%04d"),				// format notused
-										  nameTable, false /* is_nullable */);	// TODO retrieve isnullable from the storage!
+										  nameTable,
+										  rel_name,
+										  false /* is_nullable */);	// TODO retrieve isnullable from the storage!
 										
 	// if (fPartitioned) {
 	// 	GPOS_ASSERT(false);
@@ -955,7 +953,7 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 
 CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
-		const CName &nameTable, gpos::BOOL is_nullable  // define nullable columns
+		const CName &nameTable, string rel_name, gpos::BOOL is_nullable  // define nullable columns
 	) {
 
 	CWStringDynamic *str_name = GPOS_NEW(mp) CWStringDynamic(mp);
@@ -972,7 +970,18 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 		IMDId *type_id = md_col->MdidType();
 		const IMDType* pmdtype = lGetMDAccessor()->RetrieveType(type_id);
 		INT type_modifier = md_col->TypeModifier();
-		CName colname(md_col->Mdname().GetMDName());
+
+
+		wstring col_name_ws(md_col->Mdname().GetMDName()->GetBuffer());
+		string col_name(col_name_ws.begin(), col_name_ws.end());
+		if(rel_name != "") {
+			col_name = rel_name + "." + col_name;
+		}
+		std::wstring col_print_name = L"";
+		col_print_name.assign(col_name.begin(), col_name.end());
+		CWStringConst strName(col_print_name.c_str());
+
+		CName colname(&strName);
 		INT attno = md_col->AttrNum();
 		CColumnDescriptor *pcoldesc = GPOS_NEW(mp)
 			CColumnDescriptor(mp, pmdtype, type_modifier,
