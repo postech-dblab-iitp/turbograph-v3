@@ -40,16 +40,16 @@ run_ldbc_s() {
 	echo "RUN LDBC Short"
 
 	# LDBC IS1
-	run_query "MATCH (n:Person)-[r:IS_LOCATED_IN]->(p:Place) WHERE n.id = 65 RETURN n._id, n.firstName, n.lastName, n.birthday, n.locationIP, n.browserUsed, p._id, p.id, n.gender, n.creationDate"
+	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place) RETURN n.firstName, n.lastName, n.birthday, n.locationIP, n.browserUsed, p.id, n.gender, n.creationDate"
 	# LDBC IS2
 
 	# LDBC IS3
-	run_query "MATCH (n:Person)-[r:KNOWS]->(friend:Person) RETURN friend._id, friend.id, friend.firstName, friend.lastName, r.creationDate ORDER BY r.creationDate DESC, friend.id ASC"
+	run_query "MATCH (n:Person {id: 65})-[r:KNOWS]->(friend:Person) RETURN friend.id, friend.firstName, friend.lastName, r.creationDate ORDER BY r.creationDate DESC, friend.id ASC"
 	# LDBC IS4
-	run_query "MATCH (m:Comment) WHERE m.id = 557 RETURN m.creationDate, m.content"
+	run_query "MATCH (m:Comment {id: 557}) RETURN m.creationDate, m.content"
 	# LDBC IS5
 #	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person) WHERE m.id = 557 RETURN p.id, p.firstName, p.lastName"
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person) WHERE m.id = 557 RETURN m.id, p.id, p.firstName, p.lastName"
+	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person) RETURN p.id, p.firstName, p.lastName"
 	# LDBC IS6
 	run_query "MATCH (m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person) RETURN f.id, f.title, mod.id, mod.firstName, mod.lastName"
 	# LDBC IS7
