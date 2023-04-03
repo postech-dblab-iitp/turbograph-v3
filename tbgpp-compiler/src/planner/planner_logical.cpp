@@ -8,21 +8,21 @@
 
 namespace s62 {
 
-CExpression* Planner::lGetLogicalPlan() {
+LogicalPlan * Planner::lGetLogicalPlan() {
 
 	GPOS_ASSERT( this->bound_statement != nullptr );
 	auto& regularQuery = *((BoundRegularQuery*)(this->bound_statement));
 
 	// TODO need union between single queries
 	GPOS_ASSERT( regularQuery.getNumSingleQueries() == 1);
-	vector<CExpression*> childLogicalPlans(regularQuery.getNumSingleQueries());
+	vector<LogicalPlan*> childLogicalPlans(regularQuery.getNumSingleQueries());
 	for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
 		childLogicalPlans[i] = lPlanSingleQuery(*regularQuery.getSingleQuery(i));
 	}
 	return childLogicalPlans[0];
 }
 
-CExpression* Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery) {
+LogicalPlan * Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery) {
 
 	// TODO refer kuzu properties to scan
 		// populate properties to scan
@@ -31,11 +31,9 @@ CExpression* Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery)
 	CExpression* plan;
 	GPOS_ASSERT(singleQuery.getNumQueryParts() == 1);
 	for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-		// TODO plan object may need to be pushed up once again. thus the function signature need to be changed as well.
-        auto plan_obj = lPlanQueryPart(*singleQuery.getQueryPart(i), nullptr);
-		plan = plan_obj->getPlanExpr();
+		// TODO handle when multiplequerypart
+        return lPlanQueryPart(*singleQuery.getQueryPart(i), nullptr);
     }
-	return plan;
 }
 
 LogicalPlan* Planner::lPlanQueryPart(
@@ -84,17 +82,6 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		const vector<bool> sort_orders = proj_body->getSortingOrders(); // if true asc
 		plan = lPlanOrderBy(orderby_expr, sort_orders, plan);
 	}
-	
-	/* Skip limit */
-	if( proj_body->hasSkipOrLimit() ) {
-		// CLogicalLimit
-		GPOS_ASSERT(false);
-	}
-
-	/* Distinct */
-	if(proj_body->getIsDistinct()) {
-		GPOS_ASSERT(false);
-	}
 
 	/* Scalar projection - using CLogicalProject */
 		// find all projection expressions that requires new columns
@@ -120,6 +107,17 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		}
 	}
 	plan = lPlanProjectionOnColRefs(plan, colrefs);
+
+	/* Distinct */
+	if(proj_body->getIsDistinct()) {
+		GPOS_ASSERT(false);
+	}
+
+	/* Skip limit */
+	if( proj_body->hasSkipOrLimit() ) {
+		// CLogicalLimit
+		GPOS_ASSERT(false);
+	}
 
 	GPOS_ASSERT(plan != nullptr);
 	return plan;

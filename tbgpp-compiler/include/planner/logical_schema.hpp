@@ -127,6 +127,12 @@ public:
 		}
 		return output;
 	}
+	void getOutputColumns(vector<CColRef*>& output) {
+		D_ASSERT(output.size() == 0);
+		for(auto& sch: schema) {
+			output.push_back(std::get<2>(sch));
+		}
+	}
 
 private:
 

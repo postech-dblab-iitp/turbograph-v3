@@ -187,8 +187,8 @@ private:
 private:
 	// planner_logical.cpp
 	/* Generating orca logical plan */
-	CExpression *lGetLogicalPlan();
-	CExpression *lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
+	LogicalPlan *lGetLogicalPlan();
+	LogicalPlan *lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
 	LogicalPlan *lPlanQueryPart(
         const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);

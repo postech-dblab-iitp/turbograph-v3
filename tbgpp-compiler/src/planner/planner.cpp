@@ -326,7 +326,9 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		planner->_orcaSetOptCtxt(mp, &mda, pcm);
 		
 		/* Optimize */
-		CExpression *orca_logical_plan = planner->lGetLogicalPlan();
+		LogicalPlan *logical_plan = planner->lGetLogicalPlan();
+		CExpression* orca_logical_plan = logical_plan->getPlanExpr();
+		
 		{
 			if(planner->config.DEBUG_PRINT) {
 				std::cout << "[LOGICAL PLAN]" << std::endl;
@@ -340,9 +342,11 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
 	
 		/* Register output column names */
-		CMDNameArray* result_col_names = pqc->Pdrgpmdname();
-		for(gpos::ULONG idx = 0; idx < result_col_names->Size(); idx++) {
-			std::wstring table_name_ws(result_col_names->operator[](idx)->GetMDName()->GetBuffer());
+		std::vector<CColRef*> output_columns;
+		logical_plan->getSchema()->getOutputColumns(output_columns);
+
+		for(gpos::ULONG idx = 0; idx < output_columns.size(); idx++) {
+			std::wstring table_name_ws(output_columns[idx]->Name().Pstr()->GetBuffer());
 			planner->output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
 		}
 	
@@ -373,8 +377,6 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		}
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
 		
-		
-
 		orca_logical_plan->Release();
 		orca_physical_plan->Release();
 		GPOS_DELETE(pqc);
