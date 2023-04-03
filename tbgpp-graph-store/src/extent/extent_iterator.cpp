@@ -70,6 +70,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
+        num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
     is_initialized = true;
 }
@@ -98,13 +99,13 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     for (size_t i = 0; i < property_schema_cat_entry->extent_ids.size(); i++)
         ext_ids_to_iterate.push_back(property_schema_cat_entry->extent_ids[i]);
     
-    target_idxs_offset = 0;
-    for (int i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types[i] == LogicalType::ID) {
-            target_idxs_offset = 1;
-            break;
-        }
-    }
+    target_idxs_offset = 1;
+    // for (int i = 0; i < ext_property_types.size(); i++) {
+    //     if (ext_property_types[i] == LogicalType::ID) {
+    //         target_idxs_offset = 1;
+    //         break;
+    //     }
+    // }
 
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
@@ -139,6 +140,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
+        num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
     is_initialized = true;
 }
@@ -192,6 +194,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
+        num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
     is_initialized = true;
 }
@@ -232,6 +235,7 @@ int ExtentIterator::RequestNewIO(ClientContext &context, PropertySchemaCatalogEn
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
         }
+        num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
     is_initialized = true;
     evicted_eid = previous_idx == 0 ? std::numeric_limits<ExtentID>::max() : ext_ids_to_iterate[previous_idx - 1];
@@ -264,13 +268,13 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     for (size_t i = 0; i < target_eids.size(); i++)
         ext_ids_to_iterate.push_back(target_eids[i]);
 
-    target_idxs_offset = 0;
-    for (int i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types[i] == LogicalType::ID) {
-            target_idxs_offset = 1;
-            break;
-        }
-    }
+    target_idxs_offset = 1;
+    // for (int i = 0; i < ext_property_types.size(); i++) {
+    //     if (ext_property_types[i] == LogicalType::ID) {
+    //         target_idxs_offset = 1;
+    //         break;
+    //     }
+    // }
 
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
@@ -302,7 +306,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
-        // icecream::ic.enable(); IC(); icecream::ic.disable();
+        num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
     is_initialized = true;
 }
@@ -358,6 +362,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
                 ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
             }
+            num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
         }
     }
 // IC();
@@ -376,34 +381,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         output.Reset();
         output.Initialize(ext_property_types);
     }
-    int idx_for_cardinality = -1;
     CompressionHeader comp_header;
-    // TODO record data cardinality in Chunk Definition?
-//icecream::ic.enable(); IC(); IC(ps_cat_entry->GetName()); icecream::ic.disable();
-    for (size_t i = 0; i < ext_property_types.size(); i++) {
-        //icecream::ic.enable(); IC(); IC(i); IC((uint8_t) ext_property_types[i].id()); icecream::ic.disable();
-        if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST || ext_property_types[i] == LogicalType::ID) {
-            //icecream::ic.enable(); IC(); icecream::ic.disable();
-            continue;
-        } else {
-            //icecream::ic.enable(); IC(); icecream::ic.disable();
-            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-            //icecream::ic.enable(); IC(); icecream::ic.disable();
-            idx_for_cardinality = i;
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            break;
-        }
-    }
-//icecream::ic.enable(); IC(); icecream::ic.disable();
-    if (idx_for_cardinality == -1) {
-        throw InvalidInputException("ExtentIt Cardinality Bug");
-    } else {
-        if (comp_header.data_len < (current_idx_in_this_extent * scan_size)) return false;
-        size_t remain_data_size = comp_header.data_len - (current_idx_in_this_extent * scan_size);
-        size_t output_cardinality = std::min((size_t) scan_size, remain_data_size);
-        // icecream::ic.enable(); IC(); IC(comp_header.data_len, current_idx_in_this_extent, scan_size, remain_data_size, output_cardinality); icecream::ic.disable();
-        output.SetCardinality(output_cardinality);
-    }
+    
+    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) return false;
+    size_t remain_data_size = num_tuples_in_current_extent[toggle] - (current_idx_in_this_extent * scan_size);
+    size_t output_cardinality = std::min((size_t) scan_size, remain_data_size);
+    output.SetCardinality(output_cardinality);
     output_eid = ext_ids_to_iterate[current_idx];
 // IC();
     idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
@@ -540,6 +523,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
         }
+        num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
 // icecream::ic.enable(); IC(); icecream::ic.disable();
     // Request chunk cache manager to finalize I/O
@@ -628,24 +612,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // icecream::ic.disable();
 
     // Get Compression Header
-    int idx_for_cardinality = -1;
     CompressionHeader comp_header;
-    // TODO record data cardinality in Chunk Definition?
-    for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::ID) {
-            continue;
-        } else {
-            idx_for_cardinality = i;
-            memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            break;
-        }
-    }
-// icecream::ic.enable(); IC(); icecream::ic.disable();
 
     // Find the index of a row that matches a predicate
     bool find_matched_row = false;
     idx_t matched_row_idx;
     if (ext_property_types[col_idx] == LogicalType::VARCHAR) {
+        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][col_idx], sizeof(CompressionHeader));
         if (comp_header.comp_type == DICTIONARY) {
             throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
         } else {
@@ -670,6 +643,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     } else if (ext_property_types[col_idx] == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
     } else {
+        memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][col_idx], sizeof(CompressionHeader));
         if (comp_header.comp_type == BITPACKING) {
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
@@ -686,27 +660,24 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 
-    if (idx_for_cardinality == -1) {
-        throw InvalidInputException("ExtentIt Cardinality Bug");
+    if (find_matched_row) {
+        output.SetCardinality(1); // TODO 1 -> matched tuple count
     } else {
-        if (find_matched_row) {
-            output.SetCardinality(1); // TODO 1 -> matched tuple count
-        } else {
-            output.SetCardinality(0);
-            return true;
-        }
+        output.SetCardinality(0);
+        return true;
     }
     
     output_idx = 0;
     for (size_t i = 0; i < ext_property_types.size(); i++) {
-        if (i != 0 && !valid_output[i - 1]) continue;
+        // if (i != 0 && !valid_output[i - 1]) continue;
+        if (!valid_output[i]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            // i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
-                            // io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+                            i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
         } else {
-            // fprintf(stdout, "Load Column %ld\n", i);
+            fprintf(stdout, "Load Column %ld\n", i);
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -777,6 +748,7 @@ icecream::ic.disable();
 
 // For Seek Operator
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
+    D_ASSERT(false);
     // We should avoid data copy here.. but copy for demo temporarliy
     int prev_toggle = toggle;
     
@@ -983,6 +955,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
                     ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
                 }
+                num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
             }
         }
 

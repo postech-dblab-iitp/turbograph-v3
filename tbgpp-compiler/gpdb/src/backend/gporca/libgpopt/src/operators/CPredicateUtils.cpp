@@ -1923,7 +1923,9 @@ CPredicateUtils::PexprIndexLookup(CMemoryPool *mp, CMDAccessor *md_accessor,
 	else if (CUtils::FScalarArrayCmp(pexprScalar) &&
 			 (IMDIndex::EmdindBitmap == pmdindex->IndexType() ||
 			  (allowArrayCmpForBTreeIndexes &&
-			   IMDIndex::EmdindBtree == pmdindex->IndexType())))
+			   (IMDIndex::EmdindBtree == pmdindex->IndexType() ||
+			    IMDIndex::EmdindFwdAdjlist == pmdindex->IndexType() ||
+			    IMDIndex::EmdindBwdAdjlist == pmdindex->IndexType())))) // S62 not sure..
 	{
 		// array cmps are always allowed on bitmap indexes and when requested on btree indexes
 		cmptype = CUtils::ParseCmpType(

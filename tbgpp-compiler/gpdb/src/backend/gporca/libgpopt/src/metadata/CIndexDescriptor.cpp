@@ -145,7 +145,9 @@ CIndexDescriptor::Pindexdesc(CMemoryPool *mp, const CTableDescriptor *ptabdesc,
 BOOL
 CIndexDescriptor::SupportsIndexOnlyScan() const
 {
-	return m_index_type == IMDIndex::EmdindBtree;
+	return (m_index_type == IMDIndex::EmdindBtree ||
+			m_index_type == IMDIndex::EmdindFwdAdjlist ||
+			m_index_type == IMDIndex::EmdindBwdAdjlist);
 }
 
 //---------------------------------------------------------------------------

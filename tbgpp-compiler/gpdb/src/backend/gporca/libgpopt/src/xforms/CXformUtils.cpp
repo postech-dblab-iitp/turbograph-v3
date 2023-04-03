@@ -2236,6 +2236,11 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 	CColRefArray *pdrgpcrIndex = GPOS_NEW(mp) CColRefArray(mp);
 
 	ULONG length = pmdindex->Keys();
+	if ((pmdindex->IndexType() == IMDIndex::EmdindFwdAdjlist) ||
+		(pmdindex->IndexType() == IMDIndex::EmdindBwdAdjlist))
+	{
+		GPOS_ASSERT(length == 2); // S62 added
+	}
 	if (EicIncluded == eic)
 	{
 		length = pmdindex->IncludedCols();
@@ -2243,6 +2248,10 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 
 	for (ULONG ul = 0; ul < length; ul++)
 	{
+		if (EicKey == eic) {
+			if ((pmdindex->IndexType() == IMDIndex::EmdindFwdAdjlist) && (ul == 1)) continue; // S62 added
+			if ((pmdindex->IndexType() == IMDIndex::EmdindBwdAdjlist) && (ul == 0)) continue; // S62 added
+		}
 		ULONG ulPos = gpos::ulong_max;
 		if (EicIncluded == eic)
 		{
@@ -2322,7 +2331,11 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 	if (pmdindex->IndexType() == IMDIndex::EmdindGist ||
 		// GIN can only match with Bitmap Indexes
 		(emdindtype == IMDIndex::EmdindBitmap &&
-		 IMDIndex::EmdindGin == pmdindex->IndexType()))
+		 IMDIndex::EmdindGin == pmdindex->IndexType()) ||
+		// S62 added for fwd/bwd adjlist
+		(emdindtype == IMDIndex::EmdindBtree &&
+		 (IMDIndex::EmdindFwdAdjlist == pmdindex->IndexType() ||
+		  IMDIndex::EmdindBwdAdjlist == pmdindex->IndexType())))
 	{
 		if (pmdrel->IsPartialIndex(pmdindex->MDId()))
 		{

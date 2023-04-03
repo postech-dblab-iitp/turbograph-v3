@@ -20,7 +20,7 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
     ExtentID new_eid = prop_schema_cat_entry.GetNewExtentID();
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid);
+    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
     
     // MkDir for the extent
@@ -38,7 +38,7 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Prope
     PartitionID pid = prop_schema_cat_entry.GetPartitionID();
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid);
+    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
 
     // MkDir for the extent
