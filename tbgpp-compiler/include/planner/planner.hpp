@@ -49,6 +49,7 @@
 #include "gpopt/base/CColRef.h"
 #include "gpopt/base/CColRefTable.h"
 
+// orca logical ops
 #include "gpopt/operators/CScalarProjectList.h"
 #include "gpopt/operators/CScalarProjectElement.h"
 #include "gpopt/operators/CLogicalProject.h"
@@ -63,7 +64,10 @@
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalPathJoin.h"
 #include "gpopt/operators/CLogicalPathGet.h"
+#include "gpopt/operators/CLogicalGbAgg.h"
+#include "gpopt/operators/CLogicalGbAggDeduplicate.h"
 
+// orca physical ops
 #include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/operators/CPhysicalIndexScan.h"
 #include "gpopt/operators/CPhysicalIndexPathScan.h"
@@ -76,6 +80,10 @@
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalSort.h"
+#include "gpopt/operators/CPhysicalHashAgg.h"
+#include "gpopt/operators/CPhysicalHashAggDeduplicate.h"
+#include "gpopt/operators/CPhysicalStreamAgg.h"
+#include "gpopt/operators/CPhysicalStreamAggDeduplicate.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
@@ -188,22 +196,23 @@ private:
 	// planner_logical.cpp
 	/* Generating orca logical plan */
 	CExpression *lGetLogicalPlan();
-	CExpression *lPlanSingleQuery(const NormalizedSingleQuery& singleQuery);
+	CExpression *lPlanSingleQuery(const NormalizedSingleQuery &singleQuery);
 	LogicalPlan *lPlanQueryPart(
-        const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan);
-	LogicalPlan *lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body);
+        const NormalizedQueryPart &queryPart, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanProjectionBody(LogicalPlan *plan, BoundProjectionBody *proj_body);
 	LogicalPlan *lPlanReadingClause(
-        BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+        BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanMatchClause(
-		BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+		BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanUnwindClause(
-        BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
-	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan, bool is_optional_match);
-	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
-	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
-	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan* plan, CColRefArray* colrefs);
-	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
+        BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection &queryGraphCollection, LogicalPlan *prev_plan, bool is_optional_match);
+	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
+	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
+	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan *plan, CColRefArray *colrefs);
+	LogicalPlan *lPlanSelection(const expression_vector &predicates, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan);
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
@@ -268,6 +277,9 @@ private:
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopLimit(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopSort(CExpression* plan_expr);
+
+	// aggregations
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAggDedup(CExpression* plan_expr);
 
 	bool pIsIndexJoinOnPhysicalID(CExpression* plan_expr);
 
