@@ -68,7 +68,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	CMemoryPool* mp = this->memory_pool;
 
 	/* Aggregate - generate LogicalGbAgg series */
-	if(proj_body->hasAggregationExpressions()) {
+	if (proj_body->hasAggregationExpressions()) {
 		GPOS_ASSERT(false);
 		// TODO plan is manipulated
 		// maybe need to split function without agg and with agg.
@@ -77,23 +77,12 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	// TODO not sure about the orders between  projection expressions.. need to refer to Neo4j and kuzu
 
 	/* OrderBy */
-	if(proj_body->hasOrderByExpressions()) {
+	if (proj_body->hasOrderByExpressions()) {
 		// orderByExpressions
 		// isAscOrders
 		const expression_vector &orderby_expr = proj_body->getOrderByExpressions(); 
 		const vector<bool> sort_orders = proj_body->getSortingOrders(); // if true asc
 		plan = lPlanOrderBy(orderby_expr, sort_orders, plan);
-	}
-	
-	/* Skip limit */
-	if( proj_body->hasSkipOrLimit() ) {
-		// CLogicalLimit
-		GPOS_ASSERT(false);
-	}
-
-	/* Distinct */
-	if(proj_body->getIsDistinct()) {
-		GPOS_ASSERT(false);
 	}
 
 	/* Scalar projection - using CLogicalProject */
@@ -103,11 +92,11 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	// maintain new mappings
 
 	/* Simple projection - switch orders between columns; use lPlanProjectionOnColIds */
-	CColRefArray* colrefs = GPOS_NEW(mp) CColRefArray(mp);
+	CColRefArray *colrefs = GPOS_NEW(mp) CColRefArray(mp);
 	const auto& proj_exprs = proj_body->getProjectionExpressions();
-	for( auto& proj_expr: proj_exprs) {
+	for (auto& proj_expr: proj_exprs) {
 		auto& proj_expr_type = proj_expr.get()->expressionType;
-		if(proj_expr_type == kuzu::common::ExpressionType::PROPERTY) {
+		if (proj_expr_type == kuzu::common::ExpressionType::PROPERTY) {
 			// first depth projection = simple projection
 			PropertyExpression* prop_expr = (PropertyExpression*)(proj_expr.get());
 			string k1 = prop_expr->getVariableName();
@@ -120,6 +109,17 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		}
 	}
 	plan = lPlanProjectionOnColRefs(plan, colrefs);
+
+	/* Distinct */
+	if (proj_body->getIsDistinct()) {
+		plan = lPlanDistinct(colrefs, plan);
+	}
+
+	/* Skip limit */
+	if (proj_body->hasSkipOrLimit()) {
+		// CLogicalLimit
+		GPOS_ASSERT(false);
+	}
 
 	GPOS_ASSERT(plan != nullptr);
 	return plan;
@@ -409,7 +409,23 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 	return prev_plan;
 }
 
-LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
+LogicalPlan *Planner::lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+
+	CLogicalGbAggDeduplicate *pop_gbagg = 
+		GPOS_NEW(mp) CLogicalGbAggDeduplicate(
+			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/,
+			colrefs/*pdrgpcrKeys*/);
+	CExpression *gbagg_expr =  GPOS_NEW(mp)
+		CExpression(mp, pop_gbagg, prev_plan->getPlanExpr(),
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
+	
+	prev_plan->addUnaryParentOp(gbagg_expr);
+	
+	return prev_plan;
+}
+
+LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
 

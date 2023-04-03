@@ -12,10 +12,10 @@
 #include "execution/physical_operator/physical_projection.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
-
 #include "execution/physical_operator/physical_id_seek.hpp"
 #include "execution/physical_operator/physical_sort.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
+#include "execution/physical_operator/physical_hash_aggregate.hpp"
 
 
 #include "planner/expression/bound_reference_expression.hpp"
@@ -123,6 +123,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		}
 		case COperator::EOperatorId::EopPhysicalSort: {
 			result = pTransformEopSort(plan_expr);
+			break;
+		}
+		case COperator::EOperatorId::EopPhysicalHashAggDeduplicate:
+		case COperator::EOperatorId::EopPhysicalStreamAggDeduplicate: {
+			// TODO currently, support hashagg only
+			D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalHashAggDeduplicate);
+			result = pTransformEopHashAggDedup(plan_expr);
 			break;
 		}
 		default:
@@ -804,6 +811,45 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	return new_result;
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAggDedup(CExpression *plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	CPhysicalHashAggDeduplicate *agg_dedup_op = (CPhysicalHashAggDeduplicate*) plan_expr->Pop();
+	D_ASSERT(plan_expr->Arity() == 1);
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprInput = (*plan_expr)[0];
+	CColRefArray* input_cols = pexprInput->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	D_ASSERT(output_cols->Size() == input_cols->Size());
+
+	duckdb::CypherSchema tmp_schema;
+	vector<duckdb::LogicalType> types;
+
+	vector<unique_ptr<duckdb::Expression>> agg_exprs;
+	vector<unique_ptr<duckdb::Expression>> agg_groups;
+
+	// TODO check logic..
+	for (ULONG col_idx = 0; col_idx < input_cols->Size(); col_idx++) {
+		CColRef *col = (*input_cols)[col_idx];
+
+		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
+		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
+		types.push_back(col_type);
+
+		agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, col_idx));
+	}
+
+	tmp_schema.setStoredTypes(types);
+
+	duckdb::CypherPhysicalOperator *op =
+		new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
+	result->push_back(op);
+
+	return result;
+}
 
 
 
