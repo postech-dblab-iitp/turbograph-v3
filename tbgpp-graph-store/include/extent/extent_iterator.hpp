@@ -55,6 +55,7 @@ private:
     vector<ChunkDefinitionID> io_requested_cdf_ids[MAX_NUM_DATA_CHUNKS];
     vector<uint8_t*> io_requested_buf_ptrs[MAX_NUM_DATA_CHUNKS];
     vector<size_t> io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
+    size_t num_tuples_in_current_extent[MAX_NUM_DATA_CHUNKS];
     vector<LogicalType> ext_property_types;
     vector<idx_t> target_idxs;
     idx_t current_idx_in_this_extent;

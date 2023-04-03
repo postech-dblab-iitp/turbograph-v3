@@ -44,6 +44,7 @@ public:
 	PartitionID pid; // foreign key
 	ChunkDefinitionID_vector chunks;
 	atomic<LocalChunkDefinitionID> local_chunkdefinition_id_version;
+	size_t num_tuples_in_extent = 0;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -60,5 +61,9 @@ public:
 	void SetExtentType(ExtentType extent_type_);
 	LocalChunkDefinitionID GetNextChunkDefinitionID();
 	void AddChunkDefinitionID(ChunkDefinitionID cdf_id);
+
+	size_t GetNumTuplesInExtent() {
+		return num_tuples_in_extent;
+	}
 };
 } // namespace duckdb

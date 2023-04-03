@@ -275,7 +275,8 @@ private:
 
 	// compute the array of included columns
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
-											  const IMDRelation *md_rel
+											  const IMDRelation *md_rel,
+											  IMDIndex::EmdindexType index_type
 											  /*const duckdb::PartitionCatalogEntry *part_cat*/);
 
 	// // is given level included in the default partitions

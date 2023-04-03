@@ -3606,6 +3606,16 @@ CDXLOperatorFactory::ParseIndexType(const Attributes &attrs,
 	{
 		return IMDIndex::EmdindBtree;
 	}
+	else if (0 == XMLString::compareString(
+					  xml_val, CDXLTokens::XmlstrToken(EdxltokenIndexTypeFwdAdjlist)))
+	{
+		return IMDIndex::EmdindFwdAdjlist;
+	}
+	else if (0 == XMLString::compareString(
+					  xml_val, CDXLTokens::XmlstrToken(EdxltokenIndexTypeBwdAdjlist)))
+	{
+		return IMDIndex::EmdindBwdAdjlist;
+	}
 
 
 	if (0 == XMLString::compareString(

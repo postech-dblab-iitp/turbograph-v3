@@ -589,6 +589,27 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				first_table_mapping.push_back(table_col_idx);
 			}
 		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
+			// IndexOnlyScan on physical id index. We don't need to do idseek
+
+			// if output_cols size != outer_cols, we need to do projection
+			/* Generate operator and push */
+			duckdb::CypherSchema tmp_schema;
+			vector<unique_ptr<duckdb::Expression>> proj_exprs;
+			tmp_schema.setStoredTypes(types);
+
+			for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+				CColRef *col = (*output_cols)[col_idx];
+				ULONG idx = outer_cols->IndexOf(col);
+				D_ASSERT(idx != gpos::ulong_max);
+				proj_exprs.push_back(
+					make_unique<duckdb::BoundReferenceExpression>(types[col_idx], (int)idx)
+				);
+			}
+			duckdb::CypherPhysicalOperator* op =
+				new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
+			result->push_back(op);
+
+			// release
 			output_cols->Release();
 			outer_cols->Release();
 			inner_cols->Release();

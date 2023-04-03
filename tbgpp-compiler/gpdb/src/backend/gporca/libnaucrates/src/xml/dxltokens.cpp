@@ -572,6 +572,8 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenIndexTypeBitmap, GPOS_WSZ_LIT("Bitmap")},
 		{EdxltokenIndexTypeGist, GPOS_WSZ_LIT("Gist")},
 		{EdxltokenIndexTypeGin, GPOS_WSZ_LIT("Gin")},
+		{EdxltokenIndexTypeFwdAdjlist, GPOS_WSZ_LIT("FwdAdj")},
+		{EdxltokenIndexTypeBwdAdjlist, GPOS_WSZ_LIT("BwdAdj")},
 		{EdxltokenIndexItemType, GPOS_WSZ_LIT("IndexItemType")},
 
 		{EdxltokenOpfamily, GPOS_WSZ_LIT("Opfamily")},

@@ -1197,9 +1197,13 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 		{
 			index_type = IMDIndex::EmdindBtree;
 		}
-		else if (IndexType::FORWARD_CSR == index_cat->index_type || IndexType::BACKWARD_CSR == index_cat->index_type) // TODO we need to add new index type
+		else if (IndexType::FORWARD_CSR == index_cat->index_type) // TODO we need to add new index type
 		{
-			index_type = IMDIndex::EmdindBtree;
+			index_type = IMDIndex::EmdindFwdAdjlist;
+		}
+		else if (IndexType::BACKWARD_CSR == index_cat->index_type)
+		{
+			index_type = IMDIndex::EmdindBwdAdjlist;
 		}
 
 		// get the index name
@@ -1244,7 +1248,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 	}
 	GPOS_CATCH_END;
 
-	ULongPtrArray *included_cols = ComputeIncludedCols(mp, md_rel);
+	ULongPtrArray *included_cols = ComputeIncludedCols(mp, md_rel, index_type);
 	// ULongPtrArray *included_cols = ComputeIncludedCols(mp, part_cat);
 	mdid_index->AddRef();
 	IMdIdArray *op_families_mdids = RetrieveIndexOpFamilies(mp, mdid_index);
@@ -1565,21 +1569,31 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 //---------------------------------------------------------------------------
 ULongPtrArray *
 CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
-											  const IMDRelation *md_rel
+											  const IMDRelation *md_rel,
+											  IMDIndex::EmdindexType index_type
 											  /*const PartitionCatalogEntry *part_cat*/)
 {
 	// TODO: 3/19/2012; currently we assume that all the columns
 	// in the table are available from the index.
 
 	ULongPtrArray *included_cols = GPOS_NEW(mp) ULongPtrArray(mp);
-	// const ULONG num_included_cols = part_cat->GetNumberOfColumns();
 	const ULONG num_included_cols = md_rel->ColumnCount();
-	for (ULONG ul = 0; ul < num_included_cols; ul++)
+	if (index_type == IMDIndex::EmdindFwdAdjlist || index_type == IMDIndex::EmdindBwdAdjlist) 
 	{
-		// if (!md_rel->GetMdCol(ul)->IsDropped()) // TODO we do not have column drop currently
-		// {
-			included_cols->Append(GPOS_NEW(mp) ULONG(ul));
-		// }
+		// S62 fwd/bwd adjlist include only sid & tid columns
+		GPOS_ASSERT(num_included_cols >= 2);
+		included_cols->Append(GPOS_NEW(mp) ULONG(1));
+		included_cols->Append(GPOS_NEW(mp) ULONG(2));
+	}
+	else
+	{
+		for (ULONG ul = 0; ul < num_included_cols; ul++)
+		{
+			// if (!md_rel->GetMdCol(ul)->IsDropped()) // TODO we do not have column drop currently
+			// {
+				included_cols->Append(GPOS_NEW(mp) ULONG(ul));
+			// }
+		}
 	}
 
 	return included_cols;
@@ -2385,7 +2399,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 		// CMDName ctor created a copy of the string
 		GPOS_DELETE(relname_str);
 
-		num_rows = 0;// gpdb::CdbEstimatePartitionedNumTuples(rel);
+		num_rows = rel->GetNumberOfRowsApproximately();// gpdb::CdbEstimatePartitionedNumTuples(rel);
 
 		// relpages = rel->rd_rel->relpages;
 		// relallvisible = rel->rd_rel->relallvisible;
@@ -2446,7 +2460,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// number of rows from pg_class
 	double num_rows;
 
-	num_rows = 0;// gpdb::CdbEstimatePartitionedNumTuples(rel);
+	num_rows = rel->GetNumberOfRowsApproximately();// gpdb::CdbEstimatePartitionedNumTuples(rel);
 
 	// extract column name and type
 	CMDName *md_colname =
@@ -2501,7 +2515,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// }
 
 	// column width
-	CDouble width(0.0);// = CDouble(form_pg_stats->stawidth);
+	CDouble width = CDouble(duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);

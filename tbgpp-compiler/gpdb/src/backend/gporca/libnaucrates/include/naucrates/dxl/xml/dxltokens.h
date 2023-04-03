@@ -513,6 +513,8 @@ enum Edxltoken
 	EdxltokenIndexTypeBitmap,
 	EdxltokenIndexTypeGist,
 	EdxltokenIndexTypeGin,
+	EdxltokenIndexTypeFwdAdjlist,
+	EdxltokenIndexTypeBwdAdjlist,
 	EdxltokenIndexItemType,
 
 	EdxltokenOpfamily,
