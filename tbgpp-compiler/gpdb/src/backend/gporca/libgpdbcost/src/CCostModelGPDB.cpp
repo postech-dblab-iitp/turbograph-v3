@@ -760,8 +760,10 @@ CCostModelGPDB::CostSort(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	GPOS_ASSERT(0 < dSortTupWidthCost);
 
 	// sort cost is correlated with the number of rows and width of input tuples. We use n*log(n) for sorting complexity.
+	// CCost costLocal =
+	// 	CCost(num_rebinds * (rows * rows.Log2() * width * dSortTupWidthCost));
 	CCost costLocal =
-		CCost(num_rebinds * (rows * rows.Log2() * width * dSortTupWidthCost));
+		CCost(num_rebinds * ((rows * 1/100) * (rows * 1/100).Log2() * width * dSortTupWidthCost)); // S62.. temporary code......
 	CCost costChild =
 		CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 

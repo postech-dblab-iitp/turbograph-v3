@@ -333,8 +333,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	CColRefArray* inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
 	unordered_map<ULONG, uint64_t> id_map;
-	std::vector<uint32_t> outer_col_map;
-	std::vector<uint32_t> inner_col_map;
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
+	vector<uint32_t> outer_col_map_seek;
+	vector<uint32_t> inner_col_map_seek;
+
+	vector<uint64_t> oids;
+	vector<vector<uint64_t>> projection_mapping;
+	vector<uint64_t> first_table_mapping;
 
 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 		CColRef *col = (*output_cols)[col_idx];
@@ -348,6 +354,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 
 	// 230303 srcidxcol = 0 (_id)
 	uint64_t sid_col_idx = 0;
+	uint64_t seek_sid_col_idx = 0;
 
 	// TODO load only adjidx id => hardcode load sid only (we use backward idx)
 
@@ -368,6 +375,18 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				CScalarIdent *sc_ident = (CScalarIdent *)(inner_root->operator[](0)->operator[](i)->Pop());
 				sccmp_colids.push_back(sc_ident->Pcr()->Id());
 			}
+
+			// TODO there may be additional projection - we CURRENTLY do not consider projection
+			CColRefArray* output = inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+			for( ULONG i = 0; i < output->Size(); i++) {
+				CColRef* colref = output->operator[](i);
+				OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) colref)->GetMdidTable())->Oid();
+				if (i == 0) { oids.push_back((uint64_t)table_obj_id); }
+				auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
+				// in edge table case, we only consider attr_num >= 3
+				if (table_col_idx >= 3) first_table_mapping.push_back(table_col_idx);
+			}
 		}
 		// reached to the bottom
 		if( inner_root->Arity() == 0 ) {
@@ -376,7 +395,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			inner_root = inner_root->operator[](0);	// pass first child in linear plan
 		}
 	}
+
+	projection_mapping.push_back(first_table_mapping);
 	D_ASSERT(inner_root != pexprInner);
+
+	D_ASSERT(oids.size() == 1);
+	D_ASSERT(projection_mapping.size() == 1);
 
 	bool sid_col_idx_found = false;
 	// Construct mapping info
@@ -400,24 +424,62 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		}	
 	}
 	D_ASSERT(sid_col_idx_found);
+
+	bool load_edge_property = false;
 	// construct inner col map
 	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
 		CColRef* col = inner_cols->operator[](col_idx);
+		CColRefTable *colref_table = (CColRefTable *)col;
 		ULONG col_id = col->Id();
 		auto id_idx = id_map.at(col_id);
-		inner_col_map.push_back(id_idx);
+
+		if (colref_table->AttrNum() >= 3) {
+			load_edge_property = true;
+			inner_col_map_seek.push_back(id_idx);
+		} else {
+			inner_col_map.push_back(id_idx);
+		}
 	}
 
-	/* Generate operator and push */
-	duckdb::CypherSchema tmp_schema;
-	tmp_schema.setStoredTypes(types);
+	if (!load_edge_property) {
+		/* Generate operator and push */
+		duckdb::CypherSchema tmp_schema;
+		tmp_schema.setStoredTypes(types);
 
-	// TODO 230330 when load_eid? => when inner size = 2
-	duckdb::CypherPhysicalOperator* op =
-		new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, duckdb::JoinType::INNER, sid_col_idx, false,	
-									   outer_col_map, inner_col_map);
+		// TODO 230330 when load_eid? => when inner size = 2
+		duckdb::CypherPhysicalOperator *op =
+			new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, duckdb::JoinType::INNER, sid_col_idx, false,
+										outer_col_map, inner_col_map);
 
-	result->push_back(op);
+		result->push_back(op);
+	} else {
+		// AdjIdxJoin -> Edge Id Seek
+		duckdb::CypherSchema tmp_schema_seek;
+		tmp_schema_seek.setStoredTypes(types);
+
+		types.push_back(duckdb::LogicalType::ID);
+		seek_sid_col_idx = types.size() - 1;
+		duckdb::CypherSchema tmp_schema_adjidxjoin;
+		tmp_schema_adjidxjoin.setStoredTypes(types);
+		inner_col_map.push_back(seek_sid_col_idx);
+		outer_col_map_seek.resize(types.size() - 1);
+		for (int i = 0; i < outer_col_map_seek.size(); i++) {
+			auto it = std::find(inner_col_map_seek.begin(), inner_col_map_seek.end(), i);
+			if (it == inner_col_map_seek.end()) outer_col_map_seek[i] = i;
+			else outer_col_map_seek[i] = std::numeric_limits<uint32_t>::max();
+		}
+		outer_col_map_seek.push_back(std::numeric_limits<uint32_t>::max()); // TODO always useless?
+		
+		duckdb::CypherPhysicalOperator *op_adjidxjoin =
+			new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, duckdb::JoinType::INNER, sid_col_idx, true,
+										outer_col_map, inner_col_map);
+
+		duckdb::CypherPhysicalOperator *op_seek =
+			new duckdb::PhysicalIdSeek(tmp_schema_seek, seek_sid_col_idx, oids, projection_mapping, outer_col_map_seek, inner_col_map_seek);
+		
+		result->push_back(op_adjidxjoin);
+		result->push_back(op_seek);
+	}
 
 	output_cols->Release();
 	outer_cols->Release();
@@ -530,8 +592,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	CColRefArray* inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
 	unordered_map<ULONG, uint64_t> id_map;
-	std::vector<uint32_t> outer_col_map;
-	std::vector<uint32_t> inner_col_map;
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
 
 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 		CColRef *col = (*output_cols)[col_idx];

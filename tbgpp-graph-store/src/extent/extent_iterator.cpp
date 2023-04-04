@@ -10,7 +10,7 @@
 
 #include "icecream.hpp"
 
-// #define DEBUG_LOAD_COLUMN
+#define DEBUG_LOAD_COLUMN
 
 namespace duckdb {
 
@@ -851,13 +851,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "Load Column %ld, access %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            i, target_seqno, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
+            // fprintf(stdout, "Load Column %ld, access %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+            //                 i, target_seqno, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
+            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
+            // fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
 #endif
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
@@ -1014,7 +1014,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_col_idx[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, ext_property_types[i].id(), comp_header.data_len,
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) ext_property_types[i].id(), comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
