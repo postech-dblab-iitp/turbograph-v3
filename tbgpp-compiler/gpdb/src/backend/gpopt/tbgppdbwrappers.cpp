@@ -176,3 +176,8 @@ idx_t
 duckdb::GetInverseOp(idx_t op_id) {
 	return catalog_wrapper->GetInverseOp(op_id);
 }
+
+idx_t
+duckdb::GetOpFamiliesForScOp(idx_t op_id) {
+	return catalog_wrapper->GetOpFamiliesForScOp(op_id);
+}

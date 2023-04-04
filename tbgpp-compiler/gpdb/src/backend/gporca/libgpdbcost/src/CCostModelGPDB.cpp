@@ -760,8 +760,10 @@ CCostModelGPDB::CostSort(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	GPOS_ASSERT(0 < dSortTupWidthCost);
 
 	// sort cost is correlated with the number of rows and width of input tuples. We use n*log(n) for sorting complexity.
+	// CCost costLocal =
+	// 	CCost(num_rebinds * (rows * rows.Log2() * width * dSortTupWidthCost));
 	CCost costLocal =
-		CCost(num_rebinds * (rows * rows.Log2() * width * dSortTupWidthCost));
+		CCost(num_rebinds * ((rows * 1/100) * (rows * 1/100).Log2() * width * dSortTupWidthCost)); // S62.. temporary code......
 	CCost costChild =
 		CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 
@@ -1668,7 +1670,7 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
 							   dTableWidth * dIndexScanTupCostUnit;
 	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor)); // S62 remove I/O factor
+				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
 }
 
 //---------------------------------------------------------------------------
@@ -2063,7 +2065,7 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 			// we add Scan output tuple cost in the parent operator and not here
 			return CCost(
 				pci->NumRebinds() *
-				(dInitScan + pci->Rows() * dTableWidth * dTableScanCostUnit));
+				(dInitScan * 0/* S62 in-memory */ + pci->Rows() * dTableWidth * dTableScanCostUnit));
 		default:
 			GPOS_ASSERT(!"invalid index scan");
 			return CCost(0);

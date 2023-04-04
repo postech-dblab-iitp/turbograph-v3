@@ -44,6 +44,7 @@ void GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id, uint32_t *right_type_
 idx_t GetOpFunc(idx_t op_id);
 idx_t GetCommutatorOp(idx_t op_id);
 idx_t GetInverseOp(idx_t op_id);
+idx_t GetOpFamiliesForScOp(idx_t op_id);
 
 static shared_ptr<ClientContext> client_wrapper;
 static shared_ptr<CatalogWrapper> catalog_wrapper;
