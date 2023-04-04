@@ -2378,12 +2378,21 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 	// pexprInner->AddRef();
 // 230303 lower pcrsReqd, inner
 // 230303 lower pcrscalar, inner
-
-	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
-		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
-// TODO s62 revive this predicate 230303
+	if (IMDIndex::EmdindFwdAdjlist == pmdindex->IndexType() ||
+		  IMDIndex::EmdindBwdAdjlist == pmdindex->IndexType()) // S62 added
 	{
-		fApplicable = false;
+		if (pcrsScalar->IsDisjoint(pcrsIndexCols))
+		{
+			fApplicable = false;
+		}
+	}
+	else
+	{
+		if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
+			|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+		{
+			fApplicable = false;
+		}
 	}
 
 	// clean up

@@ -330,16 +330,16 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	auto &state = (AdjIdxJoinState &)lstate; 
  
 
-	if( !state.first_fetch ) {
+	if (!state.first_fetch) {
 		// values used while processing
 		//state.srcColIdx = schema.getColIdxOfKey(srcName);
 		state.srcColIdx = sid_col_idx;
 		// state.edgeColIdx = input.ColumnCount();
 		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
 		//D_ASSERT(inner_col_map.size() == 2);
-		if( load_eid ) {
-			state.edgeColIdx = inner_col_map[0];
-			state.tgtColIdx = inner_col_map[1];
+		if (load_eid) {
+			state.tgtColIdx = inner_col_map[0];
+			state.edgeColIdx = inner_col_map[1];
 		} else {
 			state.edgeColIdx = -1;
 			state.tgtColIdx = inner_col_map[0];
