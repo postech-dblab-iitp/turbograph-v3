@@ -28,24 +28,42 @@ public:
 	}
 	~LogicalSchema() { }
 
-	void copySchema(LogicalSchema* old_schema, CColRefArray* selected_cols = NULL) {
-		if(selected_cols == NULL) {
-			// copy all
-			schema = old_schema->schema;
-			bound_nodes = old_schema->bound_nodes;
-			bound_edges = old_schema->bound_edges;
-			return;
-		}
-		for(gpos::ULONG idx = 0; idx < selected_cols->Size(); idx++) {
-			CColRef* colref = selected_cols->operator[](idx);
-			int orig_idx = old_schema->getIdxOfColRef(colref);
-			auto& col = old_schema->schema[orig_idx];
-			schema.push_back(col);
-			if( old_schema->isNodeBound(std::get<0>(col)) ) {
-				bound_nodes.insert(std::get<0>(col));
+	// void copySchema(LogicalSchema* old_schema, CColRefArray* selected_cols = NULL) {
+	// 	if(selected_cols == NULL) {
+	// 		// copy all
+	// 		schema = old_schema->schema;
+	// 		bound_nodes = old_schema->bound_nodes;
+	// 		bound_edges = old_schema->bound_edges;
+	// 		return;
+	// 	}
+	// 	for(gpos::ULONG idx = 0; idx < selected_cols->Size(); idx++) {
+	// 		CColRef* colref = selected_cols->operator[](idx);
+	// 		int orig_idx = old_schema->getIdxOfColRef(colref);
+	// 		auto& col = old_schema->schema[orig_idx];
+	// 		schema.push_back(col);
+	// 		if( old_schema->isNodeBound(std::get<0>(col)) ) {
+	// 			bound_nodes.insert(std::get<0>(col));
+	// 		}
+	// 		if( old_schema->isEdgeBound(std::get<0>(col)) ) {
+	// 			bound_edges.insert(std::get<0>(col));
+	// 		}
+	// 	}
+	// }
+	
+	void copyNodeFrom(LogicalSchema* old_schema, std::string node_name) {
+		D_ASSERT( old_schema->bound_nodes.find(node_name) != old_schema->bound_nodes.end() );
+		for( auto& sch: old_schema->schema ) {
+			if( node_name == std::get<0>(sch) ) {
+				appendNodeProperty(node_name, std::get<1>(sch), std::get<2>(sch));
 			}
-			if( old_schema->isEdgeBound(std::get<0>(col)) ) {
-				bound_edges.insert(std::get<0>(col));
+		}
+	}
+
+	void copyEdgeFrom(LogicalSchema* old_schema, std::string edge_name) {
+		D_ASSERT( old_schema->bound_edges.find(edge_name) != old_schema->bound_edges.end() );
+		for( auto& sch: old_schema->schema ) {
+			if( edge_name == std::get<0>(sch) ) {
+				appendEdgeProperty(edge_name, std::get<1>(sch), std::get<2>(sch));
 			}
 		}
 	}
@@ -67,21 +85,21 @@ public:
 		}
 	}
 	
-	void appendNodeProperty(string& k1, string& k2, CColRef* colref) {
+	void appendNodeProperty(string k1, string k2, CColRef* colref) {
 		D_ASSERT(colref != NULL);
 		appendKey(k1, k2, colref, true, false);
 	}
-	void appendEdgeProperty(string& k1, string& k2, CColRef* colref) {
+	void appendEdgeProperty(string k1, string k2, CColRef* colref) {
 		D_ASSERT(colref != NULL);
 		appendKey(k1, k2, colref, false, true);
 	}
-	void appendColumn(string& k1, CColRef* colref) {
+	void appendColumn(string k1, CColRef* colref) {
 		D_ASSERT(colref != NULL);
 		string none = "";
 		schema.push_back(make_tuple(k1, "", colref));
 	}
 	
-	uint64_t getNumPropertiesOfKey(string& k1) {
+	uint64_t getNumPropertiesOfKey(string k1) {
 		uint64_t cnt = 0;
 		for( auto& col: schema) {
 			if( std::get<0>(col) == k1 ) { cnt++; }
@@ -89,7 +107,7 @@ public:
 		return cnt;
 	}
 
-	CColRef* getColRefOfKey(string& k1, string& k2) {
+	CColRef* getColRefOfKey(string k1, string k2) {
 		bool found = false;
 		CColRef* found_colref = NULL;
 		for(int idx = 0; idx < schema.size(); idx++) {
@@ -100,9 +118,34 @@ public:
 			}
 		}
 		D_ASSERT( found == true );
+		// in order to change colref from unsed to used
 		found_colref->MarkAsUsed();
 		return found_colref;
 	}
+
+	vector<CColRef*> getAllColRefsOfKey(string k1) {
+		vector<CColRef*> result;
+		for(int idx = 0; idx < schema.size(); idx++) {
+			auto& col = schema[idx];
+			if(std::get<0>(col) == k1) {
+				std::get<2>(col)->MarkAsUsed();
+				result.push_back(std::get<2>(col));
+			}
+		}
+		return result;
+	}
+
+	string getPropertyNameOfColRef(string k1, const CColRef* colref) {
+		for(int idx = 0; idx < schema.size(); idx++) {
+			auto& col = schema[idx];
+			if(std::get<0>(col) == k1 && std::get<2>(col) == colref) {
+				D_ASSERT(std::get<1>(col) != "");
+				return std::get<1>(col);
+			}
+		}
+		D_ASSERT(false);
+	}
+
 	bool isNodeBound(string k1) { return bound_nodes.size() > 0 && (bound_nodes.find(k1) != bound_nodes.end()); }
 	bool isEdgeBound(string k1) { return bound_edges.size() > 0 && (bound_edges.find(k1) != bound_edges.end()); }
 	uint64_t size() { return schema.size(); }

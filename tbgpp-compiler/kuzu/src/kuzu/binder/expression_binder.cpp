@@ -219,80 +219,78 @@ unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     const ParsedExpression& parsedExpression) {
-        // TODO jhko do nothing
-        return make_shared<Expression>(kuzu::common::ExpressionType::VARIABLE, kuzu::common::DataType(), "EMPTY_EXPRESSION");
-    // auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
-    // auto functionName = parsedFunctionExpression.getFunctionName();
-    // StringUtils::toUpper(functionName);
-    // auto functionType = binder->catalog.getFunctionType(functionName);
-    // if (functionType == FUNCTION) {
-    //     return bindScalarFunctionExpression(parsedExpression, functionName);
-    // } else {
-    //     assert(functionType == AGGREGATE_FUNCTION);
-    //     return bindAggregateFunctionExpression(
-    //         parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
-    // }
+        
+    auto& parsedFunctionExpression = (ParsedFunctionExpression&)parsedExpression;
+    auto functionName = parsedFunctionExpression.getFunctionName();
+    StringUtils::toUpper(functionName);
+    auto functionType = binder->getFunctionType(functionName);
+    if (functionType == FUNCTION) {
+        return bindScalarFunctionExpression(parsedExpression, functionName);
+    } else {
+        assert(functionType == AGGREGATE_FUNCTION);
+        return bindAggregateFunctionExpression(
+            parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
+    }
 }
 
 shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const string& functionName) {
-// TODO jhko do nothing
-        return make_shared<Expression>(kuzu::common::ExpressionType::VARIABLE, kuzu::common::DataType(), "EMPTY_EXPRESSION");
-    // auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
-    // vector<DataType> childrenTypes;
-    // expression_vector children;
-    // for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-    //     auto child = bindExpression(*parsedExpression.getChild(i));
-    //     childrenTypes.push_back(child->dataType);
-    //     children.push_back(move(child));
-    // }
-    // auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+
+    auto builtInFunctions = binder->builtInVectorOperations.get();
+    vector<DataType> childrenTypes;
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        childrenTypes.push_back(child->dataType);
+        children.push_back(move(child));
+    }
+    auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     // if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
     //     return staticEvaluate(functionName, parsedExpression, children);
     // }
-    // expression_vector childrenAfterCast;
-    // for (auto i = 0u; i < children.size(); ++i) {
-    //     auto targetType =
-    //         function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
-    //     childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
-    // }
-    // DataType returnType;
+    expression_vector childrenAfterCast;
+    for (auto i = 0u; i < children.size(); ++i) {
+        auto targetType =
+            function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
+        childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+    }
+    DataType returnType;
     // if (function->bindFunc) {
     //     function->bindFunc(childrenTypes, function, returnType);
     // } else {
     //     returnType = DataType(function->returnTypeID);
     // }
-    // auto uniqueExpressionName =
-    //     ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    // return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
-    //     function->execFunc, function->selectFunc, uniqueExpressionName);
+    returnType = DataType(function->returnTypeID);
+    auto uniqueExpressionName =
+        ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
+    return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
+        function->execFunc, function->selectFunc, uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const string& functionName, bool isDistinct) {
-// TODO jhko aggregation expression disabled
-    return make_shared<Expression>(kuzu::common::ExpressionType::VARIABLE, kuzu::common::DataType(), "EMPTY_EXPRESSION");
-    // auto builtInFunctions = binder->catalog.getBuiltInAggregateFunction();
-    // vector<DataType> childrenTypes;
-    // expression_vector children;
-    // for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-    //     auto child = bindExpression(*parsedExpression.getChild(i));
-    //     // rewrite aggregate on node or rel as aggregate on their internal IDs.
-    //     // e.g. COUNT(a) -> COUNT(a._id)
-    //     if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
-    //         child = bindInternalIDExpression(*child);
-    //     }
-    //     childrenTypes.push_back(child->dataType);
-    //     children.push_back(std::move(child));
-    // }
-    // auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
-    // auto uniqueExpressionName =
-    //     AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
-    // if (children.empty()) {
-    //     uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
-    // }
-    // return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
-    //     move(children), function->aggregateFunction->clone(), uniqueExpressionName);
+
+    auto builtInFunctions = binder->builtInAggregateFunctions.get();
+    vector<DataType> childrenTypes;
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        auto child = bindExpression(*parsedExpression.getChild(i));
+        // rewrite aggregate on node or rel as aggregate on their internal IDs.
+        // e.g. COUNT(a) -> COUNT(a._id)
+        if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
+            child = bindInternalIDExpression(*child);
+        }
+        childrenTypes.push_back(child->dataType);
+        children.push_back(std::move(child));
+    }
+    auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
+    auto uniqueExpressionName =
+        AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
+    if (children.empty()) {
+        uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
+    }
+    return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
+        move(children), function->aggregateFunction->clone(), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,

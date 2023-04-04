@@ -122,8 +122,12 @@ public:
 
     static inline std::vector<DataTypeID> getNumericalTypeIDs() {
         // S62 extended
+        // return std::vector<DataTypeID>{
+        //     INT64, DOUBLE, TINYINT, SMALLINT, INTEGER, FLOAT, UTINYINT, USMALLINT, UINTEGER, UBIGINT// added in duckdb
+        //     };
+        // currently supported integer types
         return std::vector<DataTypeID>{
-            INT64, DOUBLE, TINYINT, SMALLINT, INTEGER, DECIMAL, FLOAT, UTINYINT, USMALLINT, UINTEGER, UBIGINT// added in duckdb
+            INT64, DOUBLE, INTEGER, FLOAT, UINTEGER, UBIGINT// added in duckdb
             };
     }
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {
