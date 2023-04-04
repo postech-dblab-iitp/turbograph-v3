@@ -100,8 +100,13 @@ public:
 	//! TODO S62 this is a temporary to -> CypherSchema should be disabled by now
 	void setStoredTypes(std::vector<duckdb::LogicalType> types);
 	std::vector<duckdb::LogicalType> getStoredTypes();
+	void setStoredColumnNames(std::vector<std::string>& names);
+	std::vector<std::string> getStoredColumnNames();
+
 	std::string printStoredTypes();
+	std::string printStoredColumnAndTypes();
 	std::vector<duckdb::LogicalType> stored_types;
+	std::vector<std::string> stored_column_names;
 	/* TODO S62 temporary!!!!!! */
 	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;

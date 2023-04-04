@@ -28,12 +28,11 @@ LogicalPlan * Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery
 		// populate properties to scan
     	// propertiesToScan.clear();
 
-	CExpression* plan;
-	GPOS_ASSERT(singleQuery.getNumQueryParts() == 1);
+	LogicalPlan* cur_plan = nullptr;
 	for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-		// TODO handle when multiplequerypart
-        return lPlanQueryPart(*singleQuery.getQueryPart(i), nullptr);
+        cur_plan = lPlanQueryPart(*singleQuery.getQueryPart(i), cur_plan);
     }
+	return cur_plan;
 }
 
 LogicalPlan* Planner::lPlanQueryPart(
@@ -41,12 +40,12 @@ LogicalPlan* Planner::lPlanQueryPart(
 
 	LogicalPlan* cur_plan = prev_plan;
 	for (auto i = 0u; i < queryPart.getNumReadingClause(); i++) {
+		// There may be no reading clause, WITH ... WITH
         cur_plan = lPlanReadingClause(queryPart.getReadingClause(i), cur_plan);
     }
 	GPOS_ASSERT( queryPart.getNumUpdatingClause() == 0);
 	// plan projectionBody after reading clauses
 	if (queryPart.hasProjectionBody()) {
-		
 		// WITH ...
 		cur_plan = lPlanProjectionBody(cur_plan, queryPart.getProjectionBody());
 		
@@ -70,9 +69,14 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		GPOS_ASSERT(false);
 		// TODO plan is manipulated
 		// maybe need to split function without agg and with agg.
+	} else {
+		plan = lPlanProjection(proj_body->getProjectionExpressions(), plan);
 	}
 
-	// TODO not sure about the orders between  projection expressions.. need to refer to Neo4j and kuzu
+	/* Distinct */
+	if(proj_body->getIsDistinct()) {
+		GPOS_ASSERT(false);
+	}
 
 	/* OrderBy */
 	if(proj_body->hasOrderByExpressions()) {
@@ -81,36 +85,6 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		const expression_vector &orderby_expr = proj_body->getOrderByExpressions(); 
 		const vector<bool> sort_orders = proj_body->getSortingOrders(); // if true asc
 		plan = lPlanOrderBy(orderby_expr, sort_orders, plan);
-	}
-
-	/* Scalar projection - using CLogicalProject */
-		// find all projection expressions that requires new columns
-		// generate logicalproiection and record the mappings
-
-	// maintain new mappings
-
-	/* Simple projection - switch orders between columns; use lPlanProjectionOnColIds */
-	CColRefArray* colrefs = GPOS_NEW(mp) CColRefArray(mp);
-	const auto& proj_exprs = proj_body->getProjectionExpressions();
-	for( auto& proj_expr: proj_exprs) {
-		auto& proj_expr_type = proj_expr.get()->expressionType;
-		if(proj_expr_type == kuzu::common::ExpressionType::PROPERTY) {
-			// first depth projection = simple projection
-			PropertyExpression* prop_expr = (PropertyExpression*)(proj_expr.get());
-			string k1 = prop_expr->getVariableName();
-			string k2 = prop_expr->getPropertyName();
-			CColRef* colref = plan->getSchema()->getColRefOfKey(k1, k2);
-			colrefs->Append(colref);
-		} else {
-			// currently do not allow other cases
-			GPOS_ASSERT(false);
-		}
-	}
-	plan = lPlanProjectionOnColRefs(plan, colrefs);
-
-	/* Distinct */
-	if(proj_body->getIsDistinct()) {
-		GPOS_ASSERT(false);
 	}
 
 	/* Skip limit */
@@ -333,34 +307,74 @@ LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, Logica
 	return prev_plan;
 }
 
-LogicalPlan* Planner::lPlanProjectionOnColRefs(LogicalPlan* plan, CColRefArray* colrefs) {
+LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan) {
 
 	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
-
-	CExpression* scalar_proj_elem;
-	for(ULONG idx = 0; idx < colrefs->Size(); idx++){
-		CColRef* colref = colrefs->operator[](idx);
-		CExpression* ident_expr = GPOS_NEW(mp)
-				CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));		// use same column reference
-		scalar_proj_elem = GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr);
-		proj_array->Append(scalar_proj_elem);
-	}
+	CColRefArray* colrefs = GPOS_NEW(mp) CColRefArray(mp);
 	LogicalSchema new_schema;
-	new_schema.copySchema(plan->getSchema(), colrefs);
 
+	for( auto& proj_expr_ptr: expressions) {
+		vector<CExpression*> generated_exprs;
+		vector<CColRef*> generated_colrefs;
+		kuzu::binder::Expression* proj_expr = proj_expr_ptr.get();
+		if( proj_expr->expressionType != kuzu::common::ExpressionType::VARIABLE ) {
+			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
+			D_ASSERT( expr->Pop()->FScalar());
+			if( CUtils::FScalarIdent(expr) ) {
+				// reuse colref
+				generated_colrefs.push_back( col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id()) );
+				// TODO aliasing
+			} else {
+				// get new colref
+				CScalar* scalar_op = (CScalar*)(expr->Pop());
+				string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
+				std::wstring w_col_name = L"";
+				w_col_name.assign(col_name.begin(), col_name.end());
+				const CWStringConst col_name_str(w_col_name.c_str());
+				CName col_cname(&col_name_str);
+				CColRef *new_colref = col_factory->PcrCreate(
+					lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);
+				generated_colrefs.push_back(new_colref);
+			}
+			generated_exprs.push_back(expr);
+			// add new property
+			new_schema.appendColumn(proj_expr->getUniqueName(), generated_colrefs.back());
+		} else {
+			// Handle kuzu::common::ExpressionType::VARIABLE here.
+			kuzu::binder::NodeOrRelExpression* var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
+			auto var_colrefs = prev_plan->getSchema()->getAllColRefsOfKey(var_expr->getUniqueName());
+			for( auto& colref: var_colrefs ) {
+				generated_colrefs.push_back(colref);
+				generated_exprs.push_back( lExprScalarPropertyExpr( var_expr->getUniqueName(), prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getUniqueName(), colref), prev_plan) );
+				// TODO aliasing???
+			}
+			if( var_expr->getDataType().typeID == DataTypeID::NODE ) {
+				new_schema.copyNodeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
+			} else { // rel
+				new_schema.copyEdgeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
+			}
+		}
+		D_ASSERT(generated_exprs.size() > 0 && generated_exprs.size() == generated_colrefs.size());
+		for(int expr_idx = 0; expr_idx < generated_exprs.size(); expr_idx++ ){
+			CExpression* scalar_proj_elem = GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CScalarProjectElement(mp, generated_colrefs[expr_idx]), generated_exprs[expr_idx]);
+			proj_array->Append(scalar_proj_elem);
+		}
+	}
+	
 	// Our columnar projection
 	CExpression *pexprPrjList =
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
 	CExpression *proj_expr =  GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), plan->getPlanExpr(), pexprPrjList);
+		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), prev_plan->getPlanExpr(), pexprPrjList);
 
-	plan->addUnaryParentOp(proj_expr);
-	plan->setSchema(move(new_schema));
+	prev_plan->addUnaryParentOp(proj_expr);
+	prev_plan->setSchema(move(new_schema));
 
-	return plan;
+	return prev_plan;
 }
 
 LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan) {
@@ -533,109 +547,6 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	return plan;
 }
 
-
-CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
-
-	auto expr_type = expression->expressionType;
-	if( isExpressionComparison(expr_type) ) {
-		return lExprScalarComparisonExpr(expression, prev_plan);
-	} else if( PROPERTY == expr_type) {
-		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
-	} else if ( isExpressionLiteral(expr_type) ) {
-		return lExprScalarLiteralExpr(expression, prev_plan);
-	} else {
-		D_ASSERT(false);	// TODO Not yet
-	}
-}
-
-CExpression* Planner::lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan) {
-
-	CMemoryPool* mp = this->memory_pool;
-	ScalarFunctionExpression* comp_expr = (ScalarFunctionExpression*) expression;
-	D_ASSERT( comp_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
-	auto children = comp_expr->getChildren();
-	// lhs, rhs
-	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan);
-	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan);
-
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
-
-	// map comparison type
-	IMDType::ECmpType cmp_type;
-	switch (comp_expr->expressionType) {
-		case ExpressionType::EQUALS: 
-			cmp_type = IMDType::ECmpType::EcmptEq; break;
-		case ExpressionType::NOT_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptNEq; break;
-		case ExpressionType::GREATER_THAN:
-			cmp_type = IMDType::ECmpType::EcmptG; break;
-		case ExpressionType::GREATER_THAN_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptGEq; break;
-		case ExpressionType::LESS_THAN:
-			cmp_type = IMDType::ECmpType::EcmptL; break;
-		case ExpressionType::LESS_THAN_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptLEq; break;
-		default:
-			D_ASSERT(false);
-	}
-
-	IMDId *left_mdid = CScalar::PopConvert(lhs_scalar_expr->Pop())->MdidType();
-	IMDId *right_mdid = CScalar::PopConvert(rhs_scalar_expr->Pop())->MdidType();
-
-	IMDId* func_mdid = 
-		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);	// test if function exists
-	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
-
-	return CUtils::PexprScalarCmp(mp, lhs_scalar_expr, rhs_scalar_expr, cmp_type);
-	
-	// return corresponding expression
-}	
-
-CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan) {
-
-	CMemoryPool* mp = this->memory_pool;
-
-	PropertyExpression* prop_expr = (PropertyExpression*) expression;
-	string k1 = prop_expr->getVariableName();
-	string k2 = prop_expr->getPropertyName();
-	CColRef* target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
-
-	CExpression* ident_expr = GPOS_NEW(mp)
-			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
-	
-	return ident_expr;
-}
-
-CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan) {
-
-	CMemoryPool* mp = this->memory_pool;
-
-	LiteralExpression* lit_expr = (LiteralExpression*) expression;
-	DataType type = lit_expr->literal.get()->dataType;
-
-	D_ASSERT( !lit_expr->isNull() && "currently null not supported");
-
-	CExpression* pexpr = nullptr;
-	uint32_t literal_type_id = LOGICAL_TYPE_BASE_ID + (OID)type.typeID;
-	CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, literal_type_id, 1, 0);
-	type_mdid->AddRef();
-	
-	void* serialized_literal = NULL;
-	uint64_t serialized_literal_length = 0;
-	if( !lit_expr->isNull() ) {
-		DatumSerDes::SerializeKUZULiteralIntoOrcaByteArray(literal_type_id, lit_expr->literal.get(), serialized_literal, serialized_literal_length);
-		D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
-	}
-
-	IDatumGeneric *datum = (IDatumGeneric*) (GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0));
-	datum->AddRef();
-	pexpr = GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
-	pexpr->AddRef();
-
-	D_ASSERT(pexpr != nullptr);
-	return pexpr;
-}
 
 
 /*

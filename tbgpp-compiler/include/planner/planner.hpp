@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <type_traits>
+#include <string>
 
 #include "gpos/_api.h"
 #include "naucrates/init.h"
@@ -98,6 +99,7 @@
 #include "kuzu/binder/expression/function_expression.h"
 #include "kuzu/binder/expression/literal_expression.h"
 #include "kuzu/binder/expression/property_expression.h"
+#include "kuzu/binder/expression/node_rel_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -201,14 +203,15 @@ private:
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan, bool is_optional_match);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
-	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan* plan, CColRefArray* colrefs);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	
 	/* Helper functions for generating orca logical plans */
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 
 
@@ -276,6 +279,7 @@ private:
 	
 	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* columns, vector<uint64_t>& out_mapping);
 	void pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types);
+	void pGenerateColumnNames(CColRefArray* columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
 	
 
@@ -283,6 +287,11 @@ private:
 	CColRefArray* pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr);
 
 // TODO move to PlannerUtils
+	inline string pGetColNameFromColRef(const CColRef* column) {
+		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
+		string name(name_ws.begin(), name_ws.end());
+		return name;
+	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
 	}

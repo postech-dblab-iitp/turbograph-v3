@@ -185,7 +185,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	D_ASSERT(output_ident_mapping.size() == output_cols->Size());
 	output_projection_mapping.push_back(output_ident_mapping);
 	vector<duckdb::LogicalType> types;
+	vector<string> output_col_names;
 	pGenerateTypes(output_cols->Pdrgpcr(mp), types);
+	pGenerateColumnNames(output_cols->Pdrgpcr(mp), output_col_names);
 	D_ASSERT(types.size() == output_ident_mapping.size());
 
 	// scan projection mapping - when doing filter pushdown, two mappings MAY BE different.
@@ -217,6 +219,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
+	tmp_schema.setStoredColumnNames(output_col_names);
 	duckdb::CypherPhysicalOperator* op = nullptr;
 
 	if(!do_filter_pushdown) {
@@ -696,6 +699,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 
 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
 	vector<duckdb::LogicalType> types;
+	vector<string> output_column_names;
 
 	CPhysicalComputeScalarColumnar* proj_op = (CPhysicalComputeScalarColumnar*) plan_expr->Pop();
 	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
@@ -715,6 +719,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId() );
 				OID type_oid = type_mdid->Oid();
 				types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+				output_col_names.push_back( pGetColNameFromColRef(ident_op->Pcr()) );
 				proj_exprs.push_back(
 					make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)child_index )
 				);
@@ -731,6 +736,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	/* Generate operator and push */
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
+	tmp_schema.setStoredColumnNames(output_col_names);
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
 	result->push_back(op);
@@ -920,7 +926,6 @@ void Planner::pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* co
 }
 
 void Planner::pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types) {
-	
 	columns->AddRef();
 	D_ASSERT(out_types.size() == 0); // assert empty
 	for(uint64_t i = 0 ; i < columns->Size(); i++) {
@@ -930,7 +935,13 @@ void Planner::pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>&
 	}
 }
 
-
+void Planner::pGenerateColumnNames(CColRefArray* columns, vector<string>& out_col_names) {
+	columns->AddRef();
+	D_ASSERT(out_col_names.size() == 0);
+	for(uint64_t i = 0 ; i < columns->Size(); i++) {
+		out_col_names.push_back( pGetColNameFromColRef(columns->operator[](i)) );
+	}
+}
 
 bool Planner::pIsColumnarProjectionSimpleProject(CExpression* proj_expr) {
 
