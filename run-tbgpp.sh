@@ -32,7 +32,7 @@ iterations="--num-iterations:5"
 run_query() {
 	query_str=$1
 	echo $query_str
-	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
+	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
 }
 
 run_ldbc_s() {
@@ -44,7 +44,7 @@ run_ldbc_s() {
 	# LDBC IS2
 
 	# LDBC IS3
-	run_query "MATCH (n:Person {id: 65})-[r:KNOWS]->(friend:Person) RETURN friend.id, friend.firstName, friend.lastName, r.creationDate ORDER BY r.creationDate DESC, friend.id ASC"
+	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person) RETURN friend.id, friend.firstName, friend.lastName, r.creationDate ORDER BY r.creationDate DESC, friend.id ASC"
 	# LDBC IS4
 	run_query "MATCH (m:Comment {id: 557}) RETURN m.creationDate, m.content"
 	# LDBC IS5

@@ -10,7 +10,7 @@
 
 #include "icecream.hpp"
 
-#define DEBUG_LOAD_COLUMN
+// #define DEBUG_LOAD_COLUMN
 
 namespace duckdb {
 
