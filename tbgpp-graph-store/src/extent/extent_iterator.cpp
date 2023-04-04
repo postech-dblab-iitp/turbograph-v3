@@ -8,7 +8,9 @@
 #include "common/types/data_chunk.hpp"
 #include "extent/compression/compression_function.hpp"
 
-#include "icecream.hpp" 
+#include "icecream.hpp"
+
+// #define DEBUG_LOAD_COLUMN
 
 namespace duckdb {
 
@@ -400,12 +402,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
-            //                 i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
-            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
-            //                 io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Full Scan] Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+                            i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+                            io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+#endif
         } else {
-            // fprintf(stdout, "Load Column %ld\n", i);
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Full Scan] Load Column %ld\n", i);
+#endif
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -673,11 +679,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (!valid_output[i]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[prev_toggle][i], sizeof(CompressionHeader));
-            fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Scan With Filter] Load Column %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
                             i, io_requested_cdf_ids[prev_toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[prev_toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[prev_toggle][i]);
+#endif
         } else {
-            fprintf(stdout, "Load Column %ld\n", i);
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Scan With Filter] Load Column %ld\n", i);
+#endif
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -840,11 +850,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, access %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
-            //                 i, target_seqno, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "Load Column %ld, access %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p\n", 
+                            i, target_seqno, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
+#endif
         } else {
-            // fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "Load Column %ld, access %ld\n", i, target_seqno);
+#endif
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
@@ -997,12 +1011,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
-            // fprintf(stdout, "Load Column %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
-            //                 i, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-            //                 io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
-            //                 io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
+                            i, output_col_idx[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, ext_property_types[i].id(), comp_header.data_len,
+                            io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+#endif
         } else {
-            // fprintf(stdout, "Load Column %ld\n", i);
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
+#endif
         }
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {

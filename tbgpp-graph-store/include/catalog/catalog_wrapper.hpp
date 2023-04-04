@@ -132,9 +132,9 @@ public:
         return ExpressionTypeToString(etype);
     }
 
-    void GetOpInputTypes(idx_t op_oid, idx_t &left_type_id, idx_t &right_type_id) {
-        left_type_id = ((op_oid - OPERATOR_BASE_ID) % (256 * 256)) / 256 + LOGICAL_TYPE_BASE_ID;
-        right_type_id = ((op_oid - OPERATOR_BASE_ID) % (256)) + LOGICAL_TYPE_BASE_ID;
+    void GetOpInputTypes(idx_t op_id, idx_t &left_type_id, idx_t &right_type_id) {
+        left_type_id = ((op_id - OPERATOR_BASE_ID) % (256 * 256)) / 256 + LOGICAL_TYPE_BASE_ID;
+        right_type_id = ((op_id - OPERATOR_BASE_ID) % (256)) + LOGICAL_TYPE_BASE_ID;
     }
 
     idx_t GetOpFunc(idx_t op_id) {
@@ -176,6 +176,19 @@ public:
                 throw NotImplementedException("InverseOp is not implemented yet");
         }
         return GetComparisonOperator(left_type_id, right_type_id, inv_etype);
+    }
+
+    idx_t GetOpFamiliesForScOp(idx_t op_id) {
+        ExpressionType etype = (ExpressionType) ((op_id - OPERATOR_BASE_ID) / (256 * 256));
+        LogicalTypeId left_type_id = (LogicalTypeId) (((op_id - OPERATOR_BASE_ID) % (256 * 256)) / 256);
+        LogicalTypeId right_type_id = (LogicalTypeId) ((op_id - OPERATOR_BASE_ID) % (256));
+        idx_t left_type_physical_id = (idx_t) LogicalType(left_type_id).InternalType();
+        idx_t right_type_physical_id = (idx_t) LogicalType(right_type_id).InternalType();
+
+        return OPERATOR_FAMILY_BASE_ID
+            + (((idx_t) etype) * (256 * 256))
+            + (left_type_physical_id * 256)
+            + (right_type_physical_id);
     }
 
 private:

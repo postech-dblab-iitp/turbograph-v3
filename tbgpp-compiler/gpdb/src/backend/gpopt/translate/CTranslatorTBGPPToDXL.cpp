@@ -1582,6 +1582,7 @@ CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
 	{
 		// S62 fwd/bwd adjlist include only sid & tid columns
 		GPOS_ASSERT(num_included_cols >= 2);
+		included_cols->Append(GPOS_NEW(mp) ULONG(0));
 		included_cols->Append(GPOS_NEW(mp) ULONG(1));
 		included_cols->Append(GPOS_NEW(mp) ULONG(2));
 	}
@@ -2515,7 +2516,8 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// }
 
 	// column width
-	CDouble width = CDouble(duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
+	idx_t width_penalty = 1;//rel->GetName().rfind("vps", 0) == 0 ? 1 : 100L; // S62 TODO.. avoid edge table scan
+	CDouble width = CDouble(width_penalty * duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);
@@ -3725,10 +3727,11 @@ CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 	// ForEach(lc, op_families)
 	// {
 		// OID op_family_oid = lfirst_oid(lc);
-		OID op_family_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
+		OID op_family_logical_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
 			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
 			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
 			CmptEq);
+		OID op_family_oid = duckdb::GetOpFamiliesForScOp(op_family_logical_oid);
 		input_col_mdids->Append(
 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
 	// }
@@ -3750,6 +3753,8 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 {
 	// List *op_families =
 	// 	gpdb::GetOpFamiliesForScOp(CMDIdGPDB::CastMdid(mdid_scalar_op)->Oid());
+	OID op_family_oid =
+		duckdb::GetOpFamiliesForScOp(CMDIdGPDB::CastMdid(mdid_scalar_op)->Oid());
 	IMdIdArray *input_col_mdids = GPOS_NEW(mp) IMdIdArray(mp);
 
 	// ListCell *lc = NULL;
@@ -3757,8 +3762,8 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 	// ForEach(lc, op_families)
 	// {
 	// 	OID op_family_oid = lfirst_oid(lc);
-	// 	input_col_mdids->Append(
-	// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
+		input_col_mdids->Append(
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
 	// }
 
 	return input_col_mdids;

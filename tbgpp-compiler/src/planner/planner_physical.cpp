@@ -554,10 +554,17 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	vector<uint32_t> scident_colids;
 
 	bool do_projection_on_idxscan = false;
+	bool do_filter_pushdown = false;
+
+	CPhysicalFilter *filter_op = NULL;
+	CExpression *filter_expr = NULL;
+	CExpression *filter_pred_expr = NULL;
+	CExpression *idxscan_expr = NULL;
 
 	while(true) {
 		if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan) {
 			// IdxScan
+			idxscan_expr = inner_root;
 			CPhysicalIndexScan* idxscan_op = (CPhysicalIndexScan*)inner_root->Pop();
 			CMDIdGPDB* index_mdid = CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
 			gpos::ULONG oid = index_mdid->Oid();
@@ -614,6 +621,16 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			outer_cols->Release();
 			inner_cols->Release();
 			return result;
+		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter) {
+			filter_expr = inner_root;
+			filter_op = (CPhysicalFilter*) filter_expr->Pop();
+			filter_pred_expr = filter_expr->operator[](1);
+			// TODO current assume all predicates are pushdown-able
+			D_ASSERT(filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
+			D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+			D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
+
+			do_filter_pushdown = true;
 		}
 		// reached to the bottom
 		if( inner_root->Arity() == 0 ) {
@@ -628,6 +645,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 
 	D_ASSERT(oids.size() == 1);
 	D_ASSERT(projection_mapping.size() == 1);
+
+	D_ASSERT(idxscan_expr != NULL);
+	CColRefSet *inner_output_cols = pexprInner->Prpp()->PcrsRequired();
+	CColRefSet *idxscan_output_cols = idxscan_expr->Prpp()->PcrsRequired();
+	D_ASSERT(idxscan_output_cols->ContainsAll(inner_output_cols));
 
 	bool sid_col_idx_found = false;
 	// Construct mapping info
