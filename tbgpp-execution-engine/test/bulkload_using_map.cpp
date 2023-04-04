@@ -201,7 +201,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
-			property_schema_cat->AddExtent(new_eid);
+			property_schema_cat->AddExtent(new_eid, data.size());
 			
 			if (load_edge) {
 				// Initialize pid base
@@ -653,7 +653,7 @@ icecream::ic.enable();
 			}
 			// Create Edge Extent by Extent Manager
 			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
-			property_schema_cat->AddExtent(new_eid);
+			property_schema_cat->AddExtent(new_eid, data.size());
 		}
 		
 		// Process remaining adjlist

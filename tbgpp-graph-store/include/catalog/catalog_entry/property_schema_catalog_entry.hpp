@@ -52,6 +52,7 @@ public:
 	LogicalTypeId_vector property_typesid;
 	string_vector property_key_names;
 	idx_t num_columns;
+	idx_t last_extent_num_tuples;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -80,7 +81,7 @@ public:
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
-	void AddExtent(ExtentID eid);
+	void AddExtent(ExtentID eid, size_t num_tuples_in_extent = 0);
 	ExtentID GetNewExtentID();
 	PartitionID GetPartitionID();
 	idx_t GetPartitionOID();
