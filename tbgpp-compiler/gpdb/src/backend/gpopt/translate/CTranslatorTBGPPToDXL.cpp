@@ -1578,7 +1578,8 @@ CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
 
 	ULongPtrArray *included_cols = GPOS_NEW(mp) ULongPtrArray(mp);
 	const ULONG num_included_cols = md_rel->ColumnCount();
-	if (index_type == IMDIndex::EmdindFwdAdjlist || index_type == IMDIndex::EmdindBwdAdjlist) 
+	// if (index_type == IMDIndex::EmdindFwdAdjlist || index_type == IMDIndex::EmdindBwdAdjlist) 
+	if (false)
 	{
 		// S62 fwd/bwd adjlist include only sid & tid columns
 		GPOS_ASSERT(num_included_cols >= 2);

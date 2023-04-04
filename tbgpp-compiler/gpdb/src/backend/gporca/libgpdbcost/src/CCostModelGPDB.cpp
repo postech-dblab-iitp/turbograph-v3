@@ -1624,10 +1624,10 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	const CDouble dTableWidth =
 		CPhysicalScan::PopConvert(pop)->PstatsBaseTable()->Width();
 
-	// const CDouble dIndexFilterCostUnit =
-	// 	pcmgpdb->GetCostModelParams()
-	// 		->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)
-	// 		->Get();
+	const CDouble dIndexFilterCostUnit =
+		pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)
+			->Get();
 	const CDouble dIndexScanTupCostUnit =
 		pcmgpdb->GetCostModelParams()
 			->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupCostUnit)
@@ -1636,7 +1636,7 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 		pcmgpdb->GetCostModelParams()
 			->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupRandomFactor)
 			->Get();
-	// GPOS_ASSERT(0 < dIndexFilterCostUnit);
+	GPOS_ASSERT(0 < dIndexFilterCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupRandomFactor);
 
@@ -1664,9 +1664,9 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	// when we sum-up children cost
 
 	// S62 in Adjacency Index case, IndexFilterCostUnit may be 0
-	CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
-	// CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
-	// 						   dTableWidth * dIndexScanTupCostUnit;
+	// CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
+	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+							   dTableWidth * dIndexScanTupCostUnit;
 	return CCost(pci->NumRebinds() *
 				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
 }
