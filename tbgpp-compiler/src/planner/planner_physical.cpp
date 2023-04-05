@@ -541,18 +541,27 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	for(ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
 		CColRef* col = outer_cols->operator[](col_idx);
 		ULONG col_id = col->Id();
-		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
-		outer_col_map.push_back(id_idx);
+		// find key column
 		auto it = std::find(sccmp_colids.begin(), sccmp_colids.end(), col_id);
 		if (it != sccmp_colids.end()) {
 			D_ASSERT(!sid_col_idx_found);
 			sid_col_idx = col_idx;
 			sid_col_idx_found = true;
 		}
+		// construct outer col map
+		auto it_ = id_map.find(col_id);
+  		if (it_ == id_map.end()) {
+			outer_col_map.push_back( std::numeric_limits<uint32_t>::max() );
+		} else {
+			auto id_idx = id_map.at(col_id);
+			outer_col_map.push_back(id_idx);
+		}	
 	}
 	D_ASSERT(sid_col_idx_found);
+
+	// construct inner col map. // TODO we don't consider edge property now..
 	for(ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
-		if (col_idx == 0) continue;
+		// if (col_idx == 0) continue; // 0405 we don't need this condition anymore?
 		CColRef* col = inner_cols->operator[](col_idx);
 		ULONG col_id = col->Id();
 		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
@@ -672,14 +681,17 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 				CColRef *col = (*output_cols)[col_idx];
 				ULONG idx = outer_cols->IndexOf(col);
-				D_ASSERT(idx != gpos::ulong_max);
+				if (idx == gpos::ulong_max) continue;
+				// D_ASSERT(idx != gpos::ulong_max);
 				proj_exprs.push_back(
 					make_unique<duckdb::BoundReferenceExpression>(types[col_idx], (int)idx)
 				);
 			}
-			duckdb::CypherPhysicalOperator* op =
-				new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
-			result->push_back(op);
+			if (proj_exprs.size() != 0) {
+				duckdb::CypherPhysicalOperator* op =
+					new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
+				result->push_back(op);
+			}
 
 			// release
 			output_cols->Release();
@@ -1087,6 +1099,7 @@ duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment e
 	case COrderSpec::ENullTreatment::EntSentinel:
 		D_ASSERT(false);
 	}
+	return duckdb::OrderByNullType::ORDER_DEFAULT;
 }
 
 

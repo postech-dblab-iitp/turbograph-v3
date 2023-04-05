@@ -224,9 +224,13 @@ OperatorResultType PhysicalVarlenAdjIdxJoin::ExecuteNaiveInput(ExecutionContext&
 		state.iso_checker->initialize(max_length - min_length + 1);
 #endif
 
-		D_ASSERT(inner_col_map.size() == 2);
-		state.edgeColIdx = inner_col_map[0];
-		state.tgtColIdx = inner_col_map[1];
+		if (load_eid) {
+			state.tgtColIdx = inner_col_map[0];
+			state.edgeColIdx = inner_col_map[1];
+		} else {
+			state.edgeColIdx = -1;
+			state.tgtColIdx = inner_col_map[0];
+		}
 		
 		state.outer_col_map = move(outer_col_map);
 		state.inner_col_map = move(inner_col_map);
@@ -321,8 +325,11 @@ void PhysicalVarlenAdjIdxJoin::ProcessVarlenEquiJoin(ExecutionContext& context, 
 	// chunk determined. now fill in lhs using slice operation
 	D_ASSERT(input.ColumnCount() == state.outer_col_map.size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-		D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
-		chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+		if( state.outer_col_map[colId] != std::numeric_limits<uint32_t>::max() ) {
+			// when outer col map marked uint32_max, do not return
+			D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
+			chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+		}
 	}
 
 	D_ASSERT (state.output_idx <= STANDARD_VECTOR_SIZE);
