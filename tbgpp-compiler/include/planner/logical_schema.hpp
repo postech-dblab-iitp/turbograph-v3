@@ -128,6 +128,7 @@ public:
 		for(int idx = 0; idx < schema.size(); idx++) {
 			auto& col = schema[idx];
 			if(std::get<0>(col) == k1) {
+				// in order to change colref from unsed to used
 				std::get<2>(col)->MarkAsUsed();
 				result.push_back(std::get<2>(col));
 			}

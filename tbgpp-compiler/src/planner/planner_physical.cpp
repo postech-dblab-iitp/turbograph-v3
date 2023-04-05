@@ -185,9 +185,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	D_ASSERT(output_ident_mapping.size() == output_cols->Size());
 	output_projection_mapping.push_back(output_ident_mapping);
 	vector<duckdb::LogicalType> types;
-	vector<string> output_col_names;
+	vector<string> out_col_names;
 	pGenerateTypes(output_cols->Pdrgpcr(mp), types);
-	pGenerateColumnNames(output_cols->Pdrgpcr(mp), output_col_names);
+	pGenerateColumnNames(output_cols->Pdrgpcr(mp), out_col_names);
 	D_ASSERT(types.size() == output_ident_mapping.size());
 
 	// scan projection mapping - when doing filter pushdown, two mappings MAY BE different.
@@ -219,7 +219,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
-	tmp_schema.setStoredColumnNames(output_col_names);
+	tmp_schema.setStoredColumnNames(out_col_names);
 	duckdb::CypherPhysicalOperator* op = nullptr;
 
 	if(!do_filter_pushdown) {
@@ -793,7 +793,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
 		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);	// CScalarProjectElement
 		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
-// TODO need to recursively build plan!!! - need separate function for this.
+// TODO need to recursively build plan!!! - need separate function for this.		
 		switch (pexprScalarExpr->Pop()->Eopid()) {
 			case COperator::EopScalarIdent: {
 				CScalarIdent* ident_op = (CScalarIdent*)pexprScalarExpr->Pop();
@@ -803,7 +803,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId() );
 				OID type_oid = type_mdid->Oid();
 				types.push_back( pConvertTypeOidToLogicalType(type_oid) );
-				output_col_names.push_back( pGetColNameFromColRef(ident_op->Pcr()) );
+				output_column_names.push_back( pGetColNameFromColRef(ident_op->Pcr()) );
 				proj_exprs.push_back(
 					make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)child_index )
 				);
@@ -820,7 +820,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	/* Generate operator and push */
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
-	tmp_schema.setStoredColumnNames(output_col_names);
+	tmp_schema.setStoredColumnNames(output_column_names);
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
 	result->push_back(op);
