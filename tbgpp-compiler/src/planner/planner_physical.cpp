@@ -3,6 +3,7 @@
 #include <string>
 #include <limits>
 #include <algorithm>
+#include <set>
 
 // orca operators
 
@@ -32,7 +33,18 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 
 	// Append PhysicalProduceResults
 	duckdb::CypherSchema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
-	auto op = new duckdb::PhysicalProduceResults(final_output_schema);
+
+	// calculate mapping for produceresults
+	vector<uint8_t> projection_mapping;
+	for(uint8_t log_idx=0; log_idx<logical_plan_output_colrefs.size(); log_idx++) {
+		for(uint8_t phy_idx=0; phy_idx<physical_plan_output_colrefs.size(); phy_idx++) {
+			if(logical_plan_output_colrefs[log_idx]->Id() == physical_plan_output_colrefs[phy_idx]->Id()) {
+				projection_mapping.push_back(phy_idx);
+			}
+		}
+	}
+	D_ASSERT(projection_mapping.size() == logical_plan_output_colrefs.size());
+	auto op = new duckdb::PhysicalProduceResults(final_output_schema, projection_mapping);
 
 	final_pipeline_ops.push_back(op);
 
@@ -789,9 +801,17 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumnar(CExpression* plan_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	/* store latest colrefs of the latest projection output */
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	physical_plan_output_colrefs.clear();
+	for(ULONG idx=0; idx<output_cols->Size(); idx++) {
+		physical_plan_output_colrefs.push_back(output_cols->operator[](idx));
+	}
 
 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
 	vector<duckdb::LogicalType> types;
@@ -802,10 +822,25 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	CColRefArray* child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 
-	for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
+	// decide which proj elems to project - keep colref orders
+	vector<ULONG> indices_to_project;
+	for(ULONG ocol=0; ocol < output_cols->Size(); ocol++) {
+		for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
+			if( ((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id() ) {
+				// matching ColRef found
+				indices_to_project.push_back(elem_idx);
+				goto OUTER_LOOP;
+			}
+		}
+		D_ASSERT(false);
+		OUTER_LOOP:;
+	}
+	
+
+	for(auto& elem_idx: indices_to_project){
 		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);	// CScalarProjectElement
 		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
-// TODO need to recursively build plan!!! - need separate function for this.		
+
 		switch (pexprScalarExpr->Pop()->Eopid()) {
 			case COperator::EopScalarIdent: {
 				CScalarIdent* ident_op = (CScalarIdent*)pexprScalarExpr->Pop();
@@ -827,7 +862,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		}
 	}
 
-	D_ASSERT( pexprProjList->Arity() == proj_exprs.size() );
+	D_ASSERT( pexprProjList->Arity() >= proj_exprs.size() );
 
 	/* Generate operator and push */
 	duckdb::CypherSchema tmp_schema;

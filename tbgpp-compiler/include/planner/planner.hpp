@@ -313,10 +313,13 @@ private:
 	CMemoryPool* memory_pool;
 
 	// used and initialized in each execution
-	BoundStatement* bound_statement;			// input parse statemnt
-	std::map<OID, std::vector<CColRef*>> table_col_mapping;
-	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
-	vector<std::string> plan_output_col_names;
+	BoundStatement* bound_statement;					// input parse statemnt
+	vector<duckdb::CypherPipeline*> pipelines;			// output plan pipelines
+	vector<std::string> logical_plan_output_col_names;			// output col names
+	std::vector<CColRef*> logical_plan_output_colrefs;	// final output colrefs of the logical plan (user's view)
+	std::vector<CColRef*> physical_plan_output_colrefs;	// final output colrefs of the physical plan
+	
+
 };
 
 }

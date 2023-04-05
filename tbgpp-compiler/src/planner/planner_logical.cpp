@@ -655,11 +655,6 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 
 	CTableDescriptor* ptabdesc = lCreateTableDescForRel( lGenRelMdid(obj_id), rel_name);
 
-	// manage original table columns
-	if( !table_col_mapping.count(obj_id) ) {
-		table_col_mapping[obj_id] = std::vector<CColRef*>();
-	}
-
 	std::wstring w_alias = L"";
 	w_alias.assign(alias.begin(), alias.end());
 	CWStringConst strAlias(w_alias.c_str());
@@ -671,7 +666,6 @@ CExpression * Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string 
 	CColRefArray *arr = pop->PdrgpcrOutput();
 	for (ULONG ul = 0; ul < arr->Size(); ul++) {
 		CColRef *ref = (*arr)[ul];
-		table_col_mapping[obj_id].push_back(ref);
 		ref->MarkAsUnknown();
 	}
 	return scan_expr;

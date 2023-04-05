@@ -2,6 +2,7 @@
 
 # Basic rules
 build*/
+build
 tmp/
 *.log
 
