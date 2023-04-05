@@ -48,7 +48,7 @@ void Planner::reset() {
 	table_col_mapping.clear();
 	bound_statement = nullptr;
 	pipelines.clear();
-	output_col_names.clear();
+	plan_output_col_names.clear();
 
 }
 
@@ -347,7 +347,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 
 		for(gpos::ULONG idx = 0; idx < output_columns.size(); idx++) {
 			std::wstring table_name_ws(output_columns[idx]->Name().Pstr()->GetBuffer());
-			planner->output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
+			planner->plan_output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
 		}
 	
 		/* LogicalRules */
@@ -430,7 +430,7 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 vector<string> Planner::getQueryOutputColNames(){
 	
 	// TODO no asserts?
-	return output_col_names;
+	return plan_output_col_names;
 }
 
 

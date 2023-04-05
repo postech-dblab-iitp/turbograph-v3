@@ -392,7 +392,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output_eid = ext_ids_to_iterate[current_idx];
 // IC();
     idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
-    idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, comp_header.data_len);
+    idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
 // icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset, idx_for_cardinality, comp_header.data_len);icecream::ic.disable();
     // D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
     for (size_t i = 0; i < ext_property_types.size(); i++) {

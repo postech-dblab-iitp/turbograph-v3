@@ -316,7 +316,7 @@ private:
 	BoundStatement* bound_statement;			// input parse statemnt
 	std::map<OID, std::vector<CColRef*>> table_col_mapping;
 	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
-	vector<std::string> output_col_names;
+	vector<std::string> plan_output_col_names;
 };
 
 }

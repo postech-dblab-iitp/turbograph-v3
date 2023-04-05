@@ -323,14 +323,25 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 		if( proj_expr->expressionType != kuzu::common::ExpressionType::VARIABLE ) {
 			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
 			D_ASSERT( expr->Pop()->FScalar());
+			string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
 			if( CUtils::FScalarIdent(expr) ) {
 				// reuse colref
-				generated_colrefs.push_back( col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id()) );
-				// TODO aliasing
+				CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
+				generated_colrefs.push_back(orig_colref);
+				if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ) {
+					PropertyExpression* prop_expr = (PropertyExpression*) proj_expr;
+					if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableName()) ) {
+						new_schema.appendNodeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					} else {
+						new_schema.appendEdgeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					}
+				} else {
+					new_schema.appendColumn(col_name, generated_colrefs.back());
+				}
+				
 			} else {
 				// get new colref
 				CScalar* scalar_op = (CScalar*)(expr->Pop());
-				string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
 				std::wstring w_col_name = L"";
 				w_col_name.assign(col_name.begin(), col_name.end());
 				const CWStringConst col_name_str(w_col_name.c_str());
@@ -338,10 +349,10 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 				CColRef *new_colref = col_factory->PcrCreate(
 					lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);
 				generated_colrefs.push_back(new_colref);
+				new_schema.appendColumn(col_name, generated_colrefs.back());
 			}
 			generated_exprs.push_back(expr);
 			// add new property
-			new_schema.appendColumn(proj_expr->getUniqueName(), generated_colrefs.back());
 		} else {
 			// Handle kuzu::common::ExpressionType::VARIABLE here.
 			kuzu::binder::NodeOrRelExpression* var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
