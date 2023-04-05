@@ -447,7 +447,18 @@ LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CColRefArray *path_output_cols = GPOS_NEW(mp) CColRefArray(mp);
 
-	auto& prop_exprs = edge_expr->getPropertyExpressions();
+	// tabledescs for underlying table
+	CTableDescriptorArray *path_table_descs = GPOS_NEW(mp) CTableDescriptorArray(mp);
+	path_table_descs->AddRef();
+	for( auto& obj_id: table_oids ) {
+		path_table_descs->Append(lCreateTableDescForRel(lGenRelMdid(obj_id), edge_name));
+	}
+	D_ASSERT(path_table_descs->Size() == table_oids.size() );
+
+	CColumnDescriptorArray *pdrgpcoldesc = path_table_descs->operator[](0)->Pdrgpcoldesc(); // TODO need to change for Union All case
+	IMDId *mdid_table = path_table_descs->operator[](0)->MDId(); // TODO need to change for Union All case
+	auto &prop_exprs = edge_expr->getPropertyExpressions();
+	D_ASSERT(pdrgpcoldesc->Size() == prop_exprs.size());
 	for( int colidx=0; colidx < prop_exprs.size(); colidx++) {
 		auto& _prop_expr = prop_exprs[colidx];
 		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());
@@ -463,9 +474,12 @@ LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
 			const CWStringConst col_name_str(property_print_name.c_str());
 			CName col_name(&col_name_str);
 			
+			CColumnDescriptor *pcoldesc = (*pdrgpcoldesc)[colidx];
 			// generate colref
+			// CColRef *new_colref = col_factory->PcrCreate(
+			// 	lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
 			CColRef *new_colref = col_factory->PcrCreate(
-				lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
+				pcoldesc, col_name, 0, false /* mark_as_used */, mdid_table); // TODO ulOpSourceId?
 			path_output_cols->Append(new_colref);
 
 			// add to schema
@@ -474,14 +488,6 @@ LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
 	}
 	D_ASSERT( schema.getNumPropertiesOfKey(edge_name) == 3);
 	D_ASSERT( path_output_cols->Size() == 3 );
-
-	// tabledescs for underlying table
-	CTableDescriptorArray *path_table_descs = GPOS_NEW(mp) CTableDescriptorArray(mp);
-	path_table_descs->AddRef();
-	for( auto& obj_id: table_oids ) {
-		path_table_descs->Append(lCreateTableDescForRel(lGenRelMdid(obj_id), edge_name));
-	}
-	D_ASSERT(path_table_descs->Size() == table_oids.size() );
 	
 	// generate get expression
 	std::wstring w_alias = L"";
