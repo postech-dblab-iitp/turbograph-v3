@@ -392,7 +392,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     output_eid = ext_ids_to_iterate[current_idx];
 // IC();
     idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
-    idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, comp_header.data_len);
+    idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
 // icecream::ic.enable();IC(output_eid, current_idx_in_this_extent, scan_size, scan_begin_offset, scan_end_offset, idx_for_cardinality, comp_header.data_len);icecream::ic.disable();
     // D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
     for (size_t i = 0; i < ext_property_types.size(); i++) {
@@ -403,8 +403,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Full Scan] Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld, total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
-                            i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size, comp_header.data_len,
+            fprintf(stdout, "[Full Scan] Load Column %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+                            i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size,
+                            scan_begin_offset, scan_end_offset, comp_header.data_len,
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
