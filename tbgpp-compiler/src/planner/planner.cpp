@@ -45,11 +45,11 @@ void Planner::reset() {
 	
 	// reset planner context 
 	// note that we reuse orca memory pool
-	table_col_mapping.clear();
 	bound_statement = nullptr;
 	pipelines.clear();
-	plan_output_col_names.clear();
-
+	logical_plan_output_col_names.clear();
+	logical_plan_output_colrefs.clear();
+	physical_plan_output_colrefs.clear();
 }
 
 CQueryContext* Planner::_orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_plan) {
@@ -341,13 +341,13 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
 	
-		/* Register output column names */
+		/* Register logical column colrefs / names */
 		std::vector<CColRef*> output_columns;
 		logical_plan->getSchema()->getOutputColumns(output_columns);
-
+		planner->logical_plan_output_colrefs = output_columns;
 		for(gpos::ULONG idx = 0; idx < output_columns.size(); idx++) {
 			std::wstring table_name_ws(output_columns[idx]->Name().Pstr()->GetBuffer());
-			planner->plan_output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
+			planner->logical_plan_output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
 		}
 	
 		/* LogicalRules */
@@ -430,7 +430,7 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 vector<string> Planner::getQueryOutputColNames(){
 	
 	// TODO no asserts?
-	return plan_output_col_names;
+	return logical_plan_output_col_names;
 }
 
 
