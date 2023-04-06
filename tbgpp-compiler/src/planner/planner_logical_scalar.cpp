@@ -61,7 +61,22 @@ CExpression* Planner::lExprScalarComparisonExpr(Expression* expression, LogicalP
 	return CUtils::PexprScalarCmp(mp, lhs_scalar_expr, rhs_scalar_expr, cmp_type);
 	
 	// return corresponding expression
-}	
+}
+
+CExpression* Planner::lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	IMDType::ECmpType cmp_type = IMDType::ECmpType::EcmptEq;
+
+	IMDId *left_mdid = CScalar::PopConvert(left_expr->Pop())->MdidType();
+	IMDId *right_mdid = CScalar::PopConvert(right_expr->Pop())->MdidType();
+	IMDId* func_mdid = 
+		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);
+	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
+
+	return CUtils::PexprScalarCmp(mp, left_expr, right_expr, cmp_type);
+}
 
 CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan) {
 

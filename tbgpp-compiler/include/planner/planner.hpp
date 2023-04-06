@@ -81,6 +81,7 @@
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
+#include "gpopt/operators/CScalarBoolOp.h"
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -211,6 +212,7 @@ private:
 	// scalar expression
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
@@ -279,6 +281,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -308,7 +311,7 @@ private:
 
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
-
+	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
 
 private:
 	// config

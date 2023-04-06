@@ -151,7 +151,7 @@ LogicalPlan* Planner::lPlanUnwindClause(
 }
 
 LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, LogicalPlan* prev_plan, bool is_optional_match) {
-
+	
 	LogicalPlan* plan = nullptr;
 
 	string ID_COLNAME = "_id";
@@ -228,9 +228,13 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			
 			// R join B
 			if( is_lhs_bound && is_rhs_bound ) {
-				// no join necessary - add filter predicate
-				GPOS_ASSERT(false);
-				hop_plan = qg_plan; // TODO fixme
+				// no join necessary - add filter predicate on edge.tid = rhs.id
+				CMemoryPool* mp = this->memory_pool;
+				hop_plan = lhs_plan;
+				CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, lhs_plan->getPlanExpr(),
+					lExprScalarCmpEq( lExprScalarPropertyExpr(edge_name, TID_COLNAME, lhs_plan), lExprScalarPropertyExpr(rhs_name, ID_COLNAME, lhs_plan) )
+				);
+				hop_plan->addUnaryParentOp(selection_expr);
 			} else {
 				LogicalPlan* rhs_plan;
 				// join necessary
