@@ -73,6 +73,7 @@
 #include "gpopt/operators/CPhysicalFilter.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
+#include "gpopt/operators/CPhysicalLeftOuterIndexNLJoin.h"
 #include "gpopt/operators/CPhysicalIndexPathJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
@@ -266,7 +267,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalFilter(CExpression* plan_expr);
 
 	// joins
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr, bool is_left_outer);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr);
 
