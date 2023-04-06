@@ -147,6 +147,17 @@ public:
 		D_ASSERT(false);
 	}
 
+	void getOutputNames(vector<string>& result) {
+		for(int idx = 0; idx < schema.size(); idx++) {
+			auto& col = schema[idx];
+			if(std::get<1>(col) != "") {
+				result.push_back(std::get<0>(col) + "." + std::get<1>(col));
+			} else {
+				result.push_back(std::get<0>(col));
+			}
+		}
+	}
+
 	bool isNodeBound(string k1) { return bound_nodes.size() > 0 && (bound_nodes.find(k1) != bound_nodes.end()); }
 	bool isEdgeBound(string k1) { return bound_edges.size() > 0 && (bound_edges.find(k1) != bound_edges.end()); }
 	uint64_t size() { return schema.size(); }

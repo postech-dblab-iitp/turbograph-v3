@@ -343,12 +343,12 @@ void * Planner::_orcaExec(void* planner_ptr) {
 	
 		/* Register logical column colrefs / names */
 		std::vector<CColRef*> output_columns;
+		std::vector<std::string> output_names;
 		logical_plan->getSchema()->getOutputColumns(output_columns);
+		logical_plan->getSchema()->getOutputNames(output_names);
+		D_ASSERT(output_columns.size() == output_names.size());
 		planner->logical_plan_output_colrefs = output_columns;
-		for(gpos::ULONG idx = 0; idx < output_columns.size(); idx++) {
-			std::wstring table_name_ws(output_columns[idx]->Name().Pstr()->GetBuffer());
-			planner->logical_plan_output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
-		}
+		planner->logical_plan_output_col_names = output_names;
 	
 		/* LogicalRules */
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();

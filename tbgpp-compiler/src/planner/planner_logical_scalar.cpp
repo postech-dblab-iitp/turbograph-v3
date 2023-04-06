@@ -68,7 +68,7 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 	CMemoryPool* mp = this->memory_pool;
 
 	PropertyExpression* prop_expr = (PropertyExpression*) expression;
-	string k1 = prop_expr->getVariableName();
+	string k1 = prop_expr->getVariableRawName();
 	string k2 = prop_expr->getPropertyName();
 
 	CColRef* target_colref;
