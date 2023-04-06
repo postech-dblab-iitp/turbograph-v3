@@ -175,9 +175,9 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			RelExpression* qedge = qg->getQueryRel(edge_idx).get();
 			NodeExpression* lhs = qedge->getSrcNode().get();
 			NodeExpression* rhs = qedge->getDstNode().get();
-			string edge_name = qedge->getUniqueName();
-			string lhs_name = qedge->getSrcNode()->getUniqueName();
-			string rhs_name = qedge->getDstNode()->getUniqueName();
+			string edge_name = qedge->getRawName();
+			string lhs_name = qedge->getSrcNode()->getRawName();
+			string rhs_name = qedge->getDstNode()->getRawName();
 
 			bool is_lhs_bound = false;
 			bool is_rhs_bound = false;
@@ -323,17 +323,19 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 		if( proj_expr->expressionType != kuzu::common::ExpressionType::VARIABLE ) {
 			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
 			D_ASSERT( expr->Pop()->FScalar());
-			string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
+			string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getRawName();
 			if( CUtils::FScalarIdent(expr) ) {
 				// reuse colref
 				CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
 				generated_colrefs.push_back(orig_colref);
-				if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ) {
+				if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY && !proj_expr->hasAlias() ) {
+					// considered as property only when users can still access as node property.
+					// otherwise considered as general column
 					PropertyExpression* prop_expr = (PropertyExpression*) proj_expr;
-					if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableName()) ) {
-						new_schema.appendNodeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableRawName()) ) {
+						new_schema.appendNodeProperty(prop_expr->getVariableRawName(), prop_expr->getPropertyName(), orig_colref);
 					} else {
-						new_schema.appendEdgeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+						new_schema.appendEdgeProperty(prop_expr->getVariableRawName(), prop_expr->getPropertyName(), orig_colref);
 					}
 				} else {
 					new_schema.appendColumn(col_name, generated_colrefs.back());
@@ -356,16 +358,16 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 		} else {
 			// Handle kuzu::common::ExpressionType::VARIABLE here.
 			kuzu::binder::NodeOrRelExpression* var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
-			auto var_colrefs = prev_plan->getSchema()->getAllColRefsOfKey(var_expr->getUniqueName());
+			auto var_colrefs = prev_plan->getSchema()->getAllColRefsOfKey(var_expr->getRawName());
 			for( auto& colref: var_colrefs ) {
 				generated_colrefs.push_back(colref);
-				generated_exprs.push_back( lExprScalarPropertyExpr( var_expr->getUniqueName(), prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getUniqueName(), colref), prev_plan) );
+				generated_exprs.push_back( lExprScalarPropertyExpr( var_expr->getRawName(), prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getRawName(), colref), prev_plan) );
 				// TODO aliasing???
 			}
 			if( var_expr->getDataType().typeID == DataTypeID::NODE ) {
-				new_schema.copyNodeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
+				new_schema.copyNodeFrom(prev_plan->getSchema(), var_expr->getRawName());
 			} else { // rel
-				new_schema.copyEdgeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
+				new_schema.copyEdgeFrom(prev_plan->getSchema(), var_expr->getRawName());
 			}
 		}
 		D_ASSERT(generated_exprs.size() > 0 && generated_exprs.size() == generated_colrefs.size());
@@ -399,7 +401,7 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 		if(orderby_expr_type == kuzu::common::ExpressionType::PROPERTY) {
 			// first depth projection = simple projection
 			PropertyExpression *prop_expr = (PropertyExpression *)(orderby_expr.get());
-			string k1 = prop_expr->getVariableName();
+			string k1 = prop_expr->getVariableRawName();
 			string k2 = prop_expr->getPropertyName();
 			CColRef* key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
 			sort_colrefs.push_back(key_colref);
@@ -441,7 +443,7 @@ LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
 	// generate three columns, based on the first table
 	CColRefArray* cols;
 	LogicalSchema schema;
-	auto edge_name = edge_expr->getUniqueName();
+	auto edge_name = edge_expr->getRawName();
 	auto edge_name_expr = edge_expr->getRawName();
 
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
@@ -537,7 +539,7 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	}
 	
 	// get plan
-	auto node_name = node_expr->getUniqueName();
+	auto node_name = node_expr->getRawName();
 	auto node_name_print = node_expr->getRawName();
 
 	//auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
