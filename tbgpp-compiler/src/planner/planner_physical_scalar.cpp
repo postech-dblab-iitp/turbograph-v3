@@ -7,6 +7,8 @@
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_operator_expression.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
 
 #include "common/enums/join_type.hpp"
 
@@ -18,6 +20,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarIdent: return pTransformScalarIdent(scalar_expr, child_cols);
 		case COperator::EopScalarConst: return pTransformScalarConst(scalar_expr, child_cols);
 		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, child_cols);
+		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, child_cols);
 		default:
 			D_ASSERT(false); // NOT implemented yet
 	}
@@ -58,8 +61,28 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar
 	);
 }
 
-duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols) {
 
+	CScalarBoolOp* op = (CScalarBoolOp*)scalar_expr->Pop();
+	auto op_type = pTranslateBoolOpType(op->Eboolop());
+
+	if( op_type == duckdb::ExpressionType::OPERATOR_NOT) {
+		// unary - NOT
+		auto result = make_unique<duckdb::BoundOperatorExpression>(op_type, duckdb::LogicalType::BOOLEAN);
+		result->children.push_back( std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols)) );
+		// TODO uncertain if this is right.s
+		return std::move(result);
+	} else {
+		// binary
+		return make_unique<duckdb::BoundConjunctionExpression>(op_type,
+			std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols)),	// lhs
+			std::move(pTransformScalarExpr(scalar_expr->operator[](1), child_cols))		// rhs
+		);
+	}
+	D_ASSERT(false);
+}
+
+duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
 	switch(cmp_type) {
 		case IMDType::ECmpType::EcmptEq: return duckdb::ExpressionType::COMPARE_EQUAL;
 		case IMDType::ECmpType::EcmptNEq: return duckdb::ExpressionType::COMPARE_NOTEQUAL;
@@ -71,6 +94,15 @@ duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
 		default: D_ASSERT(false);
 	}
 
+}
+
+duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type) {
+	switch(op_type) {
+		case CScalarBoolOp::EBoolOperator::EboolopAnd: return duckdb::ExpressionType::CONJUNCTION_AND;
+		case CScalarBoolOp::EBoolOperator::EboolopOr: return duckdb::ExpressionType::CONJUNCTION_OR;
+		case CScalarBoolOp::EBoolOperator::EboolopNot: return duckdb::ExpressionType::OPERATOR_NOT;
+		default: D_ASSERT(false);
+	}
 }
 
 }
