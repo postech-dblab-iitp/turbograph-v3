@@ -11,21 +11,10 @@ class PhysicalIdSeek: public CypherPhysicalOperator {
 
 public:
 	PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
-				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map)
-		: CypherPhysicalOperator(sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
-		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)) { 
-			
-			D_ASSERT(projection_mapping.size() == 1 ); // 230303
-		
-			// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
-			// schema = (original cols, projected cols)
-			// 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
-			for (int col_idx = 0; col_idx < this->inner_col_map.size(); col_idx++) {
-				target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
-			}
-			// D_ASSERT( target_types.size() == projection_mapping[0].size() );
-
-		}
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map);
+	PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_types,
+				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 	~PhysicalIdSeek() {}
 
 public:
@@ -41,7 +30,15 @@ public:
 	mutable vector<uint64_t> oids;
 	mutable vector<vector<uint64_t>> projection_mapping;
 
-	mutable vector<LogicalType> target_types;	// used to initialize output chunks. 
+	mutable vector<LogicalType> target_types;	// used to initialize output chunks.
+
+	mutable std::vector<duckdb::LogicalType> scan_types;  		// types scan
+	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
+
+	// filter pushdown
+	bool do_filter_pushdown;
+	mutable int64_t filter_pushdown_key_idx;	// when negative, no filter pushdown	
+	mutable Value filter_pushdown_value;		// do not use when filter_pushdown_key_idx < 0
 
 	vector<uint32_t> outer_col_map;
 	vector<uint32_t> inner_col_map;

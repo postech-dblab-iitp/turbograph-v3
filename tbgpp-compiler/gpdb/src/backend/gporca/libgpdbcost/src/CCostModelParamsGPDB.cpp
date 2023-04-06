@@ -43,10 +43,12 @@ const CDouble CCostModelParamsGPDB::DInitIndexScanFactorVal = 142.0;
 const CDouble CCostModelParamsGPDB::DIndexBlockCostUnitVal = 1.27e-06;
 
 // index filtering cost unit
-const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-04;
+// const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-04;
+const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-05; // S62 reduce index scan cost in our case ..
 
 // index scan cost unit per tuple per width
-const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-06;
+// const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-06;
+const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-07; // S62 reduce index scan cost in our case ..
 
 // index scan random IO factor
 const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 6.0;
