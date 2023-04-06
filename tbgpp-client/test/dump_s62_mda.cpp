@@ -79,18 +79,18 @@ void print_depth(string data, int depth=0) {
 }
 
 void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
-	vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person"};
+	vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
 	for (auto &ps_cat_name : ps_cat_list) {
 		PropertySchemaCatalogEntry *ps_cat =
 			(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
 		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
 	}
 	
-	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd", "HAS_CREATOR_bwd", "POST_HAS_CREATOR_fwd"};
+	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd", "HAS_CREATOR_bwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
 	for (auto &index_cat_name : index_cat_list) {
-		IndexCatalogEntry *ps_cat =
+		IndexCatalogEntry *index_cat =
 			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
-		fprintf(stdout, "%s oid %ld\n", index_cat_name.c_str(), ps_cat->GetOid());
+		fprintf(stdout, "%s oid %ld, AdjColIdx = %ld\n", index_cat_name.c_str(), index_cat->GetOid(), index_cat->GetAdjColIdx());
 	}
 }
 
@@ -149,10 +149,11 @@ void* mda_print(void* args) {
 		HAS_MODERATOR_fwd 595
 	
 	*/
-	vector<uint32_t> rel_ids_to_inspect({(uint32_t)305,});	// 305 = Person
+	vector<uint32_t> rel_ids_to_inspect({(uint32_t)305});	// 305 = vps_Person
 	rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
-	rel_ids_to_inspect.push_back(521);	// KNOWS : 521
-
+	rel_ids_to_inspect.push_back(521);	// vps_KNOWS : 521
+	rel_ids_to_inspect.push_back(367);	// vps_Post:Message : 367
+	rel_ids_to_inspect.push_back(465);	// eps_HAS_CREATOR : 465
 	
 	for (auto& rel_obj_id: rel_ids_to_inspect) {
 		print_depth("[Inspecting Rel - mdid=" + std::to_string(rel_obj_id) + "]");

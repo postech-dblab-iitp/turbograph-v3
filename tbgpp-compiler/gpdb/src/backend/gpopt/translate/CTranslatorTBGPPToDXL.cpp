@@ -2460,7 +2460,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	AttrNumber attno = (AttrNumber) md_col->AttrNum();
 
 	// number of rows from pg_class
-	double num_rows;
+	double num_rows = 0.0;
 
 	num_rows = rel->GetNumberOfRowsApproximately();// gpdb::CdbEstimatePartitionedNumTuples(rel);
 
