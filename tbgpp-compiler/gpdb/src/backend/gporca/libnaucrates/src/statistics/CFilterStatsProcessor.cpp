@@ -233,7 +233,8 @@ CFilterStatsProcessor::MakeStatsFilter(CMemoryPool *mp,
 			&scale_factor);
 
 		GPOS_ASSERT(CStatistics::MinRows.Get() <= scale_factor.Get());
-		rows_filter = input_rows / scale_factor;
+		// rows_filter = input_rows / scale_factor;
+		rows_filter = input_rows / 1000; // S62 TODO .. we do not have histogram currently.. but is it right?
 		rows_filter = std::max(CStatistics::MinRows.Get(), rows_filter.Get());
 	}
 

@@ -53,6 +53,7 @@ run_ldbc_s() {
 	# LDBC IS6
 	run_query "MATCH (m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person) RETURN f.id, f.title, mod.id, mod.firstName, mod.lastName"
 	# LDBC IS7
+	run_query "MATCH (m:Post {id: 556})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person) OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person) RETURN c.id, c.content, c.creationDate, p.id, p.firstName, p.lastName"
 
 }
 
