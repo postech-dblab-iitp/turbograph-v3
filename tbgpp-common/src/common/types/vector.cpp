@@ -94,7 +94,8 @@ void Vector::Reference(const Value &value) {
 }
 
 void Vector::Reference(Vector &other) {
-	D_ASSERT(other.GetType() == GetType());
+	// D_ASSERT(other.GetType() == GetType());
+	D_ASSERT(other.GetType().InternalType() == GetType().InternalType()); // S62 maybe Reference can be processed when physical type is same..
 	Reinterpret(other);
 }
 
