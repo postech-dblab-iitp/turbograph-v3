@@ -117,6 +117,9 @@ public:
 				found_colref = std::get<2>(col);
 			}
 		}
+		if(found_colref == NULL) {
+			return NULL;
+		}
 		D_ASSERT( found == true );
 		// in order to change colref from unsed to used
 		found_colref->MarkAsUsed();

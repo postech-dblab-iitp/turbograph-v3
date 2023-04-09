@@ -311,6 +311,7 @@ LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, Logica
 	return prev_plan;
 }
 
+
 LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan) {
 
 	CMemoryPool* mp = this->memory_pool;

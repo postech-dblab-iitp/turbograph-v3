@@ -83,11 +83,22 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 	CMemoryPool* mp = this->memory_pool;
 
 	PropertyExpression* prop_expr = (PropertyExpression*) expression;
-	string k1 = prop_expr->getVariableRawName();
-	string k2 = prop_expr->getPropertyName();
+	string k1 = "";
+	string k2 = "";
 
 	CColRef* target_colref;
+
+	// try first with property
+	k1 = prop_expr->getVariableRawName();
+	k2 = prop_expr->getPropertyName();
 	target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+	
+	// fallback to alias
+	if( target_colref == NULL && prop_expr->hasAlias() ) {
+		k1 = prop_expr->getAlias();
+		k2 = ""; 
+		target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+	}
 
 	CExpression* ident_expr = GPOS_NEW(mp)
 			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
