@@ -3,7 +3,6 @@
 
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "extent/extent_iterator.hpp"
-#include "extent/adjlist_iterator.hpp"
 #include "common/types/selection_vector.hpp"
 #include "planner/joinside.hpp"
 
@@ -12,96 +11,9 @@
 
 namespace duckdb {
 
-// PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
-// 	: PhysicalAdjIdxJoin(sch, srcName, srcLabelSet, edgeLabelSet, expandDir, tgtLabelSet, join_type, move(vector<JoinCondition>()), load_eid, enumerate) { }
-
-// PhysicalAdjIdxJoin::PhysicalAdjIdxJoin(CypherSchema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, vector<JoinCondition> remaining_conditions_p, bool load_eid, bool enumerate)
-// 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), remaining_conditions(move(remaining_conditions_p)), load_eid(load_eid), enumerate(enumerate) {
-
-// 	// operator rules
-// 	bool check = (enumerate) ? true : (!load_eid);
-// 	D_ASSERT( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
-
-// 	D_ASSERT( enumerate == true && "always enumerate for now");
-// 	D_ASSERT( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
-// 	D_ASSERT( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
-// 	D_ASSERT( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
-// 	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-
-// 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
-// }
-
-
-
-
 //===--------------------------------------------------------------------===//
 // Operator
 //===--------------------------------------------------------------------===//
-class AdjIdxJoinState : public OperatorState {
-public:
-	explicit AdjIdxJoinState() {
-		resetForNewInput();
-		adj_it = new AdjacencyListIterator();
-		rhs_sel.Initialize(STANDARD_VECTOR_SIZE);
-		src_nullity.resize(STANDARD_VECTOR_SIZE);
-		join_sizes.resize(STANDARD_VECTOR_SIZE);
-		total_join_size.resize(STANDARD_VECTOR_SIZE);
-	}
-	//! Called when starting processing for new chunk
-	inline void resetForNewInput() {
-		resetForMoreOutput();
-		first_fetch = false;
-		equi_join_finished = false;
-		left_join_finished = false;
-		lhs_idx = 0;
-		adj_idx = 0;
-		rhs_idx = 0;
-		left_lhs_idx = 0;
-		// init vectors
-		// adj_col_idxs.clear();
-		// adj_col_types.clear();
-		std::fill(total_join_size.begin(), total_join_size.end(), 0);
-	}
-	inline void resetForMoreOutput() {
-		output_idx = 0;
-	}
-public:
-	// operator data
-	AdjacencyListIterator *adj_it;
-	// initialize rest of operator members
-	idx_t srcColIdx;
-	idx_t edgeColIdx;
-	idx_t tgtColIdx;
-
-	// input -> output col mapping information
-	vector<uint32_t> outer_col_map;
-	vector<uint32_t> inner_col_map;
-	
-	// join state - initialized per output
-	idx_t output_idx;
-
-	// join state - initialized per new input, and updated while processing
-	bool first_fetch;
-	idx_t lhs_idx;
-	idx_t adj_idx;
-	idx_t rhs_idx;
-	bool equi_join_finished;	// equi join match finished
-	idx_t left_lhs_idx;
-	bool left_join_finished;	// when equi_finished and then left finished
-	
-	// join metadata - initialized per new input
-	vector<int> adj_col_idxs;					// indices
-	vector<LogicalType> adj_col_types;			// forward_adj or backward_adj
-
-	// join data - initialized per new input
-	vector<bool> src_nullity;
-	vector<vector<idx_t>> join_sizes;	// can be multiple when there are many adjlists per vertex
-	vector<idx_t> total_join_size;		// sum of entries in join_sizes
-
-	SelectionVector rhs_sel;	// used multiple times without initialization
-};
 
 unique_ptr<OperatorState> PhysicalAdjIdxJoin::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<AdjIdxJoinState>( );
@@ -220,15 +132,15 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 	// x != x
 	// x in y
 
-void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
+void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const {
 	auto &state = (AdjIdxJoinState &)lstate;
 
-// icecream::ic.enable();
-// IC(input.size());
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
+if (input.size() > 0) {
+	IC(input.ToString(std::min((idx_t)10, input.size())));
+}
+icecream::ic.disable();
 	
 	uint64_t *adj_start, *adj_end;
 	uint64_t *tgt_adj_column = nullptr;
@@ -239,17 +151,17 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	D_ASSERT(state.srcColIdx < input.ColumnCount());
 	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
 
-	D_ASSERT(state.tgtColIdx < chunk.ColumnCount());
-	if(load_eid) {
-		D_ASSERT(state.edgeColIdx >= 0 && state.edgeColIdx < chunk.ColumnCount());
-		eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	D_ASSERT(discard_tgt || state.tgtColIdx < chunk.ColumnCount());
+	if (load_eid) {
+		D_ASSERT(discard_edge || (state.edgeColIdx >= 0 && state.edgeColIdx < chunk.ColumnCount()));
+		if (!discard_edge) eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	}
-	tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
-
+	if (!discard_tgt) tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	Vector &outer_vec = input.data[outer_pos];
+	// inner_vec = adj_start; // TODO
 
 	// iterate source vids
 	while( state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size() ) {
-
 		// bypass null src or empty adjs
 	// FIXME debug need this!! when src null!!
 		// if( state.total_join_size[state.lhs_idx] == 0 ) {
@@ -260,37 +172,67 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[state.adj_idx], src_vid, adj_start, adj_end, adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]));
 
 		// calculate size
-	// FIXME debug calculate size directly here
-	int adj_size_debug = (adj_end - adj_start)/2;
-		size_t num_rhs_left = adj_size_debug - state.rhs_idx;
+		int adj_size = (adj_end - adj_start)/2;
+		size_t num_rhs_left = adj_size - state.rhs_idx;
 		size_t num_rhs_to_try_fetch = ((STANDARD_VECTOR_SIZE - state.output_idx) > num_rhs_left )
 										? num_rhs_left : (EXEC_ENGINE_VECTOR_SIZE - state.output_idx);
 		// TODO apply filter predicates
+		if (adj_size == 0) {
+			D_ASSERT(num_rhs_to_try_fetch == 0);
+		} else {
+			state.all_adjs_null = false;
+			// fillOutputChunk(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false);
+			// set sel vector on lhs	// TODO apply filter predicates
+			// auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
+			// for( ; tmp_output_idx < state.output_idx + num_rhs_to_try_fetch ; tmp_output_idx++ ) {
+			// 	state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
+			// }
 
-		// set sel vector on lhs	// TODO apply filter predicates
-		auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
-		for( ; tmp_output_idx < state.output_idx + num_rhs_to_try_fetch ; tmp_output_idx++ ) {
-			state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
+			// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
+			fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
+			// auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+			// for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+			// 	tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
+			// 	if (load_eid) {
+			// 		D_ASSERT(eid_adj_column != nullptr);
+			// 		eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
+			// 	}
+			// 	state.output_idx++;
+			// }
+			// D_ASSERT(tmp_output_idx == state.output_idx);
 		}
-
-		// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-		auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-		for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++ ) {
-			tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
-			if( load_eid ) {
-				D_ASSERT(eid_adj_column != nullptr);
-				eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
-			}
-			state.output_idx++;
-		}
-		D_ASSERT(tmp_output_idx == state.output_idx);
-
+		
 		// update lhs_idx and adj_idx for next iteration
-		if( state.rhs_idx >= adj_size_debug ) {
+		if (state.rhs_idx >= adj_size) {
 			// for this (lhs_idx, adj_idx), equi join is done
-			state.rhs_idx = 0;
-			if( state.adj_idx == state.adj_col_idxs.size() - 1) { state.lhs_idx++; state.adj_idx = 0;}
+			if (state.adj_idx == state.adj_col_idxs.size() - 1) {
+				if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
+					// fillOutputChunk(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, true);
+					// set sel vector on lhs	// TODO apply filter predicates
+					// auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
+					// for( ; tmp_output_idx < state.output_idx + 1 ; tmp_output_idx++ ) {
+					// 	state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
+					// }
+
+					// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
+					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
+					// auto tmp_rhs_idx_end = state.rhs_idx + 1;
+					// for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+					// 	tgt_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+					// 	if (load_eid) {
+					// 		D_ASSERT(eid_adj_column != nullptr);
+					// 		eid_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+					// 	}
+					// 	state.output_idx++;
+					// }
+					// D_ASSERT(tmp_output_idx == state.output_idx);
+				}
+				state.all_adjs_null = true;
+				state.lhs_idx++;
+				state.adj_idx = 0;
+			}
 			else { state.adj_idx++; }
+			state.rhs_idx = 0;
 		}
 	}
 	// chunk determined. now fill in lhs using slice operation
@@ -313,7 +255,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 }
 
 void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-	D_ASSERT(false);
+	D_ASSERT(false); // 0405 deprecated
 	// TODO later
 	// (here we do not apply predicates as rhs is null)
 	// however this logic needs further verification
@@ -322,7 +264,6 @@ void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &i
 
 	// use left_lhs_idx
 	// for empty lefts, produce lhs, null
-
 }
 
 
@@ -330,19 +271,19 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	auto &state = (AdjIdxJoinState &)lstate; 
  
 
-	if( !state.first_fetch ) {
+	if (!state.first_fetch) {
 		// values used while processing
 		//state.srcColIdx = schema.getColIdxOfKey(srcName);
 		state.srcColIdx = sid_col_idx;
 		// state.edgeColIdx = input.ColumnCount();
 		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
 		//D_ASSERT(inner_col_map.size() == 2);
-		if( load_eid ) {
-			state.edgeColIdx = inner_col_map[0];
-			state.tgtColIdx = inner_col_map[1];
-		} else {
-			state.edgeColIdx = -1;
+		if (load_eid) {
 			state.tgtColIdx = inner_col_map[0];
+			state.edgeColIdx = inner_col_map[1];
+		} else {
+			state.tgtColIdx = inner_col_map[0];
+			state.edgeColIdx = -1;
 		}
 		
 		state.outer_col_map = move(outer_col_map);
@@ -358,32 +299,20 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
-	const bool isProcessingTerminated =
-		state.equi_join_finished && (join_type != JoinType::LEFT || state.left_join_finished);
+	const bool isProcessingTerminated = state.join_finished;
 	if ( isProcessingTerminated ) {	
 		// initialize state for next chunk
 		state.resetForNewInput();
 
 		return OperatorResultType::NEED_MORE_INPUT;
 	} else {
-		if( ! state.equi_join_finished ) {
-			ProcessEquiJoin(context, input, chunk, lstate);
-			// update states
-			state.resetForMoreOutput();
-			if( state.lhs_idx >= input.size() ) {
-				state.equi_join_finished = true;
-			}
-			return OperatorResultType::HAVE_MORE_OUTPUT;
-		} else {
-			D_ASSERT( ! state.left_join_finished );
-			ProcessLeftJoin(context, input, chunk, lstate);
-			// update states
-			state.resetForMoreOutput();
-			if( state.left_lhs_idx >= input.size() ) {
-				state.left_join_finished = true;
-			}
-			return OperatorResultType::HAVE_MORE_OUTPUT;
+		ProcessEquiJoin(context, input, chunk, lstate, join_type == JoinType::LEFT);
+		// update states
+		state.resetForMoreOutput();
+		if( state.lhs_idx >= input.size() ) {
+			state.join_finished = true;
 		}
+		return OperatorResultType::HAVE_MORE_OUTPUT;
 	}
 }
 

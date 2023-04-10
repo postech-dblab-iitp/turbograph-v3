@@ -201,7 +201,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
-			property_schema_cat->AddExtent(new_eid);
+			property_schema_cat->AddExtent(new_eid, data.size());
 			
 			if (load_edge) {
 				// Initialize pid base
@@ -476,7 +476,7 @@ icecream::ic.enable();
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		// for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
+		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
 		idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
@@ -653,7 +653,7 @@ icecream::ic.enable();
 			}
 			// Create Edge Extent by Extent Manager
 			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
-			property_schema_cat->AddExtent(new_eid);
+			property_schema_cat->AddExtent(new_eid, data.size());
 		}
 		
 		// Process remaining adjlist
@@ -761,7 +761,7 @@ icecream::ic.enable();
 		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
 		vector<LogicalType> vertex_id_type;
 		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		// for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
+		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 		vertex_ps_cat_entry->AppendType({ LogicalType::BACKWARD_ADJLIST });
 		idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });

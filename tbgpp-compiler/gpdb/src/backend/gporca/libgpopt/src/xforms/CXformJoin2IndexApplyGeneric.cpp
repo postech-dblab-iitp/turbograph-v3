@@ -122,7 +122,8 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 
 	/* S62 check if variable length join */
 	if( pexprInner->Pop()->Eopid() == COperator::EopLogicalPathGet ) {
-		return TransformApplyOnPathGet(pxfctxt, pxfres, pexpr);
+		TransformApplyOnPathGet(pxfctxt, pxfres, pexpr);
+		return;
 	}
 
 	// all predicates that could be used as index predicates, this includes the
@@ -439,11 +440,20 @@ CXformJoin2IndexApplyGeneric::TransformApplyOnPathGet(CXformContext *pxfctxt, CX
 			const IMDIndex *pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
 
 			// find index having key as "_sid"
-			if( pmdindex->KeyAt(0) == 1 ) {
+			if (pmdindex->IndexType() == IMDIndex::EmdindFwdAdjlist) {
 				pmdindexarray.push_back(pmdindex);
 			}
+			// if( pmdindex->KeyAt(0) == 1 ) {
+			// 	pmdindexarray.push_back(pmdindex);
+			// }
 		}
 		GPOS_ASSERT(pmdindexarray.size() == 1 );	// currently one index
+		CColRefSet *pcrsIndexCols =
+			CXformUtils::PcrsIndexKeys(mp, pdrgpcrOutput, pmdindexarray[0], pmdrel);
+		if (pcrsScalarExpr->IsDisjoint(pcrsIndexCols))
+		{
+			return;
+		}
 
 		pexprScalar->AddRef();
 		pexprGenratedInnerIndexScan = 

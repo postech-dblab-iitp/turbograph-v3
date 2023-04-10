@@ -278,9 +278,20 @@ void CypherSchema::setStoredTypes(std::vector<duckdb::LogicalType> types) {
 	}
 }
 
+void CypherSchema::setStoredColumnNames(std::vector<std::string>& names) {
+	for( auto& t: names) {
+		stored_column_names.push_back(t);
+	}
+}
+
 std::vector<duckdb::LogicalType> CypherSchema::getStoredTypes() {
 	return stored_types;
 }
+
+std::vector<string> CypherSchema::getStoredColumnNames() {
+	return stored_column_names;
+}
+
 
 std::string CypherSchema::printStoredTypes() {
 	std::string result = "(";
@@ -291,5 +302,21 @@ std::string CypherSchema::printStoredTypes() {
 	result += ")";
 	return result;
 }
+
+std::string CypherSchema::printStoredColumnAndTypes() {
+	if( stored_types.size() != stored_column_names.size() ) {
+		return printStoredTypes();
+	}
+	std::string result = "(";
+	for(int idx = 0; idx < stored_types.size(); idx++) {
+		result += stored_column_names[idx];
+		result += ":";
+		result += stored_types[idx].ToString();
+		result += ", ";
+	}
+	result += ")";
+	return result;
+}
+
 
 }

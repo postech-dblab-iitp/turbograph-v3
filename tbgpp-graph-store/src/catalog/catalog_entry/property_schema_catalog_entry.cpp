@@ -29,9 +29,10 @@ void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
 	extent_ids.push_back(extent_cat->oid);
 }
 
-void PropertySchemaCatalogEntry::AddExtent(ExtentID eid) {
+void PropertySchemaCatalogEntry::AddExtent(ExtentID eid, size_t num_tuples_in_extent) {
 	// Can we perform this logic in GetNewExtentID??
 	extent_ids.push_back(eid);
+	last_extent_num_tuples = num_tuples_in_extent;
 }
 
 ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
@@ -147,7 +148,10 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately() {
 	// # of extents * # rows per extent
-	return extent_ids.size() * STORAGE_STANDARD_VECTOR_SIZE;
+	D_ASSERT(extent_ids.size() >= 1);
+	uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
+
+	return num_tuples_except_last_extent + last_extent_num_tuples;
 }
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {

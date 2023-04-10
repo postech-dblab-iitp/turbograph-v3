@@ -180,8 +180,8 @@ CPhysicalIndexPathScan::OsPrint(IOstream &os) const
 	// TODO
 	os << SzId() << " ";
 	// // index name
-	// os << "  Index Name: (";
-	// m_pindexdesc->Name().OsPrint(os);
+	os << "  Index Name: (";
+	(*m_pindexdesc)[0]->Name().OsPrint(os);
 	// // table name
 	// os << ")";
 	// os << ", Table Name: (";

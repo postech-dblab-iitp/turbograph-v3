@@ -1,7 +1,7 @@
 #pragma once
 
 #include "expression.h"
-// #include "function/aggregate/aggregate_function.h"
+#include "function/aggregate/aggregate_function.h"
 #include "function/vector_operations.h"
 
 using namespace kuzu::function;
@@ -47,37 +47,37 @@ public:
     scalar_select_func selectFunc;
 };
 
-// class AggregateFunctionExpression : public FunctionExpression {
+class AggregateFunctionExpression : public FunctionExpression {
 
-// public:
-//     AggregateFunctionExpression(const DataType& dataType,
-//         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
-//         : AggregateFunctionExpression{
-//               dataType, expression_vector{}, move(aggregateFunction), uniqueName} {}
+public:
+    AggregateFunctionExpression(const DataType& dataType,
+        unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
+        : AggregateFunctionExpression{
+              dataType, expression_vector{}, move(aggregateFunction), uniqueName} {}
 
-//     AggregateFunctionExpression(const DataType& dataType, expression_vector children,
-//         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
-//         : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName},
-//           aggregateFunction{move(aggregateFunction)} {}
+    AggregateFunctionExpression(const DataType& dataType, expression_vector children,
+        unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
+        : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName},
+          aggregateFunction{move(aggregateFunction)} {}
 
-//     static inline string getUniqueName(
-//         const string& functionName, expression_vector& children, bool isDistinct) {
-//         auto result = functionName + "(";
-//         if (isDistinct) {
-//             result += "DISTINCT ";
-//         }
-//         for (auto& child : children) {
-//             result += child->getUniqueName() + ", ";
-//         }
-//         result += ")";
-//         return result;
-//     }
+    static inline string getUniqueName(
+        const string& functionName, expression_vector& children, bool isDistinct) {
+        auto result = functionName + "(";
+        if (isDistinct) {
+            result += "DISTINCT ";
+        }
+        for (auto& child : children) {
+            result += child->getUniqueName() + ", ";
+        }
+        result += ")";
+        return result;
+    }
 
-//     inline bool isDistinct() { return aggregateFunction->isFunctionDistinct(); }
+    inline bool isDistinct() { return aggregateFunction->isFunctionDistinct(); }
 
-// public:
-//     unique_ptr<AggregateFunction> aggregateFunction;
-// };
+public:
+    unique_ptr<AggregateFunction> aggregateFunction;
+};
 
 } // namespace binder
 } // namespace kuzu

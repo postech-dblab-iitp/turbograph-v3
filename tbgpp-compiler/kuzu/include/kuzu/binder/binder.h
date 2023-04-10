@@ -9,6 +9,7 @@
 #include "main/client_context.hpp"
 
 #include "function/built_in_vector_operations.h"
+#include "function/aggregate/built_in_aggregate_functions.h"
 
 
 using namespace kuzu::parser;
@@ -35,6 +36,7 @@ public:
         : client(client), lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {
             
             builtInVectorOperations = std::make_unique<BuiltInVectorOperations>();
+            builtInAggregateFunctions = std::make_unique<BuiltInAggregateFunctions>();
         }
 
     unique_ptr<BoundStatement> bind(const Statement& statement);
@@ -184,6 +186,17 @@ private:
     unordered_map<string, shared_ptr<Expression>> enterSubquery();
     void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
 
+    ExpressionType getFunctionType(const string& name) const {
+        if (builtInVectorOperations->containsFunction(name)) {
+            return FUNCTION;
+        } else if (builtInAggregateFunctions->containsFunction(name)) {
+            return AGGREGATE_FUNCTION;
+        } else {
+            throw BinderException(name + " function does not exist.");
+        }
+    }
+    
+
 private:
     // const Catalog& catalog;
 
@@ -195,6 +208,7 @@ private:
 
     // kuzu catalog builtin functions migrated to here
     unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
+    unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
 };
 
 } // namespace binder
