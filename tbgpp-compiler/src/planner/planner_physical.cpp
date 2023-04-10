@@ -138,11 +138,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			result = pTransformEopSort(plan_expr);
 			break;
 		}
-		case COperator::EOperatorId::EopPhysicalHashAggDeduplicate:
-		case COperator::EOperatorId::EopPhysicalStreamAggDeduplicate: {
+		case COperator::EOperatorId::EopPhysicalHashAgg:
+		case COperator::EOperatorId::EopPhysicalStreamAgg: {
 			// TODO currently, support hashagg only
-			D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalHashAggDeduplicate);
-			result = pTransformEopHashAggDedup(plan_expr);
+			D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalHashAgg);
+			result = pTransformEopHashAgg(plan_expr);
 			break;
 		}
 		default:
@@ -1053,15 +1053,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	return new_result;
 }
 
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAggDedup(CExpression *plan_expr) {
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAgg(CExpression *plan_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
 
 	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
-	CPhysicalHashAggDeduplicate *agg_dedup_op = (CPhysicalHashAggDeduplicate*) plan_expr->Pop();
-	D_ASSERT(plan_expr->Arity() == 1);
+	CPhysicalHashAgg *agg_dedup_op = (CPhysicalHashAgg*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprInput = (*plan_expr)[0];
 	CColRefArray* input_cols = pexprInput->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -1090,7 +1089,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAggDedup(CExp
 		new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
 	result->push_back(op);
 
-	return result;
+	// break pipeline
+	auto pipeline = new duckdb::CypherPipeline(*result);
+	pipelines.push_back(pipeline);
+
+	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
+	new_result->push_back(op);
+
+	return new_result;
 }
 
 bool Planner::pIsIndexJoinOnPhysicalID(CExpression* plan_expr) {
