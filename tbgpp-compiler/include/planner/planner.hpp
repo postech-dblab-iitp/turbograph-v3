@@ -200,8 +200,8 @@ private:
 private:
 	// planner_logical.cpp
 	/* Generating orca logical plan */
-	CExpression *lGetLogicalPlan();
-	CExpression *lPlanSingleQuery(const NormalizedSingleQuery &singleQuery);
+	LogicalPlan *lGetLogicalPlan();
+	LogicalPlan *lPlanSingleQuery(const NormalizedSingleQuery &singleQuery);
 	LogicalPlan *lPlanQueryPart(
         const NormalizedQueryPart &queryPart, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanProjectionBody(LogicalPlan *plan, BoundProjectionBody *proj_body);
@@ -289,7 +289,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopSort(CExpression* plan_expr);
 
 	// aggregations
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAggDedup(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAgg(CExpression* plan_expr);
 
 	// scalar expression
 	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols);

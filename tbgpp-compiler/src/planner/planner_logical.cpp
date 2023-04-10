@@ -88,27 +88,9 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 
 	// maintain new mappings
 
-	/* Simple projection - switch orders between columns; use lPlanProjectionOnColIds */
-	CColRefArray *colrefs = GPOS_NEW(mp) CColRefArray(mp);
-	const auto& proj_exprs = proj_body->getProjectionExpressions();
-	for (auto& proj_expr: proj_exprs) {
-		auto& proj_expr_type = proj_expr.get()->expressionType;
-		if (proj_expr_type == kuzu::common::ExpressionType::PROPERTY) {
-			// first depth projection = simple projection
-			PropertyExpression* prop_expr = (PropertyExpression*)(proj_expr.get());
-			string k1 = prop_expr->getVariableName();
-			string k2 = prop_expr->getPropertyName();
-			CColRef* colref = plan->getSchema()->getColRefOfKey(k1, k2);
-			colrefs->Append(colref);
-		} else {
-			// currently do not allow other cases
-			GPOS_ASSERT(false);
-		}
-	}
-
 	/* Distinct */
 	if (proj_body->getIsDistinct()) {
-		plan = lPlanDistinct(colrefs, plan);
+		plan = lPlanDistinct(plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp), plan);
 	}
 
 	/* Skip limit */
@@ -472,13 +454,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 LogicalPlan *Planner::lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan) {
 	CMemoryPool* mp = this->memory_pool;
 
-	CLogicalGbAggDeduplicate *pop_gbagg = 
-		GPOS_NEW(mp) CLogicalGbAggDeduplicate(
-			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/,
-			colrefs/*pdrgpcrKeys*/);
+	CLogicalGbAgg *pop_gbagg = 
+		GPOS_NEW(mp) CLogicalGbAgg(
+			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/);
 	CExpression *gbagg_expr =  GPOS_NEW(mp)
 		CExpression(mp, pop_gbagg, prev_plan->getPlanExpr(),
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
+	colrefs->AddRef();
 	
 	prev_plan->addUnaryParentOp(gbagg_expr);
 	
