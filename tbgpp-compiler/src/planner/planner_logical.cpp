@@ -408,6 +408,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 			string k1 = prop_expr->getVariableRawName();
 			string k2 = prop_expr->getPropertyName();
 			CColRef* key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+			// fallback to alias
+			if (key_colref == NULL && prop_expr->hasAlias()) {
+				k1 = prop_expr->getAlias();
+				k2 = ""; 
+				key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+			}
+			D_ASSERT(key_colref != NULL);
 			sort_colrefs.push_back(key_colref);
 		} else {
 			// currently do not allow other cases
