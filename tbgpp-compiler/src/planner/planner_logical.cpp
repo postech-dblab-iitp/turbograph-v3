@@ -79,7 +79,7 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	}
 
 	/* OrderBy */
-	if(proj_body->hasOrderByExpressions()) {
+	if (proj_body->hasOrderByExpressions()) {
 		// orderByExpressions
 		// isAscOrders
 		const expression_vector &orderby_expr = proj_body->getOrderByExpressions(); 
@@ -88,9 +88,8 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	}
 
 	/* Skip limit */
-	if( proj_body->hasSkipOrLimit() ) {
-		// CLogicalLimit
-		GPOS_ASSERT(false);
+	if (proj_body->hasSkipOrLimit()) {
+		plan = lPlanSkipOrLimit(proj_body, plan);
 	}
 
 	GPOS_ASSERT(plan != nullptr);
@@ -511,6 +510,34 @@ LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
 	LogicalPlan* plan = new LogicalPlan(path_get_expr, schema);
 	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
 	return plan;
+}
+
+LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+	COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
+	bool hasCount = proj_body->hasLimit();
+	CLogicalLimit *popLimit = GPOS_NEW(mp)
+		CLogicalLimit(mp, pos, true /* fGlobal */, hasCount /* fHasCount */,
+					  true /*fTopLimitUnderDML*/);
+	CExpression *pexprLimitOffset, *pexprLimitCount;
+
+	if (proj_body->hasSkip()) {
+		pexprLimitOffset = CUtils::PexprScalarConstInt8(mp, proj_body->getSkipNumber()/*ulOffSet*/);
+	} else {
+		pexprLimitOffset = CUtils::PexprScalarConstInt8(mp, 0/*ulOffSet*/);
+	}
+
+	if (proj_body->hasLimit()) {
+		pexprLimitCount = CUtils::PexprScalarConstInt8(mp, proj_body->getLimitNumber()/*count*/, false/*is_null*/);
+	} else {
+		pexprLimitCount = CUtils::PexprScalarConstInt8(mp, 0/*count*/, true/*is_null*/);
+	}
+
+	CExpression *plan_orderby_expr = GPOS_NEW(mp)
+		CExpression(mp, popLimit, prev_plan->getPlanExpr(), pexprLimitOffset, pexprLimitCount);
+
+	prev_plan->addUnaryParentOp(plan_orderby_expr); // TODO ternary op?..
+	return prev_plan;
 }
 
 LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {

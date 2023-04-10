@@ -209,6 +209,7 @@ private:
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
 	
 	// scalar expression
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);

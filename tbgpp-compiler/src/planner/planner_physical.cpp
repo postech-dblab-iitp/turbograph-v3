@@ -375,10 +375,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	std::vector<uint32_t> sccmp_colids;
 	CExpression* inner_root = pexprInner;
 
+	bool do_filter_pushdown = false;
 	CPhysicalFilter *filter_op = NULL;
 	CExpression *filter_expr = NULL;
 	CExpression *filter_pred_expr = NULL;
 	CExpression *idxscan_expr = NULL;
+	CColRefArray *idxscan_output;
 
 	while(true) {
 		if(inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan ||
@@ -397,16 +399,27 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			}
 
 			// TODO there may be additional projection - we CURRENTLY do not consider projection
-			CColRefArray* output = inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+			idxscan_output = inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
-			for( ULONG i = 0; i < output->Size(); i++) {
-				CColRef* colref = output->operator[](i);
+			for( ULONG i = 0; i < idxscan_output->Size(); i++) {
+				CColRef* colref = idxscan_output->operator[](i);
 				OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) colref)->GetMdidTable())->Oid();
 				if (i == 0) { oids.push_back((uint64_t)table_obj_id); }
 				auto table_col_idx = pGetColIdxFromTable(table_obj_id, colref);
 				// in edge table case, we only consider attr_num >= 3
 				if (table_col_idx >= 3) first_table_mapping.push_back(table_col_idx);
 			}
+		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter) {
+			filter_expr = inner_root;
+			filter_op = (CPhysicalFilter*) filter_expr->Pop();
+			filter_pred_expr = filter_expr->operator[](1);
+			// TODO current assume all predicates are pushdown-able
+			D_ASSERT(filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
+			D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+			D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+			// D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
+
+			do_filter_pushdown = true;
 		}
 		// reached to the bottom
 		if( inner_root->Arity() == 0 ) {
@@ -467,15 +480,44 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		}
 	}
 
+	bool compare_tgt;
+	gpos::ULONG inner_pos, outer_pos;
+	if (do_filter_pushdown) {
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+		CColRefTable *lhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_pred_expr->operator[](0)->Pop())->Pcr()->Id() ));
+		CColRefTable *rhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_pred_expr->operator[](1)->Pop())->Pcr()->Id() ));
+		
+		outer_pos = outer_cols->IndexOf((CColRef *)lhs_colref);
+		if (outer_pos == gpos::ulong_max) {
+			inner_pos = idxscan_output->IndexOf((CColRef *)lhs_colref);
+			outer_pos = outer_cols->IndexOf((CColRef *)rhs_colref);
+			ULONG inner_attno = lhs_colref->AttrNum();
+			D_ASSERT(inner_attno >= 0 && inner_attno <= 2);
+			compare_tgt = (inner_attno != 0);
+		} else {
+			inner_pos = idxscan_output->IndexOf((CColRef *)rhs_colref);
+			D_ASSERT(inner_pos >= 0 && inner_pos <= 2);
+			ULONG inner_attno = rhs_colref->AttrNum();
+			D_ASSERT(inner_attno >= 0 && inner_attno <= 2);
+			compare_tgt = (inner_attno != 0);
+		}
+		D_ASSERT(inner_pos != gpos::ulong_max);
+		D_ASSERT(outer_pos != gpos::ulong_max);
+	}
+
 	if (!load_edge_property) {
 		/* Generate operator and push */
 		duckdb::CypherSchema tmp_schema;
 		tmp_schema.setStoredTypes(types);
 
-		// TODO 230330 when load_eid? => when inner size = 2
-		duckdb::CypherPhysicalOperator *op =
-			new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
+		duckdb::CypherPhysicalOperator *op;
+		if (do_filter_pushdown) {
+			op = new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
+										sid_col_idx, false, outer_col_map, inner_col_map, true, outer_pos, inner_pos);
+		} else {
+			op = new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
 										sid_col_idx, false, outer_col_map, inner_col_map);
+		}
 
 		result->push_back(op);
 	} else {
@@ -496,10 +538,16 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		}
 		outer_col_map_seek.push_back(std::numeric_limits<uint32_t>::max()); // TODO always useless?
 		
-		duckdb::CypherPhysicalOperator *op_adjidxjoin =
-			new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
+		duckdb::CypherPhysicalOperator *op_adjidxjoin;
+		if (do_filter_pushdown) {
+			op_adjidxjoin =	new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
+										sid_col_idx, true, outer_col_map, inner_col_map, true, outer_pos, inner_pos);
+		} else {
+			op_adjidxjoin =	new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
 										sid_col_idx, true, outer_col_map, inner_col_map);
+		}
 
+		// TODO filter + seek
 		duckdb::CypherPhysicalOperator *op_seek =
 			new duckdb::PhysicalIdSeek(tmp_schema_seek, seek_sid_col_idx, oids, projection_mapping, outer_col_map_seek, inner_col_map_seek);
 		
@@ -730,6 +778,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				);
 			}
 			if (proj_exprs.size() != 0) {
+				D_ASSERT(proj_exprs.size() == output_cols->Size());
 				duckdb::CypherPhysicalOperator* op =
 					new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
 				result->push_back(op);

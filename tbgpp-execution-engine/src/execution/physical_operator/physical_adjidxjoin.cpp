@@ -135,12 +135,12 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const {
 	auto &state = (AdjIdxJoinState &)lstate;
 
-// icecream::ic.enable();
-// IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
+if (input.size() > 0) {
+	IC(input.ToString(std::min((idx_t)10, input.size())));
+}
+icecream::ic.disable();
 	
 	uint64_t *adj_start, *adj_end;
 	uint64_t *tgt_adj_column = nullptr;
@@ -157,6 +157,8 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		if (!discard_edge) eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	}
 	if (!discard_tgt) tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
+	Vector &outer_vec = input.data[outer_pos];
+	// inner_vec = adj_start; // TODO
 
 	// iterate source vids
 	while( state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size() ) {
@@ -181,13 +183,13 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 			state.all_adjs_null = false;
 			// fillOutputChunk(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false);
 			// set sel vector on lhs	// TODO apply filter predicates
-			auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
-			for( ; tmp_output_idx < state.output_idx + num_rhs_to_try_fetch ; tmp_output_idx++ ) {
-				state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
-			}
+			// auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
+			// for( ; tmp_output_idx < state.output_idx + num_rhs_to_try_fetch ; tmp_output_idx++ ) {
+			// 	state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
+			// }
 
 			// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-			fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false);
+			fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
 			// auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
 			// for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
 			// 	tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
@@ -197,7 +199,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 			// 	}
 			// 	state.output_idx++;
 			// }
-			D_ASSERT(tmp_output_idx == state.output_idx);
+			// D_ASSERT(tmp_output_idx == state.output_idx);
 		}
 		
 		// update lhs_idx and adj_idx for next iteration
@@ -207,13 +209,13 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 				if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
 					// fillOutputChunk(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, true);
 					// set sel vector on lhs	// TODO apply filter predicates
-					auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
-					for( ; tmp_output_idx < state.output_idx + 1 ; tmp_output_idx++ ) {
-						state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
-					}
+					// auto tmp_output_idx = state.output_idx;	// do not alter output_idx here
+					// for( ; tmp_output_idx < state.output_idx + 1 ; tmp_output_idx++ ) {
+					// 	state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
+					// }
 
 					// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true);
+					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
 					// auto tmp_rhs_idx_end = state.rhs_idx + 1;
 					// for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
 					// 	tgt_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
@@ -223,7 +225,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					// 	}
 					// 	state.output_idx++;
 					// }
-					D_ASSERT(tmp_output_idx == state.output_idx);
+					// D_ASSERT(tmp_output_idx == state.output_idx);
 				}
 				state.all_adjs_null = true;
 				state.lhs_idx++;

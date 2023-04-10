@@ -138,23 +138,23 @@ run_ldbc_c() {
 		LIMIT 20" 1
 	
 	# LDBC IC2 Recent messages by your friends
-	run_query "MATCH (:Person {id: 14 })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Message)
+	run_query "MATCH (:Person {id: 14 })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate <= 1287230400000
 		RETURN
 			friend.id AS personId,
 			friend.firstName AS personFirstName,
 			friend.lastName AS personLastName,
 			message.id AS postOrCommentId,
-			coalesce(message.content,message.imageFile) AS postOrCommentContent,
+			message.content AS postOrCommentContent,
 			message.creationDate AS postOrCommentCreationDate
 		ORDER BY
 			postOrCommentCreationDate DESC,
-			toInteger(postOrCommentId) ASC
-		LIMIT 20" 1
+			postOrCommentId ASC
+		LIMIT 20" 0
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
-	run_query "MATCH (countryX:Country {name: "Angola" }),
-		(countryY:Country {name: "Colombia" }),
+	run_query "MATCH (countryX:Country {name: \"Angola\" }),
+		(countryY:Country {name: \"Colombia\" }),
 		(person:Person {id: 6597069766734 })
 		WITH person, countryX, countryY
 		LIMIT 1
