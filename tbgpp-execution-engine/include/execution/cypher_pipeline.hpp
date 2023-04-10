@@ -58,13 +58,13 @@ public:
 		// operators - reversed
 		for (auto op = operators.rbegin(); op != operators.rend(); ++op) {
 			result += "\t|\n";
-			result += "    " + (*op)->schema.printStoredTypes() + "\n";
+			result += "    " + (*op)->schema.printStoredColumnAndTypes() + "\n";
 			result += "\t|\n";
 			result += (*op)->ToString() + "(" + (*op)->ParamsToString() + ")\n";
 		}
 		// source
 		result += "\t|\n";
-		result += "    " + source->schema.printStoredTypes() + "\n";
+		result += "    " + source->schema.printStoredColumnAndTypes() + "\n";
 		result += "\t|\n";
 		result += source->ToString() + "(" + source->ParamsToString() + ")\n";
 

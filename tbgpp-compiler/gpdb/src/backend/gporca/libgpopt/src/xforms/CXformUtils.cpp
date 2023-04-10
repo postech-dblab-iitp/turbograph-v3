@@ -2378,12 +2378,21 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 	// pexprInner->AddRef();
 // 230303 lower pcrsReqd, inner
 // 230303 lower pcrscalar, inner
-
-	if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
-		|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
-// TODO s62 revive this predicate 230303
+	if (IMDIndex::EmdindFwdAdjlist == pmdindex->IndexType() ||
+		  IMDIndex::EmdindBwdAdjlist == pmdindex->IndexType()) // S62 added
 	{
-		fApplicable = false;
+		if (pcrsScalar->IsDisjoint(pcrsIndexCols))
+		{
+			fApplicable = false;
+		}
+	}
+	else
+	{
+		if (!pcrsIncludedCols->ContainsAll(pcrsReqd) 	 // index is not covering
+			|| pcrsScalar->IsDisjoint(pcrsIndexCols))	 // indexing columns disjoint from the columns used in the scalar expression
+		{
+			fApplicable = false;
+		}
 	}
 
 	// clean up
@@ -2919,33 +2928,33 @@ CXformUtils::PexprBuildIndexPlan(
 	CExpressionArray *pdrgpexprIndex = GPOS_NEW(mp) CExpressionArray(mp);
 	CExpressionArray *pdrgpexprResidual = GPOS_NEW(mp) CExpressionArray(mp);
 
-	if( pdrgpexprConds->Size() > 1 ) {
-		//230303 currently single predicate
-		GPOS_DELETE(alias);
-		pdrgppcrIndexCols->Release();
-		pdrgpexprResidual->Release();
-		pdrgpexprIndex->Release();
-		CRefCount::SafeRelease(ppartcnstrIndex);
-		return NULL;
-	}
+	// if( pdrgpexprConds->Size() > 1 ) {
+	// 	//230303 currently single predicate
+	// 	GPOS_DELETE(alias);
+	// 	pdrgppcrIndexCols->Release();
+	// 	pdrgpexprResidual->Release();
+	// 	pdrgpexprIndex->Release();
+	// 	CRefCount::SafeRelease(ppartcnstrIndex);
+	// 	return NULL;
+	// }
 
 	// 230303  - bypass logics
 	md_accessor = md_accessor;
-	// CPredicateUtils::ExtractIndexPredicates(
-	// 	mp, md_accessor, pdrgpexprConds, pmdindex, pdrgppcrIndexCols,
-	// 	pdrgpexprIndex, pdrgpexprResidual, outer_refs);
+	CPredicateUtils::ExtractIndexPredicates(
+		mp, md_accessor, pdrgpexprConds, pmdindex, pdrgppcrIndexCols,
+		pdrgpexprIndex, pdrgpexprResidual, outer_refs);
 	CColRefSet *outer_refs_in_index_get =
 		CUtils::PcrsExtractColumns(mp, pdrgpexprIndex);
 	// 230303 pass this
 	// outer_refs_in_index_get->Intersection(outer_refs);
-	outer_refs = outer_refs;
-	outer_refs->AddRef();
-	outer_refs_in_index_get = outer_refs_in_index_get;
-	outer_refs_in_index_get->AddRef();
+	// outer_refs = outer_refs;
+	// outer_refs->AddRef();
+	// outer_refs_in_index_get = outer_refs_in_index_get;
+	// outer_refs_in_index_get->AddRef();
 
 	// 230303 build index!
-	pdrgpexprConds->AddRef();
-	pdrgpexprIndex->Append(pdrgpexprConds->operator[](0));
+	// pdrgpexprConds->AddRef();
+	// pdrgpexprIndex->Append(pdrgpexprConds->operator[](0));
 
 	// exit early if:
 	// (1) there are no index-able predicates or

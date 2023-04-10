@@ -45,11 +45,11 @@ void Planner::reset() {
 	
 	// reset planner context 
 	// note that we reuse orca memory pool
-	table_col_mapping.clear();
 	bound_statement = nullptr;
 	pipelines.clear();
-	output_col_names.clear();
-
+	logical_plan_output_col_names.clear();
+	logical_plan_output_colrefs.clear();
+	physical_plan_output_colrefs.clear();
 }
 
 CQueryContext* Planner::_orcaGenQueryCtxt(CMemoryPool* mp, CExpression* logical_plan) {
@@ -326,7 +326,9 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		planner->_orcaSetOptCtxt(mp, &mda, pcm);
 		
 		/* Optimize */
-		CExpression *orca_logical_plan = planner->lGetLogicalPlan();
+		LogicalPlan *logical_plan = planner->lGetLogicalPlan();
+		CExpression* orca_logical_plan = logical_plan->getPlanExpr();
+		
 		{
 			if(planner->config.DEBUG_PRINT) {
 				std::cout << "[LOGICAL PLAN]" << std::endl;
@@ -339,12 +341,14 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
 	
-		/* Register output column names */
-		CMDNameArray* result_col_names = pqc->Pdrgpmdname();
-		for(gpos::ULONG idx = 0; idx < result_col_names->Size(); idx++) {
-			std::wstring table_name_ws(result_col_names->operator[](idx)->GetMDName()->GetBuffer());
-			planner->output_col_names.push_back(string(table_name_ws.begin(), table_name_ws.end()));
-		}
+		/* Register logical column colrefs / names */
+		std::vector<CColRef*> output_columns;
+		std::vector<std::string> output_names;
+		logical_plan->getSchema()->getOutputColumns(output_columns);
+		logical_plan->getSchema()->getOutputNames(output_names);
+		D_ASSERT(output_columns.size() == output_names.size());
+		planner->logical_plan_output_colrefs = output_columns;
+		planner->logical_plan_output_col_names = output_names;
 	
 		/* LogicalRules */
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
@@ -373,8 +377,6 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		}
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
 		
-		
-
 		orca_logical_plan->Release();
 		orca_physical_plan->Release();
 		GPOS_DELETE(pqc);
@@ -428,7 +430,7 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 vector<string> Planner::getQueryOutputColNames(){
 	
 	// TODO no asserts?
-	return output_col_names;
+	return logical_plan_output_col_names;
 }
 
 

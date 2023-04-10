@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <type_traits>
+#include <string>
 
 #include "gpos/_api.h"
 #include "naucrates/init.h"
@@ -76,6 +77,7 @@
 #include "gpopt/operators/CPhysicalFilter.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
+#include "gpopt/operators/CPhysicalLeftOuterIndexNLJoin.h"
 #include "gpopt/operators/CPhysicalIndexPathJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
@@ -87,6 +89,8 @@
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
+#include "gpopt/operators/CScalarCmp.h"
+#include "gpopt/operators/CScalarBoolOp.h"
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -106,6 +110,7 @@
 #include "kuzu/binder/expression/function_expression.h"
 #include "kuzu/binder/expression/literal_expression.h"
 #include "kuzu/binder/expression/property_expression.h"
+#include "kuzu/binder/expression/node_rel_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -213,14 +218,18 @@ private:
 	LogicalPlan *lPlanSelection(const expression_vector &predicates, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
 	
-	/* Helper functions for generating orca logical plans */
+	// scalar expression
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 
-
+	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> oids,
 		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
@@ -240,12 +249,12 @@ private:
 		 gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
-	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string print_name="");
+	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string rel_name="");
 	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
-						   const CName &nameTable, gpos::BOOL fPartitioned = false);
+						   const CName &nameTable, string rel_name, gpos::BOOL fPartitioned = false);
 	CTableDescriptor * lTabdescPlainWithColNameFormat(
 		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
-		const CName &nameTable,
+		const CName &nameTable, string rel_name,
 		gpos::BOOL is_nullable  // define nullable columns
 	);
 
@@ -268,9 +277,10 @@ private:
 
 	// pipelined ops
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalFilter(CExpression* plan_expr);
 
 	// joins
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr, bool is_left_outer);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr);
 
@@ -281,20 +291,31 @@ private:
 	// aggregations
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAggDedup(CExpression* plan_expr);
 
-	bool pIsIndexJoinOnPhysicalID(CExpression* plan_expr);
+	// scalar expression
+	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
 
+	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
+	bool pIsIndexJoinOnPhysicalID(CExpression* plan_expr);
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
+	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);
+	bool pIsFilterPushdownAbleIntoScan(CExpression* selection_expr);
 	
+	// helper functions
 	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* columns, vector<uint64_t>& out_mapping);
 	void pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types);
+	void pGenerateColumnNames(CColRefArray* columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
-	
 
-	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);;
-	CColRefArray* pGetUnderlyingColRefsOfColumnarProjection(CColRefArray* output_colrefs, CExpression* proj_expr);
-
-// TODO move to PlannerUtils
+	inline string pGetColNameFromColRef(const CColRef* column) {
+		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
+		string name(name_ws.begin(), name_ws.end());
+		return name;
+	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
 	}
@@ -303,7 +324,9 @@ private:
 		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
 
-	duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
+	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
+	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
+	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
 
 private:
 	// config
@@ -316,10 +339,13 @@ private:
 	CMemoryPool* memory_pool;
 
 	// used and initialized in each execution
-	BoundStatement* bound_statement;			// input parse statemnt
-	std::map<OID, std::vector<CColRef*>> table_col_mapping;
-	vector<duckdb::CypherPipeline*> pipelines;	// output plan pipelines
-	vector<std::string> output_col_names;
+	BoundStatement* bound_statement;					// input parse statemnt
+	vector<duckdb::CypherPipeline*> pipelines;			// output plan pipelines
+	vector<std::string> logical_plan_output_col_names;			// output col names
+	std::vector<CColRef*> logical_plan_output_colrefs;	// final output colrefs of the logical plan (user's view)
+	std::vector<CColRef*> physical_plan_output_colrefs;	// final output colrefs of the physical plan
+	
+
 };
 
 }

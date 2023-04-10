@@ -2,6 +2,8 @@
 
 #include "common/expression_type.h"
 
+#include "common/types/types.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

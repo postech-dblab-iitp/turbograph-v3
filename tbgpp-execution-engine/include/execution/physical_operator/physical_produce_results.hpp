@@ -9,8 +9,10 @@ namespace duckdb {
 class PhysicalProduceResults: public CypherPhysicalOperator {
 
 public:
-	// TODO actually, sink does not have output schema. we need sch for hiding adj and id. but we need more general, universal logic further.
-	PhysicalProduceResults(CypherSchema& sch): CypherPhysicalOperator(sch) { }
+	PhysicalProduceResults(CypherSchema& sch)
+		: CypherPhysicalOperator(sch) { }
+	PhysicalProduceResults(CypherSchema& sch, std::vector<uint8_t> projection_mapping)
+		: CypherPhysicalOperator(sch), projection_mapping(projection_mapping) { }
 	~PhysicalProduceResults() { }
 
 public:
@@ -22,6 +24,8 @@ public:
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
 
+private:
+	std::vector<uint8_t> projection_mapping;
 };	
 
 }
