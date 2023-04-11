@@ -278,7 +278,7 @@ void CypherSchema::setStoredTypes(std::vector<duckdb::LogicalType> types) {
 	}
 }
 
-void CypherSchema::setStoredColumnNames(std::vector<std::string>& names) {
+void CypherSchema::setStoredColumnNames(std::vector<std::string> &names) {
 	for( auto& t: names) {
 		stored_column_names.push_back(t);
 	}
