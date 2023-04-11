@@ -135,12 +135,12 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const {
 	auto &state = (AdjIdxJoinState &)lstate;
 
-icecream::ic.enable();
-IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
-if (input.size() > 0) {
-	IC(input.ToString(std::min((idx_t)10, input.size())));
-}
-icecream::ic.disable();
+// icecream::ic.enable();
+// IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
+// if (input.size() > 0) {
+// 	IC(input.ToString(std::min((idx_t)10, input.size())));
+// }
+// icecream::ic.disable();
 	
 	uint64_t *adj_start, *adj_end;
 	uint64_t *tgt_adj_column = nullptr;

@@ -82,6 +82,7 @@
 #include "gpopt/operators/CPhysicalIndexPathJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
+#include "gpopt/operators/CPhysicalLimit.h"
 #include "gpopt/operators/CPhysicalSort.h"
 #include "gpopt/operators/CPhysicalHashAgg.h"
 #include "gpopt/operators/CPhysicalHashAggDeduplicate.h"
@@ -100,6 +101,7 @@
 #include "naucrates/md/IMDType.h"
 #include "naucrates/md/IMDTypeGeneric.h"
 #include "naucrates/base/IDatumGeneric.h"
+#include "naucrates/base/CDatumInt8GPDB.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
