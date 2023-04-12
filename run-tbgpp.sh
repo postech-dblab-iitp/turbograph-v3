@@ -51,18 +51,18 @@ run_ldbc_s() {
 			n.creationDate AS creationDate" 1
 	
 	# LDBC IS2 Recent messages of a person
-	run_query "MATCH (:Person {id: 10995116277795})<-[:HAS_CREATOR]-(message)
+	run_query "MATCH (:Person {id: 10995116277795})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH
 				message,
 				message.id AS messageId,
 				message.creationDate AS messageCreationDate
 			   ORDER BY messageCreationDate DESC, messageId ASC
 			   LIMIT 10
-			   MATCH (message)-[:REPLY_OF*0..]->(post:Post),
-					(post)-[:HAS_CREATOR]->(person)
+			   MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
+					(post)-[:POST_HAS_CREATOR]->(person:Person)
 			   RETURN
 				messageId,
-				coalesce(message.imageFile,message.content) AS messageContent,
+				message.content AS messageContent,
 				messageCreationDate,
 				post.id AS postId,
 				person.id AS personId,
@@ -106,23 +106,15 @@ run_ldbc_s() {
 			mod.lastName AS moderatorLastName" 1
 
 	# LDBC IS7 Replies of a message
-	run_query "MATCH (m:Post {id: 556})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-		OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)
-		RETURN c.id AS commentId,
-			c.content AS commentContent,
-			c.creationDate AS commentCreationDate,
-			p.id AS replyAuthorId,
-			p.firstName AS replyAuthorFirstName,
-			p.lastName AS replyAuthorLastName" 1
-	run_query "MATCH (m:Message {id: 206158432794 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-	    OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)
+	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+	    OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
 	    RETURN c.id AS commentId,
 		c.content AS commentContent,
 		c.creationDate AS commentCreationDate,
 		p.id AS replyAuthorId,
 		p.firstName AS replyAuthorFirstName,
 		p.lastName AS replyAuthorLastName,
-		CASE r
+		CASE r._id
 		    WHEN null THEN false
 		    ELSE true
 		END AS replyAuthorKnowsOriginalMessageAuthor
