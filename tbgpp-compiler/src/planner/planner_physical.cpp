@@ -465,7 +465,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	}
 	D_ASSERT(sid_col_idx_found);
 
-	bool load_edge_property = false;
+	bool load_edge_property = false, load_eid = false;
 	// construct inner col map
 	CColRefArray* inner_cols = idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
@@ -482,6 +482,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 				load_edge_property = true;
 				inner_col_map_seek.push_back(id_idx);
 			} else {
+				if (colref_table->AttrNum() == -1) load_eid = true;
 				inner_col_map.push_back(id_idx);
 			}
 		}
@@ -520,10 +521,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		duckdb::CypherPhysicalOperator *op;
 		if (do_filter_pushdown) {
 			op = new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
-										sid_col_idx, false, outer_col_map, inner_col_map, true, outer_pos, inner_pos);
+										sid_col_idx, load_eid, outer_col_map, inner_col_map, true, outer_pos, inner_pos);
 		} else {
 			op = new duckdb::PhysicalAdjIdxJoin(tmp_schema, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
-										sid_col_idx, false, outer_col_map, inner_col_map);
+										sid_col_idx, load_eid, outer_col_map, inner_col_map);
 		}
 
 		result->push_back(op);

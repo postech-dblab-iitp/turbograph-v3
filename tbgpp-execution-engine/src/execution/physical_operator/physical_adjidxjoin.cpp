@@ -279,8 +279,8 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
 		//D_ASSERT(inner_col_map.size() == 2);
 		if (load_eid) {
-			state.tgtColIdx = inner_col_map[0];
-			state.edgeColIdx = inner_col_map[1];
+			state.edgeColIdx = inner_col_map[0];
+			state.tgtColIdx = inner_col_map[1];
 		} else {
 			state.tgtColIdx = inner_col_map[0];
 			state.edgeColIdx = -1;

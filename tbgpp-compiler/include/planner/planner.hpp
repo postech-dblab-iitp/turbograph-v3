@@ -26,6 +26,7 @@
 #include "gpopt/base/CColRef.h"
 #include "gpos/memory/CMemoryPool.h"
 #include "naucrates/md/CMDIdGPDB.h"
+#include "naucrates/md/CMDTypeBoolGPDB.h"
 #include "gpopt/operators/CLogicalGet.h"
 
 #include "gpos/_api.h"
@@ -91,6 +92,8 @@
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarSwitch.h"
+#include "gpopt/operators/CScalarSwitchCase.h"
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -111,6 +114,7 @@
 #include "kuzu/binder/expression/literal_expression.h"
 #include "kuzu/binder/expression/property_expression.h"
 #include "kuzu/binder/expression/node_rel_expression.h"
+#include "kuzu/binder/expression/case_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -228,6 +232,7 @@ private:
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -297,6 +302,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
