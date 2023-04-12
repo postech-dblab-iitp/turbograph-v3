@@ -15,6 +15,8 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
 	} else if ( isExpressionLiteral(expr_type) ) {
 		return lExprScalarLiteralExpr(expression, prev_plan);
+	} else if (isExpressionCaseElse(expr_type)) {
+		return lExprScalarCaseElseExpr(expression, prev_plan);
 	} else {
 		D_ASSERT(false);	// TODO Not yet
 	}
@@ -125,7 +127,7 @@ CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan
 	LiteralExpression* lit_expr = (LiteralExpression*) expression;
 	DataType type = lit_expr->literal.get()->dataType;
 
-	D_ASSERT( !lit_expr->isNull() && "currently null not supported");
+	// D_ASSERT( !lit_expr->isNull() && "currently null not supported");
 
 	CExpression* pexpr = nullptr;
 	uint32_t literal_type_id = LOGICAL_TYPE_BASE_ID + (OID)type.typeID;
@@ -147,6 +149,51 @@ CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan
 
 	D_ASSERT(pexpr != nullptr);
 	return pexpr;
+}
+
+CExpression *Planner::lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+
+	CaseExpression *case_expr = (CaseExpression *)expression;
+
+	size_t numCaseAlts = case_expr->getNumCaseAlternatives();
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+
+	// generate expression for CaseAlternatives
+	for (size_t idx = 0; idx < numCaseAlts; idx++) {
+		auto casealt_expr = case_expr->getCaseAlternative(idx);
+		auto when_expr = casealt_expr->whenExpression;
+		auto then_expr = casealt_expr->thenExpression;
+
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+
+		// convert when & then expr
+		CExpression *c_when_expr = lExprScalarExpression(when_expr.get(), prev_plan);
+		CExpression *c_then_expr = lExprScalarExpression(then_expr.get(), prev_plan);
+		
+		pdrgpexprChildren->Append(c_when_expr);
+		pdrgpexprChildren->Append(c_then_expr);
+
+		CExpression *c_casealt_expr  = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CScalarSwitchCase(mp), pdrgpexprChildren);
+		pdrgpexpr->Append(c_casealt_expr);
+	}
+
+	// generate expression for Else
+	auto else_expr = case_expr->getElseExpression();
+	CExpression *else_expr_tmp = lExprScalarExpression(else_expr.get(), prev_plan);
+	pdrgpexpr->Append(else_expr_tmp);
+
+	// get return data type
+	DataType return_type = case_expr->getDataType();
+	uint32_t return_type_id = LOGICAL_TYPE_BASE_ID + (OID)return_type.typeID;
+	CMDIdGPDB* return_type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, return_type_id, 1, 0);
+	return_type_mdid->AddRef();
+
+	CExpression *result_expr = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CScalarSwitch(mp, return_type_mdid), pdrgpexpr);
+
+	return result_expr;
 }
 
 }

@@ -71,13 +71,13 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
-// icecream::ic.enable();
-// IC(input.size());
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// IC(id_col_idx);
-// icecream::ic.disable();
+icecream::ic.enable();
+IC(input.size());
+if (input.size() > 0) {
+	IC(input.ToString(std::min((idx_t)10, input.size())));
+}
+IC(id_col_idx);
+icecream::ic.disable();
 
 	idx_t nodeColIdx = id_col_idx;
 	D_ASSERT(nodeColIdx < input.ColumnCount());
