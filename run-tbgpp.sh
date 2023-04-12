@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" --explain ${debug_plan_option} --index-join-only ${iterations}
+	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
 }
 
 run_ldbc_s() {
@@ -37,7 +37,6 @@ run_ldbc_s() {
 	echo "RUN LDBC Short"
 
 	# LDBC IS1 Profile of a person
-	echo "LDBC IS1"
 	# Place -> City
 	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
 		   RETURN
@@ -48,10 +47,10 @@ run_ldbc_s() {
 			n.browserUsed AS browserUsed,
 			p.id AS cityId,
 			n.gender AS gender,
-			n.creationDate AS creationDate" 1
+			n.creationDate AS creationDate"
 	
 	# LDBC IS2 Recent messages of a person
-	run_query "MATCH (:Person {id: 10995116277795})<-[:HAS_CREATOR]-(message:Comment)
+	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH
 				message,
 				message.id AS messageId,
@@ -68,7 +67,7 @@ run_ldbc_s() {
 				person.id AS personId,
 				person.firstName AS personFirstName,
 				person.lastName AS personLastName
-			   ORDER BY messageCreationDate DESC, messageId ASC" 1
+			   ORDER BY messageCreationDate DESC, messageId ASC"
 	
 	# LDBC IS3 Friends of a Person
 	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
@@ -79,20 +78,20 @@ run_ldbc_s() {
 			r.creationDate AS friendshipCreationDate
 		ORDER BY
 			friendshipCreationDate DESC,
-			personId ASC" 1
+			personId ASC"
 	
 	# LDBC IS4 Content of a message
 	run_query "MATCH (m:Comment {id: 557})
 		RETURN
 			m.creationDate as messageCreationDate,
-			m.content as messageContent" 1
+			m.content as messageContent"
 	
 	# LDBC IS5 Creator of a message
 	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			p.id AS personId,
 			p.firstName AS firstName,
-			p.lastName AS lastName" 1
+			p.lastName AS lastName"
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
@@ -103,17 +102,17 @@ run_ldbc_s() {
 			f.title AS forumTitle,
 			mod.id AS moderatorId,
 			mod.firstName AS moderatorFirstName,
-			mod.lastName AS moderatorLastName" 1
+			mod.lastName AS moderatorLastName"
 
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-	    OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
+	    OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
 	    RETURN c.id AS commentId,
-		c.content AS commentContent,
-		c.creationDate AS commentCreationDate,
-		p.id AS replyAuthorId,
-		p.firstName AS replyAuthorFirstName,
-		p.lastName AS replyAuthorLastName,
+			c.content AS commentContent,
+			c.creationDate AS commentCreationDate,
+			p.id AS replyAuthorId,
+			p.firstName AS replyAuthorFirstName,
+			p.lastName AS replyAuthorLastName,
 		CASE r._id
 		    WHEN null THEN false
 		    ELSE true

@@ -136,6 +136,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	auto &state = (AdjIdxJoinState &)lstate;
 
 // icecream::ic.enable();
+// std::cout << "[PhysicalAdjIdxJoin] input" << std::endl;
 // IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
 // if (input.size() > 0) {
 // 	IC(input.ToString(std::min((idx_t)10, input.size())));
@@ -248,6 +249,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	chunk.SetCardinality(state.output_idx);
 
 // icecream::ic.enable();
+// std::cout << "[PhysicalAdjIdxJoin] output" << std::endl;
 // IC(chunk.size());
 // if (chunk.size() != 0)
 // 	IC(chunk.ToString(std::min(10, (int)chunk.size())));
@@ -279,8 +281,13 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		// state.tgtColIdx = input.ColumnCount() + int(load_eid);
 		//D_ASSERT(inner_col_map.size() == 2);
 		if (load_eid) {
-			state.edgeColIdx = inner_col_map[0];
-			state.tgtColIdx = inner_col_map[1];
+			if (load_eid_temporarily) {
+				state.tgtColIdx = inner_col_map[0];
+				state.edgeColIdx = inner_col_map[1];
+			} else {
+				state.edgeColIdx = inner_col_map[0];
+				state.tgtColIdx = inner_col_map[1];
+			}
 		} else {
 			state.tgtColIdx = inner_col_map[0];
 			state.edgeColIdx = -1;
