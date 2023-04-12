@@ -537,29 +537,35 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		result->push_back(op);
 	} else {
 		// AdjIdxJoin -> Edge Id Seek
-		duckdb::CypherSchema tmp_schema_seek;
+		bool load_eid_temporarily = !load_eid;
+		duckdb::CypherSchema tmp_schema_seek, tmp_schema_adjidxjoin;
 		tmp_schema_seek.setStoredTypes(types);
 
-		types.push_back(duckdb::LogicalType::ID);
-		seek_sid_col_idx = types.size() - 1;
-		duckdb::CypherSchema tmp_schema_adjidxjoin;
-		tmp_schema_adjidxjoin.setStoredTypes(types);
-		inner_col_map.push_back(seek_sid_col_idx);
-		outer_col_map_seek.resize(types.size() - 1);
-		for (int i = 0; i < outer_col_map_seek.size(); i++) {
-			auto it = std::find(inner_col_map_seek.begin(), inner_col_map_seek.end(), i);
-			if (it == inner_col_map_seek.end()) outer_col_map_seek[i] = i;
-			else outer_col_map_seek[i] = std::numeric_limits<uint32_t>::max();
+		if (load_eid) {
+			// if we already load eid, use it for id seek operation
+			D_ASSERT(false); // not implemented yet
+		} else {
+			// if we do not load eid, we need to load eid temporarily for id seek operation
+			types.push_back(duckdb::LogicalType::ID);
+			seek_sid_col_idx = types.size() - 1;
+			tmp_schema_adjidxjoin.setStoredTypes(types);
+			inner_col_map.push_back(seek_sid_col_idx);
+			outer_col_map_seek.resize(types.size() - 1);
+			for (int i = 0; i < outer_col_map_seek.size(); i++) {
+				auto it = std::find(inner_col_map_seek.begin(), inner_col_map_seek.end(), i);
+				if (it == inner_col_map_seek.end()) outer_col_map_seek[i] = i;
+				else outer_col_map_seek[i] = std::numeric_limits<uint32_t>::max();
+			}
+			outer_col_map_seek.push_back(std::numeric_limits<uint32_t>::max()); // TODO always useless?
 		}
-		outer_col_map_seek.push_back(std::numeric_limits<uint32_t>::max()); // TODO always useless?
-		
+
 		duckdb::CypherPhysicalOperator *op_adjidxjoin;
 		if (do_filter_pushdown) {
 			op_adjidxjoin =	new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
-										sid_col_idx, true, outer_col_map, inner_col_map, true, outer_pos, inner_pos);
+										sid_col_idx, true, outer_col_map, inner_col_map, true, outer_pos, inner_pos, load_eid_temporarily);
 		} else {
 			op_adjidxjoin =	new duckdb::PhysicalAdjIdxJoin(tmp_schema_adjidxjoin, adjidx_obj_id, is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
-										sid_col_idx, true, outer_col_map, inner_col_map);
+										sid_col_idx, true, outer_col_map, inner_col_map, load_eid_temporarily);
 		}
 
 		// TODO filter + seek
