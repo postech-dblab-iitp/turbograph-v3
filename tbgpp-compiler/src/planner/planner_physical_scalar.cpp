@@ -98,6 +98,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	for( ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++ ) {
 		child.push_back(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols));
 	}
+	D_ASSERT(child.size() < 1);
 
 	if(op->FCountStar()) {															// count(*)
 		result = std::move(make_unique<duckdb::BoundAggregateExpression>(
@@ -107,10 +108,33 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 			duckdb::CountFun::GetFunction(), std::move(child), nullptr, nullptr, false));
 	}
 
-	// TODO for general use mdid to match
-	// OID orca_agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
-	
-	return result;
+	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
+	auto aggfunc_catalog_entry = context->db->GetCatalogWrapper().GetAggFunc(*context, agg_func_id);
+
+	duckdb::AggregateFunction* selected_function;
+	bool is_function_selected = false;
+	auto& functions = aggfunc_catalog_entry->functions.get()->functions;
+	for(auto& function: functions) {
+		auto& func_arg_types = function.arguments;
+		D_ASSERT(func_arg_types.size() == 1); // current single arg type maybe more later?
+		if(func_arg_types[0] == duckdb::LogicalType::ANY) {
+			selected_function = &function; 	// always select this - for count_star
+			is_function_selected = true;
+			break;
+		} else {
+			// other types besides ANY should have child expression
+			D_ASSERT(child.size() > 0);
+			if( child[0].get()->return_type == func_arg_types[0]) {
+				is_function_selected = true;
+				selected_function = &function;
+				break;
+			}
+		}
+	}
+	D_ASSERT(is_function_selected);
+
+	return make_unique<duckdb::BoundAggregateExpression>(
+		*selected_function, std::move(child), nullptr, nullptr, op->IsDistinct());
 }
 
 

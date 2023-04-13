@@ -4,6 +4,7 @@
 #include "common/enums/index_type.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
+#include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "main/database.hpp"
 #include "catalog_wrapper.hpp"
 
