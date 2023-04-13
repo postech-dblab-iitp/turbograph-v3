@@ -100,14 +100,6 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	}
 	D_ASSERT(child.size() < 1);
 
-	if(op->FCountStar()) {															// count(*)
-		result = std::move(make_unique<duckdb::BoundAggregateExpression>(
-			duckdb::CountStarFun::GetFunction(), std::move(child), nullptr, nullptr, false));
-	} else if(op->FCountAny()) {													// count(any)
-		result = std::move(make_unique<duckdb::BoundAggregateExpression>(
-			duckdb::CountFun::GetFunction(), std::move(child), nullptr, nullptr, false));
-	}
-
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
 	auto aggfunc_catalog_entry = context->db->GetCatalogWrapper().GetAggFunc(*context, agg_func_id);
 
