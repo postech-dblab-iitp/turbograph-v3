@@ -66,9 +66,8 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 
 	/* Aggregate - generate LogicalGbAgg series */
 	if(proj_body->hasAggregationExpressions()) {
-		GPOS_ASSERT(false);
+		plan = lPlanGroupBy(proj_body->getProjectionExpressions(), plan);	// TODO what if agg + projection
 		// TODO plan is manipulated
-		// maybe need to split function without agg and with agg.
 	} else {
 		plan = lPlanProjection(proj_body->getProjectionExpressions(), plan);
 	}
@@ -391,6 +390,76 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 	prev_plan->addUnaryParentOp(proj_expr);
 	prev_plan->setSchema(move(new_schema));
 
+	return prev_plan;
+}
+
+LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, LogicalPlan* prev_plan) {
+
+	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	CExpressionArray *agg_columns = GPOS_NEW(mp) CExpressionArray(mp);
+	CColRefArray* key_columns = GPOS_NEW(mp) CColRefArray(mp);
+	agg_columns->AddRef();
+	key_columns->AddRef();
+	
+	LogicalSchema new_schema;
+
+	for( auto& proj_expr_ptr: expressions) {
+		
+		kuzu::binder::Expression* proj_expr = proj_expr_ptr.get();
+		string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getRawName();
+
+		if(proj_expr->hasAggregationExpression()) {
+			// AGG COLUMNS
+			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
+			
+			// get new colref and add to schema
+			CScalar* scalar_op = (CScalar*)(expr->Pop());
+			std::wstring w_col_name = L"";
+			w_col_name.assign(col_name.begin(), col_name.end());
+			const CWStringConst col_name_str(w_col_name.c_str());
+			CName col_cname(&col_name_str);
+			CColRef *new_colref = col_factory->PcrCreate(
+				lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);
+			new_schema.appendColumn(col_name, new_colref);
+			
+			// add to agg_columns
+			agg_columns->Append(expr);
+
+		} else {
+			// KEY COLUMNS
+			D_ASSERT( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ); // TODO property only? not sure.
+			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
+
+			// add original colref to schema
+			CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
+			if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY && !proj_expr->hasAlias() ) {
+				// considered as property only when users can still access as node property.
+				// otherwise considered as general column
+				PropertyExpression* prop_expr = (PropertyExpression*) proj_expr;
+				if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableRawName()) ) {
+					new_schema.appendNodeProperty(prop_expr->getVariableRawName(), prop_expr->getPropertyName(), orig_colref);
+				} else {
+					new_schema.appendEdgeProperty(prop_expr->getVariableRawName(), prop_expr->getPropertyName(), orig_colref);
+				}
+			} else {
+				new_schema.appendColumn(col_name, orig_colref);
+			}
+
+			// add to key_columns
+			key_columns->Append(orig_colref);
+		}
+		
+	}
+
+	CExpression *pexprList =
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), agg_columns);
+	CExpression *agg_expr = CUtils::PexprLogicalGbAggGlobal(mp, key_columns, prev_plan->getPlanExpr(), pexprList);
+
+	prev_plan->addUnaryParentOp(agg_expr);
+	prev_plan->setSchema(move(new_schema));
+	
 	return prev_plan;
 }
 
