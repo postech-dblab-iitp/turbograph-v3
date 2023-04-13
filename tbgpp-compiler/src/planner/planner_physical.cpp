@@ -1057,8 +1057,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	CColRefArray* child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 	const CColRefArray* grouping_cols = agg_op->PdrgpcrGroupingCols();
-	grouping_cols->AddRef();
-	
+		
 	// get agg groups
 	for(ULONG group_col_idx=0; group_col_idx < grouping_cols->Size(); group_col_idx++) {
 		CColRef *col = grouping_cols->operator[](group_col_idx);
