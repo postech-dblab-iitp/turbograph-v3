@@ -94,6 +94,8 @@ struct SimilarCatalogEntry {
 #define FUNCTION_BASE_ID 70000000L
 #define INVALID_OID 0
 
+#define FUNC_GROUP_SIZE 65536 // 256 * 256 (assume binary)
+
 //! The Catalog object represents the catalog of the database.
 class Catalog {
 	// typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;

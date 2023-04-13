@@ -30,6 +30,35 @@ public:
         }
     }
 
+    idx_t GetAggFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
+        auto &catalog = db.GetCatalog();
+        AggregateFunctionCatalogEntry *aggfunc_cat =
+            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
+        
+        if (aggfunc_cat == nullptr) { throw InvalidInputException("Unsupported agg func"); }
+
+        auto &agg_funcset = aggfunc_cat->functions->functions;
+        D_ASSERT(agg_funcset.size() <= FUNC_GROUP_SIZE);
+        idx_t agg_funcset_idx = 0; bool found = false;
+        for (int idx = 0; idx < agg_funcset.size(); idx++) {
+            if (arguments.size() != agg_funcset[idx].arguments.size()) continue;
+            if (arguments == agg_funcset[idx].arguments) {
+                found = true;
+                agg_funcset_idx = idx;
+                break;
+            }
+        }
+        if (!found) { throw InvalidInputException("Unsupported agg func"); }
+
+        idx_t aggfunc_mdid = FUNCTION_BASE_ID + (aggfunc_cat->GetOid() * FUNC_GROUP_SIZE) + agg_funcset_idx;
+        return aggfunc_mdid;
+    }
+    
+    idx_t GetScalarFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
+
+        return 0;
+    }
+
     PartitionCatalogEntry *GetPartition(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
         PartitionCatalogEntry *part_cat =
@@ -73,7 +102,7 @@ public:
     }
 
     AggregateFunctionCatalogEntry *GetAggFunc(ClientContext &context, idx_t aggfunc_oid) {
-        idx_t aggfunc_oid_ = (aggfunc_oid - FUNCTION_BASE_ID) / 65536;
+        idx_t aggfunc_oid_ = (aggfunc_oid - FUNCTION_BASE_ID) / FUNC_GROUP_SIZE;
         auto &catalog = db.GetCatalog();
         AggregateFunctionCatalogEntry *aggfunc_cat =
             (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
