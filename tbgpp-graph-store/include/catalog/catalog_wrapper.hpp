@@ -24,45 +24,89 @@ public:
         vector<idx_t> pids = std::move(gcat->LookupPartition(context, labelset_names, g_type));
 
         for (auto &pid : pids) {
-            PartitionCatalogEntry *p_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             p_cat->GetPropertySchemaIDs(oids);
         }
     }
 
+    idx_t GetAggFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
+        auto &catalog = db.GetCatalog();
+        AggregateFunctionCatalogEntry *aggfunc_cat =
+            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
+        
+        if (aggfunc_cat == nullptr) { throw InvalidInputException("Unsupported agg func"); }
+
+        auto &agg_funcset = aggfunc_cat->functions->functions;
+        D_ASSERT(agg_funcset.size() <= FUNC_GROUP_SIZE);
+        idx_t agg_funcset_idx = 0; bool found = false;
+        for (int idx = 0; idx < agg_funcset.size(); idx++) {
+            if (arguments.size() != agg_funcset[idx].arguments.size()) continue;
+            if (arguments == agg_funcset[idx].arguments) {
+                found = true;
+                agg_funcset_idx = idx;
+                break;
+            }
+        }
+        if (!found) { throw InvalidInputException("Unsupported agg func"); }
+
+        idx_t aggfunc_mdid = FUNCTION_BASE_ID + (aggfunc_cat->GetOid() * FUNC_GROUP_SIZE) + agg_funcset_idx;
+        return aggfunc_mdid;
+    }
+    
+    idx_t GetScalarFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
+
+        return 0;
+    }
+
     PartitionCatalogEntry *GetPartition(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat;
     }
 
     PropertySchemaCatalogEntry *RelationIdGetRelation(ClientContext &context, idx_t rel_oid) {
         auto &catalog = db.GetCatalog();
-        PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, rel_oid);
+        PropertySchemaCatalogEntry *ps_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, rel_oid);
         return ps_cat;
     }
 
     idx_t GetRelationPhysicalIDIndex(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetPhysicalIDIndexOid();
     }
 
     idx_t_vector *GetRelationAdjIndexes(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetAdjIndexOidVec();
     }
 
     idx_t_vector *GetRelationPropertyIndexes(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetPropertyIndexOidVec();
     }
 
     IndexCatalogEntry *GetIndex(ClientContext &context, idx_t index_oid) {
         auto &catalog = db.GetCatalog();
-        IndexCatalogEntry *index_cat = (IndexCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, index_oid);
+        IndexCatalogEntry *index_cat =
+            (IndexCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, index_oid);
         return index_cat;
+    }
+
+    AggregateFunctionCatalogEntry *GetAggFunc(ClientContext &context, idx_t aggfunc_oid) {
+        idx_t aggfunc_oid_ = (aggfunc_oid - FUNCTION_BASE_ID) / FUNC_GROUP_SIZE;
+        auto &catalog = db.GetCatalog();
+        AggregateFunctionCatalogEntry *aggfunc_cat =
+            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
+        return aggfunc_cat;
     }
 
     void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
