@@ -161,7 +161,7 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	CMemoryPool* mp = this->memory_pool;
 	
 	AggregateFunctionExpression* aggfunc_expr = (AggregateFunctionExpression*) expression;
-	auto children = aggfunc_expr->getChildren();
+	kuzu::binder::expression_vector children = aggfunc_expr->getChildren();
 
 	std::string func_name = (expression)->getUniqueName();	// COUNT 
 	D_ASSERT(func_name != "");
@@ -174,11 +174,13 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	// call RetrieveAgg (mdid)
 
 	if( func_name == kuzu::common::COUNT_FUNC_NAME) {
-		D_ASSERT(false);
+		D_ASSERT(children.size() == 1);
 		// find colref
 		auto child_expr = lExprScalarExpression(children[0].get(), prev_plan);
+		// pGetColRefFromScalarIdent
 		// access MDA and get colref -> make as library
 		//pexpr = CUtils::PexprCount(mp,  aggfunc_expr->isDistinct())
+		// pGetColRefFromScalarIdent
 	} else if( func_name == kuzu::common::COUNT_STAR_FUNC_NAME) {
 		// TODO need to access mda!!!
 		
