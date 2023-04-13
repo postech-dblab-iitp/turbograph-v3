@@ -72,11 +72,11 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	}
 
 // icecream::ic.enable();
-// IC(input.size());
+// std::cout << "[PhysicalIdSeek] input" << std::endl;
+// IC(input.size(), id_col_idx);
 // if (input.size() > 0) {
 // 	IC(input.ToString(std::min((idx_t)10, input.size())));
 // }
-// IC(id_col_idx);
 // icecream::ic.disable();
 
 	idx_t nodeColIdx = id_col_idx;
@@ -136,6 +136,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	}
 
 // icecream::ic.enable();
+// std::cout << "[PhysicalIdSeek] output" << std::endl;
 // IC(chunk.size());
 // if (chunk.size() != 0)
 // 	IC(chunk.ToString(std::min(10, (int)chunk.size())));

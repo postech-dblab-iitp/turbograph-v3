@@ -89,6 +89,8 @@ public:
 	DUCKDB_API static Value UINTEGER(uint32_t value);
 	//! Create an unsigned bigint Value from a specified value
 	DUCKDB_API static Value UBIGINT(uint64_t value);
+	//! Create an ID Value from a specified value
+	DUCKDB_API static Value ID(uint64_t value);
 	//! Create a hugeint Value from a specified value
 	DUCKDB_API static Value HUGEINT(hugeint_t value);
 	//! Create a uuid Value from a specified value

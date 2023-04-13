@@ -72,11 +72,6 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		plan = lPlanProjection(proj_body->getProjectionExpressions(), plan);
 	}
 
-	/* Distinct */
-	if(proj_body->getIsDistinct()) {
-		GPOS_ASSERT(false);
-	}
-
 	/* OrderBy */
 	if (proj_body->hasOrderByExpressions()) {
 		// orderByExpressions
@@ -84,6 +79,17 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 		const expression_vector &orderby_expr = proj_body->getOrderByExpressions(); 
 		const vector<bool> sort_orders = proj_body->getSortingOrders(); // if true asc
 		plan = lPlanOrderBy(orderby_expr, sort_orders, plan);
+	}
+
+	/* Scalar projection - using CLogicalProject */
+		// find all projection expressions that requires new columns
+		// generate logicalproiection and record the mappings
+
+	// maintain new mappings
+
+	/* Distinct */
+	if (proj_body->getIsDistinct()) {
+		plan = lPlanDistinct(plan->getPlanExpr()->DeriveOutputColumns()->Pdrgpcr(mp), plan);
 	}
 
 	/* Skip limit */
@@ -477,6 +483,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 			string k1 = prop_expr->getVariableRawName();
 			string k2 = prop_expr->getPropertyName();
 			CColRef* key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+			// fallback to alias
+			if (key_colref == NULL && prop_expr->hasAlias()) {
+				k1 = prop_expr->getAlias();
+				k2 = ""; 
+				key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+			}
+			D_ASSERT(key_colref != NULL);
 			sort_colrefs.push_back(key_colref);
 		} else {
 			// currently do not allow other cases
@@ -507,7 +520,23 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 	return prev_plan;
 }
 
-LogicalPlan * Planner::lPlanPathGet(RelExpression* edge_expr) {
+LogicalPlan *Planner::lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+
+	CLogicalGbAgg *pop_gbagg = 
+		GPOS_NEW(mp) CLogicalGbAgg(
+			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/);
+	CExpression *gbagg_expr =  GPOS_NEW(mp)
+		CExpression(mp, pop_gbagg, prev_plan->getPlanExpr(),
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
+	colrefs->AddRef();
+	
+	prev_plan->addUnaryParentOp(gbagg_expr);
+	
+	return prev_plan;
+}
+
+LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
 
