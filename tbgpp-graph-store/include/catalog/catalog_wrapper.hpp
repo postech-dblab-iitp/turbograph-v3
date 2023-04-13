@@ -24,50 +24,59 @@ public:
         vector<idx_t> pids = std::move(gcat->LookupPartition(context, labelset_names, g_type));
 
         for (auto &pid : pids) {
-            PartitionCatalogEntry *p_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             p_cat->GetPropertySchemaIDs(oids);
         }
     }
 
     PartitionCatalogEntry *GetPartition(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat;
     }
 
     PropertySchemaCatalogEntry *RelationIdGetRelation(ClientContext &context, idx_t rel_oid) {
         auto &catalog = db.GetCatalog();
-        PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, rel_oid);
+        PropertySchemaCatalogEntry *ps_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, rel_oid);
         return ps_cat;
     }
 
     idx_t GetRelationPhysicalIDIndex(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetPhysicalIDIndexOid();
     }
 
     idx_t_vector *GetRelationAdjIndexes(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetAdjIndexOidVec();
     }
 
     idx_t_vector *GetRelationPropertyIndexes(ClientContext &context, idx_t partition_oid) {
         auto &catalog = db.GetCatalog();
-        PartitionCatalogEntry *part_cat = (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, partition_oid);
         return part_cat->GetPropertyIndexOidVec();
     }
 
     IndexCatalogEntry *GetIndex(ClientContext &context, idx_t index_oid) {
         auto &catalog = db.GetCatalog();
-        IndexCatalogEntry *index_cat = (IndexCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, index_oid);
+        IndexCatalogEntry *index_cat =
+            (IndexCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, index_oid);
         return index_cat;
     }
 
     AggregateFunctionCatalogEntry *GetAggFunc(ClientContext &context, idx_t aggfunc_oid) {
+        idx_t aggfunc_oid_ = (aggfunc_oid - FUNCTION_BASE_ID) / 65536;
         auto &catalog = db.GetCatalog();
-        AggregateFunctionCatalogEntry *aggfunc_cat = (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid);
+        AggregateFunctionCatalogEntry *aggfunc_cat =
+            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
         return aggfunc_cat;
     }
 
