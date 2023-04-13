@@ -594,7 +594,7 @@ CLogicalGbAgg::PxfsCandidates(CMemoryPool *mp) const
 	(void) xform_set->ExchangeSet(CXform::ExfSplitDQA);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2Apply);
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2HashAgg);
-	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2StreamAgg);
+	// (void) xform_set->ExchangeSet(CXform::ExfGbAgg2StreamAgg); // S62 currently do not have stream agg
 	(void) xform_set->ExchangeSet(CXform::ExfGbAgg2ScalarAgg);
 	(void) xform_set->ExchangeSet(CXform::ExfEagerAgg);
 	return xform_set;

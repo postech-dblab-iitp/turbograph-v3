@@ -10,6 +10,7 @@
 #include "planner/expression/bound_operator_expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
+#include "planner/expression/bound_case_expression.hpp"
 
 #include "function/aggregate_function.hpp"
 #include "function/aggregate/distributive_functions.hpp"
@@ -25,6 +26,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, child_cols);
 		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, child_cols);
 		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, child_cols);
+		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, child_cols);
 		default:
 			D_ASSERT(false); // NOT implemented yet
 	}
@@ -112,6 +114,33 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 }
 
 
+unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols) {
+
+	CScalarSwitch *op = (CScalarSwitch *)scalar_expr->Pop();
+
+	uint32_t num_childs = scalar_expr->Arity();
+	D_ASSERT(num_childs == 2); // currently support only one when/then
+	unique_ptr<duckdb::Expression> e_when;
+	unique_ptr<duckdb::Expression> e_then;
+	unique_ptr<duckdb::Expression> e_else;
+
+	// when/then
+	for (uint32_t i = 0; i < num_childs - 1; i++) {
+		CExpression *child_expr = scalar_expr->operator[](i);
+		D_ASSERT(child_expr->Arity() == 2); // when & then
+
+		CExpression *when_expr = child_expr->operator[](0);
+		CExpression *then_expr = child_expr->operator[](1);
+
+		e_when = std::move(pTransformScalarExpr(when_expr, child_cols));
+		e_then = std::move(pTransformScalarExpr(then_expr, child_cols));
+	}
+
+	// else
+	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), child_cols));
+
+	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));
+}
 
 duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
 	switch(cmp_type) {

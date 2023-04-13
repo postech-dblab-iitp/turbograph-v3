@@ -361,19 +361,18 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			t << endr;
 
 			if (num_total_tuples != 0) {
-				auto& firstchunk = resultChunks[0];
-				LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-
-				// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-				// 	t << firstchunk->GetTypes()[i].ToString(); 
-				// }
-				// t << endr;
-				
-				for( int idx = 0 ; idx < LIMIT ; idx++) {
-					for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-						t << firstchunk->GetValue(i, idx).ToString();
+				int num_tuples_to_print;
+				for (int chunk_idx = 0; chunk_idx < resultChunks.size(); chunk_idx++) {
+					auto &chunk = resultChunks[chunk_idx];
+					num_tuples_to_print = std::min((int)(chunk->size()), LIMIT);
+					for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
+						for( int i = 0; i < chunk->ColumnCount(); i++ ) {
+							t << chunk->GetValue(i, idx).ToString();
+						}
+						t << endr;
 					}
-					t << endr;
+					LIMIT -= num_tuples_to_print;
+					if (LIMIT == 0) break;
 				}
 				std::cout << t << std::endl;
 			}

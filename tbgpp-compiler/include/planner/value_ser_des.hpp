@@ -49,6 +49,14 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::BOOL: {
+				out_length = 1;
+				int8_t val = kuzu_literal->val.booleanVal ? 1 : 0;
+				char *mem_ptr = (char*) malloc(out_length);
+				(*mem_ptr) = val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			default:
 				D_ASSERT(false);
 		}
@@ -62,21 +70,42 @@ public:
 		duckdb::LogicalTypeId duckdb_type = (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 
 		// TODO deallocation is responsible here
-		switch(duckdb_type) {
+		switch (duckdb_type) {
 			case duckdb::LogicalType::UBIGINT: {
-				D_ASSERT(length == 8);
-				uint64_t value = *((uint64_t*)mem_ptr);
-				return duckdb::Value::UBIGINT(value);
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::UBIGINT);
+				} else {
+					uint64_t value = *((uint64_t*)mem_ptr);
+					return duckdb::Value::UBIGINT(value);
+				}
 			}
 			case duckdb::LogicalType::BIGINT: {
-				D_ASSERT(length == 8);
-				int64_t value = *((int64_t*)mem_ptr);
-				return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::UBIGINT);	// TODO to BIGINT
+				} else {
+					int64_t value = *((int64_t*)mem_ptr);
+					return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
+				}
 			}
 			case duckdb::LogicalType::VARCHAR: {
 				string str_value((char*)mem_ptr);
 				duckdb::string_t value(str_value);
 				return duckdb::Value(value);
+			}
+			case duckdb::LogicalType::ID: {
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::ID);
+				} else {
+					uint64_t value = *((uint64_t*)mem_ptr);
+					return duckdb::Value::ID(value);
+				}
+			}
+			case duckdb::LogicalType::BOOLEAN: {
+				int8_t value = *((int8_t*)mem_ptr);
+				return duckdb::Value::BOOLEAN(value);
 			}
 			default:
 				D_ASSERT(false);

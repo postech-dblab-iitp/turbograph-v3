@@ -11,23 +11,13 @@ elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
 elif [ "$#" -eq 3 ]; then
 	if [ $debug_plan -eq 1 ]; then
-		debug_plan_option="--debug-planner"
+		debug_plan_option="--debug-orca"
 	else
 		debug_plan_option=""
 	fi
 fi
 
 iterations="--num-iterations:5"
-
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (a:Person)-[r1:KNOWS]->(b:Person)-[r2:KNOWS]->(c:Person) RETURN a.lastName, b.lastName, c.lastName" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (p:Person)<-[r:POST_HAS_CREATOR]-(message:Post) RETURN message.id" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (m:Comment)-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum) RETURN m.id, n.id, p.id, f.id" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (m:Comment)-[roc:REPLY_OF_COMMENT]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum) RETURN m.id, n.id, p.id, f.id" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (m:Comment)-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)-[co:HAS_CREATOR]->(f:Person) RETURN m.id, n.id, p.id, f.id" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (m:Comment)-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post) RETURN m.id, n.id, p.id" --debug-planner --index-join-only
-#./tbgpp-client/TurboGraph-S62 --workspace:/data/ldbc/sf1_test/ --query:"MATCH (m:Comment)-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person) RETURN f.id, f.title, mod.id, mod.firstName, mod.lastName" --index-join-only
 
 run_query() {
 	query_str=$1
@@ -47,42 +37,87 @@ run_ldbc_s() {
 	echo "RUN LDBC Short"
 
 	# LDBC IS1 Profile of a person
-	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place) RETURN n.firstName, n.lastName, n.birthday, n.locationIP, n.browserUsed, p.id, n.gender, n.creationDate"
+	# Place -> City
+	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
+		   RETURN
+		   	n.firstName AS firstName,
+			n.lastName AS lastName,
+			n.birthday AS birthday,
+			n.locationIP AS locationIP,
+			n.browserUsed AS browserUsed,
+			p.id AS cityId,
+			n.gender AS gender,
+			n.creationDate AS creationDate"
 	
 	# LDBC IS2 Recent messages of a person
-	run_query "MATCH (:Person {id: 10995116277795})<-[:HAS_CREATOR]-(message)
+	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH
 				message,
 				message.id AS messageId,
 				message.creationDate AS messageCreationDate
 			   ORDER BY messageCreationDate DESC, messageId ASC
 			   LIMIT 10
-			   MATCH (message)-[:REPLY_OF*0..]->(post:Post),
-					(post)-[:HAS_CREATOR]->(person)
+			   MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
+					(post)-[:POST_HAS_CREATOR]->(person:Person)
 			   RETURN
 				messageId,
-				coalesce(message.imageFile,message.content) AS messageContent,
+				message.content AS messageContent,
 				messageCreationDate,
 				post.id AS postId,
 				person.id AS personId,
 				person.firstName AS personFirstName,
 				person.lastName AS personLastName
-			   ORDER BY messageCreationDate DESC, messageId ASC" 1
+			   ORDER BY messageCreationDate DESC, messageId ASC"
 	
 	# LDBC IS3 Friends of a Person
-	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person) RETURN friend.id, friend.firstName, friend.lastName, r.creationDate ORDER BY r.creationDate DESC, friend.id ASC"
+	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
+		RETURN
+			friend.id AS personId,
+			friend.firstName AS firstName,
+			friend.lastName AS lastName,
+			r.creationDate AS friendshipCreationDate
+		ORDER BY
+			friendshipCreationDate DESC,
+			personId ASC"
 	
 	# LDBC IS4 Content of a message
-	run_query "MATCH (m:Comment {id: 557}) RETURN m.creationDate, m.content"
+	run_query "MATCH (m:Comment {id: 557})
+		RETURN
+			m.creationDate as messageCreationDate,
+			m.content as messageContent"
 	
 	# LDBC IS5 Creator of a message
-	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person) RETURN p.id, p.firstName, p.lastName"
+	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			p.id AS personId,
+			p.firstName AS firstName,
+			p.lastName AS lastName"
 
 	# LDBC IS6 Forum of a message
-	run_query "MATCH (m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person) RETURN f.id, f.title, mod.id, mod.firstName, mod.lastName"
+	run_query "MATCH
+			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)
+			<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person)
+		RETURN
+			f.id AS forumId,
+			f.title AS forumTitle,
+			mod.id AS moderatorId,
+			mod.firstName AS moderatorFirstName,
+			mod.lastName AS moderatorLastName"
 
 	# LDBC IS7 Replies of a message
-	run_query "MATCH (m:Post {id: 556})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person) OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p) RETURN c.id, c.content, c.creationDate, p.id, p.firstName, p.lastName"
+	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+	    OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
+	    RETURN c.id AS commentId,
+			c.content AS commentContent,
+			c.creationDate AS commentCreationDate,
+			p.id AS replyAuthorId,
+			p.firstName AS replyAuthorFirstName,
+			p.lastName AS replyAuthorLastName,
+		CASE r._id
+		    WHEN null THEN false
+		    ELSE true
+		END AS replyAuthorKnowsOriginalMessageAuthor
+	    ORDER BY commentCreationDate DESC, replyAuthorId"
 
 }
 
@@ -138,7 +173,7 @@ run_ldbc_c() {
 		LIMIT 20" 1
 	
 	# LDBC IC2 Recent messages by your friends
-	run_query "MATCH (:Person {id: 14 })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
+	run_query "MATCH (:Person {id: 94 })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate <= 1287230400000
 		RETURN
 			friend.id AS personId,
@@ -150,7 +185,7 @@ run_ldbc_c() {
 		ORDER BY
 			postOrCommentCreationDate DESC,
 			postOrCommentId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
 	run_query "MATCH (countryX:Country {name: \"Angola\" }),

@@ -38,6 +38,10 @@ bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
 }
 
+bool isExpressionCaseElse(ExpressionType type) {
+    return CASE_ELSE == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:

@@ -321,6 +321,13 @@ Value Value::UBIGINT(uint64_t value) {
 	return result;
 }
 
+Value Value::ID(uint64_t value) {
+	Value result(LogicalType::ID);
+	result.value_.ubigint = value;
+	result.is_null = false;
+	return result;
+}
+
 bool Value::FloatIsFinite(float value) {
 	return !(std::isnan(value) || std::isinf(value));
 }
@@ -773,6 +780,7 @@ T Value::GetValueInternal() const {
 	case LogicalTypeId::TIMESTAMP_NS:
 	case LogicalTypeId::TIMESTAMP_SEC:
 	case LogicalTypeId::UBIGINT:
+	case LogicalTypeId::ID:
 		return Cast::Operation<uint64_t, T>(value_.ubigint);
 	case LogicalTypeId::FLOAT:
 		return Cast::Operation<float, T>(value_.float_);
@@ -924,6 +932,9 @@ Value Value::Numeric(const LogicalType &type, int64_t value) {
 	case LogicalTypeId::UBIGINT:
 		D_ASSERT(value >= 0);
 		return Value::UBIGINT(value);
+	case LogicalTypeId::ID:
+		D_ASSERT(value >= 0);
+		return Value::ID(value);
 	case LogicalTypeId::HUGEINT:
 		return Value::HUGEINT(value);
 	case LogicalTypeId::DECIMAL:
@@ -1270,6 +1281,7 @@ string Value::ToString() const {
 	case LogicalTypeId::UINTEGER:
 		return to_string(value_.uinteger);
 	case LogicalTypeId::UBIGINT:
+	case LogicalTypeId::ID:
 		return to_string(value_.ubigint);
 	case LogicalTypeId::HUGEINT:
 		return Hugeint::ToString(value_.hugeint);
