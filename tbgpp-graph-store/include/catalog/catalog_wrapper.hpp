@@ -42,7 +42,7 @@ public:
         idx_t agg_funcset_idx = 0; bool found = false;
         for (int idx = 0; idx < agg_funcset.size(); idx++) {
             if (arguments.size() != agg_funcset[idx].arguments.size()) continue;
-            if (arguments == agg_funcset[idx].arguments) {
+            if (arguments == agg_funcset[idx].arguments) {  // TODO ANY type should match with random type, currently this does not produce match
                 found = true;
                 agg_funcset_idx = idx;
                 break;

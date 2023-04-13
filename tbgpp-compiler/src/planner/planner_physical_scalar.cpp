@@ -98,7 +98,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	for( ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++ ) {
 		child.push_back(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols));
 	}
-	D_ASSERT(child.size() < 1);
+	D_ASSERT(child.size() <= 1);
 
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
 	auto aggfunc_catalog_entry = context->db->GetCatalogWrapper().GetAggFunc(*context, agg_func_id);
@@ -108,13 +108,19 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	auto& functions = aggfunc_catalog_entry->functions.get()->functions;
 	for(auto& function: functions) {
 		auto& func_arg_types = function.arguments;
-		D_ASSERT(func_arg_types.size() == 1); // current single arg type maybe more later?
-		if(func_arg_types[0] == duckdb::LogicalType::ANY) {
-			selected_function = &function; 	// always select this - for count_star
+		if(func_arg_types.size() == 0 ) {
+			// nullary aggregate - always match (e.g. count_sttar)
 			is_function_selected = true;
+			selected_function = &function;
+			break;
+		}
+		if(func_arg_types[0] == duckdb::LogicalType::ANY) {
+			// unary agg with any input - always match (e.g. count)
+			is_function_selected = true;
+			selected_function = &function;
 			break;
 		} else {
-			// other types besides ANY should have child expression
+			// other types besides should have child expression
 			D_ASSERT(child.size() > 0);
 			if( child[0].get()->return_type == func_arg_types[0]) {
 				is_function_selected = true;

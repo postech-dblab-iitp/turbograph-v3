@@ -186,9 +186,10 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
 		child_colref = colref;
 	}
-	if(func_name == "count_star") {
-		// catalog requires ANY input for count_star
-		child_types.push_back(duckdb::LogicalType::ANY);
+	if(func_name == "count") {
+		// catalog requires ANY for count
+		child_types.clear();
+		child_types.push_back(duckdb::LogicalType::ANY);	// TODO this should be fixed
 	}
 	// refer expression_type.h for kuzu function names
 	uint8_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
