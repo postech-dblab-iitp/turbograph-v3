@@ -329,8 +329,8 @@ private:
 
 	inline string pGetColNameFromColRef(const CColRef* column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
-		string name(name_ws.begin(), name_ws.end());
 		return name;
+		string name(name_ws.begin(), name_ws.end());
 	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
@@ -340,9 +340,11 @@ private:
 		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
 	}
 
+	// scalar helper functions 
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
+	static CColRef* pGetColRefFromScalarIdent(CExpression* ident_expr);
 
 private:
 	// config

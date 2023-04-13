@@ -165,4 +165,10 @@ duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperato
 	}
 }
 
+CColRef* Planner::pGetColRefFromScalarIdent(CExpression* ident_expr) {
+	D_ASSERT(expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	return col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
+}
+
+
 }
