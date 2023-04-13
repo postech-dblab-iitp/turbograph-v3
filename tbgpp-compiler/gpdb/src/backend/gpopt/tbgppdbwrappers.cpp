@@ -60,6 +60,16 @@ duckdb::GetRelation(idx_t rel_oid) {
 	return NULL;
 }
 
+duckdb::AggregateFunctionCatalogEntry*
+duckdb::GetAggFunc(idx_t aggfunc_oid) {
+	return catalog_wrapper->GetAggFunc(*client_wrapper.get(), aggfunc_oid);
+}
+
+idx_t
+duckdb::GetAggFuncIndex(idx_t aggfunc_oid) {
+	return (aggfunc_oid - FUNCTION_BASE_ID) % 65536;
+}
+
 idx_t
 duckdb::GetRelationPhysicalIDIndex(idx_t partition_oid) {
 	return catalog_wrapper->GetRelationPhysicalIDIndex(*client_wrapper.get(), partition_oid);
