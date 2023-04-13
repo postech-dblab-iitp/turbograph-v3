@@ -5,6 +5,7 @@
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
 #include "main/database.hpp"
+#include "catalog_wrapper.hpp"
 
 
 #include <iostream>
@@ -103,6 +104,7 @@
 #include "naucrates/traceflags/traceflags.h"
 #include "naucrates/md/IMDType.h"
 #include "naucrates/md/IMDTypeGeneric.h"
+#include "naucrates/md/IMDAggregate.h"
 #include "naucrates/base/IDatumGeneric.h"
 #include "naucrates/base/CDatumInt8GPDB.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
@@ -329,8 +331,8 @@ private:
 
 	inline string pGetColNameFromColRef(const CColRef* column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
-		return name;
 		string name(name_ws.begin(), name_ws.end());
+		return name;
 	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
