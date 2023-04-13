@@ -3,6 +3,8 @@
 
 #include <string>
 #include <limits>
+#include<bits/stdc++.h>
+
 
 #include "kuzu/common/expression_type.h"
 
@@ -163,36 +165,56 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	AggregateFunctionExpression* aggfunc_expr = (AggregateFunctionExpression*) expression;
 	kuzu::binder::expression_vector children = aggfunc_expr->getChildren();
 
-	std::string func_name = (expression)->getUniqueName();	// COUNT 
+	std::string func_name = (expression)->getUniqueName();
+	transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
 	D_ASSERT(func_name != "");
 
 	// refer expression_type.h
-	CExpression* pexpr = nullptr;
-
-	// bind API that gets mdid
-		// wrapper.
-	// call RetrieveAgg (mdid)
-
-	if( func_name == kuzu::common::COUNT_FUNC_NAME) {
-		D_ASSERT(children.size() == 1);
-		// find colref
-		auto child_expr = lExprScalarExpression(children[0].get(), prev_plan);
-		// pGetColRefFromScalarIdent
-		// access MDA and get colref -> make as library
-		//pexpr = CUtils::PexprCount(mp,  aggfunc_expr->isDistinct())
-		// pGetColRefFromScalarIdent
-	} else if( func_name == kuzu::common::COUNT_STAR_FUNC_NAME) {
-		// TODO need to access mda!!!
-		
-		pexpr = CUtils::PexprCountStar(mp);
-	} else {
-		D_ASSERT(false);
-	}
-
-	D_ASSERT(pexpr != nullptr);
-	pexpr->AddRef();
+	bool child_exists = children.size() > 0;
+	CColRef* child_colref = nullptr;
+	D_ASSERT(children.size()<=1); 	// not sure yet
 	
-	return pexpr;
+	vector<CExpression*> child_exprs;
+	vector<duckdb::LogicalType> child_types;
+	if(child_exists)
+		CExpression* child_expr = lExprScalarExpression(children[0].get(), prev_plan);
+		D_ASSERT(child_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
+		child_expr.push_back(child_expr);
+
+		CColRef* colref = pGetColRefFromScalarIdent(child_expr);
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
+		OID type_oid = type_mdid->Oid();
+		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	}
+	if(func_name == "count_star") {
+		// catalog requires ANY input for count_star
+		child_types.push_back(duckdb::LogicalType::ANY);
+	}
+	// refer expression_type.h for kuzu function names
+	idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(context, func_name, child_types);
+	// no assert?
+
+	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);
+	func_mdid->AddRef();
+	const IMDAggregate *pmdagg = md_accessor->RetrieveAgg(func_mdid);
+	IMDId *agg_mdid = pmdagg->MDId();
+	agg_mdid->AddRef();
+	CWStringConst *str = GPOS_NEW(mp)
+		CWStringConst(mp, pmdagg->Mdname().GetMDName()->GetBuffer());
+
+	// refer cutils.h
+	if(child_exists) {
+		return CUtils::PexprAggFunc(mp, agg_mdid, str, colref, aggfunc_expr->isDistinct(),
+						EaggfuncstageGlobal /*fGlobal*/, false /*fSplit*/);
+	} else {
+		CScalarAggFunc *popScAggFunc = CUtils::PopAggFunc(mp, agg_mdid, str, aggfunc_expr->isDistinct() /*is_distinct*/,
+				   EaggfuncstageGlobal /*eaggfuncstage*/, false /*fSplit*/, NULL, EaggfunckindNormal);
+		CExpression *pexpr = GPOS_NEW(mp)
+			CExpression(mp, popScAggFunc, PexprAggFuncArgs(mp, pdrgpexprChildren));
+		pexpr->AddRef();
+		return pexpr;
+	}
+	D_ASSERT(false);
 }
 
 CExpression *Planner::lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan) {
