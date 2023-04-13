@@ -78,11 +78,15 @@
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalSort.h"
+#include "gpopt/operators/CPhysicalHashAgg.h"
+#include "gpopt/operators/CPhysicalAgg.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarAggFunc.h"
+
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -103,6 +107,7 @@
 #include "kuzu/binder/expression/literal_expression.h"
 #include "kuzu/binder/expression/property_expression.h"
 #include "kuzu/binder/expression/node_rel_expression.h"
+
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -208,8 +213,10 @@ private:
 	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanGroupBy(const expression_vector &expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
+	
 	
 	// scalar expression
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
@@ -218,6 +225,7 @@ private:
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -267,6 +275,7 @@ private:
 
 	// pipelined ops
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopProjectionColumnar(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAgg(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalFilter(CExpression* plan_expr);
 
 	// joins
@@ -284,6 +293,8 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols);
+
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);

@@ -290,7 +290,7 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
     }
     return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
-        move(children), function->aggregateFunction->clone(), uniqueExpressionName);
+        move(children), function->aggregateFunction->clone(), functionName, functionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,

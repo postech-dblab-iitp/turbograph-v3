@@ -17,6 +17,7 @@
 #include "execution/physical_operator/physical_id_seek.hpp"
 #include "execution/physical_operator/physical_sort.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
+#include "execution/physical_operator/physical_hash_aggregate.hpp"
 
 
 #include "planner/expression/bound_reference_expression.hpp"
@@ -136,6 +137,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		}
 		case COperator::EOperatorId::EopPhysicalSort: {
 			result = pTransformEopSort(plan_expr);
+			break;
+		}
+		case COperator::EOperatorId::EopPhysicalHashAgg: {	// TODO how about other aggs? maybe need to cast to eopphysicalagg a parent function, and always convert to physicalhashagg in duckdb
+			result = pTransformEopHashAgg(plan_expr);
 			break;
 		}
 		default:
@@ -981,6 +986,53 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	child_cols->Release();
 
 	return result;
+}
+
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAgg(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	vector<duckdb::LogicalType> types;
+	vector<unique_ptr<duckdb::Expression>> agg_exprs;
+	vector<string> output_column_names;
+
+	CPhysicalHashAgg* agg_op = (CPhysicalHashAgg*) plan_expr->Pop();
+	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
+	CColRefArray* child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
+	
+	// handle aggregation expression
+	for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
+		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
+		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
+		
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId() );
+		types.push_back( pConvertTypeOidToLogicalType(type_mdid->Oid()) );
+		output_column_names.push_back( pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()) );
+
+		agg_exprs.push_back( std::move(pTransformScalarExpr(pexprScalarExpr, child_cols) ));
+	}
+
+	
+	// TODO add case when grouping column exist
+
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	tmp_schema.setStoredColumnNames(output_column_names);
+	auto* op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs));
+	
+	// finish pipeline
+	result->push_back(op);
+	auto pipeline = new duckdb::CypherPipeline(*result);
+	pipelines.push_back(pipeline);
+
+	// new pipeline
+	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
+	new_result->push_back(op);
+	return new_result;
 }
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalFilter(CExpression* plan_expr) {

@@ -9,7 +9,10 @@
 #include "planner/expression/bound_comparison_expression.hpp"
 #include "planner/expression/bound_operator_expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
+#include "planner/expression/bound_aggregate_expression.hpp"
 
+#include "function/aggregate_function.hpp"
+#include "function/aggregate/distributive_functions.hpp"
 #include "common/enums/join_type.hpp"
 
 namespace s62 {
@@ -21,6 +24,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarConst: return pTransformScalarConst(scalar_expr, child_cols);
 		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, child_cols);
 		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, child_cols);
+		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, child_cols);
 		default:
 			D_ASSERT(false); // NOT implemented yet
 	}
@@ -81,6 +85,33 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 	}
 	D_ASSERT(false);
 }
+
+unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols) {
+
+	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
+
+	unique_ptr<duckdb::Expression> result;
+
+	vector<unique_ptr<duckdb::Expression>> child;
+	for( ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++ ) {
+		child.push_back(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols));
+	}
+
+	if(op->FCountStar()) {															// count(*)
+		result = std::move(make_unique<duckdb::BoundAggregateExpression>(
+			duckdb::CountStarFun::GetFunction(), std::move(child), nullptr, nullptr, false));
+	} else if(op->FCountAny()) {													// count(any)
+		result = std::move(make_unique<duckdb::BoundAggregateExpression>(
+			duckdb::CountFun::GetFunction(), std::move(child), nullptr, nullptr, false));
+	}
+
+	// TODO for general use mdid to match
+	// OID orca_agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
+	
+	return result;
+}
+
+
 
 duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
 	switch(cmp_type) {
