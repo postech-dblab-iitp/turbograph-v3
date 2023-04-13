@@ -2057,7 +2057,7 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 CMDAggregateGPDB *
 CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 {
-	D_ASSERT(false);
+
 	OID agg_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
