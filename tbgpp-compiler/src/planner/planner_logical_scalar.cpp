@@ -4,6 +4,9 @@
 #include <string>
 #include <limits>
 
+#include "kuzu/common/expression_type.h"
+
+
 namespace s62 {
 
 CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
@@ -166,13 +169,19 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	// refer expression_type.h
 	CExpression* pexpr = nullptr;
 
-	if( func_name == "COUNT") {
+	// bind API that gets mdid
+		// wrapper.
+	// call RetrieveAgg (mdid)
+
+	if( func_name == kuzu::common::COUNT_FUNC_NAME) {
 		D_ASSERT(false);
 		// find colref
 		auto child_expr = lExprScalarExpression(children[0].get(), prev_plan);
 		// access MDA and get colref -> make as library
 		//pexpr = CUtils::PexprCount(mp,  aggfunc_expr->isDistinct())
-	} else if( func_name == "COUNT_STAR") {
+	} else if( func_name == kuzu::common::COUNT_STAR_FUNC_NAME) {
+		// TODO need to access mda!!!
+		
 		pexpr = CUtils::PexprCountStar(mp);
 	} else {
 		D_ASSERT(false);
