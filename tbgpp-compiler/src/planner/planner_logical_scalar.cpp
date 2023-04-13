@@ -3,8 +3,7 @@
 
 #include <string>
 #include <limits>
-#include<bits/stdc++.h>
-
+#include <bits/stdc++.h>
 
 #include "kuzu/common/expression_type.h"
 
@@ -166,7 +165,7 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	kuzu::binder::expression_vector children = aggfunc_expr->getChildren();
 
 	std::string func_name = (expression)->getUniqueName();
-	transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
+	std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
 	D_ASSERT(func_name != "");
 
 	// refer expression_type.h
@@ -176,27 +175,28 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	
 	vector<CExpression*> child_exprs;
 	vector<duckdb::LogicalType> child_types;
-	if(child_exists)
+	if(child_exists) {
 		CExpression* child_expr = lExprScalarExpression(children[0].get(), prev_plan);
 		D_ASSERT(child_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
-		child_expr.push_back(child_expr);
+		child_exprs.push_back(child_expr);
 
 		CColRef* colref = pGetColRefFromScalarIdent(child_expr);
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
 		OID type_oid = type_mdid->Oid();
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+		child_colref = colref;
 	}
 	if(func_name == "count_star") {
 		// catalog requires ANY input for count_star
 		child_types.push_back(duckdb::LogicalType::ANY);
 	}
 	// refer expression_type.h for kuzu function names
-	idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(context, func_name, child_types);
+	uint8_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
 	// no assert?
 
 	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);
 	func_mdid->AddRef();
-	const IMDAggregate *pmdagg = md_accessor->RetrieveAgg(func_mdid);
+	const IMDAggregate *pmdagg = lGetMDAccessor()->RetrieveAgg(func_mdid);
 	IMDId *agg_mdid = pmdagg->MDId();
 	agg_mdid->AddRef();
 	CWStringConst *str = GPOS_NEW(mp)
@@ -204,13 +204,14 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 
 	// refer cutils.h
 	if(child_exists) {
-		return CUtils::PexprAggFunc(mp, agg_mdid, str, colref, aggfunc_expr->isDistinct(),
+		return CUtils::PexprAggFunc(mp, agg_mdid, str, child_colref, aggfunc_expr->isDistinct(),
 						EaggfuncstageGlobal /*fGlobal*/, false /*fSplit*/);
 	} else {
 		CScalarAggFunc *popScAggFunc = CUtils::PopAggFunc(mp, agg_mdid, str, aggfunc_expr->isDistinct() /*is_distinct*/,
 				   EaggfuncstageGlobal /*eaggfuncstage*/, false /*fSplit*/, NULL, EaggfunckindNormal);
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp); // empty child
 		CExpression *pexpr = GPOS_NEW(mp)
-			CExpression(mp, popScAggFunc, PexprAggFuncArgs(mp, pdrgpexprChildren));
+			CExpression(mp, popScAggFunc, CUtils::PexprAggFuncArgs(mp, pdrgpexprChildren));
 		pexpr->AddRef();
 		return pexpr;
 	}
