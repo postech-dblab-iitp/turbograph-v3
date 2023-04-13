@@ -2062,49 +2062,56 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
 
-	// // get agg name
-	// CHAR *name = gpdb::GetFuncName(agg_oid);
+	// get aggfunc catalog entry
+	duckdb::AggregateFunctionCatalogEntry *agg_func_cat =
+		duckdb::GetAggFunc(agg_oid);
 
-	// if (NULL == name)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid->GetBuffer());
-	// }
+	// get agg name
+	string name_str = agg_func_cat->GetName();
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str());
 
-	// CWStringDynamic *agg_name_str =
-	// 	CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
-	// CMDName *mdname = GPOS_NEW(mp) CMDName(mp, agg_name_str);
+	if (NULL == name)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid->GetBuffer());
+	}
 
-	// // CMDName ctor created a copy of the string
-	// GPOS_DELETE(agg_name_str);
+	CWStringDynamic *agg_name_str =
+		CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
+	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, agg_name_str);
 
-	// // get result type
-	// OID result_oid = gpdb::GetFuncRetType(agg_oid);
+	// CMDName ctor created a copy of the string
+	GPOS_DELETE(agg_name_str);
 
-	// GPOS_ASSERT(InvalidOid != result_oid);
+	// get result type
+	idx_t agg_func_idx = duckdb::GetAggFuncIndex(agg_oid);
+	GPOS_ASSERT(agg_func_cat->functions->functions.size() > agg_func_idx);
+	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) agg_func_cat->functions->functions[agg_func_idx].return_type.id();
 
-	// CMDIdGPDB *result_type_mdid =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
-	// IMDId *intermediate_result_type_mdid =
-	// 	RetrieveAggIntermediateResultType(mp, mdid);
+	GPOS_ASSERT(InvalidOid != result_oid);
 
-	// mdid->AddRef();
+	CMDIdGPDB *result_type_mdid =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+	IMDId *intermediate_result_type_mdid = // S62 TODO we need this when we use local aggregate
+		RetrieveAggIntermediateResultType(mp, mdid);
 
-	// BOOL is_ordered = gpdb::IsOrderedAgg(agg_oid);
+	mdid->AddRef();
 
-	// // GPDB does not support splitting of ordered aggs and aggs without a
-	// // combine function
-	// BOOL is_splittable = !is_ordered && gpdb::IsAggPartialCapable(agg_oid);
+	BOOL is_ordered = false;// = gpdb::IsOrderedAgg(agg_oid); // S62 TODO
 
-	// // cannot use hash agg for ordered aggs or aggs without a combine func
-	// // due to the fact that hashAgg may spill
-	// BOOL is_hash_agg_capable =
-	// 	!is_ordered && gpdb::IsAggPartialCapable(agg_oid);
+	// GPDB does not support splitting of ordered aggs and aggs without a
+	// combine function
+	BOOL is_splittable = false;//!is_ordered && gpdb::IsAggPartialCapable(agg_oid);
 
-	// CMDAggregateGPDB *pmdagg = GPOS_NEW(mp) CMDAggregateGPDB(
-	// 	mp, mdid, mdname, result_type_mdid, intermediate_result_type_mdid,
-	// 	is_ordered, is_splittable, is_hash_agg_capable);
-	// return pmdagg;
+	// cannot use hash agg for ordered aggs or aggs without a combine func
+	// due to the fact that hashAgg may spill
+	BOOL is_hash_agg_capable = true;// = // S62 TODO
+		// !is_ordered && gpdb::IsAggPartialCapable(agg_oid);
+
+	CMDAggregateGPDB *pmdagg = GPOS_NEW(mp) CMDAggregateGPDB(
+		mp, mdid, mdname, result_type_mdid, intermediate_result_type_mdid,
+		is_ordered, is_splittable, is_hash_agg_capable);
+	return pmdagg;
 }
 
 //---------------------------------------------------------------------------
@@ -2348,6 +2355,7 @@ CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
 	OID intermediate_type_oid;
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
+	intermediate_type_oid = GPDB_BOOL; // S62 TODO temporary.. maybe we don't use this info in this step
 	// intermediate_type_oid = gpdb::GetAggIntermediateResultType(agg_oid);
 
 	/*

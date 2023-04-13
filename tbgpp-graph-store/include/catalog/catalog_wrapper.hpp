@@ -65,6 +65,12 @@ public:
         return index_cat;
     }
 
+    AggregateFunctionCatalogEntry *GetAggFunc(ClientContext &context, idx_t aggfunc_oid) {
+        auto &catalog = db.GetCatalog();
+        AggregateFunctionCatalogEntry *aggfunc_cat = (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid);
+        return aggfunc_cat;
+    }
+
     void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
         auto &catalog = db.GetCatalog();
         for (auto &oid : oids) {
