@@ -85,6 +85,7 @@
 #include "gpopt/operators/CPhysicalLimit.h"
 #include "gpopt/operators/CPhysicalSort.h"
 #include "gpopt/operators/CPhysicalHashAgg.h"
+#include "gpopt/operators/CPhysicalAgg.h"
 #include "gpopt/operators/CPhysicalHashAggDeduplicate.h"
 #include "gpopt/operators/CPhysicalStreamAgg.h"
 #include "gpopt/operators/CPhysicalStreamAggDeduplicate.h"
@@ -93,6 +94,8 @@
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarAggFunc.h"
+
 #include "gpopt/operators/CScalarSwitch.h"
 #include "gpopt/operators/CScalarSwitchCase.h"
 
@@ -117,6 +120,7 @@
 #include "kuzu/binder/expression/property_expression.h"
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
+
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -216,16 +220,17 @@ private:
 	LogicalPlan *lPlanMatchClause(
 		BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanUnwindClause(
-        BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
-	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection &queryGraphCollection, LogicalPlan *prev_plan, bool is_optional_match);
-	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
-	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
-	LogicalPlan *lPlanProjectionOnColRefs(LogicalPlan *plan, CColRefArray *colrefs);
-	LogicalPlan *lPlanSelection(const expression_vector &predicates, LogicalPlan *prev_plan);
+        BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan, bool is_optional_match);
+	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
+	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
+	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
+	LogicalPlan *lPlanGroupBy(const expression_vector &expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan);
-	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
+	
 	
 	// scalar expression
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
@@ -234,6 +239,7 @@ private:
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
@@ -296,7 +302,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopSort(CExpression* plan_expr);
 
 	// aggregations
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopHashAgg(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopAgg(CExpression* plan_expr);
 
 	// scalar expression
 	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols);
@@ -304,6 +310,8 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols);
+
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols);
 
 	// investigate plan properties

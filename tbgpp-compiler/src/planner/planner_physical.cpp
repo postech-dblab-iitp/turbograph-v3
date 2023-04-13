@@ -18,6 +18,7 @@
 #include "execution/physical_operator/physical_sort.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
+
 #include "execution/physical_operator/physical_filter.hpp"
 
 #include "planner/expression/bound_reference_expression.hpp"
@@ -140,16 +141,15 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			// TODO we need to optimize Limit + Sort
 			result = pTransformEopLimit(plan_expr);
 			break;
-		}
+		}	
 		case COperator::EOperatorId::EopPhysicalSort: {
 			result = pTransformEopSort(plan_expr);
 			break;
 		}
 		case COperator::EOperatorId::EopPhysicalHashAgg:
-		case COperator::EOperatorId::EopPhysicalStreamAgg: {
-			// TODO currently, support hashagg only
-			D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalHashAgg);
-			result = pTransformEopHashAgg(plan_expr);
+		case COperator::EOperatorId::EopPhysicalScalarAgg: {
+			// PhysicalStreamAgg is not supported
+			result = pTransformEopAgg(plan_expr);
 			break;
 		}
 		default:
@@ -1040,6 +1040,62 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	return result;
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	/* Non-root - call single child */
+	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	vector<duckdb::LogicalType> types;
+	vector<unique_ptr<duckdb::Expression>> agg_exprs;
+	vector<unique_ptr<duckdb::Expression>> agg_groups;
+	vector<string> output_column_names;
+
+	CPhysicalAgg* agg_op = (CPhysicalAgg*) plan_expr->Pop();
+	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
+	CColRefArray* child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
+	const CColRefArray* grouping_cols = agg_op->PdrgpcrGroupingCols();
+		
+	// get agg groups
+	for(ULONG group_col_idx=0; group_col_idx < grouping_cols->Size(); group_col_idx++) {
+		CColRef *col = grouping_cols->operator[](group_col_idx);
+		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
+		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
+		types.push_back(col_type);
+		output_column_names.push_back( pGetColNameFromColRef(col) );
+		agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, child_cols->IndexOf(col)));	
+	}
+
+	// handle aggregation expressions
+	for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
+		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
+		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
+		
+		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId() );
+		types.push_back( pConvertTypeOidToLogicalType(type_mdid->Oid()) );
+		output_column_names.push_back( pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()) );
+
+		agg_exprs.push_back( std::move(pTransformScalarExpr(pexprScalarExpr, child_cols) ));
+	}
+
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	tmp_schema.setStoredColumnNames(output_column_names);
+	auto* op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs),  move(agg_groups));
+	
+	// finish pipeline
+	result->push_back(op);
+	auto pipeline = new duckdb::CypherPipeline(*result);
+	pipelines.push_back(pipeline);
+
+	// new pipeline
+	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
+	new_result->push_back(op);
+	return new_result;
+}
+
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalFilter(CExpression* plan_expr) {
 	CMemoryPool* mp = this->memory_pool;
 	/* Non-root - call single child */
@@ -1209,52 +1265,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
 		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 10000, 0); // TODO we have topn sort only..
-	result->push_back(op);
-
-	// break pipeline
-	auto pipeline = new duckdb::CypherPipeline(*result);
-	pipelines.push_back(pipeline);
-
-	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
-	new_result->push_back(op);
-
-	return new_result;
-}
-
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopHashAgg(CExpression *plan_expr) {
-
-	CMemoryPool* mp = this->memory_pool;
-
-	/* Non-root - call single child */
-	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
-
-	CPhysicalHashAgg *agg_dedup_op = (CPhysicalHashAgg*) plan_expr->Pop();
-	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-	CExpression *pexprInput = (*plan_expr)[0];
-	CColRefArray* input_cols = pexprInput->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-	D_ASSERT(output_cols->Size() == input_cols->Size());
-
-	duckdb::CypherSchema tmp_schema;
-	vector<duckdb::LogicalType> types;
-
-	vector<unique_ptr<duckdb::Expression>> agg_exprs;
-	vector<unique_ptr<duckdb::Expression>> agg_groups;
-
-	// TODO check logic..
-	for (ULONG col_idx = 0; col_idx < input_cols->Size(); col_idx++) {
-		CColRef *col = (*input_cols)[col_idx];
-
-		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
-		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
-		types.push_back(col_type);
-
-		agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, col_idx));
-	}
-
-	tmp_schema.setStoredTypes(types);
-
-	duckdb::CypherPhysicalOperator *op =
-		new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
 	result->push_back(op);
 
 	// break pipeline

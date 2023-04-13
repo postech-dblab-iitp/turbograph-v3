@@ -4,6 +4,9 @@
 #include <string>
 #include <limits>
 
+#include "kuzu/common/expression_type.h"
+
+
 namespace s62 {
 
 CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
@@ -15,6 +18,8 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
 	} else if ( isExpressionLiteral(expr_type) ) {
 		return lExprScalarLiteralExpr(expression, prev_plan);
+	} else if ( isExpressionAggregate(expr_type) ) {			// must first check aggfunc over func
+		return lExprScalarAggFuncExpr(expression, prev_plan);
 	} else if (isExpressionCaseElse(expr_type)) {
 		return lExprScalarCaseElseExpr(expression, prev_plan);
 	} else {
@@ -148,6 +153,43 @@ CExpression* Planner::lExprScalarLiteralExpr(Expression* expression, LogicalPlan
 	pexpr->AddRef();
 
 	D_ASSERT(pexpr != nullptr);
+	return pexpr;
+}
+
+CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan) {
+
+	CMemoryPool* mp = this->memory_pool;
+	
+	AggregateFunctionExpression* aggfunc_expr = (AggregateFunctionExpression*) expression;
+	auto children = aggfunc_expr->getChildren();
+
+	std::string func_name = (expression)->getUniqueName();	// COUNT 
+	D_ASSERT(func_name != "");
+
+	// refer expression_type.h
+	CExpression* pexpr = nullptr;
+
+	// bind API that gets mdid
+		// wrapper.
+	// call RetrieveAgg (mdid)
+
+	if( func_name == kuzu::common::COUNT_FUNC_NAME) {
+		D_ASSERT(false);
+		// find colref
+		auto child_expr = lExprScalarExpression(children[0].get(), prev_plan);
+		// access MDA and get colref -> make as library
+		//pexpr = CUtils::PexprCount(mp,  aggfunc_expr->isDistinct())
+	} else if( func_name == kuzu::common::COUNT_STAR_FUNC_NAME) {
+		// TODO need to access mda!!!
+		
+		pexpr = CUtils::PexprCountStar(mp);
+	} else {
+		D_ASSERT(false);
+	}
+
+	D_ASSERT(pexpr != nullptr);
+	pexpr->AddRef();
+	
 	return pexpr;
 }
 
