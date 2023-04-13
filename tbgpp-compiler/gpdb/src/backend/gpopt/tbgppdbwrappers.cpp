@@ -67,7 +67,7 @@ duckdb::GetAggFunc(idx_t aggfunc_oid) {
 
 idx_t
 duckdb::GetAggFuncIndex(idx_t aggfunc_oid) {
-	return 0;
+	return (aggfunc_oid - FUNCTION_BASE_ID) % 65536;
 }
 
 idx_t

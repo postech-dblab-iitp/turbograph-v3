@@ -91,6 +91,7 @@ struct SimilarCatalogEntry {
 #define EXPRESSION_TYPE_BASE_ID 20000000L
 #define OPERATOR_BASE_ID 30000000L
 #define OPERATOR_FAMILY_BASE_ID 50000000L
+#define FUNCTION_BASE_ID 70000000L
 #define INVALID_OID 0
 
 //! The Catalog object represents the catalog of the database.
