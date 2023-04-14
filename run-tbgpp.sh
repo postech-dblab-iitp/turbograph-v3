@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
+	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --index-join-only ${iterations}
 }
 
 run_ldbc_s() {
@@ -185,7 +185,7 @@ run_ldbc_c() {
 		ORDER BY
 			postOrCommentCreationDate DESC,
 			postOrCommentId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
 	run_query "MATCH (countryX:Country {name: \"Angola\" }),
@@ -238,7 +238,7 @@ run_ldbc_c() {
 
 	# no > >= in comparison - kuzu parser limitation
 	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
-	run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
+	run_query "MATCH (person:Person {id: 94 })-[:KNOWS]-(friend:Person),
       	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag:Tag)
 		WITH DISTINCT tag, post
 		WITH tag,
@@ -254,7 +254,7 @@ run_ldbc_c() {
 		WHERE postCount>0
 		RETURN tagName
 		ORDER BY tagName ASC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC5 New groups
 		# WHERE NOT person=friend
@@ -291,7 +291,7 @@ run_ldbc_c() {
 		RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
-		LIMIT 20" 1
+		LIMIT 20" 0
 
 	# LDBC IC6 Tag co-occurrence
 	# run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
@@ -325,15 +325,12 @@ run_ldbc_c() {
 		WITH knownTag.id as knownTagId
 		MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend:Person)
 		WITH DISTINCT knownTagId, friend
-		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post),
-			(post)-[:POST_HAS_TAG]->(t:Tag{id: knownTagId}),
-			(post)-[:POST_HAS_TAG]->(tag:Tag)
+		MATCH (friend)<-[phc:POST_HAS_CREATOR]-(post:Post)
 		RETURN
-			tag.name as tagName, count(post) as postCount
+			count(post) as postCount
 		ORDER BY
-			postCount DESC,
-			tagName ASC
-		LIMIT 10" 0
+			postCount DESC
+		LIMIT 10" 1
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -366,7 +363,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentCreationDate DESC,
 			commentId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
 
 	# LDBC IC9 Recent messages by friends or friends of friends
 	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
@@ -401,7 +398,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentOrPostCreationDate DESC,
 			commentOrPostId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
 
 	# LDBC IC10 Friend recommendation
 	run_query "MATCH (person:Person {id: 4398046511333})-[:KNOWS*2..2]-(friend),
@@ -443,7 +440,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
@@ -471,6 +468,7 @@ run_ldbc_c() {
 			friend.lastName AS personLastName,
 			count(comment) AS replyCount
 		ORDER BY
+			replyCount DESC,
 			personId ASC
 		LIMIT 20" 0
 
