@@ -243,6 +243,7 @@ private:
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
+	CExpression *lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);

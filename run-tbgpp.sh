@@ -247,13 +247,13 @@ run_ldbc_c() {
 			ELSE 0
 			END AS valid,
 			CASE
-			WHEN 1275350400000 > post.creationDate THEN 1
+			WHEN post.creationDate < 1275350400000 THEN 1
 			ELSE 0
 			END AS inValid
 		WITH tag.id AS tagid, tag.name AS tagName, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
-		WHERE postCount>0 AND inValidPostCount=0
-		RETURN tagName, postCount
-		ORDER BY postCount DESC, tagName ASC
+		WHERE postCount>0
+		RETURN tagName
+		ORDER BY tagName ASC
 		LIMIT 10" 1
 
 	# LDBC IC5 New groups

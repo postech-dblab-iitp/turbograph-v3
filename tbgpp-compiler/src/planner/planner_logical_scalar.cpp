@@ -12,6 +12,10 @@ namespace s62 {
 
 CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
 
+	// if expression appears in previous plan, generate ScalarIdent expression	
+	CExpression* expr = lTryGenerateScalarIdent(expression, prev_plan);
+	if( expr != NULL ) { /* found */ return expr; }
+
 	auto expr_type = expression->expressionType;
 	if( isExpressionComparison(expr_type) ) {
 		return lExprScalarComparisonExpr(expression, prev_plan);
@@ -84,6 +88,27 @@ CExpression* Planner::lExprScalarCmpEq(CExpression* left_expr, CExpression* righ
 	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
 
 	return CUtils::PexprScalarCmp(mp, left_expr, right_expr, cmp_type);
+}
+
+CExpression *Planner::lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan) {
+
+	// normal column
+	CMemoryPool* mp = this->memory_pool;
+	CColRef* target_colref;
+
+	if(!expression->hasAlias()) {
+		return NULL;
+	}
+	
+	string k1 = expression->getAlias();
+	target_colref = prev_plan->getSchema()->getColRefOfKey(k1, "");
+	if( target_colref == NULL) {
+		return NULL;
+	}
+
+	CExpression* ident_expr = GPOS_NEW(mp)
+			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+	return ident_expr;
 }
 
 CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan) {
