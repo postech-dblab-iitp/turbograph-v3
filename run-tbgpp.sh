@@ -218,21 +218,41 @@ run_ldbc_c() {
 		LIMIT 20" 1
 
 	# LDBC IC4 New topics
+	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
+    #   	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag)
+	# 	WITH DISTINCT tag, post
+	# 	WITH tag,
+	# 		CASE
+	# 		WHEN 1277856000000 > post.creationDate >= 1275350400000 THEN 1
+	# 		ELSE 0
+	# 		END AS valid,
+	# 		CASE
+	# 		WHEN 1275350400000 > post.creationDate THEN 1
+	# 		ELSE 0
+	# 		END AS inValid
+	# 	WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
+	# 	WHERE postCount>0 AND inValidPostCount=0
+	# 	RETURN tag.name AS tagName, postCount
+	# 	ORDER BY postCount DESC, tagName ASC
+	# 	LIMIT 10" 0
+
+	# no > >= in comparison - kuzu parser limitation
+	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
 	run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
-      	(friend)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag)
+      	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag:Tag)
 		WITH DISTINCT tag, post
 		WITH tag,
 			CASE
-			WHEN 1277856000000 > post.creationDate >= 1275350400000 THEN 1
+			WHEN post.creationDate >= 1275350400000 THEN 1
 			ELSE 0
 			END AS valid,
 			CASE
 			WHEN 1275350400000 > post.creationDate THEN 1
 			ELSE 0
 			END AS inValid
-		WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
+		WITH tag.id AS tagid, tag.name AS tagName, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
 		WHERE postCount>0 AND inValidPostCount=0
-		RETURN tag.name AS tagName, postCount
+		RETURN tagName, postCount
 		ORDER BY postCount DESC, tagName ASC
 		LIMIT 10" 1
 
@@ -262,29 +282,46 @@ run_ldbc_c() {
 		LIMIT 20" 1
 
 	# LDBC IC6 Tag co-occurrence
-	run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
-		WITH knownTag.id as knownTagId
+	# run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
+	# 	WITH knownTag.id as knownTagId
 
-		MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend)
-		WHERE NOT person=friend
-		WITH
-			knownTagId,
-			collect(distinct friend) as friends
-		UNWIND friends as f
-			MATCH (f)<-[:HAS_CREATOR]-(post:Post),
-				(post)-[:HAS_TAG]->(t:Tag{id: knownTagId}),
-				(post)-[:HAS_TAG]->(tag:Tag)
-			WHERE NOT t = tag
-			WITH
-				tag.name as tagName,
-				count(post) as postCount
+	# 	MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend)
+	# 	WHERE NOT person=friend
+	# 	WITH
+	# 		knownTagId,
+	# 		collect(distinct friend) as friends
+	# 	UNWIND friends as f
+	# 		MATCH (f)<-[:HAS_CREATOR]-(post:Post),
+	# 			(post)-[:HAS_TAG]->(t:Tag{id: knownTagId}),
+	# 			(post)-[:HAS_TAG]->(tag:Tag)
+	# 		WHERE NOT t = tag
+	# 		WITH
+	# 			tag.name as tagName,
+	# 			count(post) as postCount
+	# 	RETURN
+	# 		tagName,
+	# 		postCount
+	# 	ORDER BY
+	# 		postCount DESC,
+	# 		tagName ASC
+	# 	LIMIT 10" 1
+
+	# currently distinct deleted
+	# WHERE NOT t = tag	
+	# WHERE NOT person=friend
+	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
+		WITH knownTag.id as knownTagId
+		MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend:Person)
+		WITH DISTINCT knownTagId, friend
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post),
+			(post)-[:POST_HAS_TAG]->(t:Tag{id: knownTagId}),
+			(post)-[:POST_HAS_TAG]->(tag:Tag)
 		RETURN
-			tagName,
-			postCount
+			tag.name as tagName, count(post) as postCount
 		ORDER BY
 			postCount DESC,
 			tagName ASC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -320,22 +357,38 @@ run_ldbc_c() {
 		LIMIT 20" 1
 
 	# LDBC IC9 Recent messages by friends or friends of friends
-	run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
-		WHERE NOT friend = root
-		WITH collect(distinct friend) as friends
-		UNWIND friends as friend
-			MATCH (friend)<-[:HAS_CREATOR]-(message:Message)
-			WHERE message.creationDate < 1289908800000
+	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
+	# 	WHERE NOT friend = root
+	# 	WITH collect(distinct friend) as friends
+	# 	UNWIND friends as friend
+	# 		MATCH (friend)<-[:HAS_CREATOR]-(message:Message)
+	# 		WHERE message.creationDate < 1289908800000
+	# 	RETURN
+	# 		friend.id AS personId,
+	# 		friend.firstName AS personFirstName,
+	# 		friend.lastName AS personLastName,
+	# 		message.id AS commentOrPostId,
+	# 		coalesce(message.content,message.imageFile) AS commentOrPostContent,
+	# 		message.creationDate AS commentOrPostCreationDate
+	# 	ORDER BY
+	# 		commentOrPostCreationDate DESC,
+	# 		message.id ASC
+	# 	LIMIT 20" 1
+
+	run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]->(friend:Person)
+		WITH DISTINCT friend
+		MATCH (friend)<-[:HAS_CREATOR]-(message:Comment)
+		WHERE message.creationDate < 1289908800000
 		RETURN
 			friend.id AS personId,
 			friend.firstName AS personFirstName,
 			friend.lastName AS personLastName,
 			message.id AS commentOrPostId,
-			coalesce(message.content,message.imageFile) AS commentOrPostContent,
+			message.content AS commentOrPostContent,
 			message.creationDate AS commentOrPostCreationDate
 		ORDER BY
 			commentOrPostCreationDate DESC,
-			message.id ASC
+			commentOrPostId ASC
 		LIMIT 20" 1
 
 	# LDBC IC10 Friend recommendation
@@ -378,7 +431,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 0
+		LIMIT 10" 1
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
