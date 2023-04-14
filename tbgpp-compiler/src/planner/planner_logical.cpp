@@ -564,7 +564,7 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
 	CColumnDescriptorArray *pdrgpcoldesc = path_table_descs->operator[](0)->Pdrgpcoldesc(); // TODO need to change for Union All case
 	IMDId *mdid_table = path_table_descs->operator[](0)->MDId(); // TODO need to change for Union All case
 	auto &prop_exprs = edge_expr->getPropertyExpressions();
-	D_ASSERT(pdrgpcoldesc->Size() == prop_exprs.size());
+	D_ASSERT(pdrgpcoldesc->Size() >= prop_exprs.size());
 	for( int colidx=0; colidx < prop_exprs.size(); colidx++) {
 		auto& _prop_expr = prop_exprs[colidx];
 		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());

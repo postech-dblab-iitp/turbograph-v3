@@ -28,7 +28,7 @@ namespace duckdb {
 
 struct ParsedCSV {
   uint64_t n_indexes{0};
-  uint64_t *indexes;
+  uint32_t *indexes;
 };
 
 struct simd_input {
@@ -112,49 +112,49 @@ really_inline uint64_t find_quote_mask(simd_input in, uint64_t &prev_iter_inside
 // base_ptr[base] incrementing base as we go
 // will potentially store extra values beyond end of valid bits, so base_ptr
 // needs to be large enough to handle this
-really_inline void flatten_bits(uint64_t *base_ptr, uint64_t &base,
+really_inline void flatten_bits(uint32_t *base_ptr, uint64_t &base,
                                 uint64_t idx, uint64_t bits) {
   if (bits != 0u) {
     uint64_t cnt = hamming(bits);
     uint64_t next_base = base + cnt;
-    base_ptr[base + 0] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 0] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 1] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 1] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 2] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 2] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 3] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 3] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 4] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 4] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 5] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 5] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 6] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 6] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 7] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 7] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
     bits = bits & (bits - 1);
     if (cnt > 8) {
-      base_ptr[base + 8] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 8] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 9] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 9] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 10] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 10] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 11] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 11] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 12] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 12] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 13] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 13] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 14] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 14] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 15] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 15] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
       bits = bits & (bits - 1);
     }
     if (cnt > 16) {
       base += 16;
       do {
-        base_ptr[base] = static_cast<uint64_t>(idx) + trailingzeroes(bits);
+        base_ptr[base] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
         bits = bits & (bits - 1);
         base++;
       } while (bits != 0);
@@ -184,7 +184,7 @@ bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) {
 #endif
   size_t lenminus64 = len < 64 ? 0 : len - 64;
   size_t idx = 0;
-  uint64_t *base_ptr = pcsv.indexes;
+  uint32_t *base_ptr = pcsv.indexes;
   uint64_t base = 0;
 #ifdef SIMDCSV_BUFFERING
   // we do the index decoding in bulk for better pipelining.
@@ -509,7 +509,10 @@ class GraphSIMDCSVFileParser {
 
 public:
   GraphSIMDCSVFileParser() {}
-  ~GraphSIMDCSVFileParser() {}
+  ~GraphSIMDCSVFileParser() {
+    // delete[] pcsv.indexes;
+    // aligned_free((void*)p.data());
+  }
 
   size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
 #ifdef __AVX2__
@@ -521,9 +524,7 @@ public:
     try {
       p = get_corpus(csv_file_path, CSV_PADDING);
     } catch (const std::exception &e) { // caught by reference to base
-      // std::cout << "Could not load the file " << filename << std::endl;
       throw InvalidInputException("Could not load the file");
-      //return EXIT_FAILURE;
     }
     // Read only header.. TODO how to read only few lines or just a line?
     csv::CSVFormat csv_form;
@@ -532,10 +533,10 @@ public:
       csv::CSVReader *reader = new csv::CSVReader(csv_file_path, csv_form);
 
     // Parse CSV File
-    pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
+    // std::cout << "File: " << csv_file_path << ", string size: " << p.size() << std::endl;
+    pcsv.indexes = new (std::nothrow) uint32_t[p.size()]; // can't have more indexes than we have data
     if(pcsv.indexes == nullptr) {
-      std::cerr << "You are running out of memory." << std::endl;
-      // return EXIT_FAILURE;
+      throw InvalidInputException("You are running out of memory.");
     }
     find_indexes(p.data(), p.size(), pcsv);
 
@@ -544,7 +545,7 @@ public:
     num_columns = col_names.size();
     num_rows = pcsv.n_indexes / num_columns;
     fprintf(stdout, "n_indexes = %ld, num_columns = %ld\n", pcsv.n_indexes, num_columns);
-    D_ASSERT(pcsv.n_indexes % num_columns == 0);
+    D_ASSERT((pcsv.n_indexes % num_columns == 0) || (pcsv.n_indexes % num_columns == num_columns - 1)); // no newline at the end of file
     for (size_t i = 0; i < col_names.size(); i++) {
       // Assume each element in the header column is of format 'key:type'
       std::string key_and_type = col_names[i]; 
@@ -583,9 +584,6 @@ public:
         });
       
       unzip(zipped, key_columns, key_columns_order);
-      // for (size_t i = 0; i < key_columns_order.size(); i++) {
-      //   std::cout << key_columns_order[i] << " : " << key_columns[i] << std::endl;
-      // }
     }
 
     // Initialize Cursor
@@ -602,9 +600,6 @@ public:
 		types.resize(key_types.size());
 		std::copy(key_names.begin(), key_names.end(), names.begin());
 		std::copy(key_types.begin(), key_types.end(), types.begin());
-    // for (int i = 0; i < types.size(); i++) {
-    //   fprintf(stdout, "%d column(%s): %s -> %s\n", i, key_names[i].c_str(), key_types[i].ToString().c_str(), types[i].ToString().c_str());
-    // }
 		return true;
 	}
 

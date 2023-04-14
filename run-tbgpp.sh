@@ -173,7 +173,7 @@ run_ldbc_c() {
 		LIMIT 20" 1
 	
 	# LDBC IC2 Recent messages by your friends
-	run_query "MATCH (:Person {id: 94 })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
+	run_query "MATCH (:Person {id: 94 })-[:KNOWS]->(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate <= 1287230400000
 		RETURN
 			friend.id AS personId,
@@ -306,7 +306,7 @@ run_ldbc_c() {
 		LIMIT 20" 1
 	
 	# LDBC IC8 Recent replies
-	run_query "MATCH (start:Person {id: 143})<-[:HAS_CREATOR]-(:Message)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
+	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
 		RETURN
 			person.id AS personId,
 			person.firstName AS personFirstName,
@@ -363,11 +363,11 @@ run_ldbc_c() {
 		LIMIT 10" 1
 
 	# LDBC IC11 Job referral
+		#WHERE person._id <> friend._id
+		#WHERE workAt.workFrom < 2011
 	run_query "MATCH (person:Person {id: 10995116277918 })-[:KNOWS*1..2]-(friend:Person)
-		WHERE not(person=friend)
 		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Company)-[:IS_LOCATED_IN]->(:Country {name: \"Hungary\" })
-		WHERE workAt.workFrom < 2011
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: \"Company\"})-[:ORG_IS_LOCATED_IN]->(:Place {name: \"Hungary\" })
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
@@ -376,9 +376,9 @@ run_ldbc_c() {
 				workAt.workFrom AS organizationWorkFromYear
 		ORDER BY
 				organizationWorkFromYear ASC,
-				toInteger(personId) ASC,
+				personId ASC,
 				organizationName DESC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
