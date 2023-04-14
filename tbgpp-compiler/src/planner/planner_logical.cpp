@@ -494,8 +494,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 			D_ASSERT(key_colref != NULL);
 			sort_colrefs.push_back(key_colref);
 		} else {
-			// currently do not allow other cases
-			GPOS_ASSERT(false);
+			CColRef* key_colref = prev_plan->getSchema()->getColRefOfKey(orderby_expr->getRawName(), "");
+			// fallback to alias
+			if (key_colref == NULL && orderby_expr->hasAlias()) {
+				key_colref = prev_plan->getSchema()->getColRefOfKey(orderby_expr->getAlias(), "");
+			}
+			D_ASSERT(key_colref != NULL);
+			sort_colrefs.push_back(key_colref);
 		}
 	}
 
