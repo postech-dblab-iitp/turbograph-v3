@@ -431,7 +431,9 @@ LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, Logical
 			new_schema.appendColumn(col_name, new_colref);
 			
 			// add to agg_columns
-			agg_columns->Append(expr);
+			auto* proj_elem = GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), expr);
+			agg_columns->Append(proj_elem);
 
 		} else {
 			// KEY COLUMNS

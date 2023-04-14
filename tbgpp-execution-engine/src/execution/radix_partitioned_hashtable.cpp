@@ -78,7 +78,9 @@ class RadixHTLocalState : public LocalSinkState {
 public:
 	explicit RadixHTLocalState(const RadixPartitionedHashTable &ht) : is_empty(true) {
 		// if there are no groups we create a fake group so everything has the same group
-		group_chunk.InitializeEmpty(ht.group_types);
+		
+		// s62 changed from initializeempty to initialize, due to bug when no grouping set
+		group_chunk.Initialize(ht.group_types);
 		if (ht.grouping_set.empty()) {
 			group_chunk.data[0].Reference(Value::TINYINT(42));
 		}

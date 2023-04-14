@@ -192,7 +192,7 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 		child_types.push_back(duckdb::LogicalType::ANY);	// TODO this should be fixed
 	}
 	// refer expression_type.h for kuzu function names
-	uint8_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
+	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
 	// no assert?
 
 	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);

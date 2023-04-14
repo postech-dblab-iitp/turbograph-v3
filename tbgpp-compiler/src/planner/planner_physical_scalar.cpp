@@ -91,12 +91,15 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols) {
 
 	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
-
+	CExpression* aggargs_expr = scalar_expr->operator[](0);
+	CScalarValuesList* aggargs = (CScalarValuesList*)(scalar_expr->operator[](0)->Pop());
+		// TODO may need to expand four childs (aggargs, aggdirectargs, aggorder, aggdistinct)
 	unique_ptr<duckdb::Expression> result;
 
 	vector<unique_ptr<duckdb::Expression>> child;
-	for( ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++ ) {
-		child.push_back(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols));
+	
+	for( ULONG child_idx = 0; child_idx < aggargs_expr->Arity(); child_idx++ ) {
+		child.push_back(pTransformScalarExpr(aggargs_expr->operator[](child_idx), child_cols));
 	}
 	D_ASSERT(child.size() <= 1);
 
