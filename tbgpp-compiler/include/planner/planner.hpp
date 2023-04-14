@@ -2,12 +2,15 @@
 
 #include "main/client_context.hpp"
 #include "common/enums/index_type.hpp"
+#include "common/constants.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
 #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "main/database.hpp"
 #include "catalog_wrapper.hpp"
-
+#include "function/function.hpp"
+#include "function/aggregate_function.hpp"
+#include "function/aggregate/distributive_functions.hpp"
 
 #include <iostream>
 #include <type_traits>
