@@ -333,6 +333,7 @@ private:
 	void pGenerateTypes(CColRefArray* columns, vector<duckdb::LogicalType>& out_types);
 	void pGenerateColumnNames(CColRefArray* columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
+	void pGenerateFilterExprs(CColRefArray* outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
 
 	inline string pGetColNameFromColRef(const CColRef* column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
