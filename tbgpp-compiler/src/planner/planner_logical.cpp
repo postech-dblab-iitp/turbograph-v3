@@ -53,7 +53,7 @@ LogicalPlan* Planner::lPlanQueryPart(
 			// WITH ... WHERE ...
 				// Need to check semantics on whether filter or project should be planned first on behalf of other.
 				// maybe filter first?
-			GPOS_ASSERT(false); // filter not yet implemented.
+			cur_plan = lPlanSelection(queryPart.getProjectionBodyPredicate().get()->splitOnAND(), cur_plan);
 			// appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
         }
     }
