@@ -124,6 +124,8 @@ bool DFSIterator::getNextEdge(ClientContext &context, int lv, uint64_t &tgt, uin
     int64_t adj_size = (cur_start_end_offsets_per_level[lv].second - cur_start_end_offsets_per_level[lv].first) / 2;
     uint64_t *cur_adjlist_ptr = cur_start_end_offsets_per_level[lv].first;
 
+    // fprintf(stdout, "[lv: %d/%d] cur_pos = %ld, adj_size = %ld\n", current_lv, lv, cur_pos, adj_size);
+
     if (cur_pos < adj_size) {
         tgt = cur_adjlist_ptr[cur_pos * 2];
         edge = cur_adjlist_ptr[cur_pos * 2 + 1];
@@ -131,6 +133,7 @@ bool DFSIterator::getNextEdge(ClientContext &context, int lv, uint64_t &tgt, uin
         changeLevel(context, true, tgt);
         return true;
     } else {
+        cursor_per_level[lv] = 0;
         changeLevel(context, false);
         return false;
     }
@@ -150,6 +153,10 @@ void DFSIterator::changeLevel(ClientContext &context, bool traverse_child, uint6
         current_lv--;
         // if (current_lv < 0) return;
     }
+}
+
+void DFSIterator::reduceLevel() {
+    current_lv--;
 }
 
 void DFSIterator::initializeDSForNewLv(int new_lv) {
