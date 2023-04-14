@@ -1073,6 +1073,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CColRefArray* child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CColRefArray *interm_output_cols = plan_expr->DeriveOutputColumns()->Pdrgpcr(mp);
 	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 	const CColRefArray* grouping_cols = agg_op->PdrgpcrGroupingCols();
 		
@@ -1108,7 +1109,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 		op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
 	}
 	
-	
 	// finish pipeline
 	result->push_back(op);
 	auto pipeline = new duckdb::CypherPipeline(*result);
@@ -1119,7 +1119,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	new_result->push_back(op);
 
 	// if output_cols size != child_cols, we need to do projection
-	if (child_cols->Size() != output_cols->Size()) {
+	if (interm_output_cols->Size() != output_cols->Size()) {
 		duckdb::CypherSchema proj_schema;
 		vector<duckdb::LogicalType> proj_types;
 		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
@@ -1133,12 +1133,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 		vector<unique_ptr<duckdb::Expression>> proj_exprs;
 		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 			CColRef *col = (*output_cols)[col_idx];
-			ULONG idx = child_cols->IndexOf(col);
+			ULONG idx = interm_output_cols->IndexOf(col);
 			if (idx == gpos::ulong_max) { continue;	}
 			D_ASSERT(idx != gpos::ulong_max);
 			proj_exprs.push_back(
-				make_unique<duckdb::BoundReferenceExpression>(proj_types[col_idx], (int)idx)
-			);
+				make_unique<duckdb::BoundReferenceExpression>(proj_types[col_idx], (int)idx));
 		}
 		if (proj_exprs.size() != 0) {
 			D_ASSERT(proj_exprs.size() == output_cols->Size());
