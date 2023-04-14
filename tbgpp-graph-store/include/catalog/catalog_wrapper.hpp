@@ -5,6 +5,7 @@
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
+#include "function/function.hpp"
 
 #include "icecream.hpp"
 
@@ -35,20 +36,15 @@ public:
         AggregateFunctionCatalogEntry *aggfunc_cat =
             (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
         
-        if (aggfunc_cat == nullptr) { throw InvalidInputException("Unsupported agg func"); }
+        if (aggfunc_cat == nullptr) { throw InvalidInputException("Unsupported agg func name: " + func_name); }
 
         auto &agg_funcset = aggfunc_cat->functions->functions;
         D_ASSERT(agg_funcset.size() <= FUNC_GROUP_SIZE);
-        idx_t agg_funcset_idx = 0; bool found = false;
-        for (int idx = 0; idx < agg_funcset.size(); idx++) {
-            if (arguments.size() != agg_funcset[idx].arguments.size()) continue;
-            if (arguments == agg_funcset[idx].arguments) {  // TODO ANY type should match with random type, currently this does not produce match
-                found = true;
-                agg_funcset_idx = idx;
-                break;
-            }
-        }
-        if (!found) { throw InvalidInputException("Unsupported agg func"); }
+        std::string error_msg;
+        idx_t agg_funcset_idx =
+            Function::BindFunction(func_name, agg_funcset, arguments, error_msg);
+        
+        if (agg_funcset_idx == DConstants::INVALID_INDEX) { throw InvalidInputException("Unsupported agg func"); }
 
         idx_t aggfunc_mdid = FUNCTION_BASE_ID + (aggfunc_cat->GetOid() * FUNC_GROUP_SIZE) + agg_funcset_idx;
         return aggfunc_mdid;

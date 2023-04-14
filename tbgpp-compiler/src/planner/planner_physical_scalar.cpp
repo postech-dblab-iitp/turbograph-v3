@@ -12,8 +12,6 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
 
-#include "function/aggregate_function.hpp"
-#include "function/aggregate/distributive_functions.hpp"
 #include "common/enums/join_type.hpp"
 
 namespace s62 {
@@ -106,38 +104,22 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
 	auto aggfunc_catalog_entry = context->db->GetCatalogWrapper().GetAggFunc(*context, agg_func_id);
 
-	duckdb::AggregateFunction* selected_function;
-	bool is_function_selected = false;
+	vector<duckdb::LogicalType> arguments;
+	for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
 	auto& functions = aggfunc_catalog_entry->functions.get()->functions;
-	for(auto& function: functions) {
-		auto& func_arg_types = function.arguments;
-		if(func_arg_types.size() == 0 ) {
-			// nullary aggregate - always match (e.g. count_sttar)
-			is_function_selected = true;
-			selected_function = &function;
-			break;
-		}
-		if(func_arg_types[0] == duckdb::LogicalType::ANY) {
-			// unary agg with any input - always match (e.g. count)
-			is_function_selected = true;
-			selected_function = &function;
-			break;
-		} else {
-			// other types besides should have child expression
-			D_ASSERT(child.size() > 0);
-			if( child[0].get()->return_type == func_arg_types[0]) {
-				is_function_selected = true;
-				selected_function = &function;
-				break;
-			}
-		}
-	}
-	D_ASSERT(is_function_selected);
+	std::string error_string;
+
+	duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(aggfunc_catalog_entry->name), functions, arguments, error_string);
+	D_ASSERT(function_idx != duckdb::idx_t(-1));
+
+	// return duckdb::AggregateFunction::BindAggregateFunction(
+	// 	*context, functions[function_idx], move(child), nullptr, op->IsDistinct(), nullptr
+	// );	// TODO currently no support on GB having and aggregate orderbys
 
 	return make_unique<duckdb::BoundAggregateExpression>(
-		*selected_function, std::move(child), nullptr, nullptr, op->IsDistinct());
+		functions[function_idx], std::move(child), nullptr, nullptr, op->IsDistinct());
+	
 }
-
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols) {
 
