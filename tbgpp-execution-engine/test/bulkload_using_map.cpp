@@ -373,7 +373,7 @@ icecream::ic.disable();
 
 	// Read Vertex CSV File & CreateVertexExtents
 	ReadVertexCSVFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
-	fprintf(stdout, "Vertex File Loading Done\n");
+	fprintf(stdout, "Vertex File Loading Done\n\n");
 
 	// Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
 	for (auto &edge_file: edge_files) {

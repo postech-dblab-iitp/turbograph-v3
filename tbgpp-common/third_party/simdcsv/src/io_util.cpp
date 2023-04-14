@@ -11,6 +11,7 @@ uint8_t * allocate_padded_buffer(size_t length, size_t padding) {
     // However, we might as well align to cache lines...
     size_t totalpaddedlength = length + padding;
     uint8_t * padded_buffer = (uint8_t *) aligned_malloc(64, totalpaddedlength);
+    std::memset(padded_buffer + length, 0, padding); // S62 added we need to memeset 0 for padding region
     return padded_buffer;
 }
 
