@@ -158,6 +158,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 	}
 	D_ASSERT(result != nullptr);
 
+	/* Update latest plan output columns */
+	auto* mp = this->memory_pool;
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	physical_plan_output_colrefs.clear();
+	for(ULONG idx=0; idx<output_cols->Size(); idx++) {
+		physical_plan_output_colrefs.push_back(output_cols->operator[](idx));
+	}
+
 	return result;
 }
 
@@ -983,16 +991,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator*>* result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
-	/* store latest colrefs of the latest projection output */
-	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-	physical_plan_output_colrefs.clear();
-	for(ULONG idx=0; idx<output_cols->Size(); idx++) {
-		physical_plan_output_colrefs.push_back(output_cols->operator[](idx));
-	}
-
 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
 	vector<duckdb::LogicalType> types;
 	vector<string> output_column_names;
+
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
 	CPhysicalComputeScalarColumnar* proj_op = (CPhysicalComputeScalarColumnar*) plan_expr->Pop();
 	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
@@ -1050,7 +1053,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	vector<duckdb::LogicalType> types;
 	vector<unique_ptr<duckdb::Expression>> agg_exprs;
 	vector<unique_ptr<duckdb::Expression>> agg_groups;
-	vector<string> output_column_names;
+	vector<string> output_column_names;	
 
 	CPhysicalAgg* agg_op = (CPhysicalAgg*) plan_expr->Pop();
 	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
@@ -1083,7 +1086,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	duckdb::CypherSchema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	tmp_schema.setStoredColumnNames(output_column_names);
-	auto* op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs),  move(agg_groups));
+	duckdb::CypherPhysicalOperator * op;
+	if(agg_groups.empty()) {
+		op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs));
+	} else {
+		op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
+	}
+	
 	
 	// finish pipeline
 	result->push_back(op);
