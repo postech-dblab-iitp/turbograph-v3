@@ -85,7 +85,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 
 	// target_types => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
 	if (!state.targetChunkInitialized) {
-		state.targetChunk.Initialize(target_types, STANDARD_VECTOR_SIZE);
+		if (!target_types.empty())
+			state.targetChunk.Initialize(target_types, STANDARD_VECTOR_SIZE);
 		state.targetChunkInitialized = true;
 	}
 

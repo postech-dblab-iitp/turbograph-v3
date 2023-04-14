@@ -53,6 +53,7 @@ public:
 
     void initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx);
     bool getNextEdge(ClientContext &context, int lv, uint64_t &tgt, uint64_t &edge);
+    void reduceLevel();
 
 private:
     void changeLevel(ClientContext &context, bool traverse_child, uint64_t src_id = 0);

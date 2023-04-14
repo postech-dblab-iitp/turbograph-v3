@@ -257,19 +257,18 @@ run_ldbc_c() {
 		LIMIT 10" 1
 
 	# LDBC IC5 New groups
-	run_query "MATCH (person:Person { id: 6597069766734 })-[:KNOWS*1..2]-(friend)
-		WHERE
-			NOT person=friend
+		# WHERE NOT person=friend
+		# collect(friend) AS friends
+		# WHERE membership.joinDate > 1288612800000
+	run_query "MATCH (person:Person { id: 6597069766734 })-[:KNOWS*1..2]-(friend:Person)
 		WITH DISTINCT friend
-		MATCH (friend)<-[membership:HAS_MEMBER]-(forum)
+		MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
 		WHERE
 			membership.joinDate > 1288612800000
 		WITH
 			forum,
-			collect(friend) AS friends
-		OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post)<-[:CONTAINER_OF]-(forum)
-		WHERE
-			friend IN friends
+			friend
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
 		WITH
 			forum,
 			count(post) AS postCount
@@ -279,6 +278,19 @@ run_ldbc_c() {
 		ORDER BY
 			postCount DESC,
 			forum.id ASC
+		LIMIT 20" 1
+	run_query "MATCH (person:Person { id: 94 })-[:KNOWS*1..2]->(friend:Person)
+		WITH DISTINCT friend
+		MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
+		WITH
+			forum,
+			friend
+		MATCH (post:Post)<-[:CONTAINER_OF]-(forum)
+		WITH
+			forum, post
+		RETURN
+			forum.title AS forumName,
+			count(post.id) AS postCount
 		LIMIT 20" 1
 
 	# LDBC IC6 Tag co-occurrence
@@ -449,6 +461,18 @@ run_ldbc_c() {
 			replyCount DESC,
 			toInteger(personId) ASC
 		LIMIT 20" 1
+	run_query "MATCH (tag:Tag)-[:HAS_TYPE*0..5]->(baseTagClass:TagClass)
+		WHERE tag.name = \"Hamid_Karzai\"
+		WITH tag
+		MATCH (person:Person {id: 94})<-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)-[:POST_HAS_TAG]->(tag)
+		RETURN
+			friend.id AS personId,
+			friend.firstName AS personFirstName,
+			friend.lastName AS personLastName,
+			count(comment) AS replyCount
+		ORDER BY
+			personId ASC
+		LIMIT 20" 0
 
 	# LDBC IC13 Single shortest path
 	run_query "MATCH

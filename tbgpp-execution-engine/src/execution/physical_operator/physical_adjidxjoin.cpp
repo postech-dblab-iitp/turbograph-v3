@@ -135,13 +135,13 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const {
 	auto &state = (AdjIdxJoinState &)lstate;
 
-icecream::ic.enable();
-std::cout << "[PhysicalAdjIdxJoin] input" << std::endl;
-IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
-if (input.size() > 0) {
-	IC(input.ToString(std::min((idx_t)10, input.size())));
-}
-icecream::ic.disable();
+// icecream::ic.enable();
+// std::cout << "[PhysicalAdjIdxJoin] input" << std::endl;
+// IC(input.size(), (uint8_t)join_type, state.srcColIdx, state.tgtColIdx, state.edgeColIdx);
+// if (input.size() > 0) {
+// 	IC(input.ToString(std::min((idx_t)10, input.size())));
+// }
+// icecream::ic.disable();
 	
 	uint64_t *adj_start, *adj_end;
 	uint64_t *tgt_adj_column = nullptr;
@@ -248,12 +248,12 @@ icecream::ic.disable();
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
 
-icecream::ic.enable();
-std::cout << "[PhysicalAdjIdxJoin] output" << std::endl;
-IC(chunk.size());
-if (chunk.size() != 0)
-	IC(chunk.ToString(std::min(10, (int)chunk.size())));
-icecream::ic.disable();
+// icecream::ic.enable();
+// std::cout << "[PhysicalAdjIdxJoin] output" << std::endl;
+// IC(chunk.size());
+// if (chunk.size() != 0)
+// 	IC(chunk.ToString(std::min(10, (int)chunk.size())));
+// icecream::ic.disable();
 }
 
 void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {

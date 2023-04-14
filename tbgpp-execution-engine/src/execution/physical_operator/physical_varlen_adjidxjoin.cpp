@@ -381,6 +381,7 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
             state.current_path.pop_back();
 			// state.current_path_vid.pop_back(); // temp
             state.cur_lv--;
+			state.dfs_it->reduceLevel();
             continue;
         }
         // check if the traversal exit
@@ -416,16 +417,16 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 		state.current_path.push_back(new_edge_id);
 		// state.current_path_vid.push_back(new_tgt_id); // temp
 
+		// fprintf(stdout, "src_vid %ld, cur_lv %d, Path: [", src_vid, state.cur_lv);
+		// for (int path_idx = 0; path_idx < state.current_path.size(); path_idx++) {
+		// 	fprintf(stdout, "%ld, ", state.current_path[path_idx]);
+		// }
+		// fprintf(stdout, "]\n");
+
         if (state.cur_lv >= state.start_lv) {
 			addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, new_tgt_id);
             if (++num_found_paths == remaining_output) break;
         }
-        
-		// fprintf(stdout, "src_vid %ld, cur_lv %d, Path: [", src_vid, state.cur_lv);
-		// for (int path_idx = 0; path_idx < state.current_path_vid.size(); path_idx++) {
-		// 	fprintf(stdout, "%ld, ", state.current_path_vid[path_idx]);
-		// }
-		// fprintf(stdout, "]\n");
     }
 
 	// fprintf(stdout, "End to iterate vid %ld, num_found = %ld\n", src_vid, num_found_paths);
