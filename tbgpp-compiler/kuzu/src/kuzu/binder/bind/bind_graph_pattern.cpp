@@ -134,7 +134,13 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     auto queryRel = make_shared<RelExpression>(
         getUniqueExpressionName(parsedName), tableIDs, srcNode, dstNode, lowerBound, upperBound);
     queryRel->setAlias(parsedName);
-    queryRel->setRawName(parsedName);
+    if( parsedName == "") {
+        // S62 empty rel cannot have raw name
+        queryRel->setRawName("annon_"+queryRel->getUniqueName());
+    } else {
+        queryRel->setRawName(parsedName);
+    }
+    
 
     // we don't support reading property for variable length rel yet.
 
@@ -262,7 +268,12 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     auto tableIDs = bindNodeTableIDs(nodePattern.getLabelOrTypeNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
     queryNode->setAlias(parsedName);
-    queryNode->setRawName(parsedName);
+    if(parsedName == "") {
+        // annon node cannot have raw name
+        queryNode->setRawName("annon_"+queryNode->getUniqueName());
+    } else {
+        queryNode->setRawName(parsedName);
+    }
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
 
     // S62 union schema process.

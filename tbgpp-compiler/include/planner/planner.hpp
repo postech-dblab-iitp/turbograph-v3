@@ -2,12 +2,15 @@
 
 #include "main/client_context.hpp"
 #include "common/enums/index_type.hpp"
+#include "common/constants.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
 #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "main/database.hpp"
 #include "catalog_wrapper.hpp"
-
+#include "function/function.hpp"
+#include "function/aggregate_function.hpp"
+#include "function/aggregate/distributive_functions.hpp"
 
 #include <iostream>
 #include <type_traits>
@@ -240,6 +243,7 @@ private:
 	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
+	CExpression *lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);

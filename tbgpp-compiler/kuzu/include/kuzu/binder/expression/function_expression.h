@@ -59,16 +59,12 @@ public:
         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
         : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName},
           aggregateFunction{move(aggregateFunction)} {
-
-            setRawName("");
         }
 
     AggregateFunctionExpression(const DataType& dataType, expression_vector children,
         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName, const string& rawFuncName)
         : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName},
           aggregateFunction{move(aggregateFunction)} {
-
-            setRawName(rawFuncName);
         }
 
     static inline string getUniqueName(
