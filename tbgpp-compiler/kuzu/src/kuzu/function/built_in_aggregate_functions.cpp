@@ -71,6 +71,7 @@ void BuiltInAggregateFunctions::registerAggregateFunctions() {
     registerAvg();
     registerMin();
     registerMax();
+    registerFirstLast();
 }
 
 void BuiltInAggregateFunctions::registerCountStar() {
@@ -152,13 +153,20 @@ void BuiltInAggregateFunctions::registerFirstLast() {
                 vector<DataTypeID>{typeID}, typeID,                                             // output type = input type 
                 AggregateFunctionUtil::getCountFunction(inputType, isDistinct), isDistinct));   // s62 whatever;
         }
+    }
+    aggregateFunctions.insert({FIRST_FUNC_NAME, move(definitions)});
+
+    vector<unique_ptr<AggregateFunctionDefinition>> definitions_last;
+    for (auto& typeID : DataType::getAllValidTypeIDs()) {
+        auto inputType =
+            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
-            definitions.push_back(make_unique<AggregateFunctionDefinition>(LAST_FUNC_NAME,      // last()
-                vector<DataTypeID>{typeID}, typeID,                                             // output type = input type
+            definitions.push_back(make_unique<AggregateFunctionDefinition>(LAST_FUNC_NAME,     // last()
+                vector<DataTypeID>{typeID}, typeID,                                             // output type = input type 
                 AggregateFunctionUtil::getCountFunction(inputType, isDistinct), isDistinct));   // s62 whatever;
         }
     }
-
+    aggregateFunctions.insert({LAST_FUNC_NAME, move(definitions_last)});
 }
 
 } // namespace function
