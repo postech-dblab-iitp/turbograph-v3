@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --index-join-only ${iterations}
+	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --debug-orca ${iterations}
 }
 
 run_ldbc_s() {
@@ -126,7 +126,7 @@ run_ldbc_c() {
 	echo "RUN LDBC Complex"
 
 	# LDBC IC1 Transitive friends with certain name
-	run_query "MATCH (p:Person {id: 4398046511333}), (friend:Person {firstName: \"Jose\"})
+	run_query "MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
 		WHERE NOT p=friend
 		WITH p, friend
 		MATCH path = shortestPath((p)-[:KNOWS*1..3]-(friend))
@@ -185,7 +185,7 @@ run_ldbc_c() {
 		ORDER BY
 			postOrCommentCreationDate DESC,
 			postOrCommentId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
 	run_query "MATCH (countryX:Country {name: \"Angola\" }),
@@ -254,7 +254,7 @@ run_ldbc_c() {
 		WHERE postCount>0
 		RETURN tagName
 		ORDER BY tagName ASC
-		LIMIT 10" 0
+		LIMIT 10" 1
 
 	# LDBC IC5 New groups
 		# WHERE NOT person=friend
@@ -291,7 +291,7 @@ run_ldbc_c() {
 		RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC6 Tag co-occurrence
 	# run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
@@ -321,16 +321,20 @@ run_ldbc_c() {
 	# currently distinct deleted
 	# WHERE NOT t = tag	
 	# WHERE NOT person=friend
+	# run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
+	# 	WITH knownTag.id as knownTagId
+	# 	MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend:Person)
+	# 	WITH DISTINCT knownTagId, friend
+	# 	MATCH (friend)<-[phc:POST_HAS_CREATOR]-(post:Post)
+	# 	RETURN
+	# 		count(post) as postCount
+	# 	ORDER BY
+	# 		postCount DESC
+	# 	LIMIT 10" 0
 	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
 		WITH knownTag.id as knownTagId
-		MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend:Person)
-		WITH DISTINCT knownTagId, friend
-		MATCH (friend)<-[phc:POST_HAS_CREATOR]-(post:Post)
-		RETURN
-			count(post) as postCount
-		ORDER BY
-			postCount DESC
-		LIMIT 10" 1
+		MATCH (person:Person { id: 4398046511333 })
+		RETURN knownTagId" 0
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -363,7 +367,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentCreationDate DESC,
 			commentId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC9 Recent messages by friends or friends of friends
 	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
@@ -398,7 +402,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentOrPostCreationDate DESC,
 			commentOrPostId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC10 Friend recommendation
 	run_query "MATCH (person:Person {id: 4398046511333})-[:KNOWS*2..2]-(friend),
@@ -440,7 +444,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 0
+		LIMIT 10" 1
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
@@ -459,9 +463,9 @@ run_ldbc_c() {
 			toInteger(personId) ASC
 		LIMIT 20" 1
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE*0..5]->(baseTagClass:TagClass)
-		WHERE tag.name = \"Hamid_Karzai\"
+		WHERE tag.name = 'Hamid_Karzai'
 		WITH tag
-		MATCH (person:Person {id: 94})<-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)-[:POST_HAS_TAG]->(tag)
+		MATCH (person:Person)<-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)-[:POST_HAS_TAG]->(tag)
 		RETURN
 			friend.id AS personId,
 			friend.firstName AS personFirstName,
@@ -470,7 +474,7 @@ run_ldbc_c() {
 		ORDER BY
 			replyCount DESC,
 			personId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC13 Single shortest path
 	run_query "MATCH
