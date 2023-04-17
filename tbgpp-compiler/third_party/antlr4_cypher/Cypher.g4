@@ -324,22 +324,14 @@ oC_NotExpression
 NOT : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'T' | 't' ) ;
 
 oC_ComparisonExpression
-    : oC_StringListNullPredicateExpression ( SP? kU_ComparisonOperator SP? oC_StringListNullPredicateExpression )?
-        | oC_StringListNullPredicateExpression ( SP? INVALID_NOT_EQUAL SP? kU_BitwiseOoC_StringListNullPredicateExpressionrOperatorExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
-        | oC_StringListNullPredicateExpression SP? kU_ComparisonOperator SP? oC_StringListNullPredicateExpression ( SP? kU_ComparisonOperator SP? oC_StringListNullPredicateExpression )+ { notifyNonBinaryComparison($ctx->start); }
+    : kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )?
+        | kU_BitwiseOrOperatorExpression ( SP? INVALID_NOT_EQUAL SP? kU_BitwiseOrOperatorExpression ) { notifyInvalidNotEqualOperator($INVALID_NOT_EQUAL); }
+        | kU_BitwiseOrOperatorExpression SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression ( SP? kU_ComparisonOperator SP? kU_BitwiseOrOperatorExpression )+ { notifyNonBinaryComparison($ctx->start); }
         ;
 
 kU_ComparisonOperator : '=' | '<>' | '<' | '<=' | '>' | '>=' ;
 
 INVALID_NOT_EQUAL : '!=' ;
-
-oC_StringListNullPredicateExpression
-    :  kU_BitwiseOrOperatorExpression ( oC_ListPredicateExpression )*
-
-oC_ListPredicateExpression
-    :  SP IN SP? oC_AddOrSubtractExpression ;
-
-IN : ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 
 kU_BitwiseOrOperatorExpression
     : kU_BitwiseAndOperatorExpression ( SP? '|' SP? kU_BitwiseAndOperatorExpression )* ;
