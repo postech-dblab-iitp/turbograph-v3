@@ -185,11 +185,11 @@ run_ldbc_c() {
 		ORDER BY
 			postOrCommentCreationDate DESC,
 			postOrCommentId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
-	run_query "MATCH (countryX:Country {name: \"Angola\" }),
-		(countryY:Country {name: \"Colombia\" }),
+	run_query "MATCH (countryX:Country {name: 'Angola' }),
+		(countryY:Country {name: 'Colombia' }),
 		(person:Person {id: 6597069766734 })
 		WITH person, countryX, countryY
 		LIMIT 1
@@ -216,6 +216,12 @@ run_ldbc_c() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
+	run_query "MATCH (countryX:Country {name: 'Angola' }),
+		(countryY:Country {name: 'Colombia' }),
+		(person:Person {id: 4 })
+		WITH person, countryX, countryY
+		LIMIT 1
+		RETURN person.id, countryX.name, countryY.name" 1
 
 	# LDBC IC4 New topics
 	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
@@ -254,7 +260,7 @@ run_ldbc_c() {
 		WHERE postCount>0
 		RETURN tagName
 		ORDER BY tagName ASC
-		LIMIT 10" 0
+		LIMIT 10" 1
 
 	# LDBC IC5 New groups
 		# WHERE NOT person=friend
@@ -291,7 +297,7 @@ run_ldbc_c() {
 		RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC6 Tag co-occurrence
 	# run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
@@ -350,6 +356,20 @@ run_ldbc_c() {
 			likeCreationDate DESC,
 			toInteger(personId) ASC
 		LIMIT 20" 1
+	run_query "MATCH (person:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
+		WITH liker, message, like, person
+		ORDER BY like.creationDate DESC, message.id ASC
+		RETURN
+			liker.id AS personId,
+			liker.firstName AS personFirstName,
+			liker.lastName AS personLastName,
+			first(message.id) AS msg_id,
+			first(like.creationDate) AS likeCreationDate,
+			person._id AS person_id
+		ORDER BY
+			likeCreationDate DESC,
+			personId ASC
+		LIMIT 20" 0
 	
 	# LDBC IC8 Recent replies
 	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
@@ -363,7 +383,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentCreationDate DESC,
 			commentId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC9 Recent messages by friends or friends of friends
 	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
@@ -398,7 +418,7 @@ run_ldbc_c() {
 		ORDER BY
 			commentOrPostCreationDate DESC,
 			commentOrPostId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC10 Friend recommendation
 	run_query "MATCH (person:Person {id: 4398046511333})-[:KNOWS*2..2]-(friend),
@@ -440,7 +460,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 0
+		LIMIT 10" 1
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
@@ -470,7 +490,7 @@ run_ldbc_c() {
 		ORDER BY
 			replyCount DESC,
 			personId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 
 	# LDBC IC13 Single shortest path
 	run_query "MATCH
