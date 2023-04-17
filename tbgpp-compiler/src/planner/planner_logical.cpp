@@ -68,6 +68,10 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	if(proj_body->hasAggregationExpressions()) {
 		plan = lPlanGroupBy(proj_body->getProjectionExpressions(), plan);	// TODO what if agg + projection
 		// TODO plan is manipulated
+
+		// handle all non-agg projection + original columns first
+			// orca will remove unnecessary columns so no worries! 
+
 	} else {
 		plan = lPlanProjection(proj_body->getProjectionExpressions(), plan);
 	}

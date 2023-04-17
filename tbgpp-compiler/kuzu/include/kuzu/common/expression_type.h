@@ -20,6 +20,9 @@ const string AVG_FUNC_NAME = "AVG";
 const string MIN_FUNC_NAME = "MIN";
 const string MAX_FUNC_NAME = "MAX";
 
+const string FIRST_FUNC_NAME = "FIRST";
+const string LAST_FUNC_NAME = "LAST";
+
 // cast
 const string CAST_TO_DATE_FUNC_NAME = "DATE";
 const string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";

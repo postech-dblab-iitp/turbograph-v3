@@ -34,6 +34,7 @@ private:
     void registerAvg();
     void registerMin();
     void registerMax();
+    void registerFirstLast();
 
 private:
     unordered_map<string, vector<unique_ptr<AggregateFunctionDefinition>>> aggregateFunctions;
