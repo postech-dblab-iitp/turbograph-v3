@@ -12,7 +12,7 @@ unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause)
     auto boundProjectionBody = make_unique<BoundProjectionBody>(
         projectionBody->getIsDistinct(), std::move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
-    validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
+    // validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     variablesInScope.clear();
     addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
     auto boundWithClause = make_unique<BoundWithClause>(std::move(boundProjectionBody));

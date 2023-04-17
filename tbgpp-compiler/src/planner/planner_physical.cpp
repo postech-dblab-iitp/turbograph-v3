@@ -1078,13 +1078,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	const CColRefArray* grouping_cols = agg_op->PdrgpcrGroupingCols();
 		
 	// get agg groups
-	for(ULONG group_col_idx=0; group_col_idx < grouping_cols->Size(); group_col_idx++) {
-		CColRef *col = grouping_cols->operator[](group_col_idx);
+	for (ULONG output_col_idx = 0; output_col_idx < output_cols->Size(); output_col_idx++) {
+		CColRef *col = output_cols->operator[](output_col_idx);
+		if (grouping_cols->IndexOf(col) == gpos::ulong_max) continue;
 		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
 		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
 		types.push_back(col_type);
-		output_column_names.push_back( pGetColNameFromColRef(col) );
-		agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, child_cols->IndexOf(col)));	
+		output_column_names.push_back( pGetColNameFromColRef(col));
+		agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, child_cols->IndexOf(col)));
 	}
 
 	// handle aggregation expressions
@@ -1221,12 +1222,16 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 
 	const COrderSpec *pos = proj_op->Pos();
 
+	CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
 	vector<duckdb::BoundOrderByNode> orders;
 	for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
 		const CColRef *col = pos->Pcr(ul);
 		ULONG col_id= col->Id();
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
+		ULONG ref_col_idx = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col);
+		std::cout << "col_id: " << col_id << ", ref_col_idx: " << ref_col_idx << std::endl;
 		
 		unique_ptr<duckdb::Expression> order_expr =
 			make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid),
