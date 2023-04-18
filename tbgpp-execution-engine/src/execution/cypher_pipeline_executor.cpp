@@ -25,8 +25,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, Cypher
 CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
 	CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p): 
-	childs(std::move(childs_p)), deps(std::move(deps_p)) {
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context_p, CypherPipeline* pipeline_p, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p): 
+	context(context_p), pipeline(pipeline_p), childs(std::move(childs_p)), deps(std::move(deps_p)) {
 
 		// initialize interm chunks
 		for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
@@ -211,7 +211,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 // IC(pipeline->GetIdxOperator(current_idx)->ToString());
 // icecream::ic.disable();
 		duckdb::OperatorResultType opResult;
-		if( pipeline->GetIdxOperator(current_idx)->IsSink() ) {
+		if( ! pipeline->GetIdxOperator(current_idx)->IsSink() ) {
 			// standalone operators e.g. filter, projection, adjidxjoin
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
@@ -220,7 +220,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			// operator with related sink e.g. hashjoin, ..
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1],
-				*deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state
+				*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state)
 			);
 		}
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();

@@ -104,6 +104,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			result = pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(plan_expr);
 			break;
 		}
+		case COperator::EOperatorId::EopPhysicalInnerNLJoin: {
+			// cartesian product only
+			if(pIsCartesianProduct(plan_expr)) {
+				result = pTransformEopPhysicalInnerNLJoinToCartesianProduct(plan_expr);
+				break;
+			}
+			D_ASSERT(false);
+		}
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin:
 		case COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin: {
 			bool is_left_outer = plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin;
@@ -971,7 +979,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJo
 
 	CMemoryPool* mp = this->memory_pool;
 
-	D_ASSERT(plan_expr->Arity() == 2);
+	D_ASSERT(plan_expr->Arity() == 3);
 
 	/* Non-root - call LHS first for inner materialization */
 	vector<duckdb::CypherPhysicalOperator*>* lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));	// outer
@@ -1548,12 +1556,11 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
 	return ok;
 }
 
-bool pIsCartesianProduct(CExpression* expr) {
+bool Planner::pIsCartesianProduct(CExpression* expr) {
 
 	return expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalInnerNLJoin
-		&& expr->Arity() == 1
-		&& expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst
-		&& CUtils::FScalarConstTrue(expr->operator[](0));
+		&& expr->operator[](2)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst
+		&& CUtils::FScalarConstTrue(expr->operator[](2));
 }
 
 duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment ent) {

@@ -4,8 +4,8 @@
 
 namespace duckdb {
 
-PhysicalCrossProduct::PhysicalCrossProduct(CypherSchema &sch, vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map)
-    : CypherPhysicalOperator(sch), outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)) {
+PhysicalCrossProduct::PhysicalCrossProduct(CypherSchema &sch, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
+    : CypherPhysicalOperator(sch), outer_col_map(move(outer_col_map_p)), inner_col_map(move(inner_col_map_p)) {
 
 	// the inputs of PhysicalCrossProduct must be used.
 	for(auto& it: outer_col_map) { D_ASSERT(it != std::numeric_limits<uint32_t>::max()); }
@@ -88,7 +88,7 @@ OperatorResultType PhysicalCrossProduct::Execute(ExecutionContext &context, Data
 	auto &sink_state = (CrossProductLocalState &)sink_state_p;
 	auto &right_collection = sink_state.rhs_materialized;
 
-	if (sink_state.rhs_materialized.Count() == 0) {
+	if (right_collection.Count() == 0) {
 		// no RHS: empty result
 		return OperatorResultType::FINISHED;
 	}
