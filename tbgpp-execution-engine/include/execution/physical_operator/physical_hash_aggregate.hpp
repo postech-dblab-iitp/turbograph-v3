@@ -40,10 +40,12 @@ public:
 	// Sink interface
 	SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const override;
 	void Combine(ExecutionContext &context, LocalSinkState &lstate) const override;
+	bool IsSink() const override { return true; }
 
 	// Source interface
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 	void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const override;
+	bool IsSource() const override { return true; }
 
 	string ParamsToString() const override;
 	std::string ToString() const override;

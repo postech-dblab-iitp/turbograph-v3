@@ -13,6 +13,7 @@
 #include "common/stack.hpp"
 
 #include <functional>
+#include <map>
 
 // JHKO Copied directly from duckdb
 
@@ -28,8 +29,10 @@ class CypherPipelineExecutor {
 
 public:
 	
+	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p);
+	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p);
 	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline);
-	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs);
+	
 
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
 	void ExecutePipeline();
@@ -84,8 +87,10 @@ public:
 	//! Cached chunks for any operators that require caching
 	vector<unique_ptr<DataChunk>> cached_chunks;
 
-	//! Child executors - to access sink information of the source
+	//! Child executors - to access sink information of the source 			// child : pipe's sink == op's source
 	vector<CypherPipelineExecutor*> childs;
+	//! Dependent executors - to access sink information of the operator	// dep   : pipe's sink == op's operator
+	std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> deps;
 
 private:
 

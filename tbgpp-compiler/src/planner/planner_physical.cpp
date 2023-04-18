@@ -18,6 +18,7 @@
 #include "execution/physical_operator/physical_sort.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
+#include "execution/physical_operator/physical_cross_product.hpp"
 
 #include "execution/physical_operator/physical_filter.hpp"
 
@@ -345,7 +346,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 	return result;
 }
-
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr, bool is_left_outer) {
 
@@ -967,6 +967,56 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	return result;
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	D_ASSERT(plan_expr->Arity() == 2);
+
+	/* Non-root - call LHS first for inner materialization */
+	vector<duckdb::CypherPhysicalOperator*>* lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));	// outer
+	vector<duckdb::CypherPhysicalOperator*>* rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));	// inner
+
+	/* finish rhs pipeline */
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprOuter = (*plan_expr)[0];
+	CColRefArray* outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprInner = (*plan_expr)[1];
+	CColRefArray* inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+	vector<duckdb::LogicalType> types;
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
+
+	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+		CColRef *col = output_cols->operator[](col_idx);
+		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
+		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
+		types.push_back(col_type);
+	}
+	for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
+		outer_col_map.push_back(output_cols->IndexOf(outer_cols->operator[](col_idx)));
+	}
+	for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++){
+		inner_col_map.push_back(output_cols->IndexOf(inner_cols->operator[](col_idx)));
+	}
+
+	// define op
+	duckdb::CypherSchema tmp_schema;
+	tmp_schema.setStoredTypes(types);
+	duckdb::CypherPhysicalOperator *op =
+		new duckdb::PhysicalCrossProduct(tmp_schema, outer_col_map, inner_col_map);
+
+	// finish rhs pipeline
+	rhs_result->push_back(op);
+	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+	pipelines.push_back(pipeline);
+
+	// return lhs pipeline
+	lhs_result->push_back(op);
+	return lhs_result;
+}
+
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression* plan_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
@@ -1498,6 +1548,13 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
 	return ok;
 }
 
+bool pIsCartesianProduct(CExpression* expr) {
+
+	return expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalInnerNLJoin
+		&& expr->Arity() == 1
+		&& expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst
+		&& CUtils::FScalarConstTrue(expr->operator[](0));
+}
 
 duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment ent) {
 	switch (ent) {

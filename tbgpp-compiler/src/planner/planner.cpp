@@ -4,6 +4,7 @@
 
 #include <string>
 #include <limits>
+#include <map>
 
 
 namespace s62 {
@@ -400,27 +401,33 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 	std::vector<duckdb::CypherPipelineExecutor*> executors;
 
 	for( auto& pipe: pipelines) {
-		// find children - the child ordering matters. 
+		// find children and deps - the child/dep ordering matters. 
 		// must run in ascending order of the vector
 		auto* new_ctxt = new duckdb::ExecutionContext(context);
-		vector<duckdb::CypherPipelineExecutor*> child_executors;
+		vector<duckdb::CypherPipelineExecutor*> child_executors;									// child : pipe's sink == op's source
+		std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> dep_executors;	// dep   : pipe's sink == op's operator
 
+		// find children
 		for( auto& ce: executors ) {
-			// if child pipeline exists, its executor must be previously be constructed
+			// connect source with previous sinks
 			if ( pipe->GetSource() == ce->pipeline->GetSink() ) {
-				// pipelines are connected if prev.sink == now.source
-				// TODO s62  not generally true. consider hash join need to extend
-				// TODO this is compare pointer, any better?
 				child_executors.push_back(ce);
-			} 
+			}
+		}
+		// find deps
+		for( auto& ce: executors ) {
+			// connect source with previous sinks
+			for( int op_idx = 0; op_idx < pipe->GetOperators().size(); op_idx++) {
+				auto& op = pipe->GetOperators()[op_idx];
+				if ( op == ce->pipeline->GetSink() ) {
+					dep_executors.insert(std::make_pair(op,ce));
+				}
+			}
+			
 		}
 
 		duckdb::CypherPipelineExecutor *pipe_exec;
-		if (child_executors.size() > 0 ){
-			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, child_executors);
-		} else {
-			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe);
-		}
+		pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, move(child_executors), move(dep_executors));
 		executors.push_back(pipe_exec);
 	}
 

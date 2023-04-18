@@ -28,6 +28,7 @@ public:
 	
 	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
+	bool IsSource() const override { return true; }
 	
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

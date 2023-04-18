@@ -36,15 +36,20 @@ public:
 
 	// leaf sources (e.g. Scan)
 	virtual void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate) const;
-	// non-leaf sources (e.g. Hash Probe, Sort source)
+	// non-leaf sources (e.g. HashAgg, Sort source)
 	virtual void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
 	virtual unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const;
+	virtual bool IsSource() const { return false; }	// must be overrided for true for source operators
 
 	virtual SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const;
 	virtual unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const;
 	virtual void Combine(ExecutionContext& context, LocalSinkState& lstate) const;
+	virtual bool IsSink() const { return false; }	// must be overrided for true for sink operators
 
+	// standalone piped operators (e.g. Scan)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
+	// sink-enabled piped operators (e.g. Hash Probe, CartProd)
+	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
 
 	const vector<LogicalType> &GetTypes();
