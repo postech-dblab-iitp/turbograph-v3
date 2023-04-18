@@ -31,6 +31,12 @@ void CypherPhysicalOperator::Combine(ExecutionContext& context, LocalSinkState& 
 OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &state) const {
 	throw InternalException("Calling Execute on a node that is not an operator!");
 }
+
+OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const {
+	throw InternalException("Calling Execute on a node that is not an operator!");
+}
+
+
 unique_ptr<OperatorState> CypherPhysicalOperator::GetOperatorState(ExecutionContext &context) const{
 	return make_unique<OperatorState>();
 }

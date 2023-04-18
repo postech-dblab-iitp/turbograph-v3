@@ -307,7 +307,6 @@ string PhysicalHashAggregate::ParamsToString() const {
 	return "hashagg-params";
 }
 std::string PhysicalHashAggregate::ToString() const {
-
 	return "HashAggregate";
 }
 

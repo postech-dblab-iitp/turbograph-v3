@@ -19,30 +19,34 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
-	CypherPipelineExecutor(context, pipeline) { childs = childs_p; }
-
 CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline): 
-	context(context), pipeline(pipeline) {
+	CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor*>()), std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>()) ) { }
 
-	// initialize interm chunks
-	for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
-		auto opOutputChunk = std::make_unique<DataChunk>();
-		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
-		opOutputChunks.push_back(move(opOutputChunk));
-	}
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
+	CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
 
-	assert( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
-	// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
-	// generate global states for each operator
-		// no global states for this demo!
-	// Manage local states
-	local_source_state = pipeline->source->GetLocalSourceState(*context);
-	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
-	for( auto op: pipeline->GetOperators() ) {
-		local_operator_states.push_back(op->GetOperatorState(*context));
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p): 
+	childs(std::move(childs_p)), deps(std::move(deps_p)) {
+
+		// initialize interm chunks
+		for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+			auto opOutputChunk = std::make_unique<DataChunk>();
+			opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
+			opOutputChunks.push_back(std::move(opOutputChunk));
+		}
+
+		assert( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
+		// std::cout << "pipelinelength=" << pipe->pipelineLength << std::endl;
+		// generate global states for each operator
+			// no global states for this demo!
+		// Manage local states
+		local_source_state = pipeline->source->GetLocalSourceState(*context);
+		local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+		for( auto op: pipeline->GetOperators() ) {
+			local_operator_states.push_back(op->GetOperatorState(*context));
+		}
+
 	}
-}
 
 void CypherPipelineExecutor::ExecutePipeline() {
 	
@@ -206,9 +210,19 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 // icecream::ic.enable();
 // IC(pipeline->GetIdxOperator(current_idx)->ToString());
 // icecream::ic.disable();
-		auto opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			 *context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
+		duckdb::OperatorResultType opResult;
+		if( pipeline->GetIdxOperator(current_idx)->IsSink() ) {
+			// standalone operators e.g. filter, projection, adjidxjoin
+			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
 		);
+		} else {
+			// operator with related sink e.g. hashjoin, ..
+			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1],
+				*deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state
+			);
+		}
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 			// timer stop
 #ifdef OP_TIMER

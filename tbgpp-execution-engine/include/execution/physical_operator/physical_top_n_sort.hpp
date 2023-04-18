@@ -22,11 +22,13 @@ public:
 	SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const override;
 	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
 	void Combine(ExecutionContext& context, LocalSinkState& lstate) const override;
+	bool IsSink() const override { return true; }
 
 	// source
 	// void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
 	void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
+	bool IsSource() const override { return true; }
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

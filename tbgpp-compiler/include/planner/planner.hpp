@@ -128,7 +128,6 @@
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
 
-
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
@@ -304,6 +303,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr, bool is_left_outer);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression* plan_expr);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopLimit(CExpression* plan_expr);
@@ -328,6 +328,7 @@ private:
 	bool pIsUnionAllOpAccessExpression(CExpression* expr);
 	bool pIsColumnarProjectionSimpleProject(CExpression* proj_expr);
 	bool pIsFilterPushdownAbleIntoScan(CExpression* selection_expr);
+	bool pIsCartesianProduct(CExpression* expr);
 	
 	// helper functions
 	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray* columns, vector<uint64_t>& out_mapping);
