@@ -235,8 +235,8 @@ void Planner::_orcaSetTraceFlags() {
 		CBitSet *hash_join_bitste = CXform::PbsHashJoinXforms(mp);
 		traceflag_bitset->Union(hash_join_bitste);
 		hash_join_bitste->Release();	
-		// disable nl join
-		GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
+		// disable nl join - need nlj for cartesian product
+		//GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
 	}
 
 	traceflag_bitset->Union(join_heuristic_bitset);
@@ -418,7 +418,7 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 		for( auto& ce: executors ) {
 			// connect source with previous sinks
 			for( int op_idx = 0; op_idx < pipe->GetOperators().size(); op_idx++) {
-				auto& op = pipe->GetOperators()[op_idx];
+				duckdb::CypherPhysicalOperator* op = pipe->GetOperators()[op_idx];
 				if ( op == ce->pipeline->GetSink() ) {
 					dep_executors.insert(std::make_pair(op,ce));
 				}
