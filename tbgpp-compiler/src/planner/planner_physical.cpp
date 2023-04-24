@@ -29,7 +29,6 @@
 #include "common/enums/join_type.hpp"
 
 
-
 namespace s62 {
 
 void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
