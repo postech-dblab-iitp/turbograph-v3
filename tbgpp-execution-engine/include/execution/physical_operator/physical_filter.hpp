@@ -15,7 +15,7 @@ class PhysicalFilter: public CypherPhysicalOperator {
 
 public:
 	PhysicalFilter(CypherSchema& sch, vector<unique_ptr<Expression>> predicates)
-		: CypherPhysicalOperator(sch) {
+		: CypherPhysicalOperator(PhysicalOperatorType::FILTER, sch) {
 			
 		D_ASSERT(predicates.size() > 0);
 		if (predicates.size() > 1) {

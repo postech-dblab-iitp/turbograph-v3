@@ -2,18 +2,12 @@
 
 // #include "common/common.hpp"
 // #include "catalog/catalog.hpp"
-// #include "common/enums/physical_operator_type.hpp"
-
+#include "common/enums/physical_operator_type.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/enums/operator_result_type.hpp"
-// #include "common/constants.hpp"
-
 #include "execution/physical_operator/physical_operator.hpp"
-
 #include "typedef.hpp"
 #include "execution/execution_context.hpp"
-
-
 #include "common/common.hpp"
 
 #include <boost/timer/timer.hpp>
@@ -25,12 +19,10 @@ class CypherPhysicalOperator {
 
 public:
 
-	CypherPhysicalOperator() {} // sink does not define types
 
-	// TODO S62 further need to not store cypherschema
-	CypherPhysicalOperator( CypherSchema& sch ) : schema(sch), types(schema.getStoredTypes()) {	
+	CypherPhysicalOperator(PhysicalOperatorType type, CypherSchema& sch):
+		type(type), schema(sch), types(schema.getStoredTypes()), processed_tuples(0) {	
 		timer_started = false;
-		processed_tuples = 0;
 	}
 	virtual ~CypherPhysicalOperator() { }
 
@@ -58,13 +50,14 @@ public:
 	virtual std::string ToString() const { return ""; }
 
 	// operator metadata
-	// TODO remove mutable
-	mutable CypherSchema schema;
-	mutable vector<LogicalType> types;
+	const PhysicalOperatorType type;
+	mutable CypherSchema schema;				// TODO remove mutable
+	mutable vector<LogicalType> types;			// schema(types) of operator output chunk
+	vector<CypherPhysicalOperator*> children;	// child operators
 
 	// operator statistics
 		// TODO make this into timer struct with some functions
-	boost::timer::cpu_timer op_timer;
+	boost::timer::cpu_timer op_timer;	// TODO deprecate
 	bool timer_started;
 	int64_t exec_time;
 	

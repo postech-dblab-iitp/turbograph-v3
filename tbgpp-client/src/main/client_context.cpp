@@ -8,9 +8,7 @@
 //#include "common/serializer/buffered_deserializer.hpp"
 //#include "common/serializer/buffered_serializer.hpp"
 //#include "execution/physical_plan_generator.hpp"
-#include "main/database.hpp"
 //#include "main/materialized_query_result.hpp"
-#include "main/client_data.hpp"
 //#include "main/query_result.hpp"
 //#include "main/stream_query_result.hpp"
 //#include "optimizer/optimizer.hpp"
@@ -33,6 +31,10 @@
 //#include "planner/pragma_handler.hpp"
 //#include "common/file_system.hpp"
 //#include "execution/column_binding_resolver.hpp"
+
+#include "main/database.hpp"
+#include "main/client_data.hpp"
+#include "main/query_profiler.hpp"
 
 #include "common/types/value.hpp"
 
@@ -58,7 +60,8 @@ ClientContext::ClientContext(shared_ptr<DatabaseInstance> database)
     : db(move(database)), //transaction(db->GetTransactionManager(), *this), interrupted(false),
       client_data(make_unique<ClientData>(*this)),
 	  graph_store(make_unique<iTbgppGraphStore>(*this)),
-	  executor(make_unique<Executor>(*this)) {
+	  executor(make_unique<Executor>(*this)),
+	  profiler(make_shared<QueryProfiler>(*this)) {
 	this->catalog_shm = db->GetCatalogSHM();
 }
 
@@ -74,6 +77,33 @@ ClientContext::~ClientContext() {
 unique_ptr<ClientContextLock> ClientContext::LockContext() {
 	return make_unique<ClientContextLock>(context_lock);
 }
+
+Executor &ClientContext::GetExecutor() {
+	
+}
+
+fixed_managed_mapped_file *ClientContext::GetCatalogSHM() {
+	return catalog_shm;
+}
+
+void ClientContext::EnableProfiling() {
+	auto lock = LockContext();
+	auto &config = ClientConfig::GetConfig(*this);
+	config.enable_profiler = true;
+}
+
+void ClientContext::DisableProfiling() {
+	auto lock = LockContext();
+	auto &config = ClientConfig::GetConfig(*this);
+	config.enable_profiler = false;
+}
+
+idx_t ClientContext::GetNewPhyiscalOpId() {
+	auto lock = LockContext();
+	return ClientData::Get(*this).physical_op_counter++;
+}
+
+
 /*
 void ClientContext::Destroy() {
 	auto lock = LockContext();
@@ -197,13 +227,7 @@ void ClientContext::CleanupInternal(ClientContextLock &lock, BaseQueryResult *re
 }
 */
 
-Executor &ClientContext::GetExecutor() {
-	
-}
 
-fixed_managed_mapped_file *ClientContext::GetCatalogSHM() {
-	return catalog_shm;
-}
 
 /*
 const string &ClientContext::GetCurrentQuery() {
@@ -736,19 +760,9 @@ unique_ptr<QueryResult> ClientContext::ExecutePendingQueryInternal(ClientContext
 void ClientContext::Interrupt() {
 	interrupted = true;
 }
+*/
 
-void ClientContext::EnableProfiling() {
-	auto lock = LockContext();
-	auto &config = ClientConfig::GetConfig(*this);
-	config.enable_profiler = true;
-}
-
-void ClientContext::DisableProfiling() {
-	auto lock = LockContext();
-	auto &config = ClientConfig::GetConfig(*this);
-	config.enable_profiler = false;
-}
-
+/*
 struct VerifyStatement {
 	VerifyStatement(unique_ptr<SelectStatement> statement_p, string statement_name_p, bool require_equality = true)
 	    : statement(move(statement_p)), statement_name(move(statement_name_p)), require_equality(require_equality),

@@ -7,6 +7,7 @@
 #include "storage/graph_store.hpp"
 
 #include "execution/physical_operator/physical_operator.hpp"
+#include "parallel/thread_context.hpp"
 
 
 #include "common/types/data_chunk.hpp"
@@ -53,8 +54,9 @@ public:
 	//! The pipeline to process
 	ExecutionContext* context;
 	CypherPipeline* pipeline;
-		// TODO this needs to be unique pointer. maybe...?
-	
+	//! The thread context of this executor
+	ThreadContext thread;
+
 
 	// TODO add statistics reporter.
 
@@ -93,6 +95,8 @@ public:
 	std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> deps;
 
 private:
+	void StartOperator(CypherPhysicalOperator *op);
+	void EndOperator(CypherPhysicalOperator *op, DataChunk *chunk);
 
 	//! Reset the operator index to the first operator
 	void GoToSource(idx_t &current_idx, idx_t initial_idx);

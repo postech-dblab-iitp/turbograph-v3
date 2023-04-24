@@ -33,7 +33,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_pt
 						vector<unique_ptr<Expression>> groups_p,
 						vector<GroupingSet> grouping_sets_p,
 						vector<vector<idx_t>> grouping_functions_p)
-	: CypherPhysicalOperator(sch), groups(move(groups_p)),
+	: CypherPhysicalOperator(PhysicalOperatorType::HASH_AGGREGATE, sch), groups(move(groups_p)),
       grouping_sets(move(grouping_sets_p)), grouping_functions(move(grouping_functions_p)), all_combinable(true),	
       any_distinct(false) {
 	// TODO no support for custom grouping sets and grouping functions

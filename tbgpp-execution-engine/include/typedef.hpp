@@ -70,6 +70,30 @@ enum class CypherValueType {
 class CypherSchema{
 
 public:
+
+	void setStoredTypes(std::vector<duckdb::LogicalType> types);
+	std::vector<duckdb::LogicalType> getStoredTypes();
+	void setStoredColumnNames(std::vector<std::string>& names);
+	std::vector<std::string> getStoredColumnNames();
+
+	std::string printStoredTypes();
+	std::string printStoredColumnAndTypes();
+	std::vector<duckdb::LogicalType> stored_types;
+	std::vector<std::string> stored_column_names;
+
+	////////////////////////////////
+	/* TODO DEPRECATE BELOW */
+	////////////////////////////////
+	////////////////////////////////
+	/* TODO DEPRECATE BELOW */
+	////////////////////////////////
+	////////////////////////////////
+	/* TODO DEPRECATE BELOW */
+	////////////////////////////////
+	////////////////////////////////
+	/* TODO DEPRECATE BELOW */
+	////////////////////////////////
+
 	// insert
 	void addNode(std::string name);
 	// node range type
@@ -94,25 +118,7 @@ public:
 	int getColIdxOfKey(std::string name) const;
 	std::vector<int> getColumnIndicesForResultSet() const;
 	std::string toString() const;
-
-	/* TODO S62 temporary!!!!!! - we do not track attribute info with CypherSchema from now*/
-	/* this is temporary DS to not change CypherPhysicalOperator interface */
-	//! TODO S62 this is a temporary to -> CypherSchema should be disabled by now
-	void setStoredTypes(std::vector<duckdb::LogicalType> types);
-	std::vector<duckdb::LogicalType> getStoredTypes();
-	void setStoredColumnNames(std::vector<std::string>& names);
-	std::vector<std::string> getStoredColumnNames();
-
-	std::string printStoredTypes();
-	std::string printStoredColumnAndTypes();
-	std::vector<duckdb::LogicalType> stored_types;
-	std::vector<std::string> stored_column_names;
-	/* TODO S62 temporary!!!!!! */
-	
 	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
 	std::map<std::string, CypherSchema> nestedAttrs;
-
-	
-
 };
 }

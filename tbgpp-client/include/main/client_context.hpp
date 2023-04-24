@@ -22,7 +22,7 @@
 //#include "transaction/transaction_context.hpp"
 //#include "main/pending_query_result.hpp"
 #include "common/atomic.hpp"
-//#include "main/client_config.hpp"
+#include "main/client_config.hpp"
 //#include "main/external_dependencies.hpp"
 
 #include "common/mutex.hpp"
@@ -79,7 +79,7 @@ public:
 	//! External Objects (e.g., Python objects) that views depend of
 	//unordered_map<string, vector<shared_ptr<ExternalDependency>>> external_dependencies;
 	//! The client configuration
-	//ClientConfig config;
+	ClientConfig config;
 
 	//! executor assigned for this class;
 	unique_ptr<Executor> executor;
@@ -87,9 +87,16 @@ public:
 	// Catalog SHM (is this place appropriate?)
 	fixed_managed_mapped_file *catalog_shm;
 
-	// Custom configuration
-	bool ENV_PROFILE;	// when profile, it uses boost::timer to measuer per-operator time
-	bool ENV_VERBOSE;	// when verbose, it prints out progress when operation is called
+	//! Query profiler
+	shared_ptr<QueryProfiler> profiler;
+
+private:
+	//! Lock on using the ClientContext in parallel
+	mutex context_lock;
+	//! The currently active query context
+	//unique_ptr<ActiveQueryContext> active_query;
+	//! The current query progress
+	//atomic<double> query_progress;
 
 public:
 	/*DUCKDB_API Transaction &ActiveTransaction() {
@@ -98,11 +105,26 @@ public:
 
 	//! Interrupt execution of a query
 	DUCKDB_API void Interrupt();
+	*/
+
+	unique_ptr<ClientContextLock> LockContext();
+
+	//! Returns the current executor
+	Executor &GetExecutor();
+
+	//! Returns the catalog shm
+	fixed_managed_mapped_file *GetCatalogSHM();
+
 	//! Enable query profiling
 	DUCKDB_API void EnableProfiling();
 	//! Disable query profiling
-	DUCKDB_API void DisableProfiling();*/
+	DUCKDB_API void DisableProfiling();
 
+	//! get id for new physical operator
+	idx_t GetNewPhyiscalOpId();
+
+
+	/*
 	//! Issue a query, returning a QueryResult. The QueryResult can be either a StreamQueryResult or a
 	//! MaterializedQueryResult. The StreamQueryResult will only be returned in the case of a successful SELECT
 	//! statement.
@@ -178,17 +200,12 @@ public:
 	// //! Whether or not the given result object (streaming query result or pending query result) is active
 	// DUCKDB_API bool IsActiveResult(ClientContextLock &lock, BaseQueryResult *result);
 
-	//! Returns the current executor
-	Executor &GetExecutor();
-
 	// //! Returns the current query string (if any)
 	// const string &GetCurrentQuery();
 
 	// //! Fetch a list of table names that are required for a given query
 	// DUCKDB_API unordered_set<string> GetTableNames(const string &query);
 
-	//! Returns the catalog shm
-	fixed_managed_mapped_file *GetCatalogSHM();
 
 private:
 	//! Parse statements and resolve pragmas from a query
@@ -235,7 +252,7 @@ private:
 	                                            bool allow_stream_result);
 	unique_ptr<DataChunk> FetchInternal(ClientContextLock &lock, Executor &executor, BaseQueryResult &result);
 	*/
-	unique_ptr<ClientContextLock> LockContext();
+	
 	/*
 	bool UpdateFunctionInfoFromEntry(ScalarFunctionCatalogEntry *existing_function, CreateScalarFunctionInfo *new_info);
 
@@ -254,13 +271,6 @@ private:
 	                                                            shared_ptr<PreparedStatementData> &prepared,
 	                                                            vector<Value> &values);*/
 
-private:
-	//! Lock on using the ClientContext in parallel
-	mutex context_lock;
-	//! The currently active query context
-	//unique_ptr<ActiveQueryContext> active_query;
-	//! The current query progress
-	//atomic<double> query_progress;
 };
 
 class ClientContextLock {

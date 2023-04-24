@@ -10,9 +10,9 @@ class PhysicalProduceResults: public CypherPhysicalOperator {
 
 public:
 	PhysicalProduceResults(CypherSchema& sch)
-		: CypherPhysicalOperator(sch) { }
+		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch) { }
 	PhysicalProduceResults(CypherSchema& sch, std::vector<uint8_t> projection_mapping)
-		: CypherPhysicalOperator(sch), projection_mapping(projection_mapping) { }
+		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch), projection_mapping(projection_mapping) { }
 	~PhysicalProduceResults() { }
 
 public:

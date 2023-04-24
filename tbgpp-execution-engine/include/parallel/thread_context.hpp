@@ -1,27 +1,25 @@
-// //===----------------------------------------------------------------------===//
-// //                         DuckDB
-// //
-// // duckdb/parallel/thread_context.hpp
-// //
-// //
-// //===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
+//                         DuckDB
+//
+// duckdb/parallel/thread_context.hpp
+//
+//
+//===----------------------------------------------------------------------===//
 
-// #pragma once
+#pragma once
 
-// // #include "main/query_profiler.hpp"
+#include "main/query_profiler.hpp"
 
-// namespace duckdb {
-// class ClientContext;
+namespace duckdb {
+class ClientContext;
 
-// //! The ThreadContext holds thread-local info for parallel usage
-// class ThreadContext {
-// public:
-// 	explicit ThreadContext(ClientContext &context) {
+//! The ThreadContext holds thread-local info for parallel usage
+class ThreadContext {
+public:
+	explicit ThreadContext(ClientContext &context);
 
-// 	}
+	//! The operator profiler for the individual thread context
+	OperatorProfiler profiler;
+};
 
-// 	//! The operator profiler for the individual thread context
-// 	// OperatorProfiler profiler;
-// };
-
-// } // namespace duckdb
+} // namespace duckdb

@@ -83,11 +83,13 @@ Catalog &Catalog::GetCatalog(DatabaseInstance &db) {
 DBConfig &DBConfig::GetConfig(DatabaseInstance &db) {
 	return db.config;
 }
+*/
 
 ClientConfig &ClientConfig::GetConfig(ClientContext &context) {
 	return context.config;
 }
 
+/*
 TransactionManager &TransactionManager::Get(ClientContext &context) {
 	return TransactionManager::Get(DatabaseInstance::GetDatabase(context));
 }

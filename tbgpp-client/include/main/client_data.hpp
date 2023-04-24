@@ -28,8 +28,11 @@ struct ClientData {
 	ClientData(ClientContext &context);
 	~ClientData();
 
+	//! Physical operator id counter, to assign new ids.
+	uint64_t physical_op_counter;	// id is initialized per operator context
+
 	//! Query profiler
-	//shared_ptr<QueryProfiler> profiler;
+	shared_ptr<QueryProfiler> profiler;
 	//! QueryProfiler History
 	//unique_ptr<QueryProfilerHistory> query_profiler_history;
 

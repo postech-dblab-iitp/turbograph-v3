@@ -14,7 +14,7 @@ class PhysicalProjection: public CypherPhysicalOperator {
 
 public:
 	PhysicalProjection(CypherSchema& sch, vector<unique_ptr<Expression>> expressions)
-		: CypherPhysicalOperator(sch), expressions(move(expressions)) { }
+		: CypherPhysicalOperator(PhysicalOperatorType::PROJECTION, sch), expressions(move(expressions)) { }
 	~PhysicalProjection() {}
 
 public:
