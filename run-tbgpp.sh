@@ -188,8 +188,8 @@ run_ldbc_c() {
 		LIMIT 20" 1
 
 	# LDBC IC3 Friends and friends of friends that have been to given countries
-	run_query "MATCH (countryX:Country {name: \"Angola\" }),
-		(countryY:Country {name: \"Colombia\" }),
+	run_query "MATCH (countryX:Country {name: 'Angola' }),
+		(countryY:Country {name: 'Colombia' }),
 		(person:Person {id: 6597069766734 })
 		WITH person, countryX, countryY
 		LIMIT 1
@@ -216,6 +216,12 @@ run_ldbc_c() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
+	run_query "MATCH (countryX:Country {name: 'Angola' }),
+		(countryY:Country {name: 'Colombia' }),
+		(person:Person {id: 4 })
+		WITH person, countryX, countryY
+		LIMIT 1
+		RETURN person.id, countryX.name, countryY.name" 1
 
 	# LDBC IC4 New topics
 	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
@@ -354,6 +360,20 @@ run_ldbc_c() {
 			likeCreationDate DESC,
 			toInteger(personId) ASC
 		LIMIT 20" 1
+	run_query "MATCH (person:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
+		WITH liker, message, like, person
+		ORDER BY like.creationDate DESC, message.id ASC
+		RETURN
+			liker.id AS personId,
+			liker.firstName AS personFirstName,
+			liker.lastName AS personLastName,
+			first(message.id) AS msg_id,
+			first(like.creationDate) AS likeCreationDate,
+			person._id AS person_id
+		ORDER BY
+			likeCreationDate DESC,
+			personId ASC
+		LIMIT 20" 0
 	
 	# LDBC IC8 Recent replies
 	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)

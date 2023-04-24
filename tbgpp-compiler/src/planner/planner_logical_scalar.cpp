@@ -17,10 +17,12 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 	if( expr != NULL ) { /* found */ return expr; }
 
 	auto expr_type = expression->expressionType;
-	if( isExpressionComparison(expr_type) ) {
+	if( isExpressionBoolConnection(expr_type) ) {
+		return lExprScalarBoolOp(expression, prev_plan);
+	} else if( isExpressionComparison(expr_type) ) {
 		return lExprScalarComparisonExpr(expression, prev_plan);
 	} else if( PROPERTY == expr_type) {
-		return lExprScalarPropertyExpr(expression, prev_plan);	// property access need to access previous plan
+		return lExprScalarPropertyExpr(expression, prev_plan);
 	} else if ( isExpressionLiteral(expr_type) ) {
 		return lExprScalarLiteralExpr(expression, prev_plan);
 	} else if ( isExpressionAggregate(expr_type) ) {			// must first check aggfunc over func
@@ -30,6 +32,44 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 	} else {
 		D_ASSERT(false);	// TODO Not yet
 	}
+}
+
+CExpression *Planner::lExprScalarBoolOp(Expression* expression, LogicalPlan* prev_plan) {
+
+	CMemoryPool* mp = this->memory_pool;
+	ScalarFunctionExpression* bool_expr = (ScalarFunctionExpression*) expression;
+	D_ASSERT( bool_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
+	auto children = bool_expr->getChildren();
+
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	vector<CExpression*> child_exprs;
+	vector<CExpression*> child_mdids;
+	for(int idx = 0; idx < children.size(); idx++) {
+		child_exprs.push_back(lExprScalarExpression(children[idx].get(), prev_plan));
+	}
+	D_ASSERT(child_exprs.size() == child_mdids.size());
+
+	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+	for(auto* child: child_exprs) {
+		pdrgpexprChildren->Append(child);
+	}
+
+	// PexprScalarBoolOp
+	CScalarBoolOp::EBoolOperator op_type;
+	switch(bool_expr->expressionType) {
+		case ExpressionType::NOT:
+			op_type = CScalarBoolOp::EBoolOperator::EboolopNot; break;
+		case ExpressionType::AND:
+			op_type = CScalarBoolOp::EBoolOperator::EboolopAnd; break;
+		case ExpressionType::OR:
+			op_type = CScalarBoolOp::EBoolOperator::EboolopOr; break;
+		default:
+			D_ASSERT(false);
+	}
+
+	return CUtils::PexprScalarBoolOp(mp, op_type, pdrgpexprChildren);
+
 }
 
 CExpression* Planner::lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan) {
@@ -210,11 +250,6 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 		OID type_oid = type_mdid->Oid();
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
 		child_colref = colref;
-	}
-	if(func_name == "count") {
-		// catalog requires ANY for count
-		child_types.clear();
-		child_types.push_back(duckdb::LogicalType::ANY);	// TODO this should be fixed
 	}
 	// refer expression_type.h for kuzu function names
 	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
