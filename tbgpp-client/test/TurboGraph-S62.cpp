@@ -136,8 +136,10 @@ vector<std::pair<string, string>> edge_files_backward;
 string workspace;
 string input_query_string;
 bool is_query_string_given = false;
+bool run_plan_wo_compile = false;
 
-s62::PlannerConfig planner_config;
+s62::PlannerConfig planner_config;		// passed to query planner
+bool enable_profile = false;			// passed to client context as config
 
 bool load_edge;
 bool load_backward_edge;
@@ -222,10 +224,12 @@ class InputParser{
 			planner_config.ORCA_DEBUG_PRINT = true;
 		} else if (std::strncmp(current_str.c_str(), "--explain", 9) == 0) {
 			planner_config.DEBUG_PRINT = true;
+		} else if (std::strncmp(current_str.c_str(), "--profile", 9) == 0) {
+			enable_profile = true;
 		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 17) == 0) {
 			planner_config.INDEX_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
-			planner_config.RUN_PLAN_WO_COMPILE = true;
+			run_plan_wo_compile = true;
 		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
 			std::string num_iter = std::string(*itr).substr(17);
 			planner_config.num_iterations = std::stoi(num_iter);
@@ -256,7 +260,6 @@ class InputParser{
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
 
-	
 	boost::timer::cpu_timer compile_timer;
 	compile_timer.start();
 
@@ -264,7 +267,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	COMPILATION
 */
 
-	if (!planner_config.RUN_PLAN_WO_COMPILE) {
+	if (!run_plan_wo_compile) {
 		auto inputStream = ANTLRInputStream(query_str);
 
 		// Lexer		
@@ -312,6 +315,11 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 			boost::timer::cpu_timer query_timer;
+			auto &profiler = QueryProfiler::Get(*client.get());
+			// start profiler
+			profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
+			// initialize profiler for tree root
+			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
 			query_timer.start();
 			int idx = 0;
 			for( auto exec : executors ) { 
@@ -327,15 +335,20 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			// end_timer
 			auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 			query_execution_times.push_back(query_exec_time_ms);
+			// end profiler
+			profiler.EndQuery();
 
 		/*
 			DUMP RESULT
 		*/
-			const auto BLUE = "\033[1;34m";
-			const auto CLEAR = "\033[0m";
-			const auto UNDERLINE = "\033[1;4m";
-			const auto GREEN = "\033[1;32m";
-
+			
+			if(enable_profile) {
+				// TODO need improvement
+				std::cout << "[Profile Info]" << std::endl;
+				for(const auto& mapping: profiler.GetTreeMap()) {
+					std::cout << "- " << std::setw(20) << mapping.second->name << std::setw(15) << mapping.second->info.time*1000.0 << std::setw(15) << mapping.second->info.elements << std::endl;
+				}
+			}
 
 			int LIMIT = 10;
 			size_t num_total_tuples = 0;
@@ -459,7 +472,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	}
 }
 
-
 int main(int argc, char** argv) {
 icecream::ic.disable();
 
@@ -501,14 +513,20 @@ icecream::ic.disable();
 	icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
-	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
+	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
+	if(enable_profile) {
+		client.get()->EnableProfiling();
+	} else {
+		client.get()->DisableProfiling();
+	}
+
 
 	// Run planner
 	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 	
 	// run queries by query name
 	std::string query_str;
-icecream::ic.disable();
+	icecream::ic.disable();
 	if (is_query_string_given) {
 		// try {
 		// 	// protected code

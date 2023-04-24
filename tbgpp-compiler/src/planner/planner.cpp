@@ -398,34 +398,45 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 
 	D_ASSERT(pipelines.size() > 0);
 
+	/* inject per-operator-dependencies and per-pipeline dependencies
+		- per-op: CypherPhysicalOperator::children
+		- per-pipeline: child_executors / dep_executors
+	*/
+
 	std::vector<duckdb::CypherPipelineExecutor*> executors;
 
-	for( auto& pipe: pipelines) {
+	for(auto& pipe: pipelines) {
 		// find children and deps - the child/dep ordering matters. 
 		// must run in ascending order of the vector
 		auto* new_ctxt = new duckdb::ExecutionContext(context);
 		vector<duckdb::CypherPipelineExecutor*> child_executors;									// child : pipe's sink == op's source
 		std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> dep_executors;	// dep   : pipe's sink == op's operator
 
-		// find children
+		// inject per-operator dependencies in a pipeline
+		for(duckdb::idx_t op_idx=1; op_idx < pipe->pipelineLength; op_idx++) {
+			pipe->GetIdxOperator(op_idx)->children.push_back(
+				pipe->GetIdxOperator(op_idx-1)
+			);
+		}
+
+		// find children pipeline
 		for( auto& ce: executors ) {
-			// connect source with previous sinks
+			// connect SOURCE with previous SINK
 			if ( pipe->GetSource() == ce->pipeline->GetSink() ) {
 				child_executors.push_back(ce);
 			}
 		}
-		// find deps
+		// find dependent pipeline
 		for( auto& ce: executors ) {
-			// connect source with previous sinks
+			// connect OPERATORS with previous SINK
 			for( int op_idx = 0; op_idx < pipe->GetOperators().size(); op_idx++) {
 				duckdb::CypherPhysicalOperator* op = pipe->GetOperators()[op_idx];
 				if ( op == ce->pipeline->GetSink() ) {
 					dep_executors.insert(std::make_pair(op,ce));
+					op->children.push_back(ce->pipeline->GetSink());
 				}
 			}
-			
 		}
-
 		duckdb::CypherPipelineExecutor *pipe_exec;
 		pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, move(child_executors), move(dep_executors));
 		executors.push_back(pipe_exec);

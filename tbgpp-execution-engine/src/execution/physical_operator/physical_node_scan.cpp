@@ -29,7 +29,7 @@ public:
 };
 
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
-		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping), 
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping), 
 		scan_types(sch.getStoredTypes()), scan_projection_mapping(projection_mapping), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
 		{ 
 			D_ASSERT(filter_pushdown_key_idx < 0);
@@ -38,7 +38,7 @@ PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector
 PhysicalNodeScan::PhysicalNodeScan(CypherSchema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 	std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
 	int64_t filterKeyIndex, duckdb::Value filterValue) :
-		CypherPhysicalOperator(sch), oids(oids), projection_mapping(projection_mapping),
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
 		scan_types(scan_types), scan_projection_mapping(scan_projection_mapping),
 		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
 		 { 
