@@ -1,4 +1,4 @@
-MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(:PARTSUPP)-[:COMPOSED_BY]->(part: PART)
 WHERE date(item.L_SHIPDATE) >= date('1995-09-01')
 	AND date(item.L_SHIPDATE) < date(date('1995-09-01') + duration('P1M'))
 RETURN
