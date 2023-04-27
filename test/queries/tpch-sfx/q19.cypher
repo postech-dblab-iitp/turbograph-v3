@@ -1,4 +1,4 @@
-MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(:PARTSUPP)-[:COMPOSED_BY]->(part: PART)
 WHERE (part.P_BRAND = 'Brand#12'
 		and part.P_CONTAINER in ['SM CASE', 'SM BOX', 'SM PACK', 'SM PKG']
 		and lineitem.L_QUANTITY >= 1 and lineitem.L_QUANTITY <= 1 + 10
