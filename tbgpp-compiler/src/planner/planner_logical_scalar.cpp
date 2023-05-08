@@ -38,17 +38,14 @@ CExpression *Planner::lExprScalarBoolOp(Expression* expression, LogicalPlan* pre
 
 	CMemoryPool* mp = this->memory_pool;
 	ScalarFunctionExpression* bool_expr = (ScalarFunctionExpression*) expression;
-	D_ASSERT( bool_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
 	auto children = bool_expr->getChildren();
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	vector<CExpression*> child_exprs;
-	vector<CExpression*> child_mdids;
 	for(int idx = 0; idx < children.size(); idx++) {
 		child_exprs.push_back(lExprScalarExpression(children[idx].get(), prev_plan));
 	}
-	D_ASSERT(child_exprs.size() == child_mdids.size());
 
 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
 	for(auto* child: child_exprs) {

@@ -52,7 +52,6 @@ def prepare_ldbc_queries(benchmark, SF):
 		for idx, line in enumerate(lines):
 			if line.startswith('//'):
 				del lines[idx]
-
 		# delete parameters
 		st, en = 0,0
 		for idx, line in enumerate(lines):
@@ -120,15 +119,15 @@ def prepare_normal_queries(benchmark):
 
 	prepared_queries = {}
 	for query_file in sorted(query_files):
+		passed_lines = []
 		with open(query_file, 'r') as q:
 			lines = q.readlines()
 		for idx, line in enumerate(lines):
-			if line.startswith('//'):
-				del lines[idx]
-			if line == '\n':
-				del lines[idx]
-
-		query_strs_whole = ''.join(lines).replace('\n', '')
+			if '//' in line or line == '\n':
+				continue
+			passed_lines.append(line)
+		
+		query_strs_whole = ''.join(passed_lines).replace('\n', '')
 		filename = os.path.split(query_file)[-1]
 		query_strs = query_strs_whole.split(';')
 		for idx, st in enumerate(query_strs):
