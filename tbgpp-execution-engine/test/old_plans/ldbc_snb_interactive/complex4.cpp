@@ -31,20 +31,20 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IC4() {
 CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 //IC();
 	// person
-	CypherSchema sch1; sch1.addNode("person");
+	Schema sch1; sch1.addNode("person");
 	duckdb::Value filter_val; // person key
 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(21990232559429); }	//demo samsung
 	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 	// p-K->friend
-	CypherSchema sch2 = sch1; sch2.addNode("friend");
+	Schema sch2 = sch1; sch2.addNode("friend");
 	//friend<-HC-post:Post
-	CypherSchema sch3 = sch2; sch3.addNode("post");
+	Schema sch3 = sch2; sch3.addNode("post");
 	// post-HT->tag
-	CypherSchema sch4 = sch3; sch4.addNode("tag");
+	Schema sch4 = sch3; sch4.addNode("tag");
 
 	// project post tag (_p _f _p _t)
-	CypherSchema sch5;
+	Schema sch5;
 	sch5.addNode("post");
 	sch5.addNode("tag");
 	vector<unique_ptr<Expression>> proj_exprs;
@@ -82,7 +82,7 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 }
 CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 	// attach post.creationdate ( in: _p _t )
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("post");
 	sch1.addNode("tag");
 	sch1.addPropertyIntoNode("post", "creationDate", LogicalType::BIGINT);
@@ -90,7 +90,7 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	post_keys.push_back("creationDate");
 
 	// projection (_p p.cd _t)
-	CypherSchema sch2;
+	Schema sch2;
 	sch2.addNode("tag");
 	sch2.addColumn("valid", LogicalType::BIGINT);
 	sch2.addColumn("invalid", LogicalType::BIGINT);
@@ -123,7 +123,7 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	}
 
 	// aggregation - gp tag, sum(valid),  // in( _t, valid, invalid)
-	CypherSchema sch3;
+	Schema sch3;
 	sch3.addNode("tag");
 	sch3.addColumn("postCount", LogicalType::HUGEINT);
 	sch3.addColumn("invalidPostCount", LogicalType::HUGEINT);
@@ -158,7 +158,7 @@ CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 	// filter
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("tag");
 	sch1.addColumn("postCount", LogicalType::HUGEINT);
 	sch1.addColumn("invalidPostCount", LogicalType::HUGEINT);
@@ -185,13 +185,13 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 	D_ASSERT(predicates.size() == 2);
 
 	// attach tag name
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addPropertyIntoNode("tag", "name", LogicalType::VARCHAR);
 	PropertyKeys tag_keys;
 	tag_keys.push_back("name");
 
 	// projection (_tag, tag.name, pc, ipc) => (tagname, pc) // 1, 2
-	CypherSchema sch3;
+	Schema sch3;
 	sch3.addColumn("tagName", LogicalType::VARCHAR);
 	sch3.addColumn("postCount", LogicalType::HUGEINT);
 	vector<unique_ptr<Expression>> proj_exprs;
@@ -232,7 +232,7 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 CypherPipelineExecutor* ic4_pipe4(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
-	CypherSchema sch3;
+	Schema sch3;
 	sch3.addColumn("tagName", LogicalType::VARCHAR);
 	sch3.addColumn("postCount", LogicalType::HUGEINT);
 

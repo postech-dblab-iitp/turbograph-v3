@@ -16,7 +16,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::COCO_Q3D() {
 
 CypherPipelineExecutor* coco3d_pipe1(QueryPlanSuite& suite) {
 
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("images");
 	sch1.addPropertyIntoNode("images", "id", LogicalType::BIGINT);
 	sch1.addPropertyIntoNode("images", "license", LogicalType::BIGINT);

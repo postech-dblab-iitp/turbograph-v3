@@ -13,7 +13,7 @@ class PhysicalTopNSort: public CypherPhysicalOperator {
 public:
 	//! Represents a physical ordering of the data. Note that this will not change
 	//! the data but only add a selection vector.
-	PhysicalTopNSort(CypherSchema& sch, vector<BoundOrderByNode> orders, idx_t limit, idx_t offset);
+	PhysicalTopNSort(Schema& sch, vector<BoundOrderByNode> orders, idx_t limit, idx_t offset);
 	~PhysicalTopNSort();
 
 public:

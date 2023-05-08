@@ -25,10 +25,10 @@ class BufferManager;
 //! a hash table to perform the grouping
 class PhysicalHashAggregate : public CypherPhysicalOperator {
 public:
-	PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions);
-	PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions,
+	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions);
+	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
 	                      vector<unique_ptr<Expression>> groups);
-	PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions,
+	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
 	                      vector<unique_ptr<Expression>> groups,
 						  vector<GroupingSet> grouping_sets,
 	                      vector<vector<idx_t>> grouping_functions);

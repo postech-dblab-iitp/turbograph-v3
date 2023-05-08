@@ -5,7 +5,7 @@ namespace duckdb {
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 
 	// scan schema
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "birthday", duckdb::LogicalType::BIGINT);
 	schema.addPropertyIntoNode("n", "firstName", duckdb::LogicalType::VARCHAR);
@@ -34,11 +34,11 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 	// Expand
-	CypherSchema expandschema = schema;
+	Schema expandschema = schema;
 	expandschema.addNode("p");
 	
 	// FetchId
-	CypherSchema schema3 = expandschema;
+	Schema schema3 = expandschema;
 	schema3.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT );
 	PropertyKeys seek_propertyKeys;
 	seek_propertyKeys.push_back("id");
@@ -47,7 +47,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	// _ b f l g b l c _ i
 
 	// Project
-	CypherSchema project_schema;
+	Schema project_schema;
 	project_schema.addColumn("firstName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("lastName", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("birthday", duckdb::LogicalType::BIGINT);

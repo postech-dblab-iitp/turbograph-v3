@@ -9,11 +9,11 @@ namespace duckdb {
 class PhysicalTop: public CypherPhysicalOperator {
 
 public:
-	PhysicalTop(CypherSchema& sch, idx_t limit, idx_t offset)
+	PhysicalTop(Schema& sch, idx_t limit, idx_t offset)
 		: CypherPhysicalOperator(PhysicalOperatorType::TOP, sch), limit(limit), offset(offset)  {
 			D_ASSERT(offset == 0 );
 	}
-	PhysicalTop(CypherSchema& sch, idx_t limit)
+	PhysicalTop(Schema& sch, idx_t limit)
 		: CypherPhysicalOperator(PhysicalOperatorType::TOP, sch), limit(limit), offset(0) {}
 
 public:

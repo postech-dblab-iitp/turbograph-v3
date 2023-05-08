@@ -14,7 +14,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test6() {
 
 // pipe 1
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);

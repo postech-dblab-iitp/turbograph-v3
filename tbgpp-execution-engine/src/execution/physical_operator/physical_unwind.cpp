@@ -6,7 +6,7 @@
 
 namespace duckdb {
 
-PhysicalUnwind::PhysicalUnwind(CypherSchema& sch, idx_t col_idx):
+PhysicalUnwind::PhysicalUnwind(Schema& sch, idx_t col_idx):
 	CypherPhysicalOperator(PhysicalOperatorType::UNWIND, sch), col_idx(col_idx) { }
 
 PhysicalUnwind::~PhysicalUnwind() {}

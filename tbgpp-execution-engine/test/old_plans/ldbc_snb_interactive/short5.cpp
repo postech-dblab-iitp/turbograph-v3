@@ -16,7 +16,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS5() {
 CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 
 // scan message
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("m");
 	unique_ptr<Expression> filter_expr1;
 	// Filter
@@ -26,11 +26,11 @@ CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 
 // expand
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("p");
 
 // fetch (in : _m, _p)
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("p", "id", LogicalType::UBIGINT);
 	sch3.addPropertyIntoNode("p", "firstName", LogicalType::VARCHAR);
 	sch3.addPropertyIntoNode("p", "lastName", LogicalType::VARCHAR);
@@ -40,7 +40,7 @@ CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 	p_keys.push_back("lastName");
 
 // project (in: _m, _p, p.id, p.fn, p.ln)
-	CypherSchema sch5;
+	Schema sch5;
 	sch5.addColumn("personId", LogicalType::UBIGINT);
 	sch5.addColumn("firstName", LogicalType::VARCHAR);
 	sch5.addColumn("lastName", LogicalType::VARCHAR);

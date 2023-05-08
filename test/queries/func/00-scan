@@ -1,0 +1,9 @@
+MATCH (n:Person) RETURN n LIMIT 10;
+MATCH (m:Tag) RETURN m LIMIT 10;
+MATCH (n:Person) RETURN n.id LIMIT 10;
+MATCH (n:Person) RETURN n._id LIMIT 10;
+MATCH (n:Person) RETURN n.lastName, n.firstName LIMIT 10;
+MATCH (n:Person) WITH n.firstName AS fn RETURN fn LIMIT 10;
+// complex with statements
+MATCH (n:Person) WITH n AS x WITH x.id as y RETURN y LIMIT 10;
+MATCH (n:Person) WITH n AS x WITH x.id as y WITH y AS z RETURN z LIMIT 10;

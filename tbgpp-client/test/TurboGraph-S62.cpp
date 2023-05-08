@@ -633,8 +633,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		(*content)["Actual Loops"] = 1; // meaningless
 	}
 	// output shcma
-	(*content)["Output Schema"] = op->schema.toString();
-
+	
 	// add child when operator is 
 	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
 		(*content)["Plans"] = json::array( { json({}), json({})} );

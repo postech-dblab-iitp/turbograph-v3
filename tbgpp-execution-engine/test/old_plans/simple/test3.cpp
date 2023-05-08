@@ -7,7 +7,7 @@ namespace duckdb {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
@@ -26,7 +26,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 	
 	// projection
-	CypherSchema pj_schema;
+	Schema pj_schema;
 	pj_schema.addNode("n");
 	pj_schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
 	pj_schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);

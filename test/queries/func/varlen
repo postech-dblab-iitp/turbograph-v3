@@ -1,6 +1,0 @@
-MATCH (a:Person)-[r:KNOWS*2]->(b:Person) RETURN a,r,b;
-MATCH (a:Person)-[r:KNOWS*1..3]->(b:Person) RETURN a,r,b;
-MATCH (a:Person)-[r:KNOWS*1..2]->(b:Person) RETURN a.firstName, b.firstName;
-MATCH (a:Person)-[r:KNOWS*0..8]->(b:Person) RETURN a.firstName, b.firstName;
-// infinite hop
-MATCH (a:Person)-[r:KNOWS*]->(b:Person) RETURN a,r,b;

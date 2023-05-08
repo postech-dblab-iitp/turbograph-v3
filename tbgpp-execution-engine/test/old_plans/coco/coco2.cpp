@@ -16,7 +16,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::COCO_Q2() {
 
 CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 
-	CypherSchema sch1;
+	Schema sch1;
 	// images property
 	sch1.addNode("images");
 	sch1.addPropertyIntoNode("images", "id", LogicalType::BIGINT);
@@ -29,11 +29,11 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	sch1.addPropertyIntoNode("images", "flickr_url", LogicalType::VARCHAR);
 	PropertyKeys image_keys = PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flickr_url"});
 
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("annotations");
 	
 	// annotations property
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("annotations", "id", LogicalType::BIGINT);
 	sch3.addPropertyIntoNode("annotations", "segmentation", LogicalType::LIST(LogicalType::DOUBLE));
 	sch3.addPropertyIntoNode("annotations", "area", LogicalType::DOUBLE);
@@ -44,19 +44,19 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	PropertyKeys annotation_keys = PropertyKeys({"id", "segmentation", "area", "iscrowd", "image_id", "bbox", "category_id"});
 	// PropertyKeys annotation_keys = PropertyKeys({"id", "area", "iscrowd", "image_id", "category_id"});
 
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	sch4.addNode("categories");
 
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addPropertyIntoNode("categories", "id", LogicalType::BIGINT);
 	sch5.addPropertyIntoNode("categories", "name", LogicalType::VARCHAR);
 	sch5.addPropertyIntoNode("categories", "supercategory", LogicalType::VARCHAR);
 	PropertyKeys category_keys = PropertyKeys({"id", "name", "supercategory"});
 
-	CypherSchema sch6 = sch5;
+	Schema sch6 = sch5;
 	sch6.addNode("licenses");
 
-	CypherSchema sch7 = sch6;
+	Schema sch7 = sch6;
 	sch7.addPropertyIntoNode("licenses", "id", LogicalType::BIGINT);
 	sch7.addPropertyIntoNode("licenses", "name", LogicalType::VARCHAR);
 	sch7.addPropertyIntoNode("licenses", "url", LogicalType::VARCHAR);

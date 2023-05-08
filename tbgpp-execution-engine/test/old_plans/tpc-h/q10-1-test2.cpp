@@ -25,7 +25,7 @@ icecream::ic.disable();
 CypherPipelineExecutor* q10_1_test2_pipe1(QueryPlanSuite& suite) {
 
 	// scan ORDERS;
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("o");
 	sch1.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
 	PropertyKeys o_keys({"O_ORDERDATE"});
@@ -47,11 +47,11 @@ CypherPipelineExecutor* q10_1_test2_pipe1(QueryPlanSuite& suite) {
 	}
 
 	// join o->l (_o, o.od, _l)
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("l");
 
 	// fetch l (_o, o.od, _l, l.rf, l.ep, l.d)
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
 	sch3.addPropertyIntoNode("l", "L_EXTENDEDPRICE", LogicalType::DECIMAL(12, 2));
 	sch3.addPropertyIntoNode("l", "L_DISCOUNT", LogicalType::DECIMAL(12, 2));
@@ -59,7 +59,7 @@ CypherPipelineExecutor* q10_1_test2_pipe1(QueryPlanSuite& suite) {
 
 // FIXME further pushdown (later)
 	// filter_expr (_o, o.od, _l, l.rf, l.ep, l.d)
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	vector<unique_ptr<Expression>> filter_exprs;
 	{
 		unique_ptr<Expression> filter_expr1;
@@ -71,22 +71,22 @@ CypherPipelineExecutor* q10_1_test2_pipe1(QueryPlanSuite& suite) {
 	}
 	
 	// join o->c (_l, l.rf, l.ep, l.d, _o, o.od)
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addNode("c");
 
 	// fetch c (_o, o.od, _l, l.rf, l.ep, l.d, _c)
-	CypherSchema sch6 = sch5;
+	Schema sch6 = sch5;
 
 	// join c->n (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt)
-	CypherSchema sch7 = sch6;
+	Schema sch7 = sch6;
 	sch7.addNode("n");
 
 	// fetch n (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n)
-	CypherSchema sch8 = sch7;
+	Schema sch8 = sch7;
 	sch8.addPropertyIntoNode("n", "N_NAME", LogicalType::VARCHAR);
 
 	// projection (_o, o.od, _l, l.rf, l.ep, l.d, _c, c.name, c.ab, c.addr, c.pho, c.cmt, _n, n.name)
-	CypherSchema sch9;
+	Schema sch9;
 	sch9.addNode("c");
 	sch9.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch9.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));
@@ -131,7 +131,7 @@ IC();
 	}
 IC();
 	// groupby ( 8 cols including revenue )
-	CypherSchema sch10;
+	Schema sch10;
 	sch10.addNode("c");
 	sch10.addColumn("C_NAME", LogicalType::VARCHAR);
 	sch10.addColumn("C_ACCTBAL", LogicalType::DECIMAL(12,2));

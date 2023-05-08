@@ -34,19 +34,19 @@
 // CypherPipelineExecutor* q13_pipe1(QueryPlanSuite& suite) {
 	
 // 	// scan c
-// 	CypherSchema sch1;
+// 	Schema sch1;
 // 	sch1.addNode("c");
 
 // 	// optional match (_c, _o)
-// 	CypherSchema sch2 = sch1;
+// 	Schema sch2 = sch1;
 // 	sch2.addNode("o");
 
 // 	// fetch o_comment (_c, _o, o.c) 
-// 	CypherSchema sch3 = sch2;
+// 	Schema sch3 = sch2;
 // 	sch3.addPropertyIntoNode("o", "O_COMMENT");
 
 // 	// aggregate 
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addNode("c");
 // 	sch4.addColumn("c_count", LogicalType::BIGINT);
 // 	vector<unique_ptr<Expression>> agg_exprs;
@@ -77,7 +77,7 @@
 // CypherPipelineExecutor* q13_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe ) {
 
 // 	// aggregate2 (c_id, c_count) -> (c_count, count(cid))
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("c_count", LogicalType::BIGINT);
 // 	sch4.addColumn("custdist", LogicalType::BIGINT );
 
@@ -113,7 +113,7 @@
 // CypherPipelineExecutor* q13_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // 	// orderby (c_count, custdist)
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("c_count", LogicalType::BIGINT);
 // 	sch4.addColumn("custdist", LogicalType::BIGINT );
 
@@ -146,7 +146,7 @@
 // CypherPipelineExecutor* q13_pipe4(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // 	// produce!
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("c_count", LogicalType::INTEGER);
 // 	sch4.addColumn("custdist", LogicalType::INTEGER );
 	

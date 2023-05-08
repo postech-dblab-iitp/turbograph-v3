@@ -16,13 +16,13 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::COCO_Q3C() {
 
 CypherPipelineExecutor* coco3c_pipe1(QueryPlanSuite& suite) {
 
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("categories");
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("annotations");
-	CypherSchema sch3 = sch2;	// _c _a _i
+	Schema sch3 = sch2;	// _c _a _i
 	sch3.addNode("images");
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	sch4.addPropertyIntoNode("images", "id", LogicalType::BIGINT);
 	sch4.addPropertyIntoNode("images", "license", LogicalType::BIGINT);
 	sch4.addPropertyIntoNode("images", "file_name", LogicalType::VARCHAR);

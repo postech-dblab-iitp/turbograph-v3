@@ -19,7 +19,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IC8() {
 CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 
 	// scan person
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("start");
 	duckdb::Value filter_val; // person key
 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(24189255818757); }	// demo
@@ -27,19 +27,19 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 	// start <- m
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("m");
 
 	// m<-comment
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addNode("comment");
 
 	// comment->person
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	sch4.addNode("person");
 
 	// attach person (_start, _m, _comment, _person)
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addPropertyIntoNode("person", "id", LogicalType::UBIGINT);
 	sch5.addPropertyIntoNode("person", "firstName", LogicalType::VARCHAR);
 	sch5.addPropertyIntoNode("person", "lastName", LogicalType::VARCHAR);
@@ -49,7 +49,7 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 	person_keys.push_back("lastName");
 
 	// attach comment (_start, _m, _comment, _person, person.id, person.firstname, person.lastname)
-	CypherSchema sch6 = sch5;
+	Schema sch6 = sch5;
 	sch6.addPropertyIntoNode("comment", "creationDate", LogicalType::BIGINT);
 	sch6.addPropertyIntoNode("comment", "id", LogicalType::UBIGINT);
 	sch6.addPropertyIntoNode("comment", "content", LogicalType::VARCHAR);
@@ -59,7 +59,7 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 	comment_keys.push_back("content");
 
 	// projection (_s, _m, _c, c.cd, c.id, c.con, _p, p.id, p.fn, p.ln)
-	CypherSchema sch7;
+	Schema sch7;
 	sch7.addColumn("personId", LogicalType::UBIGINT);
 	sch7.addColumn("personfirstName", LogicalType::VARCHAR);
 	sch7.addColumn("personlastName", LogicalType::VARCHAR);
@@ -105,7 +105,7 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 
 CypherPipelineExecutor* ic8_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
-	CypherSchema sch7;
+	Schema sch7;
 	sch7.addColumn("personId", LogicalType::UBIGINT);
 	sch7.addColumn("personfirstName", LogicalType::VARCHAR);
 	sch7.addColumn("personlastName", LogicalType::VARCHAR);

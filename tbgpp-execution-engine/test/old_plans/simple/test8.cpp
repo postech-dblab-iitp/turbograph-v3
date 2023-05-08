@@ -19,7 +19,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test8() {
 
 // pipe 1
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
@@ -35,7 +35,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test8() {
 	unique_ptr<Expression> aggr_expr;
 	
 	// define agg op
-	CypherSchema agg_schema;
+	Schema agg_schema;
 	agg_schema.addColumn("count", LogicalType::BIGINT);
 	vector<unique_ptr<Expression>> agg_exprs;
 	vector<unique_ptr<Expression>> agg_expr_1_child;

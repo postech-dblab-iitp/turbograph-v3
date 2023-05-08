@@ -22,7 +22,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test9() {
 
 // pipe 1
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
@@ -37,7 +37,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test9() {
 	// sort params
 	unique_ptr<Expression> aggr_expr;
 	// define agg op
-	CypherSchema agg_schema;
+	Schema agg_schema;
 	agg_schema.addColumn("name", LogicalType::VARCHAR);
 	agg_schema.addColumn("list", LogicalType::LIST(LogicalType::UBIGINT) );
 			IC( ListType::GetChildType(agg_schema.getTypes()[1]).ToString() );

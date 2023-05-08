@@ -18,7 +18,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS2() {
 CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 // scan person
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("UNNAMED1");
 
 // FIXME
@@ -28,11 +28,11 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 // expand
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("message");
 
 // fetch properties
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("message", "id", LogicalType::UBIGINT);
 	sch3.addPropertyIntoNode("message", "creationDate", LogicalType::BIGINT);
 	sch3.addPropertyIntoNode("message", "content", duckdb::LogicalType::VARCHAR);
@@ -42,7 +42,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	exp_pkeys.push_back("content");
 
 // project
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addNode("message");
 	sch4.addColumn("messageId", LogicalType::UBIGINT);
 	sch4.addColumn("messageCreationDate", LogicalType::BIGINT);
@@ -88,7 +88,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 // get source
 
 // varlenexpand
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("message");
 	sch1.addColumn("messageId", LogicalType::UBIGINT);
 	sch1.addColumn("messageCreationDate", LogicalType::BIGINT);
@@ -96,17 +96,17 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	sch1.addNode("post");
 
 // expand
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("person");
 
 // nodeidseek (in : _m, mid, mcd, mc, _post, _per)
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("post", "id", LogicalType::UBIGINT);
 	PropertyKeys seek1_prop;
 	seek1_prop.push_back("id");
 
 // nodeidseek (in : _m, mid, mcd, mc, _post, post.id, _per )
-	CypherSchema sch3_1 = sch3;
+	Schema sch3_1 = sch3;
 	sch3_1.addPropertyIntoNode("person", "id", LogicalType::UBIGINT);
 	sch3_1.addPropertyIntoNode("person", "firstName", LogicalType::VARCHAR);
 	sch3_1.addPropertyIntoNode("person", "lastName", LogicalType::VARCHAR);
@@ -116,7 +116,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	seek2_prop.push_back("lastName");
 	
 // project (in ; _m., mid, mcd, mc, _post, post.id, _per, per.id, per.fn, per.ln )
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addColumn("messageId", LogicalType::UBIGINT);
 	sch4.addColumn("messageContent", LogicalType::VARCHAR);
 	sch4.addColumn("messageCreationDate", LogicalType::BIGINT);

@@ -20,7 +20,7 @@ class CypherPhysicalOperator {
 public:
 
 
-	CypherPhysicalOperator(PhysicalOperatorType type, CypherSchema& sch):
+	CypherPhysicalOperator(PhysicalOperatorType type, Schema& sch):
 		type(type), schema(sch), types(schema.getStoredTypes()), processed_tuples(0) {	
 		timer_started = false;
 	}
@@ -51,7 +51,7 @@ public:
 
 	// operator metadata
 	const PhysicalOperatorType type;
-	mutable CypherSchema schema;				// TODO remove mutable
+	mutable Schema schema;				// TODO remove mutable
 	mutable vector<LogicalType> types;			// schema(types) of operator output chunk
 	vector<CypherPhysicalOperator*> children;	// child operators
 

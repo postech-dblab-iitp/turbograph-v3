@@ -22,14 +22,14 @@
 
 namespace duckdb {
 
-PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions)
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions)
 	: PhysicalHashAggregate(sch, move(expressions), {}) {
 }
-PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions,
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
 						vector<unique_ptr<Expression>> groups_p)
 	: PhysicalHashAggregate(sch, move(expressions), move(groups_p), {}, {}) {
 }
-PhysicalHashAggregate::PhysicalHashAggregate(CypherSchema& sch, vector<unique_ptr<Expression>> expressions,
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
 						vector<unique_ptr<Expression>> groups_p,
 						vector<GroupingSet> grouping_sets_p,
 						vector<vector<idx_t>> grouping_functions_p)

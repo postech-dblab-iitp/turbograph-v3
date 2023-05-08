@@ -5,7 +5,7 @@ namespace duckdb {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("n");
 	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
 	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
@@ -18,7 +18,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 	scan_propertyKeys.push_back("id");
 
 	// seek ; add url column
-	CypherSchema seekSchema = schema;
+	Schema seekSchema = schema;
 	seekSchema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR );
 	PropertyKeys seek_propertyKeys;
 	seek_propertyKeys.push_back("url");

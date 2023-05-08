@@ -5,7 +5,7 @@ namespace duckdb {
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 
 	// scan message
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("m");
 
 	// Filter
@@ -15,19 +15,19 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 
 	// m -> p
-	CypherSchema sch2;
+	Schema sch2;
 	sch2.addNode("p");
 
 	// p <- f
-	CypherSchema sch3;
+	Schema sch3;
 	sch3.addNode("f");
 
 	// f -> mod
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addNode("mod");
 	
 	// Fetch f (_m _p _f _mod)
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addPropertyIntoNode("f", "id", duckdb::LogicalType::UBIGINT );
 	sch5.addPropertyIntoNode("f", "title", duckdb::LogicalType::VARCHAR );
 	PropertyKeys f_keys;
@@ -35,7 +35,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	f_keys.push_back("title");
 
 	// fetch mod (_m _p _f f.id f.title _mod)
-	CypherSchema sch6 = sch5;
+	Schema sch6 = sch5;
 	sch6.addPropertyIntoNode("mod", "id", duckdb::LogicalType::UBIGINT );
 	sch6.addPropertyIntoNode("mod", "firstName", duckdb::LogicalType::VARCHAR );
 	sch6.addPropertyIntoNode("mod", "lastName", duckdb::LogicalType::VARCHAR );
@@ -47,7 +47,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	// Project (_m _p _f f.id f.title _mod mod.id mod.fn mod.ln)
 
 		// out : 
-	CypherSchema project_schema;
+	Schema project_schema;
 	project_schema.addColumn("forumId", duckdb::LogicalType::UBIGINT);
 	project_schema.addColumn("forumTitle", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("moderatorId", duckdb::LogicalType::UBIGINT);

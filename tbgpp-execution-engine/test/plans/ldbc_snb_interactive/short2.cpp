@@ -19,7 +19,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 	// p._id, p.id
 	// scan person
-	CypherSchema schema1;
+	Schema schema1;
 	vector<LogicalType> tmp_schema1 {LogicalType::ID, LogicalType::UBIGINT};
 	schema1.setStoredTypes(move(tmp_schema1));
 
@@ -37,7 +37,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 // expand (person <- message)
 	// p._id, p.id, m._id
-	CypherSchema schema2;
+	Schema schema2;
 	vector<LogicalType> tmp_schema2 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema2.setStoredTypes(move(tmp_schema2));
 
@@ -46,7 +46,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 
 // fetch message properties
 	// p._id, p.id, m._id, m._id, m.id, m.creationDate, m.content
-	CypherSchema schema3;
+	Schema schema3;
 	vector<LogicalType> tmp_schema3 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR};
 	schema3.setStoredTypes(move(tmp_schema3));
 	vector<idx_t> oids3 = {333};
@@ -58,7 +58,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	// projection
 	// p._id, p.id, m._id, m._id, m.id, m.creationDate, m.content
 	// -> m._id, m.id, m.creationDate, m.content
-	CypherSchema schema4;
+	Schema schema4;
 	vector<LogicalType> tmp_schema4 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR};
 	schema4.setStoredTypes(move(tmp_schema4));
 	vector<unique_ptr<Expression>> proj_exprs;
@@ -101,7 +101,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 // get source
 
 // varlenexpand (comment - [:REPLY_OF*0..] -> comment)
-	CypherSchema schema1;
+	Schema schema1;
 	vector<LogicalType> tmp_schema1 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT};
 	schema1.setStoredTypes(move(tmp_schema1));
 
@@ -109,7 +109,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	vector<uint32_t> outer_col_map1 = {0, 1, 2, 3};
 
 // expand (comment -> post)
-	CypherSchema schema2;
+	Schema schema2;
 	vector<LogicalType> tmp_schema2 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema2.setStoredTypes(move(tmp_schema2));
 
@@ -117,7 +117,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	vector<uint32_t> outer_col_map2 = {0, 1, 2, 3, 4};
 
 // expand (post -> person)
-	CypherSchema schema3;
+	Schema schema3;
 	vector<LogicalType> tmp_schema3 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema3.setStoredTypes(move(tmp_schema3));
 
@@ -125,7 +125,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	vector<uint32_t> outer_col_map3 = {0, 1, 2, 3, 4, 5};
 
 // fetch post
-	CypherSchema schema4;
+	Schema schema4;
 	vector<LogicalType> tmp_schema4 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT};
 	schema4.setStoredTypes(move(tmp_schema4));
 	vector<idx_t> oids4 = {367};
@@ -135,7 +135,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	vector<uint32_t> outer_col_map4 = {0, 1, 2, 3, 4, 5, 6};
 
 // fetch person
-	CypherSchema schema5;
+	Schema schema5;
 	vector<LogicalType> tmp_schema5 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::VARCHAR};
 	schema5.setStoredTypes(move(tmp_schema5));
 	vector<idx_t> oids5 = {305};
@@ -146,7 +146,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 	
 // project (m._id, m.id, m.creationDate, m.content, c._id, post._id, p._id, post._id, post.id, p._id, p.id, p.firstName, p.lastName)
 //      -> (m.id, m.content, m.creationDate, post.id, p.id, p.firstName, p.lastName)
-	CypherSchema schema6;
+	Schema schema6;
 	vector<LogicalType> tmp_schema6 {LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::VARCHAR};
 	schema6.setStoredTypes(tmp_schema6);
 
@@ -161,7 +161,7 @@ CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 		proj_exprs.push_back( move(make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 12)) );	// ln
 	}
 
-// CypherSchema schema4;
+// Schema schema4;
 // 	vector<LogicalType> tmp_schema4 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::VARCHAR};
 // 	schema4.setStoredTypes(move(tmp_schema4));
 
