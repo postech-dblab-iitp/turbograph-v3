@@ -109,11 +109,35 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
+
+    bool isComparsionOnTwoNodeOrEdges = false;
+    if( (expressionType == ExpressionType::EQUALS || expressionType == ExpressionType::NOT_EQUALS) 
+        && (children.size() == 2)
+        && (
+            (children[0].get()->dataType.typeID == NODE && children[1].get()->dataType.typeID == NODE)
+            || (children[0].get()->dataType.typeID == REL && children[1].get()->dataType.typeID == REL)
+        )
+    ) {
+        isComparsionOnTwoNodeOrEdges = true;
+        // change childrenTypes
+        auto child = bindInternalIDExpression(*children[0]);
+        childrenTypes.clear();
+        childrenTypes.push_back(child->dataType);
+        childrenTypes.push_back(child->dataType);
+    }
+
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
-        childrenAfterCast.push_back(
-            implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+        if(isComparsionOnTwoNodeOrEdges) {
+            // rewrite x = y on node or rel as comp on their internal IDs.
+            auto child = bindInternalIDExpression(*children[i]);
+            childrenAfterCast.push_back(
+                implicitCastIfNecessary(child, function->parameterTypeIDs[i]));
+        } else {
+            childrenAfterCast.push_back(
+                implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+        }
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);

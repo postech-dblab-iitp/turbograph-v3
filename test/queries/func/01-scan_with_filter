@@ -1,3 +1,7 @@
 MATCH (n:Person) WHERE n.firstName='Marc' RETURN n.firstName LIMIT 10;
 MATCH (n:Person) WHERE n.firstName='Marc' RETURN n.firstName, n.lastName LIMIT 10;
 MATCH (n:Person {id: 1099511628400}) RETURN n LIMIT 10;
+// comparison
+// MATCH (n:Person) RETURN NOT n.id=n.id ; -- double free problem ???
+MATCH (n:Person), (m:Person) WHERE n=m RETURN n, m LIMIT 10;
+MATCH (n:Person), (m:Person) WHERE NOT n = m RETURN n,m LIMIT 10;
