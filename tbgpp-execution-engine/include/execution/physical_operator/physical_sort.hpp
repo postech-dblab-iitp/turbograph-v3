@@ -15,7 +15,7 @@ class PhysicalSort: public CypherPhysicalOperator {
 
 public:
 
-	PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> orders);
+	PhysicalSort(Schema& sch, vector<BoundOrderByNode> orders);
 	~PhysicalSort();
 
 public:

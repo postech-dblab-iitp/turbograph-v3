@@ -22,7 +22,7 @@
 // CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 
 // 	// scan LINEITEM;
-// 	CypherSchema sch1;
+// 	Schema sch1;
 // 	sch1.addNode("l");
 // 	sch1.addPropertyIntoNode("l", "L_COMMITDATE", LogicalType::DATE);
 // 	sch1.addPropertyIntoNode("l", "L_RECEIPTDATE", LogicalType::DATE);
@@ -37,11 +37,11 @@
 // 		filter_exprs.push_back(move(filter_expr1));
 // 	}
 // 	// expand (_l, l.lc, l.lr)
-// 	CypherSchema sch2 = sch1;
+// 	Schema sch2 = sch1;
 // 	sch2.addNode("o");
 
 // 	// seek (_l, l.lc, l.lr, _o)
-// 	CypherSchema sch3 = sch2;
+// 	Schema sch3 = sch2;
 // 	sch3.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
 // 	sch3.addPropertyIntoNode("o", "O_ORDERPRIORITY", LogicalType::VARCHAR);
 // 	PropertyKeys o_keys({"O_ORDERDATE", "O_ORDERPRIORITY"});
@@ -64,7 +64,7 @@
 // 	}
 
 // 	// aggregate (_l, l.lc, l.lr, _o, o.od, o.op)
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 // 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 
@@ -97,7 +97,7 @@
 
 // CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 // 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 
@@ -128,7 +128,7 @@
 // CypherPipelineExecutor* q4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // 	// produce
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 // 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 

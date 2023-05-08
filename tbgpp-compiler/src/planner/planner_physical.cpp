@@ -36,7 +36,7 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 	vector<duckdb::CypherPhysicalOperator*> final_pipeline_ops = *pTraverseTransformPhysicalPlan(orca_plan_root);
 
 	// Append PhysicalProduceResults
-	duckdb::CypherSchema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
+	duckdb::Schema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
 
 	// calculate mapping for produceresults
 	vector<uint8_t> projection_mapping;
@@ -69,7 +69,7 @@ bool Planner::pValidatePipelines() {
 	for( auto& pipeline: pipelines ) {
 		ok = ok && (pipeline->pipelineLength >= 2);
 	}
-	ok = ok && (pipelines[pipelines.size()-1]->GetSink()->ToString() == "ProduceResults");
+	ok = ok && (pipelines[pipelines.size()-1]->GetSink()->type == duckdb::PhysicalOperatorType::PRODUCE_RESULTS );
 	return ok;
 }
 
@@ -257,7 +257,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	oids.push_back(table_obj_id);
 	D_ASSERT(oids.size() == 1);
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	tmp_schema.setStoredColumnNames(out_col_names);
 	duckdb::CypherPhysicalOperator* op = nullptr;
@@ -345,7 +345,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	}
 	// TODO assert oids size = mapping size
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(global_types);
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalNodeScan(tmp_schema, oids, projection_mapping);
@@ -537,7 +537,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 
 	if (!load_edge_property) {
 		/* Generate operator and push */
-		duckdb::CypherSchema tmp_schema;
+		duckdb::Schema tmp_schema;
 		tmp_schema.setStoredTypes(types);
 
 		duckdb::CypherPhysicalOperator *op;
@@ -553,7 +553,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	} else {
 		// AdjIdxJoin -> Edge Id Seek
 		bool load_eid_temporarily = !load_eid;
-		duckdb::CypherSchema tmp_schema_seek, tmp_schema_adjidxjoin;
+		duckdb::Schema tmp_schema_seek, tmp_schema_adjidxjoin;
 		tmp_schema_seek.setStoredTypes(types);
 
 		if (load_eid) {
@@ -679,7 +679,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	OID path_index_oid = CMDIdGPDB::CastMdid(pathscan_op->Pindexdesc()->operator[](0)->MDId())->Oid();
 
 	/* Generate operator and push */
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	duckdb::CypherPhysicalOperator* op =
 		new duckdb::PhysicalVarlenAdjIdxJoin(
@@ -776,7 +776,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 
 			// if output_cols size != outer_cols, we need to do projection
 			/* Generate operator and push */
-			duckdb::CypherSchema tmp_schema;
+			duckdb::Schema tmp_schema;
 			vector<unique_ptr<duckdb::Expression>> proj_exprs;
 			tmp_schema.setStoredTypes(types);
 
@@ -939,7 +939,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	}
 
 	/* Generate operator and push */
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 
 	duckdb::CypherPhysicalOperator *op;
@@ -1009,7 +1009,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJo
 	}
 
 	// define op
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	duckdb::CypherPhysicalOperator *op =
 		new duckdb::PhysicalCrossProduct(tmp_schema, outer_col_map, inner_col_map);
@@ -1044,7 +1044,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression
 	offset = offset_datum->Value();
 	limit = limit_datum->Value();
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	duckdb::CypherPhysicalOperator *last_op = result->back();
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
@@ -1102,7 +1102,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	D_ASSERT( pexprProjList->Arity() >= proj_exprs.size() );	// may be less, since we project duplicate projetions only once
 
 	/* Generate operator and push */
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	tmp_schema.setStoredColumnNames(output_column_names);
 	duckdb::CypherPhysicalOperator* op =
@@ -1157,7 +1157,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 		agg_exprs.push_back( std::move(pTransformScalarExpr(pexprScalarExpr, child_cols) ));
 	}
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(types);
 	tmp_schema.setStoredColumnNames(output_column_names);
 	duckdb::CypherPhysicalOperator * op;
@@ -1178,7 +1178,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 
 	// if output_cols size != child_cols, we need to do projection
 	if (interm_output_cols->Size() != output_cols->Size()) {
-		duckdb::CypherSchema proj_schema;
+		duckdb::Schema proj_schema;
 		vector<duckdb::LogicalType> proj_types;
 		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 			CColRef *col = (*output_cols)[col_idx];
@@ -1237,7 +1237,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalFilter(CE
 
 	pGenerateFilterExprs(outer_cols, exp_type, filter_pred_expr, filter_exprs);
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	duckdb::CypherPhysicalOperator *last_op = result->back();
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
@@ -1246,7 +1246,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalFilter(CE
 
 	// we need further projection if we don't need filter column anymore
 	if (output_cols->Size() != outer_cols->Size()) {
-		duckdb::CypherSchema output_schema;
+		duckdb::Schema output_schema;
 		output_schema.setStoredTypes(output_types);
 		vector<unique_ptr<duckdb::Expression>> proj_exprs;
 		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
@@ -1302,7 +1302,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 		orders.push_back(move(order));
 	}
 
-	duckdb::CypherSchema tmp_schema;
+	duckdb::Schema tmp_schema;
 	duckdb::CypherPhysicalOperator *last_op = result->back();
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =

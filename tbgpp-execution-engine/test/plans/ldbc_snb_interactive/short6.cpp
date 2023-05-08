@@ -4,7 +4,7 @@
 namespace duckdb {
 
 // std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test12() {
-// 	CypherSchema schema;
+// 	Schema schema;
 // 	vector<LogicalType> tmp_schema {LogicalType::ID, LogicalType::UBIGINT};
 // 	schema.setStoredTypes(move(tmp_schema));
 // 	// schema.addNode("m");
@@ -16,7 +16,7 @@ namespace duckdb {
 // 	duckdb::Value filter_val = duckdb::Value::UBIGINT(94);
 
 // 	// varlen expand (comment -> comment)
-// 	CypherSchema schema2;
+// 	Schema schema2;
 // 	vector<LogicalType> tmp_schema2 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::ID};
 // 	schema2.setStoredTypes(move(tmp_schema2));
 // 	// schema2.addNode("c");
@@ -50,7 +50,7 @@ namespace duckdb {
 
 // LDBC IS6
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
-	CypherSchema schema;
+	Schema schema;
 	vector<LogicalType> tmp_schema {LogicalType::ID, LogicalType::UBIGINT};
 	schema.setStoredTypes(move(tmp_schema));
 	// schema.addNode("m");
@@ -63,7 +63,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	// duckdb::Value filter_val = duckdb::Value::UBIGINT(549757114029);
 
 	// varlen expand (comment -> comment)
-	CypherSchema schema2;
+	Schema schema2;
 	vector<LogicalType> tmp_schema2 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema2.setStoredTypes(move(tmp_schema2));
 
@@ -71,7 +71,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map2 = {0, 1};
 
 	// expand (comment -> post)
-	CypherSchema schema3;
+	Schema schema3;
 	vector<LogicalType> tmp_schema3 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema3.setStoredTypes(move(tmp_schema3));
 
@@ -79,7 +79,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map3 = {0, 1, 2};
 
 	// expand (post <- forum)
-	CypherSchema schema4;
+	Schema schema4;
 	vector<LogicalType> tmp_schema4 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema4.setStoredTypes(move(tmp_schema4));
 
@@ -87,7 +87,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map4 = {0, 1, 2, 3};
 
 	// expand (forum <- person)
-	CypherSchema schema5;
+	Schema schema5;
 	vector<LogicalType> tmp_schema5 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT};
 	schema5.setStoredTypes(move(tmp_schema5));
 
@@ -95,7 +95,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map5 = {0, 1, 2, 3, 4};
 
 	// fetch forum
-	CypherSchema schema6;
+	Schema schema6;
 	vector<LogicalType> tmp_schema6 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT, LogicalType::VARCHAR};
 	schema6.setStoredTypes(move(tmp_schema6));
 	vector<idx_t> oids6 = {391};
@@ -105,7 +105,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map6 = {0, 1, 2, 3, 4, 5};
 
 	// fetch person
-	CypherSchema schema7;
+	Schema schema7;
 	vector<LogicalType> tmp_schema7 {LogicalType::ID, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::UBIGINT, LogicalType::ID, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::ID, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::VARCHAR};
 	schema7.setStoredTypes(move(tmp_schema7));
 	vector<idx_t> oids7 = {305};
@@ -115,7 +115,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	vector<uint32_t> outer_col_map7 = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
 	// projection
-	CypherSchema schema8;
+	Schema schema8;
 	vector<LogicalType> tmp_schema8 {LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::UBIGINT, LogicalType::VARCHAR, LogicalType::VARCHAR};
 	schema8.setStoredTypes(move(tmp_schema8));
 	vector<unique_ptr<Expression>> proj_exprs;

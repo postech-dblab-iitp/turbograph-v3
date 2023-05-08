@@ -9,9 +9,9 @@ namespace duckdb {
 class PhysicalProduceResults: public CypherPhysicalOperator {
 
 public:
-	PhysicalProduceResults(CypherSchema& sch)
+	PhysicalProduceResults(Schema& sch)
 		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch) { }
-	PhysicalProduceResults(CypherSchema& sch, std::vector<uint8_t> projection_mapping)
+	PhysicalProduceResults(Schema& sch, std::vector<uint8_t> projection_mapping)
 		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch), projection_mapping(projection_mapping) { }
 	~PhysicalProduceResults() { }
 

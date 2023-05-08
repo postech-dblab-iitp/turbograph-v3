@@ -8,7 +8,7 @@ namespace duckdb {
 
 class PhysicalUnwind: public CypherPhysicalOperator {
 public:
-	PhysicalUnwind(CypherSchema& sch, idx_t col_idx);
+	PhysicalUnwind(Schema& sch, idx_t col_idx);
 	~PhysicalUnwind();
 
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;

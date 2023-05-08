@@ -162,7 +162,7 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 	CColRef* target_colref;
 
 	// try first with property
-	k1 = prop_expr->getVariableRawName();
+	k1 = prop_expr->getVariableName();
 	k2 = prop_expr->getPropertyName();
 	target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
 	

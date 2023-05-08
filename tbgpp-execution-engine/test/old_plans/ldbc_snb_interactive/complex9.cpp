@@ -22,7 +22,7 @@
 // CypherPipelineExecutor* ic9_pipe1(QueryPlanSuite& suite) {
 
 // 	// scan person
-// 	CypherSchema sch1;
+// 	Schema sch1;
 // 	sch1.addNode("root");
 // 	duckdb::Value filter_val; // person key
 // 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
@@ -30,7 +30,7 @@
 // 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 // 	// person->friend
-// 	CypherSchema sch2 = sch1;
+// 	Schema sch2 = sch1;
 // 	sch2.addNode("friend");
 
 // 	// filter (_root, _friend)
@@ -45,7 +45,7 @@
 // 	}
 
 // 	// projection	(_root, _friend)
-// 	CypherSchema sch3;
+// 	Schema sch3;
 // 	sch3.addNode("friend");
 // 	vector<unique_ptr<Expression>> proj_exprs;
 // 	{
@@ -78,12 +78,12 @@
 // CypherPipelineExecutor* ic9_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // 	// friend->comment
-// 	CypherSchema sch1;
+// 	Schema sch1;
 // 	sch1.addNode("friend");
 // 	sch1.addNode("message");	// comment
 
 // 	// attach comment seek
-// 	CypherSchema sch2 = sch1;
+// 	Schema sch2 = sch1;
 // 	sch2.addPropertyIntoNode("message", "id", LogicalType::UBIGINT);
 // 	sch2.addPropertyIntoNode("message", "content", LogicalType::VARCHAR);
 // 	sch2.addPropertyIntoNode("message", "creationDate", LogicalType::BIGINT);
@@ -104,7 +104,7 @@
 // 	}
 
 // 	// attach friend id
-// 	CypherSchema sch3 = sch2;
+// 	Schema sch3 = sch2;
 // 	sch3.addPropertyIntoNode("friend", "id", LogicalType::UBIGINT);
 // 	sch3.addPropertyIntoNode("friend", "firstName", LogicalType::VARCHAR);
 // 	sch3.addPropertyIntoNode("friend", "lastName", LogicalType::VARCHAR);
@@ -114,7 +114,7 @@
 // 	f_keys.push_back("lastName");
 
 // 	// projection (_fr f.id f.fn f.ln _msg m.id m.c m.cd )
-// 	CypherSchema sch4;
+// 	Schema sch4;
 // 	sch4.addColumn("personId", LogicalType::UBIGINT);
 // 	sch4.addColumn("personFirstName", LogicalType::VARCHAR);
 // 	sch4.addColumn("personLastName", LogicalType::VARCHAR);

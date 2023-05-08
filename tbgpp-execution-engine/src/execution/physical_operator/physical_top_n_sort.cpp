@@ -14,7 +14,7 @@
 namespace duckdb {
 
 
-PhysicalTopNSort::PhysicalTopNSort(CypherSchema& sch, vector<BoundOrderByNode> orders, idx_t limit, idx_t offset)
+PhysicalTopNSort::PhysicalTopNSort(Schema& sch, vector<BoundOrderByNode> orders, idx_t limit, idx_t offset)
 	: CypherPhysicalOperator(PhysicalOperatorType::TOP_N_SORT, sch), orders(move(orders)), limit(limit), offset(offset)
 { }
 

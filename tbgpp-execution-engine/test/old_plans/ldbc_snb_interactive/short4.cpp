@@ -5,7 +5,7 @@ namespace duckdb {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("m");
 	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
 	schema.addPropertyIntoNode("m", "content", duckdb::LogicalType::VARCHAR);
@@ -20,14 +20,14 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 	scan_propertyKeys.push_back("creationDate");
 
 	// filter predcs
-	CypherSchema filter_schema = schema;
+	Schema filter_schema = schema;
 	duckdb::Value filter_val;
 	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }
 	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
 	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
 		
 	// Project
-	CypherSchema project_schema;
+	Schema project_schema;
 	project_schema.addColumn("content", duckdb::LogicalType::VARCHAR);
 	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
 	vector<unique_ptr<Expression>> proj_exprs;

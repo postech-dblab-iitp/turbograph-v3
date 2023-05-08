@@ -14,7 +14,7 @@ namespace duckdb {
 class PhysicalFilter: public CypherPhysicalOperator {
 
 public:
-	PhysicalFilter(CypherSchema& sch, vector<unique_ptr<Expression>> predicates)
+	PhysicalFilter(Schema& sch, vector<unique_ptr<Expression>> predicates)
 		: CypherPhysicalOperator(PhysicalOperatorType::FILTER, sch) {
 			
 		D_ASSERT(predicates.size() > 0);

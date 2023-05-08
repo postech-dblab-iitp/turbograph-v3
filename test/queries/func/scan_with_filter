@@ -1,3 +1,0 @@
-MATCH (n:Person) WHERE n.firstName='Marc' RETURN n.firstName;
-MATCH (n:Person) WHERE n.firstName='Marc' RETURN n.firstName, n.lastName;
-MATCH (n:Person {id: 1099511628400}) RETURN n;

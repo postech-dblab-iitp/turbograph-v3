@@ -19,7 +19,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IC2() {
 CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 
 // scan person
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("n");
 	duckdb::Value filter_val; // person key
 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(17592186052613); }
@@ -27,15 +27,15 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
 
 // p->friend
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("friend");
 
 // friend<-message (in : _n, _friend)
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addNode("message"); // post
 
 // attach message ( _n _friend _message)
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	sch4.addPropertyIntoNode("message", "id", LogicalType::UBIGINT);
 	sch4.addPropertyIntoNode("message", "content", LogicalType::VARCHAR);
 	sch4.addPropertyIntoNode("message", "creationDate", LogicalType::BIGINT);
@@ -56,7 +56,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 	}
 
 // attach friend
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addPropertyIntoNode("friend", "id", LogicalType::UBIGINT);
 	sch5.addPropertyIntoNode("friend", "firstName", LogicalType::VARCHAR);
 	sch5.addPropertyIntoNode("friend", "lastName", LogicalType::VARCHAR);
@@ -66,7 +66,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 	f_keys.push_back("lastName");
 
 // projection (_n _f f.id f.fn f.ln _m m.id m.c m.cd)
-	CypherSchema sch6;
+	Schema sch6;
 	sch6.addColumn("personId", LogicalType::UBIGINT);
 	sch6.addColumn("firstName", LogicalType::VARCHAR);
 	sch6.addColumn("lastName", LogicalType::VARCHAR);
@@ -116,7 +116,7 @@ CypherPipelineExecutor* ic2_pipe1(QueryPlanSuite& suite) {
 CypherPipelineExecutor* ic2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // order
-	CypherSchema sch6;
+	Schema sch6;
 	sch6.addColumn("personId", LogicalType::UBIGINT);
 	sch6.addColumn("firstName", LogicalType::VARCHAR);
 	sch6.addColumn("lastName", LogicalType::VARCHAR);

@@ -16,7 +16,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::COCO_Q3B() {
 
 CypherPipelineExecutor* coco3b_pipe1(QueryPlanSuite& suite) {
 
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("annotations");
 	sch1.addPropertyIntoNode("annotations", "category_id", LogicalType::BIGINT);
 
@@ -39,11 +39,11 @@ CypherPipelineExecutor* coco3b_pipe1(QueryPlanSuite& suite) {
 	}
 
 	// adjidxjoin
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("images");
 
 	// attach properties
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("images", "id", LogicalType::BIGINT);
 	sch3.addPropertyIntoNode("images", "license", LogicalType::BIGINT);
 	sch3.addPropertyIntoNode("images", "file_name", LogicalType::VARCHAR);
@@ -55,7 +55,7 @@ CypherPipelineExecutor* coco3b_pipe1(QueryPlanSuite& suite) {
 	PropertyKeys image_keys = PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flickr_url"});
 
 	// projection images(_id, id, license, .....)
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addNode("images");
 	sch4.addPropertyIntoNode("images", "id", LogicalType::BIGINT);
 	sch4.addPropertyIntoNode("images", "license", LogicalType::BIGINT);

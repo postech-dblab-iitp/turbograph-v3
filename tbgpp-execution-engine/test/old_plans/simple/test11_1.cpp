@@ -6,13 +6,13 @@ namespace duckdb {
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test11_1() {
 	icecream::ic.disable();
 
-	CypherSchema schema;
+	Schema schema;
 	schema.addNode("p");
 	schema.addPropertyIntoNode("p", "firstName", LogicalType::VARCHAR);
 	
 
 	// expand (person -> comment)
-	CypherSchema schema2 = schema;
+	Schema schema2 = schema;
 	schema2.addNode("c");
 
 	// pipe 1

@@ -346,7 +346,10 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		std::vector<CColRef*> output_columns;
 		std::vector<std::string> output_names;
 		logical_plan->getSchema()->getOutputColumns(output_columns);
-		logical_plan->getSchema()->getOutputNames(output_names);
+		for(auto& col: output_columns) {
+			wstring col_name_ws = col->Name().Pstr()->GetBuffer();
+			output_names.push_back(std::string(col_name_ws.begin(), col_name_ws.end()));
+		}
 		D_ASSERT(output_columns.size() == output_names.size());
 		planner->logical_plan_output_colrefs = output_columns;
 		planner->logical_plan_output_col_names = output_names;

@@ -23,7 +23,7 @@ public:
 	SelectionVector sel;
 };
 
-PhysicalIdSeek::PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map)
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
 		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)), scan_projection_mapping(projection_mapping),
@@ -42,7 +42,7 @@ PhysicalIdSeek::PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<ui
 	do_filter_pushdown = false;
 }
 
-PhysicalIdSeek::PhysicalIdSeek(CypherSchema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_types,
 				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),

@@ -4,7 +4,7 @@
 
 namespace duckdb {
 
-PhysicalCrossProduct::PhysicalCrossProduct(CypherSchema &sch, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
+PhysicalCrossProduct::PhysicalCrossProduct(Schema &sch, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
     : CypherPhysicalOperator(PhysicalOperatorType::CROSS_PRODUCT, sch), outer_col_map(move(outer_col_map_p)), inner_col_map(move(inner_col_map_p)) {
 
 	// the inputs of PhysicalCrossProduct must be used.

@@ -15,7 +15,7 @@ public:
     // PhysicalVarlenAdjIdxJoin() {}
     ~PhysicalVarlenAdjIdxJoin() {}
 
-	PhysicalVarlenAdjIdxJoin(CypherSchema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid,
+	PhysicalVarlenAdjIdxJoin(Schema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid,
 					   uint64_t min_length, uint64_t max_length, vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map) 
 		: CypherPhysicalOperator(PhysicalOperatorType::VARLEN_ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid), min_length(min_length), max_length(max_length),
 			/*enumerate(true), remaining_conditions(move(vector<JoinCondition>())),*/ outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map))

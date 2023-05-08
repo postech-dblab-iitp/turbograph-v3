@@ -28,8 +28,7 @@ logger.debug(f'benchmark results are stored in: {WORKSPACE}')
 DB_LOCATION = "/data/ldbc/sf1_test/"
 ENGINE_BIN_LOCATION='../build-debug/tbgpp-client'
 #ENGINE_BIN_LOCATION='../build-release/tbgpp-client'
-NUM_ITERS = 3
-assert NUM_ITERS >= 3
+NUM_ITERS = 1
 ENGINE_COMMAND_BASE = ENGINE_BIN_LOCATION + f'/TurboGraph-S62 --workspace:{DB_LOCATION} --index-join-only --num-iterations:{NUM_ITERS}' # need to add --query when querying
 PARAM_SIZE = 5
 
@@ -42,7 +41,7 @@ def prepare_ldbc_queries(benchmark, SF):
 	short_substitution_dir = sub_dir_base + f'interactive-short/sf{SF}/'
 
 	prepared_queries = {}
-	for query_file in query_files:
+	for query_file in sorted(query_files):
 		# pass updates
 		if 'update' in query_file:
 			continue
@@ -120,7 +119,7 @@ def prepare_normal_queries(benchmark):
 	query_files = [query_dir + f for f in os.listdir(query_dir) if os.path.isfile(os.path.join(query_dir, f))]
 
 	prepared_queries = {}
-	for query_file in query_files:
+	for query_file in sorted(query_files):
 		with open(query_file, 'r') as q:
 			lines = q.readlines()
 		for idx, line in enumerate(lines):
@@ -151,11 +150,20 @@ def run_benchmark(benchmark, SF):
 	os.system(f"mkdir -p {BM_WORKSPACE}")
 
 	logger.debug(f'\n\n====== BENCHMARK : {benchmark} ======')
-	headers = ["QUERY", "PARAM_IDX", "SUCCESS", "RES_CARD", "TIME_MS"]
+	headers = ["QUERY", "PARIDX", "SUCCESS", "RES_CARD", "TIME_MS"]
+	header_widths = [30, 10, 10, 15, 10]
+	headers2 = [ it.rjust(header_widths[idx]) for idx, it in enumerate(headers)]
+	headerstr = ""
+	for h in headers2:
+		headerstr += h
+	logger.debug(headerstr+'\n')
+
 	rows = []
 	for query_name in queries.keys():
 		querysets  = queries[query_name]
 		for query_idx, query in enumerate(querysets):
+			rows = []
+
 			cmd = ENGINE_COMMAND_BASE+f' --query:"{query}"'
 			proc = subprocess.Popen(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			output, error = proc.communicate()
@@ -176,7 +184,8 @@ def run_benchmark(benchmark, SF):
 						
 				rows.append([query_name, str(query_idx), Fore.GREEN + "SUCCESS" + Fore.RESET, str(num_card), str(avg_exec_time)])
 			else:
-				rows.append([query_name, str(query_idx), Fore.RED + "FAILED" + Fore.RESET, "", ""])
+				row = [query_name, str(query_idx), Fore.RED + "FAILED" + Fore.RESET, "", ""]
+				rows.append(row)
 				# flush error cases to file.
 				filename_base = query_name + "_" + str(query_idx)
 				with open(BM_WORKSPACE+filename_base+'.stderr', 'w') as f:
@@ -184,8 +193,11 @@ def run_benchmark(benchmark, SF):
 				with open(BM_WORKSPACE+filename_base+'.stdout', 'w') as f:
 					f.write(output)
 
-	# print bench result
-	logger.debug(tabulate(rows, headers))
+			# print bench result
+			rows2 = []
+			for row in rows:
+				rows2.append([ it.rjust(header_widths[idx]) for idx, it in enumerate(row)])
+			logger.debug(tabulate(rows2, tablefmt="plain"))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Run S62 benchmark')

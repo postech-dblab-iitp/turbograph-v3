@@ -22,7 +22,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::TPCH_Q4() {
 CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 
 	// scan ORDERS;
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("o");
 	sch1.addPropertyIntoNode("o", "O_ORDERDATE", LogicalType::DATE);
 	sch1.addPropertyIntoNode("o", "O_ORDERPRIORITY", LogicalType::VARCHAR);
@@ -54,11 +54,11 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 	}
 
 	// adjidxjoin (_o, o.od, o.p) o->l
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("l");
 
 	// fetch (_o, o.od, o.p, _l)
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("l", "L_COMMITDATE", LogicalType::DATE);
 	sch3.addPropertyIntoNode("l", "L_RECEIPTDATE", LogicalType::DATE);
 
@@ -73,7 +73,7 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 	}
 
 	// aggregate ( _o, o.od, o.op _l, l.cd, l.rd,)
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 
@@ -108,7 +108,7 @@ CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite) {
 
 CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 
@@ -139,7 +139,7 @@ CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* 
 CypherPipelineExecutor* q4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 	// produce
-	CypherSchema sch4;
+	Schema sch4;
 	sch4.addColumn("O_ORDERPRIORITY", LogicalType::VARCHAR);
 	sch4.addColumn("ORDER_COUNT", LogicalType::BIGINT );
 

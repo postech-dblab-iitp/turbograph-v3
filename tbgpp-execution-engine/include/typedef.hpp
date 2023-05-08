@@ -67,7 +67,7 @@ enum class CypherValueType {
 	PATH
 };
 
-class CypherSchema{
+class Schema{
 
 public:
 
@@ -80,45 +80,5 @@ public:
 	std::string printStoredColumnAndTypes();
 	std::vector<duckdb::LogicalType> stored_types;
 	std::vector<std::string> stored_column_names;
-
-	////////////////////////////////
-	/* TODO DEPRECATE BELOW */
-	////////////////////////////////
-	////////////////////////////////
-	/* TODO DEPRECATE BELOW */
-	////////////////////////////////
-	////////////////////////////////
-	/* TODO DEPRECATE BELOW */
-	////////////////////////////////
-	////////////////////////////////
-	/* TODO DEPRECATE BELOW */
-	////////////////////////////////
-
-	// insert
-	void addNode(std::string name);
-	// node range type
-	void addRange(std::string name);
-	void addPropertyIntoNode(std::string nodeName, std::string propName, duckdb::LogicalType type);
-	void addColumn(std::string attrName, duckdb::LogicalType type);
-
-	void addEdge(std::string name);
-	void addPropertyIntoEdge(std::string edgeName, std::string propName, duckdb::LogicalType type);
-
-	// Get CypherType of column
-	CypherValueType getCypherType(std::string name) const;
-	// Get logicaltype of non-nested column
-	duckdb::LogicalType getType(std::string name) const;
-
-	//! Get DuckDB Types of this CypherSchema
-	std::vector<duckdb::LogicalType> getTypes() const;
-	//! Get Partial DuckDB Types of this CypherSchema given key
-	std::vector<duckdb::LogicalType> getTypesOfKey(std::string name) const;
-
-	CypherSchema getSubSchemaOfKey(std::string name) const;
-	int getColIdxOfKey(std::string name) const;
-	std::vector<int> getColumnIndicesForResultSet() const;
-	std::string toString() const;
-	std::vector<std::tuple<std::string, CypherValueType, duckdb::LogicalType>> attrs;
-	std::map<std::string, CypherSchema> nestedAttrs;
 };
 }

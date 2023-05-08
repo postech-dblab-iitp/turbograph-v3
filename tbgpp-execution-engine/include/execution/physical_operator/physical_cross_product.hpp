@@ -16,7 +16,7 @@ namespace duckdb {
 //! PhysicalCrossProduct represents a cross product between two tables
 class PhysicalCrossProduct : public CypherPhysicalOperator {
 public:
-	PhysicalCrossProduct(CypherSchema &sch, vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map);
+	PhysicalCrossProduct(Schema &sch, vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map);
 
 public:
 	// Operator Interface

@@ -21,7 +21,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS7() {
 CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 
 // scan message
-	CypherSchema sch1;
+	Schema sch1;
 	sch1.addNode("m");
 	duckdb::Value filter_val; // person key
 	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); } // verified
@@ -29,19 +29,19 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(0); }	// TODO fixme
 
 // expand  m->c
-	CypherSchema sch2 = sch1;
+	Schema sch2 = sch1;
 	sch2.addNode("c");
 
 // expand c->p
-	CypherSchema sch3 = sch2;
+	Schema sch3 = sch2;
 	sch3.addNode("p");
 
 // optwxpand m->a (in : _m, _c, _p )
-	CypherSchema sch4 = sch3;
+	Schema sch4 = sch3;
 	sch4.addNode("a");
 
 // optexpand a-r->p' (in ; _m _c _p _a)
-	CypherSchema sch5 = sch4;
+	Schema sch5 = sch4;
 	sch5.addEdge("r");
 	sch5.addNode("p1");
 
@@ -66,7 +66,7 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 	}
 
 // fetch c (in: _m _c _p _a _r _p1 )
-	CypherSchema sch6 = sch5;
+	Schema sch6 = sch5;
 	sch6.addPropertyIntoNode("c", "content", LogicalType::VARCHAR);
 	sch6.addPropertyIntoNode("c", "creationDate", LogicalType::BIGINT);
 	PropertyKeys c_keys;
@@ -74,7 +74,7 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 	c_keys.push_back( "creationDate" );
 
 // fetch p (in: _m _c c.c c.cd _p _a _r _p1)
-	CypherSchema sch7 = sch6;
+	Schema sch7 = sch6;
 	sch7.addPropertyIntoNode("p", "id", LogicalType::UBIGINT);
 	sch7.addPropertyIntoNode("p", "firstName", LogicalType::VARCHAR);
 	sch7.addPropertyIntoNode("p", "lastName", LogicalType::VARCHAR);
@@ -86,7 +86,7 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 
 //  (in: _m _c c.c c.cd _p p.id p.fn p.ln _a _r _p1)
 //  (out: c.c c.cd p.id p.fn p.ln bool )
-	CypherSchema sch8;
+	Schema sch8;
 	sch8.addColumn("commentContent", duckdb::LogicalType::VARCHAR);
 	sch8.addColumn("commentCreationDate", duckdb::LogicalType::BIGINT);
 	sch8.addColumn("replyAuthorId", duckdb::LogicalType::UBIGINT);
@@ -147,7 +147,7 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 CypherPipelineExecutor* is7_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe) {
 
 // order by
-	CypherSchema sch8;
+	Schema sch8;
 	sch8.addColumn("commentContent", duckdb::LogicalType::VARCHAR);
 	sch8.addColumn("commentCreationDate", duckdb::LogicalType::BIGINT);
 	sch8.addColumn("replyAuthorId", duckdb::LogicalType::UBIGINT);

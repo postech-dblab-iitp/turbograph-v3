@@ -13,7 +13,7 @@ namespace duckdb {
 class PhysicalProjection: public CypherPhysicalOperator {
 
 public:
-	PhysicalProjection(CypherSchema& sch, vector<unique_ptr<Expression>> expressions)
+	PhysicalProjection(Schema& sch, vector<unique_ptr<Expression>> expressions)
 		: CypherPhysicalOperator(PhysicalOperatorType::PROJECTION, sch), expressions(move(expressions)) { }
 	~PhysicalProjection() {}
 

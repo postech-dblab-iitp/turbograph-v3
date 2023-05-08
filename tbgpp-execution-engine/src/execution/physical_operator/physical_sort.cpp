@@ -9,7 +9,7 @@
 
 // namespace duckdb {
 
-// PhysicalSort::PhysicalSort(CypherSchema& sch, vector<BoundOrderByNode> orders_p):
+// PhysicalSort::PhysicalSort(Schema& sch, vector<BoundOrderByNode> orders_p):
 // 	CypherPhysicalOperator(sch), orders(std::move(orders_p)) { }
 
 // PhysicalSort::~PhysicalSort() {}
