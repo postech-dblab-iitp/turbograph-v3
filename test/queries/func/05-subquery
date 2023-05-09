@@ -1,0 +1,11 @@
+// baseline w.o. subquery
+MATCH (n:Person) RETURN count(n);
+// correlated join - in project clause
+MATCH (n:Person) RETURN EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } AS exist;
+// correlated join - in filter clause
+MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } RETURN n;
+// we currently do not support uncorrelated case!
+// uncorrelated - in project // would return all true
+//MATCH (n:Person) RETURN EXISTS { MATCH (m:Tag) };
+// uncorrelated - in filter // would return n without filter
+//MATCH (n:Person) WHERE EXISTS { MATCH (m:Tag) } RETURN n;
