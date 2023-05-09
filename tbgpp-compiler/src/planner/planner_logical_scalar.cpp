@@ -29,7 +29,10 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 		return lExprScalarAggFuncExpr(expression, prev_plan);
 	} else if (isExpressionCaseElse(expr_type)) {
 		return lExprScalarCaseElseExpr(expression, prev_plan);
-	} else {
+	} else if (isExpressionSubquery(expr_type)) {
+		return lExprScalarExistentialSubqueryExpr(expression, prev_plan);
+	}
+	else {
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
@@ -319,6 +322,41 @@ CExpression *Planner::lExprScalarCaseElseExpr(Expression *expression, LogicalPla
 		mp, GPOS_NEW(mp) CScalarSwitch(mp, return_type_mdid), pdrgpexpr);
 
 	return result_expr;
+}
+
+CExpression *Planner::lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan) {
+
+	// CMemoryPool* mp = this->memory_pool;
+
+	// ExistentialSubqueryExpression *subquery_expr = (ExistentialSubqueryExpression *)expression;
+
+	// LogicalPlan* inner_plan = new LogicalPlan(*prev_plan);	// copy plan
+
+	// auto queryGraphCollection = subquery_expr->getQueryGraphCollection();
+    // expression_vector predicates = subquery_expr->hasWhereExpression() ?	
+    //                       subquery_expr->getWhereExpression()->splitOnAND() :	// CNF form
+    //                       expression_vector{};
+
+	// // call match - always correlated existential!
+	// inner_plan = lPlanRegularMatch(*queryGraphCollection, inner_plan, false /* non optional always? */);
+	
+	// // TODO exists subquery and outer may not be correlated, which current impl of lPlanRegularMatch cannot handle. 
+	// 	// currently as kuzu parser does not support uncorrelated case, we reuse the implementation
+
+	// // TODO edge isomorphism?
+
+	// // call selection
+	// if( predicates.size() > 0 ) {
+	// 	inner_plan = lPlanSelection(std::move(predicates), inner_plan);
+	// }
+
+	// generate subquery expression
+	// auto pexprSubqueryExistential = GPOS_NEW(mp)
+	// 		CExpression(mp, GPOS_NEW(mp) CScalarSubqueryExists(mp), inner_plan->getPlanExpr());
+	
+	// return pexprSubqueryExistential;
+	D_ASSERT(false);
+	return nullptr;
 }
 
 }

@@ -73,6 +73,7 @@
 #include "gpopt/operators/CLogicalPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
+#include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
 #include "gpopt/operators/CPhysicalTableScan.h"
@@ -127,6 +128,7 @@
 #include "kuzu/binder/expression/property_expression.h"
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
+#include "kuzu/binder/expression/existential_subquery_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -246,6 +248,7 @@ private:
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
