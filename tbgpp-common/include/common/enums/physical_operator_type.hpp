@@ -23,6 +23,7 @@ enum class PhysicalOperatorType : uint8_t {
 	VARLEN_ADJ_IDX_JOIN,
 	ID_SEEK,
 	CROSS_PRODUCT,
+	BLOCKWISE_NL_JOIN,
 // RELATIONAL
 	FILTER,
 	PROJECTION, 
