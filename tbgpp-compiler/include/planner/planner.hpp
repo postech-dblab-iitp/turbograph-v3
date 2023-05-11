@@ -134,6 +134,8 @@
 #include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/order_type.hpp"
+#include "common/enums/join_type.hpp"
+
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
@@ -305,7 +307,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression* plan_expr);
-	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToBlockwiseNLJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression* plan_expr);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopLimit(CExpression* plan_expr);
@@ -356,6 +358,7 @@ private:
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
+	static duckdb::JoinType pTranslateJoinType(COperator* op);
 	static CColRef* pGetColRefFromScalarIdent(CExpression* ident_expr);
 
 private:

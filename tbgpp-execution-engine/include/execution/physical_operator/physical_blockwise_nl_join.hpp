@@ -19,7 +19,7 @@ namespace duckdb {
 //! RHS.
 class PhysicalBlockwiseNLJoin : public PhysicalJoin {
 public:
-	PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Expression> condition, JoinType join_type);
+	PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Expression> condition, JoinType join_type, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p);
 
 	unique_ptr<Expression> condition;
 
@@ -54,6 +54,10 @@ public:
 
 public:
 	string ParamsToString() const override;
+	vector<uint32_t> outer_col_map;
+	vector<uint32_t> inner_col_map;
+
+
 };
 
 } // namespace duckdb
