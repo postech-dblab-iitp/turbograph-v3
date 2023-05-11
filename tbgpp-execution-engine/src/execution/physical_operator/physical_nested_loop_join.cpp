@@ -314,6 +314,23 @@ void PhysicalJoin::ConstructLeftJoinResult(DataChunk &left, DataChunk &result, b
 	}
 }
 
+void PhysicalJoin::ConstructLeftJoinResult(DataChunk &left, DataChunk &result, bool found_match[], const vector<uint32_t>& right_col_map) {
+	SelectionVector remaining_sel(STANDARD_VECTOR_SIZE);
+	idx_t remaining_count = 0;
+	for (idx_t i = 0; i < left.size(); i++) {
+		if (!found_match[i]) {
+			remaining_sel.set_index(remaining_count++, i);
+		}
+	}
+	if (remaining_count > 0) {
+		result.Slice(left, remaining_sel, remaining_count);
+		for (idx_t idx = left.ColumnCount(); idx < result.ColumnCount(); idx++) {
+			result.data[right_col_map[idx]].SetVectorType(VectorType::CONSTANT_VECTOR);
+			ConstantVector::SetNull(result.data[right_col_map[idx]], true);
+		}
+	}
+}
+
 // OperatorResultType PhysicalNestedLoopJoin::ResolveComplexJoin(ExecutionContext &context, DataChunk &input,
 //                                                               DataChunk &chunk, OperatorState &state_p) const {
 // 	auto &state = (PhysicalNestedLoopJoinState &)state_p;

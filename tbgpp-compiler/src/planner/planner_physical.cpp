@@ -27,7 +27,6 @@
 #include "planner/expression/bound_constant_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
 
-#include "common/enums/join_type.hpp"
 
 
 namespace s62 {
@@ -111,6 +110,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 				break;
 			}
 			// otherwise handle NLJ
+			result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr);
+			break;
+		}
+		case COperator::EOperatorId::EopPhysicalLeftOuterNLJoin:		// LEFT
+		case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:			// SEMI
+		case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin: {	// ANTI
+			result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr);
+			break;
 		}
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin:
 		case COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin: {
@@ -1025,7 +1032,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJo
 	return lhs_result;
 }
 
-vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToBlockwiseNLJoin(CExpression* plan_expr) {
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression* plan_expr) {
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -1035,6 +1042,7 @@ vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToBlock
 	vector<duckdb::CypherPhysicalOperator*> *lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
 
+	CPhysicalInnerNLJoin* expr_op = (CPhysicalInnerNLJoin*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprOuter = (*plan_expr)[0];
 	CColRefArray* outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -1059,23 +1067,24 @@ vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToBlock
 	}
 
 	// define op
-	duckdb::Schema tmp_schema;
-	tmp_schema.setStoredTypes(types);
+	duckdb::Schema schema;
+	schema.setStoredTypes(types);
 
-	// Assert no rhs join
+	duckdb::JoinType join_type = pTranslateJoinType(expr_op);
+	D_ASSERT(join_type != duckdb::JoinType::RIGHT);
 	
-	// construct join condition; nique_ptr<Expression> condition
-	// map join_type
+	auto join_condition_expr = pTransformScalarExpr((*plan_expr)[2], output_cols);
 
-	//duckdb::CypherPhysicalOperator *op =
+	duckdb::CypherPhysicalOperator *op = 
+		new duckdb::PhysicalBlockwiseNLJoin(schema, move(join_condition_expr), join_type, outer_col_map, inner_col_map);
 
 	// finish rhs pipeline
-	// rhs_result->push_back(op);
-	// auto pipeline = new duckdb::CypherPipeline(*rhs_result);
-	// pipelines.push_back(pipeline);
-	
+	rhs_result->push_back(op);
+	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+	pipelines.push_back(pipeline);
+
 	// return lhs pipeline
-	
+	lhs_result->push_back(op);
 	return lhs_result;
 }
 
@@ -1635,6 +1644,33 @@ duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment e
 		D_ASSERT(false);
 	}
 	return duckdb::OrderByNullType::ORDER_DEFAULT;
+}
+
+duckdb::JoinType Planner::pTranslateJoinType(COperator* op) {
+
+	switch(op->Eopid()) {
+		case COperator::EOperatorId::EopPhysicalInnerNLJoin: 
+		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin:
+		case COperator::EOperatorId::EopPhysicalInnerHashJoin: {
+			return duckdb::JoinType::INNER;
+		}
+		case COperator::EOperatorId::EopPhysicalLeftOuterNLJoin:
+		case COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin:
+		case COperator::EOperatorId::EopPhysicalLeftOuterHashJoin: {
+			return duckdb::JoinType::LEFT;
+		}
+		case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin:
+		case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin: {
+			return duckdb::JoinType::ANTI;
+		}
+		case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:
+		case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin: {
+			return duckdb::JoinType::SEMI;
+		}
+		// TODO where is FULL OUTER??????
+	}
+	D_ASSERT(false);
+
 }
 
 

@@ -6,9 +6,9 @@
 
 namespace duckdb {
 
-PhysicalBlockwiseNLJoin::PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Expression> condition, JoinType join_type)
+PhysicalBlockwiseNLJoin::PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Expression> condition, JoinType join_type, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
     : PhysicalJoin(sch, PhysicalOperatorType::BLOCKWISE_NL_JOIN, join_type),
-      condition(move(condition)) {
+      condition(move(condition)), outer_col_map(move(outer_col_map_p)), inner_col_map(move(inner_col_map_p)) {
 	// MARK and SINGLE joins not handled
 	D_ASSERT(join_type != JoinType::MARK);
 	D_ASSERT(join_type != JoinType::SINGLE);
@@ -92,7 +92,8 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 	if (gstate.right_chunks.Count() == 0) {
 		// empty RHS
 		if (!EmptyResultIfRHSIsEmpty()) {
-			PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk);
+			//PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk);
+			PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk, inner_col_map, outer_col_map);
 			return OperatorResultType::NEED_MORE_INPUT;
 		} else {
 			return OperatorResultType::FINISHED;
@@ -111,7 +112,7 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 			if (state.left_found_match) {
 				// left join: before we move to the next chunk, see if we need to output any vectors that didn't
 				// have a match found
-				PhysicalJoin::ConstructLeftJoinResult(input, chunk, state.left_found_match.get());
+				PhysicalJoin::ConstructLeftJoinResult(input, chunk, state.left_found_match.get(), inner_col_map);
 				memset(state.left_found_match.get(), 0, sizeof(bool) * STANDARD_VECTOR_SIZE);
 			}
 			state.left_position = 0;
@@ -124,11 +125,11 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 		// fill in the current element of the LHS into the chunk
 		D_ASSERT(chunk.ColumnCount() == lchunk.ColumnCount() + rchunk.ColumnCount());
 		for (idx_t i = 0; i < lchunk.ColumnCount(); i++) {
-			ConstantVector::Reference(chunk.data[i], lchunk.data[i], state.left_position, lchunk.size());
+			ConstantVector::Reference(chunk.data[outer_col_map[i]], lchunk.data[i], state.left_position, lchunk.size());
 		}
 		// for the RHS we just reference the entire vector
 		for (idx_t i = 0; i < rchunk.ColumnCount(); i++) {
-			chunk.data[lchunk.ColumnCount() + i].Reference(rchunk.data[i]);
+			chunk.data[inner_col_map[i]].Reference(rchunk.data[i]);
 		}
 		chunk.SetCardinality(rchunk.size());
 
