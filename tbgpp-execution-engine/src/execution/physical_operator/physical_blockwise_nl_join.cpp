@@ -16,6 +16,10 @@ PhysicalBlockwiseNLJoin::PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Express
 	D_ASSERT(join_type != JoinType::RIGHT); // s62 currently on right join
 }
 
+std::string PhysicalBlockwiseNLJoin::ToString() const {
+	return "BlockwiseNLJoin";
+}
+
 //===--------------------------------------------------------------------===//
 // Sink
 //===--------------------------------------------------------------------===//
@@ -85,7 +89,7 @@ unique_ptr<OperatorState> PhysicalBlockwiseNLJoin::GetOperatorState(ExecutionCon
 
 OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                     OperatorState &state_p, LocalSinkState &sink_state) const {
-	D_ASSERT(input.size() > 0);
+	//D_ASSERT(input.size() > 0);
 	auto &state = (BlockwiseNLJoinState &)state_p;
 	auto &gstate = (BlockwiseNLJoinLocalState &)sink_state;
 

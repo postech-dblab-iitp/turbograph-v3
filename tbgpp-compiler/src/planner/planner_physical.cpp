@@ -1073,7 +1073,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToB
 	duckdb::JoinType join_type = pTranslateJoinType(expr_op);
 	D_ASSERT(join_type != duckdb::JoinType::RIGHT);
 	
-	auto join_condition_expr = pTransformScalarExpr((*plan_expr)[2], output_cols);
+	auto join_condition_expr = pTransformScalarExpr((*plan_expr)[2], inner_cols, outer_cols);
 
 	duckdb::CypherPhysicalOperator *op = 
 		new duckdb::PhysicalBlockwiseNLJoin(schema, move(join_condition_expr), join_type, outer_col_map, inner_col_map);
@@ -1242,33 +1242,35 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	new_result->push_back(op);
 
 	// if output_cols size != child_cols, we need to do projection
-	if (interm_output_cols->Size() != output_cols->Size()) {
-		duckdb::Schema proj_schema;
-		vector<duckdb::LogicalType> proj_types;
-		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-			CColRef *col = (*output_cols)[col_idx];
-			CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
-			OID type_oid = type_mdid->Oid();
-			proj_types.push_back(pConvertTypeOidToLogicalType(type_oid));
-		}
-		proj_schema.setStoredTypes(proj_types);
+
+	// TODO use of interm_output_cols is wrong
+	// if (interm_output_cols->Size() != output_cols->Size()) {
+	// 	duckdb::Schema proj_schema;
+	// 	vector<duckdb::LogicalType> proj_types;
+	// 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+	// 		CColRef *col = (*output_cols)[col_idx];
+	// 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+	// 		OID type_oid = type_mdid->Oid();
+	// 		proj_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	// 	}
+	// 	proj_schema.setStoredTypes(proj_types);
 		
-		vector<unique_ptr<duckdb::Expression>> proj_exprs;
-		for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-			CColRef *col = (*output_cols)[col_idx];
-			ULONG idx = interm_output_cols->IndexOf(col);
-			if (idx == gpos::ulong_max) { continue;	}
-			D_ASSERT(idx != gpos::ulong_max);
-			proj_exprs.push_back(
-				make_unique<duckdb::BoundReferenceExpression>(proj_types[col_idx], (int)idx));
-		}
-		if (proj_exprs.size() != 0) {
-			D_ASSERT(proj_exprs.size() == output_cols->Size());
-			duckdb::CypherPhysicalOperator* op =
-				new duckdb::PhysicalProjection(proj_schema, std::move(proj_exprs));
-			new_result->push_back(op);
-		}
-	}
+	// 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
+	// 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+	// 		CColRef *col = (*output_cols)[col_idx];
+	// 		ULONG idx = interm_output_cols->IndexOf(col);
+	// 		if (idx == gpos::ulong_max) { continue;	}
+	// 		D_ASSERT(idx != gpos::ulong_max);
+	// 		proj_exprs.push_back(
+	// 			make_unique<duckdb::BoundReferenceExpression>(proj_types[col_idx], (int)idx));
+	// 	}
+	// 	if (proj_exprs.size() != 0) {
+	// 		D_ASSERT(proj_exprs.size() == output_cols->Size());
+	// 		duckdb::CypherPhysicalOperator* op =
+	// 			new duckdb::PhysicalProjection(proj_schema, std::move(proj_exprs));
+	// 		new_result->push_back(op);
+	// 	}
+	// }
 	return new_result;
 }
 

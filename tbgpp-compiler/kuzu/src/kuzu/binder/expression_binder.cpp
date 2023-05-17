@@ -288,7 +288,7 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
-        function->execFunc, function->selectFunc, uniqueExpressionName);
+        function->execFunc, function->selectFunc, uniqueExpressionName, function->name);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
@@ -314,7 +314,7 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
     }
     return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
-        move(children), function->aggregateFunction->clone(), functionName, functionName);
+        move(children), function->aggregateFunction->clone(), uniqueExpressionName, functionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionName,

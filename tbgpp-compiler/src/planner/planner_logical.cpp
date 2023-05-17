@@ -294,6 +294,29 @@ LogicalPlan* Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 
 }
 
+
+LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& qgc, LogicalPlan* outer_plan) {
+
+	// no optional match
+	LogicalPlan* plan = nullptr;
+	GPOS_ASSERT(outer_plan != nullptr);
+
+	CMemoryPool* mp = this->memory_pool;
+
+	string ID_COLNAME = "_id";
+	string SID_COLNAME = "_sid";
+	string TID_COLNAME = "_tid";
+
+	LogicalPlan* qg_plan = nullptr; // start from nowhere
+	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
+
+	// TODO writeme....
+
+	return qg_plan;
+
+}
+
+
 LogicalPlan* Planner::lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan) {
 
 	CMemoryPool* mp = this->memory_pool;

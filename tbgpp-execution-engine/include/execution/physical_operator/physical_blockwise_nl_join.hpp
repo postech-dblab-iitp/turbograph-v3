@@ -54,6 +54,7 @@ public:
 
 public:
 	string ParamsToString() const override;
+	string ToString() const override;
 	vector<uint32_t> outer_col_map;
 	vector<uint32_t> inner_col_map;
 
