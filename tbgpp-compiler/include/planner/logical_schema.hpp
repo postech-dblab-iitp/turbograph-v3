@@ -117,6 +117,34 @@ public:
 				found_colref = std::get<2>(col);
 			}
 		}
+		// if not found, and k1 like "x.prop" and k2 == "", then try normailzing k1 and k2
+		if(!found) {
+			if(k1.find(".") != std::string::npos && k2 == "") {
+				auto k1_temp = k1;
+				int pos = k1_temp.find(".");
+				k1 = k1_temp.substr(0,pos);
+				k2 = k1_temp.substr(pos+1, std::string::npos);
+				for(int idx = 0; idx < schema.size(); idx++) {
+					auto& col = schema[idx];
+					if(std::get<0>(col) == k1 && std::get<1>(col) == k2) {
+						found = true;
+						found_colref = std::get<2>(col);
+					}
+				}
+			}
+		}
+		// if still not found, try k1 = k1+"."+k2, k2 = ""
+		if(!found) {
+			k1 = k1+"."+k2;
+			k2 = "";
+			for(int idx = 0; idx < schema.size(); idx++) {
+					auto& col = schema[idx];
+					if(std::get<0>(col) == k1 && std::get<1>(col) == k2) {
+						found = true;
+						found_colref = std::get<2>(col);
+					}
+				}
+		}
 		if(found_colref == NULL) {
 			return NULL;
 		}
