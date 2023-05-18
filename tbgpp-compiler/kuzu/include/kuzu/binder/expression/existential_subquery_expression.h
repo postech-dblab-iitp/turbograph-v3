@@ -10,7 +10,7 @@ class ExistentialSubqueryExpression : public Expression {
 public:
     ExistentialSubqueryExpression(
         unique_ptr<QueryGraphCollection> queryGraphCollection, const string& name)
-        : Expression{EXISTENTIAL_SUBQUERY, BOOL, name}, queryGraphCollection{
+        : Expression{EXISTENTIAL_SUBQUERY, kuzu::common::BOOL, name}, queryGraphCollection{
                                                             std::move(queryGraphCollection)} {}
 
     inline QueryGraphCollection* getQueryGraphCollection() const {

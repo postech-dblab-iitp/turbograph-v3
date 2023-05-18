@@ -327,6 +327,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 					std::cout << exec->pipeline->toString() << std::endl;
 				}
+			}
+			idx=0;
+			for( auto exec : executors ) { 
+				if(planner_config.DEBUG_PRINT) {
+					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+				}
 				exec->ExecutePipeline();
 				if(planner_config.DEBUG_PRINT) {
 					std::cout << "done pipeline execution!!" << std::endl;

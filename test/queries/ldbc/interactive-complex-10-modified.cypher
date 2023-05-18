@@ -8,7 +8,7 @@
 MATCH (person:Person {id: $personId})-[:KNOWS*2..2]-(friend),
        (friend)-[:IS_LOCATED_IN]->(city:City)
 WHERE NOT friend=person AND
-      NOT (friend)-[:KNOWS]-(person)
+      NOT EXISTS { (friend)-[:KNOWS]-(person) }
 WITH person, city, friend, datetime({epochMillis: friend.birthday}) as birthday
 WHERE  (birthday.month=$month AND birthday.day>=21) OR
         (birthday.month=($month%12)+1 AND birthday.day<22)

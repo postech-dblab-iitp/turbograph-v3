@@ -1,6 +1,7 @@
 import os
 import argparse
 from tabulate import tabulate
+import re
 
 import time
 import logging
@@ -32,6 +33,17 @@ NUM_ITERS = 1
 ENGINE_COMMAND_BASE = ENGINE_BIN_LOCATION + f'/TurboGraph-S62 --workspace:{DB_LOCATION} --index-join-only --num-iterations:{NUM_ITERS}' # need to add --query when querying
 PARAM_SIZE = 5
 
+def atoi(text):
+    return int(text) if text.isdigit() else text
+	
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
+
 def prepare_ldbc_queries(benchmark, SF):
 	query_dir = f"queries/{benchmark}/"
 	query_files = [query_dir + f for f in os.listdir(query_dir) if os.path.isfile(os.path.join(query_dir, f)) and f.endswith('.cypher')]
@@ -41,7 +53,7 @@ def prepare_ldbc_queries(benchmark, SF):
 	short_substitution_dir = sub_dir_base + f'interactive-short/sf{SF}/'
 
 	prepared_queries = {}
-	for query_file in sorted(query_files):
+	for query_file in sorted(query_files, key=natural_keys):
 		# pass updates
 		if 'update' in query_file:
 			continue
@@ -118,7 +130,7 @@ def prepare_normal_queries(benchmark):
 	query_files = [query_dir + f for f in os.listdir(query_dir) if os.path.isfile(os.path.join(query_dir, f))]
 
 	prepared_queries = {}
-	for query_file in sorted(query_files):
+	for query_file in sorted(query_files, key=natural_keys):
 		passed_lines = []
 		with open(query_file, 'r') as q:
 			lines = q.readlines()

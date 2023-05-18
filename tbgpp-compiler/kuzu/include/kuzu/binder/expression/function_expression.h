@@ -13,15 +13,35 @@ class FunctionExpression : public Expression {
 
 protected:
     FunctionExpression(ExpressionType expressionType, DataType dataType, const string& uniqueName)
-        : Expression{expressionType, move(dataType), uniqueName} {}
+        : Expression{expressionType, move(dataType), uniqueName}, rawFuncName("") {}
 
     FunctionExpression(ExpressionType expressionType, DataType dataType,
         const shared_ptr<Expression>& child, const string& uniqueName)
-        : Expression{expressionType, move(dataType), child, uniqueName} {}
+        : Expression{expressionType, move(dataType), child, uniqueName}, rawFuncName("") {}
 
     FunctionExpression(ExpressionType expressionType, DataType dataType, expression_vector children,
         const string& uniqueName)
-        : Expression{expressionType, move(dataType), move(children), uniqueName} {}
+        : Expression{expressionType, move(dataType), move(children), uniqueName}, rawFuncName("") {}
+    
+    FunctionExpression(ExpressionType expressionType, DataType dataType, const string& uniqueName, const string& rawFuncName)
+        : Expression{expressionType, move(dataType), uniqueName}, rawFuncName(rawFuncName) {}
+
+    FunctionExpression(ExpressionType expressionType, DataType dataType,
+        const shared_ptr<Expression>& child, const string& uniqueName, const string& rawFuncName)
+        : Expression{expressionType, move(dataType), child, uniqueName}, rawFuncName(rawFuncName) {}
+
+    FunctionExpression(ExpressionType expressionType, DataType dataType, expression_vector children,
+        const string& uniqueName, const string& rawFuncName)
+        : Expression{expressionType, move(dataType), move(children), uniqueName}, rawFuncName(rawFuncName) {}
+
+    string rawFuncName;
+    
+public:
+    inline string getRawFuncName() const {
+        return rawFuncName;
+    }
+
+    
 };
 
 class ScalarFunctionExpression : public FunctionExpression {
@@ -31,6 +51,12 @@ public:
         expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc,
         const string& uniqueName)
         : FunctionExpression{expressionType, dataType, move(children), uniqueName},
+          execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
+    
+    ScalarFunctionExpression(ExpressionType expressionType, const DataType& dataType,
+        expression_vector children, scalar_exec_func execFunc, scalar_select_func selectFunc,
+        const string& uniqueName, const string& rawFuncName)
+        : FunctionExpression{expressionType, dataType, move(children), uniqueName, rawFuncName},
           execFunc{move(execFunc)}, selectFunc{move(selectFunc)} {}
 
     static inline string getUniqueName(const string& functionName, expression_vector& children) {
@@ -54,6 +80,11 @@ public:
         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
         : AggregateFunctionExpression{
               dataType, expression_vector{}, move(aggregateFunction), uniqueName} {}
+    
+    AggregateFunctionExpression(const DataType& dataType,
+        unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueNamem, const string& rawFuncName)
+        : AggregateFunctionExpression{
+              dataType, expression_vector{}, move(aggregateFunction), uniqueName, rawFuncName} {}
 
     AggregateFunctionExpression(const DataType& dataType, expression_vector children,
         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName)
@@ -63,7 +94,7 @@ public:
 
     AggregateFunctionExpression(const DataType& dataType, expression_vector children,
         unique_ptr<AggregateFunction> aggregateFunction, const string& uniqueName, const string& rawFuncName)
-        : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName},
+        : FunctionExpression{AGGREGATE_FUNCTION, dataType, move(children), uniqueName, rawFuncName},
           aggregateFunction{move(aggregateFunction)} {
         }
 

@@ -92,6 +92,14 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
 		fprintf(stdout, "%s oid %ld, AdjColIdx = %ld\n", index_cat_name.c_str(), index_cat->GetOid(), index_cat->GetAdjColIdx());
 	}
+
+	vector<string> agg_function_catalog_list = {"count_star"};	// count_star oid=33, mdid=72162688
+	for (auto &agg_function_cat_name : agg_function_catalog_list) {
+		AggregateFunctionCatalogEntry *aggf_cat =
+			(AggregateFunctionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, agg_function_cat_name);
+		fprintf(stdout, "%s oid=%ld \n", agg_function_cat_name.c_str(), aggf_cat->GetOid());	// Note that oid is different from mdid
+	}
+
 }
 
 void* mda_print(void* args) {
@@ -205,6 +213,7 @@ void* mda_print(void* args) {
 		
 		
 	}
+
 
 	CTaskLocalStorageObject *ptlsobj =
 			ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxOptCtxt);

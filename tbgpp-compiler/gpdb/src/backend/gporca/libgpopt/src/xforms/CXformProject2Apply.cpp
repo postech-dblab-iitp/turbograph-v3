@@ -14,6 +14,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/operators/CLogicalProject.h"
+#include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CPatternLeaf.h"
 
 using namespace gpopt;
@@ -30,7 +31,8 @@ using namespace gpopt;
 CXformProject2Apply::CXformProject2Apply(CMemoryPool *mp)
 	:  // pattern
 	  CXformSubqueryUnnest(GPOS_NEW(mp) CExpression(
-		  mp, GPOS_NEW(mp) CLogicalProject(mp),
+		  //mp, GPOS_NEW(mp) CLogicalProject(mp),
+		  mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp),
 		  GPOS_NEW(mp) CExpression(
 			  mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // relational child
 		  GPOS_NEW(mp) CExpression(

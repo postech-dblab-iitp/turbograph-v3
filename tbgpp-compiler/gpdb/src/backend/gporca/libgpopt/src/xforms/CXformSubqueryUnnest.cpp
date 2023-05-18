@@ -107,6 +107,12 @@ CXformSubqueryUnnest::PexprSubqueryUnnest(CMemoryPool *mp, CExpression *pexpr,
 					false /*fNewComputedCol*/);
 				break;
 
+			case COperator::EopLogicalProjectColumnar:
+				pexprResult = CUtils::PexprLogicalProject(
+					mp, pexprNewOuter, pexprResidualScalar,
+					false /*fNewComputedCol*/);
+				break;
+
 			case COperator::EopLogicalGbAgg:
 				popGbAgg = CLogicalGbAgg::PopConvert(pexpr->Pop());
 				popGbAgg->Pdrgpcr()->AddRef();

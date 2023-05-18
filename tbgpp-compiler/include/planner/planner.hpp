@@ -32,6 +32,7 @@
 #include "gpos/memory/CMemoryPool.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/CMDTypeBoolGPDB.h"
+
 #include "gpopt/operators/CLogicalGet.h"
 
 #include "gpos/_api.h"
@@ -73,6 +74,7 @@
 #include "gpopt/operators/CLogicalPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
+#include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
 #include "gpopt/operators/CPhysicalTableScan.h"
@@ -113,6 +115,8 @@
 #include "naucrates/base/IDatumGeneric.h"
 #include "naucrates/base/CDatumInt8GPDB.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
+#include "naucrates/base/CDatumBoolGPDB.h"
+
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
@@ -127,11 +131,14 @@
 #include "kuzu/binder/expression/property_expression.h"
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
+#include "kuzu/binder/expression/existential_subquery_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/order_type.hpp"
+#include "common/enums/join_type.hpp"
+
 
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
@@ -225,6 +232,7 @@ private:
 	LogicalPlan *lPlanUnwindClause(
         BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan* prev_plan, bool is_optional_match);
+	LogicalPlan *lPlanRegularMatchFromSubquery(const QueryGraphCollection& queryGraphCollection, LogicalPlan* outer_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node);
 	LogicalPlan *lPlanPathGet(RelExpression* edge_expr);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan* prev_plan);
@@ -246,6 +254,7 @@ private:
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -302,6 +311,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression* plan_expr);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopLimit(CExpression* plan_expr);
@@ -311,14 +321,13 @@ private:
 	vector<duckdb::CypherPhysicalOperator*>* pTransformEopAgg(CExpression* plan_expr);
 
 	// scalar expression
-	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols);
-	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression * scalar_expr, CColRefArray* child_cols);
-	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols);
-	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols);
-	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols);
-	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols);
-
-	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols);
+	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols = nullptr);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -352,6 +361,7 @@ private:
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
+	static duckdb::JoinType pTranslateJoinType(COperator* op);
 	static CColRef* pGetColRefFromScalarIdent(CExpression* ident_expr);
 
 private:

@@ -30,7 +30,10 @@
 #include "gpopt/operators/CExpressionPreprocessor.h"
 #include "gpopt/operators/CLogicalCTEConsumer.h"
 #include "gpopt/operators/CLogicalCTEProducer.h"
+#include "gpopt/operators/CLogicalProjectColumnar.h"
+
 #include "gpopt/operators/CPhysicalMotionRandom.h"
+
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/search/CMemo.h"
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"
@@ -39,6 +42,9 @@
 #include "naucrates/base/IDatumInt4.h"
 #include "naucrates/base/IDatumInt8.h"
 #include "naucrates/base/IDatumOid.h"
+#include "naucrates/base/IDatumGeneric.h"
+#include "naucrates/base/CDatumGenericGPDB.h"
+
 #include "naucrates/exception.h"
 #include "naucrates/md/CMDArrayCoerceCastGPDB.h"
 #include "naucrates/md/CMDIdGPDB.h"
@@ -55,6 +61,8 @@
 #include "naucrates/md/IMDTypeInt8.h"
 #include "naucrates/md/IMDTypeOid.h"
 #include "naucrates/traceflags/traceflags.h"
+
+
 
 using namespace gpopt;
 using namespace gpmd;
@@ -692,16 +700,65 @@ CUtils::PexprScalarArrayCmp(CMemoryPool *mp,
 // generate a comparison against Zero
 CExpression *
 CUtils::PexprCmpWithZero(CMemoryPool *mp, CExpression *pexprLeft,
-						 IMDId *mdid_type_left, IMDType::ECmpType ecmptype)
+						 IMDId * mdid_type_left, IMDType::ECmpType ecmptype)
 {
-	GPOS_ASSERT(pexprLeft->Pop()->FScalar());
+	// GPOS_ASSERT(pexprLeft->Pop()->FScalar());
+
+	// CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	// const IMDType *pmdtype = md_accessor->RetrieveType(mdid_type_left);
+	// GPOS_ASSERT(pmdtype->GetDatumType() == IMDType::EtiInt8 &&
+	// 			"left expression must be of type int8");
+
+	// IMDId *mdid_op = pmdtype->GetMdidForCmpType(ecmptype);
+	// mdid_op->AddRef();
+	// const CMDName mdname = md_accessor->RetrieveScOp(mdid_op)->Mdname();
+	// CWStringConst strOpName(mdname.GetMDName()->GetBuffer());
+
+	// return GPOS_NEW(mp) CExpression(
+	// 	mp,
+	// 	GPOS_NEW(mp) CScalarCmp(
+	// 		mp, mdid_op, GPOS_NEW(mp) CWStringConst(mp, strOpName.GetBuffer()),
+	// 		ecmptype),
+	// 	pexprLeft, CUtils::PexprScalarConstInt8(mp, 0 /*val*/));
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	const IMDType *pmdtype = md_accessor->RetrieveType(mdid_type_left);
-	GPOS_ASSERT(pmdtype->GetDatumType() == IMDType::EtiInt8 &&
-				"left expression must be of type int8");
+	GPOS_ASSERT(pmdtype->GetDatumType() != IMDType::EtiInt8 &&
+				"S62 - this function does not gen comparison with Orca::Int8");
 
-	IMDId *mdid_op = pmdtype->GetMdidForCmpType(ecmptype);
+	/*
+		Replaced zero with S62 compatible type zero (DataTypeId::UBIGINT))
+	*/
+	GPOS_ASSERT(pexprLeft->Pop()->FScalar());
+
+	// CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	//const IMDType *pmdtype = md_accessor->RetrieveType(mdid_type_left);
+	// GPOS_ASSERT(pmdtype->GetDatumType() == IMDType::EtiInt8 &&
+	// 			"left expression must be of type int8");
+	//IMDId *mdid_op = pmdtype->GetMdidForCmpType(ecmptype);
+	CExpression * pexprRight;
+	{	// create zero datum - literal type of UBIGINT
+		uint32_t literal_type_id = 10000000L + OID(31);
+		uint64_t serialized_literal_length = 8;
+
+		CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, literal_type_id, 1, 0);
+		type_mdid->AddRef();
+
+		uint64_t* mem_ptr = (uint64_t*) malloc(serialized_literal_length);
+		(*mem_ptr) = 0;
+		void* serialized_literal = (void*)mem_ptr;
+		IDatumGeneric *datum = (IDatumGeneric*) (GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, false /*isnull*/, (LINT)0, (CDouble)0.0));
+		datum->AddRef();
+		pexprRight = GPOS_NEW(mp)
+			CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
+		pexprRight->AddRef();
+	}
+	
+	IMDId *left_mdid = CScalar::PopConvert(pexprLeft->Pop())->MdidType();
+	IMDId *right_mdid = CScalar::PopConvert(pexprRight->Pop())->MdidType();
+	IMDId* mdid_op = 
+		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, ecmptype);
+
 	mdid_op->AddRef();
 	const CMDName mdname = md_accessor->RetrieveScOp(mdid_op)->Mdname();
 	CWStringConst strOpName(mdname.GetMDName()->GetBuffer());
@@ -711,7 +768,7 @@ CUtils::PexprCmpWithZero(CMemoryPool *mp, CExpression *pexprLeft,
 		GPOS_NEW(mp) CScalarCmp(
 			mp, mdid_op, GPOS_NEW(mp) CWStringConst(mp, strOpName.GetBuffer()),
 			ecmptype),
-		pexprLeft, CUtils::PexprScalarConstInt8(mp, 0 /*val*/));
+		pexprLeft, pexprRight);
 }
 
 // generate an Is Distinct From expression
@@ -1785,7 +1842,7 @@ CUtils::PexprCountStar(CMemoryPool *mp)
 	// way using MDAccessor
 
 	CMDIdGPDB *mdid =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_COUNT_STAR);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, OID(72162688) /* S62 COUNT_STAR ORCA OID*/, 0, 0);
 	CWStringConst *str = GPOS_NEW(mp) CWStringConst(GPOS_WSZ_LIT("count"));
 
 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
@@ -2153,8 +2210,12 @@ CUtils::PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 			col_factory->AddComputedToUsedColsMap(pexprPrEl);
 		}
 	}
+	// return GPOS_NEW(mp)
+	// 	CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
+
+	// S62
 	return GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
+		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pexpr, pexprPrjList);
 }
 
 // generate a sequence project expression

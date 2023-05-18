@@ -29,7 +29,10 @@ CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan*
 		return lExprScalarAggFuncExpr(expression, prev_plan);
 	} else if (isExpressionCaseElse(expr_type)) {
 		return lExprScalarCaseElseExpr(expression, prev_plan);
-	} else {
+	} else if (isExpressionSubquery(expr_type)) {
+		return lExprScalarExistentialSubqueryExpr(expression, prev_plan);
+	}
+	else {
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
@@ -129,16 +132,20 @@ CExpression* Planner::lExprScalarCmpEq(CExpression* left_expr, CExpression* righ
 
 CExpression *Planner::lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan) {
 
+	// used to handle already processed kuzu expression as ScalarIdent.
+	// if this function did not exist, our compiler will try evaluating expressions again and again
+
 	// normal column
 	CMemoryPool* mp = this->memory_pool;
 	CColRef* target_colref;
 
-	if(!expression->hasAlias()) {
-		return NULL;
-	}
-	
+	target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), "");
 	string k1 = expression->getAlias();
-	target_colref = prev_plan->getSchema()->getColRefOfKey(k1, "");
+	if(target_colref == NULL) {
+		target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getAlias(), "");
+	}
+
+	// if target not found, then pass
 	if( target_colref == NULL) {
 		return NULL;
 	}
@@ -226,7 +233,7 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	AggregateFunctionExpression* aggfunc_expr = (AggregateFunctionExpression*) expression;
 	kuzu::binder::expression_vector children = aggfunc_expr->getChildren();
 
-	std::string func_name = (expression)->getUniqueName();
+	std::string func_name = (aggfunc_expr)->getRawFuncName();
 	std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
 	D_ASSERT(func_name != "");
 
@@ -319,6 +326,35 @@ CExpression *Planner::lExprScalarCaseElseExpr(Expression *expression, LogicalPla
 		mp, GPOS_NEW(mp) CScalarSwitch(mp, return_type_mdid), pdrgpexpr);
 
 	return result_expr;
+}
+
+CExpression *Planner::lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan) {
+
+	CMemoryPool* mp = this->memory_pool;
+
+	ExistentialSubqueryExpression *subquery_expr = (ExistentialSubqueryExpression *)expression;
+
+	auto queryGraphCollection = subquery_expr->getQueryGraphCollection();
+    expression_vector predicates = subquery_expr->hasWhereExpression() ?	
+                          subquery_expr->getWhereExpression()->splitOnAND() :	// CNF form
+                          expression_vector{};
+
+	// call match - always correlated existential!
+	LogicalPlan* inner_plan = lPlanRegularMatchFromSubquery(*queryGraphCollection, prev_plan /* outer plan*/);
+	
+	// TODO edge isomorphism?
+
+	// call selection
+	GPOS_ASSERT(predicates.size() == 0); // currently no predicates
+	// if( predicates.size() > 0 ) {
+	// 	inner_plan = lPlanSelection(std::move(predicates), inner_plan);
+	// }
+
+	//generate subquery expression
+	auto pexprSubqueryExistential = GPOS_NEW(mp)
+			CExpression(mp, GPOS_NEW(mp) CScalarSubqueryExists(mp), inner_plan->getPlanExpr());
+	
+	return pexprSubqueryExistential;
 }
 
 }
