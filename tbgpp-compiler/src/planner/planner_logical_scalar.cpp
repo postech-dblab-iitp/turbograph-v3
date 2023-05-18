@@ -345,9 +345,10 @@ CExpression *Planner::lExprScalarExistentialSubqueryExpr(Expression *expression,
 	// TODO edge isomorphism?
 
 	// call selection
-	if( predicates.size() > 0 ) {
-		inner_plan = lPlanSelection(std::move(predicates), inner_plan);
-	}
+	GPOS_ASSERT(predicates.size() == 0); // currently no predicates
+	// if( predicates.size() > 0 ) {
+	// 	inner_plan = lPlanSelection(std::move(predicates), inner_plan);
+	// }
 
 	//generate subquery expression
 	auto pexprSubqueryExistential = GPOS_NEW(mp)

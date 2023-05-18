@@ -307,10 +307,58 @@ LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& 
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
 
-	LogicalPlan* qg_plan = nullptr; // start from nowhere
+	LogicalPlan* qg_plan = nullptr; // start from nowhere, global subquery plan
 	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
 
-	// TODO writeme....
+	for(int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
+		QueryGraph* qg = qgc.getQueryGraph(idx);
+
+		for(int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
+			RelExpression* qedge = qg->getQueryRel(edge_idx).get();
+			NodeExpression* lhs = qedge->getSrcNode().get();
+			NodeExpression* rhs = qedge->getDstNode().get();
+			string edge_name = qedge->getUniqueName();
+			string lhs_name = qedge->getSrcNode()->getUniqueName();
+			string rhs_name = qedge->getDstNode()->getUniqueName();
+			bool is_pathjoin = qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
+
+			LogicalPlan* hop_plan;	// constructed plan of a single hop
+			LogicalPlan* lhs_plan; LogicalPlan* edge_plan; LogicalPlan* rhs_plan;
+			if(!is_pathjoin) {
+				edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
+			} else {
+				edge_plan = lPlanPathGet((RelExpression*)qedge);
+			}
+
+			// temporary!! (Abound - R - Bunbound) //
+			// Plan A -  R
+			lhs_plan = edge_plan;
+			CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, lhs_plan->getPlanExpr(),
+				lExprScalarCmpEq(
+					lExprScalarPropertyExpr(lhs_name, ID_COLNAME, outer_plan),
+					lExprScalarPropertyExpr(edge_name, SID_COLNAME, lhs_plan) )
+			);
+			lhs_plan->addUnaryParentOp(selection_expr);
+			rhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)rhs, true);
+			auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
+					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
+			lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
+			lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
+			hop_plan = lhs_plan;
+			qg_plan = hop_plan;
+
+
+			// temporary!! (Abound - R - Bunbound) // 
+			GPOS_ASSERT(qg_plan != nullptr);
+		}
+		// if no edge, ... TODO
+		if(qg->getQueryNodes().size() == 1) {
+			D_ASSERT(false);
+		}	
+	}
+	GPOS_ASSERT(qg_plan != nullptr);
 
 	return qg_plan;
 

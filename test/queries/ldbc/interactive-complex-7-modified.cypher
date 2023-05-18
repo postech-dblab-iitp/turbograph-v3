@@ -14,7 +14,7 @@ RETURN
     latestLike.msg.id AS commentOrPostId,
     coalesce(latestLike.msg.content, latestLike.msg.imageFile) AS commentOrPostContent,
     toInteger(floor(toFloat(latestLike.likeTime - latestLike.msg.creationDate)/1000.0)/60.0) AS minutesLatency,
-    NOT EXISTS { MATCH (liker)-[:KNOWS]-(person) } AS isNew
+    NOT exists( (liker)-[:KNOWS]-(person) ) AS isNew
 ORDER BY
     likeCreationDate DESC,
     toInteger(personId) ASC

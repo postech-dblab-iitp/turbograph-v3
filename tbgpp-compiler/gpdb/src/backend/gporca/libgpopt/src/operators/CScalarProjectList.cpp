@@ -265,7 +265,7 @@ CScalarProjectList::FContainsOnlyReplicationSafeAggFuncs(
 		// safely replicated, users could create custom agg funcs that could lead to wrong results
 		if (!(safe_oid == GPDB_INT4_AGG_MIN || safe_oid == GPDB_INT4_AGG_MAX ||
 			  safe_oid == GPDB_INT4_AGG_AVG || safe_oid == GPDB_INT4_AGG_SUM ||
-			  safe_oid == GPDB_INT4_AGG_COUNT || safe_oid == GPDB_COUNT_STAR))
+			  safe_oid == GPDB_INT4_AGG_COUNT || safe_oid == OID(33) /* S62 COUNT_STAR OID*/))
 		{
 			return false;
 		}

@@ -253,8 +253,8 @@ CXformSimplifySubquery::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 		}
 		else
 		{
-			GPOS_ASSERT(COperator::EopLogicalProject ==
-						pexprInput->Pop()->Eopid());
+			// GPOS_ASSERT(COperator::EopLogicalProject ==
+			// 			pexprInput->Pop()->Eopid());
 
 			pexprResult = CUtils::PexprLogicalProject(
 				mp, pexprOuter, pexprNewScalar, false /*fNewComputedCol*/);

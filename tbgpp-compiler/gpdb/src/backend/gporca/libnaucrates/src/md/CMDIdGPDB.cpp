@@ -101,7 +101,7 @@ CMDIdGPDB CMDIdGPDB::m_mdid_cidr(IMDId::EmdidGeneral, GPDB_CIDR);
 CMDIdGPDB CMDIdGPDB::m_mdid_macaddr(IMDId::EmdidGeneral, GPDB_MACADDR);
 
 // count(*) mdid
-CMDIdGPDB CMDIdGPDB::m_mdid_count_star(IMDId::EmdidGeneral, GPDB_COUNT_STAR);
+CMDIdGPDB CMDIdGPDB::m_mdid_count_star(IMDId::EmdidGeneral, OID(72162688) /* S62 count_star function OID*/);
 
 // count(Any) mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_count_any(IMDId::EmdidGeneral, GPDB_COUNT_ANY);

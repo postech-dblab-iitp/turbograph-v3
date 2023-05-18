@@ -328,8 +328,8 @@ CLogicalProjectColumnar::PxfsCandidates(CMemoryPool *mp) const
 	(void) xform_set->ExchangeSet(CXform::ExfCollapseProjectColumnar);
 
 	// original project includes:
-	// (void) xform_set->ExchangeSet(CXform::ExfSimplifyProjectWithSubquery);
-	// (void) xform_set->ExchangeSet(CXform::ExfProject2Apply);
+	(void) xform_set->ExchangeSet(CXform::ExfSimplifyProjectWithSubquery);
+	(void) xform_set->ExchangeSet(CXform::ExfProject2Apply);
 	// (void) xform_set->ExchangeSet(CXform::ExfProject2ComputeScalar);
 	// (void) xform_set->ExchangeSet(CXform::ExfCollapseProject);
 
