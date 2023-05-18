@@ -15,6 +15,7 @@
 
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/operators/CLogicalProject.h"
+#include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CPatternLeaf.h"
 #include "gpopt/xforms/CXformSimplifySubquery.h"
 
@@ -42,7 +43,8 @@ public:
 	explicit CXformSimplifyProjectWithSubquery(CMemoryPool *mp)
 		:  // pattern
 		  CXformSimplifySubquery(GPOS_NEW(mp) CExpression(
-			  mp, GPOS_NEW(mp) CLogicalProject(mp),
+			 // mp, GPOS_NEW(mp) CLogicalProject(mp),
+			  mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp),
 			  GPOS_NEW(mp) CExpression(
 				  mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // relational child
 			  GPOS_NEW(mp) CExpression(

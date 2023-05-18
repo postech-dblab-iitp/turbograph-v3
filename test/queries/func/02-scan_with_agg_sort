@@ -2,6 +2,7 @@
 MATCH (n:Person) RETURN n._id, n.id, n.firstName, n.lastName ORDER BY n.lastName DESC LIMIT 10;
 MATCH (n:Person) RETURN n._id, n.id, n.firstName, n.lastName ORDER BY n.firstName ASC, n.lastName DESC LIMIT 10;
 // group by
+MATCH (n:Person) RETURN count(*);
 MATCH (n:Person) RETURN count(n) LIMIT 10;
 MATCH (n:Person) RETURN DISTINCT count(n) LIMIT 10;
 MATCH (n:Person) RETURN sum(n) LIMIT 10;
