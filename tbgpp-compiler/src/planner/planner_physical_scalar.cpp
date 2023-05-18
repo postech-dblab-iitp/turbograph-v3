@@ -55,12 +55,32 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 	CScalarConst* op = (CScalarConst*)scalar_expr->Pop();
 
 	CDatumGenericGPDB *datum = (CDatumGenericGPDB*)(op->GetDatum());
-	duckdb::Value literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
+
+	// handle orca primitives exceptionally
+	switch (datum->GetDatumType()) {
+		case IMDType::EtiInt2:
+		case IMDType::EtiInt4:
+		case IMDType::EtiInt8:
+			D_ASSERT(false);
+			break;
+		case IMDType::EtiBool:{
+			CDatumBoolGPDB *datum_bool = (CDatumBoolGPDB*)datum;
+			return make_unique<duckdb::BoundConstantExpression>(duckdb::Value::BOOLEAN((int8_t) datum_bool->GetValue()));
+		}
+		case IMDType::EtiGeneric: {
+			// our types
+			duckdb::Value literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
 									CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
 									datum->GetByteArrayValue(),
 									(uint64_t) datum->Size());
-
-	return make_unique<duckdb::BoundConstantExpression>(literal_val);
+			return make_unique<duckdb::BoundConstantExpression>(literal_val);
+		}
+		default: {
+			D_ASSERT(false);
+		}
+	}
+	D_ASSERT(false);
+	return nullptr;
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
