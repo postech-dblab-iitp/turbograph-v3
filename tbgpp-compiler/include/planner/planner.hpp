@@ -32,6 +32,7 @@
 #include "gpos/memory/CMemoryPool.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/CMDTypeBoolGPDB.h"
+
 #include "gpopt/operators/CLogicalGet.h"
 
 #include "gpos/_api.h"
@@ -114,6 +115,8 @@
 #include "naucrates/base/IDatumGeneric.h"
 #include "naucrates/base/CDatumInt8GPDB.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
+#include "naucrates/base/CDatumBoolGPDB.h"
+
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
