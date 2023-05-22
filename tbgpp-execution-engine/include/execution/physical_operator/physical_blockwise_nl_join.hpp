@@ -27,7 +27,7 @@ public:
 	// Operator Interface
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const override;
-
+	void ConstructOutputChunk(DataChunk& chunk, DataChunk& output_chunk) const;
 
 public:
 	// Source interface

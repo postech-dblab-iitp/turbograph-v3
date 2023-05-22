@@ -1,9 +1,11 @@
 // baseline w.o. subquery
-MATCH (n:Person) RETURN count(n);
+MATCH (n:Person) RETURN count(n) AS person_cnt;
 // correlated join - in project clause
-MATCH (n:Person) RETURN EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } AS exist;
+MATCH (n:Person) RETURN EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } AS has_friend;
 // correlated join - in filter clause
-MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } RETURN n;
+MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person) } RETURN count(n) AS person_with_friend_cnt;
+MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person)-[:KNOWS]->(x:Person) } RETURN count(n) AS person_with_friend_2_cnt;
+MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person)-[:KNOWS]->(n) } RETURN count(n) AS person_with_cycle_friend_cnt;
 // MATCH (n:Person), (m:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m) } RETURN n.id, m.id LIMIT 10;
 
 // uncorrelated

@@ -1060,10 +1060,20 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToB
 		types.push_back(col_type);
 	}
 	for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++){
-		outer_col_map.push_back(output_cols->IndexOf(outer_cols->operator[](col_idx)));
+		auto idx = output_cols->IndexOf(outer_cols->operator[](col_idx));
+		if(idx == gpos::ulong_max) {
+			outer_col_map.push_back(std::numeric_limits<uint32_t>::max());
+		} else { 
+			outer_col_map.push_back(idx);
+		}
 	}
 	for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++){
-		inner_col_map.push_back(output_cols->IndexOf(inner_cols->operator[](col_idx)));
+		auto idx = output_cols->IndexOf(inner_cols->operator[](col_idx));
+		if(idx == gpos::ulong_max) {
+			inner_col_map.push_back(std::numeric_limits<uint32_t>::max());
+		} else { 
+			inner_col_map.push_back(idx);
+		}
 	}
 
 	// define op
@@ -1073,7 +1083,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToB
 	duckdb::JoinType join_type = pTranslateJoinType(expr_op);
 	D_ASSERT(join_type != duckdb::JoinType::RIGHT);
 	
-	auto join_condition_expr = pTransformScalarExpr((*plan_expr)[2], inner_cols, outer_cols);
+	auto join_condition_expr = pTransformScalarExpr((*plan_expr)[2], outer_cols, inner_cols);	// left - right
 
 	duckdb::CypherPhysicalOperator *op = 
 		new duckdb::PhysicalBlockwiseNLJoin(schema, move(join_condition_expr), join_type, outer_col_map, inner_col_map);
