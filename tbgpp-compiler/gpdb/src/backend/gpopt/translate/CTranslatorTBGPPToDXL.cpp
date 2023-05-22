@@ -2093,7 +2093,8 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 	CMDIdGPDB *result_type_mdid =
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
 	IMDId *intermediate_result_type_mdid = // S62 TODO we need this when we use local aggregate
-		RetrieveAggIntermediateResultType(mp, mdid);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+		// RetrieveAggIntermediateResultType(mp, mdid);
 
 	mdid->AddRef();
 
@@ -2355,6 +2356,7 @@ CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
 	OID intermediate_type_oid;
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
+	duckdb::AggregateFunctionCatalogEntry *agg_func_cat = duckdb::GetAggFunc(agg_oid);
 	intermediate_type_oid = GPDB_BOOL; // S62 TODO temporary.. maybe we don't use this info in this step
 	// intermediate_type_oid = gpdb::GetAggIntermediateResultType(agg_oid);
 
