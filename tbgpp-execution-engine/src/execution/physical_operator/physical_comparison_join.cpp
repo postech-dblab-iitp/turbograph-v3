@@ -117,12 +117,17 @@ void PhysicalComparisonJoin::ConstructEmptyJoinResult(JoinType join_type, bool h
 		// for the LHS we reference the data
 		result.SetCardinality(input.size());
 		for (idx_t i = 0; i < input.ColumnCount(); i++) {
-			result.data[lhs_col_map[i]].Reference(input.data[i]);
+			if( lhs_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+				result.data[lhs_col_map[i]].Reference(input.data[i]);
+			}
 		}
 		// for the RHS
 		for (idx_t i = 0; i < result.ColumnCount() - input.ColumnCount(); i++) {
-			result.data[rhs_col_map[i]].SetVectorType(VectorType::CONSTANT_VECTOR);
-			ConstantVector::SetNull(result.data[rhs_col_map[i]], true);
+			if( rhs_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+				result.data[rhs_col_map[i]].SetVectorType(VectorType::CONSTANT_VECTOR);
+				ConstantVector::SetNull(result.data[rhs_col_map[i]], true);
+			}
+			
 		}
 	}
 }

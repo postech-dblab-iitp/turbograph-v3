@@ -325,8 +325,10 @@ void PhysicalJoin::ConstructLeftJoinResult(DataChunk &left, DataChunk &result, b
 	if (remaining_count > 0) {
 		result.Slice(left, remaining_sel, remaining_count);
 		for (idx_t idx = left.ColumnCount(); idx < result.ColumnCount(); idx++) {
-			result.data[right_col_map[idx]].SetVectorType(VectorType::CONSTANT_VECTOR);
-			ConstantVector::SetNull(result.data[right_col_map[idx]], true);
+			if( right_col_map[idx] != std::numeric_limits<uint32_t>::max() ) {
+				result.data[right_col_map[idx]].SetVectorType(VectorType::CONSTANT_VECTOR);
+				ConstantVector::SetNull(result.data[right_col_map[idx]], true);
+			}
 		}
 	}
 }

@@ -20,6 +20,16 @@ std::string PhysicalBlockwiseNLJoin::ToString() const {
 	return "BlockwiseNLJoin";
 }
 
+std::string PhysicalBlockwiseNLJoin::ParamsToString() const {
+	std::string result = "";
+	string extra_info = JoinTypeToString(join_type) + "\n";
+	extra_info += condition->GetName();
+	result += "extra_info=" + extra_info + ", ";
+	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
+	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
+	return result;
+}
+
 //===--------------------------------------------------------------------===//
 // Sink
 //===--------------------------------------------------------------------===//
@@ -69,13 +79,15 @@ SinkResultType PhysicalBlockwiseNLJoin::Sink(ExecutionContext &context, DataChun
 class BlockwiseNLJoinState : public OperatorState {
 public:
 	explicit BlockwiseNLJoinState(const PhysicalBlockwiseNLJoin &op)
-	    : left_position(0), right_position(0), executor(*op.condition) {
+	    : left_position(0), right_position(0), executor(*op.condition), is_internal_chunk_inited(false) {
 		if (IsLeftOuterJoin(op.join_type)) {
 			left_found_match = unique_ptr<bool[]>(new bool[STANDARD_VECTOR_SIZE]);
 			memset(left_found_match.get(), 0, sizeof(bool) * STANDARD_VECTOR_SIZE);
 		}
 	}
 
+	bool is_internal_chunk_inited;
+	DataChunk internal_chunk;	// internally used chunk without projecting
 	//! Whether or not a tuple on the LHS has found a match, only used for LEFT OUTER and FULL OUTER joins
 	unique_ptr<bool[]> left_found_match;
 	idx_t left_position;
@@ -87,19 +99,56 @@ unique_ptr<OperatorState> PhysicalBlockwiseNLJoin::GetOperatorState(ExecutionCon
 	return make_unique<BlockwiseNLJoinState>(*this);
 }
 
-OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
+// called before PhysicalBlockwiseNLJoin::Execute() exists
+void PhysicalBlockwiseNLJoin::ConstructOutputChunk(DataChunk& internal_chunk, DataChunk& output_chunk) const {
+
+	// refer column maps
+	for(idx_t i = 0; i < outer_col_map.size(); i++) {
+		auto& idx = i;
+		if(outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
+			output_chunk.data[outer_col_map[i]].Reference(internal_chunk.data[idx]);
+		}
+	}
+	for(idx_t i = 0; i < inner_col_map.size(); i++) {
+		auto idx = i + outer_col_map.size();
+		if(inner_col_map[i] != std::numeric_limits<uint32_t>::max()) {
+			output_chunk.data[inner_col_map[i]].Reference(internal_chunk.data[idx]);
+		}
+	}
+	output_chunk.SetCardinality(internal_chunk.size());
+	// reset chunk
+	internal_chunk.Reset();
+}
+
+OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, DataChunk &input, DataChunk &output_chunk,
                                                     OperatorState &state_p, LocalSinkState &sink_state) const {
 	//D_ASSERT(input.size() > 0);
 	auto &state = (BlockwiseNLJoinState &)state_p;
 	auto &gstate = (BlockwiseNLJoinLocalState &)sink_state;
 
+	// init internal_chunk
+	if(!state.is_internal_chunk_inited) {
+		vector<LogicalType> chunk_types;
+		for(auto& t: input.GetTypes()) {	// LHS types
+			chunk_types.push_back(t);
+		}
+		for(auto& t: gstate.right_chunks.Types()) {	// RHS types
+			chunk_types.push_back(t);
+		}
+		state.internal_chunk.Initialize(chunk_types);
+		state.is_internal_chunk_inited = true;
+	}
+	auto& chunk = state.internal_chunk;
+
 	if (gstate.right_chunks.Count() == 0) {
 		// empty RHS
 		if (!EmptyResultIfRHSIsEmpty()) {
-			//PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk);
-			PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk, inner_col_map, outer_col_map);
+			PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk);
+			//PhysicalComparisonJoin::ConstructEmptyJoinResult(join_type, false, input, chunk, inner_col_map, outer_col_map);
+			ConstructOutputChunk(chunk, output_chunk);
 			return OperatorResultType::NEED_MORE_INPUT;
 		} else {
+			ConstructOutputChunk(chunk, output_chunk);
 			return OperatorResultType::FINISHED;
 		}
 	}
@@ -116,11 +165,13 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 			if (state.left_found_match) {
 				// left join: before we move to the next chunk, see if we need to output any vectors that didn't
 				// have a match found
-				PhysicalJoin::ConstructLeftJoinResult(input, chunk, state.left_found_match.get(), inner_col_map);
+				PhysicalJoin::ConstructLeftJoinResult(input, chunk, state.left_found_match.get());
+				//PhysicalJoin::ConstructLeftJoinResult(input, chunk, state.left_found_match.get(), inner_col_map);
 				memset(state.left_found_match.get(), 0, sizeof(bool) * STANDARD_VECTOR_SIZE);
 			}
 			state.left_position = 0;
 			state.right_position = 0;
+			ConstructOutputChunk(chunk, output_chunk);
 			return OperatorResultType::NEED_MORE_INPUT;
 		}
 		auto &lchunk = input;
@@ -129,11 +180,11 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 		// fill in the current element of the LHS into the chunk
 		D_ASSERT(chunk.ColumnCount() == lchunk.ColumnCount() + rchunk.ColumnCount());
 		for (idx_t i = 0; i < lchunk.ColumnCount(); i++) {
-			ConstantVector::Reference(chunk.data[outer_col_map[i]], lchunk.data[i], state.left_position, lchunk.size());
+			ConstantVector::Reference(chunk.data[i], lchunk.data[i], state.left_position, lchunk.size());
 		}
 		// for the RHS we just reference the entire vector
 		for (idx_t i = 0; i < rchunk.ColumnCount(); i++) {
-			chunk.data[inner_col_map[i]].Reference(rchunk.data[i]);
+			chunk.data[lchunk.ColumnCount() + i].Reference(rchunk.data[i]);
 		}
 		chunk.SetCardinality(rchunk.size());
 
@@ -169,14 +220,13 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 			}
 		}
 	} while (result_count == 0);
+
+
+	ConstructOutputChunk(chunk, output_chunk);
 	return OperatorResultType::HAVE_MORE_OUTPUT;
 }
 
-string PhysicalBlockwiseNLJoin::ParamsToString() const {
-	string extra_info = JoinTypeToString(join_type) + "\n";
-	extra_info += condition->GetName();
-	return extra_info;
-}
+
 
 // //===--------------------------------------------------------------------===//
 // // Source - only for right outer join

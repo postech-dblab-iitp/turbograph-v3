@@ -436,7 +436,12 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 				duckdb::CypherPhysicalOperator* op = pipe->GetOperators()[op_idx];
 				if ( op == ce->pipeline->GetSink() ) {
 					dep_executors.insert(std::make_pair(op,ce));
-					op->children.push_back(ce->pipeline->GetSink());
+					// add previous of ce to children
+					if(ce->pipeline->pipelineLength == 2) {
+						op->children.push_back(ce->pipeline->GetSource());
+					} else {
+						op->children.push_back(ce->pipeline->GetIdxOperator(ce->pipeline->pipelineLength-2));	// last one in operators
+					}
 				}
 			}
 		}

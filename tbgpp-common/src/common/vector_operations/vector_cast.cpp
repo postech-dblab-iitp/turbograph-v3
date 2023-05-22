@@ -149,6 +149,8 @@ static bool NumericCastSwitch(Vector &source, Vector &result, idx_t count, strin
 		return VectorTryCastLoop<SRC, uint16_t, duckdb::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::UINTEGER:
 		return VectorTryCastLoop<SRC, uint32_t, duckdb::NumericTryCast>(source, result, count, error_message);
+	case LogicalTypeId::ID:
+		return VectorTryCastLoop<SRC, uint64_t, duckdb::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::UBIGINT:
 		return VectorTryCastLoop<SRC, uint64_t, duckdb::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::HUGEINT:
@@ -809,6 +811,8 @@ bool VectorOperations::TryCast(Vector &source, Vector &result, idx_t count, stri
 		return NumericCastSwitch<uint16_t>(source, result, count, error_message);
 	case LogicalTypeId::UINTEGER:
 		return NumericCastSwitch<uint32_t>(source, result, count, error_message);
+	case LogicalTypeId::ID:
+		return NumericCastSwitch<uint64_t>(source, result, count, error_message);
 	case LogicalTypeId::UBIGINT:
 		return NumericCastSwitch<uint64_t>(source, result, count, error_message);
 	case LogicalTypeId::HUGEINT:

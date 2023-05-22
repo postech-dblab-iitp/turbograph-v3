@@ -11,6 +11,7 @@
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
+#include "planner/expression/bound_cast_expression.hpp"
 
 #include "common/enums/join_type.hpp"
 
@@ -86,10 +87,18 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarCmp* op = (CScalarCmp*)scalar_expr->Pop();
+
+	unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols);
+	unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(scalar_expr->operator[](1), child_cols, rhs_child_cols);
+	//try casting (rhs to lhs)
+	if(lhs->return_type != rhs->return_type) {
+		rhs = pGenScalarCast(move(rhs), lhs->return_type);
+	}
+
 	return make_unique<duckdb::BoundComparisonExpression>(
 		pTranslateCmpType(op->ParseCmpType()),
-		std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols)),	// lhs
-		std::move(pTransformScalarExpr(scalar_expr->operator[](1), child_cols, rhs_child_cols))	// rhs
+		std::move(lhs),	// lhs
+		std::move(rhs)	// rhs
 	);
 }
 
@@ -175,6 +184,10 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), child_cols, rhs_child_cols));
 
 	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));
+}
+
+unique_ptr<duckdb::Expression> Planner::pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type) {
+	return make_unique<duckdb::BoundCastExpression>(move(orig_expr), target_type, false /* try_cast */);
 }
 
 duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
