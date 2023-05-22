@@ -347,6 +347,11 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		std::vector<std::string> output_names;
 		logical_plan->getSchema()->getOutputColumns(output_columns);
 		for(auto& col: output_columns) {
+			// check if alternative column name exists on property_col_to_output_col_names_mapping
+			if(planner->property_col_to_output_col_names_mapping.find(col) != planner->property_col_to_output_col_names_mapping.end()) {
+				output_names.push_back(planner->property_col_to_output_col_names_mapping[col]);
+				continue;
+			}
 			wstring col_name_ws = col->Name().Pstr()->GetBuffer();
 			output_names.push_back(std::string(col_name_ws.begin(), col_name_ws.end()));
 		}

@@ -149,6 +149,12 @@ CExpression *Planner::lTryGenerateScalarIdent(Expression* expression, LogicalPla
 	if( target_colref == NULL) {
 		return NULL;
 	}
+	D_ASSERT(target_colref != NULL);
+
+	// record alias to mapping
+	if( expression->hasAlias() ) {
+		property_col_to_output_col_names_mapping[target_colref] = expression->getAlias();
+	}
 
 	CExpression* ident_expr = GPOS_NEW(mp)
 			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
@@ -175,6 +181,11 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 		k1 = prop_expr->getAlias();
 		k2 = ""; 
 		target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+	}
+
+	// record alias to mapping
+	if( prop_expr->hasAlias() ) {
+		property_col_to_output_col_names_mapping[target_colref] = prop_expr->getAlias();
 	}
 
 	CExpression* ident_expr = GPOS_NEW(mp)
