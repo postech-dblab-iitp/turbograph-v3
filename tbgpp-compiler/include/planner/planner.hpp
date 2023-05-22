@@ -353,8 +353,7 @@ private:
 		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
 	}
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
-		auto type_id = static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid);
-		return (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
+		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid - LOGICAL_TYPE_BASE_ID);
 	}
 
 	// scalar helper functions 
