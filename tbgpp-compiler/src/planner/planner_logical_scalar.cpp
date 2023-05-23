@@ -140,16 +140,23 @@ CExpression *Planner::lTryGenerateScalarIdent(Expression* expression, LogicalPla
 	CColRef* target_colref;
 
 	target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), "");
-	string k1 = expression->getAlias();
 	if(target_colref == NULL) {
 		target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getAlias(), "");
+	}
+
+	if((target_colref == NULL) && l_is_outer_plan_registered) {
+		D_ASSERT(l_registered_outer_plan != nullptr);
+		target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), "");
+		if(target_colref == NULL) {
+			target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getAlias(), "");
+		}
 	}
 
 	// if target not found, then pass
 	if( target_colref == NULL) {
 		return NULL;
 	}
-	D_ASSERT(target_colref != NULL);
+	GPOS_ASSERT(target_colref != NULL);
 
 	// record alias to mapping
 	if( expression->hasAlias() ) {
@@ -183,6 +190,22 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 		target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
 	}
 
+	// fallback to outer
+	if( target_colref == NULL && l_is_outer_plan_registered) {
+		GPOS_ASSERT(l_registered_outer_plan != nullptr);
+		k1 = prop_expr->getVariableName();
+		k2 = prop_expr->getPropertyName();
+		target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
+		
+		// fallback to alias
+		if( target_colref == NULL && prop_expr->hasAlias() ) {
+			k1 = prop_expr->getAlias();
+			k2 = ""; 
+			target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
+		}
+	}
+	GPOS_ASSERT(target_colref != NULL);
+
 	// record alias to mapping
 	if( prop_expr->hasAlias() ) {
 		property_col_to_output_col_names_mapping[target_colref] = prop_expr->getAlias();
@@ -199,6 +222,7 @@ CExpression* Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan*
 	CMemoryPool* mp = this->memory_pool;
 
 	CColRef* target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+	GPOS_ASSERT(target_colref!=NULL);
 
 	CExpression* ident_expr = GPOS_NEW(mp)
 			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
@@ -350,16 +374,18 @@ CExpression *Planner::lExprScalarExistentialSubqueryExpr(Expression *expression,
                           subquery_expr->getWhereExpression()->splitOnAND() :	// CNF form
                           expression_vector{};
 
-	// call match - always correlated existential!
+	// call match - always correlated existential
 	LogicalPlan* inner_plan = lPlanRegularMatchFromSubquery(*queryGraphCollection, prev_plan /* outer plan*/);
-	
 	// TODO edge isomorphism?
 
-	// call selection
-	GPOS_ASSERT(predicates.size() == 0); // currently no predicates
-	// if( predicates.size() > 0 ) {
-	// 	inner_plan = lPlanSelection(std::move(predicates), inner_plan);
-	// }
+	// call selection; but now allow access of outer query
+	l_is_outer_plan_registered = true;
+	l_registered_outer_plan = prev_plan;
+	if( predicates.size() > 0 ) {
+		inner_plan = lPlanSelection(std::move(predicates), inner_plan);
+	}
+	l_registered_outer_plan = nullptr;
+	l_is_outer_plan_registered = false;
 
 	//generate subquery expression
 	auto pexprSubqueryExistential = GPOS_NEW(mp)

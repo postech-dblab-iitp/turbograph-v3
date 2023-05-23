@@ -16,6 +16,11 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientCo
 		assert(memory_mdp_filepath != "");
 		//  "filepath should be provided in memory provider mode"
 	}
+
+	// opt context
+	l_is_outer_plan_registered = false;
+	l_registered_outer_plan = nullptr;
+
 	this->orcaInit();
 }
 
