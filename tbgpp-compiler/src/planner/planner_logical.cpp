@@ -377,8 +377,8 @@ LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& 
 				CMemoryPool* mp = this->memory_pool;
 				hop_plan = lhs_plan;
 				CExpression* right_pred = is_rhs_bound_on_outer?
-					lExprScalarPropertyExpr(rhs_name, ID_COLNAME, hop_plan)
-					: lExprScalarPropertyExpr(rhs_name, ID_COLNAME, outer_plan);
+					lExprScalarPropertyExpr(rhs_name, ID_COLNAME, outer_plan)
+					: lExprScalarPropertyExpr(rhs_name, ID_COLNAME, hop_plan);
 				CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, lhs_plan->getPlanExpr(),
 					lExprScalarCmpEq(
 						lExprScalarPropertyExpr(edge_name, TID_COLNAME, lhs_plan),

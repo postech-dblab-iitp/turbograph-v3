@@ -7,10 +7,9 @@
 */
 MATCH (:Person {id: $personId })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(:Post)-[:HAS_TAG]->(tag:Tag)
 WHERE EXISTS {
-  MATCH (tagInner:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
+  MATCH (tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
   WHERE
-    (tagInner.name = $tagClassName OR baseTagClass.name = $tagClassName)
-    AND tag.id = tagInner.id
+    tag.name = $tagClassName OR baseTagClass.name = $tagClassName
 }
 RETURN
     friend.id AS personId,
