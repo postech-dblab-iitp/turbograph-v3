@@ -64,8 +64,19 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 
 	CMemoryPool* mp = this->memory_pool;
 
+	// check if agregation necessary
+	bool agg_required = false;
+	for (auto& projectionExpression : proj_body->getProjectionExpressions()) {
+        if (lTryGenerateScalarIdent(projectionExpression.get(), plan) == NULL	// new expression to be evaluated
+			&& projectionExpression->hasAggregationExpression()					// has aggregation
+			 ) {
+            agg_required = true;
+        }
+    }
+
+
 	/* Aggregate - generate LogicalGbAgg series */
-	if(proj_body->hasAggregationExpressions()) {
+	if(agg_required) {
 		plan = lPlanGroupBy(proj_body->getProjectionExpressions(), plan);	// TODO what if agg + projection
 		// TODO plan is manipulated
 

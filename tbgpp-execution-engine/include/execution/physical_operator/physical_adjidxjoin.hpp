@@ -407,7 +407,7 @@ private:
 					} else {
 						auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
 						for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-							fprintf(stdout, "Compare %ld != %ld\n", outer_vec.GetValue(state.lhs_idx).GetValue<uint64_t>(), adj_start[state.rhs_idx * 2]);
+							//fprintf(stdout, "Compare %ld != %ld\n", outer_vec.GetValue(state.lhs_idx).GetValue<uint64_t>(), adj_start[state.rhs_idx * 2]);
 							if (outer_vec.GetValue(state.lhs_idx) != adj_start[state.rhs_idx * 2]) continue;
 							state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
 							tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
