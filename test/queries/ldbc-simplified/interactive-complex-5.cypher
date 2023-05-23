@@ -4,7 +4,12 @@ MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
 WITH
 	forum
 OPTIONAL MATCH (otherPerson2:Person)<-[:HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
+WHERE EXISTS {
+	MATCH (person:Person { id: $personId })-[:KNOWS*1..2]->(otherPerson2)
+	WHERE person <> otherPerson2
+}
+WITH forum.id as fid, first(forum.title) as fName, count(post.id) AS postCount
 RETURN
-	forum.title AS forumName,
-	count(post.id) AS postCount
+	fName AS forumName,
+	postCount
 LIMIT 20

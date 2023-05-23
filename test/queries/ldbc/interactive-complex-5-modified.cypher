@@ -5,7 +5,7 @@
   1288612800000 AS minDate
 }
 */
-MATCH (person:Person { id: $personId })-[:KNOWS*1..2]-(otherPerson)
+MATCH (person:Person { id: $personId })-[:KNOWS*1..2]->(otherPerson)
 WHERE
     person <> otherPerson
 WITH DISTINCT otherPerson
@@ -16,8 +16,8 @@ WITH
     forum
 OPTIONAL MATCH (otherPerson2)<-[:HAS_CREATOR]-(post)<-[:CONTAINER_OF]-(forum)
 WHERE EXISTS {
-        MATCH (person:Person { id: $personId })-[:KNOWS*1..2]-(p)
-        WHERE person <> p
+        MATCH (person:Person { id: $personId })-[:KNOWS*1..2]->(otherPerson2)
+        WHERE person <> otherPerson2
     }
 WITH
     forum,
