@@ -11,3 +11,7 @@ MATCH (n:Person) WHERE EXISTS { MATCH (n)-[:KNOWS]->(m:Person)-[:KNOWS]->(n) } R
 // uncorrelated
 MATCH (n:Person) WHERE EXISTS { MATCH (m:Tag) } RETURN n;
 MATCH (n:Person) RETURN EXISTS { MATCH (m:Tag) };
+
+// subquery with filter
+MATCH (n:Person) WHERE EXISTS { MATCH (m:Person)-[:KNOWS]->(n) WHERE m = n } RETURN n;
+MATCH (n:Person) WHERE EXISTS { MATCH (m:Person)-[:KNOWS]->(n) WHERE m <> n } RETURN n;

@@ -5,11 +5,12 @@
   "Monarch" AS tagClassName
 }
 */
-MATCH (:Person {id: $personId })-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(:Post)-[:HAS_TAG]->(tag:Tag)
+MATCH (person:Person)<-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)-[:POST_HAS_TAG]->(tag:Tag)
 WHERE EXISTS {
-  MATCH (tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
+  MATCH (innerTag:Tag)-[:HAS_TYPE]->(baseTagClass:TagClass)
   WHERE
-    tag.name = $tagClassName OR baseTagClass.name = $tagClassName
+  	(innerTag.name = $tagClassName OR baseTagClass.name = $tagClassName)
+  	AND tag.id = innerTag.id
 }
 RETURN
     friend.id AS personId,
