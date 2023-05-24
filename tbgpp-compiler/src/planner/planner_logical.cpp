@@ -604,26 +604,52 @@ LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, Logical
 
 		} else {
 			// KEY COLUMNS
-			D_ASSERT( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ); // TODO property only? not sure.
-			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
-
-			// add original colref to schema
-			CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
-			if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY && !proj_expr->hasAlias() ) {
-				// considered as property only when users can still access as node property.
-				// otherwise considered as general column
-				PropertyExpression* prop_expr = (PropertyExpression*) proj_expr;
-				if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableName()) ) {
-					new_schema.appendNodeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+			if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ) {
+				CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
+				// add original colref to schema
+				CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
+				if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY && !proj_expr->hasAlias() ) {
+					// considered as property only when users can still access as node property.
+					// otherwise considered as general column
+					PropertyExpression* prop_expr = (PropertyExpression*) proj_expr;
+					if( prev_plan->getSchema()->isNodeBound(prop_expr->getVariableName()) ) {
+						new_schema.appendNodeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					} else {
+						new_schema.appendEdgeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					}
 				} else {
-					new_schema.appendEdgeProperty(prop_expr->getVariableName(), prop_expr->getPropertyName(), orig_colref);
+					// handle as column
+					new_schema.appendColumn(col_name, orig_colref);
 				}
-			} else {
-				new_schema.appendColumn(col_name, orig_colref);
-			}
+				// add to key_columns
+				key_columns->Append(orig_colref);
+			} else if( proj_expr->expressionType == kuzu::common::ExpressionType::VARIABLE ) {
+				// e.g. WITH person, AGG(...), ...
+				auto property_columns = prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName());
+				for( auto& col: property_columns ) {
+					// consider all columns as key columns
+					// TODO this is inefficient
+					key_columns->Append(col);
+					if( prev_plan->getSchema()->isNodeBound(proj_expr->getUniqueName()) ) {
+						// consider as node
+						new_schema.appendNodeProperty(
+							proj_expr->getUniqueName(),
+							prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col),
+							col
+						);
+					} else {
+						// considera as edge
+						new_schema.appendEdgeProperty(
+							proj_expr->getUniqueName(),
+							prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col),
+							col
+						);
+					}
 
-			// add to key_columns
-			key_columns->Append(orig_colref);
+				}
+
+			}
+			
 		}
 		
 	}

@@ -8,3 +8,6 @@ MATCH (n:Person) RETURN DISTINCT count(n) LIMIT 10;
 MATCH (n:Person) RETURN sum(n) LIMIT 10;
 MATCH (n:Person) RETURN sum(n.id) LIMIT 10;
 MATCH (n:Person) RETURN sum(n.creationDate) LIMIT 10;
+
+// GB on variables
+MATCH (n:Person) RETURN n, count(*) AS person_cnt;
