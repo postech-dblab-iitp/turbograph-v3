@@ -24,6 +24,7 @@ enum class PhysicalOperatorType : uint8_t {
 	ID_SEEK,
 	CROSS_PRODUCT,
 	BLOCKWISE_NL_JOIN,
+	HASH_JOIN,
 // RELATIONAL
 	FILTER,
 	PROJECTION, 
