@@ -1115,7 +1115,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	vector<duckdb::CypherPhysicalOperator*> *lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
 
-	CPhysicalInnerNLJoin* expr_op = (CPhysicalInnerNLJoin*) plan_expr->Pop();
+	CPhysicalInnerHashJoin* expr_op = (CPhysicalInnerHashJoin*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprLeft = (*plan_expr)[0];
 	CColRefArray* left_cols = pexprLeft->Prpp()->PcrsRequired()->Pdrgpcr(mp);
