@@ -88,6 +88,7 @@
 #include "gpopt/operators/CPhysicalLeftOuterIndexNLJoin.h"
 #include "gpopt/operators/CPhysicalIndexPathJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
+#include "gpopt/operators/CPhysicalInnerHashJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalLimit.h"
 #include "gpopt/operators/CPhysicalSort.h"

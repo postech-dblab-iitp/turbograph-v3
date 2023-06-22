@@ -75,7 +75,7 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext 
 
 	// globals
 	state->hash_table =
-	    make_unique<JoinHashTable>(BufferManager::GetBufferManager(*(context.client->db.get())), conditions, build_types, join_type);
+	    make_unique<JoinHashTable>(BufferManager::GetBufferManager(*(context.client)), conditions, build_types, join_type);
 	// if (!delim_types.empty() && join_type == JoinType::MARK) {
 	// 	// correlated MARK join
 	//	// DELTED
