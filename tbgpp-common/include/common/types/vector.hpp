@@ -186,6 +186,11 @@ protected:
 	idx_t capacity;
 };
 
+class VectorWithValidBitmap : public Vector {
+private:
+	ValidityMask nullity;
+};
+
 //! The DictionaryBuffer holds a selection vector
 class VectorChildBuffer : public VectorBuffer {
 public:

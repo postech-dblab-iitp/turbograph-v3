@@ -49,6 +49,8 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
   "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
+  # catalog
+  "${PROJECT_SOURCE_DIR}/include/schemaless"
 )
 
 ####################################################
@@ -138,11 +140,12 @@ file(GLOB CATALOG_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
 )
 
-# file(GLOB TILE_TEST_SRC
-#   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_json_reader.cc"
-#   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
-#   "${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
-# )
+file(GLOB TILE_TEST_SRC
+  #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_json_reader.cc"
+  #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
+  #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
+  "${PROJECT_SOURCE_DIR}/test/schemaless/schemaless_simulation.cpp"
+)
 
 # if (FALSE)
 # foreach(test_file ${CACHE_TEST_SRC})
@@ -162,11 +165,11 @@ foreach(test_file ${CATALOG_TEST_SRC})
 endforeach(test_file ${CATALOG_TEST_SRC})
 endif()
 
-# foreach(test_file ${TILE_TEST_SRC})
-#   get_filename_component(prog_name ${test_file} NAME_WE)
-#   add_executable(${prog_name} ${test_file})
-#   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
-# 	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
-#   target_link_libraries(${prog_name} PRIVATE tbgpp-common-lib Catch2::Catch2WithMain)
-# endforeach(test_file ${TILE_TEST_SRC})
-# MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )
+foreach(test_file ${TILE_TEST_SRC})
+  get_filename_component(prog_name ${test_file} NAME_WE)
+  add_executable(${prog_name} ${test_file})
+  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
+  target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
+  target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib Catch2::Catch2WithMain)
+endforeach(test_file ${TILE_TEST_SRC})
+#MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )
