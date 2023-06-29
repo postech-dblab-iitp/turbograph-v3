@@ -1744,7 +1744,7 @@ void Planner::pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckd
 	// TODO what about OR condition in duckdb ?? -> IDK
 	auto* op = pred->Pop();
 	if(op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
-		CScalarBoolOp* boolop = (CScalarBoolOp*)pred->Pop();
+		CScalarBoolOp* boolop = (CScalarBoolOp*)op;
 		if(boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
 			// Split predicates
 			pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds, lhs_cols, rhs_cols);
@@ -1769,7 +1769,7 @@ void Planner::pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckd
 			D_ASSERT(false);
 		}
 	} else if(op->Eopid() == COperator::EOperatorId::EopScalarCmp){
-		CScalarCmp* cmpop = (CScalarCmp*)pred->Pop();
+		CScalarCmp* cmpop = (CScalarCmp*)op;
 		duckdb::JoinCondition cond;
 		unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(pred->operator[](0), lhs_cols, rhs_cols);
 		unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(pred->operator[](1), lhs_cols, rhs_cols);

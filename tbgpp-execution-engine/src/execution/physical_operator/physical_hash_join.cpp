@@ -69,13 +69,15 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext 
 		state->build_chunk.Initialize(build_types);
 	}
 	for (auto &cond : conditions) {
+		std::cout << "left :" << cond.left->ToString() << std::endl;
+		std::cout << "right :" << cond.right->ToString() << std::endl;
 		state->build_executor.AddExpression(*cond.right);
 	}
 	state->join_keys.Initialize(condition_types);
 
 	// globals
 	state->hash_table =
-	    make_unique<JoinHashTable>(BufferManager::GetBufferManager(*(context.client)), conditions, build_types, join_type);
+	    make_unique<JoinHashTable>(BufferManager::GetBufferManager(*(context.client->db.get())), conditions, build_types, join_type);
 	// if (!delim_types.empty() && join_type == JoinType::MARK) {
 	// 	// correlated MARK join
 	//	// DELTED
@@ -265,5 +267,19 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 // 	auto &state = (HashJoinScanState &)gstate;
 // 	sink.hash_table->ScanFullOuter(chunk, state.ht_scan_state);
 // }
+
+std::string PhysicalHashJoin::ParamsToString() const {
+	std::string result = "";
+	result += "output_left_projection_map.size()=" + std::to_string(output_left_projection_map.size()) + ", ";
+	result += "output_right_projection_map.size()=" + std::to_string(output_right_projection_map.size()) + ", ";
+	result += "right_projection_map.size()=" + std::to_string(right_projection_map.size()) + ", ";
+	result += "condition_types.size()=" + std::to_string(condition_types.size()) + ", ";
+	result += "build_types.size()=" + std::to_string(build_types.size()) + ", ";
+	return result;
+}
+
+std::string PhysicalHashJoin::ToString() const {
+	return "HashJoin";
+}
 
 } // namespace duckdb
