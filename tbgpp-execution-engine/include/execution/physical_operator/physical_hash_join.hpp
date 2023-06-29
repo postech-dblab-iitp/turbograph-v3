@@ -101,6 +101,10 @@ public:
 	// bool ParallelSink() const override {
 	// 	return true;
 	// }
+
+
+	std::string ParamsToString() const override;
+	std::string ToString() const override;
 };
 
 } // namespace duckdb
