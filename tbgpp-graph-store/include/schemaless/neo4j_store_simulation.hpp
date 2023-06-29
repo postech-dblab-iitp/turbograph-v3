@@ -12,11 +12,14 @@
 // simdcsv
 #include "third_party/csv-parser/csv.hpp"
 #include "graph_simdcsv_parser.hpp"
+#include "schemaless/schema_hash_table.hpp"
 
 namespace duckdb {
 
 #define NEO4J_NODE_RECORD_SIZE 15
 #define NEO4J_PROPERTY_RECORD_SIZE 41
+#define HASH_TABLE_SIZE 1000
+#define USE_HASH_TABLE
 
 enum class Neo4JTypeId : uint8_t {
     BOOL = 1,
@@ -893,7 +896,7 @@ public:
     ~PartialColumnarFormatStore() {}
 
     PartialColumnarFormatStore(uint64_t num_tuples, const char *csv_file_path, int64_t max_allow_edit_distance_, int64_t max_merge_count_) :
-        max_allow_edit_distance(max_allow_edit_distance_), max_merge_count(max_merge_count_) {
+        max_allow_edit_distance(max_allow_edit_distance_), max_merge_count(max_merge_count_), schema_hash_table(HASH_TABLE_SIZE) {
         property_key_id_ver = 0;
 
         // node_store = new uint8_t[num_tuples * NEO4J_NODE_RECORD_SIZE];
@@ -1003,11 +1006,26 @@ public:
                 merge_count.push_back(0);
                 vector<int64_t> tuple_id_list {0};
                 tuple_id_list_per_schema.push_back(tuple_id_list);
+
+                #ifdef USE_HASH_TABLE
+                    schema_hash_table.insert(final_schema_key_ids[0], 0);
+                #endif
+
             } else {
                 vector<int64_t> similar_schema_list;
                 vector<int> scores;
                 int64_t lowest_score_index;
                 GetSimilarSchema(cur_tuple_schema, similar_schema_list, scores, lowest_score_index);
+
+                #ifdef USE_HASH_TABLE
+                    int64_t same_schema_index;
+                    GetSameSchema(cur_tuple_schema, same_schema_index);
+                    if (!isSchemaFound(same_schema_index)) { 
+                        final_schema_key_ids.push_back(move(cur_tuple_schema));
+                        schema_hash_table.insert(final_schema_key_ids[final_schema_key_ids.size() - 1], final_schema_key_ids.size() - 1); 
+                    }
+                #endif
+
                 if (similar_schema_list.size() == 0) {
                     // fprintf(stdout, "case A, new schema at %ld\n", final_schema_key_ids.size());
                     // generate new schema
@@ -1161,6 +1179,13 @@ public:
 
     int64_t GetNewKeyVer() {
         return property_key_id_ver++;
+    }
+
+    // Returns index if found, -1 otherwise.
+    // For comfortability, we use -1 as invalid index (INVALID_TUPLE_GROUP_ID)
+    // After finding, please call if (same_schema_index == INVALID_TUPLE_GROUP_ID) { schema_hash_table.insert(cur_tuple_schema); }
+    void GetSameSchema(vector<int64_t> &cur_tuple_schema, int64_t &same_schema_index) {
+        schema_hash_table.find(cur_tuple_schema, same_schema_index);
     }
 
     void GetSimilarSchema(vector<int64_t> &cur_tuple_schema, vector<int64_t> &similar_schema_list, vector<int> &scores, int64_t &lowest_score_index) {
@@ -1427,6 +1452,8 @@ public:
     vector<ChunkCollection> node_store;
 
     vector<vector<int64_t>> invalid_count_per_column;
+
+    SchemaHashTable schema_hash_table;
 
     // parameter
     int64_t max_allow_edit_distance = 0;
