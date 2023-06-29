@@ -42,9 +42,14 @@ public:
         table.resize(size);
     }
 
-    void find(SchemaKeyIDs& schema_key_ids, int64_t& tuple_group_id) {
+    int hashFunction(SchemaKeyIDs& schema_key_ids) {
         int hashValue = std::accumulate(schema_key_ids.begin(), schema_key_ids.end(), 0);
         hashValue %= size;
+        return hashValue;
+    }
+
+    void find(SchemaKeyIDs& schema_key_ids, int64_t& tuple_group_id) {
+        int hashValue = hashFunction(schema_key_ids);
         for (auto& tupleGroup : table[hashValue]) {
             if (tupleGroup.schema_key_ids == schema_key_ids) {
                 tuple_group_id = tupleGroup.tuple_group_id;
@@ -56,12 +61,15 @@ public:
     }
 
     void insert(SchemaKeyIDs& schema_key_ids, int group_id) {
-        int hashValue = std::accumulate(schema_key_ids.begin(), schema_key_ids.end(), 0);
-        hashValue %= size;
         int64_t tuple_group_id = INVALID_TUPLE_GROUP_ID;
         find(schema_key_ids, tuple_group_id);
-        if (tuple_group_id != INVALID_TUPLE_GROUP_ID) { return; }
-        else { table[hashValue].push_back({group_id, schema_key_ids}); }
+        if (tuple_group_id != INVALID_TUPLE_GROUP_ID) { 
+            return; 
+        }
+        else { 
+            int hashValue = hashFunction(schema_key_ids);
+            table[hashValue].push_back({group_id, schema_key_ids}); 
+        }
     }
 
     // Getters
