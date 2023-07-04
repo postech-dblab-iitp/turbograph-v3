@@ -1,7 +1,7 @@
 #include "common/exception.hpp"
 #include "common/types.hpp"
-#include "fmt/format.h"
-#include "fmt/printf.h"
+#include "duckdb_fmt/format.h"
+#include "duckdb_fmt/printf.h"
 #include "common/types/hugeint.hpp"
 
 namespace duckdb {

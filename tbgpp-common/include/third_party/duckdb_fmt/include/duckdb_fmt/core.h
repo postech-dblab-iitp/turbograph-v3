@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_CORE_H_
-#define FMT_CORE_H_
+#ifndef DUCKDB_FMT_CORE_H_
+#define DUCKDB_FMT_CORE_H_
 
 #include <cstdio>  // std::FILE
 #include <cstring>

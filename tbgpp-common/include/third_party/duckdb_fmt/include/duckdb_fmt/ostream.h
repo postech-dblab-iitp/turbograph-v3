@@ -5,11 +5,11 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_OSTREAM_H_
-#define FMT_OSTREAM_H_
+#ifndef DUCKDB_FMT_OSTREAM_H_
+#define DUCKDB_FMT_OSTREAM_H_
 
 #include <ostream>
-#include "fmt/format.h"
+#include "duckdb_fmt/format.h"
 
 FMT_BEGIN_NAMESPACE
 namespace internal {

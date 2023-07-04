@@ -17,7 +17,7 @@
 #include "common/types/timestamp.hpp"
 #include "common/types/vector.hpp"
 #include "fast_float/fast_float.h"
-#include "fmt/format.h"
+#include "duckdb_fmt/format.h"
 
 #include <cctype>
 #include <cmath>

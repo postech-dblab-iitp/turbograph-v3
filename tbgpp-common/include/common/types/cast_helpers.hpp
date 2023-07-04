@@ -14,7 +14,7 @@
 #include "common/types/interval.hpp"
 #include "common/types/hugeint.hpp"
 //#include "common/types/vector.hpp"
-#include "fmt/format.h"
+#include "duckdb_fmt/format.h"
 
 namespace duckdb {
 

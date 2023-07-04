@@ -30,11 +30,11 @@
  without including the above copyright and permission notices.
  */
 
-#ifndef FMT_FORMAT_H_
-#define FMT_FORMAT_H_
+#ifndef DUCKDB_FMT_FORMAT_H_
+#define DUCKDB_FMT_FORMAT_H_
 
 #include "common/exception.hpp"
-#include "fmt/core.h"
+#include "duckdb_fmt/core.h"
 
 #include <algorithm>
 #include <cerrno>
