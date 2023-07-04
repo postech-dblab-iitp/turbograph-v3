@@ -1,4 +1,5 @@
 #include "schemaless/neo4j_store_simulation.hpp"
+#include "schemaless/velox_store_simulation.hpp"
 #include "common/common.hpp"
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
@@ -7,7 +8,7 @@ using namespace duckdb;
 
 int main (int argc, char **argv) {
     string csv_path;
-    int method;
+    int method; // 0 Neo4J, 1 Full-Columnar, 2 Partial-Columnar, 3 Velox
     int max_allow_edit_distance;
     int max_merge_count;
     int query_num; // 0 full-scan, 1 specific-columns, 2 predicates
@@ -96,6 +97,12 @@ int main (int argc, char **argv) {
             std::cout << "Query Exec " << i << " elapsed: " << query_exec_time_ms << std::endl;
             query_execution_times.push_back(query_exec_time_ms);
         }
+    } else if (method == 3) {
+        VeloxPropertyStore vps;
+        // vps.test();
+        // vps.test2();
+        vps.test3();
+        vps.test4();
     }
 
     std::cout << "Load Elapsed Time: " << load_time << " ms" << std::endl;

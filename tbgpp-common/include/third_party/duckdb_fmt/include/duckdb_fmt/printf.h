@@ -5,13 +5,13 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_PRINTF_H_
-#define FMT_PRINTF_H_
+#ifndef DUCKDB_FMT_PRINTF_H_
+#define DUCKDB_FMT_PRINTF_H_
 
 #include <algorithm>  // std::max
 #include <limits>     // std::numeric_limits
 
-#include "fmt/ostream.h"
+#include "duckdb_fmt/ostream.h"
 
 #ifdef min
 #undef min

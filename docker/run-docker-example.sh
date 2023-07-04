@@ -3,9 +3,9 @@
 # Parse user input
 
 # Target image
-IMAGE_NAME="tbgpp-v3"
-IMAGE_TAG="test-intelimpl"
-CONTAINER_NAME="tbgppv3-docker-jhko-2"
+IMAGE_NAME="tbgpp-v3-u20.04"
+IMAGE_TAG="latest"
+CONTAINER_NAME="tbgppv3-docker-tslee"
 
 # TODO override from user input
 SHARED_MEM_SIZE="100g"
@@ -25,8 +25,8 @@ SOURCE_DATA_DIR=$2
 # TODO set entrypoints refer to commercial dbmss 
 	# e.g. https://github.com/docker-library/postgres/blob/master/12/bullseye/docker-entrypoint.sh
 
+	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 docker run -itd \
-	--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \

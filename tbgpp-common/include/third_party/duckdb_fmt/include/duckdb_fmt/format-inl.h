@@ -5,10 +5,10 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_FORMAT_INL_H_
-#define FMT_FORMAT_INL_H_
+#ifndef DUCKDB_FMT_FORMAT_INL_H_
+#define DUCKDB_FMT_FORMAT_INL_H_
 
-#include "fmt/format.h"
+#include "duckdb_fmt/format.h"
 
 #include <cassert>
 #include <cctype>

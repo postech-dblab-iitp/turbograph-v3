@@ -1,6 +1,6 @@
 # Dockerfile for turbograph-v3
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 # TODO Fix
 WORKDIR /root/
 
@@ -11,6 +11,8 @@ ENV GCC_VERSION=11
 ENV BOOST_MAIN_VERSION=1
 ENV BOOST_SUB_VERSION=78
 	# TODO Add more
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Pre-configuration
 RUN apt-get -qq update && \
@@ -31,15 +33,15 @@ RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
 # RUN apt-get -qq update
 
 # Build-related
-RUN apt-get install -y \
-		gcc-${GCC_VERSION} g++-${GCC_VERSION} \
-		bazel \
-		cmake=${CMAKE_VERSION} \
-		cmake-data=${CMAKE_VERSION} \
-		ninja-build \
-		doxygen \
-	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} \
-	&& git clone https://github.com/catchorg/Catch2.git && cd Catch2 && cmake -Bbuild -H. -DBUILD_TESTING=OFF && cmake --build build/ --target install
+#RUN apt-get install -y \
+#		gcc-${GCC_VERSION} g++-${GCC_VERSION} \
+#		bazel \
+#		cmake=${CMAKE_VERSION} \
+#		cmake-data=${CMAKE_VERSION} \
+#		ninja-build \
+#		doxygen \
+#	&& update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} \
+#	&& git clone https://github.com/catchorg/Catch2.git && cd Catch2 && cmake -Bbuild -H. -DBUILD_TESTING=OFF && cmake --build build/ --target install
 	
 # LLVM-related
 # https://apt.llvm.org/
@@ -53,14 +55,14 @@ RUN apt-get install -y \
 		libnuma-dev
 
 # (boost)
-RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSION}.${BOOST_SUB_VERSION}.0/boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
-  && tar xfz boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
-  && rm boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
-  && cd boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0 \
-  && ./bootstrap.sh --prefix=/usr/local --with-libraries=program_options \
-  && ./b2 install \
-  && cd .. \
-  && rm -rf boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0
+#RUN wget http://downloads.sourceforge.net/project/boost/boost/${BOOST_MAIN_VERSION}.${BOOST_SUB_VERSION}.0/boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+#  && tar xfz boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+#  && rm boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0.tar.gz \
+#  && cd boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0 \
+#  && ./bootstrap.sh --prefix=/usr/local --with-libraries=program_options
+#  && ./b2 install \
+#  && cd .. \
+#  && rm -rf boost_${BOOST_MAIN_VERSION}_${BOOST_SUB_VERSION}_0
 
 # TODO need to install xerces for installing orca
 
