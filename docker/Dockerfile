@@ -91,6 +91,9 @@ RUN apt-get install -y \
 	intel-basekit \
 	gdb
 
+## Update
+RUN apt-get update
+
 # Resolve git issue
 RUN git config --global --add safe.directory /turbograph-v3
 
