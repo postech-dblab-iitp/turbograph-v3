@@ -2,9 +2,20 @@
 
 #include <limits.h>
 #include <vector>
+#include <random>
 
 #include "common/common.hpp"
 #include "common/types/chunk_collection.hpp"
+#include "execution/expression_executor.hpp"
+#include "planner/expression.hpp"
+#include "planner/expression/bound_reference_expression.hpp"
+#include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_columnref_expression.hpp"
+#include "planner/expression/bound_operator_expression.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
+#include "planner/expression/bound_case_expression.hpp"
+#include "planner/expression/bound_constant_expression.hpp"
+
 #include <boost/functional/hash.hpp>
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
@@ -852,6 +863,333 @@ public:
             total, sum_int, sum_uint, sum_double, sum_str);
     }
 
+    void test4() {
+        std::random_device rd;
+        std::mt19937 mersenne(rd()); // Create a mersenne twister, seeded using the random device
+
+        constexpr int kSize = 1024 * 1024; // 1M
+
+        // Create a reusable random number generator that generates uniform numbers between 1 and 1048576
+        std::uniform_int_distribution<> ran_gen(0, kSize);
+
+        ChunkCollection data;
+
+        bool is_point_query = true;
+
+        for (auto i = 0; i < kSize; i+= STANDARD_VECTOR_SIZE) {
+            int32_t chunk_size = std::min<int32_t>(STANDARD_VECTOR_SIZE, kSize - i);
+            unique_ptr<DataChunk> data_chunk = std::make_unique<DataChunk>();
+            data_chunk->Initialize({LogicalType::INTEGER});
+            data_chunk->SetCardinality(STANDARD_VECTOR_SIZE);
+            data.Append(move(data_chunk));
+        }
+
+        // auto *data_vec = (int32_t *)data.data[0].GetData();
+        for (auto i = 0; i < kSize; i+= 2) {
+            data.SetValue(0, i, Value::INTEGER(i / 2));
+            data.SetValue(0, i + 1, Value::INTEGER(kSize - i));
+        }
+
+        for (auto i = 0; i < 1024; i++) {
+            if (is_point_query) {
+                int val = ran_gen(mersenne);
+
+                test4_point_query(val, data, kSize);
+            } else {
+                int begin = ran_gen(mersenne);
+                int end = ran_gen(mersenne);
+                if (begin > end) std::swap(begin, end);
+
+                test4_internal2(begin, end, data, kSize);
+            }
+        }
+    }
+
+    void test4_internal(const int begin, const int end) {
+        boost::timer::cpu_timer test4_timer;
+        double test4_time;
+
+        constexpr int kSize = 1024 * 1024; // 1M
+
+        DataChunk data;
+        data.Initialize({LogicalType::INTEGER}, kSize);
+
+        auto *data_vec = (int32_t *)data.data[0].GetData();
+        for (auto i = 0; i < kSize; i+= 2) {
+            data_vec[i] = i / 2;
+            data_vec[i + 1] = kSize - i;
+        }
+
+        test4_timer.start();
+        vector<int32_t> results;
+        for (auto rowIndex = 0; rowIndex < kSize; rowIndex++) {
+            if (data_vec[rowIndex] >= begin && data_vec[rowIndex] <= end) {
+                results.push_back(data_vec[rowIndex]);
+            }
+        }
+        test4_time = test4_timer.elapsed().wall / 1000000.0;
+
+        int32_t passedCount = 0;
+        for (auto i = 0; i < results.size(); i++) {
+            if (results[i] >= begin && results[i] <= end) {
+                ++passedCount;
+            }
+        }
+
+        double selectivity = 100 * ((double) passedCount / kSize);
+        std::cout << "[FullColumnar] Test4 kStep = " << 1 << ", Exec elapsed: " << test4_time << " ms, begin: " << begin << ", end: " << end
+                  << ", passedCount = " << passedCount << ", sel: " << selectivity << std::endl;
+    }
+
+    void test4_internal2(const int begin, const int end, ChunkCollection &data, int32_t kSize) {
+        icecream::ic.enable();
+        boost::timer::cpu_timer test4_timer;
+        double test4_time;
+
+        ChunkCollection outputs;
+
+        vector<unique_ptr<Expression>> filter_exprs;
+        {
+            unique_ptr<Expression> filter_expr1;
+            filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 0),
+                                make_unique<BoundConstantExpression>(Value::INTEGER( begin ))
+                            );
+            unique_ptr<Expression> filter_expr2;
+            filter_expr2 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_LESSTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 0),
+                                make_unique<BoundConstantExpression>(Value::INTEGER( end ))
+                            );
+            filter_exprs.push_back(move(filter_expr1));
+            filter_exprs.push_back(move(filter_expr2));
+        }
+
+        auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+        for (auto &expr : filter_exprs) {
+            conjunction->children.push_back(move(expr));
+        }
+        unique_ptr<Expression> expression = move(conjunction);
+        ExpressionExecutor expr_executor(*expression);
+        SelectionVector sel_vec(STANDARD_VECTOR_SIZE);
+
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            unique_ptr<DataChunk> output = std::make_unique<DataChunk>();
+            output->Initialize({LogicalType::INTEGER});
+            outputs.Append(move(output));
+        }
+        test4_timer.start();
+        vector<int32_t> results;
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            auto &input = data.GetChunk(chunkIndex);
+            auto &output = outputs.GetChunk(chunkIndex);
+
+            idx_t result_count = expr_executor.SelectExpression(input, sel_vec);
+            if (result_count == input.size()) {
+                // nothing was filtered: skip adding any selection vectors
+                output.Reference(input);
+            } else {
+                output.Slice(input, sel_vec, result_count);
+            }
+        }
+
+        // for (auto rowIndex = 0; rowIndex < kSize; rowIndex++) {
+        //     auto row_val = data.GetValue(0, rowIndex);
+        //     if (data_vec[rowIndex] >= begin && data_vec[rowIndex] <= end) {
+        //         results.push_back(data_vec[rowIndex]);
+        //     }
+        // }
+        test4_time = test4_timer.elapsed().wall / 1000000.0;
+
+        int32_t passedCount = 0;
+        for (auto chunkIndex = 0; chunkIndex < outputs.ChunkCount(); chunkIndex++) {
+            auto &output = outputs.GetChunk(chunkIndex);
+            passedCount += output.size();
+        }
+        // for (auto i = 0; i < results.size(); i++) {
+        //    if (results[i] >= begin && results[i] <= end) {
+        //        ++passedCount;
+        //    }
+        // }
+
+        double selectivity = 100 * ((double) passedCount / kSize);
+        std::cout << "[FullColumnar] Test4 kStep = " << 1 << ", Exec elapsed: " << test4_time << " ms, begin: " << begin << ", end: " << end
+                  << ", passedCount = " << passedCount << ", sel: " << selectivity << std::endl;
+        icecream::ic.disable();
+    }
+
+    void test4_point_query(const int val, ChunkCollection &data, int32_t kSize) {
+        icecream::ic.enable();
+        boost::timer::cpu_timer test4_timer;
+        double test4_time;
+
+        ChunkCollection outputs;
+
+        unique_ptr<Expression> filter_expr1;
+        filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, 
+                            make_unique<BoundReferenceExpression>(LogicalType::INTEGER, 0),
+                            make_unique<BoundConstantExpression>(Value::INTEGER( val ))
+                        );
+
+        ExpressionExecutor expr_executor(*filter_expr1);
+        SelectionVector sel_vec(STANDARD_VECTOR_SIZE);
+
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            unique_ptr<DataChunk> output = std::make_unique<DataChunk>();
+            output->Initialize({LogicalType::INTEGER});
+            outputs.Append(move(output));
+        }
+        test4_timer.start();
+        vector<int32_t> results;
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            auto &input = data.GetChunk(chunkIndex);
+            auto &output = outputs.GetChunk(chunkIndex);
+
+            idx_t result_count = expr_executor.SelectExpression(input, sel_vec);
+            if (result_count == input.size()) {
+                // nothing was filtered: skip adding any selection vectors
+                output.Reference(input);
+            } else {
+                output.Slice(input, sel_vec, result_count);
+            }
+        }
+
+        test4_time = test4_timer.elapsed().wall / 1000000.0;
+
+        int32_t passedCount = 0;
+        for (auto chunkIndex = 0; chunkIndex < outputs.ChunkCount(); chunkIndex++) {
+            auto &output = outputs.GetChunk(chunkIndex);
+            passedCount += output.size();
+        }
+        // for (auto i = 0; i < results.size(); i++) {
+        //    if (results[i] >= begin && results[i] <= end) {
+        //        ++passedCount;
+        //    }
+        // }
+
+        double selectivity = 100 * ((double) passedCount / kSize);
+        std::cout << "[FullColumnar] Test4 kStep = " << 1 << ", Exec elapsed: " << test4_time << " ms, val: " << val
+                  << ", passedCount = " << passedCount << ", sel: " << selectivity << std::endl;
+        icecream::ic.disable();
+    }
+
+    void test5(int Size) {
+        std::random_device rd;
+        std::mt19937 mersenne(rd()); // Create a mersenne twister, seeded using the random device
+
+        int kSize = Size * 1024 * 1024;
+
+        // Create a reusable random number generator that generates uniform numbers between 1 and 1048576
+        std::uniform_int_distribution<> ran_gen(0, kSize);
+
+        ChunkCollection data;
+
+        bool is_point_query = false;
+
+        for (auto i = 0; i < kSize; i+= STANDARD_VECTOR_SIZE) {
+            int32_t chunk_size = std::min<int32_t>(STANDARD_VECTOR_SIZE, kSize - i);
+            unique_ptr<DataChunk> data_chunk = std::make_unique<DataChunk>();
+            data_chunk->Initialize({LogicalType::BIGINT});
+            data_chunk->SetCardinality(STANDARD_VECTOR_SIZE);
+            data.Append(move(data_chunk));
+        }
+
+        // auto *data_vec = (int32_t *)data.data[0].GetData();
+        for (auto i = 0; i < kSize; i+= 2) {
+            data.SetValue(0, i, Value::BIGINT(i / 2));
+            data.SetValue(0, i + 1, Value::BIGINT(kSize - i));
+        }
+
+        for (auto i = 0; i < 1024; i++) {
+            if (is_point_query) {
+                int val = ran_gen(mersenne);
+
+                test4_point_query(val, data, kSize);
+            } else {
+                int begin = ran_gen(mersenne);
+                int end = ran_gen(mersenne);
+                if (begin > end) std::swap(begin, end);
+
+                test5_internal2(begin, end, data, kSize);
+            }
+        }
+    }
+
+    void test5_internal2(const int begin, const int end, ChunkCollection &data, int32_t kSize) {
+        icecream::ic.enable();
+        boost::timer::cpu_timer test4_timer;
+        double test4_time;
+
+        ChunkCollection outputs;
+
+        vector<unique_ptr<Expression>> filter_exprs;
+        {
+            unique_ptr<Expression> filter_expr1;
+            filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 0),
+                                make_unique<BoundConstantExpression>(Value::BIGINT( begin ))
+                            );
+            unique_ptr<Expression> filter_expr2;
+            filter_expr2 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_LESSTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::BIGINT, 0),
+                                make_unique<BoundConstantExpression>(Value::BIGINT( end ))
+                            );
+            filter_exprs.push_back(move(filter_expr1));
+            filter_exprs.push_back(move(filter_expr2));
+        }
+
+        auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+        for (auto &expr : filter_exprs) {
+            conjunction->children.push_back(move(expr));
+        }
+        unique_ptr<Expression> expression = move(conjunction);
+        ExpressionExecutor expr_executor(*expression);
+        SelectionVector sel_vec(STANDARD_VECTOR_SIZE);
+
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            unique_ptr<DataChunk> output = std::make_unique<DataChunk>();
+            output->Initialize({LogicalType::BIGINT});
+            outputs.Append(move(output));
+        }
+        test4_timer.start();
+        vector<int32_t> results;
+        for (auto chunkIndex = 0; chunkIndex < data.ChunkCount(); chunkIndex++) {
+            auto &input = data.GetChunk(chunkIndex);
+            auto &output = outputs.GetChunk(chunkIndex);
+
+            idx_t result_count = expr_executor.SelectExpression(input, sel_vec);
+            if (result_count == input.size()) {
+                // nothing was filtered: skip adding any selection vectors
+                output.Reference(input);
+            } else {
+                output.Slice(input, sel_vec, result_count);
+            }
+        }
+
+        // for (auto rowIndex = 0; rowIndex < kSize; rowIndex++) {
+        //     auto row_val = data.GetValue(0, rowIndex);
+        //     if (data_vec[rowIndex] >= begin && data_vec[rowIndex] <= end) {
+        //         results.push_back(data_vec[rowIndex]);
+        //     }
+        // }
+        test4_time = test4_timer.elapsed().wall / 1000000.0;
+
+        int32_t passedCount = 0;
+        for (auto chunkIndex = 0; chunkIndex < outputs.ChunkCount(); chunkIndex++) {
+            auto &output = outputs.GetChunk(chunkIndex);
+            passedCount += output.size();
+        }
+        // for (auto i = 0; i < results.size(); i++) {
+        //    if (results[i] >= begin && results[i] <= end) {
+        //        ++passedCount;
+        //    }
+        // }
+
+        double selectivity = 100 * ((double) passedCount / kSize);
+        std::cout << "[FullColumnar] Test4 kStep = " << 1 << ", Exec elapsed: " << test4_time << " ms, begin: " << begin << ", end: " << end
+                  << ", passedCount = " << passedCount << ", sel: " << selectivity << std::endl;
+        icecream::ic.disable();
+    }
+
     vector<string> key_names;
     string src_key_name;
     string dst_key_name;
@@ -872,6 +1210,8 @@ public:
 
     unordered_map<string, int64_t> key_map;
     ChunkCollection node_store;
+
+    // ExpressionExecutor executor;
 
     unordered_map<string, LogicalType> m {
         {"STRING", LogicalType(LogicalTypeId::VARCHAR)},
