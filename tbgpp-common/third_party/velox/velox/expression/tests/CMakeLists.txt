@@ -1,0 +1,163 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+add_library(velox_expression_test_utility ArgumentTypeFuzzer.cpp
+                                          FuzzerToolkit.cpp)
+
+target_link_libraries(velox_expression_test_utility velox_type
+                      velox_expression_functions gtest)
+
+add_executable(
+  velox_expression_test
+  ArgumentTypeFuzzerTest.cpp
+  CustomTypeTest.cpp
+  ExprEncodingsTest.cpp
+  ExprTest.cpp
+  ExprToSubfieldFilterTest.cpp
+  ExprCompilerTest.cpp
+  EvalCtxTest.cpp
+  ExprStatsTest.cpp
+  CastExprTest.cpp
+  CoalesceTest.cpp
+  ConstantFlatVectorReaderTest.cpp
+  MapWriterTest.cpp
+  ArrayWriterTest.cpp
+  ReverseSignatureBinderTest.cpp
+  RowWriterTest.cpp
+  EvalSimplifiedTest.cpp
+  FunctionCallToSpecialFormTest.cpp
+  SignatureBinderTest.cpp
+  SimpleFunctionTest.cpp
+  SimpleFunctionInitTest.cpp
+  SimpleFunctionCallNullFreeTest.cpp
+  SimpleFunctionPresetNullsTest.cpp
+  ArrayViewTest.cpp
+  StringWriterTest.cpp
+  ArrayWriterTest.cpp
+  StringWriterTest.cpp
+  MapViewTest.cpp
+  RowViewTest.cpp
+  GenericViewTest.cpp
+  TryExprTest.cpp
+  VariadicViewTest.cpp
+  VectorReaderTest.cpp
+  GenericWriterTest.cpp
+  PeeledEncodingTest.cpp)
+
+add_test(
+  NAME velox_expression_test
+  COMMAND velox_expression_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(
+  velox_expression_test
+  velox_aggregates
+  velox_hive_connector
+  velox_dwio_common
+  velox_dwio_common_exception
+  velox_exec_test_lib
+  velox_expression
+  velox_expression_test_utility
+  velox_functions_lib
+  velox_functions_prestosql
+  velox_functions_test_lib
+  velox_parse_parser
+  velox_parse_expression
+  velox_presto_serializer
+  velox_vector_test_lib
+  velox_vector_fuzzer
+  gtest
+  gtest_main
+  gmock
+  Folly::folly
+  gflags::gflags
+  glog::glog
+  fmt::fmt)
+
+add_library(velox_expression_verifier ExpressionVerifier.cpp)
+
+target_link_libraries(
+  velox_expression_verifier velox_vector_test_lib velox_vector_fuzzer
+  velox_type velox_expression_test_utility)
+
+add_library(velox_expression_fuzzer ExpressionFuzzer.cpp FuzzerRunner.cpp)
+
+target_link_libraries(
+  velox_expression_fuzzer
+  velox_expression_verifier
+  velox_type
+  velox_vector_fuzzer
+  velox_vector_test_lib
+  velox_function_registry
+  velox_expression_test_utility)
+
+add_executable(velox_expression_fuzzer_unit_test ExpressionFuzzerUnitTest.cpp)
+
+target_link_libraries(
+  velox_expression_fuzzer_unit_test
+  velox_expression_fuzzer
+  velox_functions_prestosql
+  velox_core
+  velox_expression
+  gtest
+  gtest_main)
+
+add_library(velox_expression_runner ExpressionRunner.cpp)
+target_link_libraries(velox_expression_runner velox_expression_verifier
+                      velox_functions_prestosql velox_parse_parser gtest)
+
+add_executable(velox_expression_runner_test ExpressionRunnerTest.cpp)
+target_link_libraries(
+  velox_expression_runner_test velox_expression_runner velox_exec_test_lib
+  velox_function_registry gtest gtest_main)
+
+add_executable(velox_expression_verifier_unit_test
+               ExpressionVerifierUnitTest.cpp)
+target_link_libraries(
+  velox_expression_verifier_unit_test
+  velox_expression_verifier
+  velox_file
+  velox_temp_path
+  velox_parse_expression
+  velox_parse_parser
+  velox_parse_utils
+  velox_type
+  velox_vector_test_lib
+  gtest
+  gtest_main)
+
+add_executable(velox_expression_runner_unit_test ExpressionRunnerUnitTest.cpp)
+target_link_libraries(
+  velox_expression_runner_unit_test
+  velox_dwio_common_test_utils
+  velox_expression
+  velox_expression_runner
+  velox_expression_fuzzer
+  velox_expression_verifier
+  velox_function_registry
+  velox_temp_path
+  velox_exec_test_lib
+  velox_vector_test_lib
+  gtest
+  gtest_main)
+
+add_executable(velox_expression_fuzzer_test ExpressionFuzzerTest.cpp)
+
+target_link_libraries(velox_expression_fuzzer_test velox_expression_fuzzer
+                      velox_functions_prestosql gtest gtest_main)
+
+add_executable(spark_expression_fuzzer_test SparkExpressionFuzzerTest.cpp)
+
+target_link_libraries(spark_expression_fuzzer_test velox_expression_fuzzer
+                      velox_functions_spark gtest gtest_main)
