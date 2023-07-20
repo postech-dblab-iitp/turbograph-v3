@@ -14,10 +14,15 @@ int main (int argc, char **argv) {
     int query_num; // 0 full-scan, 1 specific-columns, 2 predicates
     int target_col = 0;
     int simd_mode = 0;
+    int data_size = 1;
 
     if (argc == 3) {
         csv_path = std::string(argv[1]);
         method = std::atoi(argv[2]);
+    } else if (argc == 4) {
+        csv_path = std::string(argv[1]);
+        method = std::atoi(argv[2]);
+        data_size = std::atoi(argv[3]);
     } else if (argc == 6) {
         csv_path = std::string(argv[1]);
         method = std::atoi(argv[2]);
@@ -47,7 +52,7 @@ int main (int argc, char **argv) {
     boost::timer::cpu_timer query_timer;
     double load_time;
     vector<double> query_execution_times;
-    if (method == 0) {
+    if (method == 0) { // Neo4J
         load_timer.start();
         Neo4JPropertyStore ps(1048576, csv_path.c_str());
         load_time = load_timer.elapsed().wall / 1000000.0;
@@ -63,24 +68,29 @@ int main (int argc, char **argv) {
             std::cout << "Query Exec " << i << " elapsed: " << query_exec_time_ms << std::endl;
             query_execution_times.push_back(query_exec_time_ms);
         }
-    } else if (method == 1) {
-        load_timer.start();
-        FullColumnarFormatStore fcs(1048576, csv_path.c_str());
-        load_time = load_timer.elapsed().wall / 1000000.0;
-        for (int i = 0; i < 5; i++) {
-            query_timer.start();
-            if (query_num == 0) {
-                DataChunk output;
-                if (simd_mode == 1) fcs.SIMDFullScanQuery(output);
-                else fcs.FullScanQuery(output);
-            } else if (query_num == 1) {
-                fcs.TargetColScanQuery(target_col);
+    } else if (method == 1) { // Full-Columnar
+        if (false) {
+            load_timer.start();
+            FullColumnarFormatStore fcs(1048576, csv_path.c_str());
+            load_time = load_timer.elapsed().wall / 1000000.0;
+            for (int i = 0; i < 5; i++) {
+                query_timer.start();
+                if (query_num == 0) {
+                    DataChunk output;
+                    if (simd_mode == 1) fcs.SIMDFullScanQuery(output);
+                    else fcs.FullScanQuery(output);
+                } else if (query_num == 1) {
+                    fcs.TargetColScanQuery(target_col);
+                }
+                auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+                std::cout << "Query Exec " << i << " elapsed: " << query_exec_time_ms << std::endl;
+                query_execution_times.push_back(query_exec_time_ms);
             }
-            auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
-            std::cout << "Query Exec " << i << " elapsed: " << query_exec_time_ms << std::endl;
-            query_execution_times.push_back(query_exec_time_ms);
+        } else {
+            FullColumnarFormatStore fcs;
+            fcs.test5(data_size);
         }
-    } else if (method == 2) {
+    } else if (method == 2) { // Partial-Columnar
         load_timer.start();
         PartialColumnarFormatStore pcs(1048576, csv_path.c_str(), max_allow_edit_distance, max_merge_count);
         load_time = load_timer.elapsed().wall / 1000000.0;
@@ -100,9 +110,19 @@ int main (int argc, char **argv) {
     } else if (method == 3) {
         VeloxPropertyStore vps;
         // vps.test();
-        // vps.test2();
-        vps.test3();
-        vps.test4();
+        // vps.test2_2();
+        // for (int i = 1; i <= 1024; i++) {
+        //     vps.test2_2(true);
+        // }
+        vps.test2_2(false);
+        // vps.test3();
+        // vps.test4();
+        // warmup
+        // for (int i = 1; i <= 1024; i++) {
+        //     vps.test4(true, 256);
+        // }
+        // vps.test4(false, 256);
+        // vps.test5(false, data_size, 256);
     }
 
     std::cout << "Load Elapsed Time: " << load_time << " ms" << std::endl;
