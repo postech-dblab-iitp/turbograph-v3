@@ -41,6 +41,7 @@ add_custom_command(
 add_custom_target(dwio_proto ALL DEPENDS ${PROTO_OUTPUT_FILES})
 
 add_library(velox_dwio_dwrf_proto ${PROTO_HDRS} ${PROTO_SRCS})
+target_include_directories(velox_dwio_dwrf_proto PUBLIC ${CMAKE_BINARY_DIR})
 
 # Access generated proto file with.
 #

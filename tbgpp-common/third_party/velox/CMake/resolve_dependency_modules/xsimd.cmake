@@ -13,11 +13,11 @@
 # limitations under the License.
 include_guard(GLOBAL)
 
-set(VELOX_XSIMD_VERSION 10.0.0)
+set(VELOX_XSIMD_VERSION 10.0.1)
 set(VELOX_XSIMD_BUILD_SHA256_CHECKSUM
-    73f818368b3a4dad92fab1b2933d93694241bd2365a6181747b2df1768f6afdd)
+d9535150dfd90e836045f013f89c616da4172ff31b727327b3d0e52ca06bf11d)
 set(VELOX_XSIMD_SOURCE_URL
-    "https://github.com/xtensor-stack/xsimd/archive/refs/tags/${VELOX_XSIMD_VERSION}.tar.gz"
+    "https://github.com/postech-dblab-iitp/xsimd/archive/refs/tags/${VELOX_XSIMD_VERSION}.tar.gz"
 )
 
 resolve_dependency_url(XSIMD)
