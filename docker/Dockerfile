@@ -67,7 +67,8 @@ RUN apt-get install -y \
 		libssl-dev \
 		bison \
 		flex \
-		libfmt-dev
+		libfmt-dev \
+  		libprotobuf-dev
 
 RUN apt-get install -y \
 		libgoogle-glog-dev \
