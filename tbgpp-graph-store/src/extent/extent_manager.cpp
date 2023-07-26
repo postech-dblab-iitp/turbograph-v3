@@ -164,14 +164,21 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
+            // New Implementation
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) // Accumulate the length of all strings
-                string_len_total += string_buffer[i].GetSize();
+
+             // Accumulate the length of all non-inlined strings
+            for (size_t i = 0; i < input.size(); i++)
+                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+
+            // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
                 string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
-                string_len_total += (input.size() * sizeof(uint64_t)); // string len field
+                string_len_total += (input.size() * sizeof(string_t)); // string len field
+
+            // Calculate the final size
             alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else if (l_type.id() == LogicalTypeId::LIST) {
             size_t list_len_total = 0;
@@ -211,27 +218,30 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
+                /* New implementation */
                 // Copy CompressionHeader
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
-                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint64_t);
+                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(string_t);
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
-                uint32_t string_len;
+                // For each string_t, write string_t and actual string if not inlined
                 uint64_t accumulated_string_len = 0;
-                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-
                 for (size_t i = 0; i < input.size(); i++) {
-                    accumulated_string_len += string_buffer[i].GetSize();
-                    memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
-                    string_len_offset += sizeof(uint64_t);
-                }
-
-                for (size_t i = 0; i < input.size(); i++) {
-                    string_len = string_buffer[i].GetSize();
-                    memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
-                    string_data_offset += string_len;
+                    string_t& str = string_buffer[i];
+                    if (str.IsInlined()) {
+                        memcpy(buf_ptr + string_len_offset, &str, sizeof(string_t));
+                    } else {
+                        // Copy string_t with offset
+                        string_t offset_str(str.GetSize(), accumulated_string_len);
+                        memcpy(buf_ptr + string_len_offset, &offset_str, sizeof(string_t));
+                        accumulated_string_len += str.GetSize();
+                        // Copy actual string
+                        memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
+                        string_data_offset += str.GetSize();
+                    }
+                    string_len_offset += sizeof(string_t);
                 }
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
