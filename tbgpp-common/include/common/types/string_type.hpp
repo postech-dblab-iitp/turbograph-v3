@@ -45,7 +45,7 @@ public:
 			value.pointer.ptr = (char *)data;
 		}
 	}
-	string_t(uint32_t len, uint64_t offset) {
+	string_t(const char *data, uint32_t len, uint64_t offset) {
 		D_ASSERT(IsInlined() == false);
 		value.offset.length = len;
 		value.offset.offset = offset;
@@ -80,6 +80,10 @@ public:
 
 	string GetString() const {
 		return string(GetDataUnsafe(), GetSize());
+	}
+
+	uint64_t GetOffset() const {
+		return value.offset.offset;
 	}
 
 	explicit operator string() const {
@@ -118,7 +122,7 @@ private:
 		struct {
 			uint32_t length;
 			char prefix[4];
-			uint64_t offset
+			uint64_t offset;
 		} offset;
 		struct {
 			uint32_t length;
