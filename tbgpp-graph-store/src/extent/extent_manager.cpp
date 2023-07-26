@@ -218,15 +218,15 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
                 comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
             } else {
-                /* New implementation */
                 // Copy CompressionHeader
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
                 size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(string_t);
-                CompressionHeader comp_header(UNCOMPRESSED, input_size);
+                CompressionHeader comp_header(UNCOMPRESSED, input_size, UNSWIZZLED);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
                 // For each string_t, write string_t and actual string if not inlined
+                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
                 uint64_t accumulated_string_len = 0;
                 for (size_t i = 0; i < input.size(); i++) {
                     string_t& str = string_buffer[i];
@@ -234,12 +234,13 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                         memcpy(buf_ptr + string_len_offset, &str, sizeof(string_t));
                     } else {
                         // Copy string_t with offset
-                        string_t offset_str(str.GetSize(), accumulated_string_len);
-                        memcpy(buf_ptr + string_len_offset, &offset_str, sizeof(string_t));
-                        accumulated_string_len += str.GetSize();
+                        auto size_without_offset = sizeof(string_t) - sizeof(char*);
+                        memcpy(buf_ptr + string_len_offset, &str, size_without_offset);
+                        memcpy(buf_ptr + string_len_offset + size_without_offset, &accumulated_string_len, sizeof(uint64_t));
                         // Copy actual string
                         memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
                         string_data_offset += str.GetSize();
+                        accumulated_string_len += str.GetSize();
                     }
                     string_len_offset += sizeof(string_t);
                 }

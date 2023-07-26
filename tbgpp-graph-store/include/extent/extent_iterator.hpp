@@ -10,6 +10,7 @@
 #include "common/types/data_chunk.hpp"
 #include "common/types/selection_vector.hpp"
 #include "extent/compression/compression_function.hpp"
+#include "extent/compression/compression_header.hpp"
 
 #include <limits>
 
