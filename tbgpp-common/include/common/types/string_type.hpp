@@ -45,6 +45,12 @@ public:
 			value.pointer.ptr = (char *)data;
 		}
 	}
+	string_t(uint32_t len, uint64_t offset) {
+		D_ASSERT(IsInlined() == false);
+		value.offset.length = len;
+		value.offset.offset = offset;
+		memcpy(value.offset.prefix, data, PREFIX_LENGTH);
+	}
 	string_t(const char *data) : string_t(data, strlen(data)) { // NOLINT: Allow implicit conversion from `const char*`
 	}
 	string_t(const string &value)
@@ -109,6 +115,11 @@ private:
 			char prefix[4];
 			char *ptr;
 		} pointer;
+		struct {
+			uint32_t length;
+			char prefix[4];
+			uint64_t offset
+		} offset;
 		struct {
 			uint32_t length;
 			char inlined[12];
