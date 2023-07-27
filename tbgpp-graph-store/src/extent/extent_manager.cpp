@@ -234,9 +234,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                         memcpy(buf_ptr + string_len_offset, &str, sizeof(string_t));
                     } else {
                         // Copy string_t with offset
-                        auto size_without_offset = sizeof(string_t) - sizeof(char*);
-                        memcpy(buf_ptr + string_len_offset, &str, size_without_offset);
-                        memcpy(buf_ptr + string_len_offset + size_without_offset, &accumulated_string_len, sizeof(uint64_t));
+                        string_t offset_str(str.GetDataUnsafe(), str.GetSize(), accumulated_string_len);
+                        memcpy(buf_ptr + string_len_offset, &offset_str, sizeof(string_t));
                         // Copy actual string
                         memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
                         string_data_offset += str.GetSize();

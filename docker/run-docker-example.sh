@@ -1,11 +1,13 @@
 #!/bin/bash
 
+# Example usage: ./run-docker-example.sh /mnt/md0/stlee_ldbc/tbgpp3-data/ /mnt/md0/tslee_ldbc/interactive
+
 # Parse user input
 
 # Target image
-IMAGE_NAME="tbgpp-v3-u20.04"
+IMAGE_NAME="turbograph-s62-0727"
 IMAGE_TAG="latest"
-CONTAINER_NAME="tbgppv3-docker-tslee"
+CONTAINER_NAME="turbograph-s62"
 
 # TODO override from user input
 SHARED_MEM_SIZE="100g"
@@ -26,7 +28,8 @@ SOURCE_DATA_DIR=$2
 	# e.g. https://github.com/docker-library/postgres/blob/master/12/bullseye/docker-entrypoint.sh
 
 	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
-docker run -itd \
+docker run -itd --cap-add SYS_ADMIN \
+	--cap-add SYS_PTRACE \
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
@@ -36,4 +39,4 @@ docker run -itd \
 	${IMAGE_NAME}:${IMAGE_TAG} \
 
 # TODO fix this.
-#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;"
+#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;":
