@@ -5,9 +5,9 @@
 # Parse user input
 
 # Target image
-IMAGE_NAME="tbgpp-v3-u20.04"
-IMAGE_TAG="sys"
-CONTAINER_NAME="tbgppv3-docker-tslee"
+IMAGE_NAME="turbograph-s62-0727"
+IMAGE_TAG="latest"
+CONTAINER_NAME="turbograph-s62"
 
 # TODO override from user input
 SHARED_MEM_SIZE="100g"
@@ -39,4 +39,4 @@ docker run -itd --cap-add SYS_ADMIN \
 	${IMAGE_NAME}:${IMAGE_TAG} \
 
 # TODO fix this.
-#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;"
+#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;":
