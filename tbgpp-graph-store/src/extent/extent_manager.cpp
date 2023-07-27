@@ -202,7 +202,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
-        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
+        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
         // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
 
         // Copy (or Compress and Copy) DataChunk
@@ -222,7 +222,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
                 size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(string_t);
-                CompressionHeader comp_header(UNCOMPRESSED, input_size, UNSWIZZLED);
+                CompressionHeader comp_header(UNCOMPRESSED, input_size, true);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
                 // For each string_t, write string_t and actual string if not inlined
