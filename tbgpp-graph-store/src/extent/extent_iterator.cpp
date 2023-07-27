@@ -406,37 +406,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
-                auto strings = FlatVector::GetData<string_t>(output.data[i]);
-                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                uint64_t string_offset, prev_string_offset;
-                size_t output_idx = 0;
-                for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
-                    prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                    string_offset = offset_arr[input_idx];                    
-                    strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                    output_idx++;
-                }
+                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + sizeof(string_t) * scan_begin_offset);
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
-            size_t offset_array_size = comp_header.data_len * type_size;
-            // Copy Offset Array
-            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
-            
-            // Prepare for copying data array
-            list_entry_t *list_buffer = (list_entry_t*) output.data[i].GetData();
-            size_t data_array_offset = list_buffer[0].offset;
-            size_t list_length = 0;
-            for (size_t input_idx = 0; input_idx < scan_end_offset - scan_begin_offset; input_idx++) {
-                list_length += list_buffer[input_idx].length;
-                list_buffer[input_idx].offset -= data_array_offset;
-            }
+            size_t data_array_offset = comp_header.data_len * type_size;
 
-            // Copy data array
-            Vector &child_vec = ListVector::GetEntry(output.data[i]);
-            ListVector::Reserve(output.data[i], list_length);
-            memcpy(child_vec.GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + data_array_offset, list_length);
+            ListVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size);
+            ListVector::SetChildData(output.data[i], io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + data_array_offset);
         } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
         } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
@@ -454,7 +431,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
+                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size);
             }
         }
     }
@@ -663,29 +640,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[prev_toggle][i] -  sizeof(CompressionHeader),
                                        output.data[output_idx], comp_header.data_len);
             } else {
-                auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader));
-                uint64_t prev_string_offset = matched_row_idx == 0 ? 0 : offset_arr[matched_row_idx - 1];
-                uint64_t string_offset = offset_arr[matched_row_idx];
-                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                strings[0] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[prev_toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + sizeof(string_t) * matched_row_idx);
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
-            size_t offset_array_size = comp_header.data_len * type_size;
-            // Copy Offset Array
-            memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size, type_size);
-            
-            // Prepare for copying data array
-            list_entry_t *list_buffer = (list_entry_t*) output.data[i].GetData();
-            size_t data_array_offset = list_buffer[0].offset;
-            size_t list_length = list_buffer[0].length;
-            list_buffer[0].offset = 0;
+            size_t data_array_offset = comp_header.data_len * type_size;
 
-            // Copy data array
-            Vector &child_vec = ListVector::GetEntry(output.data[i]);
-            ListVector::Reserve(output.data[i], list_length);
-            memcpy(child_vec.GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + offset_array_size + data_array_offset, list_length);
+            ListVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size);
+            ListVector::SetChildData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + data_array_offset);
         } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             // TODO we need to allocate buffer for adjlist
             // idx_t *adjListBase = (idx_t *)io_requested_buf_ptrs[prev_toggle][i];
@@ -713,7 +675,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[output_idx], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                memcpy(output.data[output_idx].GetData(), io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size, type_size);
+                FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + sizeof(CompressionHeader) + matched_row_idx * type_size);
             }
         }
         output_idx++;

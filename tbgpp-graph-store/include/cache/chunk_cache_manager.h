@@ -22,7 +22,7 @@ public:
   ~ChunkCacheManager();
 
   // ChunkCacheManager APIs
-  ReturnStatus PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async=false);
+  ReturnStatus PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async=false, bool is_initial_loading=false);
   ReturnStatus UnPinSegment(ChunkID cid);
   ReturnStatus SetDirty(ChunkID cid);
   ReturnStatus CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
@@ -44,8 +44,8 @@ public:
   void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
 
 private:
-  void SwizzleVarchar(uint8_t** ptr);
-  void UnswizzleVarchar(uint8_t** ptr);
+  void SwizzleVarchar(uint8_t* ptr);
+  void UnswizzleVarchar(uint8_t* ptr);
 
 public:
   // Member Variables
