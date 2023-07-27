@@ -53,7 +53,6 @@ public:
 
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
-    // bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, Value filterValue, vector<string> &output_properties, vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
                        vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);

@@ -306,6 +306,16 @@ struct ListVector {
 		}
 		return FlatVector::GetData<list_entry_t>(v);
 	}
+
+	static inline void SetData(Vector &vector, data_ptr_t data) {
+		vector.data = data;
+	}
+
+	static inline void SetChildData(Vector& vector, data_ptr_t data) {
+		Vector& vec = ListVector::GetEntry(vector);
+		FlatVector::SetData(vec, data);
+	}
+	
 	//! Gets a reference to the underlying child-vector of a list
 	DUCKDB_API static const Vector &GetEntry(const Vector &vector);
 	//! Gets a reference to the underlying child-vector of a list
