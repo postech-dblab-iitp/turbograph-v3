@@ -110,7 +110,7 @@ ChunkCacheManager::~ChunkCacheManager() {
   }
 }
 
-ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async) {
+ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
 // icecream::ic.enable();
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
@@ -153,6 +153,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       // IC();
       *size = segment_size - sizeof(size_t);
       // IC();
+      if(!is_initial_loading) SwizzleVarchar(*ptr);
     } else {
       // IC();
       // Create fail -> Subscribe object
@@ -169,6 +170,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       *size = segment_size - sizeof(size_t);
       // IC();
     }
+
     // icecream::ic.disable();
     return NOERROR;
   }
@@ -346,13 +348,13 @@ void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t req
   return target_ptr;
 }
 
-void ChunkCacheManager::SwizzleVarchar(uint8_t** ptr) {
+void ChunkCacheManager::SwizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
-  memcpy(&comp_header, *ptr, sizeof(CompressionHeader));
+  memcpy(&comp_header, ptr, sizeof(CompressionHeader));
 
-  // Check Swizzle State
-  D_ASSERT(comp_header.swizzle_state == SwizzleState::UNSWIZZLED);
+  // Check Swizzle Flag
+  if (!comp_header.swizzling_needed) return;
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
@@ -362,35 +364,31 @@ void ChunkCacheManager::SwizzleVarchar(uint8_t** ptr) {
   // Iterate over strings and swizzle
   for (int i = 0; i < size; i++) {
     // Get string
-    string_t& str = (reinterpret_cast<string_t*>(*ptr))[string_t_offset];
+    string_t& str = ((string_t *)(ptr + string_t_offset))[i];
 
     // Check not inlined
     if (!str.IsInlined()) {
       // Calculate address
       uint64_t offset = str.GetOffset();
-      uint8_t* address = *ptr + string_data_offset + offset;
+      uint8_t* address = ptr + string_data_offset + offset;
       
       // Replace offset to address
       size_t size_without_offset = sizeof(string_t) - sizeof(offset);
-      memcpy(*ptr + string_t_offset + size_without_offset, &address, sizeof(address));
+      memcpy(ptr + string_t_offset + size_without_offset, &address, sizeof(address));
     }
 
     // Update offset
     string_t_offset += sizeof(string_t);
   }
-
-  // Set swizzled
-  comp_header.swizzle_state = SwizzleState::SWIZZLED;
-  memcpy(*ptr, &comp_header, sizeof(CompressionHeader));
 }
 
-void ChunkCacheManager::UnswizzleVarchar(uint8_t** ptr) {
+void ChunkCacheManager::UnswizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
-  memcpy(&comp_header, *ptr, sizeof(CompressionHeader));
+  memcpy(&comp_header, ptr, sizeof(CompressionHeader));
 
-  // Check Swizzle State
-  D_ASSERT(comp_header.swizzle_state == SwizzleState::SWIZZLED);
+  // Check Swizzle Flag
+  if (!comp_header.swizzling_needed) return;
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
@@ -400,26 +398,22 @@ void ChunkCacheManager::UnswizzleVarchar(uint8_t** ptr) {
   // Iterate over strings and unswizzle
   for (int i = 0; i < size; i++) {
     // Get string
-    string_t& str = (reinterpret_cast<string_t*>(*ptr))[string_t_offset];
+    string_t& str = ((string_t *)(ptr + string_t_offset))[i];
 
     // Check not inlined
     if (!str.IsInlined()) {
       // Calculate offset
       auto str_ptr = str.GetDataUnsafe();
-      uint64_t offset = reinterpret_cast<uintptr_t>(str_ptr) - (reinterpret_cast<uintptr_t>(*ptr) + string_data_offset);
+      uint64_t offset = reinterpret_cast<uintptr_t>(str_ptr) - (reinterpret_cast<uintptr_t>(ptr) + string_data_offset);
 
       // Replace address to offset
       size_t size_without_address = sizeof(string_t) - sizeof(str_ptr);
-      memcpy(*ptr + string_t_offset + size_without_address, &offset, sizeof(offset));
+      memcpy(ptr + string_t_offset + size_without_address, &offset, sizeof(offset));
     }
 
     // Update offset
     string_t_offset += sizeof(string_t);
   }
-
-  // Set unswizzled
-  comp_header.swizzle_state = SwizzleState::UNSWIZZLED;
-  memcpy(*ptr, &comp_header, sizeof(CompressionHeader));
 }
 
 }

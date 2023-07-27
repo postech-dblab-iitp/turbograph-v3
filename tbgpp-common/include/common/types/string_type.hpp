@@ -46,10 +46,10 @@ public:
 		}
 	}
 	string_t(const char *data, uint32_t len, uint64_t offset) {
-		D_ASSERT(IsInlined() == false);
-		value.offset.length = len;
-		value.offset.offset = offset;
+		value.inlined.length = len;
 		memcpy(value.offset.prefix, data, PREFIX_LENGTH);
+		value.offset.offset = offset;
+		D_ASSERT(IsInlined() == false);
 	}
 	string_t(const char *data) : string_t(data, strlen(data)) { // NOLINT: Allow implicit conversion from `const char*`
 	}
