@@ -222,7 +222,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
                 size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(string_t);
-                CompressionHeader comp_header(UNCOMPRESSED, input_size, true);
+                CompressionHeader comp_header(UNCOMPRESSED, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
                 // For each string_t, write string_t and actual string if not inlined
@@ -233,9 +233,10 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                     if (str.IsInlined()) {
                         memcpy(buf_ptr + string_len_offset, &str, sizeof(string_t));
                     } else {
-                        // Copy string_t with offset
-                        string_t offset_str(str.GetDataUnsafe(), str.GetSize(), accumulated_string_len);
-                        memcpy(buf_ptr + string_len_offset, &offset_str, sizeof(string_t));
+                        // Calculate pointer address
+                        uint8_t* swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
+                        string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
+                        memcpy(buf_ptr + string_len_offset, &swizzled_str, sizeof(string_t));
                         // Copy actual string
                         memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
                         string_data_offset += str.GetSize();

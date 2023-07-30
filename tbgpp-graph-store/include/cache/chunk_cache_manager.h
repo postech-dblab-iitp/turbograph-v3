@@ -44,7 +44,9 @@ public:
   void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
 
 private:
+  void Swizzle(ChunkID cid, bool is_initial_loading, uint8_t* ptr);
   void SwizzleVarchar(uint8_t* ptr);
+  void Unswizzle(Turbo_bin_aio_handler* file_hander);
   void UnswizzleVarchar(uint8_t* ptr);
 
 public:

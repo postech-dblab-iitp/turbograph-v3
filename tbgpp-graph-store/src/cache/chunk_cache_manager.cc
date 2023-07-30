@@ -104,6 +104,10 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
+    bool is_swizzling;
+    client->GetSwizzling(file_handler.first, is_swizzling);
+    if (is_swizzling) Unswizzle(file_handler.second);
+
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
     file_handler.second->Close();
@@ -138,22 +142,18 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
     //}
 
     if (client->Create(cid, ptr, required_memory_size) == 0) {
-      // IC();
-      // TODO: Memory usage should be controlled in Lightning Create
-
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
       // IC();
-      
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
+      // IC();
+      Swizzle(cid, is_initial_loading, *ptr);
       // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
       // IC();
       *size = segment_size - sizeof(size_t);
-      // IC();
-      if(!is_initial_loading) SwizzleVarchar(*ptr);
     } else {
       // IC();
       // Create fail -> Subscribe object
@@ -170,7 +170,6 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       *size = segment_size - sizeof(size_t);
       // IC();
     }
-
     // icecream::ic.disable();
     return NOERROR;
   }
@@ -179,8 +178,6 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
   // IC();
   *size = segment_size - sizeof(size_t);
-  // IC();
-// icecream::ic.disable();
 
   return NOERROR;
 }
@@ -348,13 +345,16 @@ void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t req
   return target_ptr;
 }
 
+void ChunkCacheManager::Swizzle(ChunkID cid, bool is_initial_loading, uint8_t* ptr) {
+  bool is_swizzling;
+  client->GetSwizzling(cid, is_swizzling);
+  if(!is_initial_loading && is_swizzling) SwizzleVarchar(ptr);
+}
+
 void ChunkCacheManager::SwizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
   memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-
-  // Check Swizzle Flag
-  if (!comp_header.swizzling_needed) return;
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
@@ -381,13 +381,16 @@ void ChunkCacheManager::SwizzleVarchar(uint8_t* ptr) {
   }
 }
 
+void ChunkCacheManager::Unswizzle(Turbo_bin_aio_handler* file_hander) {
+  uint8_t* ptr = file_hander->GetDataPtr();
+  *ptr = *ptr + sizeof(size_t);
+  UnswizzleVarchar(ptr);
+}
+
 void ChunkCacheManager::UnswizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
   memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-
-  // Check Swizzle Flag
-  if (!comp_header.swizzling_needed) return;
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
