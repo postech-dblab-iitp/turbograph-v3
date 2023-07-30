@@ -297,6 +297,9 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
     LOGGED_WRITE(object->dirty_bit, 0, header_, disk_);
     // object->dirty_bit = 0;
 
+    LOGGED_WRITE(object->swizzling_bit, 0, header_, disk_);
+    // object->swizzling_bit = 0;
+
     *offset_ptr = object_buffer_offset;
     object_log_->OpenObject(object_id);
 
@@ -325,6 +328,9 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
 
   LOGGED_WRITE(new_object->dirty_bit, 0, header_, disk_);
   // object->dirty_bit = 0;
+
+  LOGGED_WRITE(new_object->swizzling_bit, 0, header_, disk_);
+  // object->swizzling_bit = 0;
 
   LOGGED_WRITE(new_object->sealed, false, header_, disk_);
   // new_object->sealed = false;
@@ -451,6 +457,64 @@ int LightningClient::GetDirty(uint64_t object_id, bool& is_dirty) {
   LOCK;
   disk_->BeginTx();
   int status = get_dirty_internal(object_id, is_dirty);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
+
+int LightningClient::set_swizzling_internal(uint64_t object_id) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    return -1;
+  }
+
+  LOGGED_WRITE(object_entry->swizzling_bit, 1, header_, disk_);
+
+  return 0;
+}
+
+int LightningClient::SetSwizzling(uint64_t object_id) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = set_swizzling_internal(object_id);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
+int LightningClient::get_swizzling_internal(uint64_t object_id, bool& is_swizzling) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    return -1;
+  }
+  
+  is_swizzling = object_entry->swizzling_bit;
+  return 0;
+}
+
+int LightningClient::GetSwizzling(uint64_t object_id, bool& is_swizzling) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = get_swizzling_internal(object_id, is_swizzling);
   disk_->CommitTx();
   UNLOCK;
   mpk_lock();
