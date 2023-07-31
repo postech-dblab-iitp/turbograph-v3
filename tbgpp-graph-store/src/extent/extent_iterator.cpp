@@ -801,20 +801,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
                 uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                // uint64_t *vids = (uint64_t *)input.data[nodeColIdx].GetData();
                 Vector &vids = input.data[nodeColIdx];
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
-                    // idx_t target_seqno = vids[seqno] & 0x00000000FFFFFFFF;
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    uint64_t string_offset = offset_arr[target_seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * sizeof(string_t)));
                 }
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
             size_t offset_array_size = comp_header.data_len * type_size;
+
+            D_ASSERT(false); /* zero copy for LIST is not implemented in this function */
 
             Vector &vids = input.data[nodeColIdx];
             size_t list_offset = 0;
@@ -1051,15 +1048,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    uint64_t string_offset = offset_arr[target_seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    strings[output_chunk_idx++] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * sizeof(string_t)));
                 }
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
             size_t offset_array_size = comp_header.data_len * type_size;
+
+            D_ASSERT(false); /* zero copy for LIST is not implemented in this function */
 
             Vector &vids = input.data[nodeColIdx];
             size_t list_offset = 0;
