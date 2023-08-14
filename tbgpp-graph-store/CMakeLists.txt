@@ -138,6 +138,7 @@ file(GLOB CATALOG_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory.cc"
   #"${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_shared_memory2.cc"
   "${PROJECT_SOURCE_DIR}/test/catalog/catalog_test_catalog_server.cpp"
+  "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
 )
 
 file(GLOB TILE_TEST_SRC
