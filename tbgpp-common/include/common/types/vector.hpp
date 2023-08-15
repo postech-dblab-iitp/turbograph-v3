@@ -165,6 +165,10 @@ public:
 		return buffer;
 	}
 
+	inline ValidityMask &GetValidity() {
+		return validity;
+	}
+
 	// Setters
 	DUCKDB_API void SetVectorType(VectorType vector_type);
 
