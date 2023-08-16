@@ -355,11 +355,12 @@ void ChunkCacheManager::SwizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
   memcpy(&comp_header, ptr, sizeof(CompressionHeader));
+  size_t comp_header_valid_size = comp_header.GetValidSize();
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
-  size_t string_t_offset = sizeof(CompressionHeader);
-  size_t string_data_offset = sizeof(CompressionHeader) + size * sizeof(string_t);
+  size_t string_t_offset = comp_header_valid_size;
+  size_t string_data_offset = comp_header_valid_size + size * sizeof(string_t);
 
   // Iterate over strings and swizzle
   for (int i = 0; i < size; i++) {
@@ -391,11 +392,12 @@ void ChunkCacheManager::UnswizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
   CompressionHeader comp_header;
   memcpy(&comp_header, ptr, sizeof(CompressionHeader));
+  size_t comp_header_valid_size = comp_header.GetValidSize();
 
   // Calculate Offsets
   size_t size = comp_header.data_len;
-  size_t string_t_offset = sizeof(CompressionHeader);
-  size_t string_data_offset = sizeof(CompressionHeader) + size * sizeof(string_t);
+  size_t string_t_offset = comp_header_valid_size;
+  size_t string_data_offset = comp_header_valid_size + size * sizeof(string_t);
 
   // Iterate over strings and unswizzle
   for (int i = 0; i < size; i++) {
