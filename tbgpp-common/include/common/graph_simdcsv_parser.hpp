@@ -21,6 +21,7 @@
 #include "mem_util.h"
 #include "portability.h"
 #include "icecream.hpp"
+#include "parallel/graph_partition.hpp"
 
 using namespace turbograph_simdcsv;
 
@@ -868,6 +869,9 @@ private:
     {"DECIMAL"  , LogicalType(LogicalTypeId::DECIMAL)},
     // {"ADJLIST"  , LogicalType(LogicalTypeId::ADJLISTCOLUMN)},
 	};
+
+public:
+  bool ReadVertexCSVFileUsingHash(GraphPartitioner* graphpartitioner, int32_t num_processes, std::vector<std::string> hash_columns);
 };
 
 } // namespace duckdb

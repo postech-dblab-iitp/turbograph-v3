@@ -17,7 +17,7 @@ project(turbograph-v3)
 #######################
 ### Set environment ###
 #######################
-set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -mavx -DTBB_ENABLE_IPO=OFF")
+set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -mavx")
 # set S62 Debug type and Orca Debug type same
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")

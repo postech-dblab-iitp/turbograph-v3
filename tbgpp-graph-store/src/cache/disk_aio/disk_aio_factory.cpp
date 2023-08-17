@@ -1,5 +1,6 @@
 #include "disk_aio_factory.hpp"
 #include <list>
+#include <omp.h>
 
 #ifndef INVALID_SET_FILE_POINTER
 #define INVALID_SET_FILE_POINTER ((DWORD)-1)
