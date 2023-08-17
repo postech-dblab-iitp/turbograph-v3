@@ -25,8 +25,8 @@ set(CMAKE_CXX_STANDARD 17)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 # dependencies - tbb
-include(cmake/FindTBB.cmake)
-find_package(TBB REQUIRED)
+#include(cmake/FindTBB.cmake)
+#find_package(TBB REQUIRED)
 
 # dependencies - boost
 #set(Boost_DEBUG 1)
