@@ -26,6 +26,7 @@ public:
 
 
     //tjyoon, for partitioning
+    //Essential arguments to form extent: 
     // void GenerateExtentFromChunkInBuffer(ClientContext &context, DataChunk& input, )
 
     // Add Index
