@@ -177,7 +177,7 @@ really_inline void flatten_bits(uint32_t *base_ptr, uint64_t &base,
 // Explanation: It slightly reduces cache misses, but that's probably irrelevant,
 // However, it seems to improve drastically the number of instructions per cycle.
 #define SIMDCSV_BUFFERING 
-bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) {
+inline bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) { //Made this "inline" to avoid multiple definition error. Does it matter?
   // does the previous iteration end inside a double-quote pair?
   uint64_t prev_iter_inside_quote = 0ULL;  // either all zeros or all ones
 #ifdef CRLF

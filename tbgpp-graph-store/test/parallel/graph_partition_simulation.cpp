@@ -1,5 +1,6 @@
 #include "parallel/graph_partition.hpp"
 #include <iostream>
+#include <mpi.h>
 
 int main(int argc, char** argv)
 {

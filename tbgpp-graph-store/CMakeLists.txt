@@ -26,6 +26,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 find_package(Catch2 REQUIRED)
+find_package(MPI REQUIRED)
 
 ####################################################
 # DECLARE TARGETS
@@ -105,6 +106,8 @@ target_include_directories( store PUBLIC
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
   "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
+  #partitioning
+  "${PROJECT_SOURCE_DIR}/include/parallel"
 )
 target_include_directories(store PUBLIC
 	# tbgpp-common
@@ -178,12 +181,13 @@ foreach(test_file ${TILE_TEST_SRC})
 endforeach(test_file ${TILE_TEST_SRC})
 
 foreach(test_file ${PARALLEL_TEST_SRC})
-  set(CMAKE_CXX_COMPILER mpic++)
+  set(CMAKE_CXX_COMPILER mpicxx)
   get_filename_component(prog_name ${test_file} NAME_WE)
   add_executable(${prog_name} ${test_file})
   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS}  -DTBB_ENABLE_IPO=OFF)
   target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
   target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib Catch2::Catch2WithMain -ltbb)
+  target_link_libraries(${prog_name} PUBLIC MPI::MPI_CXX)
 endforeach(test_file ${PARALLEL_TEST_SRC})
 set(CMAKE_CXX_COMPILER g++)
 

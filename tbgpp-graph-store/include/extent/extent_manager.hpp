@@ -24,6 +24,10 @@ public:
     void CreateExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID new_eid);
     void AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid);
 
+
+    //tjyoon, for partitioning
+    // void GenerateExtentFromChunkInBuffer(ClientContext &context, DataChunk& input, )
+
     // Add Index
     void AddIndex(ClientContext &context, DataChunk &input) {}
 

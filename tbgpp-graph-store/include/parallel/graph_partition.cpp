@@ -28,7 +28,7 @@ int GraphPartitioner::ProcessPartitioning(std::vector<std::string> hash_columns)
 {
     // duckdb::ReadVertexCSVFileUsingHash(this, ...);
 
-    // GenerateExtentFromChunk();
+    // GenerateExtentFromChunkInBuffer();
 
     // MPI_Allgather();
     // for(int32_t ...) {
