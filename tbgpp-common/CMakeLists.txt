@@ -104,6 +104,7 @@ target_link_libraries(tbgpp-common-lib
 	velox_link_libs
 	velox_dwio_dwrf_reader
 	velox_dwio_dwrf_writer)
+target_link_libraries(tbgpp-common-lib tbb)
 target_compile_options(tbgpp-common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-common-lib PUBLIC ${CXX_DEFINITION})
 
