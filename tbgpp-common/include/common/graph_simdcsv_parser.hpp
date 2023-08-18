@@ -21,7 +21,9 @@
 #include "mem_util.h"
 #include "portability.h"
 #include "icecream.hpp"
-#include "parallel/graph_partition.hpp"
+// #include "parallel/graph_partition.hpp"
+
+class GraphPartitioner;
 
 using namespace turbograph_simdcsv;
 

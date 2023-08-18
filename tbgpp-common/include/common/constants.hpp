@@ -96,6 +96,7 @@ typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 
 typedef uint64_t ChunkID;
+typedef uint32_t ProcessID; //TODO: apply this.
 
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;

@@ -79,6 +79,8 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
 )
 target_link_libraries(tbgpp-graph-store-lib tbgpp-common-lib)
 target_link_libraries(tbgpp-graph-store-lib tbgpp-main)
+target_link_libraries(tbgpp-graph-store-lib MPI::MPI_CXX)
+
 
 
 ####################################################
@@ -106,8 +108,6 @@ target_include_directories( store PUBLIC
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
   "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
-  #partitioning
-  "${PROJECT_SOURCE_DIR}/include/parallel"
 )
 target_include_directories(store PUBLIC
 	# tbgpp-common

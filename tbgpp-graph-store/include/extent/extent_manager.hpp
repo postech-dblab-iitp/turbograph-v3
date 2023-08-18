@@ -26,8 +26,7 @@ public:
 
 
     //tjyoon, for partitioning
-    //Essential arguments to form extent: 
-    // void GenerateExtentFromChunkInBuffer(ClientContext &context, DataChunk& input, )
+    void GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int64_t &buffer_allocated_count);
 
     // Add Index
     void AddIndex(ClientContext &context, DataChunk &input) {}

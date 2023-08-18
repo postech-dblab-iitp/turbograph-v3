@@ -12,6 +12,10 @@ int main(int argc, char** argv)
     std::vector<std::string> keynames;
     graphpartitioner.ProcessPartitioning(policy, keynames);
 
+    graphpartitioner.DistributePartitionedFile();
+
+    graphpartitioner.ClearPartitioner();
+
     MPI_Finalize();
     return 0;
 }
