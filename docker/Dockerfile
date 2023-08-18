@@ -49,10 +49,34 @@ RUN apt-get update
 
 # Essential libraries
 RUN apt-get install -y \
-        libtbb-dev \
-        libaio-dev \
-        numactl \
-        libnuma-dev
+		libtbb-dev \
+		libaio-dev \
+		numactl \
+		libnuma-dev
+
+# Install Velox Related Libraries
+RUN apt-get install -y \
+		liblz4-dev \
+		liblz4-tool \
+		liblzo2-dev \
+		liblzo2-2 \
+		libzstd-dev \
+		libsnappy-dev \
+		libdouble-conversion-dev \
+		libevent-dev \
+		libssl-dev \
+		bison \
+		flex \
+		libfmt-dev \
+  		libprotobuf-dev
+
+RUN apt-get install -y \
+		libgoogle-glog-dev \
+		libsodium-dev \
+		libre2-dev
+
+# (boost)
+RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
 
 # install xerces for installing orca
 RUN git clone https://github.com/greenplum-db/gp-xerces.git && \
