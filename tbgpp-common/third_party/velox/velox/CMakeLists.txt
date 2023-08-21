@@ -62,8 +62,8 @@ if(${VELOX_ENABLE_EXEC})
 endif()
 
 if(${VELOX_ENABLE_DUCKDB})
-  #add_subdirectory(duckdb)
-  #add_subdirectory(external/duckdb)
+  add_subdirectory(duckdb)
+  add_subdirectory(external/duckdb)
 endif()
 
 if(${VELOX_CODEGEN_SUPPORT})

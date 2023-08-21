@@ -57,11 +57,11 @@ set(VELOX_DEPENDENCY_SOURCE
       STRING
       "Default source for all dependencies with source builds enabled: AUTO SYSTEM BUNDLED."
 )
-option(VELOX_ENABLE_DUCKDB "Build duckDB to enable differential testing." OFF)
+option(VELOX_ENABLE_DUCKDB "Build duckDB to enable differential testing." ON)
 option(VELOX_ENABLE_EXEC "Build exec." ON)
 option(VELOX_ENABLE_AGGREGATES "Build aggregates." ON)
 option(VELOX_ENABLE_HIVE_CONNECTOR "Build Hive connector." ON)
-option(VELOX_ENABLE_TPCH_CONNECTOR "Build TPC-H connector." OFF)
+option(VELOX_ENABLE_TPCH_CONNECTOR "Build TPC-H connector." ON)
 option(VELOX_ENABLE_PRESTO_FUNCTIONS "Build Presto SQL functions." ON)
 option(VELOX_ENABLE_SPARK_FUNCTIONS "Build Spark SQL functions." ON)
 option(VELOX_ENABLE_EXPRESSION "Build expression." ON)
@@ -82,6 +82,9 @@ option(VELOX_ENABLE_CCACHE "Use ccache if installed." ON)
 option(VELOX_BUILD_TEST_UTILS "Builds Velox test utilities" ON)
 option(VELOX_BUILD_PYTHON_PACKAGE "Builds Velox Python bindings" OFF)
 option(VELOX_BUILD_BENCHMARKS "Builds Velox benchmarks" OFF)
+
+set(VELOX_ENABLE_DUCKDB ON)
+set(VELOX_ENABLE_TPCH_CONNECTOR ON)
 
 if(${VELOX_BUILD_MINIMAL})
   # Enable and disable components for velox base build

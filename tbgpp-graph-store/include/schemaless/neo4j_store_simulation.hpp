@@ -25,12 +25,14 @@
 #include "graph_simdcsv_parser.hpp"
 #include "schemaless/schema_hash_table.hpp"
 
+// #define USE_NONNULL_EXPRESSION // wrong result..
+
 namespace duckdb {
 
 #define NEO4J_NODE_RECORD_SIZE 15
 #define NEO4J_PROPERTY_RECORD_SIZE 41
 #define HASH_TABLE_SIZE 1000
-#define USE_HASH_TABLE
+// #define USE_HASH_TABLE
 
 enum class Neo4JTypeId : uint8_t {
     BOOL = 1,
@@ -475,14 +477,18 @@ public:
                     invalid_count_per_column[i]++;
                     continue;
                 }
-                if ((i == num_columns - 1) && (end_offset - start_offset == 1)) continue; // newline case
+                if ((i == num_columns - 1) && (end_offset - start_offset == 1)) { // newline, null case
+                    newChunk->data[i].SetValue(current_index, Value(key_types[i])); // Set null Value
+                    invalid_count_per_column[i]++;
+                    continue;
+                }
                 SetFullColumnValueFromCSV(key_types[i], newChunk, i, current_index, p, start_offset, end_offset);
             }
 
             current_index++;
             index_cursor += num_columns;
 		}
-        int64_t last_chunk_cardinality = (num_rows - 1) % STANDARD_VECTOR_SIZE;
+        int64_t last_chunk_cardinality = current_index;
         newChunk->SetCardinality(last_chunk_cardinality);
         node_store.Append(move(newChunk));
 
@@ -545,8 +551,7 @@ public:
     }
 
 // full columnar storage
-    void FullScanQuery(DataChunk &output) {
-        output.Initialize(key_types);
+    void FullScanQuery() {
         int total = 0;
         int64_t sum_int = 0;
         uint64_t sum_uint = 0;
@@ -567,11 +572,25 @@ public:
                             sum_int += cur_chunk_vec_ptr[i];
                         }
                     } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
+#ifdef USE_NONNULL_EXPRESSION
+#else
+                        auto &val_mask = FlatVector::Validity(vec);
+                        if (val_mask.AllValid()) {
+                            // we don't need nullity check
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                 sum_int += cur_chunk_vec_ptr[i];
                             }
+                        } else if (val_mask.CheckAllInValid()) {
+                            // skip this chunk
+                            continue;
+                        } else {
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                if (!FlatVector::IsNull(vec, i)) {
+                                    sum_int += cur_chunk_vec_ptr[i];
+                                }
+                            }
                         }
+#endif
                     }
                 } else if (key_types[colidx] == LogicalType::UBIGINT) {
                     uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
@@ -580,11 +599,25 @@ public:
                             sum_uint += cur_chunk_vec_ptr[i];
                         }
                     } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
+#ifdef USE_NONNULL_EXPRESSION
+#else
+                        auto &val_mask = FlatVector::Validity(vec);
+                        if (val_mask.AllValid()) {
+                            // we don't need nullity check
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                 sum_uint += cur_chunk_vec_ptr[i];
                             }
+                        } else if (val_mask.CheckAllInValid()) {
+                            // skip this chunk
+                            continue;
+                        } else {
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                if (!FlatVector::IsNull(vec, i)) {
+                                    sum_uint += cur_chunk_vec_ptr[i];
+                                }
+                            }
                         }
+#endif
                     }
                 } else if (key_types[colidx] == LogicalType::DOUBLE) {
                     double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
@@ -593,9 +626,20 @@ public:
                             sum_double += cur_chunk_vec_ptr[i];
                         }
                     } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
+                        auto &val_mask = FlatVector::Validity(vec);
+                        if (val_mask.AllValid()) {
+                            // we don't need nullity check
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                 sum_double += cur_chunk_vec_ptr[i];
+                            }
+                        } else if (val_mask.CheckAllInValid()) {
+                            // skip this chunk
+                            continue;
+                        } else {
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                if (!FlatVector::IsNull(vec, i)) {
+                                    sum_double += cur_chunk_vec_ptr[i];
+                                }
                             }
                         }
                     }
@@ -611,13 +655,29 @@ public:
                             }
                         }
                     } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
+                        auto &val_mask = FlatVector::Validity(vec);
+                        if (val_mask.AllValid()) {
+                            // we don't need nullity check
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                 auto str = ((string_t *)vec_data)[i];
                                 idx_t str_size = str.GetSize();
                                 const char *str_data = str.GetDataUnsafe();
                                 for (int64_t j = 0; j < str_size; j++) {
                                     sum_str += str_data[j];
+                                }
+                            }
+                        } else if (val_mask.CheckAllInValid()) {
+                            // skip this chunk
+                            continue;
+                        } else {
+                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                if (!FlatVector::IsNull(vec, i)) {
+                                    auto str = ((string_t *)vec_data)[i];
+                                    idx_t str_size = str.GetSize();
+                                    const char *str_data = str.GetDataUnsafe();
+                                    for (int64_t j = 0; j < str_size; j++) {
+                                        sum_str += str_data[j];
+                                    }
                                 }
                             }
                         }
@@ -778,8 +838,136 @@ public:
     }
 
     void TargetColScanQuery(int target_col) {
-        DataChunk output;
-        output.Initialize(key_types);
+        int total = 0;
+        int64_t sum_int = 0;
+        uint64_t sum_uint = 0;
+        double sum_double = 0.0;
+        uint8_t sum_str = 0;
+        // int a, b, c, d;
+        // a = b = c = d = 0;
+
+        for (int64_t chunkidx = 0; chunkidx < node_store.ChunkCount(); chunkidx++) {
+            DataChunk &cur_chunk = node_store.GetChunk(chunkidx);
+            auto colidx = target_col;
+            if (invalid_count_per_column[colidx] == num_tuples) continue; // full null column
+            const Vector &vec = cur_chunk.data[colidx];
+            if (key_types[colidx] == LogicalType::BIGINT) {
+                int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    // a++;
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_int += cur_chunk_vec_ptr[i];
+                    }
+                } else {
+#ifdef USE_NONNULL_EXPRESSION
+                    idx_t result_count = nonnull_expr_executor.SelectExpression(cur_chunk, sel_vec);
+                    if (result_count == cur_chunk.size()) {
+                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                            sum_int += cur_chunk_vec_ptr[i];
+                        }
+                    } else {
+                        for (int64_t i = 0; i < result_count; i++) {
+                            sum_int += cur_chunk_vec_ptr[sel_vec.get_index(i)];
+                        }
+                    }
+#else
+                    auto &val_mask = FlatVector::Validity(vec);
+                    if (val_mask.AllValid()) {
+                        // we don't need nullity check
+                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                            sum_int += cur_chunk_vec_ptr[i];
+                        }
+                    } else if (val_mask.CheckAllInValid()) {
+                        // skip this chunk
+                        continue;
+                    } else {
+                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                            if (!FlatVector::IsNull(vec, i)) {
+                                sum_int += cur_chunk_vec_ptr[i];
+                            }
+                        }
+                    }
+#endif
+                }
+            } else if (key_types[colidx] == LogicalType::UBIGINT) {
+                uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_uint += cur_chunk_vec_ptr[i];
+                    }
+                } else {
+#ifdef USE_NONNULL_EXPRESSION
+                    idx_t result_count = nonnull_expr_executor.SelectExpression(cur_chunk, sel_vec);
+                    if (result_count == cur_chunk.size()) {
+                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                            sum_uint += cur_chunk_vec_ptr[i];
+                        }
+                    } else {
+                        for (int64_t i = 0; i < result_count; i++) {
+                            sum_uint += cur_chunk_vec_ptr[sel_vec.get_index(i)];
+                        }
+                    }
+#else
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
+                            sum_uint += cur_chunk_vec_ptr[i];
+                        }
+                    }
+#endif
+                }
+            } else if (key_types[colidx] == LogicalType::DOUBLE) {
+                double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_double += cur_chunk_vec_ptr[i];
+                    }
+                } else {
+#ifdef USE_NONNULL_EXPRESSION
+#else
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
+                            sum_double += cur_chunk_vec_ptr[i];
+                        }
+                    }
+#endif
+                }
+            } else if (key_types[colidx] == LogicalType::VARCHAR) {
+                data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        auto str = ((string_t *)vec_data)[i];
+                        idx_t str_size = str.GetSize();
+                        const char *str_data = str.GetDataUnsafe();
+                        for (int64_t j = 0; j < str_size; j++) {
+                            sum_str += str_data[j];
+                        }
+                    }
+                } else {
+#ifdef USE_NONNULL_EXPRESSION
+#else
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
+                            auto str = ((string_t *)vec_data)[i];
+                            idx_t str_size = str.GetSize();
+                            const char *str_data = str.GetDataUnsafe();
+                            for (int64_t j = 0; j < str_size; j++) {
+                                sum_str += str_data[j];
+                            }
+                        }
+                    }
+#endif
+                }
+            } else {
+                D_ASSERT(false);
+            }
+        }
+        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d\n",
+            total, sum_int, sum_uint, sum_double, sum_str);
+        // fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d, a = %d, b = %d, c = %d, d = %d\n",
+        //     total, sum_int, sum_uint, sum_double, sum_str, a, b, c, d);
+    }
+
+    void TargetColRangeQuery(int target_col, int begin, int end) {
         int total = 0;
         int64_t sum_int = 0;
         uint64_t sum_uint = 0;
@@ -788,53 +976,61 @@ public:
 
         for (int64_t chunkidx = 0; chunkidx < node_store.ChunkCount(); chunkidx++) {
             DataChunk &cur_chunk = node_store.GetChunk(chunkidx);
-            for (int64_t colidx = 0; colidx < node_store.ColumnCount(); colidx++) {
-                if (colidx != target_col) continue;
-                if (invalid_count_per_column[colidx] == num_tuples) continue; // full null column
-                const Vector &vec = cur_chunk.data[colidx];
-                if (key_types[colidx] == LogicalType::BIGINT) {
-                    int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
-                    if (invalid_count_per_column[colidx] == 0) {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            sum_int += cur_chunk_vec_ptr[i];
-                        }
-                    } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
-                                sum_int += cur_chunk_vec_ptr[i];
-                            }
-                        }
+            int64_t colidx = target_col;
+            if (invalid_count_per_column[colidx] == num_tuples) continue; // full null column
+            const Vector &vec = cur_chunk.data[colidx];
+            if (key_types[colidx] == LogicalType::BIGINT) {
+                int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
+                idx_t result_count = expr_executor.SelectExpression(cur_chunk, sel_vec);
+                if (result_count == cur_chunk.size()) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_int += cur_chunk_vec_ptr[i];
                     }
-                } else if (key_types[colidx] == LogicalType::UBIGINT) {
-                    uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
-                    if (invalid_count_per_column[colidx] == 0) {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                } else {
+                    for (int64_t i = 0; i < result_count; i++) {
+                        sum_int += cur_chunk_vec_ptr[sel_vec.get_index(i)];
+                    }
+                }
+            } else if (key_types[colidx] == LogicalType::UBIGINT) {
+                uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_uint += cur_chunk_vec_ptr[i];
+                    }
+                } else {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
                             sum_uint += cur_chunk_vec_ptr[i];
                         }
-                    } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
-                                sum_uint += cur_chunk_vec_ptr[i];
-                            }
-                        }
                     }
-                } else if (key_types[colidx] == LogicalType::DOUBLE) {
-                    double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
-                    if (invalid_count_per_column[colidx] == 0) {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                }
+            } else if (key_types[colidx] == LogicalType::DOUBLE) {
+                double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        sum_double += cur_chunk_vec_ptr[i];
+                    }
+                } else {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
                             sum_double += cur_chunk_vec_ptr[i];
                         }
-                    } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
-                                sum_double += cur_chunk_vec_ptr[i];
-                            }
+                    }
+                }
+            } else if (key_types[colidx] == LogicalType::VARCHAR) {
+                data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
+                if (invalid_count_per_column[colidx] == 0) {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        auto str = ((string_t *)vec_data)[i];
+                        idx_t str_size = str.GetSize();
+                        const char *str_data = str.GetDataUnsafe();
+                        for (int64_t j = 0; j < str_size; j++) {
+                            sum_str += str_data[j];
                         }
                     }
-                } else if (key_types[colidx] == LogicalType::VARCHAR) {
-                    data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
-                    if (invalid_count_per_column[colidx] == 0) {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                } else {
+                    for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                        if (!FlatVector::IsNull(vec, i)) {
                             auto str = ((string_t *)vec_data)[i];
                             idx_t str_size = str.GetSize();
                             const char *str_data = str.GetDataUnsafe();
@@ -842,25 +1038,56 @@ public:
                                 sum_str += str_data[j];
                             }
                         }
-                    } else {
-                        for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                            if (!FlatVector::IsNull(vec, i)) {
-                                auto str = ((string_t *)vec_data)[i];
-                                idx_t str_size = str.GetSize();
-                                const char *str_data = str.GetDataUnsafe();
-                                for (int64_t j = 0; j < str_size; j++) {
-                                    sum_str += str_data[j];
-                                }
-                            }
-                        }
                     }
-                } else {
-                    D_ASSERT(false);
                 }
+            } else {
+                D_ASSERT(false);
             }
         }
-        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d\n",
-            total, sum_int, sum_uint, sum_double, sum_str);
+        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d, begin = %d, end = %d\n",
+            total, sum_int, sum_uint, sum_double, sum_str, begin, end);
+    }
+
+    void generateExpressionExecutor(int target_col, int begin, int end) {
+        vector<unique_ptr<Expression>> filter_exprs;
+        {
+            unique_ptr<Expression> filter_expr1;
+            filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::BIGINT, target_col),
+                                make_unique<BoundConstantExpression>(Value::BIGINT( begin ))
+                            );
+            unique_ptr<Expression> filter_expr2;
+            filter_expr2 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_LESSTHANOREQUALTO, 
+                                make_unique<BoundReferenceExpression>(LogicalType::BIGINT, target_col),
+                                make_unique<BoundConstantExpression>(Value::BIGINT( end ))
+                            );
+            filter_exprs.push_back(move(filter_expr1));
+            filter_exprs.push_back(move(filter_expr2));
+        }
+
+        auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+        for (auto &expr : filter_exprs) {
+            conjunction->children.push_back(move(expr));
+        }
+        expression = move(conjunction);
+        expr_executor.expressions.clear();
+        expr_executor.AddExpression(*expression);
+        if (sel_vec.data() == nullptr)
+            sel_vec.Initialize();
+    }
+
+    void generateNonNullExpressionExecutor(int target_col) {
+        unique_ptr<Expression> filter_expr1;
+        filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_NOTEQUAL, 
+                            make_unique<BoundReferenceExpression>(LogicalType::BIGINT, target_col),
+                            make_unique<BoundConstantExpression>(Value(LogicalType::BIGINT))
+                        );
+        
+        nonnull_expression = move(filter_expr1);
+        nonnull_expr_executor.expressions.clear();
+        nonnull_expr_executor.AddExpression(*nonnull_expression);
+        if (sel_vec.data() == nullptr)
+            sel_vec.Initialize();
     }
 
     void test4() {
@@ -1212,6 +1439,11 @@ public:
     ChunkCollection node_store;
 
     // ExpressionExecutor executor;
+    unique_ptr<Expression> expression;
+    ExpressionExecutor expr_executor;
+    unique_ptr<Expression> nonnull_expression;
+    ExpressionExecutor nonnull_expr_executor;
+    SelectionVector sel_vec;
 
     unordered_map<string, LogicalType> m {
         {"STRING", LogicalType(LogicalTypeId::VARCHAR)},
@@ -1443,7 +1675,11 @@ public:
                         invalid_count_per_column.back()[k]++;
                         continue;
                     }
-                    if ((colid == num_columns - 1) && (end_offset - start_offset == 1)) continue; // newline case
+                    if ((colid == num_columns - 1) && (end_offset - start_offset == 1)) { // newline, null case
+                        newChunk->data[k].SetValue(current_index, Value(key_types[colid])); // Set null Value
+                        invalid_count_per_column.back()[k]++;
+                        continue;
+                    }
                     SetFullColumnValueFromCSV(key_types[colid], newChunk, k, current_index, p, start_offset, end_offset);
                 }
                 current_index++;
@@ -1580,8 +1816,7 @@ public:
     }
 
 // partial columnar storage
-    void FullScanQuery(DataChunk &output) {
-        output.Initialize(key_types);
+    void FullScanQuery() {
         int total = 0;
         int64_t sum_int = 0;
         uint64_t sum_uint = 0;
@@ -1673,8 +1908,6 @@ public:
     }
 
     void TargetColScanQuery(int target_col) {
-        DataChunk output;
-        output.Initialize(key_types);
         int total = 0;
         int64_t sum_int = 0;
         uint64_t sum_uint = 0;
@@ -1888,6 +2121,7 @@ public:
                 if (key_it == key_map.end()) {
                     int64_t new_key_id = GetNewKeyVer();
                     key_map.insert(std::make_pair(key, new_key_id));
+                    id_to_key_map.insert(std::make_pair(new_key_id, key));
                 }
                 key_names.push_back(move(key));
                 key_types.push_back(move(type));
@@ -2013,18 +2247,25 @@ public:
     }
 
 // Neo4J
-    void FullScanQuery(DataChunk &output) {
+    void FullScanQuery() {
         int total = 0;
         int64_t sum_int = 0;
         uint64_t sum_uint = 0;
         double sum_double = 0;
         uint8_t sum_str = 0;
+        uint8_t sum_prop_key = 0;
 
         for (int64_t nodeidx = 0; nodeidx <= node_store.size(); nodeidx++) {
             uint32_t nextPropId = node_store[nodeidx].nextPropId;
 
             Neo4JProperty prop = property_store[nextPropId];
             int key = prop.b1 & 0xFFFFFF;
+            auto key_it = id_to_key_map.find(key);
+            assert(key_it != id_to_key_map.end());
+            string &key_str = key_it->second;
+            for (int i = 0; i < key_str.length(); i++) {
+                sum_prop_key += key_str.c_str()[i];
+            }
 
             uint64_t n_tid_64bit = (prop.b1 & 0xF000000) >> 24;
             Neo4JTypeId n_tid = (Neo4JTypeId) n_tid_64bit;
@@ -2043,6 +2284,12 @@ public:
             while (prop.next != std::numeric_limits<uint32_t>::max()) {
                 prop = property_store[prop.next];
                 key = prop.b1 & 0xFFFFFF;
+                auto key_it = id_to_key_map.find(key);
+                assert(key_it != id_to_key_map.end());
+                string &key_str = key_it->second;
+                for (int i = 0; i < key_str.length(); i++) {
+                    sum_prop_key += key_str.c_str()[i];
+                }
                 uint64_t n_tid_64bit = (prop.b1 & 0xF000000) >> 24;
                 Neo4JTypeId n_tid = (Neo4JTypeId) n_tid_64bit;
 
@@ -2059,8 +2306,8 @@ public:
                 }
             }
         }
-        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d\n",
-            total, sum_int, sum_uint, sum_double, sum_str);
+        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d, sum_prop_key = %d\n",
+            total, sum_int, sum_uint, sum_double, sum_str, sum_prop_key);
     }
 
     void TargetColScanQuery(int target_col) {
@@ -2118,6 +2365,70 @@ public:
             total, sum_int, sum_uint, sum_double, sum_str);
     }
 
+    void TargetColRangeQuery(int target_col, int begin, int end) {
+        int total = 0;
+        int64_t sum_int = 0;
+        uint64_t sum_uint = 0;
+        double sum_double = 0;
+        uint8_t sum_str = 0;
+
+        for (int64_t nodeidx = 0; nodeidx <= node_store.size(); nodeidx++) {
+            uint32_t nextPropId = node_store[nodeidx].nextPropId;
+
+            Neo4JProperty prop = property_store[nextPropId];
+            int key = prop.b1 & 0xFFFFFF;
+            if (key == target_col) {
+                uint64_t n_tid_64bit = (prop.b1 & 0xF000000) >> 24;
+                Neo4JTypeId n_tid = (Neo4JTypeId) n_tid_64bit;
+
+                if (n_tid == Neo4JTypeId::LONG) {
+                    auto target_val = (int64_t) prop.b2;
+                    if (target_val >= begin && target_val <= end) {
+                        sum_int += target_val;
+                    }
+                } else if (n_tid == Neo4JTypeId::DOUBLE) {
+                    auto target_val = (double) prop.b2;
+                    if (target_val >= begin && target_val <= end) {
+                        sum_double += target_val;
+                    }
+                } else if (n_tid == Neo4JTypeId::SHORT_STRING) {
+                    int str_len = (prop.b1 & 0x7E00000000) >> 33;
+                    uint8_t *str_ptr = ((uint8_t *)&prop.b1) + 5;
+                    for (int i = 0; i < str_len; i++) {
+                        sum_str += str_ptr[i];
+                    }
+                }
+                continue;
+            }
+            while (prop.next != std::numeric_limits<uint32_t>::max()) {
+                prop = property_store[prop.next];
+                key = prop.b1 & 0xFFFFFF;
+                if (key == target_col) {
+                    uint64_t n_tid_64bit = (prop.b1 & 0xF000000) >> 24;
+                    Neo4JTypeId n_tid = (Neo4JTypeId) n_tid_64bit;
+
+                    if (n_tid == Neo4JTypeId::LONG) {
+                        auto target_val = (int64_t) prop.b2;
+                        if (target_val >= begin && target_val <= end) {
+                            sum_int += target_val;
+                        }
+                    } else if (n_tid == Neo4JTypeId::DOUBLE) {
+                        sum_double += (double) prop.b2;
+                    } else if (n_tid == Neo4JTypeId::SHORT_STRING) {
+                        int str_len = (prop.b1 & 0x7E00000000) >> 33;
+                        uint8_t *str_ptr = ((uint8_t *)&prop.b1) + 5;
+                        for (int i = 0; i < str_len; i++) {
+                            sum_str += str_ptr[i];
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d\n",
+            total, sum_int, sum_uint, sum_double, sum_str);
+    }
+
 private:
     vector<Neo4JNode> node_store;
     vector<Neo4JProperty> property_store;
@@ -2141,6 +2452,7 @@ private:
     ParsedCSV pcsv;
     int64_t property_key_id_ver;
     unordered_map<string, int64_t> key_map;
+    unordered_map<int64_t, string> id_to_key_map;
     vector<int64_t> num_data_per_type;
 
     unordered_map<string, LogicalType> m {

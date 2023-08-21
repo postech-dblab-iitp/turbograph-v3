@@ -108,6 +108,17 @@ public:
 		return true;
 	}
 
+	inline bool CheckAllInValid(idx_t count = STANDARD_VECTOR_SIZE) const {
+		if (AllValid()) {
+			return false;
+		}
+		idx_t entry_count = ValidityBuffer::EntryCount(count);
+		for (idx_t i = 0; i < entry_count; i++) {
+			if (validity_mask[i] != 0) return false;
+		}
+		return true;
+	}
+
 	idx_t CountValid(const idx_t count) const {
 		if (AllValid() || count == 0) {
 			return count;

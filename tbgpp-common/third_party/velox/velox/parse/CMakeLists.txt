@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 add_library(velox_parse_expression Expressions.cpp)
 target_link_libraries(velox_parse_expression velox_type velox_parse_utils
                       velox_expression)

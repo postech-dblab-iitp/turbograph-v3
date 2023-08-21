@@ -242,8 +242,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                         string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
                         memcpy(buf_ptr + string_len_offset, &swizzled_str, sizeof(string_t));
                         // Copy actual string
-                        memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
-                        string_data_offset += str.GetSize();
+                        memcpy(buf_ptr + string_data_offset + accumulated_string_len, str.GetDataUnsafe(), str.GetSize());
                         accumulated_string_len += str.GetSize();
                     }
                     string_len_offset += sizeof(string_t);
