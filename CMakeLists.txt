@@ -39,6 +39,15 @@ add_subdirectory(tbgpp-client)
 set(CMAKE_C_COMPILER gcc) 
 set(CMAKE_CXX_COMPILER g++)
 
+####################
+### Set launcher ###
+####################
+find_program(CCACHE "ccache")
+if(CCACHE)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+endif(CCACHE)
+
 #########################
 ### Target > unittest ###
 #########################
