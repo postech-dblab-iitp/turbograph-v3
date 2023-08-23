@@ -33,6 +33,7 @@ add_library(tbgpp-main STATIC)
 target_include_directories(tbgpp-main PUBLIC
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/include/main"	
+	"${PROJECT_SOURCE_DIR}/include/connection"	
 )
 target_include_directories(tbgpp-main PUBLIC
 	# tbgpp-graph-store
@@ -89,6 +90,7 @@ target_compile_definitions(tbgpp-main PUBLIC ${CXX_DEFINITION})
 ####################################################
 file(GLOB CLIENT_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/TurboGraph-S62.cpp"
+  "${PROJECT_SOURCE_DIR}/test/connection_test.cpp"
   #"${PROJECT_SOURCE_DIR}/test/dump_s62_mda.cpp"
 )
 
