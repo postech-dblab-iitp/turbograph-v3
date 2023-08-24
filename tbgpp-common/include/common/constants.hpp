@@ -55,6 +55,9 @@ using std::make_shared;
 #define DEFAULT_EXTENT_PREFIX "ext_"
 #define DEFAULT_CHUNKDEFINITION_PREFIX "cdf_"
 
+#define TCP_MAX_FAIL_COUNT 5
+
+
 //! a saner size_t for loop indices etc
 typedef uint64_t idx_t;
 
@@ -96,7 +99,7 @@ typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 
 typedef uint64_t ChunkID;
-typedef uint32_t ProcessID; //TODO: apply this.
+typedef int32_t ProcessID; //This should not be unsigned due to MPI.
 
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;
@@ -104,6 +107,7 @@ extern const transaction_t MAXIMUM_QUERY_ID;
 extern const transaction_t NOT_DELETED_ID;
 
 extern const double PI;
+
 
 struct DConstants {
 	//! The value used to signify an invalid index entry

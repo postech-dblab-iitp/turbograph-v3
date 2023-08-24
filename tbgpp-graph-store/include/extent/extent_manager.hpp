@@ -26,7 +26,7 @@ public:
 
 
     //tjyoon, for partitioning
-    void GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int64_t &buffer_allocated_count);
+    void GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int32_t &buffer_allocated_count);
 
     // Add Index
     void AddIndex(ClientContext &context, DataChunk &input) {}

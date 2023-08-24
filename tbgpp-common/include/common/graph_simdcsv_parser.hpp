@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GRAPH_SIMDCSV_PARSER_H
+#define GRAPH_SIMDCSV_PARSER_H
 
 #include "common/common.hpp"
 #include "common/assert.hpp"
@@ -166,90 +167,8 @@ really_inline void flatten_bits(uint32_t *base_ptr, uint64_t &base,
   }
 }
 
-//
-// This optimization option might be helpful
-// When it is OFF:
-// $ ./simdcsv ../examples/nfl.csv
-// Cycles per byte 0.694172
-// GB/s: 4.26847
-// When it is ON:
-// $ ./simdcsv ../examples/nfl.csv
-// Cycles per byte 0.55007
-// GB/s: 5.29778
-// Explanation: It slightly reduces cache misses, but that's probably irrelevant,
-// However, it seems to improve drastically the number of instructions per cycle.
-#define SIMDCSV_BUFFERING 
-inline bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) { //Made this "inline" to avoid multiple definition error. Does it matter?
-  // does the previous iteration end inside a double-quote pair?
-  uint64_t prev_iter_inside_quote = 0ULL;  // either all zeros or all ones
-#ifdef CRLF
-  uint64_t prev_iter_cr_end = 0ULL; 
-#endif
-  size_t lenminus64 = len < 64 ? 0 : len - 64;
-  size_t idx = 0;
-  uint32_t *base_ptr = pcsv.indexes;
-  uint64_t base = 0;
-#ifdef SIMDCSV_BUFFERING
-  // we do the index decoding in bulk for better pipelining.
-#define SIMDCSV_BUFFERSIZE 4 // it seems to be about the sweetspot.
-  if(lenminus64 > 64 * SIMDCSV_BUFFERSIZE) {
-    uint64_t fields[SIMDCSV_BUFFERSIZE];
-    for (; idx < lenminus64 - 64 * SIMDCSV_BUFFERSIZE + 1; idx += 64 * SIMDCSV_BUFFERSIZE) {
-      for(size_t b = 0; b < SIMDCSV_BUFFERSIZE; b++){
-        size_t internal_idx = 64 * b + idx;
-#ifndef _MSC_VER
-        __builtin_prefetch(buf + internal_idx + 128);
-#endif
-        simd_input in = fill_input(buf+internal_idx);
-        uint64_t quote_mask = find_quote_mask(in, prev_iter_inside_quote);
-        uint64_t sep = cmp_mask_against_input(in, '|');
-#ifdef CRLF
-        uint64_t cr = cmp_mask_against_input(in, 0x0d);
-        uint64_t cr_adjusted = (cr << 1) | prev_iter_cr_end;
-        uint64_t lf = cmp_mask_against_input(in, 0x0a);
-        uint64_t end = lf & cr_adjusted;
-        prev_iter_cr_end = cr >> 63;
-#else
-        uint64_t end = cmp_mask_against_input(in, 0x0a);
-#endif
-        fields[b] = (end | sep) & ~quote_mask;
-      }
-      for(size_t b = 0; b < SIMDCSV_BUFFERSIZE; b++){
-        size_t internal_idx = 64 * b + idx;
-        flatten_bits(base_ptr, base, internal_idx, fields[b]);
-      }
-    }
-  }
-  // tail end will be unbuffered
-#endif // SIMDCSV_BUFFERING
-  for (; idx < lenminus64; idx += 64) {
-#ifndef _MSC_VER
-      __builtin_prefetch(buf + idx + 128);
-#endif
-      simd_input in = fill_input(buf+idx);
-      uint64_t quote_mask = find_quote_mask(in, prev_iter_inside_quote);
-      uint64_t sep = cmp_mask_against_input(in, '|');
-#ifdef CRLF
-      uint64_t cr = cmp_mask_against_input(in, 0x0d);
-      uint64_t cr_adjusted = (cr << 1) | prev_iter_cr_end;
-      uint64_t lf = cmp_mask_against_input(in, 0x0a);
-      uint64_t end = lf & cr_adjusted;
-      prev_iter_cr_end = cr >> 63;
-#else
-      uint64_t end = cmp_mask_against_input(in, 0x0a);
-#endif
-    // note - a bit of a high-wire act here with quotes
-    // we can't put something inside the quotes with the CR
-    // then outside the quotes with LF so it's OK to "and off"
-    // the quoted bits here. Some other quote convention would
-    // need to be thought about carefully
-      uint64_t field_sep = (end | sep) & ~quote_mask;
-      flatten_bits(base_ptr, base, idx, field_sep);
-  }
-#undef SIMDCSV_BUFFERSIZE
-  pcsv.n_indexes = base;
-  return true;
-}
+
+bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv);
 
 // inline Value CSVValToValue(csv::CSVField &val, LogicalType &type) {
 // 	switch (type.id()) {
@@ -519,7 +438,7 @@ public:
 
   size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
 #ifdef __AVX2__
-    fprintf(stdout, "AVX2 defined\n");
+    // fprintf(stdout, "AVX2 defined\n");
 #endif
     type = type_;
 
@@ -877,3 +796,5 @@ public:
 };
 
 } // namespace duckdb
+
+#endif

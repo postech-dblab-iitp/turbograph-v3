@@ -239,8 +239,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                         memcpy(buf_ptr + string_len_offset, &swizzled_str, sizeof(string_t));
                         // Copy actual string
                         memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
-                        string_data_offset += str.GetSize();
-                        accumulated_string_len += str.GetSize();
+                        string_data_offset += str.GetSize();        //This code has error. It should be
+                        accumulated_string_len += str.GetSize();  
                     }
                     string_len_offset += sizeof(string_t);
                 }
@@ -298,7 +298,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
     }
 }
 
-void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int64_t &buffer_allocated_count) { 
+void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int32_t &buffer_allocated_count) { 
 //Last 3 inputs should be initialized by caller.
 //This function read given DataChunk, allocate a buffer, and store the graph data in a buffer. 
 //TODO: All part about catalog is simply ignored. Need to discuss and add that part.
@@ -308,6 +308,7 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
     idx_t input_chunk_idx = 0;
     // ChunkDefinitionID cdf_id_base = new_eid;
     // cdf_id_base = cdf_id_base << 32;
+    D_ASSERT(buffer_allocated_ptr_list.size()==0 && buffer_allocated_size_list.size()==0 && buffer_allocated_count==0);
 
 
     for (auto &l_type : input.GetTypes()) {
@@ -338,21 +339,14 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
-            // New Implementation
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-
-             // Accumulate the length of all non-inlined strings
-            for (size_t i = 0; i < input.size(); i++)
-                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
-
-            // Accumulate the string_t array length
+            for (size_t i = 0; i < input.size(); i++) // Accumulate the length of all strings
+                string_len_total += string_buffer[i].GetSize();
             if (best_compression_function == DICTIONARY)
                 string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
-                string_len_total += (input.size() * sizeof(string_t)); // string len field
-
-            // Calculate the final size
+                string_len_total += (input.size() * sizeof(uint64_t)); // string len field
             alloc_buf_size = string_len_total + sizeof(CompressionHeader);
         } else if (l_type.id() == LogicalTypeId::LIST) {
             size_t list_len_total = 0;
@@ -380,6 +374,7 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
         // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
 
         buf_ptr = (uint8_t*)malloc(alloc_buf_size);
+        printf("allocated buffer, add=%p\n", buf_ptr);
         buffer_allocated_ptr_list.push_back((char*)buf_ptr);
         buffer_allocated_size_list.push_back(alloc_buf_size);
         buffer_allocated_count++;
@@ -400,28 +395,25 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
                 // Copy CompressionHeader
                 size_t input_size = input.size();
                 size_t string_len_offset = sizeof(CompressionHeader);
-                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(string_t);
+                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint64_t);
                 CompressionHeader comp_header(UNCOMPRESSED, input_size);
                 memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
-                // For each string_t, write string_t and actual string if not inlined
-                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+                uint32_t string_len;
                 uint64_t accumulated_string_len = 0;
+                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+                
+                //Below code is copied from dev/schemaless_impl branch. Do not perform swizzling.
                 for (size_t i = 0; i < input.size(); i++) {
-                    string_t& str = string_buffer[i];
-                    if (str.IsInlined()) {
-                        memcpy(buf_ptr + string_len_offset, &str, sizeof(string_t));
-                    } else {
-                        // Calculate pointer address
-                        uint8_t* swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
-                        string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
-                        memcpy(buf_ptr + string_len_offset, &swizzled_str, sizeof(string_t));
-                        // Copy actual string
-                        memcpy(buf_ptr + string_data_offset, str.GetDataUnsafe(), str.GetSize());
-                        string_data_offset += str.GetSize();
-                        accumulated_string_len += str.GetSize();
-                    }
-                    string_len_offset += sizeof(string_t);
+                    accumulated_string_len += string_buffer[i].GetSize();
+                    memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
+                    string_len_offset += sizeof(uint64_t);
+                }
+
+                for (size_t i = 0; i < input.size(); i++) {
+                    string_len = string_buffer[i].GetSize();
+                    memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
+                    string_data_offset += string_len;
                 }
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
@@ -475,7 +467,7 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
         // fprintf(stdout, "\t\tAppendChunk %ld -> %p size %ld, Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, buf_ptr, input.size(), chunk_duration.count(), chunk_compression_duration.count());
     }
-    assert(buffer_allocated_ptr_list.size() == buffer_allocated_count && buffer_allocated_size_list.size() == buffer_allocated_count);
+    D_ASSERT(buffer_allocated_ptr_list.size() == buffer_allocated_count && buffer_allocated_size_list.size() == buffer_allocated_count);
 }
 
 } // namespace duckdb
