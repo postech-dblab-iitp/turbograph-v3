@@ -74,6 +74,25 @@ int main(int argc, char** argv) {
     }
     std::cout << std::endl << std::endl;;
 
+    std::cout << "<<<Prepared Query>>>" << std::endl;
+
+    std::string query2("MATCH (n:Person {id: ?})-[r:IS_LOCATED_IN]->(p:Place) \
+		   RETURN \
+		   	n.firstName AS firstName, \
+			n.lastName AS lastName, \
+			n.birthday AS birthday, \
+			n.locationIP AS locationIP, \
+			n.browserUsed AS browserUsed, \
+			p.id AS cityId, \
+			n.gender AS gender, \
+			n.creationDate AS creationDate;");
+    duckdb::CypherPreparedStatement prepared_statement = conn.PrepareStatement(query2);
+    prepared_statement.setParam(1, 65);
+
+    size_t result_count;
+    conn.ExecuteStatement(prepared_statement, result_count);
+
+    std::cout << "Result count: " << result_count << std::endl;
 
     return 0;
 }

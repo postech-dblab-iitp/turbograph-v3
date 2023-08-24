@@ -164,4 +164,67 @@ void S62Connection::CompileQuery(std::string& query) {
 	planner->execute(bst);
 }
 
+CypherPreparedStatement S62Connection::PrepareStatement(std::string& query) {
+    return CypherPreparedStatement(query);
+}
+
+void S62Connection::ExecuteStatement(CypherPreparedStatement& prepared_statement, size_t& result_count) {
+    auto query = prepared_statement.getQuery();
+    CompileQuery(query);
+    auto executors = planner->genPipelineExecutors();
+    if (executors.size() == 0) { 
+        std::cout << "Plan empty" << std::endl; 
+        result_count = 0;
+        return;
+    }
+    else {
+        for( auto exec : executors ) { exec->ExecutePipeline(); }
+        std::cout << "Plan executed" << std::endl;
+        result_count = PrintResult(executors);
+    }
+}
+
+size_t S62Connection::PrintResult(vector<CypherPipelineExecutor*>& executors) {
+	int LIMIT = 10;
+    size_t num_total_tuples = 0;
+    auto& resultChunks = *(executors.back()->context->query_results);
+    for (auto &it : resultChunks) num_total_tuples += it->size();
+    std::cout << "===================================================" << std::endl;
+    std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+
+    if( LIMIT < num_total_tuples) {
+        std::cout << "Showing top " << LIMIT <<":" << std::endl;
+    } else {
+        std::cout << std::endl;
+    }
+
+    // Table t;
+    // t.layout(unicode_box_light_headerline());
+
+    // auto col_names = planner->getQueryOutputColNames();
+    // for( int i = 0; i < col_names.size(); i++ ) {
+    //     t << col_names[i] ;
+    // }
+    // t << endr;
+
+    // if (num_total_tuples != 0) {
+    //     int num_tuples_to_print;
+    //     for (int chunk_idx = 0; chunk_idx < resultChunks.size(); chunk_idx++) {
+    //         auto &chunk = resultChunks[chunk_idx];
+    //         num_tuples_to_print = std::min((int)(chunk->size()), LIMIT);
+    //         for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
+    //             for( int i = 0; i < chunk->ColumnCount(); i++ ) {
+    //                 t << chunk->GetValue(i, idx).ToString();
+    //             }
+    //             t << endr;
+    //         }
+    //         LIMIT -= num_tuples_to_print;
+    //         if (LIMIT == 0) break;
+    //     }
+    //     std::cout << t << std::endl;
+    // }
+    // std::cout << "===================================================" << std::endl;
+
+    return num_total_tuples;
+}
 }
