@@ -158,4 +158,18 @@ uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
 	return extent_ids.size();
 }
 
+void PropertySchemaCatalogEntry::InitializeAccumulators() {
+	for (auto prop_type: property_types) {
+		
+	}
+}
+
+void PropertySchemaCatalogEntry::AccumulateExtent(DataChunk &chunk) {
+
+}
+
+void PropertySchemaCatalogEntry::FinalizeAccumulators() {
+
+}
+
 } // namespace duckdb

@@ -9,9 +9,8 @@
 #include "common/exception.hpp"
 #include "common/string_util.hpp"
 #include "icecream.hpp"
-#include "extent/compression/compression_header.hpp"
 #include "common/types/string_type.hpp"
-
+#include "cache/cache_data_transformer.h"
 
 namespace duckdb {
 
@@ -104,9 +103,7 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    bool is_swizzling;
-    client->GetSwizzling(file_handler.first, is_swizzling);
-    if (is_swizzling) Unswizzle(file_handler.second);
+    CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
 
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
@@ -148,7 +145,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       // IC();
-      Swizzle(cid, is_initial_loading, *ptr);
+      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
       // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
@@ -343,78 +340,6 @@ void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t req
   *ptr = *ptr + sizeof(size_t);
 // IC();
   return target_ptr;
-}
-
-void ChunkCacheManager::Swizzle(ChunkID cid, bool is_initial_loading, uint8_t* ptr) {
-  bool is_swizzling;
-  client->GetSwizzling(cid, is_swizzling);
-  if(!is_initial_loading && is_swizzling) SwizzleVarchar(ptr);
-}
-
-void ChunkCacheManager::SwizzleVarchar(uint8_t* ptr) {
-  // Read Compression Header
-  CompressionHeader comp_header;
-  memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-
-  // Calculate Offsets
-  size_t size = comp_header.data_len;
-  size_t string_t_offset = sizeof(CompressionHeader);
-  size_t string_data_offset = sizeof(CompressionHeader) + size * sizeof(string_t);
-
-  // Iterate over strings and swizzle
-  for (int i = 0; i < size; i++) {
-    // Get string
-    string_t& str = *((string_t *)(ptr + string_t_offset));
-
-    // Check not inlined
-    if (!str.IsInlined()) {
-      // Calculate address
-      uint64_t offset = str.GetOffset();
-      uint8_t* address = ptr + string_data_offset + offset;
-      
-      // Replace offset to address
-      size_t size_without_offset = sizeof(string_t) - sizeof(offset);
-      memcpy(ptr + string_t_offset + size_without_offset, &address, sizeof(address));
-    }
-
-    string_t_offset += sizeof(string_t);
-  }
-}
-
-void ChunkCacheManager::Unswizzle(Turbo_bin_aio_handler* file_hander) {
-  uint8_t* ptr = file_hander->GetDataPtr();
-  *ptr = *ptr + sizeof(size_t);
-  UnswizzleVarchar(ptr);
-}
-
-void ChunkCacheManager::UnswizzleVarchar(uint8_t* ptr) {
-  // Read Compression Header
-  CompressionHeader comp_header;
-  memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-
-  // Calculate Offsets
-  size_t size = comp_header.data_len;
-  size_t string_t_offset = sizeof(CompressionHeader);
-  size_t string_data_offset = sizeof(CompressionHeader) + size * sizeof(string_t);
-
-  // Iterate over strings and unswizzle
-  for (int i = 0; i < size; i++) {
-    // Get string
-    string_t& str = *((string_t *)(ptr + string_t_offset));
-
-    // Check not inlined
-    if (!str.IsInlined()) {
-      // Calculate offset
-      auto str_data_ptr = str.GetDataUnsafe();
-      uint64_t offset = reinterpret_cast<uintptr_t>(str_data_ptr) - (reinterpret_cast<uintptr_t>(ptr + string_data_offset));
-
-      // Replace address to offset
-      size_t size_without_address = sizeof(string_t) - sizeof(str_data_ptr);
-      memcpy(ptr + string_t_offset + size_without_address, &offset, sizeof(offset));
-    }
-
-    string_t_offset += sizeof(string_t);
-  }
 }
 
 }

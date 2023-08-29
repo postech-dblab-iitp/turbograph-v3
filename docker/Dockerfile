@@ -68,7 +68,8 @@ RUN apt-get install -y \
 		bison \
 		flex \
 		libfmt-dev \
-  		libprotobuf-dev
+  		libprotobuf-dev \
+		ccache
 
 RUN apt-get install -y \
 		libgoogle-glog-dev \

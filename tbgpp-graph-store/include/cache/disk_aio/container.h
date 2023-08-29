@@ -199,7 +199,7 @@ class fifo_queue: public queue_interface<T> {
 
 	virtual int add(fifo_queue<T> *queue) {
 		int idx = (int) (loc_in_queue(end));
-		int length = min(get_size() - idx, get_num_remaining());
+		int length = ::min(get_size() - idx, get_num_remaining());
 		int num_added = 0;
 		int num = queue->fetch(buf + idx, length);
 		end += num;
@@ -652,7 +652,7 @@ int blocking_FIFO_queue<T>::add_partial(fifo_queue<T> *queue, int min_added) {
 		        && this->get_size() < max_size) {
 			int new_size = this->get_size() * 2;
 			new_size = max(new_size, fifo_queue<T>::get_num_entries() + num);
-			new_size = min(new_size, max_size);
+			new_size = ::min(new_size, max_size);
 #ifdef DEBUG
 			printf("try to expand queue %s to %d\n", name.c_str(), new_size);
 #endif
