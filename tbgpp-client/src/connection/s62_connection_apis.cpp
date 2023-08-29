@@ -1,4 +1,4 @@
-#include "connection/s62_connection.hpp"
+#include "connection/s62_connection_apis.hpp"
 #include "main/database.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "catalog/catalog_wrapper.hpp"
@@ -22,29 +22,29 @@ typedef vector<PartitionIndexes> PartitionIndexesList;
 typedef vector<std::string> Labels;
 typedef vector<std::string> Types;
 
-S62Connection::S62Connection(std::string& workspace) {
+S62ConnectionAPIs::S62ConnectionAPIs(std::string& workspace) {
     SetupDefaultConfig();
 	config.WORKSPACE = workspace;
     SetupDatabase();
 }
 
-S62Connection::S62Connection(DiskAioParameters& config): config(config) {
+S62ConnectionAPIs::S62ConnectionAPIs(DiskAioParameters& config): config(config) {
     SetupDatabase();
 }
 
-S62Connection::~S62Connection(){
+S62ConnectionAPIs::~S62ConnectionAPIs(){
   	delete ChunkCacheManager::ccm;
     std::cout << "Database Disconnected" << std::endl;
 }
 
-void S62Connection::SetupDefaultConfig() {
+void S62ConnectionAPIs::SetupDefaultConfig() {
     config.NUM_THREADS = 1;
     config.NUM_TOTAL_CPU_CORES = 1;
     config.NUM_CPU_SOCKETS = 1;
     config.NUM_DISK_AIO_THREADS = config.NUM_CPU_SOCKETS * 2;
 }
 
-void S62Connection::SetupDatabase() {
+void S62ConnectionAPIs::SetupDatabase() {
     // create disk aio factory
     int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
@@ -69,7 +69,7 @@ void S62Connection::SetupDatabase() {
     std::cout << "Database Connected" << std::endl;
 }
 
-void S62Connection::GetNodesMetadata(NodeMetadataList& node_metadata_list) {
+void S62ConnectionAPIs::GetNodesMetadata(NodeMetadataList& node_metadata_list) {
     // Get graph catalog
     ClientContext& client_context = *(client.get());
     Catalog& catalog = client->db->GetCatalog();
@@ -93,6 +93,7 @@ void S62Connection::GetNodesMetadata(NodeMetadataList& node_metadata_list) {
         auto& vertex_label = vertex_labels[i];
         auto& node_metadata = node_metadata_list[i];
         auto& partition_indexes = vertex_partition_indexes_list[i];
+        node_metadata.SetLabelName(vertex_label);
         for (auto& partition_index: partition_indexes) { // assume size of 1
             PartitionCatalogEntry* partition_cat_entry = (PartitionCatalogEntry*) catalog.GetEntry(client_context, DEFAULT_SCHEMA, partition_index);
             node_metadata.SetPropertyNames(partition_cat_entry->global_property_key_names);
@@ -101,7 +102,7 @@ void S62Connection::GetNodesMetadata(NodeMetadataList& node_metadata_list) {
     }
 }
 
-void S62Connection::GetEdgesMetadata(EdgeMetadataList& edge_metadata_list) {
+void S62ConnectionAPIs::GetEdgesMetadata(EdgeMetadataList& edge_metadata_list) {
     
     // Get graph catalog
     ClientContext& client_context = *(client.get());
@@ -126,6 +127,7 @@ void S62Connection::GetEdgesMetadata(EdgeMetadataList& edge_metadata_list) {
         auto& edge_type = edge_types[i];
         auto& edge_metadata = edge_metadata_list[i];
         auto& partition_indexes = edge_partition_indexes_list[i];
+        edge_metadata.SetTypeName(edge_type);
         for (auto& partition_index: partition_indexes) { // assume size of 1
             PartitionCatalogEntry* partition_cat_entry = (PartitionCatalogEntry*) catalog.GetEntry(client_context, DEFAULT_SCHEMA, partition_index);
             edge_metadata.SetPropertyNames(partition_cat_entry->global_property_key_names);
@@ -134,20 +136,7 @@ void S62Connection::GetEdgesMetadata(EdgeMetadataList& edge_metadata_list) {
     }
 }
 
-void S62Connection::GetQueryResultsMetadata(std::string& query, QueryResultSetMetadata& query_result_set_metadata) {
-    CompileQuery(query);
-    auto executors = planner->genPipelineExecutors();
-    if (executors.size() == 0) { std::cout << "Plan empty" << std::endl; return; }
-    else {
-        auto& output_schema = executors[executors.size()-1]->pipeline->GetSink()->schema;
-        auto stored_names = output_schema.getStoredColumnNames();
-        auto stored_types = output_schema.getStoredTypes();
-        query_result_set_metadata.SetPropertyNames(stored_names);
-        query_result_set_metadata.SetPropertySQLTypes(stored_types);
-    }
-}
-
-void S62Connection::CompileQuery(std::string& query) {
+void S62ConnectionAPIs::CompileQuery(std::string& query) {
     auto inputStream = ANTLRInputStream(query);
     auto cypherLexer = CypherLexer(&inputStream);
     auto tokens = CommonTokenStream(&cypherLexer);
@@ -164,27 +153,33 @@ void S62Connection::CompileQuery(std::string& query) {
 	planner->execute(bst);
 }
 
-CypherPreparedStatement S62Connection::PrepareStatement(std::string& query) {
-    return CypherPreparedStatement(query);
+std::unique_ptr<CypherPreparedStatement> S62ConnectionAPIs::PrepareStatement(std::string& query) {
+    return std::make_unique<CypherPreparedStatement>(query);
 }
 
-void S62Connection::ExecuteStatement(CypherPreparedStatement& prepared_statement, size_t& result_count) {
-    auto query = prepared_statement.getQuery();
+void S62ConnectionAPIs::ExecuteStatement(std::string& query, QueryResultSetMetadata& query_result_set_metadata) {
     CompileQuery(query);
     auto executors = planner->genPipelineExecutors();
     if (executors.size() == 0) { 
         std::cout << "Plan empty" << std::endl; 
-        result_count = 0;
+        query_result_set_metadata.SetResultSetSize(0);
         return;
     }
     else {
         for( auto exec : executors ) { exec->ExecutePipeline(); }
+        std::cout << "Storing metadata" << std::endl;
+        auto& output_schema = executors[executors.size()-1]->pipeline->GetSink()->schema;
+        auto stored_names = output_schema.getStoredColumnNames();
+        auto stored_types = output_schema.getStoredTypes();
+        query_result_set_metadata.SetPropertyNames(stored_names);
+        query_result_set_metadata.SetPropertySQLTypes(stored_types);
+
         std::cout << "Plan executed" << std::endl;
-        result_count = PrintResult(executors);
+        query_result_set_metadata.SetResultSetSize(PrintResult(executors));
     }
 }
 
-size_t S62Connection::PrintResult(vector<CypherPipelineExecutor*>& executors) {
+size_t S62ConnectionAPIs::PrintResult(vector<CypherPipelineExecutor*>& executors) {
 	int LIMIT = 10;
     size_t num_total_tuples = 0;
     auto& resultChunks = *(executors.back()->context->query_results);

@@ -16,16 +16,15 @@ class DuckDB;
 class ClientContext;
 class CypherPipelineExecutor;
 
-class S62Connection {
+class S62ConnectionAPIs {
 public:
-    S62Connection(std::string& workspace);
-	S62Connection(DiskAioParameters& config);
-    ~S62Connection();
+    S62ConnectionAPIs(std::string& workspace);
+	S62ConnectionAPIs(DiskAioParameters& config);
+    ~S62ConnectionAPIs();
 	void GetNodesMetadata(NodeMetadataList& node_metadata_list);
 	void GetEdgesMetadata(EdgeMetadataList& edge_metadata_list);
-	void GetQueryResultsMetadata(std::string& query, QueryResultSetMetadata& query_result_set_metadata);
-    CypherPreparedStatement PrepareStatement(std::string& query);
-    void ExecuteStatement(CypherPreparedStatement& prepared_statement, size_t& result_count);
+    std::unique_ptr<CypherPreparedStatement> PrepareStatement(std::string& query);
+    void ExecuteStatement(std::string& query, QueryResultSetMetadata& query_result_set_metadata);
 
 private:
     void SetupDefaultConfig();

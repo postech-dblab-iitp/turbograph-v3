@@ -14,6 +14,7 @@ typedef string PropertySQLType;
 typedef vector<PropertyName> PropertyNames;
 typedef vector<PropertySQLType> PropertySQLTypes;
 typedef vector<duckdb::LogicalType> LogicalTypes;
+typedef size_t ResultSetSize;
 
 namespace duckdb {
     namespace MetadataUtils {
@@ -84,8 +85,13 @@ struct EdgeMetadata {
 typedef vector<EdgeMetadata> EdgeMetadataList;
 
 struct QueryResultSetMetadata {
+    ResultSetSize result_set_size;
     PropertyNames property_names;
     PropertySQLTypes property_types;
+
+    void SetResultSetSize(ResultSetSize result_set_size_) {
+        result_set_size = result_set_size_;
+    }
 
     void SetPropertyNames(PropertyNames& stored_names) {
         property_names.reserve(stored_names.size());

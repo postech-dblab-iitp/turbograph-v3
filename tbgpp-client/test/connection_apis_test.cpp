@@ -1,9 +1,9 @@
 #include <iostream>
-#include "connection/s62_connection.hpp"
+#include "connection/s62_connection_apis.hpp"
 
 int main(int argc, char** argv) {
     std::string workspace("/data");
-    duckdb::S62Connection conn(workspace);
+    duckdb::S62ConnectionAPIs conn(workspace);
 
     std::cout << "\n<<<Node metadata>>>" << std::endl;
     
@@ -45,10 +45,9 @@ int main(int argc, char** argv) {
         std::cout << std::endl << std::endl;
     }
 
-    std::cout << "<<<Query result set metadata>>>" << std::endl;
+    std::cout << "<<<Prepared Query Execution>>>" << std::endl;
 
-    duckdb::QueryResultSetMetadata result_set_metadata;
-    std::string query("MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place) \
+    std::string query("MATCH (n:Person {id: ?})-[r:IS_LOCATED_IN]->(p:Place) \
 		   RETURN \
 		   	n.firstName AS firstName, \
 			n.lastName AS lastName, \
@@ -58,41 +57,25 @@ int main(int argc, char** argv) {
 			p.id AS cityId, \
 			n.gender AS gender, \
 			n.creationDate AS creationDate;");
-    conn.GetQueryResultsMetadata(query, result_set_metadata);
+    auto prepared_statement = conn.PrepareStatement(query);
+    prepared_statement->setParam(1, 65);
 
-    // Print column names
+    duckdb::QueryResultSetMetadata result_set_metadata;
+    size_t result_count;
+    std::string final_query = prepared_statement->getQuery();
+    conn.ExecuteStatement(final_query, result_set_metadata);
+
+    std::cout << "Result count: " << result_set_metadata.result_set_size << std::endl;
     std::cout << "Column names: ";
     for (auto& column_name: result_set_metadata.property_names) {
         std::cout << column_name << " ";
     }
     std::cout << std::endl;
-
-    // Pritn column types
     std::cout << "Column types: ";
     for (auto& column_type: result_set_metadata.property_types) {
         std::cout << column_type << " ";
     }
     std::cout << std::endl << std::endl;;
-
-    std::cout << "<<<Prepared Query>>>" << std::endl;
-
-    std::string query2("MATCH (n:Person {id: ?})-[r:IS_LOCATED_IN]->(p:Place) \
-		   RETURN \
-		   	n.firstName AS firstName, \
-			n.lastName AS lastName, \
-			n.birthday AS birthday, \
-			n.locationIP AS locationIP, \
-			n.browserUsed AS browserUsed, \
-			p.id AS cityId, \
-			n.gender AS gender, \
-			n.creationDate AS creationDate;");
-    duckdb::CypherPreparedStatement prepared_statement = conn.PrepareStatement(query2);
-    prepared_statement.setParam(1, 65);
-
-    size_t result_count;
-    conn.ExecuteStatement(prepared_statement, result_count);
-
-    std::cout << "Result count: " << result_count << std::endl;
 
     return 0;
 }
