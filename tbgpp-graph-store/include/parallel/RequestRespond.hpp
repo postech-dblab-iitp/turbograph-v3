@@ -41,6 +41,7 @@
 #include <omp.h>
 #include <mpi.h>
 
+#include "common/assert.hpp"
 #include "common/common.hpp"
 #include "common/types.hpp"
 #include "parallel/concurrentqueue.h"
@@ -51,9 +52,12 @@
 #include "tbb/concurrent_queue.h"
 #include "TwoLevelBitMap.hpp"
 #include "cache/disk_aio/eXDB_dist_internal.hpp"
+#include "parallel/Aio_Helper.hpp"
 
 #define DEFAULT_NUM_GENERAL_TCP_CONNECTIONS 8 //This was in Global.h but I moved to here.
 #define PER_THREAD_BUFF_SIZE (840*1024)
+#define DEFAULT_NIO_BUFFER_SIZE (11*105*1024)
+#define DEFAULT_NIO_THREADS 24
 
 
 enum RequestType {
@@ -69,6 +73,7 @@ enum RequestType {
 	// NewAdjListBatchIo = 11,
 	// NewAdjListBatchIoData = 12,
 	// SequentialVectorRead = 15,
+	PartitionedExtentRead = 16,
 	Exit = 99999999,
 
 };

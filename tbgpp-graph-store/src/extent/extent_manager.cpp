@@ -470,4 +470,6 @@ void ExtentManager::GenerateExtentFromChunkInBuffer(DataChunk& input, std::vecto
     D_ASSERT(buffer_allocated_ptr_list.size() == buffer_allocated_count && buffer_allocated_size_list.size() == buffer_allocated_count);
 }
 
+void ExtentManager::GenerateExtentFromChunkToSend(*datachunks[proc_idx][chunk_idx] )
+
 } // namespace duckdb

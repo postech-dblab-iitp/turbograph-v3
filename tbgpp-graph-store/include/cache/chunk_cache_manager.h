@@ -57,6 +57,6 @@ public:
   //Turbo_bin_aio_handler file_handler;
 };
 
-#endif // CHUNK_CACHE_MANAGER_H
 
 }
+#endif // CHUNK_CACHE_MANAGER_H

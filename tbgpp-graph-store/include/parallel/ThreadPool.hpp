@@ -18,6 +18,7 @@
 #include "common/common.hpp"
 #include "parallel/util.hpp"
 #include "turbo_dist_internal.hpp"
+#include "common/assert.hpp"
 
 #define PRINT_CPU_AFFINITY 0
 

@@ -1,6 +1,6 @@
 #include <iomanip>
 #include <stdarg.h>
-#include "turbo_dist_internal.hpp"
+#include "parallel/turbo_dist_internal.hpp"
 
 duckdb::PartitionID num_partitions__ = -1;
 duckdb::PartitionID my_partition_id__ = 0;
@@ -24,16 +24,16 @@ void PartitionStatistics::init() {
 }
 
 void  PartitionStatistics::close() {
-	per_partition_num_nodes_.close();
-	per_machine_first_node_id_.close();
-	per_machine_last_node_id_.close();
+	// per_partition_num_nodes_.close();
+	// per_machine_first_node_id_.close();
+	// per_machine_last_node_id_.close();
 
-	for (auto& timer: per_partition_timers_) {
-		timer.close();
-	}
-	for (auto& timer: per_partition_minor_timers_) {
-		timer.close();
-	}
+	// for (auto& timer: per_partition_timers_) {
+	// 	timer.close();
+	// }
+	// for (auto& timer: per_partition_minor_timers_) {
+	// 	timer.close();
+	// }
 }
 
 duckdb::PartitionID& PartitionStatistics::num_machines() {
@@ -94,7 +94,7 @@ void LocalStatistics::register_mem_alloc_info(const char* name, int64_t MBytes) 
         //mem_alloc_info[str_name] = 0;
 	}
 	if (PartitionStatistics::my_machine_id() == 0) {
-        printProcessMemoryUsage(name, MBytes, get_total_mem_size_allocated());
+        // printProcessMemoryUsage(name, MBytes, get_total_mem_size_allocated());
     }
 }
 

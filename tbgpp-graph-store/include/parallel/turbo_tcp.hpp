@@ -26,7 +26,7 @@ enum TCP_MODE
 };
 
 
-enum ReturnStatus {
+enum TCPReturnStatus {
 	OK,
 	DONE,
 	FAIL,
@@ -47,7 +47,7 @@ class turbo_tcp {
 		~turbo_tcp() {
 		}
 		
-		static ReturnStatus init_host() {
+		static TCPReturnStatus init_host() {
 			hostname_list = new char*[PartitionStatistics::num_machines()];
 			for(int i = 0; i < PartitionStatistics::num_machines(); i++)
 				hostname_list[i] = new char[IP_ADDRESS_MAX_LEN];
@@ -85,7 +85,7 @@ class turbo_tcp {
 		}*/
 
 
-		ReturnStatus open_serversocket_all(bool set_timeo_) {
+		TCPReturnStatus open_serversocket_all(bool set_timeo_) {
 			tcp_mode = SERVER;
             set_timeo = set_timeo_;
 			int temp_buf = 1;
@@ -128,7 +128,7 @@ class turbo_tcp {
 			return OK;
 		}
 
-		ReturnStatus open_clientsocket_all(bool set_timeo_) {
+		TCPReturnStatus open_clientsocket_all(bool set_timeo_) {
 			tcp_mode = CLIENT;
             set_timeo = set_timeo_;
 			int64_t buf_size = 851968; //XXX
@@ -166,7 +166,7 @@ class turbo_tcp {
 			return OK;
 		}
 
-		ReturnStatus close_socket() {
+		TCPReturnStatus close_socket() {
 			if(tcp_mode == SERVER) {
                 for(int i = 0; i < PartitionStatistics::num_machines(); i++) {
                     close(client_socket_for_server[i]);
@@ -195,7 +195,7 @@ class turbo_tcp {
 			return OK;
 		}
 
-		ReturnStatus bind_socket() {
+		TCPReturnStatus bind_socket() {
 			D_ASSERT(tcp_mode == SERVER);
             for(int i = 0; i < PartitionStatistics::num_machines(); i++) {
                 if(bind(server_socket[i], (struct sockaddr*)&server_addr[i], sizeof(server_addr[i])) == -1) {
@@ -208,7 +208,7 @@ class turbo_tcp {
             return OK;
 		}
 
-		ReturnStatus listen_socket() {
+		TCPReturnStatus listen_socket() {
 			D_ASSERT(tcp_mode == SERVER);
             for(int i = 0; i < PartitionStatistics::num_machines(); i++) {
                 if(listen(server_socket[i], 24) == -1) { //XXX control listen queue size
@@ -219,7 +219,7 @@ class turbo_tcp {
 			return OK;
 		}
 		
-		ReturnStatus accept_socket() {
+		TCPReturnStatus accept_socket() {
 			D_ASSERT(tcp_mode == SERVER);
 			int flag;
 			int temp_buf = 1;
@@ -254,7 +254,7 @@ class turbo_tcp {
 			return OK;
 		}
 		
-        ReturnStatus accept_socket(int partition_id) {
+        TCPReturnStatus accept_socket(int partition_id) {
 			D_ASSERT(tcp_mode == SERVER);
 			int flag;
 			int temp_buf = 1;
@@ -289,7 +289,7 @@ class turbo_tcp {
 			return OK;
 		}
 
-		ReturnStatus connect_socket(int partition_id) {
+		TCPReturnStatus connect_socket(int partition_id) {
 			D_ASSERT(tcp_mode == CLIENT);
             while(connect(client_socket[partition_id], (struct sockaddr*)&server_addr[partition_id], sizeof(struct sockaddr)) == -1) {}
 	//			fprintf(stdout, "[%ld] Connect success\n", PartitionStatistics::my_machine_id());
@@ -726,7 +726,7 @@ Retry:
         }
 
 	private:
-		ReturnStatus reconnect_socket(int partition_id) {
+		TCPReturnStatus reconnect_socket(int partition_id) {
 			D_ASSERT(tcp_mode == CLIENT);
 			//XXX check really disconnected
 			int socket_id = partition_id;
@@ -761,7 +761,7 @@ Retry:
 			return OK;
 		}
 		
-		ReturnStatus reaccept_socket(int partition_id) {
+		TCPReturnStatus reaccept_socket(int partition_id) {
 			D_ASSERT(tcp_mode == SERVER);
 			int flag;
             int temp_buf = 1;

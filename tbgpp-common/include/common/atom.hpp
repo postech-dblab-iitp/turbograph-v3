@@ -17,6 +17,8 @@
 #include <atomic>
 #include <thread>
 #include <sstream>
+#include <immintrin.h>
+#include "common/assert.hpp"
 
 //#define OWNER_CHECK 0
 

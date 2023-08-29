@@ -24,8 +24,8 @@
 
 #include "parallel/ThreadPool.hpp"
 #include "parallel/concurrentqueue.h"
-#incluee "common/common.hpp"
-#include "thread.h"
+#include "common/common.hpp"
+#include "cache/disk_aio/thread.h"
 
 class Aio_Helper {
   public:

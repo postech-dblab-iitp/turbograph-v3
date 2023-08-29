@@ -1,4 +1,4 @@
-#include "RequestRespond.hpp"
+#include "parallel/RequestRespond.hpp"
 
 
 
@@ -33,8 +33,8 @@ int64_t RequestRespond::num_small_data_buffer;
 int64_t RequestRespond::num_large_data_buffer;
 char* RequestRespond::data_buffer;
 
-std::atomic<int64_t> RequestRespond::matadj_hit_bytes(0); // = std::atomic<int64_t>(0);
-std::atomic<int64_t> RequestRespond::matadj_miss_bytes(0); // = std::atomic<int64_t>(0);
+// std::atomic<int64_t> RequestRespond::matadj_hit_bytes(0); // = std::atomic<int64_t>(0);
+// std::atomic<int64_t> RequestRespond::matadj_miss_bytes(0); // = std::atomic<int64_t>(0);
 
 int64_t RequestRespond::max_permanent_buffer_size;
 std::atomic<int64_t> RequestRespond::bytes_permanently_allocated(0);// = std::atomic<int64_t>(0);
@@ -898,177 +898,177 @@ void RequestRespond::ReturnTempNodeBitMap(bool sender_or_receiver, TwoLevelBitMa
 //     }
 // }
 
-void RequestRespond::RespondAdjListBatchIO(char* buf) {
-    D_ASSERT(UserArguments::USE_DEGREE_ORDER_REPRESENTATION);
-	D_ASSERT(buf != nullptr);
-    turbo_timer timer;
+// void RequestRespond::RespondAdjListBatchIO(char* buf) {
+//     D_ASSERT(UserArguments::USE_DEGREE_ORDER_REPRESENTATION);
+// 	D_ASSERT(buf != nullptr);
+//     turbo_timer timer;
 
-    timer.start_timer(0);
-    AdjListRequestBatch* req = (AdjListRequestBatch*) buf;
-    Range<int> version_range = Range<int>(req->version_range.GetBegin(), req->version_range.GetEnd());
-	Range<node_t> total_req_vid_range = Range<node_t>(PartitionStatistics::per_machine_vid_range(req->src_edge_partition_range.GetBegin()).GetBegin(), PartitionStatistics::per_machine_vid_range(req->src_edge_partition_range.GetEnd()).GetEnd());
-    EdgeType e_type = req->e_type;
-    DynamicDBType d_type = req->d_type;
+//     timer.start_timer(0);
+//     AdjListRequestBatch* req = (AdjListRequestBatch*) buf;
+//     Range<int> version_range = Range<int>(req->version_range.GetBegin(), req->version_range.GetEnd());
+// 	Range<node_t> total_req_vid_range = Range<node_t>(PartitionStatistics::per_machine_vid_range(req->src_edge_partition_range.GetBegin()).GetBegin(), PartitionStatistics::per_machine_vid_range(req->src_edge_partition_range.GetEnd()).GetEnd());
+//     EdgeType e_type = req->e_type;
+//     DynamicDBType d_type = req->d_type;
 	
-    D_ASSERT (req->to == PartitionStatistics::my_machine_id());
-	D_ASSERT (PartitionStatistics::per_machine_vid_range(req->to).contains(total_req_vid_range));
-    D_ASSERT(version_range.GetBegin() >= 0 && version_range.GetEnd() < MAX_NUM_VERSIONS);
+//     D_ASSERT (req->to == PartitionStatistics::my_machine_id());
+// 	D_ASSERT (PartitionStatistics::per_machine_vid_range(req->to).contains(total_req_vid_range));
+//     D_ASSERT(version_range.GetBegin() >= 0 && version_range.GetEnd() < MAX_NUM_VERSIONS);
     
-	InitializeIoInterface();
+// 	InitializeIoInterface();
 
-	TwoLevelBitMap<node_t>* requested_vertices = GetTempNodeBitMap(false, 150); // roughly 5 seconds
-    if (requested_vertices == nullptr) {
-        rr_.async_resp_pool.enqueue_hot(RequestRespond::RespondAdjListBatchIO, buf);
-        return;
-    }
+// 	TwoLevelBitMap<node_t>* requested_vertices = GetTempNodeBitMap(false, 150); // roughly 5 seconds
+//     if (requested_vertices == nullptr) {
+//         rr_.async_resp_pool.enqueue_hot(RequestRespond::RespondAdjListBatchIO, buf);
+//         return;
+//     }
 	
-    TwoLevelBitMap<node_t>* vertices_from_cache = GetTempNodeBitMap(false, 150); // roughly 5 seconds
-    if (vertices_from_cache == nullptr) {
-        ReturnTempNodeBitMap(false, requested_vertices);
-        rr_.async_resp_pool.enqueue_hot(RequestRespond::RespondAdjListBatchIO, buf);
-        return;
-    }
-    vertices_from_cache->ClearAll();
+//     TwoLevelBitMap<node_t>* vertices_from_cache = GetTempNodeBitMap(false, 150); // roughly 5 seconds
+//     if (vertices_from_cache == nullptr) {
+//         ReturnTempNodeBitMap(false, requested_vertices);
+//         rr_.async_resp_pool.enqueue_hot(RequestRespond::RespondAdjListBatchIO, buf);
+//         return;
+//     }
+//     vertices_from_cache->ClearAll();
 
-	MPI_Status stat;
-	MPI_Message msg;
-	int64_t recv_bytes = 0;
-	int64_t recv_bytes2 = 0;
+// 	MPI_Status stat;
+// 	MPI_Message msg;
+// 	int64_t recv_bytes = 0;
+// 	int64_t recv_bytes2 = 0;
 	
-    timer.start_timer(2);
-    turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) requested_vertices->data(), 0, req->from, &recv_bytes, requested_vertices->BitMap<node_t>::container_size(), true);
-    turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) requested_vertices->two_level_data(), 0, req->from, &recv_bytes, requested_vertices->two_level_container_size(), true);
-    //fprintf(stdout, "[%ld] from %d, requested total = %ld\n", PartitionStatistics::my_machine_id(), req->from, requested_vertices->GetTotal());
-    timer.stop_timer(2);
+//     timer.start_timer(2);
+//     turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) requested_vertices->data(), 0, req->from, &recv_bytes, requested_vertices->BitMap<node_t>::container_size(), true);
+//     turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) requested_vertices->two_level_data(), 0, req->from, &recv_bytes, requested_vertices->two_level_container_size(), true);
+//     //fprintf(stdout, "[%ld] from %d, requested total = %ld\n", PartitionStatistics::my_machine_id(), req->from, requested_vertices->GetTotal());
+//     timer.stop_timer(2);
 
-	// Estimate the respond size
-    timer.start_timer(3);
-	int64_t est_output_size = 0;
-	if (req->lv < UserArguments::MAX_LEVEL - 1) {
-		est_output_size = ComputeMaterializedAdjListsSize(req->dst_edge_partition_range, total_req_vid_range, requested_vertices, req->MaxBytesToPin); //TODO - add version
-		RequestRespond::client_sockets.send_to_server_lock(req->from);
-		int64_t bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &est_output_size, 0, sizeof(int64_t), req->from);
-		D_ASSERT (bytes_sent == sizeof(int64_t));
-		RequestRespond::client_sockets.send_to_server_unlock(req->from);
-	} else {
-		est_output_size = req->MaxBytesToPin;
-	}
-    timer.stop_timer(3);
+// 	// Estimate the respond size
+//     timer.start_timer(3);
+// 	int64_t est_output_size = 0;
+// 	if (req->lv < UserArguments::MAX_LEVEL - 1) {
+// 		est_output_size = ComputeMaterializedAdjListsSize(req->dst_edge_partition_range, total_req_vid_range, requested_vertices, req->MaxBytesToPin); //TODO - add version
+// 		RequestRespond::client_sockets.send_to_server_lock(req->from);
+// 		int64_t bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &est_output_size, 0, sizeof(int64_t), req->from);
+// 		D_ASSERT (bytes_sent == sizeof(int64_t));
+// 		RequestRespond::client_sockets.send_to_server_unlock(req->from);
+// 	} else {
+// 		est_output_size = req->MaxBytesToPin;
+// 	}
+//     timer.stop_timer(3);
 
-//#ifdef REPORT_PROFILING_TIMERS
-	//fprintf(stdout, "ComputeMaterializedAdjListsSize %ld -> %ld; MaxBytesRequested = %ld, MaxBytesToBeSent = %ld\n", req->from, req->to, req->MaxBytesToPin, est_output_size);
-//#endif
+// //#ifdef REPORT_PROFILING_TIMERS
+// 	//fprintf(stdout, "ComputeMaterializedAdjListsSize %ld -> %ld; MaxBytesRequested = %ld, MaxBytesToBeSent = %ld\n", req->from, req->to, req->MaxBytesToPin, est_output_size);
+// //#endif
        
-    /*
-    if (req->lv == 0) {
-        fprintf(stdout, "[%ld] %ld [RespondAdjListBatchIO] %lld->%lld, |requested_vertices| = %ld\n", PartitionStatistics::my_machine_id(), UserArguments::UPDATE_VERSION, req->from, req->to, requested_vertices->GetTotalSingleThread());
-    }
-    */
+//     /*
+//     if (req->lv == 0) {
+//         fprintf(stdout, "[%ld] %ld [RespondAdjListBatchIO] %lld->%lld, |requested_vertices| = %ld\n", PartitionStatistics::my_machine_id(), UserArguments::UPDATE_VERSION, req->from, req->to, requested_vertices->GetTotalSingleThread());
+//     }
+//     */
 
-    if (req->lv < UserArguments::MAX_LEVEL - 1 && req->from == req->to) {
-        int64_t tmp = -1;
-        int64_t recv_bytes = 0;
-        turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) &tmp, 0, req->from, &recv_bytes);
-    }
+//     if (req->lv < UserArguments::MAX_LEVEL - 1 && req->from == req->to) {
+//         int64_t tmp = -1;
+//         int64_t recv_bytes = 0;
+//         turbo_tcp::Recv(&RequestRespond::general_server_sockets[0], (char*) &tmp, 0, req->from, &recv_bytes);
+//     }
 
-    if (req->lv == UserArguments::MAX_LEVEL - 1) {
-        //requested_vertices->ClearAll();
-    }
+//     if (req->lv == UserArguments::MAX_LEVEL - 1) {
+//         //requested_vertices->ClearAll();
+//     }
 
-	// Spawn a network sending thread
-	int64_t stop_flag = 0;
-	tbb::concurrent_queue<UdfSendRequest>* req_data_queue = new tbb::concurrent_queue<UdfSendRequest>();
-	tbb::concurrent_queue<UdfSendRequest>* stoped_req_data_queue = new tbb::concurrent_queue<UdfSendRequest>();
-    std::future<void> wait_on_sender_thread = Aio_Helper::async_pool.enqueue_hot(RequestRespond::SendDataInBufferWithUdfRequest, req_data_queue, stoped_req_data_queue, req->from, total_req_vid_range, requested_vertices, RequestType::NewAdjListBatchIoData, 0, req->lv, est_output_size, &stop_flag);
+// 	// Spawn a network sending thread
+// 	int64_t stop_flag = 0;
+// 	tbb::concurrent_queue<UdfSendRequest>* req_data_queue = new tbb::concurrent_queue<UdfSendRequest>();
+// 	tbb::concurrent_queue<UdfSendRequest>* stoped_req_data_queue = new tbb::concurrent_queue<UdfSendRequest>();
+//     std::future<void> wait_on_sender_thread = Aio_Helper::async_pool.enqueue_hot(RequestRespond::SendDataInBufferWithUdfRequest, req_data_queue, stoped_req_data_queue, req->from, total_req_vid_range, requested_vertices, RequestType::NewAdjListBatchIoData, 0, req->lv, est_output_size, &stop_flag);
 
-    std::queue<std::future<void>> reqs_to_wait;
-    node_t vid_range_length = total_req_vid_range.length();
-    // XXX - syko
-    //if (true) {
-    if (vid_range_length < 1024) {
-        node_t begin_vid = total_req_vid_range.GetBegin();
-        node_t end_vid = total_req_vid_range.GetEnd();
-        reqs_to_wait.push(Aio_Helper::async_pool.enqueue(RequestRespond::RespondAdjListBatchIoFullListParallel, req, Range<node_t>(begin_vid, end_vid), total_req_vid_range, requested_vertices, vertices_from_cache, req_data_queue, &stop_flag, version_range, e_type, d_type));
-    } else {
-        node_t vid_range_length_per_task = total_req_vid_range.length() / 4;
-        vid_range_length_per_task = (vid_range_length_per_task / 64) * 64;
-        D_ASSERT(vid_range_length_per_task != 0L); // syko..
-        for (int k = 0; k < 4; k++) {
-            node_t begin_vid = total_req_vid_range.GetBegin() + k * vid_range_length_per_task;
-            node_t end_vid = total_req_vid_range.GetBegin() + (k+1) * vid_range_length_per_task;
-            if (k == 4 - 1) {
-                end_vid = total_req_vid_range.GetEnd();
-            } else {
-                end_vid -= 1;
-            }
-            reqs_to_wait.push(Aio_Helper::async_pool.enqueue(RequestRespond::RespondAdjListBatchIoFullListParallel, req, Range<node_t>(begin_vid, end_vid), total_req_vid_range, requested_vertices, vertices_from_cache, req_data_queue, &stop_flag, version_range, e_type, d_type));
-        }
-    }
-    timer.start_timer(4);
-    while (!reqs_to_wait.empty()) {
-        reqs_to_wait.front().get();
-        reqs_to_wait.pop();
-    }
-    timer.stop_timer(4);
+//     std::queue<std::future<void>> reqs_to_wait;
+//     node_t vid_range_length = total_req_vid_range.length();
+//     // XXX - syko
+//     //if (true) {
+//     if (vid_range_length < 1024) {
+//         node_t begin_vid = total_req_vid_range.GetBegin();
+//         node_t end_vid = total_req_vid_range.GetEnd();
+//         reqs_to_wait.push(Aio_Helper::async_pool.enqueue(RequestRespond::RespondAdjListBatchIoFullListParallel, req, Range<node_t>(begin_vid, end_vid), total_req_vid_range, requested_vertices, vertices_from_cache, req_data_queue, &stop_flag, version_range, e_type, d_type));
+//     } else {
+//         node_t vid_range_length_per_task = total_req_vid_range.length() / 4;
+//         vid_range_length_per_task = (vid_range_length_per_task / 64) * 64;
+//         D_ASSERT(vid_range_length_per_task != 0L); // syko..
+//         for (int k = 0; k < 4; k++) {
+//             node_t begin_vid = total_req_vid_range.GetBegin() + k * vid_range_length_per_task;
+//             node_t end_vid = total_req_vid_range.GetBegin() + (k+1) * vid_range_length_per_task;
+//             if (k == 4 - 1) {
+//                 end_vid = total_req_vid_range.GetEnd();
+//             } else {
+//                 end_vid -= 1;
+//             }
+//             reqs_to_wait.push(Aio_Helper::async_pool.enqueue(RequestRespond::RespondAdjListBatchIoFullListParallel, req, Range<node_t>(begin_vid, end_vid), total_req_vid_range, requested_vertices, vertices_from_cache, req_data_queue, &stop_flag, version_range, e_type, d_type));
+//         }
+//     }
+//     timer.start_timer(4);
+//     while (!reqs_to_wait.empty()) {
+//         reqs_to_wait.front().get();
+//         reqs_to_wait.pop();
+//     }
+//     timer.stop_timer(4);
 
-	UdfSendRequest udf_req;
-	udf_req.req.rt = UserCallback;
-	udf_req.req.from = PartitionStatistics::my_machine_id();
-	udf_req.req.to = req->from;
-	udf_req.req.parm1 = -1;
-    udf_req.req.lv = req->lv;
-	udf_req.req.data_size = 0;
-	SimpleContainer cont;
-	cont.data = nullptr;
-	cont.size_used = 0;
-	cont.capacity = 0;
-	udf_req.cont = cont;
-	req_data_queue->push(udf_req);
+// 	UdfSendRequest udf_req;
+// 	udf_req.req.rt = UserCallback;
+// 	udf_req.req.from = PartitionStatistics::my_machine_id();
+// 	udf_req.req.to = req->from;
+// 	udf_req.req.parm1 = -1;
+//     udf_req.req.lv = req->lv;
+// 	udf_req.req.data_size = 0;
+// 	SimpleContainer cont;
+// 	cont.data = nullptr;
+// 	cont.size_used = 0;
+// 	cont.capacity = 0;
+// 	udf_req.cont = cont;
+// 	req_data_queue->push(udf_req);
 
-	// Wait for the sending request
-	wait_on_sender_thread.get();
-	D_ASSERT(req_data_queue->empty());
+// 	// Wait for the sending request
+// 	wait_on_sender_thread.get();
+// 	D_ASSERT(req_data_queue->empty());
     
-    // Re-Mark the vertices that are not sent (STOPed)
-    UdfSendRequest stoped_udf_req;
-	while (stoped_req_data_queue->try_pop(stoped_udf_req)) {
-        //MaterializedAdjacencyLists::MarkVerticesIntoBitMap(stoped_udf_req, requested_vertices, total_req_vid_range.GetBegin());
-        SimpleContainer cont = stoped_udf_req.cont;
-        if (cont.data != NULL) {
-            ReturnDataSendBuffer(cont);
-        }
-    }
+//     // Re-Mark the vertices that are not sent (STOPed)
+//     UdfSendRequest stoped_udf_req;
+// 	while (stoped_req_data_queue->try_pop(stoped_udf_req)) {
+//         //MaterializedAdjacencyLists::MarkVerticesIntoBitMap(stoped_udf_req, requested_vertices, total_req_vid_range.GetBegin());
+//         SimpleContainer cont = stoped_udf_req.cont;
+//         if (cont.data != NULL) {
+//             ReturnDataSendBuffer(cont);
+//         }
+//     }
 
-	// Return back 'requested vertices'
-    timer.start_timer(5);
-    //if (req->lv < UserArguments::MAX_LEVEL - 1) {
-    if (true) {
-        //fprintf(stdout, "[%ld] fuck vids total = %ld\n", PartitionStatistics::my_machine_id(), requested_vertices->GetTotal());
-        TwoLevelBitMap<node_t>::UnionToRight(*vertices_from_cache, *requested_vertices);
-        RequestRespond::client_sockets.send_to_server_lock(req->from);
-        int64_t bytes_sent = RequestRespond::client_sockets.send_to_server((char*) requested_vertices->data(), 0, requested_vertices->container_size(), req->from);
-        D_ASSERT(bytes_sent == requested_vertices->container_size());
-        bytes_sent = RequestRespond::client_sockets.send_to_server((char*) requested_vertices->two_level_data(), 0, requested_vertices->two_level_container_size(), req->from);
-        D_ASSERT(bytes_sent == requested_vertices->two_level_container_size());
-        RequestRespond::client_sockets.send_to_server_unlock(req->from);
-    }
-    timer.stop_timer(5);
-    timer.stop_timer(0);
+// 	// Return back 'requested vertices'
+//     timer.start_timer(5);
+//     //if (req->lv < UserArguments::MAX_LEVEL - 1) {
+//     if (true) {
+//         //fprintf(stdout, "[%ld] fuck vids total = %ld\n", PartitionStatistics::my_machine_id(), requested_vertices->GetTotal());
+//         TwoLevelBitMap<node_t>::UnionToRight(*vertices_from_cache, *requested_vertices);
+//         RequestRespond::client_sockets.send_to_server_lock(req->from);
+//         int64_t bytes_sent = RequestRespond::client_sockets.send_to_server((char*) requested_vertices->data(), 0, requested_vertices->container_size(), req->from);
+//         D_ASSERT(bytes_sent == requested_vertices->container_size());
+//         bytes_sent = RequestRespond::client_sockets.send_to_server((char*) requested_vertices->two_level_data(), 0, requested_vertices->two_level_container_size(), req->from);
+//         D_ASSERT(bytes_sent == requested_vertices->two_level_container_size());
+//         RequestRespond::client_sockets.send_to_server_unlock(req->from);
+//     }
+//     timer.stop_timer(5);
+//     timer.stop_timer(0);
 
-#ifdef REPORT_PROFILING_TIMERS
-    fprintf(stdout, "[%lld] %lld [RESPOND_ADJLIST_BATCH_IO] %lld->%lld, vids_tot: %ld [%lld, %lld], %.2f %.2f %.2f %.2f %.2f %.2f\n", (int64_t) PartitionStatistics::my_machine_id(), (int64_t) UserArguments::UPDATE_VERSION, (int64_t) req->to, (int64_t) req->from, requested_vertices->GetTotal(), (int64_t) total_req_vid_range.GetBegin(), (int64_t) total_req_vid_range.GetEnd(), timer.get_timer(0), timer.get_timer(1), timer.get_timer(2), timer.get_timer(3), timer.get_timer(4), timer.get_timer(5));
-#endif
+// #ifdef REPORT_PROFILING_TIMERS
+//     fprintf(stdout, "[%lld] %lld [RESPOND_ADJLIST_BATCH_IO] %lld->%lld, vids_tot: %ld [%lld, %lld], %.2f %.2f %.2f %.2f %.2f %.2f\n", (int64_t) PartitionStatistics::my_machine_id(), (int64_t) UserArguments::UPDATE_VERSION, (int64_t) req->to, (int64_t) req->from, requested_vertices->GetTotal(), (int64_t) total_req_vid_range.GetBegin(), (int64_t) total_req_vid_range.GetEnd(), timer.get_timer(0), timer.get_timer(1), timer.get_timer(2), timer.get_timer(3), timer.get_timer(4), timer.get_timer(5));
+// #endif
 
-    D_ASSERT (req_data_queue->empty());
-	D_ASSERT (stoped_req_data_queue->empty());
-	delete req_data_queue;
-	delete stoped_req_data_queue;
+//     D_ASSERT (req_data_queue->empty());
+// 	D_ASSERT (stoped_req_data_queue->empty());
+// 	delete req_data_queue;
+// 	delete stoped_req_data_queue;
 
-	// Return the buffer
-    ReturnTempReqReceiveBuffer(buf);
-    ReturnTempNodeBitMap(false, requested_vertices);
-    ReturnTempNodeBitMap(false, vertices_from_cache);
-}
+// 	// Return the buffer
+//     ReturnTempReqReceiveBuffer(buf);
+//     ReturnTempNodeBitMap(false, requested_vertices);
+//     ReturnTempNodeBitMap(false, vertices_from_cache);
+// }
 
 // void RequestRespond::MatAdjlistSanitycheck(char* data_buffer, int64_t data_size, int64_t capacity, int tag) {
 // 	MaterializedAdjacencyLists mat_adj2;
@@ -1118,35 +1118,35 @@ void RequestRespond::ReceiveRequest() {
             case Exit: {
                 is_working = false;
                 break; }
-            case OutputVectorRead: {
-                OutputVectorReadRequest* tmp_r = (OutputVectorReadRequest*) tmp_buffer;
-                respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondOutputVectorRead, tmp_r->vectorID, tmp_r->chunkID, tmp_r->from, tmp_r->lv);
-                is_working = true;
-                ReturnTempReqReceiveBuffer(tmp_buffer);
-                break; }
-            case InputVectorRead: {
-                InputVectorReadRequest* tmp_ivr = (InputVectorReadRequest*) tmp_buffer;
-                respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondInputVectorRead, tmp_ivr->vectorID, tmp_ivr->chunkID, tmp_ivr->from, tmp_ivr->lv);
-                is_working = true;
-                ReturnTempReqReceiveBuffer(tmp_buffer);
-                break; }
-            case OutputVectorWriteMessage: {
-                OutputVectorWriteMessageRequest* tmp_wm = (OutputVectorWriteMessageRequest*) tmp_buffer;
-                respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondOutputVectorWriteMessage, tmp_wm->vectorID, tmp_wm->fromChunkID, tmp_wm->chunkID, tmp_wm->from, tmp_wm->tid, tmp_wm->idx, tmp_wm->send_num, tmp_wm->combined, tmp_wm->lv);
-                is_working = true;
-                ReturnTempReqReceiveBuffer(tmp_buffer);
-                break; }
-            case AdjListBatchIo: {
-                D_ASSERT (recv_bytes == sizeof(AdjListRequestBatch));
-                respond =  rr_.async_resp_pool.enqueue(RequestRespond::RespondAdjListBatchIO, tmp_buffer);
-                is_working = true;
-                break; }
-            case SequentialVectorRead: {
-                SequentialVectorReadRequest* tmp_sr = (SequentialVectorReadRequest*) tmp_buffer;
-                respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondSequentialVectorRead, tmp_sr->vectorID, tmp_sr->chunkID, tmp_sr->from, tmp_sr->lv);
-                is_working = true;
-                ReturnTempReqReceiveBuffer(tmp_buffer);
-                break; }
+            // case OutputVectorRead: {
+            //     OutputVectorReadRequest* tmp_r = (OutputVectorReadRequest*) tmp_buffer;
+            //     respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondOutputVectorRead, tmp_r->vectorID, tmp_r->chunkID, tmp_r->from, tmp_r->lv);
+            //     is_working = true;
+            //     ReturnTempReqReceiveBuffer(tmp_buffer);
+            //     break; }
+            // case InputVectorRead: {
+            //     InputVectorReadRequest* tmp_ivr = (InputVectorReadRequest*) tmp_buffer;
+            //     respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondInputVectorRead, tmp_ivr->vectorID, tmp_ivr->chunkID, tmp_ivr->from, tmp_ivr->lv);
+            //     is_working = true;
+            //     ReturnTempReqReceiveBuffer(tmp_buffer);
+            //     break; }
+            // case OutputVectorWriteMessage: {
+            //     OutputVectorWriteMessageRequest* tmp_wm = (OutputVectorWriteMessageRequest*) tmp_buffer;
+            //     respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondOutputVectorWriteMessage, tmp_wm->vectorID, tmp_wm->fromChunkID, tmp_wm->chunkID, tmp_wm->from, tmp_wm->tid, tmp_wm->idx, tmp_wm->send_num, tmp_wm->combined, tmp_wm->lv);
+            //     is_working = true;
+            //     ReturnTempReqReceiveBuffer(tmp_buffer);
+            //     break; }
+            // case AdjListBatchIo: {
+            //     D_ASSERT (recv_bytes == sizeof(AdjListRequestBatch));
+            //     respond =  rr_.async_resp_pool.enqueue(RequestRespond::RespondAdjListBatchIO, tmp_buffer);
+            //     is_working = true;
+            //     break; }
+            // case SequentialVectorRead: {
+            //     SequentialVectorReadRequest* tmp_sr = (SequentialVectorReadRequest*) tmp_buffer;
+            //     respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondSequentialVectorRead, tmp_sr->vectorID, tmp_sr->chunkID, tmp_sr->from, tmp_sr->lv);
+            //     is_working = true;
+            //     ReturnTempReqReceiveBuffer(tmp_buffer);
+            //     break; }
             default: {
                 fprintf(stdout, "[RequestRespond] Undefined Request Type\n");
                 D_ASSERT(false);
@@ -1199,121 +1199,121 @@ void RequestRespond::SendData(char* buf, int64_t count, int partition_id, int ta
     */
 }
 
-void RequestRespond::SendDataInBufferWithUdfRequest(tbb::concurrent_queue<UdfSendRequest>* req_data_queue, tbb::concurrent_queue<UdfSendRequest>* stoped_req_data_queue,int partition_id, Range<node_t> vid_range, BitMap<node_t>* vids, int tag, int chunk_idx, int lv, int64_t MaxBytesToPin, int64_t* stop_flag) {
-	RequestRespond::client_sockets.send_to_server_lock(partition_id);
-	D_ASSERT (req_data_queue != NULL);
+// void RequestRespond::SendDataInBufferWithUdfRequest(tbb::concurrent_queue<UdfSendRequest>* req_data_queue, tbb::concurrent_queue<UdfSendRequest>* stoped_req_data_queue,int partition_id, Range<node_t> vid_range, BitMap<node_t>* vids, int tag, int chunk_idx, int lv, int64_t MaxBytesToPin, int64_t* stop_flag) {
+// 	RequestRespond::client_sockets.send_to_server_lock(partition_id);
+// 	D_ASSERT (req_data_queue != NULL);
 
-	turbo_timer tmp_tim;
-	tmp_tim.start_timer(3);
-	int64_t bytes_sent;
-	int mpi_error = -1;
-	int64_t count = 0;
-	int64_t ack = -1;
-    bool all_reqs_in_queue = false;
+// 	turbo_timer tmp_tim;
+// 	tmp_tim.start_timer(3);
+// 	int64_t bytes_sent;
+// 	int mpi_error = -1;
+// 	int64_t count = 0;
+// 	int64_t ack = -1;
+//     bool all_reqs_in_queue = false;
 
-	UdfSendRequest udf_req;
-	SimpleContainer cont;
-	UserCallbackRequest req;
+// 	UdfSendRequest udf_req;
+// 	SimpleContainer cont;
+// 	UserCallbackRequest req;
 
-    std::srand(std::time(nullptr));
-    int64_t max_fail_count = 0;
-	while (true) {
-		tmp_tim.start_timer(1);
-		int backoff = 1;
-		while (!req_data_queue->try_pop(udf_req)) {
-			D_ASSERT (all_reqs_in_queue == false);
-			usleep (backoff * 4);
-			backoff = (backoff >= 1024) ? 1024 : 2 * backoff;
-		}
-		tmp_tim.stop_timer(1);
-	    D_ASSERT (udf_req.req.data_size == udf_req.cont.size_used);
-		D_ASSERT (udf_req.req.from == PartitionStatistics::my_machine_id() && udf_req.req.to == partition_id);
+//     std::srand(std::time(nullptr));
+//     int64_t max_fail_count = 0;
+// 	while (true) {
+// 		tmp_tim.start_timer(1);
+// 		int backoff = 1;
+// 		while (!req_data_queue->try_pop(udf_req)) {
+// 			D_ASSERT (all_reqs_in_queue == false);
+// 			usleep (backoff * 4);
+// 			backoff = (backoff >= 1024) ? 1024 : 2 * backoff;
+// 		}
+// 		tmp_tim.stop_timer(1);
+// 	    D_ASSERT (udf_req.req.data_size == udf_req.cont.size_used);
+// 		D_ASSERT (udf_req.req.from == PartitionStatistics::my_machine_id() && udf_req.req.to == partition_id);
 
-		cont = udf_req.cont;
-		req = udf_req.req;
-		req.lv = lv;
+// 		cont = udf_req.cont;
+// 		req = udf_req.req;
+// 		req.lv = lv;
 
-		if (cont.data == NULL && cont.capacity == 0 && cont.size_used == 0) {
-			D_ASSERT (!all_reqs_in_queue);
-			all_reqs_in_queue = true;
-			break;
-		}
-		D_ASSERT (cont.size_used != 0);
-		tmp_tim.start_timer(0);
+// 		if (cont.data == NULL && cont.capacity == 0 && cont.size_used == 0) {
+// 			D_ASSERT (!all_reqs_in_queue);
+// 			all_reqs_in_queue = true;
+// 			break;
+// 		}
+// 		D_ASSERT (cont.size_used != 0);
+// 		tmp_tim.start_timer(0);
 
-		if (lv < UserArguments::MAX_LEVEL - 1 && count + udf_req.req.data_size > MaxBytesToPin) {
-		//if (lv == 0 && (std::rand() % 10 <= 8 || count + udf_req.req.data_size > MaxBytesToPin)) {
-		//if (false && count + udf_req.req.data_size > MaxBytesToPin) {
-        //if (false) {
-			std::atomic_store((std::atomic<int64_t>*) stop_flag, 1L);
-			stoped_req_data_queue->push(udf_req);
-            //fprintf(stdout, "[%ld] STOP SendDataInBufferWithUdfRequest to %ld; %ld + %ld > %ld\n", PartitionStatistics::my_machine_id(), partition_id, count, udf_req.req.data_size, MaxBytesToPin);
-			continue;
-		}
+// 		if (lv < UserArguments::MAX_LEVEL - 1 && count + udf_req.req.data_size > MaxBytesToPin) {
+// 		//if (lv == 0 && (std::rand() % 10 <= 8 || count + udf_req.req.data_size > MaxBytesToPin)) {
+// 		//if (false && count + udf_req.req.data_size > MaxBytesToPin) {
+//         //if (false) {
+// 			std::atomic_store((std::atomic<int64_t>*) stop_flag, 1L);
+// 			stoped_req_data_queue->push(udf_req);
+//             //fprintf(stdout, "[%ld] STOP SendDataInBufferWithUdfRequest to %ld; %ld + %ld > %ld\n", PartitionStatistics::my_machine_id(), partition_id, count, udf_req.req.data_size, MaxBytesToPin);
+// 			continue;
+// 		}
 
-        bool retry = false;
-		//fprintf(stdout, "[%ld] Sending1 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, sizeof(UserCallbackRequest));
-        bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &req, 0, sizeof(UserCallbackRequest), partition_id, false);
-        if (bytes_sent == -1 || bytes_sent != sizeof(UserCallbackRequest)) {
-            //fprintf(stdout, "[%ld] Fail to Sending1 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, sizeof(UserCallbackRequest));
-            max_fail_count++;
-            retry = true;
-            goto Retry;
-        }
-		//if (bytes_sent != sizeof(UserCallbackRequest)) goto Retry;
-        //D_ASSERT (bytes_sent == sizeof(UserCallbackRequest));
-		//fprintf(stdout, "[%ld] Sending2 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
-		bytes_sent = RequestRespond::client_sockets.send_to_server((char*) cont.data, 0, cont.size_used, partition_id, false);
-        if (bytes_sent == -1 || bytes_sent != cont.size_used) {
-            //fprintf(stdout, "[%ld] Fail to Sending2 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
-            max_fail_count++;
-            retry = true;
-            goto Retry;
-        }
-		//D_ASSERT (bytes_sent == cont.size_used);
+//         bool retry = false;
+// 		//fprintf(stdout, "[%ld] Sending1 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, sizeof(UserCallbackRequest));
+//         bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &req, 0, sizeof(UserCallbackRequest), partition_id, false);
+//         if (bytes_sent == -1 || bytes_sent != sizeof(UserCallbackRequest)) {
+//             //fprintf(stdout, "[%ld] Fail to Sending1 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, sizeof(UserCallbackRequest));
+//             max_fail_count++;
+//             retry = true;
+//             goto Retry;
+//         }
+// 		//if (bytes_sent != sizeof(UserCallbackRequest)) goto Retry;
+//         //D_ASSERT (bytes_sent == sizeof(UserCallbackRequest));
+// 		//fprintf(stdout, "[%ld] Sending2 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
+// 		bytes_sent = RequestRespond::client_sockets.send_to_server((char*) cont.data, 0, cont.size_used, partition_id, false);
+//         if (bytes_sent == -1 || bytes_sent != cont.size_used) {
+//             //fprintf(stdout, "[%ld] Fail to Sending2 (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
+//             max_fail_count++;
+//             retry = true;
+//             goto Retry;
+//         }
+// 		//D_ASSERT (bytes_sent == cont.size_used);
         
-        //bytes_sent = RequestRespond::client_sockets.recv_from_server((char*) &ack, 0, partition_id);
-		//if (bytes_sent != sizeof(int64_t)) goto Retry;
-        //D_ASSERT(ack == 9999);
-		//fprintf(stdout, "[%ld] Sending to %ld, sz = %ld ACK received\n", PartitionStatistics::my_machine_id(), partition_id, cont.size_used);
+//         //bytes_sent = RequestRespond::client_sockets.recv_from_server((char*) &ack, 0, partition_id);
+// 		//if (bytes_sent != sizeof(int64_t)) goto Retry;
+//         //D_ASSERT(ack == 9999);
+// 		//fprintf(stdout, "[%ld] Sending to %ld, sz = %ld ACK received\n", PartitionStatistics::my_machine_id(), partition_id, cont.size_used);
 		
-        tmp_tim.stop_timer(0);
+//         tmp_tim.stop_timer(0);
 
-Retry: {
-		ReturnDataSendBuffer(cont);
-        if (!retry) {
-            max_fail_count = 0;
-            count += cont.size_used;
-            //fprintf(stdout, "[%ld] lv:%d Success to Sending (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), UserArguments::CURRENT_LEVEL, PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
-        } else {
-            //fprintf(stdout, "[%ld] Retry at SendDataInBuffer fail_count = %ld\n", PartitionStatistics::my_machine_id(), max_fail_count);
-            if (max_fail_count > 10)
-                break;
-        }
-        }
-	}
-DONE: {
-	D_ASSERT (all_reqs_in_queue);
-	while (req_data_queue->try_pop(udf_req)) {
-		stoped_req_data_queue->push(udf_req);
-	}
+// Retry: {
+// 		ReturnDataSendBuffer(cont);
+//         if (!retry) {
+//             max_fail_count = 0;
+//             count += cont.size_used;
+//             //fprintf(stdout, "[%ld] lv:%d Success to Sending (%ld -> %ld) [%ld, %ld] of %p, sz = %ld\n", PartitionStatistics::my_machine_id(), UserArguments::CURRENT_LEVEL, PartitionStatistics::my_machine_id(), partition_id, req.vid_range.GetBegin(), req.vid_range.GetEnd(), cont.data, cont.size_used);
+//         } else {
+//             //fprintf(stdout, "[%ld] Retry at SendDataInBuffer fail_count = %ld\n", PartitionStatistics::my_machine_id(), max_fail_count);
+//             if (max_fail_count > 10)
+//                 break;
+//         }
+//         }
+// 	}
+// DONE: {
+// 	D_ASSERT (all_reqs_in_queue);
+// 	while (req_data_queue->try_pop(udf_req)) {
+// 		stoped_req_data_queue->push(udf_req);
+// 	}
 
-	// Send EOM
-	req.data_size = 0;
-	req.lv = lv;
-    do {
-        bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &req, 0, sizeof(UserCallbackRequest), partition_id);
-    } while (bytes_sent == -1);
-	D_ASSERT (bytes_sent == sizeof(UserCallbackRequest));
+// 	// Send EOM
+// 	req.data_size = 0;
+// 	req.lv = lv;
+//     do {
+//         bytes_sent = RequestRespond::client_sockets.send_to_server((char*) &req, 0, sizeof(UserCallbackRequest), partition_id);
+//     } while (bytes_sent == -1);
+// 	D_ASSERT (bytes_sent == sizeof(UserCallbackRequest));
 
-	RequestRespond::client_sockets.send_to_server_unlock(partition_id);
+// 	RequestRespond::client_sockets.send_to_server_unlock(partition_id);
 
-	double size_mb = (double) count / ((double) 1024*1024);
-	double total_secs = tmp_tim.stop_timer(3);
-	double secs = tmp_tim.get_timer(0);
-	double bw = size_mb / secs;
-    }
-}
+// 	double size_mb = (double) count / ((double) 1024*1024);
+// 	double total_secs = tmp_tim.stop_timer(3);
+// 	double secs = tmp_tim.get_timer(0);
+// 	double bw = size_mb / secs;
+//     }
+// }
 
 // TODO - assume that the data being sent is from 'RequestOutputVectorWriteMessagePush'
 void RequestRespond::SendDataInBuffer(tbb::concurrent_queue<SimpleContainer>* req_data_queue, turbo_tcp* vector_client_sockets, int partition_id, int tag, int chunk_idx, int lv, int64_t eom_cnt, bool delete_req_buffer_queue) {
@@ -1624,13 +1624,13 @@ void RequestRespond::SendRequest(int partition_id, RequestType* req, int num_req
 
 	char str_buf[64];
 	sprintf(&str_buf[0], "BEGIN\tSendRequest to %d\n", partition_id);
-	LOG(INFO) << std::string(str_buf);
+	// LOG(INFO) << std::string(str_buf);
 
 	int32_t reqs_buf_size = num_reqs * sizeof(RequestType);
 	MPI_Send((void *) req, reqs_buf_size, MPI_CHAR, partition_id, 1, MPI_COMM_WORLD);
 
 	sprintf(&str_buf[0], "END\tSendRequest to %d\n", partition_id);
-	LOG(INFO) << std::string(str_buf);
+	// LOG(INFO) << std::string(str_buf);
 }
 
 
@@ -1652,7 +1652,7 @@ template<typename Request>
 void RequestRespond::SendRequest(Request* req, int num_reqs, char* data_buffer[], int64_t data_size[], int64_t num_data_buffers) {
     turbo_timer sendrequest_timer;
 	D_ASSERT(req != NULL && data_buffer != NULL);
-	D_ASSERT(num_reqs > 0 && data_size > 0);
+	// D_ASSERT(num_reqs > 0 && data_size > 0);
 	int32_t reqs_buf_size = num_reqs * sizeof(Request);
 	int rc = -1;
     sendrequest_timer.start_timer(0);
@@ -1661,14 +1661,14 @@ void RequestRespond::SendRequest(Request* req, int num_reqs, char* data_buffer[]
 	D_ASSERT (rc == MPI_SUCCESS);
 
 	RequestType rt_data;
-	if (req->rt == AdjListBatchIo) {
-		rt_data = RequestType::AdjListBatchIoData;
-	} else if (req->rt == UserCallback) {
-		rt_data = RequestType::UserCallbackData;
-	} else {
-		fprintf(stderr, "[RequestRespond::SendRequest] Undefined Request Type\n");
-		D_ASSERT (false);
-	}
+	// if (req->rt == AdjListBatchIo) {
+	// 	rt_data = RequestType::AdjListBatchIoData;
+	// } else if (req->rt == UserCallback) {
+	// 	rt_data = RequestType::UserCallbackData;
+	// } else {
+	// 	fprintf(stderr, "[RequestRespond::SendRequest] Undefined Request Type\n");
+	// 	D_ASSERT (false);
+	// }
     
     int64_t num_total_bytes = 0;
     sendrequest_timer.start_timer(1);
@@ -1696,171 +1696,171 @@ void RequestRespond::SendRequestReturnContainer(Request req, char* data_buffer, 
 	rc = MPI_Send((void *) &req, reqs_buf_size, MPI_CHAR, req.to, 1, MPI_COMM_WORLD);
 	D_ASSERT (rc == MPI_SUCCESS);
 
-    if (req.rt == UserCallback) {
-    } else {
-		fprintf(stderr, "[RequestRespond::SendRequest] Undefined Request Type\n");
-		D_ASSERT (false);
-	}
+    // if (req.rt == UserCallback) {
+    // } else {
+	// 	fprintf(stderr, "[RequestRespond::SendRequest] Undefined Request Type\n");
+	// 	D_ASSERT (false);
+	// }
 	RequestRespond::client_sockets.send_to_server_unlock(req.to);
 	RequestRespond::ReturnDataSendBuffer(cont_to_return);
 }
 
-template <typename T, Op op>
-void RequestRespond::TurboAllReduceInPlace(turbo_tcp* server_socket, turbo_tcp* client_socket, int socket_idx, char* buf, int count, int size_in_bytes) {
-    SimpleContainer cont_temp[2];
-    int64_t bytes_sent[2], bytes_received[2];
-    int64_t total_bytes_sent = 0, total_bytes_received = 0;
-    int64_t size_once = (DEFAULT_NIO_BUFFER_SIZE / sizeof(T)) * sizeof(T);
-    for (int i = 0; i < 2; i++) {
-        cont_temp[i] = RequestRespond::GetDataSendBuffer(size_once);
-        cont_temp[i].size_used = 0;
-        bytes_sent[i] = bytes_received[i] = 0;
-    }
+// template <typename T, Op op>
+// void RequestRespond::TurboAllReduceInPlace(turbo_tcp* server_socket, turbo_tcp* client_socket, int socket_idx, char* buf, int count, int size_in_bytes) {
+//     SimpleContainer cont_temp[2];
+//     int64_t bytes_sent[2], bytes_received[2];
+//     int64_t total_bytes_sent = 0, total_bytes_received = 0;
+//     int64_t size_once = (DEFAULT_NIO_BUFFER_SIZE / sizeof(T)) * sizeof(T);
+//     for (int i = 0; i < 2; i++) {
+//         cont_temp[i] = RequestRespond::GetDataSendBuffer(size_once);
+//         cont_temp[i].size_used = 0;
+//         bytes_sent[i] = bytes_received[i] = 0;
+//     }
 
-    int64_t total_size = count * size_in_bytes;
-    int granule = 2, cur = 0, prev = 0;
-    T* buffer = (T*)buf;
-    char* buffer_indexable;
+//     int64_t total_size = count * size_in_bytes;
+//     int granule = 2, cur = 0, prev = 0;
+//     T* buffer = (T*)buf;
+//     char* buffer_indexable;
 
-    int iteration = 0;
-    int max_iteration = std::ceil (std::log2 ((double) PartitionStatistics::num_machines()));
-    bool is_finished = false;
+//     int iteration = 0;
+//     int max_iteration = std::ceil (std::log2 ((double) PartitionStatistics::num_machines()));
+//     bool is_finished = false;
 
-    std::queue<std::future<void>> reqs_to_wait;
+//     std::queue<std::future<void>> reqs_to_wait;
 
-    // Reduce
-    while (iteration < max_iteration) {
-        total_bytes_sent = 0;
-        total_bytes_received = 0;
-        if (((PartitionStatistics::my_machine_id() + 1) % granule == 1) && ((PartitionStatistics::my_machine_id() + 1) + (granule / 2) > PartitionStatistics::num_machines()) || is_finished) {
-        } else {
-            if ((PartitionStatistics::my_machine_id() + 1) % granule == 1) { // recv from my_id + (granule / 2)
-                cur = prev = 0;
-                reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() + (granule / 2), &bytes_received[cur], size_once, true));
+//     // Reduce
+//     while (iteration < max_iteration) {
+//         total_bytes_sent = 0;
+//         total_bytes_received = 0;
+//         if (((PartitionStatistics::my_machine_id() + 1) % granule == 1) && ((PartitionStatistics::my_machine_id() + 1) + (granule / 2) > PartitionStatistics::num_machines()) || is_finished) {
+//         } else {
+//             if ((PartitionStatistics::my_machine_id() + 1) % granule == 1) { // recv from my_id + (granule / 2)
+//                 cur = prev = 0;
+//                 reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() + (granule / 2), &bytes_received[cur], size_once, true));
 
-                while (true) {
-                    reqs_to_wait.front().get();
-                    reqs_to_wait.pop();
-                    prev = cur;
-                    cur = (cur + 1) % 2;
+//                 while (true) {
+//                     reqs_to_wait.front().get();
+//                     reqs_to_wait.pop();
+//                     prev = cur;
+//                     cur = (cur + 1) % 2;
 
-                    total_bytes_received += bytes_received[prev];
-                    if (total_bytes_received == total_size) break;
-                    reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() + (granule / 2), &bytes_received[cur], size_once, true));
+//                     total_bytes_received += bytes_received[prev];
+//                     if (total_bytes_received == total_size) break;
+//                     reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() + (granule / 2), &bytes_received[cur], size_once, true));
 
-                    T* recv_buffer = (T*) cont_temp[prev].data;
-                    int64_t offset = total_bytes_received / sizeof(T);
-                    int64_t num_entries_received = bytes_received[prev] / sizeof(T);
-                    for (int64_t i = 0; i < num_entries_received; i++) {
-                        Operation<T, op> (&buffer[offset - num_entries_received + i], recv_buffer[i]);
-                    }
-                }
-                //#pragma omp parallel for
-                T* recv_buffer = (T*) cont_temp[prev].data;
-                int64_t offset = total_bytes_received / sizeof(T);
-                int64_t num_entries_received = bytes_received[prev] / sizeof(T);
-                for (int64_t i = 0; i < num_entries_received; i++) {
-                    Operation<T, op> (&buffer[offset - num_entries_received + i], recv_buffer[i]);
-                }
-            } else { // send to my_id - (granule / 2)
-                while (total_bytes_sent != total_size) {
-                    int64_t size_to_send = (total_size - total_bytes_sent) > size_once ? size_once : total_size - total_bytes_sent;
-                    int64_t bytes_send = client_socket->send_to_server((char*) buffer, total_bytes_sent, size_to_send, PartitionStatistics::my_machine_id() - (granule / 2));
-                    D_ASSERT(bytes_send == size_to_send);
-                    total_bytes_sent += bytes_send;
-                }
-                is_finished = true;
-            }
-        }
-        iteration++;
-        granule *= 2;
-    }
+//                     T* recv_buffer = (T*) cont_temp[prev].data;
+//                     int64_t offset = total_bytes_received / sizeof(T);
+//                     int64_t num_entries_received = bytes_received[prev] / sizeof(T);
+//                     for (int64_t i = 0; i < num_entries_received; i++) {
+//                         Operation<T, op> (&buffer[offset - num_entries_received + i], recv_buffer[i]);
+//                     }
+//                 }
+//                 //#pragma omp parallel for
+//                 T* recv_buffer = (T*) cont_temp[prev].data;
+//                 int64_t offset = total_bytes_received / sizeof(T);
+//                 int64_t num_entries_received = bytes_received[prev] / sizeof(T);
+//                 for (int64_t i = 0; i < num_entries_received; i++) {
+//                     Operation<T, op> (&buffer[offset - num_entries_received + i], recv_buffer[i]);
+//                 }
+//             } else { // send to my_id - (granule / 2)
+//                 while (total_bytes_sent != total_size) {
+//                     int64_t size_to_send = (total_size - total_bytes_sent) > size_once ? size_once : total_size - total_bytes_sent;
+//                     int64_t bytes_send = client_socket->send_to_server((char*) buffer, total_bytes_sent, size_to_send, PartitionStatistics::my_machine_id() - (granule / 2));
+//                     D_ASSERT(bytes_send == size_to_send);
+//                     total_bytes_sent += bytes_send;
+//                 }
+//                 is_finished = true;
+//             }
+//         }
+//         iteration++;
+//         granule *= 2;
+//     }
 
 
-    // Gather
-    iteration = 0;
-    while (iteration < max_iteration) {
-        total_bytes_sent = 0;
-        total_bytes_received = 0;
-        granule /= 2;
-        if (((PartitionStatistics::my_machine_id() + 1) % granule != 1) && ((PartitionStatistics::my_machine_id() + 1) % granule != ((granule / 2) + 1) % granule)) {
-        } else if (((PartitionStatistics::my_machine_id() + 1) % granule == 1) && (PartitionStatistics::my_machine_id() + (granule / 2) >= PartitionStatistics::num_machines())){
-        } else {
-            if ((PartitionStatistics::my_machine_id() + 1) % granule == 1) { // send to my_id + (granule / 2)
-                while (total_bytes_sent != total_size) {
-                    int64_t size_to_send = (total_size - total_bytes_sent) > size_once ? size_once : total_size - total_bytes_sent;
-                    int64_t bytes_send = client_socket->send_to_server((char*) buffer, total_bytes_sent, size_to_send, PartitionStatistics::my_machine_id() + (granule / 2));
-                    D_ASSERT(bytes_send == size_to_send);
-                    total_bytes_sent += bytes_send;
-                }
-            } else { // recv from my_id - (granule / 2)
-                cur = prev = 0;
-                reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() - (granule / 2), &bytes_received[cur], size_once, true));
-                while (true) {
-                    reqs_to_wait.front().get();
-                    reqs_to_wait.pop();
-                    prev = cur;
-                    cur = (cur + 1) % 2;
+//     // Gather
+//     iteration = 0;
+//     while (iteration < max_iteration) {
+//         total_bytes_sent = 0;
+//         total_bytes_received = 0;
+//         granule /= 2;
+//         if (((PartitionStatistics::my_machine_id() + 1) % granule != 1) && ((PartitionStatistics::my_machine_id() + 1) % granule != ((granule / 2) + 1) % granule)) {
+//         } else if (((PartitionStatistics::my_machine_id() + 1) % granule == 1) && (PartitionStatistics::my_machine_id() + (granule / 2) >= PartitionStatistics::num_machines())){
+//         } else {
+//             if ((PartitionStatistics::my_machine_id() + 1) % granule == 1) { // send to my_id + (granule / 2)
+//                 while (total_bytes_sent != total_size) {
+//                     int64_t size_to_send = (total_size - total_bytes_sent) > size_once ? size_once : total_size - total_bytes_sent;
+//                     int64_t bytes_send = client_socket->send_to_server((char*) buffer, total_bytes_sent, size_to_send, PartitionStatistics::my_machine_id() + (granule / 2));
+//                     D_ASSERT(bytes_send == size_to_send);
+//                     total_bytes_sent += bytes_send;
+//                 }
+//             } else { // recv from my_id - (granule / 2)
+//                 cur = prev = 0;
+//                 reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() - (granule / 2), &bytes_received[cur], size_once, true));
+//                 while (true) {
+//                     reqs_to_wait.front().get();
+//                     reqs_to_wait.pop();
+//                     prev = cur;
+//                     cur = (cur + 1) % 2;
 
-                    total_bytes_received += bytes_received[prev];
-                    if (total_bytes_received == total_size) break;
-                    reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() - (granule / 2), &bytes_received[cur], size_once, true));
-                    //#pragma omp parallel for
-                    T* recv_buffer = (T*) cont_temp[prev].data;
-                    int64_t offset = total_bytes_received / sizeof(T);
-                    int64_t num_entries_received = bytes_received[prev] / sizeof(T);
-                    for (int64_t i = 0; i < bytes_received[prev]; i++) {
-                        buffer[offset - num_entries_received + i] = recv_buffer[i];
-                    }
-                }
-                T* recv_buffer = (T*) cont_temp[prev].data;
-                int64_t offset = total_bytes_received / sizeof(T);
-                int64_t num_entries_received = bytes_received[prev] / sizeof(T);
-                for (int64_t i = 0; i < bytes_received[prev]; i++) {
-                    buffer[offset - num_entries_received + i] = recv_buffer[i];
-                }
-            }
-        }
-        iteration++;
-    }
-    D_ASSERT(granule == 2);
-    D_ASSERT(reqs_to_wait.empty());
-    for (int i = 0; i < 2; i++) RequestRespond::ReturnDataSendBuffer(cont_temp[i]);
-    if (socket_idx != -1 && socket_idx != 0 && socket_idx != 1) {
-        RequestRespond::general_server_sockets[socket_idx].lock_socket();
-        RequestRespond::general_connection_pool[socket_idx] = true;
-        RequestRespond::general_server_sockets[socket_idx].unlock_socket();
-    }
-}
+//                     total_bytes_received += bytes_received[prev];
+//                     if (total_bytes_received == total_size) break;
+//                     reqs_to_wait.push(Aio_Helper::async_pool.enqueue(turbo_tcp::Recv, server_socket, (const char*) cont_temp[cur].data, (size_t)0, PartitionStatistics::my_machine_id() - (granule / 2), &bytes_received[cur], size_once, true));
+//                     //#pragma omp parallel for
+//                     T* recv_buffer = (T*) cont_temp[prev].data;
+//                     int64_t offset = total_bytes_received / sizeof(T);
+//                     int64_t num_entries_received = bytes_received[prev] / sizeof(T);
+//                     for (int64_t i = 0; i < bytes_received[prev]; i++) {
+//                         buffer[offset - num_entries_received + i] = recv_buffer[i];
+//                     }
+//                 }
+//                 T* recv_buffer = (T*) cont_temp[prev].data;
+//                 int64_t offset = total_bytes_received / sizeof(T);
+//                 int64_t num_entries_received = bytes_received[prev] / sizeof(T);
+//                 for (int64_t i = 0; i < bytes_received[prev]; i++) {
+//                     buffer[offset - num_entries_received + i] = recv_buffer[i];
+//                 }
+//             }
+//         }
+//         iteration++;
+//     }
+//     D_ASSERT(granule == 2);
+//     D_ASSERT(reqs_to_wait.empty());
+//     for (int i = 0; i < 2; i++) RequestRespond::ReturnDataSendBuffer(cont_temp[i]);
+//     if (socket_idx != -1 && socket_idx != 0 && socket_idx != 1) {
+//         RequestRespond::general_server_sockets[socket_idx].lock_socket();
+//         RequestRespond::general_connection_pool[socket_idx] = true;
+//         RequestRespond::general_server_sockets[socket_idx].unlock_socket();
+//     }
+// }
 
-template <typename T, Op op> 
-void RequestRespond::TurboAllReduceSync(char* buf, int count, int size_in_bytes) {
-    RequestRespond::TurboAllReduceInPlace<T, op>(&RequestRespond::general_server_sockets[1], &RequestRespond::general_client_sockets[1], 1, buf, count, size_in_bytes);
-}
+// template <typename T, Op op> 
+// void RequestRespond::TurboAllReduceSync(char* buf, int count, int size_in_bytes) {
+//     RequestRespond::TurboAllReduceInPlace<T, op>(&RequestRespond::general_server_sockets[1], &RequestRespond::general_client_sockets[1], 1, buf, count, size_in_bytes);
+// }
 
-template <typename T, Op op> 
-void RequestRespond::TurboAllReduceInPlaceAsync(char* buf, int count, int size_in_bytes, int queue_idx) {
-    // TODO if # machines == 1, correct?
-    // Get available sockets
-    int available_socket_idx = -1;
-    if (PartitionStatistics::my_machine_id() == 0) {
-        while (true) {
-            auto it = std::find (RequestRespond::general_connection_pool.begin(), RequestRespond::general_connection_pool.end(), true);
-            if (it == RequestRespond::general_connection_pool.end()) usleep(1000);
-            else {
-                available_socket_idx = it - RequestRespond::general_connection_pool.begin();
-                break;
-            }
-        }
-        D_ASSERT(available_socket_idx >= 0 && available_socket_idx < DEFAULT_NUM_GENERAL_TCP_CONNECTIONS);
-        RequestRespond::general_server_sockets[available_socket_idx].lock_socket();
-        RequestRespond::general_connection_pool[available_socket_idx] = false;
-        RequestRespond::general_server_sockets[available_socket_idx].unlock_socket();
-        MPI_Bcast((void*) &available_socket_idx, sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
-    } else {
-        MPI_Bcast((void*) &available_socket_idx, sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
-    }
+// template <typename T, Op op> 
+// void RequestRespond::TurboAllReduceInPlaceAsync(char* buf, int count, int size_in_bytes, int queue_idx) {
+//     // TODO if # machines == 1, correct?
+//     // Get available sockets
+//     int available_socket_idx = -1;
+//     if (PartitionStatistics::my_machine_id() == 0) {
+//         while (true) {
+//             auto it = std::find (RequestRespond::general_connection_pool.begin(), RequestRespond::general_connection_pool.end(), true);
+//             if (it == RequestRespond::general_connection_pool.end()) usleep(1000);
+//             else {
+//                 available_socket_idx = it - RequestRespond::general_connection_pool.begin();
+//                 break;
+//             }
+//         }
+//         D_ASSERT(available_socket_idx >= 0 && available_socket_idx < DEFAULT_NUM_GENERAL_TCP_CONNECTIONS);
+//         RequestRespond::general_server_sockets[available_socket_idx].lock_socket();
+//         RequestRespond::general_connection_pool[available_socket_idx] = false;
+//         RequestRespond::general_server_sockets[available_socket_idx].unlock_socket();
+//         MPI_Bcast((void*) &available_socket_idx, sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
+//     } else {
+//         MPI_Bcast((void*) &available_socket_idx, sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
+//     }
 
-    // Enqueue into Async Pool
-    RequestRespond::reqs_to_wait_allreduce[queue_idx].push(Aio_Helper::async_pool.enqueue(RequestRespond::TurboAllReduceInPlace<T, op>, &RequestRespond::general_server_sockets[available_socket_idx], &RequestRespond::general_client_sockets[available_socket_idx], available_socket_idx, buf, count, size_in_bytes));
-}
+//     // Enqueue into Async Pool
+//     RequestRespond::reqs_to_wait_allreduce[queue_idx].push(Aio_Helper::async_pool.enqueue(RequestRespond::TurboAllReduceInPlace<T, op>, &RequestRespond::general_server_sockets[available_socket_idx], &RequestRespond::general_client_sockets[available_socket_idx], available_socket_idx, buf, count, size_in_bytes));
+// }
