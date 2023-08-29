@@ -1,9 +1,11 @@
 
 #pragma once
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <sstream>
+#include <stdexcept>
 
 namespace duckdb {
 
@@ -39,13 +41,12 @@ public:
         }
     }
 
-
     void setParam(int index, const std::string& value) {
         if (index > 0 && index <= params.size()) {
             params[index - 1] = "'" + value + "'";
             paramCount++;
         } else {
-            std::cerr << "Index out of bounds" << std::endl;
+            throw std::out_of_range("Index out of bounds for string, index " + std::to_string(index));
         }
     }
 
@@ -54,7 +55,7 @@ public:
             params[index - 1] = std::to_string(value);
             paramCount++;
         } else {
-            std::cerr << "Index out of bounds" << std::endl;
+            throw std::out_of_range("Index out of bounds for integer, index " + std::to_string(index));
         }
     }
 
@@ -63,7 +64,7 @@ public:
             params[index - 1] = std::to_string(value);
             paramCount++;
         } else {
-            std::cerr << "Index out of bounds" << std::endl;
+            throw std::out_of_range("Index out of bounds for double, index " + std::to_string(index));
         }
     }
 
@@ -72,7 +73,7 @@ public:
             params[index - 1] = value ? "true" : "false";
             paramCount++;
         } else {
-            std::cerr << "Index out of bounds" << std::endl;
+            throw std::out_of_range("Index out of bounds for boolean, index " + std::to_string(index));
         }
     }
 
