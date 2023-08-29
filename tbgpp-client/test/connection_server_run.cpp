@@ -19,11 +19,10 @@ int main(int argc, char** argv) {
   }
 
   std::string workspace("/data");
-  int port = 8080;
 
   fprintf(stdout, "Connection Server Directory: %s\n", workspace.c_str());
 
-  s62_connection_server = new S62ConnectionServer(workspace, port);
+  s62_connection_server = new S62ConnectionServer(workspace, PORT);
   s62_connection_server->run();
 
   fprintf(stdout, "Program exit\n");

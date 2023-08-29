@@ -10,8 +10,6 @@
 using json = nlohmann::json;
 typedef int32_t ClientId;
 
-#define PORT 8080
-
 json SendMessageReceieveJson(int sock, std::string& message) {
     static char buffer[8192] = {0};
     memset(buffer, 0, sizeof(buffer));
