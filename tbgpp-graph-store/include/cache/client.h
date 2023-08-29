@@ -36,10 +36,6 @@ public:
 
   int GetDirty(uint64_t object_id, bool& is_dirty);
 
-  int SetSwizzling(uint64_t object_id);
-
-  int GetSwizzling(uint64_t object_id, bool& is_swizzling);
-
   int Get(uint64_t object_id, uint8_t **ptr, size_t *size);
 
   int Release(uint64_t object_id);
@@ -71,8 +67,6 @@ private:
   int seal_internal(uint64_t object_id);
   int set_dirty_internal(uint64_t object_id);
   int get_dirty_internal(uint64_t object_id, bool& is_dirty);
-  int set_swizzling_internal(uint64_t object_id);
-  int get_swizzling_internal(uint64_t object_id, bool& is_swizzling);
   int get_refcount_internal(uint64_t object_id);
   int delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
   int flush_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
