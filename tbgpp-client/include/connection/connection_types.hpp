@@ -8,6 +8,7 @@ using json = nlohmann::json;
 #define CLIENT_ID_SIZE 4
 #define NUM_MAX_CLIENTS 100
 #define BUFFER_SIZE 8192
+#define PORT 8080
 
 typedef size_t ResultSetSize;
 typedef int32_t ClientId;
