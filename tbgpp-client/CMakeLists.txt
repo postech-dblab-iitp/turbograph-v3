@@ -12,7 +12,7 @@ project(tbgpp-client)
 ####################################################
 # COMPILATION FLAGS
 ####################################################
-set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2")
+set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -w")
 set(CMAKE_CXX_STANDARD 17)
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)

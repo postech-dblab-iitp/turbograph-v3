@@ -12,7 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include "turbo_tcp.hpp"
-#include "RequestRespond.hpp"
+#include "parallel/RequestRespond.hpp"
 #include <tbb/concurrent_queue.h>
 #include <thread>
 #include <atomic>
@@ -35,8 +35,18 @@
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 #include "storage/livegraph_catalog.hpp"
+#include "parallel/util.hpp"
+#include <boost/timer/timer.hpp>
+#include <boost/date_time.hpp>
+#include <boost/filesystem.hpp>
+#include "common/atom.hpp"
 
+#define EXTENT_GENERATOR_THREAD_COUNT 8
+#define SENDER_THREAD_COUNT 8
+#define DEFAULT_AIO_THREAD 16
 using namespace duckdb;
+
+typedef std::pair<idx_t, idx_t> LidPair;
 
 enum class DistributionPolicy {
     DIST_RANDOM = 0, //TODO: apply random distribution.
@@ -52,104 +62,98 @@ enum class Role {
 };
 
 class ExtentWithMetaData {
+    public:
+    int32_t dest_process_id;
     int64_t size_extent;
     duckdb::ChunkDefinitionID chunk_def_id;
     duckdb::LogicalType type;
-    
+    //If need more metadata, add here.
+
     char data[1];
 };
 
+enum class GraphFileType {
+    Vertex = 0, 
+    Edge = 1,
+    EdgeBackward = 2
+};
+class FileMetaInfo { //Vector of FileMetaInfo will be in GraphPartitioner.
+    public:
+    int file_seq_number = -1;
+    GraphFileType file_type;
+    std::pair<std::string, std::string> fileinfo;
+    std::vector<std::string> key_names;
+    std::vector<duckdb::LogicalType> types;
+    std::vector<std::string> vertex_labels;
+    PropertySchemaCatalogEntry* property_schema_cat;
+    std::vector<std::string> hash_columns;
+    std::vector<int64_t> key_column_idxs;
+    //If need more for edge file, add here.
+};
+
 class GraphPartitioner {
-    //Intended partitioning sequence: MPI_Init() -> InitializePartitioner() -> ProcessPartitioning() 
-    //-> DistributePartitionedFile() -> ClearPartitioner() -> MPI_Finalize()
+    public:
+    static void     InitializePartitioner(std::shared_ptr<ClientContext> client, Catalog* cat_instance, ExtentManager* ext_mng, GraphCatalogEntry* graph_cat);
+    static void     ReadVertexFileAndCreateDataChunk(DistributionPolicy policy, std::vector<std::string> hash_columns, std::pair<std::string, std::string> fileinfo);
+    static void     ReceiveAndStoreExtent(); 
+    static bool     AmIMaster(int32_t process_rank);
+    static void     ClearPartitioner();
+    static void     SpawnGeneratorAndSenderThreads();
+    static void     WaitForGeneratorThreads();
+    static void     WaitForSenderThreads();
+    //Following functions are for Aio_Helper. Thread safe.
+    static void     GenerateExtentFromChunkQueue(int32_t my_generator_id);
+    static void     SendExtentFromQueue(int32_t);
+    // void DistributePartitionedFile();
+
+    static void     ParseLabelSet(std::string& label_set, std::vector<std::string>& labels);
+    static duckdb::DataChunk* AllocateNewChunk(int file_seq_number); //TODO: change this to use types.
+
+    static duckdb::ProcessID process_rank;
+    static std::string output_path; //Temporarily store output to "dir/process_rank" to test in single machine. In distributed system, this should be changed.
+    static duckdb::ProcessID process_count;
+    static Role role;
+
+    //Followings are set at InputParser::getCmdOption()
+    static std::vector<std::pair<string, string>> vertex_files;
+    static std::vector<std::pair<string, string>> edge_files;
+    static std::vector<std::pair<string, string>> edge_files_backward;
+    static std::string output_dir;
+    static bool load_edge;
+    static bool load_backward_edge;
+    
+    static std::vector<FileMetaInfo> file_meta_infos;   //indexed by file_seq_number. Used by GenerateExtentFromChunkQueue, ...
+
+    //Followings are set at InitializePartitioner()
+    static std::shared_ptr<ClientContext> client;
+    static Catalog *cat_instance;
+    static duckdb::ExtentManager *ext_mng;
+    static GraphCatalogEntry *graph_cat;
+
+    static turbo_tcp server_sockets;
+    static turbo_tcp client_sockets;
+
+    //Followings are only for master!
+    static std::vector<tbb::concurrent_queue<std::pair<std::pair<int32_t, int32_t>, duckdb::DataChunk *>>> per_generator_datachunk_queue; //here int32_t is file seq number.
+    static std::vector<tbb::concurrent_queue<::SimpleContainer>> per_sender_buffer_queue; //use: extent_queues[proc_rank].push(extent_with_meta_data)
+    static std::queue<std::future<void>> extent_generator_futures;
+    static std::queue<std::future<void>> extent_sender_futures;
+    static std::atomic<bool> file_reading_finished;
+    static std::atomic<bool> extent_generating_finished; //TODO set and use this in main / sender thread
+    static std::vector<std::pair<std::string, std::unordered_map<idx_t, idx_t>>> lid_to_pid_map;
+    static std::vector<atom> lid_to_pid_map_locks;
+  	static std::vector<std::pair<std::string, std::unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList. No need to consider while processing vertices
+    static std::vector<atom> lid_pair_to_epid_map_locks;
+	// static std::vector<std::pair<std::string, ART*>> lid_to_pid_index; // Not being used now?
+    static std::atomic<int> local_file_seq_number;
 
     public:
-    void InitializePartitioner(std::pair<std::string, std::string> fileinfo);
-    int ProcessPartitioning(DistributionPolicy policy, std::vector<std::string> hash_columns, Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat, std::pair<std::string, std::string> fileinfo);
-    static void SendExtentFromQueue();
-
-    // void DistributePartitionedFile();
-    void ClearPartitioner();
-
-    duckdb::DataChunk* AllocateNewChunk(int32_t dest_process_rank);
-
     //Temporarily use very simple hash functions. Maybe need to change this if necessary.
     template <typename T>
-    int32_t PartitionHash(T value) {
+    static int32_t PartitionHash(T value) {
         static_assert(std::is_integral<T>::value, "Hash function for integers");
         return (int32_t)(value%process_count-1) + 1; //1, 2, ..., process_count-1. Master node stores no grpah.
     }
-    duckdb::ProcessID process_rank;
-    std::string output_path; //Temporarily store output to "dir/process_rank" to test in single machine. In distributed system, this should be changed.
-    static duckdb::ProcessID process_count;
-
-    private:
-    Role role;
-    // std::vector<int32_t> buffer_count;              //use: int64_t buffer_count = buffer_count[proc_rank]
-
-    void ParseLabelSet(string &labelset, vector<string> &parsed_labelset);
-
-
-    //Followings are only for master!
-    std::vector<std::string> key_names;
-    std::vector<duckdb::LogicalType> types; //This is better to be here since this is used for chunk allocation.
-    std::vector<duckdb::ProcessID> allocated_chunk_count;
-    std::unordered_map<duckdb::ProcessID, std::vector<duckdb::DataChunk *>> datachunks;
-    static std::vector<tbb::concurrent_queue<SimpleContainer*>> per_segment_buffer_queue; //use: extent_queues[proc_rank].push(extent_with_meta_data)
-    static std::atomic<int> finished_segment_count; //When this is process_count -1, sending finished. (since master is not counted)
-    // duckdb::ExtentManager ext_mng;
-    duckdb::GraphSIMDCSVFileParser reader;
-    int32_t spawn_sender_thread_cnt;
-    std::queue<std::future<void>> send_request_to_wait;
-    // std::unordered_map<duckdb::ProcessID, std::vector<char*>> buffers;        //use: char* buffer = buffers[proc_rank][buffer_idx]
-    // std::unordered_map<duckdb::ProcessID, std::vector<int64_t>> buffer_sizes; //use: int64_t buffer_size = buffer_sizes[proc_rank][buffer_idx]
-
-    // //Followings are only for segment
-    // std::vector<char*> recv_buffers;
-    // int32_t buffer_count_seg;
 };
-
-class InputParser_{
-  public:
-    InputParser_ (int &argc, char **argv, int pos){
-      for (int i=pos; i < argc; ++i) {
-		this->tokens.push_back(std::string(argv[i]));
-      }
-    }
-    std::pair<std::string, std::string> getCmdOption() const {
-      std::vector<std::string>::const_iterator itr;
-      for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
-    	std::string current_str = *itr;
-        if (std::strncmp(current_str.c_str(), "--nodes:", 8) == 0) {
-        	std::pair<std::string, std::string> pair_to_insert;
-        	pair_to_insert.first = std::string(*itr).substr(8);
-        	itr++;
-        	pair_to_insert.second = *itr;
-        	return pair_to_insert;
-        }
-        // } else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
-        // 	std::pair<std::string, std::string> pair_to_insert;
-        // 	pair_to_insert.first = std::string(*itr).substr(16);
-        // 	itr++;
-        // 	pair_to_insert.second = *itr;
-        // 	edge_files.push_back(pair_to_insert);
-        // 	load_edge = true;
-        // } else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
-        // 	// TODO check if a corresponding forward edge exists
-        // 	std::pair<std::string, std::string> pair_to_insert;
-        // 	pair_to_insert.first = std::string(*itr).substr(25);
-        // 	itr++;
-        // 	pair_to_insert.second = *itr;
-        // 	edge_files_backward.push_back(pair_to_insert);
-        // 	load_backward_edge = true;
-        // } else if (std::strncmp(current_str.c_str(), "--output_dir:", 13) == 0) {
-		// 	output_dir = std::string(*itr).substr(13);
-		// }
-      }
-    }
-  private:
-    std::vector <std::string> tokens;
-};
-
 
 #endif

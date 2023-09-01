@@ -88,6 +88,10 @@ class Request {
     int dummmmm;
 };
 
+class PartitionedExtentReadRequest: public Request {
+	public: 
+	int64_t size; //Size of Extent + metadata.
+};
 
 class Respond {
   public:

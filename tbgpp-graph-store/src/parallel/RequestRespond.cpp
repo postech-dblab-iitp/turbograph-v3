@@ -1611,10 +1611,13 @@ void RequestRespond::SendRequestAsynchronously(int partition_id, RequestType req
 	Aio_Helper::async_pool.enqueue(RequestRespond::SendSynchronously, partition_id, (char*) tmp, sizeof(RequestType), 1);
 }
 
+
 template<typename RequestType>
 void RequestRespond::SendRequest(int partition_id, RequestType req_buffer) {
 	MPI_Send((void *) &req_buffer, sizeof(RequestType), MPI_CHAR, partition_id, 1, MPI_COMM_WORLD);
 }
+template void RequestRespond::SendRequest<PartitionedExtentReadRequest>(int partition_id, PartitionedExtentReadRequest req_buffer);
+
 
 template<typename RequestType>
 void RequestRespond::SendRequest(int partition_id, RequestType* req, int num_reqs) {

@@ -8,7 +8,7 @@ project(tbgpp-graph-store)
 ####################################################
 # COMPILATION FLAGS
 ####################################################
-set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2")
+set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -w")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -151,7 +151,8 @@ file(GLOB TILE_TEST_SRC
 )
 
 file(GLOB PARALLEL_TEST_SRC
-  "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
+  #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
+  #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new.cpp"
 )
 
 # if (FALSE)

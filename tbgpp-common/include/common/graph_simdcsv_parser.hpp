@@ -792,7 +792,7 @@ private:
 	};
 
 public:
-  bool ReadVertexCSVFileUsingHash(GraphPartitioner* graphpartitioner, int32_t num_processes, std::vector<std::string> hash_columns);
+  bool ReadVertexCSVFileUsingHash(int32_t file_seq_no);
 };
 
 } // namespace duckdb

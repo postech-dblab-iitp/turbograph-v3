@@ -3,7 +3,10 @@
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
-
+#include "tbb/concurrent_queue.h"
+#include "common/atom.hpp"
+class SimpleContainer;
+class ExtentWithMetaData;
 namespace duckdb {
 
 class Catalog;
@@ -26,10 +29,13 @@ public:
 
 
     //tjyoon, for partitioning
+    ::atom catalog_access_lock; //To parallelize GenerateExtentFromChunkToSend() function, hold lock while accessing catalog, assign new extentID, etc.
     void GenerateExtentFromChunkInBuffer(DataChunk& input, std::vector<char*> &buffer_allocated_ptr_list, std::vector<int64_t> &buffer_allocated_size_list, int32_t &buffer_allocated_count);
+    ExtentID GenerateExtentFromChunkToSend(DataChunk& input, int32_t, ProcessID dest);
 
     // Add Index
     void AddIndex(ClientContext &context, DataChunk &input) {}
+
 
 private:
     void _AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog &cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID eid);

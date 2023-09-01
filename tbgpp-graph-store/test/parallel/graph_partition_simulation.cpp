@@ -36,6 +36,12 @@ int main(int argc, char** argv)
     InputParser_ input(argc, argv, 2);
     std::pair<std::string, std::string> fileinfo = input.getCmdOption();
 
+	DiskAioParameters::NUM_THREADS = 1;
+	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
+	DiskAioParameters::NUM_CPU_SOCKETS = 1;
+	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
+
+    Aio_Helper::Initialize(DEFAULT_AIO_THREAD); 
     std::thread* rr_receiver_ = new std::thread(RequestRespond::ReceiveRequest);
     PartitionStatistics::init();
     RequestRespond::Initialize(4 * 1024 * 1024L, 128, 2 * 1024 * 1024 * 1024L, DEFAULT_NIO_BUFFER_SIZE, DEFAULT_NIO_THREADS, 0);
@@ -48,6 +54,7 @@ int main(int argc, char** argv)
     file_path_for_this_process += "/";
     file_path_for_this_process += std::to_string(process_rank); 
     graphpartitioner.output_path = file_path_for_this_process;
+	DiskAioParameters::WORKSPACE = graphpartitioner.output_path;
 
 
 	ChunkCacheManager::ccm = new ChunkCacheManager(graphpartitioner.output_path.c_str());
@@ -65,7 +72,7 @@ int main(int argc, char** argv)
 	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
 
-    graphpartitioner.InitializePartitioner(fileinfo);//path, filename
+    graphpartitioner.InitializePartitioner(fileinfo);
 
     if(graphpartitioner.process_rank == 0) {
         printf("Initialized partitioner.\n");
@@ -91,6 +98,8 @@ int main(int argc, char** argv)
     if(graphpartitioner.process_rank == 0) {
         printf("Partitioner cleaning done.\n");
     }
+
+    delete ChunkCacheManager::ccm;
     MPI_Finalize();
     return 0;
 }

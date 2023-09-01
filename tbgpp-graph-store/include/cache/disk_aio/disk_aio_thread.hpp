@@ -26,7 +26,7 @@ struct DiskAioThreadStats {
 	size_t num_write_bytes = 0;
 };
 
-class DiskAioThread : public thread
+class DiskAioThread : public ::thread
 {
 private:
 	int max_num_ongoing_;
