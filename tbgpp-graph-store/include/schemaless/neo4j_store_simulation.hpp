@@ -1652,11 +1652,21 @@ public:
             schema_mapping_per_collection.push_back(i);
 
             vector<LogicalType> cur_types;
+            int64_t cur_schema_group_id = node_store.size();
             for (int64_t k = 0; k < final_schema_key_ids[i].size(); k++) {
                 cur_types.push_back(key_types[final_schema_key_ids[i][k]]);
-                fprintf(stdout, "%d, ", (uint8_t)key_types[final_schema_key_ids[i][k]].id());
+                auto it = property_key_to_schema_idx.find(final_schema_key_ids[i][k]);
+                if (it == property_key_to_schema_idx.end()) {
+                    std::vector<std::pair<int64_t, int64_t>> tmp_vec;
+                    tmp_vec.push_back({cur_schema_group_id, k});
+                    property_key_to_schema_idx.insert({final_schema_key_ids[i][k], tmp_vec});
+                } else {
+                    auto &vec = it->second;
+                    vec.push_back({cur_schema_group_id, k});
+                }
+                // fprintf(stdout, "%d, ", (uint8_t)key_types[final_schema_key_ids[i][k]].id());
             }
-            fprintf(stdout, "\n");
+            // fprintf(stdout, "\n");
 
             node_store.push_back(ChunkCollection());
             unique_ptr<DataChunk> newChunk = std::make_unique<DataChunk>();
@@ -1914,78 +1924,82 @@ public:
         double sum_double = 0.0;
         uint8_t sum_str = 0;
 
-        for (int64_t schemaidx = 0; schemaidx < node_store.size(); schemaidx++) {
-            ChunkCollection &cur_chunkcollection = node_store[schemaidx];
-            std::vector<int64_t> &schema_info = final_schema_key_ids[schema_mapping_per_collection[schemaidx]];
-            D_ASSERT(cur_chunkcollection.ColumnCount() == invalid_count_per_column[schemaidx].size());
+        auto it = property_key_to_schema_idx.find(target_col);
+        if (it == property_key_to_schema_idx.end()) {
+            // do nothing
+        } else {
+            auto &vec = it->second;
+            printf("vec.size = %ld\n", vec.size());
+            for (int64_t i = 0; i < vec.size(); i++) {
+                int64_t schemaidx = vec[i].first;
+                int64_t target_col_idx = vec[i].second;
 
-            int target_col_idx;
-            auto it = std::find(schema_info.begin(), schema_info.end(), target_col);
-            if (it == schema_info.end()) continue;
-            else target_col_idx = it - schema_info.begin();
-            for (int64_t chunkidx = 0; chunkidx < cur_chunkcollection.ChunkCount(); chunkidx++) {
-                DataChunk &cur_chunk = cur_chunkcollection.GetChunk(chunkidx);
-                for (int64_t colidx = 0; colidx < cur_chunkcollection.ColumnCount(); colidx++) {
-                    if (colidx != target_col_idx) continue;
-                    const Vector &vec = cur_chunk.data[colidx];
-                    if (key_types[colidx] == LogicalType::BIGINT) {
-                        int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
-                        if (invalid_count_per_column[schemaidx][colidx] == 0) {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                sum_int += cur_chunk_vec_ptr[i];
-                            }
-                        } else {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                if (!FlatVector::IsNull(vec, i)) {
+                ChunkCollection &cur_chunkcollection = node_store[schemaidx];
+
+                for (int64_t chunkidx = 0; chunkidx < cur_chunkcollection.ChunkCount(); chunkidx++) {
+                    DataChunk &cur_chunk = cur_chunkcollection.GetChunk(chunkidx);
+                    for (int64_t colidx = 0; colidx < cur_chunkcollection.ColumnCount(); colidx++) {
+                        if (colidx != target_col_idx) continue;
+                        const Vector &vec = cur_chunk.data[colidx];
+                        if (key_types[colidx] == LogicalType::BIGINT) {
+                            int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
+                            if (invalid_count_per_column[schemaidx][colidx] == 0) {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                     sum_int += cur_chunk_vec_ptr[i];
                                 }
+                            } else {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                    if (!FlatVector::IsNull(vec, i)) {
+                                        sum_int += cur_chunk_vec_ptr[i];
+                                    }
+                                }
                             }
-                        }
-                    } else if (key_types[colidx] == LogicalType::UBIGINT) {
-                        uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
-                        if (invalid_count_per_column[schemaidx][colidx] == 0) {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                sum_uint += cur_chunk_vec_ptr[i];
-                            }
-                        } else {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                if (!FlatVector::IsNull(vec, i)) {
+                        } else if (key_types[colidx] == LogicalType::UBIGINT) {
+                            uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
+                            if (invalid_count_per_column[schemaidx][colidx] == 0) {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                     sum_uint += cur_chunk_vec_ptr[i];
                                 }
+                            } else {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                    if (!FlatVector::IsNull(vec, i)) {
+                                        sum_uint += cur_chunk_vec_ptr[i];
+                                    }
+                                }
                             }
-                        }
-                    } else if (key_types[colidx] == LogicalType::DOUBLE) {
-                        double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
-                        if (invalid_count_per_column[schemaidx][colidx] == 0) {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                sum_double += cur_chunk_vec_ptr[i];
-                            }
-                        } else {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                if (!FlatVector::IsNull(vec, i)) {
+                        } else if (key_types[colidx] == LogicalType::DOUBLE) {
+                            double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
+                            if (invalid_count_per_column[schemaidx][colidx] == 0) {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                     sum_double += cur_chunk_vec_ptr[i];
                                 }
-                            }
-                        }
-                    } else if (key_types[colidx] == LogicalType::VARCHAR) {
-                        data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
-                        if (invalid_count_per_column[schemaidx][colidx] == 0) {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                auto str = ((string_t *)vec_data)[i];
-                                idx_t str_size = str.GetSize();
-                                const char *str_data = str.GetDataUnsafe();
-                                for (int64_t j = 0; j < str_size; j++) {
-                                    sum_str += str_data[j];
+                            } else {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                    if (!FlatVector::IsNull(vec, i)) {
+                                        sum_double += cur_chunk_vec_ptr[i];
+                                    }
                                 }
                             }
-                        } else {
-                            for (int64_t i = 0; i < cur_chunk.size(); i++) {
-                                if (!FlatVector::IsNull(vec, i)) {
+                        } else if (key_types[colidx] == LogicalType::VARCHAR) {
+                            data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
+                            if (invalid_count_per_column[schemaidx][colidx] == 0) {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
                                     auto str = ((string_t *)vec_data)[i];
                                     idx_t str_size = str.GetSize();
                                     const char *str_data = str.GetDataUnsafe();
                                     for (int64_t j = 0; j < str_size; j++) {
                                         sum_str += str_data[j];
+                                    }
+                                }
+                            } else {
+                                for (int64_t i = 0; i < cur_chunk.size(); i++) {
+                                    if (!FlatVector::IsNull(vec, i)) {
+                                        auto str = ((string_t *)vec_data)[i];
+                                        idx_t str_size = str.GetSize();
+                                        const char *str_data = str.GetDataUnsafe();
+                                        for (int64_t j = 0; j < str_size; j++) {
+                                            sum_str += str_data[j];
+                                        }
                                     }
                                 }
                             }
@@ -1994,6 +2008,87 @@ public:
                 }
             }
         }
+
+        // for (int64_t schemaidx = 0; schemaidx < node_store.size(); schemaidx++) {
+        //     ChunkCollection &cur_chunkcollection = node_store[schemaidx];
+        //     std::vector<int64_t> &schema_info = final_schema_key_ids[schema_mapping_per_collection[schemaidx]];
+        //     D_ASSERT(cur_chunkcollection.ColumnCount() == invalid_count_per_column[schemaidx].size());
+
+        //     int target_col_idx;
+        //     auto it = std::find(schema_info.begin(), schema_info.end(), target_col);
+        //     if (it == schema_info.end()) continue;
+        //     else target_col_idx = it - schema_info.begin();
+        //     for (int64_t chunkidx = 0; chunkidx < cur_chunkcollection.ChunkCount(); chunkidx++) {
+        //         DataChunk &cur_chunk = cur_chunkcollection.GetChunk(chunkidx);
+        //         for (int64_t colidx = 0; colidx < cur_chunkcollection.ColumnCount(); colidx++) {
+        //             if (colidx != target_col_idx) continue;
+        //             const Vector &vec = cur_chunk.data[colidx];
+        //             if (key_types[colidx] == LogicalType::BIGINT) {
+        //                 int64_t *cur_chunk_vec_ptr = (int64_t *)cur_chunk.data[colidx].GetData();
+        //                 if (invalid_count_per_column[schemaidx][colidx] == 0) {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         sum_int += cur_chunk_vec_ptr[i];
+        //                     }
+        //                 } else {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         if (!FlatVector::IsNull(vec, i)) {
+        //                             sum_int += cur_chunk_vec_ptr[i];
+        //                         }
+        //                     }
+        //                 }
+        //             } else if (key_types[colidx] == LogicalType::UBIGINT) {
+        //                 uint64_t *cur_chunk_vec_ptr = (uint64_t *)cur_chunk.data[colidx].GetData();
+        //                 if (invalid_count_per_column[schemaidx][colidx] == 0) {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         sum_uint += cur_chunk_vec_ptr[i];
+        //                     }
+        //                 } else {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         if (!FlatVector::IsNull(vec, i)) {
+        //                             sum_uint += cur_chunk_vec_ptr[i];
+        //                         }
+        //                     }
+        //                 }
+        //             } else if (key_types[colidx] == LogicalType::DOUBLE) {
+        //                 double *cur_chunk_vec_ptr = (double *)cur_chunk.data[colidx].GetData();
+        //                 if (invalid_count_per_column[schemaidx][colidx] == 0) {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         sum_double += cur_chunk_vec_ptr[i];
+        //                     }
+        //                 } else {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         if (!FlatVector::IsNull(vec, i)) {
+        //                             sum_double += cur_chunk_vec_ptr[i];
+        //                         }
+        //                     }
+        //                 }
+        //             } else if (key_types[colidx] == LogicalType::VARCHAR) {
+        //                 data_ptr_t vec_data = cur_chunk.data[colidx].GetData();
+        //                 if (invalid_count_per_column[schemaidx][colidx] == 0) {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         auto str = ((string_t *)vec_data)[i];
+        //                         idx_t str_size = str.GetSize();
+        //                         const char *str_data = str.GetDataUnsafe();
+        //                         for (int64_t j = 0; j < str_size; j++) {
+        //                             sum_str += str_data[j];
+        //                         }
+        //                     }
+        //                 } else {
+        //                     for (int64_t i = 0; i < cur_chunk.size(); i++) {
+        //                         if (!FlatVector::IsNull(vec, i)) {
+        //                             auto str = ((string_t *)vec_data)[i];
+        //                             idx_t str_size = str.GetSize();
+        //                             const char *str_data = str.GetDataUnsafe();
+        //                             for (int64_t j = 0; j < str_size; j++) {
+        //                                 sum_str += str_data[j];
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         fprintf(stdout, "Total = %d, sum_int = %ld, sum_uint = %ld, sum_double = %.3f, sum_str = %d\n",
             total, sum_int, sum_uint, sum_double, sum_str);
     }
@@ -2016,6 +2111,7 @@ public:
 
     int64_t property_key_id_ver;
     unordered_map<key_type_pair, int64_t, boost::hash<key_type_pair>> key_map;
+    unordered_map<int64_t, vector<std::pair<int64_t, int64_t>>> property_key_to_schema_idx;
 
     vector<int64_t> merge_count;
     vector<int64_t> schema_mapping_per_collection;
