@@ -124,7 +124,7 @@ public:
         PartitionID new_pid = partition_cat->GetPartitionID();
 		string property_schema_name = "vps_" + std::string(label_name);
 		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid);
+		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid, partition_cat->GetOid());
 		property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
 		
 		vector<PropertyKeyID> property_key_ids;
