@@ -47,7 +47,7 @@ using std::make_shared;
 #define TEMP_SCHEMA    "temp"
 #define INVALID_SCHEMA ""
 
-#define DEFAULT_GRAPH "graph"
+#define DEFAULT_GRAPH "graph1"
 #define DEFAULT_VERTEX_PARTITION_PREFIX "vpart_"
 #define DEFAULT_EDGE_PARTITION_PREFIX "epart_"
 #define DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX "vps_"
@@ -96,6 +96,8 @@ typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 
 typedef uint64_t ChunkID;
+
+#define GET_SEQNO(x) (x & 0x00000000FFFFFFFF);
 
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;

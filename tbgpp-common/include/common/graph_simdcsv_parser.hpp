@@ -596,6 +596,9 @@ public:
 
 	bool GetSchemaFromHeader(vector<string> &names, vector<LogicalType> &types) {
 		D_ASSERT(names.empty() && types.empty());
+    if (key_names.size() == 0 || key_types.size() == 0) {
+      return false;
+    }
 		names.resize(key_names.size());
 		types.resize(key_types.size());
 		std::copy(key_names.begin(), key_names.end(), names.begin());
