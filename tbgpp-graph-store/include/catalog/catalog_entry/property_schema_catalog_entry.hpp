@@ -47,7 +47,6 @@ public:
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
 	idx_t_vector key_column_idxs;
-	atomic<ExtentID> local_extent_id_version;
 	vector<LogicalType> property_types; // TODO SHM
 	LogicalTypeId_vector property_typesid;
 	string_vector property_key_names;
@@ -82,7 +81,6 @@ public:
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
 	void AddExtent(ExtentID eid, size_t num_tuples_in_extent = 0);
-	ExtentID GetNewExtentID();
 	PartitionID GetPartitionID();
 	idx_t GetPartitionOID();
 

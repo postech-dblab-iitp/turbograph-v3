@@ -1770,9 +1770,11 @@ public:
     // Returns index if found, -1 otherwise.
     // For comfortability, we use -1 as invalid index (INVALID_TUPLE_GROUP_ID)
     // After finding, please call if (same_schema_index == INVALID_TUPLE_GROUP_ID) { schema_hash_table.insert(cur_tuple_schema); }
+#ifdef USE_HASH_TABLE
     void GetSameSchema(vector<int64_t> &cur_tuple_schema, int64_t &same_schema_index) {
         schema_hash_table.find(cur_tuple_schema, same_schema_index);
     }
+#endif
 
     void GetSimilarSchema(vector<int64_t> &cur_tuple_schema, vector<int64_t> &similar_schema_list, vector<int> &scores, int64_t &lowest_score_index) {
         int64_t lowest_score = max_allow_edit_distance + 1;

@@ -94,15 +94,14 @@ namespace duckdb {
 
 SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool internal, fixed_managed_mapped_file *&catalog_segment)
     : CatalogEntry(CatalogType::SCHEMA_ENTRY, catalog, move(name_p), (void_allocator) catalog_segment->get_segment_manager()), 
-	graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")),
-	partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
-	propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
-	extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
-	chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
-	indexes(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes")),
-	functions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions")),
-	oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
-IC();
+		graphs(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs")),
+		partitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions")),
+		propertyschemas(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas")), 
+		extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
+		chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
+		indexes(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes")),
+		functions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions")),
+		oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
 	this->internal = internal;
 	this->catalog_segment = catalog_segment;
 }
