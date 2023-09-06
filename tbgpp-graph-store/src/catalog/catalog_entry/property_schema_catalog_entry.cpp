@@ -11,7 +11,7 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
-	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc), local_extent_id_version(0),
+	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc),
 	property_key_names(void_alloc), property_typesid(void_alloc), num_columns(0) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
@@ -30,15 +30,8 @@ void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
 }
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentID eid, size_t num_tuples_in_extent) {
-	// Can we perform this logic in GetNewExtentID??
 	extent_ids.push_back(eid);
 	last_extent_num_tuples = num_tuples_in_extent;
-}
-
-ExtentID PropertySchemaCatalogEntry::GetNewExtentID() {
-	ExtentID new_eid = pid;
-	new_eid = new_eid << 16;
-	return new_eid + local_extent_id_version++;
 }
 
 LogicalTypeId_vector *PropertySchemaCatalogEntry::GetTypes() {

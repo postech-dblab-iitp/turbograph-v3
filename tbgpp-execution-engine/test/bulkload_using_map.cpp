@@ -118,7 +118,7 @@ void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
 }
 
 void InitializeDiskAio() {
-	fprintf(stdout, "\n Initialize Disk Aio Parameters\n"); // TODO use debug options
+	fprintf(stdout, "\nInitialize Disk Aio Parameters\n"); // TODO use debug options
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
@@ -133,14 +133,14 @@ void InitializeDiskAio() {
 
 void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
-							  vector<LogicalType> &types, PropertySchemaCatalogEntry *property_schema_cat) {
+							  vector<LogicalType> &types, PartitionCatalogEntry *partition_cat, PropertySchemaCatalogEntry *property_schema_cat) {
 	string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + vertex_labelset_name;
 	string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + vertex_labelset_name;
 	vector<PropertyKeyID> property_key_ids;
 
 	// Create Partition Catalog Entry
 	CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
-	PartitionCatalogEntry *partition_cat = 
+	partition_cat = 
 		(PartitionCatalogEntry *)cat_instance.CreatePartition(*client.get(), &partition_info);
 	PartitionID new_pid = graph_cat->GetNewPartitionID();
 
@@ -169,7 +169,8 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
-							  PropertySchemaCatalogEntry *property_schema_cat, PropertySchemaCatalogEntry *vertex_ps_cat_entry) {
+							  PartitionCatalogEntry *partition_cat, PropertySchemaCatalogEntry *property_schema_cat,
+							  PropertySchemaCatalogEntry *vertex_ps_cat_entry) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
 	string property_schema_name = DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX + edge_type;
 	vector<PropertyKeyID> property_key_ids;
@@ -177,7 +178,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 
 	// Create Partition Catalog Entry
 	CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
-	PartitionCatalogEntry *partition_cat = 
+	partition_cat = 
 		(PartitionCatalogEntry *)cat_instance.CreatePartition(*client.get(), &partition_info);
 	PartitionID new_pid = graph_cat->GetNewPartitionID();
 
@@ -360,6 +361,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		vector<int64_t> key_column_idxs;
 		vector<LogicalType> types;
 		GraphSIMDCSVFileParser reader;
+		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
 
 		fprintf(stdout, "Start to load %s, %s\n", vertex_labelset.c_str(), vertex_file_path.c_str());
@@ -381,7 +383,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
 
 		// Create Catalog Infos for Vertex
-		CreateVertexCatalogInfos(cat_instance, client, graph_cat, vertex_labelset, vertex_labels, key_names, types, property_schema_cat);
+		CreateVertexCatalogInfos(cat_instance, client, graph_cat, vertex_labelset, vertex_labels, key_names, types, partition_cat, property_schema_cat);
 		
 		// Initialize DataChunk
 		DataChunk data;
@@ -410,7 +412,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 			// Create Vertex Extent by Extent Manager
 			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *property_schema_cat);
+			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
@@ -477,6 +479,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 
 		// CreateExtent For Each Vertex
 		if (json_file_types[idx] == JsonFileType::JSON) {
+			D_ASSERT(false); // deactivate temporarily
 			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSON);
 			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
 				fprintf(stdout, "\nLoad %s, %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_file_vertices[idx][vertex_idx].second.c_str());
@@ -493,15 +496,15 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 				DataChunk data;
 				reader.IterateJson(json_file_vertices[idx][vertex_idx].first.c_str(), json_file_vertices[idx][vertex_idx].second.c_str(), data, JsonFileType::JSON, graph_cat, partition_cat);
 			}
-		} else if (json_file_types[idx] == JsonFileType::JSONL) {
+		} else if (json_file_types[idx] == JsonFileType::JSONL) { // assume Neo4J format
 			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSONL);
 			DataChunk data;
 			if (json_file_vertices[idx].size() == 1 && json_file_edges[idx].size() == 0) {
-				reader.IterateJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::VERTEX);
+				reader.LoadJson(json_file_vertices[idx][0].first, "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::VERTEX);
 			} else if (json_file_vertices[idx].size() == 0 && json_file_edges[idx].size() == 1) {
-				reader.IterateJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::EDGE);
+				reader.LoadJson(json_file_edges[idx][0].first, "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::EDGE);
 			} else {
-				reader.IterateJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr);
+				reader.LoadJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr);
 			}
 		}
 		auto json_end = std::chrono::high_resolution_clock::now();
@@ -525,11 +528,12 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		vector<int64_t> dst_column_idx;
 		vector<LogicalType> types;
 		GraphSIMDCSVFileParser reader;
+		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
 		PropertySchemaCatalogEntry *vertex_ps_cat_entry;
 
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Start to load %s, %s\n", edge_type, edge_file_path);
+		fprintf(stdout, "Start to load %s, %s\n", edge_type.c_str(), edge_file_path.c_str());
 #endif
 
 		// Read & Parse Edge CSV File
@@ -582,7 +586,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, property_schema_cat, vertex_ps_cat_entry);
+		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, partition_cat, property_schema_cat, vertex_ps_cat_entry);
 
 		// Initialize Extent Iterator for Vertex Extents
 		ExtentIterator ext_it;
@@ -608,7 +612,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 #endif
 
 			// Get New ExtentID for this chunk
-			ExtentID new_eid = property_schema_cat->GetNewExtentID();
+			ExtentID new_eid = partition_cat->GetNewExtentID();
 
 			// Initialize epid base
 			idx_t epid_base = (idx_t) new_eid;
@@ -692,7 +696,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 							  epid_base);
 			
 			// Create Edge Extent by Extent Manager
-			ext_mng.CreateExtent(*client.get(), data, *property_schema_cat, new_eid);
+			ext_mng.CreateExtent(*client.get(), data, *partition_cat, new_eid);
 			property_schema_cat->AddExtent(new_eid, data.size());
 		}
 		

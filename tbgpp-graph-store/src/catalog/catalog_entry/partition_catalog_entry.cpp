@@ -48,6 +48,12 @@ PartitionID PartitionCatalogEntry::GetPartitionID() {
 	return pid;
 }
 
+ExtentID PartitionCatalogEntry::GetNewExtentID() {
+	ExtentID new_eid = pid;
+	new_eid = new_eid << 16;
+	return new_eid + local_extent_id_version++;
+}
+
 void PartitionCatalogEntry::GetPropertySchemaIDs(vector<idx_t> &psids) {
 	for (auto &psid : property_schema_array) {
 		psids.push_back(psid);

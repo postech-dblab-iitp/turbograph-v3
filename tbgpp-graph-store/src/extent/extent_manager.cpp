@@ -14,10 +14,10 @@ namespace duckdb {
 
 ExtentManager::ExtentManager() {}
 
-ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry) {
+ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat) {
     // Get New ExtentID & Create ExtentCatalogEntry
-    PartitionID pid = prop_schema_cat_entry.GetPartitionID();
-    ExtentID new_eid = prop_schema_cat_entry.GetNewExtentID();
+    PartitionID pid = partition_cat.GetPartitionID();
+    ExtentID new_eid = partition_cat.GetNewExtentID();
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
     CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
@@ -29,13 +29,13 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
 
     // Append Chunk
     //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
-    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
     return new_eid;
 }
 
-void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID new_eid) {
+void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat, ExtentID new_eid) {
     // Create ExtentCatalogEntry
-    PartitionID pid = prop_schema_cat_entry.GetPartitionID();
+    PartitionID pid = partition_cat.GetPartitionID();
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
     CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
@@ -47,93 +47,17 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Prope
 
     // Append Chunk
     //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
-    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
 }
 
-void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentID eid) {
+void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &property_schema_cat, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
-    PartitionID pid = prop_schema_cat_entry.GetPartitionID();
-    _AppendChunkToExtentWithCompression(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, eid);
+    PartitionID pid = property_schema_cat.GetPartitionID();
+    _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, eid);
 }
 
-void ExtentManager::_AppendChunkToExtent(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
-    throw NotImplementedException("Deprecated Function");
-    idx_t input_chunk_idx = 0;
-    ChunkDefinitionID cdf_id_base = new_eid;
-    cdf_id_base = cdf_id_base << 32;
-    for (auto &l_type : input.GetTypes()) {
-        // For each Vector in DataChunk create new chunk definition
-        LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
-        ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
-        string chunkdefinition_name = "cdf_" + std::to_string(cdf_id);
-        CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
-        ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
-        extent_cat_entry.AddChunkDefinitionID(cdf_id);
-
-        // Get Buffer from Cache Manager
-        // Cache Object ID: 64bit = ChunkDefinitionID
-        uint8_t* buf_ptr;
-        size_t buf_size;
-        size_t alloc_buf_size;
-        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
-            idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
-        } else if (l_type == LogicalType::VARCHAR) {
-            size_t string_len_total = 0;
-            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) {
-                string_len_total += sizeof(uint32_t); // size of len field
-                string_len_total += string_buffer[i].GetSize();
-            }
-            alloc_buf_size = string_len_total + sizeof(uint64_t);
-        } else {
-            D_ASSERT(TypeIsConstantSize(l_type.InternalType()));
-            alloc_buf_size = input.size() * GetTypeIdSize(l_type.InternalType()) + sizeof(uint64_t);
-        }
-        //fprintf(stdout, "cdf %ld Alloc_buf_size = %ld\n", cdf_id, alloc_buf_size);
-        string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
-            + std::to_string(new_eid) + std::string("/chunk_");
-        ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
-        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
-
-        // Copy (or Compress and Copy) DataChunk
-        if (l_type == LogicalType::VARCHAR) {
-            size_t offset = 0;
-            size_t input_size = input.size();
-            memcpy(buf_ptr + offset, &input_size, sizeof(uint64_t));
-            offset += sizeof(uint64_t);
-            uint32_t string_len;
-            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) {
-                string_len = string_buffer[i].GetSize();
-                memcpy(buf_ptr + offset, &string_len, sizeof(uint32_t));
-                offset += sizeof(uint32_t);
-                memcpy(buf_ptr + offset, string_buffer[i].GetDataUnsafe(), string_len);
-                offset += string_len;
-            }
-        } else if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
-            memcpy(buf_ptr, input.data[input_chunk_idx].GetData(), alloc_buf_size);
-        } else {
-            // Create MinMaxArray in ChunkDefinitionCatalog
-            size_t input_size = input.size();
-            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
-                chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-            }
-
-            // Copy Data Into Cache
-            memcpy(buf_ptr, &input_size, sizeof(uint64_t));
-            memcpy(buf_ptr + sizeof(uint64_t), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(uint64_t));
-        }
-
-        // Set Dirty & Unpin Segment & Flush
-        ChunkCacheManager::ccm->SetDirty(cdf_id);
-        ChunkCacheManager::ccm->UnPinSegment(cdf_id);
-        input_chunk_idx++;
-    }
-}
-
-void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, DataChunk &input, Catalog& cat_instance, PropertySchemaCatalogEntry &prop_schema_cat_entry, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
+void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, DataChunk &input, Catalog& cat_instance, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID new_eid) {
     idx_t input_chunk_idx = 0;
     ChunkDefinitionID cdf_id_base = new_eid;
     cdf_id_base = cdf_id_base << 32;
