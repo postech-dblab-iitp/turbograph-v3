@@ -149,28 +149,25 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             } else {
                 // Copy CompressionHeader
                 size_t input_size = input.size();
-                size_t string_t_offset = comp_header_size;
-                size_t string_data_offset = comp_header_size + input_size * sizeof(string_t);
-                comp_header.SetSwizzlingType(SwizzlingType::SWIZZLE_VARCHAR);
-                memcpy(buf_ptr, &comp_header, comp_header_size);
+                size_t string_len_offset = sizeof(CompressionHeader);
+                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint64_t);
+                CompressionHeader comp_header(UNCOMPRESSED, input_size);
+                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
 
-                // For each string_t, write string_t and actual string if not inlined
-                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+                uint32_t string_len;
                 uint64_t accumulated_string_len = 0;
+                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+
                 for (size_t i = 0; i < input.size(); i++) {
-                    string_t& str = string_buffer[i];
-                    if (str.IsInlined()) {
-                        memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
-                    } else {
-                        // Calculate pointer address
-                        uint8_t* swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
-                        string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
-                        memcpy(buf_ptr + string_t_offset, &swizzled_str, sizeof(string_t));
-                        // Copy actual string
-                        memcpy(buf_ptr + string_data_offset + accumulated_string_len, str.GetDataUnsafe(), str.GetSize());
-                        accumulated_string_len += str.GetSize();
-                    }
-                    string_t_offset += sizeof(string_t);
+                    accumulated_string_len += string_buffer[i].GetSize();
+                    memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
+                    string_len_offset += sizeof(uint64_t);
+                }
+
+                for (size_t i = 0; i < input.size(); i++) {
+                    string_len = string_buffer[i].GetSize();
+                    memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
+                    string_data_offset += string_len;
                 }
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
