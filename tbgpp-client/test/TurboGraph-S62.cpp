@@ -118,6 +118,9 @@ using namespace tblr;
 #include "catalog/catalog_wrapper.hpp"
 #include "tbgppdbwrappers.hpp"
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 using namespace antlr4;
 using namespace gpopt;
 
@@ -144,7 +147,17 @@ bool enable_profile = false;			// passed to client context as config
 bool load_edge;
 bool load_backward_edge;
 
+int eoq;
+
+struct malloc_deleter
+{
+    template <class T>
+    void operator()(T* p) { std::free(p); }
+};
+
+typedef std::unique_ptr<char, malloc_deleter> cstring_uptr;
 typedef std::pair<idx_t, idx_t> LidPair;
+
 
 void helper_deallocate_objects_in_shared_memory () {
   string server_socket = "/tmp/catalog_server";
@@ -179,6 +192,29 @@ void helper_deallocate_objects_in_shared_memory () {
   }
 
   fprintf(stdout, "Re-initialize shared memory\n");
+}
+
+int
+bind_cr(int count, int key) {
+	if (eoq == 1) {
+		rl_done = 1;
+		eoq = 0;
+	}
+	printf("\n");
+}
+
+int
+bind_eoq(int count, int key) {
+	eoq = 1;
+
+	printf(";");
+}
+
+int initialize_readline() {
+  eoq = 0;
+//   rl_bind_key('\n', bind_cr);
+//   rl_bind_key('\r', bind_cr);
+//   rl_bind_key(';', bind_eoq);
 }
 
 void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
@@ -257,6 +293,92 @@ class InputParser{
   private:
     std::vector <std::string> tokens;
 };
+
+void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema, bool show_top_tuples_only = true) {
+	int LIMIT = 10;
+	size_t num_total_tuples = 0;
+	for (auto &it : resultChunks) num_total_tuples += it->size();
+
+	std::cout << "===================================================" << std::endl;
+	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
+	if (LIMIT < num_total_tuples) {
+		std::cout << "Showing top " << LIMIT <<":" << std::endl;
+	} else {
+		std::cout << std::endl;
+	}
+	
+	Table t;
+	t.layout(unicode_box_light_headerline());
+
+	auto col_names = planner.getQueryOutputColNames();
+	for( int i = 0; i < col_names.size(); i++ ) {
+		t << col_names[i] ;
+	}
+	t << endr;
+
+	if (num_total_tuples != 0) {
+		int num_tuples_to_print;
+		int cur_offset_in_chunk = 0;
+		int chunk_idx = 0;
+		while (chunk_idx < resultChunks.size()) {
+			auto &chunk = resultChunks[chunk_idx];
+			num_tuples_to_print = std::min((int)(chunk->size()) - cur_offset_in_chunk, LIMIT);
+			for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
+				for( int i = 0; i < chunk->ColumnCount(); i++ ) {
+					t << chunk->GetValue(i, cur_offset_in_chunk + idx).ToString();
+				}
+				t << endr;
+			}
+			LIMIT -= num_tuples_to_print;
+
+			if (LIMIT == 0) {
+				std::cout << t << std::endl;
+				cur_offset_in_chunk += 10;
+				if (show_top_tuples_only) {
+					break;
+				} else {
+					bool continue_print;
+					while (true) {
+						string show_more;
+						printf("Show 10 more tuples [y/n]: ");
+						std::cin >> show_more;
+						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
+						if (show_more == "y") {
+							LIMIT = 10;
+							continue_print = true;
+							break;
+						} else if (show_more == "n") {
+							continue_print = false;
+							break;
+						} else {
+							printf("Please Enter Either Y or N\n");
+						}
+					}
+
+					if (continue_print) { 
+						t = Table();
+						t.layout(unicode_box_light_headerline());
+
+						for( int i = 0; i < col_names.size(); i++ ) {
+							t << col_names[i] ;
+						}
+						t << endr;
+						continue;
+					} else { 
+						break;
+					}
+				}
+			} else {
+				chunk_idx++;
+				cur_offset_in_chunk = 0;
+			}
+		}
+	}
+	if (LIMIT != 10) {
+		std::cout << t << std::endl;
+	}
+	std::cout << "===================================================" << std::endl;
+}
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
 
@@ -348,7 +470,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			DUMP RESULT
 		*/
 			
-			if(enable_profile) {
+			if (enable_profile) {
 				// TODO need improvement
 				std::cout << "[Profile Info]" << std::endl;
 				for(const auto& mapping: profiler.GetTreeMap()) {
@@ -356,46 +478,11 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				}
 			}
 
-			int LIMIT = 10;
-			size_t num_total_tuples = 0;
-			D_ASSERT( executors.back()->context->query_results != nullptr );
-			auto& resultChunks = *(executors.back()->context->query_results);
-			auto& schema = executors.back()->pipeline->GetSink()->schema;
-			for (auto &it : resultChunks) num_total_tuples += it->size();
-			std::cout << "===================================================" << std::endl;
-			std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
-			if( LIMIT < num_total_tuples) {
-				std::cout << "Showing top " << LIMIT <<":" << std::endl;
-			} else {
-				std::cout << std::endl;
-			}
+			D_ASSERT(executors.back()->context->query_results != nullptr);
+			auto &resultChunks = *(executors.back()->context->query_results);
+			auto &schema = executors.back()->pipeline->GetSink()->schema;
+			printOutput(planner, resultChunks, schema, false);
 			
-			Table t;
-			t.layout(unicode_box_light_headerline());
-
-			auto col_names = planner.getQueryOutputColNames();
-			for( int i = 0; i < col_names.size(); i++ ) {
-				t << col_names[i] ;
-			}
-			t << endr;
-
-			if (num_total_tuples != 0) {
-				int num_tuples_to_print;
-				for (int chunk_idx = 0; chunk_idx < resultChunks.size(); chunk_idx++) {
-					auto &chunk = resultChunks[chunk_idx];
-					num_tuples_to_print = std::min((int)(chunk->size()), LIMIT);
-					for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
-						for( int i = 0; i < chunk->ColumnCount(); i++ ) {
-							t << chunk->GetValue(i, idx).ToString();
-						}
-						t << endr;
-					}
-					LIMIT -= num_tuples_to_print;
-					if (LIMIT == 0) break;
-				}
-				std::cout << t << std::endl;
-			}
-			std::cout << "===================================================" << std::endl;
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 		}
 		double max_exec_time = std::numeric_limits<double>::min();
@@ -433,47 +520,11 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		// end_timer
 		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 
-		int LIMIT = 10;
-		size_t num_total_tuples = 0;
 		D_ASSERT( executors.back()->context->query_results != nullptr );
 		auto& resultChunks = *(executors.back()->context->query_results);
 		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		for (auto &it : resultChunks) num_total_tuples += it->size();
-		std::cout << "===================================================" << std::endl;
-		std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
-		if( LIMIT < num_total_tuples) {
-			std::cout << "Showing top " << LIMIT <<":" << std::endl;
-		} else {
-			std::cout << std::endl;
-		}
+		printOutput(planner, resultChunks, schema);
 		
-		Table t;
-		t.layout(unicode_box_light_headerline());
-
-		auto col_names = planner.getQueryOutputColNames();
-		for( int i = 0; i < col_names.size(); i++ ) {
-			t << col_names[i] ;
-		}
-		t << endr;
-
-		if (num_total_tuples != 0) {
-			auto& firstchunk = resultChunks[0];
-			LIMIT = std::min( (int)(firstchunk->size()), LIMIT);
-
-			// for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-			// 	t << firstchunk->GetTypes()[i].ToString(); 
-			// }
-			// t << endr;
-			
-			for( int idx = 0 ; idx < LIMIT ; idx++) {
-				for( int i = 0; i < firstchunk->ColumnCount(); i++ ) {
-					t << firstchunk->GetValue(i, idx).ToString();
-				}
-				t << endr;
-			}
-			std::cout << t << std::endl;
-		}
-		std::cout << "===================================================" << std::endl;
 		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}
 }
@@ -487,6 +538,11 @@ icecream::ic.disable();
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
+	using_history();
+	read_history((workspace + "/.history").c_str());
+	if (isatty(STDIN_FILENO)) {
+    	rl_startup_hook = initialize_readline;
+	}
 	// set_signal_handler();
 	// setbuf(stdout, NULL);
 
@@ -531,8 +587,11 @@ icecream::ic.disable();
 	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 	
 	// run queries by query name
-	std::string query_str;
-	icecream::ic.disable();
+	cstring_uptr input_cmd;
+	string shell_prompt = "TurboGraph-S62 >> ";
+	string prev_query_str;
+	string query_str;
+
 	if (is_query_string_given) {
 		// try {
 		// 	// protected code
@@ -543,10 +602,19 @@ icecream::ic.disable();
 		CompileAndRun(input_query_string, client, planner);
 	} else {
 		while(true) {
-			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
+			input_cmd.reset(readline(shell_prompt.c_str()));
+			query_str = input_cmd.get();
+			// std::cout << "TurboGraph-S62 >> ";
+			// std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
 			// check termination
-			if( query_str.compare(":exit") == 0 ) {
+			if (query_str.compare(":exit") == 0) {
 				break;
+			}
+
+			if (query_str != prev_query_str) {
+				add_history(query_str.c_str());
+				write_history((DiskAioParameters::WORKSPACE + "/.history").c_str());
+				prev_query_str = query_str;
 			}
 
 			try {

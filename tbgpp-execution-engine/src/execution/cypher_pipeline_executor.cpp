@@ -83,7 +83,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
 	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;
-	while(true) {
+	while (true) {
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// shortcut returning execution finished for this pipeline
 		if( pipeResult == OperatorResultType::FINISHED ) {

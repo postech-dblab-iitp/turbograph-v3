@@ -222,6 +222,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	partition_cat->SetKeys(*client.get(), key_names);
 	partition_cat->SetTypes(types);
 	partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
+	partition_cat->SetPartitionID(new_pid);
 	partition_cat->AddAdjIndex(adj_index_cat->GetOid());
 	partition_cat->SetPartitionID(new_pid);
 

@@ -34,7 +34,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema& sch, vector<idx_t> oids, vector<vecto
 {
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
-	std::copy(sch.getStoredTypes().begin(), sch.getStoredTypes().end(), scan_types[0].begin());
+	scan_types[0] = std::move(sch.getStoredTypes());
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
 
@@ -42,12 +42,12 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping, 
 	int64_t filterKeyIndex, duckdb::Value filterValue) :
 		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
-		scan_projection_mapping(scan_projection_mapping), curcurrent_schema_idxrent_schema(0),
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0),
 		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
 { 
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
-	std::copy(sch.getStoredTypes().begin(), sch.getStoredTypes().end(), scan_types[0].begin());
+	scan_types[0] = std::move(sch.getStoredTypes());
 	D_ASSERT(filter_pushdown_key_idx >= 0);
 }
 	
@@ -55,14 +55,14 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
 	: PhysicalNodeScan(sch, oids, projection_mapping, sch.getStoredTypes(), projection_mapping, filterKeyIndex, filterValue) { }
 
-PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
-		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
+PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
 		scan_projection_mapping(projection_mapping), current_schema_idx(0), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
 {
 	num_schemas = sch.size();
 	scan_types.resize(num_schemas);
 	for (auto i = 0; i < num_schemas; i++) {
-		std::copy(sch[i].getStoredTypes().begin(), sch[i].getStoredTypes().end(), scan_types[i].begin());
+		scan_types[i] = std::move(sch[i].getStoredTypes());
 	}
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
