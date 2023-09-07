@@ -24,7 +24,7 @@ public:
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 
 	// Schemaless APIs
-	PhysicalNodeScan(vector<Schema> &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
+	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
 
 	~PhysicalNodeScan();
 

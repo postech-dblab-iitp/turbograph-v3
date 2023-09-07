@@ -92,7 +92,7 @@ file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
 
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto)
+target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(tbgpp-common-lib duckdb_fastpforlib)
 target_link_libraries(tbgpp-common-lib turbograph_simdcsv)
 target_link_libraries(tbgpp-common-lib
