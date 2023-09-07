@@ -71,6 +71,7 @@ public:
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();
+	void SetPartitionID(PartitionID pid);
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
 
