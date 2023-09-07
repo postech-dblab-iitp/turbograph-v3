@@ -333,6 +333,7 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 
 			if (LIMIT == 0) {
 				std::cout << t << std::endl;
+				LIMIT = 10;
 				cur_offset_in_chunk += 10;
 				if (show_top_tuples_only) {
 					break;
@@ -344,7 +345,6 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 						std::cin >> show_more;
 						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
 						if (show_more == "y") {
-							LIMIT = 10;
 							continue_print = true;
 							break;
 						} else if (show_more == "n") {

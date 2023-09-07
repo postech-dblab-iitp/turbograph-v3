@@ -93,7 +93,7 @@ file(GLOB CLIENT_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/connection_apis_test.cpp"
   "${PROJECT_SOURCE_DIR}/test/connection_client_test.cpp"
   "${PROJECT_SOURCE_DIR}/test/connection_server_run.cpp"
-  #"${PROJECT_SOURCE_DIR}/test/dump_s62_mda.cpp"
+  "${PROJECT_SOURCE_DIR}/test/dump_s62_mda.cpp"
 )
 
 foreach(test_file ${CLIENT_TEST_SRC})
