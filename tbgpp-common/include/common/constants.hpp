@@ -97,7 +97,8 @@ typedef idx_t EdgeTypeID;
 
 typedef uint64_t ChunkID;
 
-#define GET_SEQNO(x) (x & 0x00000000FFFFFFFF);
+#define GET_EID_FROM_PHYSICAL_ID(pid) (pid >> 32);
+#define GET_SEQNO_FROM_PHYSICAL_ID(pid) (pid & 0x00000000FFFFFFFF);
 
 extern const transaction_t TRANSACTION_ID_START;
 extern const transaction_t MAX_TRANSACTION_ID;
