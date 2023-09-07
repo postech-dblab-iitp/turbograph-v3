@@ -2,12 +2,15 @@
 #include <thread>
 #include <unordered_set>
 #include <filesystem>
+#include <cstdint>
 
 #include "cache/chunk_cache_manager.h"
 #include "Turbo_bin_aio_handler.hpp"
 #include "common/exception.hpp"
 #include "common/string_util.hpp"
 #include "icecream.hpp"
+#include "common/types/string_type.hpp"
+#include "cache/cache_data_transformer.h"
 
 namespace duckdb {
 
@@ -100,13 +103,15 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
+    CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
+
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
     file_handler.second->Close();
   }
 }
 
-ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async) {
+ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
 // icecream::ic.enable();
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
@@ -134,21 +139,18 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
     //}
 
     if (client->Create(cid, ptr, required_memory_size) == 0) {
-      // IC();
-      // TODO: Memory usage should be controlled in Lightning Create
-
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
       // IC();
-      
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
+      // IC();
+      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
       // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
       // IC();
       *size = segment_size - sizeof(size_t);
-      // IC();
     } else {
       // IC();
       // Create fail -> Subscribe object
@@ -173,8 +175,6 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
   // IC();
   *size = segment_size - sizeof(size_t);
-  // IC();
-// icecream::ic.disable();
 
   return NOERROR;
 }
