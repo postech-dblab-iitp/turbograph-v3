@@ -103,7 +103,7 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
+    // CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
 
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
@@ -145,7 +145,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       // IC();
-      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
+      // if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
       // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
