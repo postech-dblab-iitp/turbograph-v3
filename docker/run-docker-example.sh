@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Example usage: ./run-docker-example.sh /mnt/md0/stlee_ldbc/tbgpp3-data/ /mnt/md0/tslee_ldbc/interactive
+
 # Parse user input
 
 # Target image
@@ -37,4 +39,4 @@ docker run -itd --cap-add SYS_ADMIN \
 	${IMAGE_NAME}:${IMAGE_TAG} \
 
 # TODO fix this.
-#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;"
+#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;":

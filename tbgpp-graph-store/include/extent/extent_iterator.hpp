@@ -10,6 +10,7 @@
 #include "common/types/data_chunk.hpp"
 #include "common/types/selection_vector.hpp"
 #include "extent/compression/compression_function.hpp"
+#include "extent/compression/compression_header.hpp"
 
 #include <limits>
 
@@ -52,7 +53,6 @@ public:
 
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
-    // bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, string filterKey, Value filterValue, vector<string> &output_properties, vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
                        vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
@@ -83,11 +83,12 @@ private:
 
         if (ext_property_types[col_idx] == LogicalType::VARCHAR) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+            size_t comp_header_valid_size = comp_header.GetValidSize();
             if (comp_header.comp_type == DICTIONARY) {
                 throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
             } else {
-                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + sizeof(CompressionHeader));
+                size_t string_data_offset = comp_header_valid_size + comp_header.data_len * sizeof(uint64_t);
+                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size);
                 uint64_t string_offset, prev_string_offset;
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
@@ -107,11 +108,12 @@ private:
             throw InvalidInputException("Filter predicate on PID column");
         } else {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+            size_t comp_header_valid_size = comp_header.GetValidSize();
             if (comp_header.comp_type == BITPACKING) {
                 throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
             } else {
                 LogicalType column_type = ext_property_types[col_idx];
-                Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + sizeof(CompressionHeader)));
+                Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size));
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     if (target_seqno < scan_start_offset || target_seqno >= scan_end_offset) continue;

@@ -54,8 +54,7 @@ struct ObjectEntry {
   int64_t free_list_next;
   // 72
   sem_t sem;
-
-  // added
+  // 80 (added)
   int64_t dirty_bit;
 } __attribute__((aligned(8)));
 
