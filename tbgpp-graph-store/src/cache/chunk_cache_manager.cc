@@ -103,7 +103,7 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
+    // CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
 
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
@@ -112,7 +112,7 @@ ChunkCacheManager::~ChunkCacheManager() {
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
-icecream::ic.enable();
+// icecream::ic.enable();
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);
@@ -124,11 +124,11 @@ icecream::ic.enable();
   size_t file_size = file_handler->file_size();
   size_t required_memory_size = file_size + 512; // Add 512 byte for memory aligning
   D_ASSERT(file_size >= segment_size);
-IC(cid);
+// IC(cid);
 
   // Pin Segment using Lightning Get()
   if (client->Get(cid, ptr, size) != 0) {
-    IC();
+    // IC();
     // Get() fail: 1) object not found, 2) object is not sealed yet
     // TODO: Check if there is enough memory space
 
@@ -141,12 +141,12 @@ IC(cid);
     if (client->Create(cid, ptr, required_memory_size) == 0) {
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
-      IC();
+      // IC();
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
-      IC();
-      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
-      IC();
+      // IC();
+      // if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
+      // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
       // IC();
@@ -175,7 +175,7 @@ IC(cid);
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
   // IC();
   *size = segment_size - sizeof(size_t);
-  icecream::ic.disable();
+  // icecream::ic.disable();
 
   return NOERROR;
 }
