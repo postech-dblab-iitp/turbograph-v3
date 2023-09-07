@@ -252,7 +252,7 @@ inline void CheckAndResetAdjListBufferIfNeeded(ExtentManager &ext_mng, std::shar
 
 		vertex_seqno = 0;
 		cur_vertex_extentID = extID;
-		idx_t cur_src_seqno = GET_SEQNO(cur_src_pid);
+		idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 		while (vertex_seqno < cur_src_seqno) {
 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 		}
@@ -263,7 +263,7 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 					   idx_t &vertex_seqno, std::vector<int64_t> &dst_column_idx, vector<idx_t *> dst_key_columns,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance,
 					   vector<idx_t> &adj_list_buffer, idx_t epid_base) {
-	idx_t cur_src_seqno = GET_SEQNO(cur_src_pid);
+	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 	while (vertex_seqno < cur_src_seqno) {
 		adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 	}
