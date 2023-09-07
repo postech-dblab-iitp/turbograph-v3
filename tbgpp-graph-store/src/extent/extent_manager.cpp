@@ -77,7 +77,12 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
         //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
-        // TODO Create CompressionHeader Here
+        // Create Compressionheader, based on nullity
+        CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
+        if (FlatVector::HasNull(input.data[input_chunk_idx])) {
+            comp_header.SetNullMask(FlatVector::GetNullMask(input.data[input_chunk_idx]));
+        }
+        auto comp_header_size = comp_header.GetValidSize();
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID
@@ -86,17 +91,24 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         size_t alloc_buf_size;
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + sizeof(CompressionHeader);
+            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + comp_header_size;
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
+            // New Implementation
             size_t string_len_total = 0;
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-            for (size_t i = 0; i < input.size(); i++) // Accumulate the length of all strings
-                string_len_total += string_buffer[i].GetSize();
+
+             // Accumulate the length of all non-inlined strings
+            for (size_t i = 0; i < input.size(); i++)
+                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+
+            // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
                 string_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
-                string_len_total += (input.size() * sizeof(uint64_t)); // string len field
-            alloc_buf_size = string_len_total + sizeof(CompressionHeader);
+                string_len_total += (input.size() * sizeof(string_t)); // string len field
+
+            // Calculate the final size
+            alloc_buf_size = string_len_total + comp_header_size;
         } else if (l_type.id() == LogicalTypeId::LIST) {
             size_t list_len_total = 0;
             size_t child_type_size = GetTypeIdSize(ListType::GetChildType(l_type).InternalType());
@@ -110,16 +122,16 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 list_len_total += (input.size() * 2 * sizeof(uint32_t)); // for selection buffer, index buffer
             else
                 list_len_total += (input.size() * sizeof(list_entry_t)); // string len field
-            alloc_buf_size = list_len_total + sizeof(CompressionHeader);
+            alloc_buf_size = list_len_total + comp_header_size;
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
-            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + sizeof(CompressionHeader);
+            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
         }
         
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
-        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size);
+        ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
         // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
 
         // Copy (or Compress and Copy) DataChunk
@@ -131,48 +143,49 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 // Compress
                 size_t input_size = input.size();
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
-                CompressionHeader comp_header(DICTIONARY, input_size);
-                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
+                comp_header.SetCompFuncType(DICTIONARY);
+                memcpy(buf_ptr, &comp_header, comp_header_size);
+                comp_func.Compress(buf_ptr + comp_header_size, buf_size - comp_header_size, data_to_compress, input_size);
             } else {
                 // Copy CompressionHeader
                 size_t input_size = input.size();
-                size_t string_len_offset = sizeof(CompressionHeader);
-                size_t string_data_offset = sizeof(CompressionHeader) + input_size * sizeof(uint64_t);
-                CompressionHeader comp_header(UNCOMPRESSED, input_size);
-                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
+                size_t string_t_offset = comp_header_size;
+                size_t string_data_offset = comp_header_size + input_size * sizeof(string_t);
+                comp_header.SetSwizzlingType(SwizzlingType::SWIZZLE_VARCHAR);
+                memcpy(buf_ptr, &comp_header, comp_header_size);
 
-                uint32_t string_len;
-                uint64_t accumulated_string_len = 0;
+                // For each string_t, write string_t and actual string if not inlined
                 string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
-
+                uint64_t accumulated_string_len = 0;
                 for (size_t i = 0; i < input.size(); i++) {
-                    accumulated_string_len += string_buffer[i].GetSize();
-                    memcpy(buf_ptr + string_len_offset, &accumulated_string_len, sizeof(uint64_t));
-                    string_len_offset += sizeof(uint64_t);
-                }
-
-                for (size_t i = 0; i < input.size(); i++) {
-                    string_len = string_buffer[i].GetSize();
-                    memcpy(buf_ptr + string_data_offset, string_buffer[i].GetDataUnsafe(), string_len);
-                    string_data_offset += string_len;
+                    string_t& str = string_buffer[i];
+                    if (str.IsInlined()) {
+                        memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
+                    } else {
+                        // Calculate pointer address
+                        uint8_t* swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
+                        string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
+                        memcpy(buf_ptr + string_t_offset, &swizzled_str, sizeof(string_t));
+                        // Copy actual string
+                        memcpy(buf_ptr + string_data_offset + accumulated_string_len, str.GetDataUnsafe(), str.GetSize());
+                        accumulated_string_len += str.GetSize();
+                    }
+                    string_t_offset += sizeof(string_t);
                 }
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             size_t input_size = adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
-            CompressionHeader comp_header(UNCOMPRESSED, input_size);
-            memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-            memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
+            memcpy(buf_ptr, &comp_header, comp_header_size);
+            memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), alloc_buf_size - comp_header_size);
         } else if (l_type.id() == LogicalTypeId::LIST) {
             list_entry_t *list_buffer = (list_entry_t*) input.data[input_chunk_idx].GetData();
             size_t input_size = input.size();
-            CompressionHeader comp_header(UNCOMPRESSED, input_size);
             Vector &child_vec = ListVector::GetEntry(input.data[input_chunk_idx]);
-            memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-            memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), input_size * sizeof(list_entry_t));
-            memcpy(buf_ptr + sizeof(CompressionHeader) + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - sizeof(CompressionHeader) - input_size * sizeof(list_entry_t));
-            icecream::ic.enable(); IC(); IC(sizeof(CompressionHeader) + input_size * sizeof(list_entry_t), alloc_buf_size - sizeof(CompressionHeader) - input_size * sizeof(list_entry_t)); icecream::ic.disable();
+            memcpy(buf_ptr, &comp_header, comp_header_size);
+            memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), input_size * sizeof(list_entry_t));
+            memcpy(buf_ptr + comp_header_size + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t));
+            icecream::ic.enable(); IC(); IC(comp_header_size + input_size * sizeof(list_entry_t), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t)); icecream::ic.disable();
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
@@ -181,20 +194,18 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             }
 
             // Copy Data Into Cache
-            //best_compression_function = BITPACKING;
             // TODO type support check should be done by CompressionFunction
             if (best_compression_function == BITPACKING && BitpackingPrimitives::TypeIsSupported(p_type)) {
                 // Set Compression Function
                 CompressionFunction comp_func(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress
                 data_ptr_t data_to_compress = input.data[input_chunk_idx].GetData();
-                CompressionHeader comp_header(BITPACKING, input_size);
-                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                comp_func.Compress(buf_ptr + sizeof(CompressionHeader), buf_size - sizeof(CompressionHeader), data_to_compress, input_size);
+                comp_header.SetCompFuncType(BITPACKING);
+                memcpy(buf_ptr, &comp_header, comp_header_size);
+                comp_func.Compress(buf_ptr + comp_header_size, buf_size - comp_header_size, data_to_compress, input_size);
             } else {
-                CompressionHeader comp_header(UNCOMPRESSED, input_size);
-                memcpy(buf_ptr, &comp_header, sizeof(CompressionHeader));
-                memcpy(buf_ptr + sizeof(CompressionHeader), input.data[input_chunk_idx].GetData(), alloc_buf_size - sizeof(CompressionHeader));
+                memcpy(buf_ptr, &comp_header, comp_header_size);
+                memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), alloc_buf_size - comp_header_size);
             }
         }
         auto chunk_compression_end = std::chrono::high_resolution_clock::now();

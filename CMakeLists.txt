@@ -17,7 +17,7 @@ project(turbograph-v3)
 #######################
 ### Set environment ###
 #######################
-set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -mavx")
+set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -mavx -fPIE")
 # set S62 Debug type and Orca Debug type same
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
@@ -38,6 +38,15 @@ add_subdirectory(tbgpp-client)
 ####################
 set(CMAKE_C_COMPILER gcc) 
 set(CMAKE_CXX_COMPILER g++)
+
+####################
+### Set launcher ###
+####################
+find_program(CCACHE "ccache")
+if(CCACHE)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+endif(CCACHE)
 
 #########################
 ### Target > unittest ###
