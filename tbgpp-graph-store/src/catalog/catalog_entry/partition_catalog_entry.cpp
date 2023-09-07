@@ -44,6 +44,10 @@ unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
 	//return make_unique<PartitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
+void PartitionCatalogEntry::SetPartitionID(PartitionID pid) {
+	this->pid = pid;
+}
+
 PartitionID PartitionCatalogEntry::GetPartitionID() {
 	return pid;
 }

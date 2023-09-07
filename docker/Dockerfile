@@ -124,6 +124,12 @@ RUN apt-get install -y \
     tzdata \
     wget
     
+# Install SparseHash
+RUN git clone https://github.com/sparsehash/sparsehash.git && \
+    cd sparsehash && \
+    ./configure && \
+    make && make install
+
 # Resolve git issue
 RUN git config --global --add safe.directory /turbograph-v3
 

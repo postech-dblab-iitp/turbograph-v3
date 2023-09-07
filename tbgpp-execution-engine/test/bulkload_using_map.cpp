@@ -133,7 +133,7 @@ void InitializeDiskAio() {
 
 void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
-							  vector<LogicalType> &types, PartitionCatalogEntry *partition_cat, PropertySchemaCatalogEntry *property_schema_cat) {
+							  vector<LogicalType> &types, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat) {
 	string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + vertex_labelset_name;
 	string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + vertex_labelset_name;
 	vector<PropertyKeyID> property_key_ids;
@@ -162,6 +162,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 	partition_cat->SetKeys(*client.get(), key_names);
 	partition_cat->SetTypes(types);
 	partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
+	partition_cat->SetPartitionID(new_pid);
 
 	property_schema_cat->SetKeys(*client.get(), key_names);
 	property_schema_cat->SetTypes(types);
@@ -169,8 +170,8 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
-							  PartitionCatalogEntry *partition_cat, PropertySchemaCatalogEntry *property_schema_cat,
-							  PropertySchemaCatalogEntry *vertex_ps_cat_entry) {
+							  PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
+							  PropertySchemaCatalogEntry *&vertex_ps_cat_entry) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
 	string property_schema_name = DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX + edge_type;
 	vector<PropertyKeyID> property_key_ids;
@@ -222,6 +223,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	partition_cat->SetTypes(types);
 	partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 	partition_cat->AddAdjIndex(adj_index_cat->GetOid());
+	partition_cat->SetPartitionID(new_pid);
 
 	property_schema_cat->SetKeys(*client.get(), key_names);
 	property_schema_cat->SetTypes(types);
