@@ -119,6 +119,9 @@ public:
 		// if( key.compare("coco3c") == 0 ) { return COCO_Q3C(); }
 		// if( key.compare("coco3d") == 0 ) { return COCO_Q3D(); }
 
+		/* Schemaless test */
+		if (key.compare("sch1") == 0) { return SCHEMALESS_TEST1(); }
+
 
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();
@@ -175,6 +178,8 @@ public:
 	// std::vector<CypherPipelineExecutor*> COCO_Q3B();	//   |   |   |
 	// std::vector<CypherPipelineExecutor*> COCO_Q3C();	//   |   |   |
 	// std::vector<CypherPipelineExecutor*> COCO_Q3D();	//   |   |   |
+	
+	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST1();
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;
