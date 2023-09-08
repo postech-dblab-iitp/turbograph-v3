@@ -7,7 +7,7 @@ namespace duckdb {
 SwizzlingType CacheDataTransformer::GetSwizzlingType(uint8_t* ptr) {
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    return comp_header.swizzle_type;
+    // return comp_header.swizzle_type;
 }
 
 void CacheDataTransformer::Swizzle(uint8_t* ptr) {
@@ -27,7 +27,8 @@ void CacheDataTransformer::SwizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    size_t comp_header_valid_size = comp_header.GetValidSize();
+    // size_t comp_header_valid_size = comp_header.GetValidSize();
+    size_t comp_header_valid_size;
 
     // Calculate Offsets
     size_t size = comp_header.data_len;
@@ -71,7 +72,8 @@ void CacheDataTransformer::UnswizzleVarchar(uint8_t* ptr) {
     // Read Compression Header
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    size_t comp_header_valid_size = comp_header.GetValidSize();
+    // size_t comp_header_valid_size = comp_header.GetValidSize();
+    size_t comp_header_valid_size;
 
     // Calculate Offsets
     size_t size = comp_header.data_len;

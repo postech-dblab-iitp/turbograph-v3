@@ -19,12 +19,15 @@ public:
 
 	// TODO s62 change filterKeyIndex to vector
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping);
+	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
 		int64_t filterKeyIndex, duckdb::Value filterValue);
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 
 	// Schemaless APIs
-	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
+	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		vector<vector<uint64_t>> scan_projection_mapping);
 
 	~PhysicalNodeScan();
 

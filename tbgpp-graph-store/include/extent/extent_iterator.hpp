@@ -51,7 +51,7 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, vector<ExtentID> target_eids);
     int RequestNewIO(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid, ExtentID &evicted_eid);
 
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
@@ -83,7 +83,8 @@ private:
 
         if (ext_property_types[col_idx] == LogicalType::VARCHAR) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
-            size_t comp_header_valid_size = comp_header.GetValidSize();
+            // size_t comp_header_valid_size = comp_header.GetValidSize();
+            size_t comp_header_valid_size = sizeof(CompressionHeader);
             if (comp_header.comp_type == DICTIONARY) {
                 throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
             } else {
@@ -108,7 +109,8 @@ private:
             throw InvalidInputException("Filter predicate on PID column");
         } else {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
-            size_t comp_header_valid_size = comp_header.GetValidSize();
+            // size_t comp_header_valid_size = comp_header.GetValidSize();
+            size_t comp_header_valid_size = sizeof(CompressionHeader);
             if (comp_header.comp_type == BITPACKING) {
                 throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
             } else {
