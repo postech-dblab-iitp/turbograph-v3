@@ -49,10 +49,7 @@ StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, d
 	} else {
 		ext_its.pop();
 		delete ext_it;
-		if (ext_its.size() > 0)
-			return StoreAPIResult::OK;
-		else
-			return StoreAPIResult::DONE;
+		return StoreAPIResult::DONE;
 	}
 }
 
