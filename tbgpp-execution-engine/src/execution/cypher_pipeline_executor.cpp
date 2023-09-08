@@ -38,6 +38,9 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 	}
 }
 
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph *sfg)
+	: CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor *>()), std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) { }
+
 void CypherPipelineExecutor::ExecutePipeline() {
 	// Get source chunk
 	while(true) {

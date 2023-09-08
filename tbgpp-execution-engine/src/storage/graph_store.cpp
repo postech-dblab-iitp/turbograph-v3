@@ -43,7 +43,7 @@ StoreAPIResult iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, d
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, projection_mapping[current_schema_idx]);
-	printf("scan_ongoing ? %s, output.size = %ld, current_schema_idx = %ld\n", scan_ongoing ? "True" : "False", output.size(), current_schema_idx);
+	// printf("scan_ongoing ? %s, output.size = %ld, current_schema_idx = %ld\n", scan_ongoing ? "True" : "False", output.size(), current_schema_idx);
 	if (scan_ongoing) {
 		return StoreAPIResult::OK;
 	} else {
