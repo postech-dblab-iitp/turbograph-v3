@@ -42,16 +42,32 @@ unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(ExecutionCo
 SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk &input, LocalSinkState &lstate) const {
 	auto &state = (ProduceResultsState &)lstate;
 	// std::cout << "sinked tuples: " << input.size() << std::endl;
+	// icecream::ic.enable();
+	// std::cout << "Input of produce results" << std::endl;
+	// if (input.size() > 0) {
+	// 	IC(input.ToString(std::min((idx_t)10, input.size())));
+	// }
+	// icecream::ic.disable();
 
-	if(!state.isResultTypeDetermined) { state.DetermineResultTypes(input.GetTypes()); }
+	if (!state.isResultTypeDetermined) { state.DetermineResultTypes(input.GetTypes()); }
 
 	auto copyChunk = new DataChunk();
 	copyChunk->Initialize( state.result_types );
-	if( projection_mapping.size() == 0) {			// projection mapping not provided
+	if (projection_mapping.size() == 0 && projection_mappings.size() == 0) {			// projection mapping not provided
 		input.Copy(*copyChunk, 0);	
-	} else {										// projection mapping provided
-		for(idx_t idx=0; idx<copyChunk->ColumnCount(); idx++) {
-			VectorOperations::Copy(input.data[projection_mapping[idx]], copyChunk->data[idx], input.size(), 0, 0);
+	} else {									// projection mapping provided
+		if (projection_mapping.size() != 0) {
+			for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
+				VectorOperations::Copy(input.data[projection_mapping[idx]], copyChunk->data[idx], input.size(), 0, 0);
+			}
+		} else if (projection_mappings.size() != 0) {
+			idx_t schema_idx = input.GetSchemaIdx();
+			for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
+				if (projection_mappings[schema_idx][idx] == std::numeric_limits<uint8_t>::max()) continue;
+				VectorOperations::Copy(input.data[idx], copyChunk->data[idx], input.size(), 0, 0);
+			}
+		} else {
+			D_ASSERT(false);
 		}
 		copyChunk->SetCardinality(input.size());
 	}

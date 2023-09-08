@@ -109,15 +109,20 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		// filter pushdown applied
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
 	}
+	
+	chunk.SetSchemaIdx(current_schema_idx);
 
 	if (res == StoreAPIResult::DONE) {
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		if (++current_schema_idx == num_schemas) return;
 		GetData(context, chunk, lstate);
 	}
+
+	
 	/* GetData() should return empty chunk to indicate scan is finished. */
 	
 	// icecream::ic.enable();
+	// std::cout << "Output of node scan" << std::endl;
 	// if (chunk.size() > 0) {
 	// 	IC(chunk.ToString(std::min((idx_t)10, chunk.size())));
 	// }

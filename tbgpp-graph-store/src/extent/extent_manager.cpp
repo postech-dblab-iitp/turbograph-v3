@@ -101,7 +101,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
              // Accumulate the length of all non-inlined strings
             for (size_t i = 0; i < input.size(); i++)
-                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+                string_len_total += string_buffer[i].GetSize();
+                // string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
 
             // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)

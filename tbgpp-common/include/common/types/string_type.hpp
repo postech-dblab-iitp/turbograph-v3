@@ -79,6 +79,7 @@ public:
 	}
 
 	string GetString() const {
+		if (GetSize() > 20) return ""; // TODO temporary
 		return string(GetDataUnsafe(), GetSize());
 	}
 
