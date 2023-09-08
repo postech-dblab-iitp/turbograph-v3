@@ -298,7 +298,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 }
 
 // Get Next Extent with all properties. For full scan
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size, bool is_output_chunk_initialized) {
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs, size_t scan_size, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
     // Keep previous values
     // icecream::ic.enable(); IC(); IC(current_idx, max_idx, current_idx_in_this_extent, scan_size); icecream::ic.disable();
@@ -381,7 +381,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         if ((ext_property_types[i] != LogicalType::ID) && (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max())) {
-            FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
+            FlatVector::Validity(output.data[output_column_idxs[i]]).SetAllInvalid(output.size());
+            // FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
             continue;
         }
         if (ext_property_types[i] != LogicalType::ID) {
@@ -391,35 +392,51 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                             i, io_requested_cdf_ids[toggle][i], (int)ext_property_types[i].id(), output.size(), scan_size,
                             scan_begin_offset, scan_end_offset, comp_header.data_len,
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
-                            io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+                            // io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+                            io_requested_buf_ptrs[toggle][i], output.data[output_column_idxs[i]].GetData());
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Full Scan] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        auto comp_header_valid_size = sizeof(CompressionHeader);
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] - comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
+                                    //    output.data[i], comp_header.data_len);
+                                       output.data[output_column_idxs[i]], comp_header.data_len);
             } else {
-                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
+                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
+                // auto strings = FlatVector::GetData<string_t>(output.data[i]);
+                auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
+                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
+                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
+                uint64_t string_offset, prev_string_offset;
+                size_t output_idx = 0;
+                for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
+                    prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
+                    string_offset = offset_arr[input_idx];                    
+                    // strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                    strings[output_idx] = StringVector::AddString(output.data[output_column_idxs[i]], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                    output_idx++;
+                }
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
             size_t data_array_offset = comp_header.data_len * type_size;
 
-            ListVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
-            ListVector::SetChildData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + data_array_offset);
+            // ListVector::SetData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+            // ListVector::SetChildData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + data_array_offset);
         } else if (ext_property_types[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_types[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
         } else if (ext_property_types[i].id() == LogicalTypeId::ID) {
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
-            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
+            // idx_t *id_column = (idx_t *)output.data[i].GetData();
             idx_t output_seqno = 0;
             for (size_t seqno = scan_begin_offset; seqno < scan_end_offset; seqno++)
                 id_column[output_seqno++] = physical_id_base + seqno;
@@ -429,10 +446,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 PhysicalType p_type = ext_property_types[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
+                                       output.data[output_column_idxs[i]], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_types[i].InternalType());
-                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+                FlatVector::SetData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
             }
         }
     }
@@ -574,8 +592,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (comp_header.comp_type == DICTIONARY) {
             throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
         } else {
-            size_t string_data_offset = comp_header.GetValidSize() + comp_header.data_len * sizeof(uint64_t);
-            uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[prev_toggle][col_idx] + comp_header.GetValidSize());
+            size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
+            uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[prev_toggle][col_idx] + sizeof(CompressionHeader));
             uint64_t string_offset, prev_string_offset;
             for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
                 prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
@@ -599,7 +617,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
             LogicalType column_type = ext_property_types[col_idx];
-            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[prev_toggle][col_idx] + comp_header.GetValidSize()));
+            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[prev_toggle][col_idx] + sizeof(CompressionHeader)));
             for (idx_t i = scan_start_offset; i < scan_end_offset; i++) {
                 // icecream::ic.enable(); IC(); IC(column_vec.GetValue(i).GetValue<idx_t>(), filterValue.GetValue<idx_t>()); icecream::ic.disable();
                 if (column_vec.GetValue(i) == filterValue) {
@@ -634,7 +652,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Scan With Filter] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        auto comp_header_valid_size = sizeof(CompressionHeader);
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -793,7 +811,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        auto comp_header_valid_size = sizeof(CompressionHeader);
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -1037,7 +1055,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        auto comp_header_valid_size = sizeof(CompressionHeader);
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);

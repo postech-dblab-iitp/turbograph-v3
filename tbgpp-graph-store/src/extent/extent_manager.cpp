@@ -78,11 +78,13 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
         //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // Create Compressionheader, based on nullity
-        CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
-        if (FlatVector::HasNull(input.data[input_chunk_idx])) {
-            comp_header.SetNullMask(FlatVector::GetNullMask(input.data[input_chunk_idx]));
-        }
-        auto comp_header_size = comp_header.GetValidSize();
+        // CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
+        CompressionHeader comp_header(UNCOMPRESSED, input.size());
+        // if (FlatVector::HasNull(input.data[input_chunk_idx])) {
+        //     comp_header.SetNullMask(FlatVector::GetNullMask(input.data[input_chunk_idx]));
+        // }
+        // auto comp_header_size = comp_header.GetValidSize();
+        auto comp_header_size = sizeof(CompressionHeader);
 
         // Get Buffer from Cache Manager
         // Cache Object ID: 64bit = ChunkDefinitionID

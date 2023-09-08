@@ -297,6 +297,7 @@ class InputParser{
 void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema, bool show_top_tuples_only = true) {
 	int LIMIT = 10;
 	size_t num_total_tuples = 0;
+	size_t num_tuples_printed = 0;
 	for (auto &it : resultChunks) num_total_tuples += it->size();
 
 	std::cout << "===================================================" << std::endl;
@@ -310,9 +311,17 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 	Table t;
 	t.layout(unicode_box_light_headerline());
 
-	auto col_names = planner.getQueryOutputColNames();
-	for( int i = 0; i < col_names.size(); i++ ) {
-		t << col_names[i] ;
+	PropertyKeys col_names;
+	col_names = planner.getQueryOutputColNames();
+	if (col_names.size() != 0) {
+		for( int i = 0; i < col_names.size(); i++ ) {
+			t << col_names[i] ;
+		}
+	} else {
+		col_names = schema.getStoredColumnNames();
+		for( int i = 0; i < col_names.size(); i++ ) {
+			t << col_names[i] ;
+		}
 	}
 	t << endr;
 
@@ -332,8 +341,10 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 			LIMIT -= num_tuples_to_print;
 
 			if (LIMIT == 0) {
+				std::cout << "[ " << num_tuples_printed << " / " << num_total_tuples << " ]" << std::endl;
 				std::cout << t << std::endl;
 				LIMIT = 10;
+				num_tuples_printed += 10;
 				cur_offset_in_chunk += 10;
 				if (show_top_tuples_only) {
 					break;
@@ -342,9 +353,9 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 					while (true) {
 						string show_more;
 						printf("Show 10 more tuples [y/n]: ");
-						std::cin >> show_more;
+						std::getline(std::cin, show_more);
 						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
-						if (show_more == "y") {
+						if ((show_more == "y") || (show_more == "")) {
 							continue_print = true;
 							break;
 						} else if (show_more == "n") {
@@ -523,7 +534,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		D_ASSERT( executors.back()->context->query_results != nullptr );
 		auto& resultChunks = *(executors.back()->context->query_results);
 		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		printOutput(planner, resultChunks, schema);
+		printOutput(planner, resultChunks, schema, false);
 		
 		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}
