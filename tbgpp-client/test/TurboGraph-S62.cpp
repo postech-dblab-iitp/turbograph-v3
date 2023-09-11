@@ -518,7 +518,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 
 		executors = suite.getTest(query_str);
 		if (executors.size() == 0) return;
-
 		// start timer
 		boost::timer::cpu_timer query_timer;
 		query_timer.start();

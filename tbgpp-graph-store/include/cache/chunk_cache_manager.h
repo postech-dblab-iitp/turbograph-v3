@@ -43,6 +43,8 @@ public:
   ReturnStatus CreateNewFile(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
   void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
 
+  void UnswizzleChunk(ChunkID cid, Turbo_bin_aio_handler* file_handler);
+
 public:
   // Member Variables
   LightningClient* client;
