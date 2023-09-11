@@ -34,6 +34,8 @@ public:
 
   int SetDirty(uint64_t object_id);
 
+  int ClearDirty(uint64_t object_id);
+
   int GetDirty(uint64_t object_id, bool& is_dirty);
 
   int Get(uint64_t object_id, uint8_t **ptr, size_t *size);
@@ -66,6 +68,7 @@ private:
   int get_internal(uint64_t object_id, sm_offset *ptr, size_t *size);
   int seal_internal(uint64_t object_id);
   int set_dirty_internal(uint64_t object_id);
+  int clear_dirty_internal(uint64_t object_id);
   int get_dirty_internal(uint64_t object_id, bool& is_dirty);
   int get_refcount_internal(uint64_t object_id);
   int delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
