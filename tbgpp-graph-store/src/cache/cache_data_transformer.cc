@@ -1,18 +1,26 @@
 #include "cache/cache_data_transformer.h"
 #include "common/types/string_type.hpp"
 #include "common/string_util.hpp"
+#include <fstream>
+#include <iostream>
 
 namespace duckdb {
+
+std::ofstream out("out_2.txt");
+
+CacheDataTransformer::~CacheDataTransformer() {
+    out.close();
+}
 
 SwizzlingType CacheDataTransformer::GetSwizzlingType(uint8_t* ptr) {
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    // return comp_header.swizzle_type;
+    return comp_header.swizzle_type;
 }
 
 void CacheDataTransformer::Swizzle(uint8_t* ptr) {
     SwizzlingType swizzle_type = GetSwizzlingType(ptr);
-    switch(swizzle_type) {
+    switch(swizzle_type) {      
         case SwizzlingType::SWIZZLE_NONE:
             break;
         case SwizzlingType::SWIZZLE_VARCHAR:
@@ -27,13 +35,13 @@ void CacheDataTransformer::SwizzleVarchar(uint8_t* ptr) {
   // Read Compression Header
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    // size_t comp_header_valid_size = comp_header.GetValidSize();
-    size_t comp_header_valid_size;
+    size_t comp_header_valid_size = comp_header.GetValidSize();
 
     // Calculate Offsets
     size_t size = comp_header.data_len;
     size_t string_t_offset = comp_header_valid_size;
     size_t string_data_offset = comp_header_valid_size + size * sizeof(string_t);
+    size_t acc_string_length = 0;
 
     // Iterate over strings and swizzle
     for (int i = 0; i < size; i++) {
@@ -42,13 +50,10 @@ void CacheDataTransformer::SwizzleVarchar(uint8_t* ptr) {
 
         // Check not inlined
         if (!str.IsInlined()) {
-            // Calculate address
-            uint64_t offset = str.GetOffset();
-            uint8_t* address = ptr + string_data_offset + offset;
-            
-            // Replace offset to address
-            size_t size_without_offset = sizeof(string_t) - sizeof(offset);
-            memcpy(ptr + string_t_offset + size_without_offset, &address, sizeof(address));
+            uint8_t* address = ptr + string_data_offset + acc_string_length;
+            string_t swizzled_str(reinterpret_cast<char *>(address), str.GetSize());
+            memcpy(ptr + string_t_offset, &swizzled_str, sizeof(string_t));
+            acc_string_length += str.GetSize();
         }
 
         string_t_offset += sizeof(string_t);
@@ -72,13 +77,13 @@ void CacheDataTransformer::UnswizzleVarchar(uint8_t* ptr) {
     // Read Compression Header
     CompressionHeader comp_header;
     memcpy(&comp_header, ptr, sizeof(CompressionHeader));
-    // size_t comp_header_valid_size = comp_header.GetValidSize();
-    size_t comp_header_valid_size;
+    size_t comp_header_valid_size = comp_header.GetValidSize();
 
     // Calculate Offsets
     size_t size = comp_header.data_len;
     size_t string_t_offset = comp_header_valid_size;
     size_t string_data_offset = comp_header_valid_size + size * sizeof(string_t);
+    size_t acc_string_length = 0;
 
     // Iterate over strings and unswizzle
     for (int i = 0; i < size; i++) {
@@ -87,13 +92,9 @@ void CacheDataTransformer::UnswizzleVarchar(uint8_t* ptr) {
 
         // Check not inlined
         if (!str.IsInlined()) {
-            // Calculate offset
-            auto str_data_ptr = str.GetDataUnsafe();
-            uint64_t offset = reinterpret_cast<uintptr_t>(str_data_ptr) - (reinterpret_cast<uintptr_t>(ptr + string_data_offset));
-
-            // Replace address to offset
-            size_t size_without_address = sizeof(string_t) - sizeof(str_data_ptr);
-            memcpy(ptr + string_t_offset + size_without_address, &offset, sizeof(offset));
+            string_t unswizzled_str(str.GetDataUnsafe(), str.GetSize(), acc_string_length);
+            memcpy(ptr + string_t_offset, &unswizzled_str, sizeof(string_t));
+            acc_string_length += str.GetSize();
         }
 
         string_t_offset += sizeof(string_t);

@@ -400,7 +400,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Full Scan] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -410,20 +410,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                     //    output.data[i], comp_header.data_len);
                                        output.data[output_column_idxs[i]], comp_header.data_len);
             } else {
-                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
-                // auto strings = FlatVector::GetData<string_t>(output.data[i]);
-                auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
-                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                uint64_t string_offset, prev_string_offset;
-                size_t output_idx = 0;
-                for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
-                    prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                    string_offset = offset_arr[input_idx];                    
-                    // strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                    strings[output_idx] = StringVector::AddString(output.data[output_column_idxs[i]], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                    output_idx++;
-                }
+                FlatVector::SetData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
@@ -652,7 +639,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Scan With Filter] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 PhysicalType p_type = ext_property_types[i].InternalType();
@@ -811,7 +798,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -1055,7 +1042,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (ext_property_types[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);

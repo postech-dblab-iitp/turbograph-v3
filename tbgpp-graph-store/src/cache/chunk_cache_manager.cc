@@ -103,12 +103,28 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    // CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
+    /**
+     * We disable unswizzling for now.
+     * Unswizzling should be implemented when buffer replacement policy is implemented.
+     * Currently, we just flush swizzled chunk.
+     * In swizzling, we simply calculate offset runtime, and obtain pointers.
+    */
+    //UnswizzleChunk(file_handler.first, file_handler.second);
 
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
     file_handler.second->Close();
   }
+}
+
+void ChunkCacheManager::UnswizzleChunk(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
+  uint8_t* ptr;
+  size_t size;
+
+  // Temporary code. We should not do redundant Pinchunk.
+  PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
+  CacheDataTransformer::Unswizzle(ptr);
+  UnPinSegment(cid);
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
@@ -145,7 +161,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       // IC();
-      // if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
+      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
       // IC();
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???

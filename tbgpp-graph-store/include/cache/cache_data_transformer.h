@@ -7,6 +7,8 @@ namespace duckdb {
 
 class CacheDataTransformer {
 public: 
+    CacheDataTransformer() {}
+    ~CacheDataTransformer();
     static void Swizzle(uint8_t* ptr);
     static void SwizzleVarchar(uint8_t* ptr);
     static void Unswizzle(uint8_t* ptr);
