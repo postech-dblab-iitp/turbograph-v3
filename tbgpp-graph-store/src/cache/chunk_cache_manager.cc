@@ -103,14 +103,6 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    /**
-     * We disable unswizzling for now.
-     * Unswizzling should be implemented when buffer replacement policy is implemented.
-     * Currently, we just flush swizzled chunk.
-     * In swizzling, we simply calculate offset runtime, and obtain pointers.
-    */
-    //UnswizzleChunk(file_handler.first, file_handler.second);
-
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
     file_handler.second->Close();
