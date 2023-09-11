@@ -2,6 +2,7 @@
 #include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/physical_operator.hpp"
 #include "execution/execution_context.hpp"
+#include "execution/schema_flow_graph.hpp"
 #include "common/limits.hpp"
 #include "common/types.hpp"
 #include "main/client_context.hpp"
@@ -13,14 +14,14 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline): 
-	CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor*>()), std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>()) ) { }
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline)
+	: CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor*>()), std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>()) ) { }
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
-	CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p) 
+	: CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, vector<CypherPipelineExecutor *> childs_p, std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p):
-	 pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), childs(std::move(childs_p)), deps(std::move(deps_p)) {
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, vector<CypherPipelineExecutor *> childs_p,
+	std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p) : pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), childs(std::move(childs_p)), deps(std::move(deps_p)) {
 	// set context.thread
 	context->thread = &thread;
 
@@ -38,8 +39,30 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 	}
 }
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph *sfg)
-	: CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor *>()), std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) { }
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg)
+	: CypherPipelineExecutor(context, pipeline, sfg, std::move(vector<CypherPipelineExecutor *>()), std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) {
+
+}
+
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, SchemaFlowGraph &sfg, vector<CypherPipelineExecutor *> childs_p,
+	std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p) : pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), sfg(std::move(sfg)), childs(std::move(childs_p)), deps(std::move(deps_p)) {
+	// set context.thread
+	context->thread = &thread;
+
+	// initialize interm chunks
+	for (int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+		auto opOutputChunk = std::make_unique<DataChunk>();
+		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
+		opOutputChunk->Initialize(output_schema.getStoredTypes());
+		opOutputChunks.push_back(std::move(opOutputChunk));
+	}
+	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
+	local_source_state = pipeline->source->GetLocalSourceState(*context);
+	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+	for (auto op: pipeline->GetOperators()) {
+		local_operator_states.push_back(op->GetOperatorState(*context));
+	}
+}
 
 void CypherPipelineExecutor::ExecutePipeline() {
 	// Get source chunk
@@ -134,6 +157,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
 		auto &prev_output_chunk = *opOutputChunks[current_idx - 1];
 		current_output_chunk.Reset();
+		auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
+		auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+		current_output_chunk.SetSchemaIdx(current_output_schema_idx);
 
 		duckdb::OperatorResultType opResult;
 		StartOperator(pipeline->GetIdxOperator(current_idx));
