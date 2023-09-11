@@ -427,6 +427,39 @@ int LightningClient::SetDirty(uint64_t object_id) {
   return status;
 }
 
+int LightningClient::clear_dirty_internal(uint64_t object_id) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    // object not found
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    // object is not sealed yet
+    return -1;
+  }
+
+  LOGGED_WRITE(object_entry->dirty_bit, 0, header_,
+               disk_);
+  // object_entry->dirty_bit = 0;
+
+  return 0;
+}
+
+int LightningClient::ClearDirty(uint64_t object_id) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = clear_dirty_internal(object_id);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
 int LightningClient::get_dirty_internal(uint64_t object_id, bool& is_dirty) {
   int64_t object_index = find_object(object_id);
 

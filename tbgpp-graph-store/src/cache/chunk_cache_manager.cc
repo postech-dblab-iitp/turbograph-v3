@@ -103,9 +103,11 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
+    // TODO we need a write lock
     file_handler.second->FlushAll();
     file_handler.second->WaitAllPendingDiskIO(false);
     file_handler.second->Close();
+    client->ClearDirty(file_handler.first);
   }
 }
 
@@ -153,8 +155,10 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       // Read data & Seal object
       ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       // IC();
-      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
-      // IC();
+      if(!is_initial_loading) {
+        // icecream::ic.enable(); IC(); icecream::ic.disable();
+        CacheDataTransformer::Swizzle(*ptr);
+      }
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
       // IC();
