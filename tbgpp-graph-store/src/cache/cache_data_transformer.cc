@@ -27,6 +27,7 @@ void CacheDataTransformer::Swizzle(uint8_t* ptr) {
             SwizzleVarchar(ptr);
             break;
         default:
+            std::cout << "Swizzling type not implemented" << std::endl;
             throw NotImplementedException("Swizzling type not implemented");
     }
 }
@@ -82,7 +83,6 @@ void CacheDataTransformer::UnswizzleVarchar(uint8_t* ptr) {
     // Calculate Offsets
     size_t size = comp_header.data_len;
     size_t string_t_offset = comp_header_valid_size;
-    size_t string_data_offset = comp_header_valid_size + size * sizeof(string_t);
     size_t acc_string_length = 0;
 
     // Iterate over strings and unswizzle
