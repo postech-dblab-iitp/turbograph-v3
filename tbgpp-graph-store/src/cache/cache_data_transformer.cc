@@ -6,10 +6,7 @@
 
 namespace duckdb {
 
-std::ofstream out("out_2.txt");
-
 CacheDataTransformer::~CacheDataTransformer() {
-    out.close();
 }
 
 SwizzlingType CacheDataTransformer::GetSwizzlingType(uint8_t* ptr) {
