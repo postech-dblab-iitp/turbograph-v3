@@ -364,7 +364,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 	for (unsigned recind = 0; recind < proberecordssize(); ++recind) {
 		typename Index::ProbeRecord & record = getproberecord(indexedrecords, foreignrecords, recind);
 		unsigned int reclen = record.tokens.size();
-		printf("\nRecord %d\n", recind);
+		// printf("\nRecord %d\n", recind);
 
 		// TODO: This only works for self joins
 		outputempty(record, recind, indexedrecords, candidateSet, Similarity::outputall_le(threshold));
@@ -525,24 +525,24 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				auto &tokens1 = rec.tokens;
 				auto &tokens2 = record.tokens;
 				merged_tokens.reserve(tokens1.size() + tokens2.size());
-				printf("[Merge - 1] ");
-				for (auto i = 0; i < tokens1.size(); i++) {
-					printf("%d ", tokens1[i]);
-				}
-				printf(" + [Merge - 2] ");
-				for (auto i = 0; i < tokens2.size(); i++) {
-					printf("%d ", tokens2[i]);
-				}
-				printf("\n");
+				// printf("[Merge - 1] ");
+				// for (auto i = 0; i < tokens1.size(); i++) {
+				// 	printf("%d ", tokens1[i]);
+				// }
+				// printf(" + [Merge - 2] ");
+				// for (auto i = 0; i < tokens2.size(); i++) {
+				// 	printf("%d ", tokens2[i]);
+				// }
+				// printf("\n");
 				std::merge(tokens1.begin(), tokens1.end(),
 					tokens2.begin(), tokens2.end(),
 					std::back_inserter(merged_tokens));
 				merged_tokens.erase(std::unique(merged_tokens.begin(), merged_tokens.end()), merged_tokens.end());
-				printf("=> [Merged] ");
-				for (auto i = 0; i < merged_tokens.size(); i++) {
-					printf("%d ", merged_tokens[i]);
-				}
-				printf("\n");
+				// printf("=> [Merged] ");
+				// for (auto i = 0; i < merged_tokens.size(); i++) {
+				// 	printf("%d ", merged_tokens[i]);
+				// }
+				// printf("\n");
 				rec.tokens.swap(merged_tokens);
 			}
 			rec.union_set_size = rec.tokens.size();
@@ -567,7 +567,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				index.index_record(rec, best_cluster_id, rec.tokens.size(), threshold, false);
 			}
 
-			printf("Find best cluster %d for record %d / sim = %.3f\n", best_cluster_id, recind, best_sim);
+			// printf("Find best cluster %d for record %d / sim = %.3f\n", best_cluster_id, recind, best_sim);
 		} else { // create new cluster
 			// get new cluster id & create new cluster to rid lists
 			int new_cluster_id = cluster_to_rid_lists.size();
@@ -593,7 +593,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 			// index record
 			index.index_record(rec, new_cluster_id, reclen, threshold);
 
-			printf("Create new cluster %d for record %d\n", new_cluster_id, recind);
+			// printf("Create new cluster %d for record %d\n", new_cluster_id, recind);
 		}
 		// index.index_record(record, recind, reclen, threshold);
 

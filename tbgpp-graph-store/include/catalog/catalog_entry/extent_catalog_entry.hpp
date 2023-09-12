@@ -42,8 +42,12 @@ public:
 	ExtentID eid;
 	ExtentType extent_type;
 	PartitionID pid; // foreign key
+	// For properties
 	ChunkDefinitionID_vector chunks;
-	atomic<LocalChunkDefinitionID> local_chunkdefinition_id_version;
+	atomic<LocalChunkDefinitionID> local_cdf_id_version; // forward-growing
+	// For adjlists
+	ChunkDefinitionID_vector adjlist_chunks;
+	atomic<LocalChunkDefinitionID> local_adjlist_cdf_id_version; // backward-growing
 	size_t num_tuples_in_extent = 0;
 	
 public:
@@ -61,6 +65,8 @@ public:
 	void SetExtentType(ExtentType extent_type_);
 	LocalChunkDefinitionID GetNextChunkDefinitionID();
 	void AddChunkDefinitionID(ChunkDefinitionID cdf_id);
+	LocalChunkDefinitionID GetNextAdjListChunkDefinitionID();
+	void AddAdjListChunkDefinitionID(ChunkDefinitionID cdf_id);
 
 	size_t GetNumTuplesInExtent() {
 		return num_tuples_in_extent;

@@ -329,8 +329,21 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 		int num_tuples_to_print;
 		int cur_offset_in_chunk = 0;
 		int chunk_idx = 0;
+		int num_tuples_to_skip;
+		bool skip_tuples = false;
 		while (chunk_idx < resultChunks.size()) {
 			auto &chunk = resultChunks[chunk_idx];
+			if (skip_tuples) {
+				if ((chunk->size() - cur_offset_in_chunk) < num_tuples_to_skip) {
+					num_tuples_to_skip -= (chunk->size() - cur_offset_in_chunk);
+					cur_offset_in_chunk = 0;
+					chunk_idx++;
+					continue;
+				} else {
+					skip_tuples = false;
+					cur_offset_in_chunk += num_tuples_to_skip;
+				}
+			}
 			num_tuples_to_print = std::min((int)(chunk->size()) - cur_offset_in_chunk, LIMIT);
 			for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
 				for( int i = 0; i < chunk->ColumnCount(); i++ ) {
@@ -352,7 +365,7 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 					bool continue_print;
 					while (true) {
 						string show_more;
-						printf("Show 10 more tuples [y/n]: ");
+						printf("Show 10 more tuples [y/n/s]: ");
 						std::getline(std::cin, show_more);
 						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
 						if ((show_more == "y") || (show_more == "")) {
@@ -360,6 +373,15 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 							break;
 						} else if (show_more == "n") {
 							continue_print = false;
+							break;
+						} else if (show_more == "s") {
+							string to_be_skipped;
+							printf("Num tuples to skip: ");
+							std::getline(std::cin, to_be_skipped);
+							num_tuples_to_skip = std::stoi(to_be_skipped);
+							num_tuples_printed += num_tuples_to_skip;
+							continue_print = true;
+							skip_tuples = true;
 							break;
 						} else {
 							printf("Please Enter Either Y or N\n");

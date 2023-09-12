@@ -118,8 +118,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	// for original ones reference existing columns
 	if (!do_filter_pushdown) {
 		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
-			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
 				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
 				chunk.data[outer_col_map[i]].Reference(input.data[i]);
 			}
@@ -127,8 +127,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		chunk.SetCardinality(input.size());
 	} else {
 		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
-			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
 				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
 				chunk.data[outer_col_map[i]].Slice(input.data[i], state.sel, output_idx);
 			}

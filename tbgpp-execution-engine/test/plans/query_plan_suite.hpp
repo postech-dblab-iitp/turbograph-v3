@@ -124,6 +124,10 @@ public:
 		if (key.compare("sch1") == 0) { return SCHEMALESS_TEST1(); }
 		if (key.compare("sch2") == 0) { return SCHEMALESS_TEST2(); }
 		if (key.compare("sch3") == 0) { return SCHEMALESS_TEST3(); }
+		if (key.compare("sch4") == 0) { return SCHEMALESS_TEST4(); }
+		if (key.compare("sch5") == 0) { return SCHEMALESS_TEST5(); }
+		if (key.compare("sch6") == 0) { return SCHEMALESS_TEST6(); }
+		if (key.compare("sch7") == 0) { return SCHEMALESS_TEST7(); }
 
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();
@@ -184,6 +188,10 @@ public:
 	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST1();
 	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST2();
 	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST3();
+	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST4();
+	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST5();
+	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST6();
+	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST7();
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;
