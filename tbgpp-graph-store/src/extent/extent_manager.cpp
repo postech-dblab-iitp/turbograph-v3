@@ -108,7 +108,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 string_len_total += (input.size() * sizeof(string_t)); // string len field
 
             // Calculate the final size
-            alloc_buf_size = string_len_total + comp_header_size;
+            alloc_buf_size = string_len_total + comp_header_size + 512;
         } else if (l_type.id() == LogicalTypeId::LIST) {
             size_t list_len_total = 0;
             size_t child_type_size = GetTypeIdSize(ListType::GetChildType(l_type).InternalType());
