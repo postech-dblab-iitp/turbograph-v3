@@ -95,7 +95,7 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 	MkDir(partition_dir_path, true);
 }
 
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels) {
+void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string> &labels) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string label_(temp_charallocator);
 	

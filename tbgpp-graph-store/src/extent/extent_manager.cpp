@@ -21,7 +21,7 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
     CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
+    ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
     
     // MkDir for the extent
     std::string extent_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
@@ -39,7 +39,7 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Parti
     Catalog& cat_instance = context.db->GetCatalog();
     string extent_name = "ext_" + std::to_string(new_eid);
     CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
+    ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
 
     // MkDir for the extent
     std::string extent_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
@@ -50,10 +50,10 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Parti
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
 }
 
-void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &property_schema_cat, ExtentID eid) {
+void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
-    PartitionID pid = property_schema_cat.GetPartitionID();
+    PartitionID pid = static_cast<PartitionID>(eid >> 16);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, eid);
 }
 
@@ -66,12 +66,22 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Get Physical Type
         PhysicalType p_type = l_type.InternalType();
         // For each Vector in DataChunk create new chunk definition
-        LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
+        LocalChunkDefinitionID chunk_definition_idx;
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
+            chunk_definition_idx = extent_cat_entry.GetNextAdjListChunkDefinitionID();
+        } else {
+            chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
+        }
         ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
-        string chunkdefinition_name = "cdf_" + std::to_string(cdf_id);
-        CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
-        ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
-        extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        string chunkdefinition_name = DEFAULT_CHUNKDEFINITION_PREFIX + std::to_string(cdf_id);
+        CreateChunkDefinitionInfo chunkdefinition_info(DEFAULT_SCHEMA, chunkdefinition_name, l_type);
+        ChunkDefinitionCatalogEntry *chunkdefinition_cat = 
+            (ChunkDefinitionCatalogEntry *)cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
+            extent_cat_entry.AddAdjListChunkDefinitionID(cdf_id);
+        } else {
+            extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        }
         chunkdefinition_cat->SetNumEntriesInColumn(input.size());
 
         // Analyze compression to find best compression method

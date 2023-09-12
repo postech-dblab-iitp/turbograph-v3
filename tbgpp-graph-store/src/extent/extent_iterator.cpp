@@ -8,7 +8,7 @@
 
 #include "icecream.hpp"
 
-#define DEBUG_LOAD_COLUMN
+// #define DEBUG_LOAD_COLUMN
 
 namespace duckdb {
 
@@ -170,11 +170,15 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
+            ChunkDefinitionID cdf_id;
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                 continue;
+            } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
+                cdf_id = extent_cat_entry->adjlist_chunks[target_idxs[j++]];
+            } else {
+                cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             }
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
@@ -212,11 +216,15 @@ int ExtentIterator::RequestNewIO(ClientContext &context, PropertySchemaCatalogEn
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
+            ChunkDefinitionID cdf_id;
             if (ext_property_types[i] == LogicalType::ID) {
                 io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                 continue;
+            } else if (ext_property_types[i] == LogicalType::FORWARD_ADJLIST || ext_property_types[i] == LogicalType::BACKWARD_ADJLIST) {
+                cdf_id = extent_cat_entry->adjlist_chunks[target_idxs[j++]];
+            } else {
+                cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             }
-            ChunkDefinitionID cdf_id = extent_cat_entry->chunks[target_idxs[j++]];
             io_requested_cdf_ids[next_toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
