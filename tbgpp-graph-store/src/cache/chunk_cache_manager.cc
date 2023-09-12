@@ -104,20 +104,33 @@ ChunkCacheManager::~ChunkCacheManager() {
     if (!is_dirty) continue;
 
     // TODO we need a write lock
-    file_handler.second->FlushAll();
-    file_handler.second->WaitAllPendingDiskIO(false);
-    file_handler.second->Close();
+    UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
   }
 }
 
-void ChunkCacheManager::UnswizzleChunk(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
+void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
   uint8_t* ptr;
   size_t size;
 
-  // Temporary code. We should not do redundant Pinchunk.
+  /**
+   * TODO we need a write lock
+   * We flush in-memory data format to disk format.
+   * Thus, unswizzling is needed.
+   * However, since change the data in memory, we need to swizzle again.
+   * After implementing eviction and so one, this code should be changed.
+   * 
+   * Ideal code is like below:
+   * 1. Extent Manager write unswizzled data into memory
+   * 2. ChunkCacheManager flush the data into disk, and remove all objects from store
+   * 3. Proceeding clients can read the data from disk, and swizzle it.
+  */
   PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
   CacheDataTransformer::Unswizzle(ptr);
+  file_handler->FlushAll();
+  file_handler->WaitAllPendingDiskIO(false);
+  CacheDataTransformer::Swizzle(ptr);
+  file_handler->Close();
   UnPinSegment(cid);
 }
 
@@ -153,10 +166,13 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
       // IC();
       // Read data & Seal object
-      ReadData(cid, file_path, file_ptr, file_size, read_data_async);
+      // TODO: we fix read_data_async as false, due to swizzling. May move logic to iterator.
+      // ReadData(cid, file_path, file_ptr, file_size, read_data_async);
+      ReadData(cid, file_path, file_ptr, file_size, false);
       // IC();
       if(!is_initial_loading) {
         // icecream::ic.enable(); IC(); icecream::ic.disable();
+        std::cout << "SWIZZLE CID: " << cid << std::endl;
         CacheDataTransformer::Swizzle(*ptr);
       }
       client->Seal(cid);
