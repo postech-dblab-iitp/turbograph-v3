@@ -645,11 +645,21 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	
 	// Get JoinColumnID
 	std::vector<uint32_t> sccmp_colids;
-	for (uint32_t i = 0; i < pexprInner->operator[](0)->Arity(); i++) {
-		CScalarIdent *sc_ident = (CScalarIdent *)(pexprInner->operator[](0)->operator[](i)->Pop());
-		sccmp_colids.push_back(sc_ident->Pcr()->Id());
+	CExpression *parent_exp = pexprInner;
+	while(true) {
+		CExpression *child_exp = (*parent_exp)[0];
+		if(child_exp->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent) {
+			for (uint32_t i = 0; i < parent_exp->Arity(); i++) {
+				CScalarIdent *sc_ident = (CScalarIdent *)(parent_exp->operator[](i)->Pop());
+				sccmp_colids.push_back(sc_ident->Pcr()->Id());
+			}
+			break;
+		} else {
+			parent_exp = child_exp;
+			continue;
+		}
 	}
-
+	
 	uint64_t sid_col_idx = 0;
 	bool sid_col_idx_found = false;
 	// Construct mapping info
