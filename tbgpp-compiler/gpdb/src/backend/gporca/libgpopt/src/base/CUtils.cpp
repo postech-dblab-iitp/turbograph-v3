@@ -2210,12 +2210,8 @@ CUtils::PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 			col_factory->AddComputedToUsedColsMap(pexprPrEl);
 		}
 	}
-	// return GPOS_NEW(mp)
-	// 	CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
-
-	// S62
 	return GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pexpr, pexprPrjList);
+		CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
 }
 
 // generate a sequence project expression
