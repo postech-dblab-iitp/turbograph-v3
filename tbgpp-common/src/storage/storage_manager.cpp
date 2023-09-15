@@ -60,12 +60,6 @@ void StorageManager::Initialize() {
 	// auto &config = DBConfig::GetConfig(db);
 	// auto &catalog = Catalog::GetCatalog(*con.context);
 
-	// // create the default schema
-	// CreateSchemaInfo info;
-	// info.schema = DEFAULT_SCHEMA;
-	// info.internal = true;
-	// catalog.CreateSchema(*con.context, &info);
-
 	// // commit transactions
 	// con.Commit();
 

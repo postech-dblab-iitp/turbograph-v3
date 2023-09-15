@@ -237,12 +237,15 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		}
 	}
 	// chunk determined. now fill in lhs using slice operation
-	D_ASSERT(input.ColumnCount() == state.outer_col_map.size());
+	idx_t schema_idx = input.GetSchemaIdx();
+	std::cout << "Input schema idx: " << schema_idx << ", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
+	D_ASSERT(schema_idx < state.outer_col_maps.size());
+	D_ASSERT(input.ColumnCount() == state.outer_col_maps[schema_idx].size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-		if( state.outer_col_map[colId] != std::numeric_limits<uint32_t>::max() ) {
+		if (state.outer_col_maps[schema_idx][colId] != std::numeric_limits<uint32_t>::max()) {
 			// when outer col map marked uint32_max, do not return
-			D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
-			chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+			D_ASSERT(state.outer_col_maps[schema_idx][colId] < chunk.ColumnCount());
+			chunk.data[state.outer_col_maps[schema_idx][colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
 		}
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
@@ -294,6 +297,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		}
 		
 		state.outer_col_map = move(outer_col_map);
+		state.outer_col_maps = move(outer_col_maps);
 		state.inner_col_map = move(inner_col_map);
 		// Get join matches (sizes) for the LHS. Initialized one time per LHS
 		GetJoinMatches(context, input, lstate);

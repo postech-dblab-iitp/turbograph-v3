@@ -2,6 +2,7 @@
 #include "execution/cypher_pipeline_executor.hpp"
 #include "execution/physical_operator/physical_operator.hpp"
 #include "execution/execution_context.hpp"
+#include "execution/schema_flow_graph.hpp"
 #include "common/limits.hpp"
 #include "common/types.hpp"
 #include "main/client_context.hpp"
@@ -13,50 +14,77 @@
 
 namespace duckdb {
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline): 
-	CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor*>()), std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>()) ) { }
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline)
+	: CypherPipelineExecutor(context, pipeline, std::move(vector<CypherPipelineExecutor*>()), std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>()) ) { }
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p): 
-	CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p) 
+	: CypherPipelineExecutor(context, pipeline, childs_p, std::move(std::map<CypherPhysicalOperator*, CypherPipelineExecutor*>())) { }	// need to deprecate
 
-CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context_p, CypherPipeline* pipeline_p, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p): 
-	 pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), childs(std::move(childs_p)), deps(std::move(deps_p)) {
-		// set context.thread
-		context->thread = &thread;
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, vector<CypherPipelineExecutor *> childs_p,
+	std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p) : pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), childs(std::move(childs_p)), deps(std::move(deps_p)) {
+	// set context.thread
+	context->thread = &thread;
 
-		// initialize interm chunks
-		for( int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
-			auto opOutputChunk = std::make_unique<DataChunk>();
-			opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
-			opOutputChunks.push_back(std::move(opOutputChunk));
-		}
-		D_ASSERT( opOutputChunks.size() == (pipeline->pipelineLength - 1) );
-		local_source_state = pipeline->source->GetLocalSourceState(*context);
-		local_sink_state = pipeline->sink->GetLocalSinkState(*context);
-		for( auto op: pipeline->GetOperators() ) {
-			local_operator_states.push_back(op->GetOperatorState(*context));
-		}
+	// initialize interm chunks
+	for (int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+		auto opOutputChunk = std::make_unique<DataChunk>();
+		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
+		opOutputChunks.push_back(std::move(opOutputChunk));
 	}
+	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
+	local_source_state = pipeline->source->GetLocalSourceState(*context);
+	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+	for (auto op: pipeline->GetOperators()) {
+		local_operator_states.push_back(op->GetOperatorState(*context));
+	}
+}
+
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg)
+	: CypherPipelineExecutor(context, pipeline, sfg, std::move(vector<CypherPipelineExecutor *>()), std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) {
+
+}
+
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg, vector<CypherPipelineExecutor *> childs_p)
+	: CypherPipelineExecutor(context, pipeline, sfg, childs_p, std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) {
+
+}
+
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, SchemaFlowGraph &sfg, vector<CypherPipelineExecutor *> childs_p,
+	std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p) : pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), sfg(std::move(sfg)), childs(std::move(childs_p)), deps(std::move(deps_p)) {
+	// set context.thread
+	context->thread = &thread;
+
+	// initialize interm chunks
+	for (int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+		auto opOutputChunk = std::make_unique<DataChunk>();
+		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
+		opOutputChunk->Initialize(output_schema.getStoredTypes());
+		opOutputChunks.push_back(std::move(opOutputChunk));
+	}
+	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
+	local_source_state = pipeline->source->GetLocalSourceState(*context);
+	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+	for (auto op: pipeline->GetOperators()) {
+		local_operator_states.push_back(op->GetOperatorState(*context));
+	}
+}
 
 void CypherPipelineExecutor::ExecutePipeline() {
-	
-	// init source chunk
+	// Get source chunk
+	// idx_t num_pipeline_executions = 0;
+	// idx_t max_pipeline_executions = 5;
 	while(true) {
-		// std::cout << "fetching!!" << std::endl;
-		auto& source_chunk = *(opOutputChunks[0]);
-		// std::cout << "why?!!" << std::endl;
-		// source_chunk.Reset();
+		auto &source_chunk = *(opOutputChunks[0]);
 		source_chunk.Destroy();
 		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
 		FetchFromSource(source_chunk);
-		// std::cout << "fetched!!" << std::endl;
-		if( source_chunk.size() == 0 ) { break; }
+		if (source_chunk.size() == 0) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
-		D_ASSERT( sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
-				 sourceProcessResult == OperatorResultType::FINISHED
-		);
-		if( sourceProcessResult == OperatorResultType::FINISHED ) { break; }
+		D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
+				 sourceProcessResult == OperatorResultType::FINISHED);
+		if (sourceProcessResult == OperatorResultType::FINISHED) { break; }
+		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
 	}
 	// do we need pushfinalize?
 		// when limit operator reports early finish, the caches must be finished after all.
@@ -74,7 +102,6 @@ void CypherPipelineExecutor::ExecutePipeline() {
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
-
 	StartOperator(pipeline->GetSource());
 	switch( childs.size() ) {
 		// no child pipeline
@@ -84,17 +111,13 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 	}
 	EndOperator(pipeline->GetSource(), &result);
 	pipeline->GetSource()->processed_tuples += result.size();	
-	
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
-
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
 	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
 	// handle source until need_more_input;
-	while(true) {
-		//pipeOutputChunk->Reset(); // TODO huh?
-
+	while (true) {
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// shortcut returning execution finished for this pipeline
 		if( pipeResult == OperatorResultType::FINISHED ) {
@@ -121,51 +144,52 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 }
 
 OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChunk &result) {
-
 	// determine this pipe's start point
 	int current_idx = 1;
 	if (!in_process_operators.empty()) {
 		current_idx = in_process_operators.top();
 		in_process_operators.pop();
 	}
-	assert( current_idx > 0 && "cannot designate a source operator (idx=0)" );
-	if( pipeline->pipelineLength == 2) { // nothing passes through pipe.
+	assert(current_idx > 0 && "cannot designate a source operator (idx=0)");
+	if (pipeline->pipelineLength == 2) { // nothing passes through pipe.
 		result.Reference(input);
 	}
 
 	// start pipe from current_idx;
 	for(;;) {
+		// std::cout << "[ExecutePipe] - operator " << current_idx << std::endl;
 		bool isCurrentSink =
 			pipeline->GetIdxOperator(current_idx) == pipeline->GetSink();
-		if( isCurrentSink ) { break; }
+		if (isCurrentSink) { break; }
 
-		auto& current_output_chunk =
+		auto &current_output_chunk =
 			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
-		auto& prev_output_chunk = *opOutputChunks[current_idx-1];
+		auto &prev_output_chunk = *opOutputChunks[current_idx - 1];
 		current_output_chunk.Reset();
+		auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
+		auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+		current_output_chunk.SetSchemaIdx(current_output_schema_idx);
 
 		duckdb::OperatorResultType opResult;
 		StartOperator(pipeline->GetIdxOperator(current_idx));
-		if( ! pipeline->GetIdxOperator(current_idx)->IsSink() ) {
+		if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
 			// standalone operators e.g. filter, projection, adjidxjoin
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]
-		);
+			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1]);
 		} else {
 			// operator with related sink e.g. hashjoin, ..
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 			 	*context, prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1],
-				*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state)
-			);
+				*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
 		}
 		EndOperator(pipeline->GetIdxOperator(current_idx), &current_output_chunk);
 
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
 	
 		// if result needs more output, push index to stack
-		if( opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
+		if (opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
 			in_process_operators.push(current_idx);
-		} else if( opResult == OperatorResultType::FINISHED ) {
+		} else if (opResult == OperatorResultType::FINISHED) {
 			return OperatorResultType::FINISHED;
 		} 
 		// what is chunk cache for?

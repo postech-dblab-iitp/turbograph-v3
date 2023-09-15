@@ -95,7 +95,7 @@ void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID p
 	MkDir(partition_dir_path, true);
 }
 
-void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels) {
+void GraphCatalogEntry::AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string> &labels) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string label_(temp_charallocator);
 	
@@ -200,6 +200,45 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 			PropertyKeyID new_pkid = GetPropertyKeyID();
 			property_key_ids.push_back(new_pkid);
 		}
+	}
+}
+
+void GraphCatalogEntry::GetVertexLabels(vector<string>& label_names) {
+	for(auto it = vertexlabel_map.begin(); it != vertexlabel_map.end(); ++it) {
+		label_names.push_back(it->first);
+	}
+}
+
+void GraphCatalogEntry::GetEdgeTypes(vector<string>& type_names) {
+	for(auto it = edgetype_map.begin(); it != edgetype_map.end(); ++it) {
+		type_names.push_back(it->first);
+	}
+}
+
+void GraphCatalogEntry::GetVertexPartitionIndexesInLabel(ClientContext &context, string label, vector<idx_t> &partition_indexes) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string label_temp(temp_charallocator);
+	label_temp = label.c_str();
+
+	auto vertex_label_it = vertexlabel_map.find(label_temp);
+	if (vertex_label_it != vertexlabel_map.end()) {
+		idx_t_vector& cat_partition_indexes = label_to_partition_index.find(vertex_label_it->second)->second;
+		partition_indexes.reserve(cat_partition_indexes.size());
+		for (auto& partition_index : cat_partition_indexes) {
+			partition_indexes.push_back(partition_index);
+		}
+	}
+}
+
+void GraphCatalogEntry::GetEdgePartitionIndexesInType(ClientContext &context, string type, vector<idx_t> &partition_indexes) {
+	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
+	char_string type_temp(temp_charallocator);
+	type_temp = type.c_str();
+
+	auto edge_type_it = edgetype_map.find(type_temp);
+	if (edge_type_it != edgetype_map.end()) {
+		idx_t& cat_partition_index = type_to_partition_index.find(edge_type_it->second)->second;
+		partition_indexes.push_back(cat_partition_index);
 	}
 }
 

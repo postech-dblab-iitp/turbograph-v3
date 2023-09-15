@@ -20,8 +20,12 @@ class CypherPhysicalOperator {
 public:
 
 
-	CypherPhysicalOperator(PhysicalOperatorType type, Schema& sch):
+	CypherPhysicalOperator(PhysicalOperatorType type, Schema &sch):
 		type(type), schema(sch), types(schema.getStoredTypes()), processed_tuples(0) {	
+		timer_started = false;
+	}
+	CypherPhysicalOperator(PhysicalOperatorType type, vector<Schema> &sch):
+		type(type), schemas(sch), types(schemas[0].getStoredTypes()), processed_tuples(0) {	 // TODO
 		timer_started = false;
 	}
 	virtual ~CypherPhysicalOperator() { }
@@ -45,6 +49,7 @@ public:
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
 
 	const vector<LogicalType> &GetTypes();
+	idx_t GetSchemaIdx();
 
 	virtual std::string ParamsToString() const { return ""; }
 	virtual std::string ToString() const { return ""; }
@@ -52,6 +57,7 @@ public:
 	// operator metadata
 	const PhysicalOperatorType type;
 	mutable Schema schema;				// TODO remove mutable
+	mutable vector<Schema> schemas;				// TODO remove mutable
 	mutable vector<LogicalType> types;			// schema(types) of operator output chunk
 	vector<CypherPhysicalOperator*> children;	// child operators
 
@@ -62,6 +68,5 @@ public:
 	int64_t exec_time;
 	
 	int64_t processed_tuples;
-	
 };
 }

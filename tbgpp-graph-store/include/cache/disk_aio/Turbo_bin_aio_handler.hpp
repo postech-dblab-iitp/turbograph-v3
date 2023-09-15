@@ -405,6 +405,10 @@ class Turbo_bin_aio_handler {
   void SetCanDestroy(bool can_destroy) {
     delete_when_close = can_destroy;
   }
+  
+  uint8_t* GetDataPtr() {
+    return aligned_data_ptr;
+  }
 
   void SetDataPtr(uint8_t* data_ptr_) {
     aligned_data_ptr = data_ptr_;

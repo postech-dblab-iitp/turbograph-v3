@@ -1261,7 +1261,8 @@ hash_t Value::Hash() const {
 
 string Value::ToString() const {
 	if (IsNull()) {
-		return "NULL";
+		return "";
+		// return "NULL";
 	}
 	switch (type_.id()) {
 	case LogicalTypeId::BOOLEAN:
@@ -1325,7 +1326,11 @@ string Value::ToString() const {
 		return Interval::ToString(value_.interval);
 	case LogicalTypeId::JSON:
 	case LogicalTypeId::VARCHAR:
-		return str_value;
+		if (str_value.size() < 15) {
+			return str_value;
+		} else {
+			return str_value.substr(0, 15) + " ...";
+		}
 	case LogicalTypeId::BLOB:
 		return Blob::ToString(string_t(str_value));
 	case LogicalTypeId::POINTER:
