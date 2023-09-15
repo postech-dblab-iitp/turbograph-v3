@@ -47,10 +47,10 @@ public:
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
 	idx_t_vector key_column_idxs;
-	atomic<ExtentID> local_extent_id_version;
-	vector<LogicalType> property_types; // TODO SHM
 	LogicalTypeId_vector property_typesid;
 	string_vector property_key_names;
+	LogicalTypeId_vector adjlist_typesid;
+	string_vector adjlist_names;
 	idx_t num_columns;
 	idx_t last_extent_num_tuples;
 	
@@ -65,6 +65,8 @@ public:
 	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);
 	idx_t AppendKey(ClientContext &context, string key_name);
+	void AppendAdjListType(LogicalType type);
+	idx_t AppendAdjListKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	LogicalTypeId_vector *GetTypes();
 	LogicalTypeId GetType(idx_t i);
@@ -82,13 +84,17 @@ public:
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
 	void AddExtent(ExtentID eid, size_t num_tuples_in_extent = 0);
-	ExtentID GetNewExtentID();
 	PartitionID GetPartitionID();
 	idx_t GetPartitionOID();
 
 	uint64_t GetNumberOfColumns();
 	uint64_t GetNumberOfRowsApproximately();
 	uint64_t GetNumberOfExtents();
+
+	/* histogram */
+	void InitializeAccumulators();
+	void AccumulateExtent(DataChunk &chunk);
+	void FinalizeAccumulators();
 
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:

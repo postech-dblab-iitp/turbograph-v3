@@ -165,6 +165,10 @@ public:
 		return buffer;
 	}
 
+	inline ValidityMask &GetValidity() {
+		return validity;
+	}
+
 	// Setters
 	DUCKDB_API void SetVectorType(VectorType vector_type);
 
@@ -184,6 +188,11 @@ protected:
 	//! e.g. a string vector uses this to store strings
 	buffer_ptr<VectorBuffer> auxiliary;
 	idx_t capacity;
+};
+
+class VectorWithValidBitmap : public Vector {
+private:
+	ValidityMask nullity;
 };
 
 //! The DictionaryBuffer holds a selection vector
@@ -284,6 +293,14 @@ struct FlatVector {
 		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR);
 		vector.validity.Initialize(new_validity);
 	}
+	static inline bool HasNull(const Vector& vector) {
+		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR);
+		return !vector.validity.AllValid();
+	}
+	static inline validity_t* GetNullMask(const Vector& vector) {
+		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR);
+		return vector.validity.GetData();
+	}
 	static void SetNull(Vector &vector, idx_t idx, bool is_null);
 	static inline bool IsNull(const Vector &vector, idx_t idx) {
 		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR);
@@ -301,6 +318,16 @@ struct ListVector {
 		}
 		return FlatVector::GetData<list_entry_t>(v);
 	}
+
+	static inline void SetData(Vector &vector, data_ptr_t data) {
+		vector.data = data;
+	}
+
+	static inline void SetChildData(Vector& vector, data_ptr_t data) {
+		Vector& vec = ListVector::GetEntry(vector);
+		FlatVector::SetData(vec, data);
+	}
+	
 	//! Gets a reference to the underlying child-vector of a list
 	DUCKDB_API static const Vector &GetEntry(const Vector &vector);
 	//! Gets a reference to the underlying child-vector of a list

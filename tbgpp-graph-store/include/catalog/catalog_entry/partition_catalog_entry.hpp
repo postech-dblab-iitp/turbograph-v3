@@ -53,6 +53,7 @@ public:
 	LogicalTypeId_vector global_property_typesid;
 	string_vector global_property_key_names;
 	idx_t num_columns;
+	atomic<ExtentID> local_extent_id_version;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -70,7 +71,9 @@ public:
 
 	//! Returns a list of types of the table
 	//vector<LogicalType> GetTypes();
+	void SetPartitionID(PartitionID pid);
 	PartitionID GetPartitionID();
+	ExtentID GetNewExtentID();
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

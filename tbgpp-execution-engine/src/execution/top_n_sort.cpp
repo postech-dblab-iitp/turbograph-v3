@@ -80,7 +80,6 @@ void TopNSortState::Scan(TopNScanState &state, DataChunk &chunk) {
 	D_ASSERT(is_sorted);
 	while (chunk.size() == 0) {
 		state.scanner->Scan(chunk);
-// IC();IC(chunk.size());
 		if (chunk.size() == 0) {
 			break;
 		}
@@ -125,7 +124,6 @@ void TopNSortState::Scan(TopNScanState &state, DataChunk &chunk) {
 			chunk.SetCardinality(chunk_end);
 		}
 	}
-// IC();IC(chunk.size());
 }
 
 //===--------------------------------------------------------------------===//

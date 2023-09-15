@@ -69,7 +69,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/planner/tableref"
 	# third_party
 	"${PROJECT_SOURCE_DIR}/include/third_party"
-	"${PROJECT_SOURCE_DIR}/include/third_party/fmt/include"
+	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_fmt/include"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
 	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
@@ -77,6 +77,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
 	"${PROJECT_SOURCE_DIR}/third_party/tblr"
 	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
+	"${PROJECT_SOURCE_DIR}/third_party/velox"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client
@@ -91,9 +92,18 @@ file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
 
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto)
+target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(tbgpp-common-lib duckdb_fastpforlib)
 target_link_libraries(tbgpp-common-lib turbograph_simdcsv)
+target_link_libraries(tbgpp-common-lib
+	velox_functions_prestosql
+	velox_functions_prestosql_impl
+	velox_aggregates
+	velox_vector_test_lib
+	velox_exec
+	velox_link_libs
+	velox_dwio_dwrf_reader
+	velox_dwio_dwrf_writer)
 target_compile_options(tbgpp-common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-common-lib PUBLIC ${CXX_DEFINITION})
 

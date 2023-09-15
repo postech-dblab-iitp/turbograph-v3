@@ -45,6 +45,12 @@ public:
 			value.pointer.ptr = (char *)data;
 		}
 	}
+	string_t(const char *data, uint32_t len, uint64_t offset) {
+		value.inlined.length = len;
+		memcpy(value.offset.prefix, data, PREFIX_LENGTH);
+		value.offset.offset = offset;
+		D_ASSERT(IsInlined() == false);
+	}
 	string_t(const char *data) : string_t(data, strlen(data)) { // NOLINT: Allow implicit conversion from `const char*`
 	}
 	string_t(const string &value)
@@ -73,7 +79,12 @@ public:
 	}
 
 	string GetString() const {
+		if (GetSize() > 20) return ""; // TODO temporary
 		return string(GetDataUnsafe(), GetSize());
+	}
+
+	uint64_t GetOffset() const {
+		return value.offset.offset;
 	}
 
 	explicit operator string() const {
@@ -109,6 +120,11 @@ private:
 			char prefix[4];
 			char *ptr;
 		} pointer;
+		struct {
+			uint32_t length;
+			char prefix[4];
+			uint64_t offset;
+		} offset;
 		struct {
 			uint32_t length;
 			char inlined[12];

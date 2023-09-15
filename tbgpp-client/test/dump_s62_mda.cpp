@@ -79,26 +79,36 @@ void print_depth(string data, int depth=0) {
 }
 
 void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
-	vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
-	for (auto &ps_cat_name : ps_cat_list) {
-		PropertySchemaCatalogEntry *ps_cat =
-			(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
-		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
+	for (auto &part_cat_name : part_cat_list) {
+		PartitionCatalogEntry *part_cat =
+			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
+		vector<idx_t> psids;
+		part_cat->GetPropertySchemaIDs(psids);
+		for (size_t i = 0; i < psids.size(); i++) {
+			fprintf(stdout, "Part %s oid[%ld] %ld\n", part_cat_name.c_str(), i, psids[i]);
+		}
 	}
+	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
+	// for (auto &ps_cat_name : ps_cat_list) {
+	// 	PropertySchemaCatalogEntry *ps_cat =
+	// 		(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
+	// 	fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	// }
 	
-	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "CONTAINER_OF_bwd", "HAS_MODERATOR_fwd", "HAS_CREATOR_bwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
+	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "HAS_MODERATOR_fwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
 	for (auto &index_cat_name : index_cat_list) {
 		IndexCatalogEntry *index_cat =
 			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
 		fprintf(stdout, "%s oid %ld, AdjColIdx = %ld\n", index_cat_name.c_str(), index_cat->GetOid(), index_cat->GetAdjColIdx());
 	}
 
-	vector<string> agg_function_catalog_list = {"count_star"};	// count_star oid=33, mdid=72162688
-	for (auto &agg_function_cat_name : agg_function_catalog_list) {
-		AggregateFunctionCatalogEntry *aggf_cat =
-			(AggregateFunctionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, agg_function_cat_name);
-		fprintf(stdout, "%s oid=%ld \n", agg_function_cat_name.c_str(), aggf_cat->GetOid());	// Note that oid is different from mdid
-	}
+	// vector<string> agg_function_catalog_list = {"count_star"};	// count_star oid=33, mdid=72162688
+	// for (auto &agg_function_cat_name : agg_function_catalog_list) {
+	// 	AggregateFunctionCatalogEntry *aggf_cat =
+	// 		(AggregateFunctionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, agg_function_cat_name);
+	// 	fprintf(stdout, "%s oid=%ld \n", agg_function_cat_name.c_str(), aggf_cat->GetOid());	// Note that oid is different from mdid
+	// }
 
 }
 
@@ -157,11 +167,12 @@ void* mda_print(void* args) {
 		HAS_MODERATOR_fwd 595
 	
 	*/
-	vector<uint32_t> rel_ids_to_inspect({(uint32_t)305});	// 305 = vps_Person
-	rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
-	rel_ids_to_inspect.push_back(521);	// vps_KNOWS : 521
-	rel_ids_to_inspect.push_back(367);	// vps_Post:Message : 367
-	rel_ids_to_inspect.push_back(465);	// eps_HAS_CREATOR : 465
+	vector<uint32_t> rel_ids_to_inspect;
+	// rel_ids_to_inspect.push_back(305); // 305 = vps_Person	
+	// rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
+	// rel_ids_to_inspect.push_back(521);	// vps_KNOWS : 521
+	// rel_ids_to_inspect.push_back(367);	// vps_Post:Message : 367
+	// rel_ids_to_inspect.push_back(465);	// eps_HAS_CREATOR : 465
 	
 	for (auto& rel_obj_id: rel_ids_to_inspect) {
 		print_depth("[Inspecting Rel - mdid=" + std::to_string(rel_obj_id) + "]");
@@ -236,7 +247,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_test/";
+	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
