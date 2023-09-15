@@ -16,6 +16,7 @@ ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *sch
 	this->local_cdf_id_version = 0;
 	this->local_adjlist_cdf_id_version = std::numeric_limits<LocalChunkDefinitionID>::max();
 	this->pid = info->pid;
+	this->ps_oid = info->ps_oid;
 	this->num_tuples_in_extent = info->num_tuples_in_extent;
 }
 

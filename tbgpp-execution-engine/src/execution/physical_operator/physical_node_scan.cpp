@@ -96,13 +96,22 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 
 		auto initializeAPIResult =
 			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, scan_types);
-		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
-
+		D_ASSERT(initializeAPIResult == StoreAPIResult::OK);
 	}
 	D_ASSERT(state.ext_its.size() > 0);
+	idx_t j = 0;
+	for (auto i = 0; i < chunk.ColumnCount(); i++) {
+		if (projection_mapping[current_schema_idx][j] == i) {
+			j++;
+		} else {
+			auto &validity = FlatVector::Validity(chunk.data[i]);
+			validity.EnsureWritable(STANDARD_VECTOR_SIZE);
+			validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
+		}
+	}
 
 	StoreAPIResult res;
-	if( filter_pushdown_key_idx < 0 ) {
+	if (filter_pushdown_key_idx < 0) {
 		// no filter pushdown
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
 	} else {
@@ -115,6 +124,16 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	if (res == StoreAPIResult::DONE) {
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		if (++current_schema_idx == num_schemas) return;
+		// idx_t j = 0;
+		// for (auto i = 0; i < chunk.ColumnCount(); i++) {
+		// 	if (projection_mapping[current_schema_idx][j] == i) {
+		// 		j++;
+		// 	} else {
+		// 		auto &validity = FlatVector::Validity(chunk.data[i]);
+		// 		validity.EnsureWritable(STANDARD_VECTOR_SIZE);
+		// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
+		// 	}
+		// }
 		GetData(context, chunk, lstate);
 	}
 

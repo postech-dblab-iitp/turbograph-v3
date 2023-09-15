@@ -39,7 +39,6 @@ unique_ptr<LocalSinkState> PhysicalTopNSort::GetLocalSinkState(ExecutionContext 
 //===--------------------------------------------------------------------===//
 SinkResultType PhysicalTopNSort::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	// append to the local sink state
-icecream::ic.disable();
 	auto &sink = (TopNSortSinkState &)lstate;
 	sink.heap.Sink(input);
 	sink.heap.Reduce();
@@ -50,7 +49,6 @@ icecream::ic.disable();
 // Combine
 //===--------------------------------------------------------------------===//
 void PhysicalTopNSort::Combine(ExecutionContext &context, LocalSinkState &lstate_p) const {
-// IC();
 	// auto &gstate = (TopNGlobalState &)state;
 	auto &lstate = (TopNSortSinkState &)lstate_p;
 	// directly call finalize for heap
@@ -71,9 +69,8 @@ unique_ptr<LocalSourceState> PhysicalTopNSort::GetLocalSourceState(ExecutionCont
 }
 
 void PhysicalTopNSort::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const{
-icecream::ic.disable();
 	if (limit == 0) {
-	return;
+		return;
 	}
 	auto &state = (TopNSortSourceState &)lstate;
 	auto &gstate = (TopNSortSinkState &)sink_state;
@@ -83,6 +80,7 @@ icecream::ic.disable();
 		state.initialized = true;
 	}
 	gstate.heap.Scan(state.state, chunk);
+	chunk.SetSchemaIdx(0); // TODO always 0? after sort, schemas are unified
 }
 
 std::string PhysicalTopNSort::ParamsToString() const {

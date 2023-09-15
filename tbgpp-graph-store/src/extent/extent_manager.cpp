@@ -14,13 +14,15 @@ namespace duckdb {
 
 ExtentManager::ExtentManager() {}
 
-ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat) {
+ExtentID
+ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat) {
     // Get New ExtentID & Create ExtentCatalogEntry
-    PartitionID pid = partition_cat.GetPartitionID();
-    ExtentID new_eid = partition_cat.GetNewExtentID();
+    PartitionID pid = part_cat.GetPartitionID();
+    PropertySchemaID psid = ps_cat.GetOid();
+    ExtentID new_eid = part_cat.GetNewExtentID();
     Catalog& cat_instance = context.db->GetCatalog();
-    string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
+    string extent_name = DEFAULT_EXTENT_PREFIX + std::to_string(new_eid);
+    CreateExtentInfo extent_info(DEFAULT_SCHEMA, extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, psid, input.size());
     ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
     
     // MkDir for the extent
@@ -33,12 +35,14 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
     return new_eid;
 }
 
-void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat, ExtentID new_eid) {
+void
+ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat, ExtentID new_eid) {
     // Create ExtentCatalogEntry
-    PartitionID pid = partition_cat.GetPartitionID();
+    PartitionID pid = part_cat.GetPartitionID();
+    PropertySchemaID psid = ps_cat.GetOid();
     Catalog& cat_instance = context.db->GetCatalog();
-    string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
+    string extent_name = DEFAULT_EXTENT_PREFIX + std::to_string(new_eid);
+    CreateExtentInfo extent_info(DEFAULT_SCHEMA, extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, psid, input.size());
     ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
 
     // MkDir for the extent
@@ -145,7 +149,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
-        // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
+        fprintf(stdout, "[ChunkCacheManager] %s%ld Get size %ld buffer, requested buf size = %ld\n",
+            file_path_prefix.c_str(), cdf_id, buf_size, alloc_buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();

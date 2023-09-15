@@ -473,7 +473,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 			// Create Vertex Extent by Extent Manager
 			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat);
+			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
@@ -763,7 +763,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 							  epid_base);
 			
 			// Create Edge Extent by Extent Manager
-			ext_mng.CreateExtent(*client.get(), data, *partition_cat, new_eid);
+			ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat, new_eid);
 			property_schema_cat->AddExtent(new_eid, data.size());
 		}
 		

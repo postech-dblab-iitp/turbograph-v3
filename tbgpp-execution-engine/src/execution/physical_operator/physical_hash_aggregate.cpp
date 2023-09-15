@@ -39,7 +39,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expr
 	// TODO no support for custom grouping sets and grouping functions
 	D_ASSERT(grouping_sets.size() == 0 );
 	D_ASSERT(grouping_functions.size() == 0 );
-// IC();
+
 	// get a list of all aggregates to be computed
 	for (auto &expr : groups) {
 		group_types.push_back(expr->return_type);
@@ -51,7 +51,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expr
 		}
 		grouping_sets.push_back(move(set));
 	}
-// IC();
+
 	vector<LogicalType> payload_types_filters;
 	for (auto &expr : expressions) {
 		D_ASSERT(expr->expression_class == ExpressionClass::BOUND_AGGREGATE);
@@ -79,7 +79,7 @@ PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expr
 	for (const auto &pay_filters : payload_types_filters) {
 		payload_types.push_back(pay_filters);
 	}
-// IC();
+
 	// filter_indexes must be pre-built, not lazily instantiated in parallel...
 	idx_t aggregate_input_idx = 0;
 	for (auto &aggregate : aggregates) {
@@ -103,7 +103,6 @@ PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expr
 	for (auto &grouping_set : grouping_sets) {
 		radix_tables.emplace_back(grouping_set, *this);
 	}
-// IC();
 }
 
 
@@ -165,10 +164,7 @@ unique_ptr<LocalSinkState> PhysicalHashAggregate::GetLocalSinkState(ExecutionCon
 SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	auto &llstate = (HashAggregateLocalSinkState &)lstate;
 	// auto &gstate = (HashAggregateGlobalState &)state;
-// icecream::ic.enable();
-// auto minsize = input.size() < 10 ? input.size() : 10;
-// IC( input.ToString(minsize) );
-// icecream::ic.disable();
+
 	DataChunk &aggregate_input_chunk = llstate.aggregate_input_chunk;
 
 	idx_t aggregate_input_idx = 0;
@@ -195,9 +191,7 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 	// for (idx_t i = 0; i < radix_tables.size(); i++) {
 	// 	radix_tables[i].Sink(context, *gstate.radix_states[i], *llstate.radix_states[i], input, aggregate_input_chunk);
 	// }
-// IC(radix_tables.size());
-// IC(llstate.global_radix_states.size());
-// IC(llstate.local_radix_states.size());
+
 	for (idx_t i = 0; i < radix_tables.size(); i++) {
 		radix_tables[i].Sink(context, *llstate.global_radix_states[i], *llstate.local_radix_states[i], input, aggregate_input_chunk);
 	}
@@ -274,18 +268,16 @@ public:
 		for (auto &rt : op.radix_tables) {
 			radix_states.push_back(rt.GetGlobalSourceState());
 		}
-		// IC();
 	}
 
 	idx_t scan_index;
 	vector<unique_ptr<GlobalSourceState>> radix_states;
 };
 
-
 unique_ptr<LocalSourceState> PhysicalHashAggregate::GetLocalSourceState(ExecutionContext &context) const {
-// IC();
 	return make_unique<HashAggregateLocalSourceState>(*this);
 }
+
 void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const {
 	
 	auto &sstate = (HashAggregateLocalSinkState &)sink_state;
