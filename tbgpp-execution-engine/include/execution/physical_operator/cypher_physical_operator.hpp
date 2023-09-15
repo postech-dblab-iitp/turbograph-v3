@@ -49,6 +49,7 @@ public:
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
 
 	const vector<LogicalType> &GetTypes();
+	idx_t GetSchemaIdx();
 
 	virtual std::string ParamsToString() const { return ""; }
 	virtual std::string ToString() const { return ""; }

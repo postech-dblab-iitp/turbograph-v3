@@ -171,7 +171,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
 							  PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
-							  PropertySchemaCatalogEntry *&vertex_ps_cat_entry) {
+							  vector<PropertySchemaCatalogEntry *> &vertex_ps_cat_entries) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
 	string property_schema_name = DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX + edge_type;
 	vector<PropertyKeyID> property_key_ids;
@@ -200,17 +200,20 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	PartitionCatalogEntry *vertex_part_cat_entry = 
 		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_part_cat_oids[0]);
 	vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
-	if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The partition has multiple vertex property schema catalog entries.");
-	vertex_ps_cat_entry = 
-		(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[0]);
 	
-	// Add Adjacency Index Info to Vertex PS Catalog Entry
-	vertex_ps_cat_entry->AppendType({ LogicalType::FORWARD_ADJLIST });
-	idx_t adj_col_idx = vertex_ps_cat_entry->AppendKey(*client.get(), { edge_type });
+	idx_t adj_col_idx; // TODO bug fix
+	for (auto i = 0; i < vertex_part_cat_oids.size(); i++) {
+		PropertySchemaCatalogEntry *vertex_ps_cat_entry = 
+			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[i]);
+		vertex_ps_cat_entries.push_back(vertex_ps_cat_entry);
+		// Add Adjacency Index Info to Vertex PS Catalog Entry
+		vertex_ps_cat_entry->AppendAdjListType({ LogicalType::FORWARD_ADJLIST });
+		adj_col_idx = vertex_ps_cat_entry->AppendAdjListKey(*client.get(), { edge_type });
+	}
 
 	// Create Adjacency Index Catalog
 	CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, edge_type + "_fwd", IndexType::FORWARD_CSR,
-								 partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, {1, 2});
+								partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, {1, 2});
 	IndexCatalogEntry *adj_index_cat =
 		(IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &adj_idx_info);
 
@@ -232,13 +235,47 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 
 void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, PropertySchemaCatalogEntry *vertex_ps_cat_entry,
 					 ExtentID &cur_vertex_extentID, vector<idx_t> &adj_list_buffer) {
+	D_ASSERT(false);
 	DataChunk adj_list_chunk;
 	vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
 	vector<data_ptr_t> adj_list_datas(1);
 	adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 	adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
-	ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, cur_vertex_extentID);
+	// ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, *vertex_ps_cat_entry, cur_vertex_extentID);
 	adj_list_chunk.Destroy();
+}
+
+void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, unordered_map<ExtentID, vector<vector<idx_t>>> &adj_list_buffers) {
+	for (auto &it : adj_list_buffers) {
+		ExtentID cur_vertex_extentID = it.first;
+		vector<vector<idx_t>> &adj_list_buffer = it.second;
+		DataChunk adj_list_chunk;
+		vector<LogicalType> adj_list_chunk_types = { LogicalType::FORWARD_ADJLIST };
+		vector<data_ptr_t> adj_list_datas(1);
+		
+		// adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
+		// TODO directly copy into buffer in AppendChunk.. to avoid copy
+		vector<idx_t> tmp_adj_list_buffer;
+		size_t adj_len_total = 0;
+		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
+			adj_len_total += adj_list_buffer[i].size();
+		}
+		tmp_adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE + adj_len_total);
+		
+		size_t offset = STORAGE_STANDARD_VECTOR_SIZE;
+		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
+			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
+				tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
+			}
+			offset += adj_list_buffer[i].size();
+			tmp_adj_list_buffer[i] = offset;
+		}
+		adj_list_datas[0] = (data_ptr_t) tmp_adj_list_buffer.data();
+
+		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, cur_vertex_extentID);
+		adj_list_chunk.Destroy();
+	}
 }
 
 inline void CheckAndResetAdjListBufferIfNeeded(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, PropertySchemaCatalogEntry *vertex_ps_cat_entry,
@@ -254,6 +291,8 @@ inline void CheckAndResetAdjListBufferIfNeeded(ExtentManager &ext_mng, std::shar
 		vertex_seqno = 0;
 		cur_vertex_extentID = extID;
 		idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
+		printf("[CheckAndReset] cur_eid = %d, vertex_seqno = %ld, cur_src_seqno = %ld, diff = %ld\n",
+			cur_vertex_extentID, vertex_seqno, cur_src_seqno, cur_src_seqno - vertex_seqno);
 		while (vertex_seqno < cur_src_seqno) {
 			adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 		}
@@ -263,11 +302,26 @@ inline void CheckAndResetAdjListBufferIfNeeded(ExtentManager &ext_mng, std::shar
 inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &end_idx, idx_t &src_seqno, idx_t cur_src_pid,
 					   idx_t &vertex_seqno, std::vector<int64_t> &dst_column_idx, vector<idx_t *> dst_key_columns,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance,
-					   vector<idx_t> &adj_list_buffer, idx_t epid_base) {
+					   unordered_map<ExtentID, vector<vector<idx_t>>> &adj_list_buffers, idx_t epid_base) {
 	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
-	while (vertex_seqno < cur_src_seqno) {
-		adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+
+	// TODO need to be optimized
+	ExtentID cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
+	vector<vector<idx_t>> *adj_list_buffer;
+	auto it = adj_list_buffers.find(cur_vertex_extentID);
+	if (it == adj_list_buffers.end()) {
+		adj_list_buffers.emplace(cur_vertex_extentID, vector<vector<idx_t>>(STORAGE_STANDARD_VECTOR_SIZE));
+		adj_list_buffer = &(adj_list_buffers.find(cur_vertex_extentID)->second);
+	} else {
+		adj_list_buffer = &(it->second);
 	}
+	// if (vertex_seqno < cur_src_seqno) {
+	// 	printf("[FillAdjListBuffer] vertex_seqno = %ld, cur_src_seqno = %ld, diff = %ld, adj_list_buffer.size() = %ld\n",
+	// 		vertex_seqno, cur_src_seqno, cur_src_seqno - vertex_seqno, adj_list_buffer.size());
+	// 	while (vertex_seqno < cur_src_seqno) {
+	// 		adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+	// 	}
+	// }
 
 	idx_t dst_seqno, cur_dst_pid;
 	LidPair dst_key{0, 0};
@@ -288,8 +342,8 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 				dst_key.first = dst_key_columns[0][dst_seqno];
 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 				dst_key_columns[0][dst_seqno] = cur_dst_pid;
-				adj_list_buffer.push_back(cur_dst_pid);
-				adj_list_buffer.push_back(epid_base + dst_seqno);
+				(*adj_list_buffer)[cur_src_seqno].push_back(cur_dst_pid);
+				(*adj_list_buffer)[cur_src_seqno].push_back(epid_base + dst_seqno);
 			}
 		} else if (dst_column_idx.size() == 2) {
 			for (dst_seqno = begin_idx; dst_seqno < end_idx; dst_seqno++) {
@@ -297,11 +351,15 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 				dst_key.second = dst_key_columns[1][dst_seqno];
 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 				dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
-				adj_list_buffer.push_back(cur_dst_pid);
-				adj_list_buffer.push_back(epid_base + dst_seqno);
+				(*adj_list_buffer)[cur_src_seqno].push_back(cur_dst_pid);
+				(*adj_list_buffer)[cur_src_seqno].push_back(epid_base + dst_seqno);
 			}
 		}
 	}
+}
+
+void CreateAdjListAndAppend(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client) {
+
 }
 
 void InitializeExtentIterator() {
@@ -352,7 +410,7 @@ void BuildIndex() {
 	// fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
 }
 
-void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 	for (auto &vertex_file: vertex_files) {
 		auto vertex_file_start = std::chrono::high_resolution_clock::now();
@@ -415,7 +473,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 			// Create Vertex Extent by Extent Manager
 			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat);
+			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
 			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
@@ -467,7 +525,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 	}
 }
 
-void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 	// Read JSON File (Assume Normal JSON File Format)
 	for (unsigned idx : util::lang::indices(json_files)) {
@@ -502,12 +560,18 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 		} else if (json_file_types[idx] == JsonFileType::JSONL) { // assume Neo4J format
 			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSONL);
 			DataChunk data;
+			vector<string> label_set;
 			if (json_file_vertices[idx].size() == 1 && json_file_edges[idx].size() == 0) {
-				reader.LoadJson(json_file_vertices[idx][0].first, "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::VERTEX);
+				ParseLabelSet(json_file_vertices[idx][0].first, label_set);
+				reader.LoadJson(json_file_vertices[idx][0].first, label_set, "", data, JsonFileType::JSONL, 
+					graph_cat, nullptr, GraphComponentType::VERTEX);
 			} else if (json_file_vertices[idx].size() == 0 && json_file_edges[idx].size() == 1) {
-				reader.LoadJson(json_file_edges[idx][0].first, "", data, JsonFileType::JSONL, graph_cat, nullptr, GraphComponentType::EDGE);
+				ParseLabelSet(json_file_vertices[idx][0].first, label_set);
+				reader.LoadJson(json_file_edges[idx][0].first, label_set, "", data, JsonFileType::JSONL,
+					graph_cat, nullptr, GraphComponentType::EDGE);
 			} else {
-				reader.LoadJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr);
+				D_ASSERT(false);
+				// reader.LoadJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr);
 			}
 		}
 		auto json_end = std::chrono::high_resolution_clock::now();
@@ -516,7 +580,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 	}
 }
 
-void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
 	for (auto &edge_file: edge_files) {
@@ -533,7 +597,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		GraphSIMDCSVFileParser reader;
 		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
-		PropertySchemaCatalogEntry *vertex_ps_cat_entry;
+		vector<PropertySchemaCatalogEntry *> vertex_ps_cat_entries;
 
 #ifdef BULKLOAD_DEBUG_PRINT
 		fprintf(stdout, "Start to load %s, %s\n", edge_type.c_str(), edge_file_path.c_str());
@@ -584,22 +648,21 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		LidPair lid_pair;
 
 		// Initialize AdjListBuffer
-		unordered_map<ExtentID, vector<idx_t>> adj_list_buffers;
+		unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers;
 		vector<idx_t> adj_list_buffer;
-		adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, partition_cat, property_schema_cat, vertex_ps_cat_entry);
+		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, partition_cat, property_schema_cat, vertex_ps_cat_entries);
 
 		// Initialize Extent Iterator for Vertex Extents
-		ExtentIterator ext_it;
-		vector<string> key_column_name = { "id" };
-		vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
-		vector<LogicalType> vertex_id_type;
-		for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
-		for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
+		// ExtentIterator ext_it;
+		// vector<string> key_column_name = { "id" };
+		// vector<idx_t> src_column_idxs = move(vertex_ps_cat_entry->GetColumnIdxs(key_column_name));
+		// vector<LogicalType> vertex_id_type;
+		// for (size_t i = 0; i < src_column_idxs.size(); i++) vertex_id_type.push_back(LogicalType::UBIGINT);
+		// for (size_t i = 0; i < src_column_idxs.size(); i++) src_column_idxs[i] = src_column_idxs[i] + 1;
 
-		ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
+		// ext_it.Initialize(*client.get(), vertex_ps_cat_entry, vertex_id_type, src_column_idxs);
 
 		// Initialize variables related to vertex extent
 		LidPair cur_src_id, cur_dst_id, prev_id;
@@ -644,6 +707,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 				cur_src_pid = src_lid_to_pid_map_instance.at(prev_id);
 				cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
 				is_first_tuple_processed = true;
+				adj_list_buffers.emplace(cur_vertex_extentID, vector<vector<idx_t>>(STORAGE_STANDARD_VECTOR_SIZE));
 			}
 
 			if (src_column_idx.size() == 1) {
@@ -655,12 +719,12 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 					if (src_key == prev_id) {
 						src_seqno++;
 					} else {
-						CheckAndResetAdjListBufferIfNeeded(ext_mng, client, vertex_ps_cat_entry, cur_src_pid,
-														   cur_vertex_extentID, adj_list_buffer, vertex_seqno);
+						// CheckAndResetAdjListBufferIfNeeded(ext_mng, client, vertex_ps_cat_entry, cur_src_pid,
+						// 								   cur_vertex_extentID, adj_list_buffer, vertex_seqno);
 						FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
-										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffer,
+										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffers,
 										  epid_base);
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						// adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
 						prev_id = src_key;
 						begin_idx = src_seqno;
@@ -677,12 +741,12 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 					if (src_key == prev_id) {
 						src_seqno++;
 					} else {
-						CheckAndResetAdjListBufferIfNeeded(ext_mng, client, vertex_ps_cat_entry, cur_src_pid,
-														   cur_vertex_extentID, adj_list_buffer, vertex_seqno);
+						// CheckAndResetAdjListBufferIfNeeded(ext_mng, client, vertex_ps_cat_entry, cur_src_pid,
+						// 								   cur_vertex_extentID, adj_list_buffer, vertex_seqno);
 						FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
-										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffer,
+										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffers,
 										  epid_base);
-						adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
+						// adj_list_buffer[vertex_seqno++] = adj_list_buffer.size();
 
 						prev_id = src_key;
 						begin_idx = src_seqno;
@@ -695,20 +759,21 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			
 			// Process remaining dst vertices
 			FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
-							  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffer,
+							  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance, adj_list_buffers,
 							  epid_base);
 			
 			// Create Edge Extent by Extent Manager
-			ext_mng.CreateExtent(*client.get(), data, *partition_cat, new_eid);
+			ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat, new_eid);
 			property_schema_cat->AddExtent(new_eid, data.size());
 		}
 		
 		// Process remaining adjlist
-		idx_t last_offset = adj_list_buffer.size();
-		for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
-			adj_list_buffer[i] = last_offset;
+		// idx_t last_offset = adj_list_buffer.size();
+		// for (size_t i = vertex_seqno; i < STORAGE_STANDARD_VECTOR_SIZE; i++)
+		// 	adj_list_buffer[i] = last_offset;
 		// AddChunk for Adj.List to current Src Vertex Extent
-		AppendAdjListChunk(ext_mng, client, vertex_ps_cat_entry, cur_vertex_extentID, adj_list_buffer);
+		// AppendAdjListChunk(ext_mng, client, vertex_ps_cat_entry, cur_vertex_extentID, adj_list_buffer);
+		AppendAdjListChunk(ext_mng, client, adj_list_buffers);
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
@@ -997,11 +1062,11 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 // 	}
 // }
 
-void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 }
 
-void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
 
@@ -1277,7 +1342,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 	// }
 }
 
-void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 }
 
@@ -1462,8 +1527,14 @@ class InputParser{ // TODO use boost options
 
 		// Print Bulkloading Informations
 		fprintf(stdout, "\nLoad Following Nodes\n");
-		for (int i = 0; i < vertex_files.size(); i++)
+		for (int i = 0; i < vertex_files.size(); i++) {
 			fprintf(stdout, "\t%s : %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
+		}
+		for (unsigned idx : util::lang::indices(json_files)) {
+			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
+				fprintf(stdout, "\t%s : %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_files[idx].second.c_str());
+			}
+		}
 		fprintf(stdout, "\nLoad Following Relationships\n");
 		for (int i = 0; i < edge_files.size(); i++)
 			fprintf(stdout, "\t%s : %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
@@ -1504,7 +1575,7 @@ int main(int argc, char** argv) {
 
 	// Initialize Graph Catalog Informations
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
-	GraphCatalogEntry* graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+	GraphCatalogEntry *graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
 
 	// Read Vertex CSV File & CreateVertexExtents
 	ReadVertexCSVFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);

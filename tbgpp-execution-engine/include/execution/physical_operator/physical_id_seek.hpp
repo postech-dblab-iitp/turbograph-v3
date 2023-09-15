@@ -13,6 +13,8 @@ public:
 	PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map);
 	PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<vector<uint32_t>> &outer_col_maps, vector<vector<uint32_t>> &inner_col_maps, vector<vector<uint64_t>> scan_projection_mapping);
+	PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_types,
 				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 	~PhysicalIdSeek() {}
@@ -29,10 +31,12 @@ public:
 	uint64_t id_col_idx;
 	mutable vector<uint64_t> oids;
 	mutable vector<vector<uint64_t>> projection_mapping;
+	mutable unordered_map<idx_t, idx_t> ps_oid_to_projection_mapping;
 
 	mutable vector<LogicalType> target_types;	// used to initialize output chunks.
 
-	mutable std::vector<duckdb::LogicalType> scan_types;  		// types scan
+	mutable vector<LogicalType> scan_type;  		// types scan
+	mutable vector<vector<LogicalType>> scan_types;  		// types scan
 	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
 
 	// filter pushdown
@@ -42,6 +46,8 @@ public:
 
 	vector<uint32_t> outer_col_map;
 	vector<uint32_t> inner_col_map;
+	vector<vector<uint32_t>> outer_col_maps;
+	vector<vector<uint32_t>> inner_col_maps;
 };
 
 }

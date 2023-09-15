@@ -28,15 +28,44 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
 		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)), scan_projection_mapping(projection_mapping),
 		  filter_pushdown_key_idx(-1) {
-			
-	D_ASSERT(projection_mapping.size() == 1 ); // 230303
 
 	// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
 	// schema = (original cols, projected cols)
 	// 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
+	scan_types.resize(1);
 	for (int col_idx = 0; col_idx < this->inner_col_map.size(); col_idx++) {
-		target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
-		scan_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+		// target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+		scan_types[0].push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+	}
+
+	D_ASSERT(oids.size() == projection_mapping.size());
+	for (auto i = 0; i < oids.size(); i++) {
+		ps_oid_to_projection_mapping.insert({oids[i], i});
+	}
+
+	do_filter_pushdown = false;
+}
+
+PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<vector<uint32_t>> &outer_col_maps, vector<vector<uint32_t>> &inner_col_maps, vector<vector<uint64_t>> scan_projection_mapping)
+		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
+		  outer_col_maps(move(outer_col_maps)), inner_col_maps(move(inner_col_maps)), scan_projection_mapping(scan_projection_mapping),
+		  filter_pushdown_key_idx(-1) {
+
+	// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
+	// schema = (original cols, projected cols)
+	// 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
+	scan_types.resize(this->inner_col_maps.size());
+	for (auto i = 0; i < this->inner_col_maps.size(); i++) {
+		for (int col_idx = 0; col_idx < this->inner_col_maps[i].size(); col_idx++) {
+			// target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+			scan_types[i].push_back(sch.getStoredTypes()[this->inner_col_maps[i][col_idx]]);
+		}
+	}
+
+	D_ASSERT(oids.size() == projection_mapping.size());
+	for (auto i = 0; i < oids.size(); i++) {
+		ps_oid_to_projection_mapping.insert({oids[i], i});
 	}
 
 	do_filter_pushdown = false;
@@ -46,11 +75,9 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_types,
 				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
-		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)), scan_types(scan_types),
+		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)), scan_type(scan_types),
 		  scan_projection_mapping(scan_projection_mapping), filter_pushdown_key_idx(filterKeyIndex),
-		  filter_pushdown_value(filterValue) { 
-			
-	D_ASSERT(projection_mapping.size() == 1 ); // 230303
+		  filter_pushdown_value(filterValue) {
 
 	for (int col_idx = 0; col_idx < this->inner_col_map.size(); col_idx++) {
 		target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
@@ -71,8 +98,10 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
+	std::cout << "[PhysicalIdSeek] input schema idx: " << input.GetSchemaIdx() << 
+		", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
+
 // icecream::ic.enable();
-// std::cout << "[PhysicalIdSeek] input" << std::endl;
 // IC(input.size(), id_col_idx);
 // if (input.size() > 0) {
 // 	IC(input.ToString(std::min((idx_t)10, input.size())));
@@ -84,30 +113,45 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	idx_t output_idx = 0;
 
 	// target_types => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
-	if (!state.targetChunkInitialized) {
-		if (!target_types.empty())
-			state.targetChunk.Initialize(target_types, STANDARD_VECTOR_SIZE);
-		state.targetChunkInitialized = true;
-	}
+	// if (!state.targetChunkInitialized) {
+	// 	if (!target_types.empty())
+	// 		state.targetChunk.Initialize(target_types, STANDARD_VECTOR_SIZE);
+	// 	state.targetChunkInitialized = true;
+	// }
 
 	// initialize indexseek
 	vector<ExtentID> target_eids;		// target extent ids to access
 	vector<idx_t> boundary_position;	// boundary position of the input chunk
+	vector<vector<idx_t>> target_seqnos_per_extent;
+	vector<idx_t> mapping_idxs;
 
-	context.client->graph_store->InitializeVertexIndexSeek(state.ext_its, oids, scan_projection_mapping, input, nodeColIdx, scan_types, target_eids, boundary_position);
-	D_ASSERT(target_eids.size() == boundary_position.size());
+	context.client->graph_store->InitializeVertexIndexSeek(state.ext_its, oids, scan_projection_mapping, input, 
+		nodeColIdx, scan_types, target_eids, target_seqnos_per_extent, ps_oid_to_projection_mapping, mapping_idxs);
 	
-	vector<idx_t> output_col_idx;
-	for (idx_t i = 0; i < inner_col_map.size(); i++) {
-		output_col_idx.push_back(inner_col_map[i]);
-	}
 	if (!do_filter_pushdown) {
+		vector<idx_t> invalid_columns = {10, 11, 12, 13, 14, 15};
+		for (auto i = 0; i < invalid_columns.size(); i++) {
+			auto &validity = FlatVector::Validity(chunk.data[invalid_columns[i]]);
+			validity.SetAllInvalid(input.size());
+		}
+		
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx);
+			vector<idx_t> output_col_idx;
+			for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+				output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+			}
+			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
+				target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);
 		}
 	} else {
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, filter_pushdown_value);
+			vector<idx_t> output_col_idx;
+			for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+				output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+			}
+			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
+				target_eids, boundary_position, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, 
+				filter_pushdown_value);
 		}
 	}
 	// TODO temporary code for deleting the existing iter
@@ -117,20 +161,22 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 
 	// for original ones reference existing columns
 	if (!do_filter_pushdown) {
-		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
-			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
-				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
-				chunk.data[outer_col_map[i]].Reference(input.data[i]);
+		idx_t schema_idx = input.GetSchemaIdx();
+		D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_maps[schema_idx][i] != std::numeric_limits<uint32_t>::max()) {
+				D_ASSERT(outer_col_maps[schema_idx][i] < chunk.ColumnCount());
+				chunk.data[outer_col_maps[schema_idx][i]].Reference(input.data[i]);
 			}
 		}
 		chunk.SetCardinality(input.size());
 	} else {
-		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
-			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
-				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
-				chunk.data[outer_col_map[i]].Slice(input.data[i], state.sel, output_idx);
+		idx_t schema_idx = input.GetSchemaIdx();
+		D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_maps[schema_idx][i] != std::numeric_limits<uint32_t>::max() ) {
+				D_ASSERT(outer_col_maps[schema_idx][i] < chunk.ColumnCount());
+				chunk.data[outer_col_maps[schema_idx][i]].Slice(input.data[i], state.sel, output_idx);
 			}
 		}
 		chunk.SetCardinality(output_idx);

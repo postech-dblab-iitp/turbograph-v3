@@ -11,8 +11,8 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
-	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc),
-	property_key_names(void_alloc), property_typesid(void_alloc), num_columns(0) {
+	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc), property_typesid(void_alloc),
+	property_key_names(void_alloc), adjlist_typesid(void_alloc), adjlist_names(void_alloc), num_columns(0) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->partition_oid = info->partition_oid;
@@ -107,7 +107,8 @@ vector<idx_t> PropertySchemaCatalogEntry::GetKeyColumnIdxs() {
 }
 
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
-	if (type != LogicalType::FORWARD_ADJLIST && type != LogicalType::BACKWARD_ADJLIST) num_columns++;
+	D_ASSERT((type != LogicalType::FORWARD_ADJLIST) && (type != LogicalType::BACKWARD_ADJLIST));
+	num_columns++;
 	property_typesid.push_back(move(type.id()));
 }
 
@@ -117,6 +118,19 @@ idx_t PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) 
 	key_ = key.c_str();
 	property_key_names.push_back(move(key_));
 	return property_key_names.size() - 1;
+}
+
+void PropertySchemaCatalogEntry::AppendAdjListType(LogicalType type) {
+	D_ASSERT((type == LogicalType::FORWARD_ADJLIST) || (type == LogicalType::BACKWARD_ADJLIST));
+	adjlist_typesid.push_back(move(type.id()));
+}
+
+idx_t PropertySchemaCatalogEntry::AppendAdjListKey(ClientContext &context, string key) {
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	char_string key_(temp_charallocator);
+	key_ = key.c_str();
+	adjlist_names.push_back(move(key_));
+	return adjlist_names.size() - 1;
 }
 
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
@@ -152,9 +166,7 @@ uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
 }
 
 void PropertySchemaCatalogEntry::InitializeAccumulators() {
-	for (auto prop_type: property_types) {
-		
-	}
+	
 }
 
 void PropertySchemaCatalogEntry::AccumulateExtent(DataChunk &chunk) {

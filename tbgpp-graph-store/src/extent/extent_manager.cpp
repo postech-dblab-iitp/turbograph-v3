@@ -14,14 +14,16 @@ namespace duckdb {
 
 ExtentManager::ExtentManager() {}
 
-ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat) {
+ExtentID
+ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat) {
     // Get New ExtentID & Create ExtentCatalogEntry
-    PartitionID pid = partition_cat.GetPartitionID();
-    ExtentID new_eid = partition_cat.GetNewExtentID();
+    PartitionID pid = part_cat.GetPartitionID();
+    PropertySchemaID psid = ps_cat.GetOid();
+    ExtentID new_eid = part_cat.GetNewExtentID();
     Catalog& cat_instance = context.db->GetCatalog();
-    string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
+    string extent_name = DEFAULT_EXTENT_PREFIX + std::to_string(new_eid);
+    CreateExtentInfo extent_info(DEFAULT_SCHEMA, extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, psid, input.size());
+    ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
     
     // MkDir for the extent
     std::string extent_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
@@ -33,13 +35,15 @@ ExtentID ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, P
     return new_eid;
 }
 
-void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat, ExtentID new_eid) {
+void
+ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat, ExtentID new_eid) {
     // Create ExtentCatalogEntry
-    PartitionID pid = partition_cat.GetPartitionID();
+    PartitionID pid = part_cat.GetPartitionID();
+    PropertySchemaID psid = ps_cat.GetOid();
     Catalog& cat_instance = context.db->GetCatalog();
-    string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(context, &extent_info);
+    string extent_name = DEFAULT_EXTENT_PREFIX + std::to_string(new_eid);
+    CreateExtentInfo extent_info(DEFAULT_SCHEMA, extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, psid, input.size());
+    ExtentCatalogEntry *extent_cat_entry = (ExtentCatalogEntry *)cat_instance.CreateExtent(context, &extent_info);
 
     // MkDir for the extent
     std::string extent_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
@@ -50,10 +54,10 @@ void ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, Parti
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
 }
 
-void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &property_schema_cat, ExtentID eid) {
+void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
-    PartitionID pid = property_schema_cat.GetPartitionID();
+    PartitionID pid = static_cast<PartitionID>(eid >> 16);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, eid);
 }
 
@@ -66,12 +70,22 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Get Physical Type
         PhysicalType p_type = l_type.InternalType();
         // For each Vector in DataChunk create new chunk definition
-        LocalChunkDefinitionID chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
+        LocalChunkDefinitionID chunk_definition_idx;
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
+            chunk_definition_idx = extent_cat_entry.GetNextAdjListChunkDefinitionID();
+        } else {
+            chunk_definition_idx = extent_cat_entry.GetNextChunkDefinitionID();
+        }
         ChunkDefinitionID cdf_id = cdf_id_base + chunk_definition_idx;
-        string chunkdefinition_name = "cdf_" + std::to_string(cdf_id);
-        CreateChunkDefinitionInfo chunkdefinition_info("main", chunkdefinition_name, l_type);
-        ChunkDefinitionCatalogEntry* chunkdefinition_cat = (ChunkDefinitionCatalogEntry*) cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
-        extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        string chunkdefinition_name = DEFAULT_CHUNKDEFINITION_PREFIX + std::to_string(cdf_id);
+        CreateChunkDefinitionInfo chunkdefinition_info(DEFAULT_SCHEMA, chunkdefinition_name, l_type);
+        ChunkDefinitionCatalogEntry *chunkdefinition_cat = 
+            (ChunkDefinitionCatalogEntry *)cat_instance.CreateChunkDefinition(context, &chunkdefinition_info);
+        if (l_type == LogicalType::FORWARD_ADJLIST || l_type == LogicalType::BACKWARD_ADJLIST) {
+            extent_cat_entry.AddAdjListChunkDefinitionID(cdf_id);
+        } else {
+            extent_cat_entry.AddChunkDefinitionID(cdf_id);
+        }
         chunkdefinition_cat->SetNumEntriesInColumn(input.size());
 
         // Analyze compression to find best compression method
@@ -101,7 +115,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
              // Accumulate the length of all non-inlined strings
             for (size_t i = 0; i < input.size(); i++)
-                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+                string_len_total += string_buffer[i].GetSize();
+                // string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
 
             // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
@@ -134,7 +149,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
-        // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
+        fprintf(stdout, "[ChunkCacheManager] %s%ld Get size %ld buffer, requested buf size = %ld\n",
+            file_path_prefix.c_str(), cdf_id, buf_size, alloc_buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
