@@ -37,6 +37,8 @@ public:
 		std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p);
 	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg);
 	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg,
+		vector<CypherPipelineExecutor *> childs_p);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg,
 		 vector<CypherPipelineExecutor *> childs_p, std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p);
 	
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted

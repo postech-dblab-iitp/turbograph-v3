@@ -44,6 +44,11 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, Cypher
 
 }
 
+CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg, vector<CypherPipelineExecutor *> childs_p)
+	: CypherPipelineExecutor(context, pipeline, sfg, childs_p, std::move(std::map<CypherPhysicalOperator *, CypherPipelineExecutor *>())) {
+
+}
+
 CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, CypherPipeline *pipeline_p, SchemaFlowGraph &sfg, vector<CypherPipelineExecutor *> childs_p,
 	std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p) : pipeline(pipeline_p), thread(*(context_p->client)), context(context_p), sfg(std::move(sfg)), childs(std::move(childs_p)), deps(std::move(deps_p)) {
 	// set context.thread
@@ -66,6 +71,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 
 void CypherPipelineExecutor::ExecutePipeline() {
 	// Get source chunk
+	// idx_t num_pipeline_executions = 0;
+	// idx_t max_pipeline_executions = 5;
 	while(true) {
 		auto &source_chunk = *(opOutputChunks[0]);
 		source_chunk.Destroy();
@@ -77,6 +84,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
 				 sourceProcessResult == OperatorResultType::FINISHED);
 		if (sourceProcessResult == OperatorResultType::FINISHED) { break; }
+		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
 	}
 	// do we need pushfinalize?
 		// when limit operator reports early finish, the caches must be finished after all.
@@ -149,6 +157,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 
 	// start pipe from current_idx;
 	for(;;) {
+		// std::cout << "[ExecutePipe] - operator " << current_idx << std::endl;
 		bool isCurrentSink =
 			pipeline->GetIdxOperator(current_idx) == pipeline->GetSink();
 		if (isCurrentSink) { break; }

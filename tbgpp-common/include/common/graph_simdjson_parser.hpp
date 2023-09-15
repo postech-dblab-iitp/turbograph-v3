@@ -611,7 +611,7 @@ public:
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
                 datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
-                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat);
+                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat, *property_schema_cats[cluster_id]);
                 property_schema_cats[cluster_id]->AddExtent(new_eid, datas.size());
                 StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
@@ -623,7 +623,7 @@ public:
         // Create extents for remaining datas
         for (size_t i = 0; i < num_clusters; i++) {
             datas[i].SetCardinality(num_tuples_per_cluster[i]);
-            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat);
+            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat, *property_schema_cats[i]);
             property_schema_cats[i]->AddExtent(new_eid, datas.size());
             StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
         }
