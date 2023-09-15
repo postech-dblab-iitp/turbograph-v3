@@ -23,6 +23,7 @@ namespace duckdb {
 struct LogicalType;
 class Executor;
 class ClientContext;
+class SchemaFlowGraph;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
@@ -30,11 +31,16 @@ class CypherPipelineExecutor {
 
 public:
 	
-	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p, std::map<CypherPhysicalOperator*, CypherPipelineExecutor*> deps_p);
-	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline, vector<CypherPipelineExecutor*> childs_p);
-	CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, vector<CypherPipelineExecutor *> childs_p);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, vector<CypherPipelineExecutor *> childs_p,
+		std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg,
+		vector<CypherPipelineExecutor *> childs_p);
+	CypherPipelineExecutor(ExecutionContext *context, CypherPipeline *pipeline, SchemaFlowGraph &sfg,
+		 vector<CypherPipelineExecutor *> childs_p, std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p);
 	
-
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
 	void ExecutePipeline();
 
@@ -50,10 +56,10 @@ public:
 	//! Initializes a chunk with the types that will flow out of ExecutePull
 	//void InitializeChunk(DataChunk &chunk);
 
-
 	//! The pipeline to process
-	ExecutionContext* context;
-	CypherPipeline* pipeline;
+	ExecutionContext *context;
+	CypherPipeline *pipeline;
+	SchemaFlowGraph sfg;
 	//! The thread context of this executor
 	ThreadContext thread;
 

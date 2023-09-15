@@ -16,7 +16,8 @@ using namespace simdjson;
 
 #define TILE_SIZE 1024 // or 4096
 #define FREQUENCY_THRESHOLD 0.95
-#define SET_SIM_THRESHOLD 0.7
+// #define SET_SIM_THRESHOLD 0.7
+#define SET_SIM_THRESHOLD 0.99
 #define NEO4J_VERTEX_ID_NAME "id"
 
 // static variable
@@ -54,6 +55,20 @@ public:
         return propertyIDver++;
     }
 
+    void StoreLidToPidInfo(DataChunk &data, vector<idx_t> &key_column_idxs, ExtentID eid) {
+        D_ASSERT(key_column_idxs.size() == 1); // TODO handle general case
+        idx_t *key_column = (idx_t *)data.data[key_column_idxs[0]].GetData();
+
+        idx_t pid_base = (idx_t) eid;
+		pid_base = pid_base << 32;
+
+        LidPair lid_key{0, 0};
+        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+            lid_key.first = key_column[seqno];
+            lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+        }
+    }
+
     size_t InitJsonFile(const char *json_file_path, JsonFileType jftype) {
         std::string input_path = std::string(json_file_path);
 
@@ -71,7 +86,7 @@ public:
         return 0;
     }
 
-    void LoadJson(string label_name, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
+    void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
         if (jftype == JsonFileType::JSON) {
             // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
         } else if (jftype == JsonFileType::JSONL) {
@@ -83,7 +98,7 @@ public:
             _ClusterSchema();
 
             // Create Extents
-            _CreateExtents(gctype, graph_cat, label_name);
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
             // _IterateJsonL(data, gctype);
         }
     }
@@ -405,6 +420,10 @@ public:
 
                 int64_t schema_id;
                 sch_HT.find(tmp_vec, schema_id);
+                // for (auto i = 0; i < tmp_vec.size(); i++) {
+                //     fprintf(stdout, "%ld ", tmp_vec[i]);
+                // }
+                // fprintf(stdout, ": %ld\n", schema_id);
                 if (schema_id == INVALID_TUPLE_GROUP_ID) { // not found
                     schema_id = schema_groups.size();
                     sch_HT.insert(tmp_vec, schema_id);
@@ -513,29 +532,30 @@ public:
         // TODO phase 2
     }
 
-    void _CreateExtents(GraphComponentType gctype, GraphCatalogEntry *graph_cat, string label_name) {
+    void _CreateExtents(GraphComponentType gctype, GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
         if (gctype == GraphComponentType::VERTEX) {
-            _CreateVertexExtents(graph_cat, label_name);
+            _CreateVertexExtents(graph_cat, label_name, label_set);
         } else if (gctype == GraphComponentType::EDGE) {
-            _CreateEdgeExtents(graph_cat, label_name);
+            _CreateEdgeExtents(graph_cat, label_name, label_set);
         }
     }
 
-    void _CreateVertexExtents(GraphCatalogEntry *graph_cat, string label_name) {
+    void _CreateVertexExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
         vector<DataChunk> datas(num_clusters);
         property_to_id_map_per_cluster.resize(num_clusters);
 
         // Create partition catalog
-        vector<string> vertex_labels = { label_name };
         string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + label_name;
         PartitionID new_pid = graph_cat->GetNewPartitionID();
         CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str(), new_pid);
         PartitionCatalogEntry *partition_cat = 
             (PartitionCatalogEntry *)cat_instance->CreatePartition(*client.get(), &partition_info);
-        graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
+        graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), label_set);
 
         // Create property schema catalog for each cluster
         property_schema_cats.resize(num_clusters);
+        vector<vector<idx_t>> per_cluster_key_column_idxs;
+        per_cluster_key_column_idxs.resize(num_clusters);
         for (size_t i = 0; i < num_clusters; i++) {
             // printf("Cluster %ld\n", i);
             string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_" + std::to_string(i);
@@ -548,14 +568,13 @@ public:
             vector<PropertyKeyID> property_key_ids;
             vector<LogicalType> cur_cluster_schema_types;
             vector<string> cur_cluster_schema_names;
-            vector<idx_t> cur_cluster_key_column_idxs;
 
             vector<unsigned int> &tokens = cluster_algo->getclustertokens(i);
             for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
                 auto original_idx = order[tokens[token_idx]];
                 
                 if (get_key_and_type(id_to_property_vec[original_idx], cur_cluster_schema_names, cur_cluster_schema_types)) {
-                    cur_cluster_key_column_idxs.push_back(token_idx);
+                    per_cluster_key_column_idxs[i].push_back(token_idx);
                 }
                 property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
             }
@@ -565,10 +584,17 @@ public:
             partition_cat->AddPropertySchema(*client.get(), property_schema_cats[i]->GetOid(), property_key_ids);
             property_schema_cats[i]->SetTypes(cur_cluster_schema_types);
             property_schema_cats[i]->SetKeys(*client.get(), cur_cluster_schema_names);
-            property_schema_cats[i]->SetKeyColumnIdxs(cur_cluster_key_column_idxs);
+            property_schema_cats[i]->SetKeyColumnIdxs(per_cluster_key_column_idxs[i]);
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
+
+        // Initialize LID_TO_PID_MAP
+		if (load_edge) {
+			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_to_pid_map_instance = &lid_to_pid_map->back().second;
+			// lid_to_pid_map_instance->reserve(approximated_num_rows * 2);
+		}
 
         // Iterate JSON file again & create extents
         vector<int64_t> num_tuples_per_cluster;
@@ -585,8 +611,9 @@ public:
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
                 datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
-                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat);
+                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat, *property_schema_cats[cluster_id]);
                 property_schema_cats[cluster_id]->AddExtent(new_eid, datas.size());
+                StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
             }
@@ -596,8 +623,9 @@ public:
         // Create extents for remaining datas
         for (size_t i = 0; i < num_clusters; i++) {
             datas[i].SetCardinality(num_tuples_per_cluster[i]);
-            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat);
+            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat, *property_schema_cats[i]);
             property_schema_cats[i]->AddExtent(new_eid, datas.size());
+            StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
         }
 
         printf("# of documents = %ld\n", num_tuples);
@@ -606,7 +634,7 @@ public:
         }
     }
 
-    void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string label_name) {
+    void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
     }
 
 private:
@@ -994,33 +1022,21 @@ private:
             // std::cout << element.get_double();
             ondemand::number_type t = element.get_number_type();
             switch(t) {
-            case ondemand::number_type::signed_integer:
-                if (most_common_schema[current_col_idx] == LogicalType::BIGINT) {
-                    int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx, element.get_int64()); icecream::ic.disable();
-                    column_ptr[current_idx] = element.get_int64();
-                } else {
-                    // Store value in the RowChunk
-                }
+            case ondemand::number_type::signed_integer: {
+                int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
+                column_ptr[current_idx] = element.get_int64();
                 break;
-            case ondemand::number_type::unsigned_integer:
-                if (most_common_schema[current_col_idx] == LogicalType::UBIGINT) {
-                    uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
-                    column_ptr[current_idx] = element.get_uint64();
-                } else {
-                    // Store value in the RowChunk
-                }
+            }
+            case ondemand::number_type::unsigned_integer: {
+                uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
+                column_ptr[current_idx] = element.get_uint64();
                 break;
-            case ondemand::number_type::floating_point_number:
-                if (most_common_schema[current_col_idx] == LogicalType::DOUBLE) {
-                    double *column_ptr = (double *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
-                    column_ptr[current_idx] = element.get_double();
-                } else {
-                    // Store value in the RowChunk
-                }
+            }
+            case ondemand::number_type::floating_point_number: {
+                double *column_ptr = (double *)data.data[current_col_idx].GetData();
+                column_ptr[current_idx] = element.get_double();
                 break;
+            }
             }
             break;
         }
