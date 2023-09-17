@@ -85,14 +85,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 	*/
 
 	// based on op pass call to the corresponding func
-	D_ASSERT( plan_expr != nullptr );
-	D_ASSERT( plan_expr->Pop()->FPhysical() );
+	D_ASSERT(plan_expr != nullptr);
+	D_ASSERT(plan_expr->Pop()->FPhysical());
 
-	switch(plan_expr->Pop()->Eopid()) {
+	switch (plan_expr->Pop()->Eopid()) {
 		case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
 			D_ASSERT(false);
 			// Currently not working
-			if( pIsUnionAllOpAccessExpression(plan_expr) ) {
+			if (pIsUnionAllOpAccessExpression(plan_expr)) {
 				result = pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
 			} else {
 				D_ASSERT(false);
@@ -105,7 +105,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		}
 		case COperator::EOperatorId::EopPhysicalInnerNLJoin: {
 			// cartesian product only
-			if(pIsCartesianProduct(plan_expr)) {
+			if (pIsCartesianProduct(plan_expr)) {
 				result = pTransformEopPhysicalInnerNLJoinToCartesianProduct(plan_expr);
 				break;
 			}
@@ -122,7 +122,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		case COperator::EOperatorId::EopPhysicalInnerIndexNLJoin:
 		case COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin: {
 			bool is_left_outer = plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalLeftOuterIndexNLJoin;
-			if( pIsIndexJoinOnPhysicalID(plan_expr) ) {
+			if (pIsIndexJoinOnPhysicalID(plan_expr)) {
 				result = pTransformEopPhysicalInnerIndexNLJoinToIdSeek(plan_expr);
 			} else {
 				result = pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr, is_left_outer);
@@ -134,7 +134,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			if (plan_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalTableScan) {
 				// Filter + Scan
 				auto scan_p1 = vector<COperator::EOperatorId>({ COperator::EOperatorId::EopPhysicalFilter, COperator::EOperatorId::EopPhysicalTableScan });
-				if( pMatchExprPattern(plan_expr, scan_p1, 0, true) && pIsFilterPushdownAbleIntoScan(plan_expr) ) {
+				if (pMatchExprPattern(plan_expr, scan_p1, 0, true) && pIsFilterPushdownAbleIntoScan(plan_expr)) {
 					result = pTransformEopTableScan(plan_expr);
 				} else {
 					result = pTransformEopPhysicalFilter(plan_expr);
@@ -175,10 +175,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 	D_ASSERT(result != nullptr);
 
 	/* Update latest plan output columns */
-	auto* mp = this->memory_pool;
-	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	auto *mp = this->memory_pool;
+	CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	physical_plan_output_colrefs.clear();
-	for(ULONG idx=0; idx<output_cols->Size(); idx++) {
+	for (ULONG idx=0; idx<output_cols->Size(); idx++) {
 		physical_plan_output_colrefs.push_back(output_cols->operator[](idx));
 	}
 

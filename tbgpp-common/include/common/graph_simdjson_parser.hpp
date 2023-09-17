@@ -551,6 +551,19 @@ public:
         PartitionCatalogEntry *partition_cat = 
             (PartitionCatalogEntry *)cat_instance->CreatePartition(*client.get(), &partition_info);
         graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), label_set);
+        partition_cat->SetPartitionID(new_pid);
+
+        vector<string> key_names;
+        vector<LogicalType> types;
+        for (auto i = 0; i < order.size(); i++) {
+            auto original_idx = order[i];
+            get_key_and_type(id_to_property_vec[original_idx], key_names, types);
+            printf("%d - %s(%s), ", i, key_names.back().c_str(), types.back().ToString().c_str());
+        }
+        printf("\n");
+
+        partition_cat->SetKeys(*client.get(), key_names);
+        partition_cat->SetTypes(types);
 
         // Create property schema catalog for each cluster
         property_schema_cats.resize(num_clusters);
@@ -588,6 +601,12 @@ public:
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
+
+        // Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+        CreateIndexInfo idx_info(DEFAULT_SCHEMA, label_name + "_id", IndexType::PHYSICAL_ID, 
+            partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
+        IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
+        partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {
