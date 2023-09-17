@@ -258,8 +258,8 @@ private:
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> oids,
-		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
+		string name, vector<uint64_t> &oids,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
