@@ -3,6 +3,8 @@
 
 #include "execution/physical_operator/physical_id_seek.hpp"
 #include "extent/extent_iterator.hpp"
+#include "planner/expression.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
 
 #include "icecream.hpp"
 
@@ -40,6 +42,39 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 	}
 
 	do_filter_pushdown = false;
+}
+
+PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, vector<unique_ptr<Expression>> predicates)
+		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
+		  outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)), scan_projection_mapping(projection_mapping),
+		  filter_pushdown_key_idx(-1) {
+			
+	D_ASSERT(projection_mapping.size() == 1 ); // 230303
+
+	// targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
+	// schema = (original cols, projected cols)
+	// 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
+	for (int col_idx = 0; col_idx < this->inner_col_map.size(); col_idx++) {
+		target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+		scan_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+	}
+
+	D_ASSERT(predicates.size() > 0);
+	if (predicates.size() > 1) {
+		auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+		for (auto &expr : predicates) {
+			conjunction->children.push_back(move(expr));
+		}
+		expression = move(conjunction);
+	} else {
+		expression = move(predicates[0]);
+	}
+
+	executor.AddExpression(*expression);
+
+	do_filter_pushdown = false;
+	has_expression = true;
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
@@ -105,6 +140,23 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
 			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx);
 		}
+		if (has_expression) {
+			if (!is_tmp_chunk_initialized) {
+				auto input_chunk_type = std::move(input.GetTypes());
+				for (idx_t i = 0; i < inner_col_map.size(); i++) {
+					input_chunk_type.push_back(chunk.data[inner_col_map[i]].GetType());
+				}
+				tmp_chunk.InitializeEmpty(input_chunk_type);
+				is_tmp_chunk_initialized = true;
+			}
+			for (idx_t i = 0; i < input.ColumnCount(); i++) {
+				tmp_chunk.data[i].Reference(input.data[i]);
+			}
+			for (idx_t i = 0; i < inner_col_map.size(); i++) {
+				tmp_chunk.data[input.ColumnCount() + i].Reference(chunk.data[inner_col_map[i]]);
+			}
+			executor.SelectExpression(tmp_chunk, state.sel);
+		}
 	} else {
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
 			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, filter_pushdown_value);
@@ -116,9 +168,9 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	delete ext_it_exist;
 
 	// for original ones reference existing columns
-	if (!do_filter_pushdown) {
+	if (!do_filter_pushdown && !has_expression) {
 		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
+		for (int i = 0; i < input.ColumnCount(); i++) {
 			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
 				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
 				chunk.data[outer_col_map[i]].Reference(input.data[i]);
@@ -127,8 +179,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		chunk.SetCardinality(input.size());
 	} else {
 		D_ASSERT(input.ColumnCount() == outer_col_map.size());
-		for(int i = 0; i < input.ColumnCount(); i++) {
-			if( outer_col_map[i] != std::numeric_limits<uint32_t>::max() ) {
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
 				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
 				chunk.data[outer_col_map[i]].Slice(input.data[i], state.sel, output_idx);
 			}

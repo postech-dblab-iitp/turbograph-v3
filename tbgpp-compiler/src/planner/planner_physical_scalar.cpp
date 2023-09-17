@@ -31,24 +31,24 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 	}
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols) {
 	
-	CScalarIdent* ident_op = (CScalarIdent*)scalar_expr->Pop();
+	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
 
 	// first find from LHS
 	ULONG child_index = child_cols->IndexOf(ident_op->Pcr());
 	// try finding from RHS; refer duckdb's mechanism on ColumnBindingResolver
-	if(child_index == gpos::ulong_max && (rhs_child_cols != nullptr)) {
+	if (child_index == gpos::ulong_max && (rhs_child_cols != nullptr)) {
 		child_index = rhs_child_cols->IndexOf(ident_op->Pcr());
-		if(child_index != gpos::ulong_max) {	// index rules; LHS first, and then RHS next
+		if (child_index != gpos::ulong_max) {	// index rules; LHS first, and then RHS next
 			child_index += child_cols->Size();
 		}
 	}
 	D_ASSERT(child_index != gpos::ulong_max);
-	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId() );
+	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
 	
-	return make_unique<duckdb::BoundReferenceExpression>( pConvertTypeOidToLogicalTypeId(type_oid), (int)child_index );
+	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalTypeId(type_oid), (int)child_index);
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
@@ -107,10 +107,10 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 	CScalarBoolOp* op = (CScalarBoolOp*)scalar_expr->Pop();
 	auto op_type = pTranslateBoolOpType(op->Eboolop());
 
-	if( op_type == duckdb::ExpressionType::OPERATOR_NOT) {
+	if (op_type == duckdb::ExpressionType::OPERATOR_NOT) {
 		// unary - NOT
 		auto result = make_unique<duckdb::BoundOperatorExpression>(op_type, duckdb::LogicalType::BOOLEAN);
-		result->children.push_back( std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols)) );
+		result->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols)));
 		// TODO uncertain if this is right.s
 		return std::move(result);
 	} else {
