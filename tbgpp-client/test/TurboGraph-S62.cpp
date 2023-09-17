@@ -635,8 +635,7 @@ icecream::ic.disable();
 		CompileAndRun(input_query_string, client, planner);
 	} else {
 		while(true) {
-			input_cmd.reset(readline(shell_prompt.c_str()));
-			query_str = input_cmd.get();
+			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
 			// std::cout << "TurboGraph-S62 >> ";
 			// std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
 			// check termination
