@@ -32,6 +32,9 @@ inline uint64_t& getIdRefFromVector(Vector& vector, idx_t index) {
 		case VectorType::FLAT_VECTOR: {
 			return ((uint64_t *)vector.GetData())[index];
 		}
+		case VectorType::CONSTANT_VECTOR: {
+			return ((uint64_t *)ConstantVector::GetData<uintptr_t>(vector))[0];
+		}
 		default: {
 			D_ASSERT(false);
 		}
@@ -83,6 +86,13 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 			const auto &child = DictionaryVector::Child(input.data[state.srcColIdx]);
 			for(idx_t i = 0; i < input.size(); i++) {
 				state.src_nullity[i] = FlatVector::IsNull( child, sel_vector.get_index(i) );
+			}
+			break;
+		}
+		case VectorType::CONSTANT_VECTOR: {
+			auto is_null = ConstantVector::IsNull(input.data[state.srcColIdx]);
+			for (idx_t i = 0; i < input.size(); i++) {
+				state.src_nullity[i] = is_null;
 			}
 			break;
 		}
