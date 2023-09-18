@@ -1063,7 +1063,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         output_chunk_idx = cur_output_idx;
-        if (output_column_idxs[i] ==  std::numeric_limits<idx_t>::max()) continue;
+        if (!valid_output[i]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
