@@ -967,11 +967,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		} else {
 			duckdb::CypherPhysicalOperator *op = 
 				new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, output_projection_mapping, outer_col_map, inner_col_map);
+			result->push_back(op);
 		}
 	} else {
 		duckdb::CypherPhysicalOperator *op = 
 			new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, output_projection_mapping, outer_col_map, inner_col_map, scan_types, 
 									   scan_projection_mapping, pred_attr_pos, literal_val);
+		result->push_back(op);
 	}
 
 	output_cols->Release();
