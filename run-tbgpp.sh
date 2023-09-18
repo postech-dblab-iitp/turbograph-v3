@@ -17,7 +17,7 @@ elif [ "$#" -eq 3 ]; then
 	fi
 fi
 
-iterations="--num-iterations:5"
+iterations="--num-iterations:1"
 
 run_query() {
 	query_str=$1
@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --debug-orca ${iterations}
+	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations}
 }
 
 run_ldbc_s() {
@@ -216,12 +216,28 @@ run_ldbc_c() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
-	run_query "MATCH (countryX:Country {name: 'Angola' }),
-		(countryY:Country {name: 'Colombia' }),
-		(person:Person {id: 4 })
+	run_query "MATCH (countryX:Place {name: 'Angola' }),
+		(countryY:Place {name: 'Colombia' }),
+		(person:Person {id: 94 })
 		WITH person, countryX, countryY
 		LIMIT 1
-		RETURN person.id, countryX.name, countryY.name" 1
+		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+		RETURN person.id, countryX.name, countryY.name, city.name" 1
+	#run_query "MATCH (countryX:Place {name: 'Germany' }),
+	#      (countryY:Place {name: 'Hungary' }),
+	run_query "MATCH (countryX:Place {name: 'Angola' }),
+	      (countryY:Place {name: 'Colombia' }),
+	      (person:Person {id: 94 })
+	WITH person, countryX, countryY
+	LIMIT 1
+	MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+	WHERE
+	  NOT person=friend
+	  AND NOT EXISTS {
+	    MATCH (city)-[:IS_PART_OF]->(country:Place)
+	    WHERE country = countryX OR country = countryY
+	  }
+	RETURN person;" 1
 
 	# LDBC IC4 New topics
 	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
@@ -340,7 +356,24 @@ run_ldbc_c() {
 	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
 		WITH knownTag.id as knownTagId
 		MATCH (person:Person { id: 4398046511333 })
-		RETURN knownTagId" 0
+		RETURN knownTagId" 1
+	run_query "MATCH (person:Person {id : 94 })-[:KNOWS*1..2]->(friend:Person)
+		WHERE NOT person = friend
+		WITH friend
+		MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
+		WITH friend, knownTag.id as knownTagId
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post),
+		      (post)-[:POST_HAS_TAG]->(t:Tag {id: knownTagId}),
+		      (post)-[:POST_HAS_TAG]->(tag:Tag)
+		WITH tag.name as tagName, count(post) as postCount
+		RETURN 
+			tagName, 
+			postCount
+		ORDER BY
+			postCount DESC,
+			tagName ASC
+		LIMIT 10" 1
+		#RETURN person._id, person.id, friend._id, friend.id, knownTagId, post._id, t._id, tag._id" 0
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -373,7 +406,7 @@ run_ldbc_c() {
 		ORDER BY
 			likeCreationDate DESC,
 			personId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 	
 	# LDBC IC8 Recent replies
 	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
