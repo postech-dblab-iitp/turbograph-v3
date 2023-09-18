@@ -17,7 +17,7 @@ elif [ "$#" -eq 3 ]; then
 	fi
 fi
 
-iterations="--num-iterations:5"
+iterations="--num-iterations:1"
 
 run_query() {
 	query_str=$1
@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --debug-orca ${iterations}
+	./build/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --debug-orca ${iterations}
 }
 
 run_ldbc_s() {
@@ -240,7 +240,7 @@ run_ldbc_c() {
 	# 	WHERE postCount>0 AND inValidPostCount=0
 	# 	RETURN tag.name AS tagName, postCount
 	# 	ORDER BY postCount DESC, tagName ASC
-	# 	LIMIT 10" 0
+	# 	LIMIT 10" 1
 
 	# no > >= in comparison - kuzu parser limitation
 	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
@@ -336,11 +336,11 @@ run_ldbc_c() {
 	# 		count(post) as postCount
 	# 	ORDER BY
 	# 		postCount DESC
-	# 	LIMIT 10" 0
+	# 	LIMIT 10" 1
 	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
 		WITH knownTag.id as knownTagId
 		MATCH (person:Person { id: 4398046511333 })
-		RETURN knownTagId" 0
+		RETURN knownTagId" 1
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -373,7 +373,7 @@ run_ldbc_c() {
 		ORDER BY
 			likeCreationDate DESC,
 			personId ASC
-		LIMIT 20" 0
+		LIMIT 20" 1
 	
 	# LDBC IC8 Recent replies
 	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
@@ -453,7 +453,7 @@ run_ldbc_c() {
 		#WHERE workAt.workFrom < 2011
 	run_query "MATCH (person:Person {id: 10995116277918 })-[:KNOWS*1..2]-(friend:Person)
 		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: \"Company\"})-[:ORG_IS_LOCATED_IN]->(:Place {name: \"Hungary\" })
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: Company})-[:ORG_IS_LOCATED_IN]->(:Place {name: Hungary})
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
@@ -464,7 +464,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
