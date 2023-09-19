@@ -160,7 +160,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		}
 	} else {
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, filter_pushdown_value);
+			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, target_eids, boundary_position, extentIdx, 
+			output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, filter_pushdown_value);
 		}
 	}
 	// TODO temporary code for deleting the existing iter

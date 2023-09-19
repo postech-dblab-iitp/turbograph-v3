@@ -256,7 +256,7 @@ run_ldbc_c() {
 	# 	WHERE postCount>0 AND inValidPostCount=0
 	# 	RETURN tag.name AS tagName, postCount
 	# 	ORDER BY postCount DESC, tagName ASC
-	# 	LIMIT 10" 0
+	# 	LIMIT 10" 1
 
 	# no > >= in comparison - kuzu parser limitation
 	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
@@ -352,11 +352,13 @@ run_ldbc_c() {
 	# 		count(post) as postCount
 	# 	ORDER BY
 	# 		postCount DESC
-	# 	LIMIT 10" 0
+	# 	LIMIT 10" 1
 	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
 		WITH knownTag.id as knownTagId
 		MATCH (person:Person { id: 4398046511333 })
 		RETURN knownTagId" 1
+<<<<<<< HEAD
+=======
 	run_query "MATCH (person:Person {id : 94 })-[:KNOWS*1..2]->(friend:Person)
 		WHERE NOT person = friend
 		WITH friend
@@ -374,6 +376,7 @@ run_ldbc_c() {
 			tagName ASC
 		LIMIT 10" 1
 		#RETURN person._id, person.id, friend._id, friend.id, knownTagId, post._id, t._id, tag._id" 0
+>>>>>>> 8d3d5bbe7aba44ff6177da76893d7f3eb9067554
 
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
@@ -498,7 +501,7 @@ run_ldbc_c() {
 		#WHERE workAt.workFrom < 2011
 	run_query "MATCH (person:Person {id: 10995116277918 })-[:KNOWS*1..2]-(friend:Person)
 		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: \"Company\"})-[:ORG_IS_LOCATED_IN]->(:Place {name: \"Hungary\" })
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: Company})-[:ORG_IS_LOCATED_IN]->(:Place {name: Hungary})
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
@@ -509,7 +512,7 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 1
+		LIMIT 10" 0
 
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)

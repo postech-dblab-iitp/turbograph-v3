@@ -1045,6 +1045,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     } else {
         scan_start_offset = 0;
         scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
+        findRowsThatSatisfyPredicate(input, nodeColIdx, start_seqno, end_seqno, filterValue, col_idx, scan_start_offset, scan_end_offset, matched_row_idxs, sel);
     }
 
     if (matched_row_idxs.size() > 0) {
@@ -1062,6 +1063,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         output_chunk_idx = cur_output_idx;
+        if (!valid_output[i]) continue;
         if (ext_property_types[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
