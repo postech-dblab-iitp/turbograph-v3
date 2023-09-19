@@ -10,29 +10,27 @@
 
 namespace s62 {
 
-CExpression* Planner::lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan) {
-
+CExpression *Planner::lExprScalarExpression(Expression *expression, LogicalPlan *prev_plan) {
 	// if expression appears in previous plan, generate ScalarIdent expression	
-	CExpression* expr = lTryGenerateScalarIdent(expression, prev_plan);
-	if( expr != NULL ) { /* found */ return expr; }
+	CExpression *expr = lTryGenerateScalarIdent(expression, prev_plan);
+	if (expr != NULL) { /* found */ return expr; }
 
 	auto expr_type = expression->expressionType;
-	if( isExpressionBoolConnection(expr_type) ) {
+	if (isExpressionBoolConnection(expr_type)) {
 		return lExprScalarBoolOp(expression, prev_plan);
-	} else if( isExpressionComparison(expr_type) ) {
+	} else if (isExpressionComparison(expr_type)) {
 		return lExprScalarComparisonExpr(expression, prev_plan);
-	} else if( PROPERTY == expr_type) {
+	} else if (PROPERTY == expr_type) {
 		return lExprScalarPropertyExpr(expression, prev_plan);
-	} else if ( isExpressionLiteral(expr_type) ) {
+	} else if (isExpressionLiteral(expr_type)) {
 		return lExprScalarLiteralExpr(expression, prev_plan);
-	} else if ( isExpressionAggregate(expr_type) ) {			// must first check aggfunc over func
+	} else if (isExpressionAggregate(expr_type)) {			// must first check aggfunc over func
 		return lExprScalarAggFuncExpr(expression, prev_plan);
 	} else if (isExpressionCaseElse(expr_type)) {
 		return lExprScalarCaseElseExpr(expression, prev_plan);
 	} else if (isExpressionSubquery(expr_type)) {
 		return lExprScalarExistentialSubqueryExpr(expression, prev_plan);
-	}
-	else {
+	} else {
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
@@ -217,14 +215,17 @@ CExpression* Planner::lExprScalarPropertyExpr(Expression* expression, LogicalPla
 	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan) {
+CExpression *Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan) {
 
-	CMemoryPool* mp = this->memory_pool;
+	CMemoryPool *mp = this->memory_pool;
 
-	CColRef* target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
-	GPOS_ASSERT(target_colref!=NULL);
+	CColRef *target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+	if (target_colref == NULL) {
+		std::cout << k1 << ", " << k2 << std::endl;
+	}
+	GPOS_ASSERT(target_colref != NULL);
 
-	CExpression* ident_expr = GPOS_NEW(mp)
+	CExpression *ident_expr = GPOS_NEW(mp)
 			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
 	
 	return ident_expr;

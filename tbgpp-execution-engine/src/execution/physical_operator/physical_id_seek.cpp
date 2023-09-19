@@ -155,7 +155,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 			for (idx_t i = 0; i < inner_col_map.size(); i++) {
 				tmp_chunk.data[input.ColumnCount() + i].Reference(chunk.data[inner_col_map[i]]);
 			}
-			executor.SelectExpression(tmp_chunk, state.sel);
+			tmp_chunk.SetCardinality(input.size());
+			output_idx = executor.SelectExpression(tmp_chunk, state.sel);
 		}
 	} else {
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
@@ -177,7 +178,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 			}
 		}
 		chunk.SetCardinality(input.size());
-	} else {
+	} else if (do_filter_pushdown && !has_expression) {
 		D_ASSERT(input.ColumnCount() == outer_col_map.size());
 		for (int i = 0; i < input.ColumnCount(); i++) {
 			if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
@@ -186,6 +187,20 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 			}
 		}
 		chunk.SetCardinality(output_idx);
+	} else if (!do_filter_pushdown && has_expression) {
+		D_ASSERT(input.ColumnCount() == outer_col_map.size());
+		for (int i = 0; i < input.ColumnCount(); i++) {
+			if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
+				D_ASSERT(outer_col_map[i] < chunk.ColumnCount());
+				chunk.data[outer_col_map[i]].Slice(input.data[i], state.sel, output_idx);
+			}
+		}
+		for (int i = 0; i < inner_col_map.size(); i++) {
+			chunk.data[inner_col_map[i]].Slice(chunk.data[inner_col_map[i]], state.sel, output_idx);
+		}
+		chunk.SetCardinality(output_idx);
+	} else {
+		D_ASSERT(false);
 	}
 
 // icecream::ic.enable();
@@ -204,6 +219,8 @@ std::string PhysicalIdSeek::ParamsToString() const {
 	result += "projection_mapping.size()=" + std::to_string(projection_mapping.size()) + ", ";
 	result += "projection_mapping[0].size()=" + std::to_string(projection_mapping[0].size()) + ", ";
 	result += "target_types.size()=" + std::to_string(target_types.size()) + ", ";	
+	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
+	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
 	return result;	
 }
 
