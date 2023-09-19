@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations}
 }
 
 run_ldbc_s() {
@@ -496,9 +496,9 @@ run_ldbc_c11() {
 	# LDBC IC11 Job referral
 		#WHERE person._id <> friend._id
 		#WHERE workAt.workFrom < 2011
-	run_query "MATCH (person:Person {id: 10995116277918 })-[:KNOWS*1..2]-(friend:Person)
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]-(friend:Person)
 		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: Company})-[:ORG_IS_LOCATED_IN]->(:Place {name: Hungary})
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(:Place {name: 'Hungary'})
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
