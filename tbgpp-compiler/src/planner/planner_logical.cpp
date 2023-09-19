@@ -874,8 +874,8 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
 
-	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
-	// auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
+	// auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
 	CExpression* plan_expr = get_output.first;
 	D_ASSERT( prop_exprs.size() == get_output.second->Size() );
 

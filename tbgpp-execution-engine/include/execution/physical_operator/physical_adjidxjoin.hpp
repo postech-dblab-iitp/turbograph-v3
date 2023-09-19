@@ -84,9 +84,10 @@ public:
 	PhysicalAdjIdxJoin(Schema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid,
 					   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, bool load_eid_temporarily = false)
 		: CypherPhysicalOperator(PhysicalOperatorType::ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
-			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), inner_col_map(move(inner_col_map)),
 			load_eid_temporarily(load_eid_temporarily)
 	{
+		this->outer_col_maps.push_back(std::move(outer_col_map));
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
 			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
@@ -127,9 +128,10 @@ public:
 					   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, bool do_filter_pushdown,
 					   uint32_t outer_pos, uint32_t inner_pos, bool load_eid_temporarily = false)
 		: CypherPhysicalOperator(PhysicalOperatorType::ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
-			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), inner_col_map(move(inner_col_map)),
 			do_filter_pushdown(do_filter_pushdown), outer_pos(outer_pos), inner_pos(inner_pos), load_eid_temporarily(load_eid_temporarily)
 	{
+		this->outer_col_maps.push_back(std::move(outer_col_map));
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
 			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)

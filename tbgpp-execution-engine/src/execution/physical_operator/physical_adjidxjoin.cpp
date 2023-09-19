@@ -248,7 +248,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	}
 	// chunk determined. now fill in lhs using slice operation
 	idx_t schema_idx = input.GetSchemaIdx();
-	std::cout << "Input schema idx: " << schema_idx << ", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
+	// std::cout << "Input schema idx: " << schema_idx << ", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
 	D_ASSERT(schema_idx < state.outer_col_maps.size());
 	D_ASSERT(input.ColumnCount() == state.outer_col_maps[schema_idx].size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {

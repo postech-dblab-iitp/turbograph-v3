@@ -1261,8 +1261,8 @@ hash_t Value::Hash() const {
 
 string Value::ToString() const {
 	if (IsNull()) {
-		return "";
-		// return "NULL";
+		// return "";
+		return "NULL";
 	}
 	switch (type_.id()) {
 	case LogicalTypeId::BOOLEAN:

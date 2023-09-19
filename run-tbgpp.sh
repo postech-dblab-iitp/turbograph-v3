@@ -5,7 +5,7 @@ workspace=$2
 debug_plan=$3
 
 if [ "$#" -eq 1 ]; then
-	workspace="/data/ldbc/sf1_test/"
+	workspace="/data/ldbc/sf1_230919/"
 	debug_plan_option=""
 elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --show-top ${iterations}
 }
 
 run_ldbc_s() {

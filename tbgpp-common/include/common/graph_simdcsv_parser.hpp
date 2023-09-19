@@ -516,7 +516,7 @@ public:
 
   size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
 #ifdef __AVX2__
-    fprintf(stdout, "AVX2 defined\n");
+    // fprintf(stdout, "AVX2 defined\n");
 #endif
     type = type_;
 
