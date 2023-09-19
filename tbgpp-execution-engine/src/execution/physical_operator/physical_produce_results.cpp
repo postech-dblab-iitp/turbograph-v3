@@ -41,8 +41,8 @@ unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(ExecutionCo
 
 SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk &input, LocalSinkState &lstate) const {
 	auto &state = (ProduceResultsState &)lstate;
-	std::cout << "[ProduceResults] input schema idx: " << input.GetSchemaIdx() << 
-		", sinked tuples: " << input.size() << std::endl;
+	// std::cout << "[ProduceResults] input schema idx: " << input.GetSchemaIdx() << 
+	// 	", sinked tuples: " << input.size() << std::endl;
 	// icecream::ic.enable();
 	// std::cout << "Input of produce results" << std::endl;
 	// if (input.size() > 0) {

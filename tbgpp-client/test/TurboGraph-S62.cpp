@@ -140,6 +140,7 @@ string workspace;
 string input_query_string;
 bool is_query_string_given = false;
 bool run_plan_wo_compile = false;
+bool show_top_10_only = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
 bool enable_profile = false;			// passed to client context as config
@@ -266,6 +267,8 @@ class InputParser{
 			planner_config.INDEX_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
 			run_plan_wo_compile = true;
+		} else if (std::strncmp(current_str.c_str(), "--show-top", 10) == 0) {
+			show_top_10_only = true;
 		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
 			std::string num_iter = std::string(*itr).substr(17);
 			planner_config.num_iterations = std::stoi(num_iter);
@@ -514,7 +517,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
 			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			printOutput(planner, resultChunks, schema, false);
+			printOutput(planner, resultChunks, schema, show_top_10_only);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 		}
@@ -556,7 +559,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		D_ASSERT( executors.back()->context->query_results != nullptr );
 		auto& resultChunks = *(executors.back()->context->query_results);
 		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		printOutput(planner, resultChunks, schema, false);
+		printOutput(planner, resultChunks, schema, show_top_10_only);
 		
 		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}

@@ -138,7 +138,6 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	}
 
 // icecream::ic.enable();
-// std::cout << "[PhysicalIdSeek] input" << std::endl;
 // std::cout << "[PhysicalIdSeek] input schema idx: " << input.GetSchemaIdx() << 
 // 		", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
 // IC(input.size(), id_col_idx, do_filter_pushdown, has_expression);
@@ -162,11 +161,11 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		nodeColIdx, scan_types, target_eids, target_seqnos_per_extent, ps_oid_to_projection_mapping, mapping_idxs);
 	
 	if (!do_filter_pushdown) {
-		vector<idx_t> invalid_columns = {10, 11, 12, 13, 14, 15};
-		for (auto i = 0; i < invalid_columns.size(); i++) {
-			auto &validity = FlatVector::Validity(chunk.data[invalid_columns[i]]);
-			validity.SetAllInvalid(input.size());
-		}
+		// vector<idx_t> invalid_columns = {10, 11, 12, 13, 14, 15};
+		// for (auto i = 0; i < invalid_columns.size(); i++) {
+		// 	auto &validity = FlatVector::Validity(chunk.data[invalid_columns[i]]);
+		// 	validity.SetAllInvalid(input.size());
+		// }
 		
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
 			vector<idx_t> output_col_idx;
