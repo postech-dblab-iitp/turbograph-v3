@@ -108,7 +108,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 
 // icecream::ic.enable();
 // std::cout << "[PhysicalIdSeek] input" << std::endl;
-// IC(input.size(), id_col_idx);
+// IC(input.size(), id_col_idx, do_filter_pushdown, has_expression);
+// IC(inner_col_map);
 // if (input.size() > 0) {
 // 	IC(input.ToString(std::min((idx_t)10, input.size())));
 // }
