@@ -11,6 +11,7 @@
 
 #include <cassert>
 
+// #define DEBUG_PRINT_PIPELINE
 
 namespace duckdb {
 
@@ -70,15 +71,17 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 }
 
 void CypherPipelineExecutor::ExecutePipeline() {
-	// Get source chunk
-	// idx_t num_pipeline_executions = 0;
-	// idx_t max_pipeline_executions = 5;
+	// init source chunk
 	while(true) {
-		auto &source_chunk = *(opOutputChunks[0]);
+		auto& source_chunk = *(opOutputChunks[0]);
 		source_chunk.Destroy();
 		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
 		FetchFromSource(source_chunk);
-		if (source_chunk.size() == 0) { break; }
+
+#ifdef DEBUG_PRINT_PIPELINE
+		std::cout << "[FetchFromSource (" << pipeline->GetSource()->ToString() << ")] num_tuples: " << source_chunk.size() << std::endl;
+#endif
+		if( source_chunk.size() == 0 ) { break; }
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
 		D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
@@ -91,6 +94,9 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		// we need these anyways, but i believe this can be embedded in to the regular logic.
 			// this is an invariant to the main logic when the pipeline is terminated early
 
+#ifdef DEBUG_PRINT_PIPELINE
+	std::cout << "[Sink-Combine (" << pipeline->GetSink()->ToString() << ")]" << std::endl;
+#endif
 	StartOperator(pipeline->GetSink());
 	pipeline->GetSink()->Combine(*context, *local_sink_state);
 	EndOperator(pipeline->GetSink(), nullptr);
@@ -123,6 +129,9 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		if( pipeResult == OperatorResultType::FINISHED ) {
 			return OperatorResultType::FINISHED;
 		}
+#ifdef DEBUG_PRINT_PIPELINE
+		std::cout << "[Sink (" << pipeline->GetSink()->ToString() << ")] num_tuples: " << pipeOutputChunk->size() << std::endl;
+#endif
 		StartOperator(pipeline->GetSink());
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
@@ -166,9 +175,13 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
 		auto &prev_output_chunk = *opOutputChunks[current_idx - 1];
 		current_output_chunk.Reset();
-		auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
-		auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
-		current_output_chunk.SetSchemaIdx(current_output_schema_idx);
+		// auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
+		// auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+		// current_output_chunk.SetSchemaIdx(current_output_schema_idx);
+		current_output_chunk.SetSchemaIdx(0);
+#ifdef DEBUG_PRINT_PIPELINE
+		std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() <<")] prev num_tuples: " << prev_output_chunk.size() << std::endl;
+#endif
 
 		duckdb::OperatorResultType opResult;
 		StartOperator(pipeline->GetIdxOperator(current_idx));
