@@ -997,18 +997,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     vector<bool> valid_output;
     valid_output.resize(target_idxs.size());
-    idx_t tmp_idx = 0;
-    for (idx_t i = 0; i < target_idxs.size(); i++) {
-        if (output_column_idxs.size() == 0) { // TODO
-            valid_output[i] = false;
-            continue;
-        } else {
-            if (output_column_idxs[tmp_idx] == target_idxs[i]) {
-                valid_output[i] = true;
-                tmp_idx++;
-            } else {
-                valid_output[i] = false;
-            }
+    if (target_idxs.size() == output_column_idxs.size()) { // all columns should be loaded
+        for (idx_t i = 0; i < target_idxs.size(); i++) { valid_output[i] = true; }
+    } else { // filter column does not need to be loaded (TODO)
+        for (idx_t i = 0; i < target_idxs.size(); i++) {
+            if (target_idxs[i] == filterKeyColIdx) valid_output[i] = false;
+            else valid_output[i] = true;
         }
     }
 
@@ -1060,7 +1054,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
 
     idx_t output_chunk_idx;
-
+    idx_t j = 0;
     for (size_t i = 0; i < ext_property_types.size(); i++) {
         output_chunk_idx = cur_output_idx;
         if (!valid_output[i]) continue;
@@ -1068,7 +1062,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
-                            i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
+                            i, output_column_idxs[j], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) ext_property_types[i].id(), comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
@@ -1085,7 +1079,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader), io_requested_buf_sizes[toggle][i] -  sizeof(CompressionHeader),
                                        output.data[i], comp_header.data_len);
             } else {
-                auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
+                auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[j]]);
                 uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
                 Vector &vids = input.data[nodeColIdx];
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
@@ -1094,7 +1088,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
                     uint64_t string_offset = offset_arr[target_seqno];
                     size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[j]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
                 }
             }
         } else if (ext_property_types[i].id() == LogicalTypeId::LIST) {
@@ -1106,7 +1100,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             size_t list_size_to_append = 0;
             size_t child_type_size = GetTypeIdSize(ListType::GetChildType(ext_property_types[i]).InternalType());
             list_entry_t *list_vec = (list_entry_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-            list_entry_t *output_list_vec = (list_entry_t *)output.data[output_column_idxs[i]].GetData();
+            list_entry_t *output_list_vec = (list_entry_t *)output.data[output_column_idxs[j]].GetData();
 
             for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                 idx_t seqno = matched_row_idxs[idx];
@@ -1115,9 +1109,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 list_size_to_append += (list_vec[target_seqno].length * child_type_size);
             }
 
-            Vector &child_vec = ListVector::GetEntry(output.data[output_column_idxs[i]]);
+            Vector &child_vec = ListVector::GetEntry(output.data[output_column_idxs[j]]);
             size_t last_offset = start_seqno == 0 ? 0 : output_list_vec[start_seqno - 1].offset + output_list_vec[start_seqno - 1].length;
-            ListVector::Reserve(output.data[output_column_idxs[i]], last_offset + list_size_to_append);
+            ListVector::Reserve(output.data[output_column_idxs[j]], last_offset + list_size_to_append);
             output_chunk_idx = cur_output_idx;
 
             for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
@@ -1135,7 +1129,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             Vector &vids = input.data[nodeColIdx];
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
-            idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
+            idx_t *id_column = (idx_t *)output.data[output_column_idxs[j]].GetData();
             idx_t output_seqno = 0;
             for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                 idx_t seqno = matched_row_idxs[idx];
@@ -1158,12 +1152,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    memcpy(output.data[output_column_idxs[i]].GetData() + output_chunk_idx * type_size, io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
+                    memcpy(output.data[output_column_idxs[j]].GetData() + output_chunk_idx * type_size, io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + target_seqno * type_size, type_size);
                     output_chunk_idx++;
                 }
                 
             }
         }
+        j++;
     }
 
     cur_output_idx += matched_row_idxs.size();
