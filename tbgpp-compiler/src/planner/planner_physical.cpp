@@ -841,7 +841,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			filter_expr = inner_root;
 			filter_pred_expr = filter_expr->operator[](1);
 			
-			if (filter_pred_expr->Pop()->Eopid() == COperator::EopScalarCmp) {
+			if (filter_pred_expr->Pop()->Eopid() == COperator::EopScalarCmp &&
+				((CScalarCmp *)filter_pred_expr->Pop())->ParseCmpType() == IMDType::ECmpType::EcmptEq) {
 				do_filter_pushdown = true;
 				D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent ||
 					 filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
