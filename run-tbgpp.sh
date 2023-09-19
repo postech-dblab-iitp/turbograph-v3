@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --explain --debug-orca ${iterations}
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations}
 }
 
 run_ldbc_s() {
@@ -121,10 +121,7 @@ run_ldbc_s() {
 
 }
 
-run_ldbc_c() {
-	# LDBC Complex
-	echo "RUN LDBC Complex"
-
+run_ldbc_c1() {
 	# LDBC IC1 Transitive friends with certain name
 	run_query "MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
 		WHERE NOT p=friend
@@ -171,7 +168,10 @@ run_ldbc_c() {
 			friendLastName ASC,
 			toInteger(friendId) ASC
 		LIMIT 20" 1
-	
+
+}
+
+run_ldbc_c2() {
 	# LDBC IC2 Recent messages by your friends
 	run_query "MATCH (:Person {id: 94 })-[:KNOWS]->(friend:Person)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate <= 1287230400000
@@ -185,8 +185,10 @@ run_ldbc_c() {
 		ORDER BY
 			postOrCommentCreationDate DESC,
 			postOrCommentId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
+}
 
+run_ldbc_c3() {
 	# LDBC IC3 Friends and friends of friends that have been to given countries
 	run_query "MATCH (countryX:Country {name: 'Angola' }),
 		(countryY:Country {name: 'Colombia' }),
@@ -216,13 +218,31 @@ run_ldbc_c() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
-	run_query "MATCH (countryX:Country {name: 'Angola' }),
-		(countryY:Country {name: 'Colombia' }),
-		(person:Person {id: 4 })
+	run_query "MATCH (countryX:Place {name: 'Angola' }),
+		(countryY:Place {name: 'Colombia' }),
+		(person:Person {id: 94 })
 		WITH person, countryX, countryY
 		LIMIT 1
-		RETURN person.id, countryX.name, countryY.name" 1
+		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+		RETURN person.id, countryX.name, countryY.name, city.name" 0
+	#run_query "MATCH (countryX:Place {name: 'Germany' }),
+	#      (countryY:Place {name: 'Hungary' }),
+	run_query "MATCH (countryX:Place {name: 'Angola' }),
+	      (countryY:Place {name: 'Colombia' }),
+	      (person:Person {id: 94 })
+	WITH person, countryX, countryY
+	LIMIT 1
+	MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+	WHERE
+	  NOT person=friend
+	  AND NOT EXISTS {
+	    MATCH (city)-[:IS_PART_OF]->(country:Place)
+	    WHERE country = countryX OR country = countryY
+	  }
+	RETURN person;" 1
+}
 
+run_ldbc_c4() {
 	# LDBC IC4 New topics
 	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
     #   	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag)
@@ -240,7 +260,7 @@ run_ldbc_c() {
 	# 	WHERE postCount>0 AND inValidPostCount=0
 	# 	RETURN tag.name AS tagName, postCount
 	# 	ORDER BY postCount DESC, tagName ASC
-	# 	LIMIT 10" 0
+	# 	LIMIT 10" 1
 
 	# no > >= in comparison - kuzu parser limitation
 	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
@@ -260,8 +280,10 @@ run_ldbc_c() {
 		WHERE postCount>0
 		RETURN tagName
 		ORDER BY tagName ASC
-		LIMIT 10" 1
+		LIMIT 10" 0
+}
 
+run_ldbc_c5() {
 	# LDBC IC5 New groups
 		# WHERE NOT person=friend
 		# collect(friend) AS friends
@@ -297,8 +319,10 @@ run_ldbc_c() {
 		RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
-		LIMIT 20" 1
+		LIMIT 20" 0
+}
 
+run_ldbc_c6() {
 	# LDBC IC6 Tag co-occurrence
 	# run_query "MATCH (knownTag:Tag { name: \"Carl_Gustaf_Emil_Mannerheim\" })
 	# 	WITH knownTag.id as knownTagId
@@ -324,24 +348,25 @@ run_ldbc_c() {
 	# 		tagName ASC
 	# 	LIMIT 10" 1
 
-	# currently distinct deleted
-	# WHERE NOT t = tag	
-	# WHERE NOT person=friend
-	# run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
-	# 	WITH knownTag.id as knownTagId
-	# 	MATCH (person:Person { id: 4398046511333 })-[:KNOWS*1..2]-(friend:Person)
-	# 	WITH DISTINCT knownTagId, friend
-	# 	MATCH (friend)<-[phc:POST_HAS_CREATOR]-(post:Post)
-	# 	RETURN
-	# 		count(post) as postCount
-	# 	ORDER BY
-	# 		postCount DESC
-	# 	LIMIT 10" 0
-	run_query "MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
-		WITH knownTag.id as knownTagId
-		MATCH (person:Person { id: 4398046511333 })
-		RETURN knownTagId" 0
+	run_query "MATCH (person:Person {id : 94 })-[:KNOWS*1..2]->(friend:Person)
+		WHERE NOT person = friend
+		WITH friend
+		MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
+		WITH friend, knownTag.id as knownTagId
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post),
+		      (post)-[:POST_HAS_TAG]->(t:Tag {id: knownTagId}),
+		      (post)-[:POST_HAS_TAG]->(tag:Tag)
+		WITH tag.name as tagName, count(post) as postCount
+		RETURN 
+			tagName, 
+			postCount
+		ORDER BY
+			postCount DESC,
+			tagName ASC
+		LIMIT 10" 0
+}
 
+run_ldbc_c7() {
 	# LDBC IC7 Recent likers
 	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
 		WITH liker, message, like.creationDate AS likeTime, person
@@ -374,7 +399,9 @@ run_ldbc_c() {
 			likeCreationDate DESC,
 			personId ASC
 		LIMIT 20" 0
-	
+}
+
+run_ldbc_c8() {
 	# LDBC IC8 Recent replies
 	run_query "MATCH (start:Person {id: 94})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
 		RETURN
@@ -387,8 +414,10 @@ run_ldbc_c() {
 		ORDER BY
 			commentCreationDate DESC,
 			commentId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
+}
 
+run_ldbc_c9() {
 	# LDBC IC9 Recent messages by friends or friends of friends
 	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
 	# 	WHERE NOT friend = root
@@ -422,38 +451,54 @@ run_ldbc_c() {
 		ORDER BY
 			commentOrPostCreationDate DESC,
 			commentOrPostId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
+}
 
+run_ldbc_c10() {
 	# LDBC IC10 Friend recommendation
-	run_query "MATCH (person:Person {id: 4398046511333})-[:KNOWS*2..2]-(friend),
-       	(friend)-[:IS_LOCATED_IN]->(city:City)
-		WHERE NOT friend=person AND
-			NOT (friend)-[:KNOWS]-(person)
-		WITH person, city, friend, datetime({epochMillis: friend.birthday}) as birthday
-		WHERE  (birthday.month=5 AND birthday.day>=21) OR
-				(birthday.month=(5%12)+1 AND birthday.day<22)
-		WITH DISTINCT friend, city, person
-		OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)
-		WITH friend, city, collect(post) AS posts, person
-		WITH friend,
-			city,
-			size(posts) AS postCount,
-			size([p IN posts WHERE (p)-[:HAS_TAG]->()<-[:HAS_INTEREST]-(person)]) AS commonPostCount
-		RETURN friend.id AS personId,
-			friend.firstName AS personFirstName,
-			friend.lastName AS personLastName,
-			commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
-			friend.gender AS personGender,
-			city.name AS personCityName
-		ORDER BY commonInterestScore DESC, personId ASC
-		LIMIT 10" 1
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*2..2]-(friend),
+       		(friend)-[:IS_LOCATED_IN]->(city:City)
+	WHERE NOT friend=person AND
+		NOT EXISTS { (friend)-[:KNOWS]-(person) }
+	WITH person, city, friend, friend as birthday
+	WHERE  (birthday.month=5 AND birthday.day>=21) OR
+        	(birthday.month=6 AND birthday.day<22)
+	WITH DISTINCT friend, city, person
+	OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)
+	WITH friend, city, person, post, (CASE WHEN EXISTS { MATCH (post)-[:HAS_TAG]->()<-[:HAS_INTEREST]-(person) } THEN 1 ELSE 0 END) AS postCommon
+	WITH friend, city, person, count(post) AS postCount, sum(postCommon) AS commonPostCount
+	RETURN friend.id AS personId,
+		friend.firstName AS personFirstName,
+		friend.lastName AS personLastName,
+       		commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
+       		friend.gender AS personGender, 
+       		city.name AS personCityName
+	ORDER BY commonInterestScore DESC, personId ASCLIMIT 10" 1
+	run_query "MATCH (person:Person {id: 96})-[:KNOWS*2..2]->(friend:Person),
+		(friend)-[:IS_LOCATED_IN]->(city:Place)
+	WHERE NOT friend=person
+	WITH person, city, friend, friend.birthday as birthday
+	WHERE (birthday >= 378086400000 AND birthday < 541209600000)
+	WITH DISTINCT friend, city, person
+	OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
+	WITH friend, city, person, count(post) AS postCount
+	RETURN friend.id AS personId,
+	       friend.firstName AS personFirstName,
+	       friend.lastName AS personLastName,
+	       postCount AS commonInterestScore,
+	       friend.gender AS personGender,
+	       city.name AS personCityName
+	ORDER BY commonInterestScore DESC, personId ASC
+	LIMIT 10" 0
+}
 
+run_ldbc_c11() {
 	# LDBC IC11 Job referral
 		#WHERE person._id <> friend._id
 		#WHERE workAt.workFrom < 2011
-	run_query "MATCH (person:Person {id: 10995116277918 })-[:KNOWS*1..2]-(friend:Person)
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
 		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: \"Company\"})-[:ORG_IS_LOCATED_IN]->(:Place {name: \"Hungary\" })
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(:Place {name: 'Hungary'})
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
@@ -464,8 +509,10 @@ run_ldbc_c() {
 				organizationWorkFromYear ASC,
 				personId ASC,
 				organizationName DESC
-		LIMIT 10" 1
+		LIMIT 10" 0
+}
 
+run_ldbc_c12() {
 	# LDBC IC12 Expert search
 	run_query "MATCH (tag:Tag)-[:HAS_TYPE|IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
 		WHERE tag.name = \"Monarch\" OR baseTagClass.name = \"Monarch\"
@@ -494,8 +541,10 @@ run_ldbc_c() {
 		ORDER BY
 			replyCount DESC,
 			personId ASC
-		LIMIT 20" 1
+		LIMIT 20" 0
+}
 
+run_ldbc_c13() {
 	# LDBC IC13 Single shortest path
 	run_query "MATCH
 		(person1:Person {id: 8796093022390}),
@@ -506,7 +555,9 @@ run_ldbc_c() {
 				WHEN true THEN -1
 				ELSE length(path)
 			END AS shortestPathLength" 1
+}
 
+run_ldbc_c14() {
 	# LDBC IC14 Trusted connection paths
 	run_query "MATCH path = allShortestPaths((person1:Person { id: 8796093022357 })-[:KNOWS*0..]-(person2:Person { id: 8796093022390 }))
 		WITH collect(path) as paths
@@ -536,7 +587,32 @@ run_ldbc_c() {
 			personIdsInPath,
 			(w1+w2) as pathWeight
 		ORDER BY pathWeight desc" 1
+}
 
+run_ldbc_c() {
+	# LDBC Complex
+	echo "RUN LDBC Complex"
+	echo "Enter queries to run (query_num|All)"
+	read -a queries
+
+	for query in "${queries[@]}"; do
+		echo "RUN LDBC Complex query" $query
+		if [ $query == 'All' ]; then
+			run_ldbc_c2
+			run_ldbc_c3
+			run_ldbc_c4
+			run_ldbc_c5
+			run_ldbc_c6
+			run_ldbc_c7
+			run_ldbc_c8
+			run_ldbc_c9
+			run_ldbc_c10
+			run_ldbc_c11
+			run_ldbc_c12
+		else
+			run_ldbc_c${query}
+		fi
+	done
 }
 
 run_ldbc() {
