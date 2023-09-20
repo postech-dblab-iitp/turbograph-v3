@@ -52,6 +52,8 @@ public:
                     vector<idx_t> &target_idx_per_eid_, vector<ExtentID> target_eids);
     int RequestNewIO(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_,
                      ExtentID target_eid, ExtentID &evicted_eid);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+                       size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
@@ -67,7 +69,7 @@ public:
                        vector<idx_t> &target_seqnos, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, ExtentID target_eid, DataChunk &input,
-                       idx_t nodeColIdx, vector<idx_t> &output_column_idxs, idx_t start_seqno, idx_t end_seqno,
+                       idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
                        idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized);
 
@@ -78,14 +80,14 @@ public:
 private:
     bool _CheckIsMemoryEnough();
 
-    inline void findRowsThatSatisfyPredicate(DataChunk &input, idx_t nodeColIdx, idx_t start_seqno, idx_t end_seqno,
+    inline void findRowsThatSatisfyPredicate(DataChunk &input, idx_t nodeColIdx, vector<idx_t> &target_seqnos,
                                              Value &filterValue, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                              vector<idx_t> &matched_row_idxs, SelectionVector &sel) {
 
         CompressionHeader comp_header;
         Vector &vids = input.data[nodeColIdx];
-
-        if (ext_property_type[col_idx] == LogicalType::VARCHAR) {
+        auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
+        if (cur_ext_property_type[col_idx] == LogicalType::VARCHAR) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
             // size_t comp_header_valid_size = comp_header.GetValidSize();
             size_t comp_header_valid_size = sizeof(CompressionHeader);
@@ -95,7 +97,8 @@ private:
                 size_t string_data_offset = comp_header_valid_size + comp_header.data_len * sizeof(uint64_t);
                 uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size);
                 uint64_t string_offset, prev_string_offset;
-                for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
+                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                    idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     if (target_seqno < scan_start_offset || target_seqno >= scan_end_offset) continue;
                     prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
@@ -107,9 +110,9 @@ private:
                     }
                 }
             }
-        } else if (ext_property_type[col_idx] == LogicalType::FORWARD_ADJLIST || ext_property_type[col_idx] == LogicalType::BACKWARD_ADJLIST) {
+        } else if (cur_ext_property_type[col_idx] == LogicalType::FORWARD_ADJLIST || cur_ext_property_type[col_idx] == LogicalType::BACKWARD_ADJLIST) {
             throw InvalidInputException("Filter predicate on ADJLIST column");
-        } else if (ext_property_type[col_idx] == LogicalType::ID) {
+        } else if (cur_ext_property_type[col_idx] == LogicalType::ID) {
             throw InvalidInputException("Filter predicate on PID column");
         } else {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
@@ -118,9 +121,10 @@ private:
             if (comp_header.comp_type == BITPACKING) {
                 throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
             } else {
-                LogicalType column_type = ext_property_type[col_idx];
+                LogicalType column_type = cur_ext_property_type[col_idx];
                 Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size));
-                for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
+                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                    idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     if (target_seqno < scan_start_offset || target_seqno >= scan_end_offset) continue;
                     if (column_vec.GetValue(target_seqno) == filterValue) {

@@ -113,7 +113,11 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	StoreAPIResult res;
 	if (filter_pushdown_key_idx < 0) {
 		// no filter pushdown
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
+		if (projection_mapping.size() == 1) {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
+		} else {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
+		}
 	} else {
 		// filter pushdown applied
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);

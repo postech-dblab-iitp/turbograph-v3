@@ -297,6 +297,160 @@ ExtentIterator::Initialize(ClientContext &context, vector<vector<LogicalType>> &
     is_initialized = true;
 }
 
+// Get Next Extent with all properties. For full scan (w/o output_column_idxs)
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size, bool is_output_chunk_initialized) {
+    // We should avoid data copy here.. but copy for demo temporarliy
+    // Keep previous values
+    // icecream::ic.enable(); IC(); IC(current_idx, max_idx, current_idx_in_this_extent, scan_size); icecream::ic.disable();
+    if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
+        current_idx++;
+        current_idx_in_this_extent = 0;
+    }
+    if (current_idx > max_idx) return false;
+
+    // Request I/O to the next extent if we can support double buffering
+    // IC(prev_toggle, toggle, next_toggle, current_idx, current_idx_in_this_extent, max_idx, scan_size);
+    Catalog& cat_instance = context.db->GetCatalog();
+    if (support_double_buffering && current_idx < max_idx && current_idx_in_this_extent == 0) {
+        if (current_idx != 0) toggle = (toggle + 1) % num_data_chunks;
+        int next_toggle = (toggle + 1) % num_data_chunks;
+        if (current_idx < max_idx - 1) {
+            ExtentCatalogEntry* extent_cat_entry = 
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
+            
+            // Unpin previous chunks
+            for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+                if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+                ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+            }
+
+            size_t chunk_size = ext_property_type.empty() ? extent_cat_entry->chunks.size() : ext_property_type.size();
+            io_requested_cdf_ids[next_toggle].resize(chunk_size);
+            io_requested_buf_ptrs[next_toggle].resize(chunk_size);
+            io_requested_buf_sizes[next_toggle].resize(chunk_size);
+            
+            int j = 0;
+            for (int i = 0; i < chunk_size; i++) {
+                if (!ext_property_type.empty() && ext_property_type[i] == LogicalType::ID) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
+                    continue;
+                }
+                if (!target_idx.empty() && (target_idx[j] == std::numeric_limits<uint64_t>::max())) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
+                    continue;
+                }
+                ChunkDefinitionID cdf_id = target_idx.empty() ? 
+                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idx[j++] - target_idxs_offset];
+                io_requested_cdf_ids[next_toggle][i] = cdf_id;
+                string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+                // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
+                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
+            }
+            num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
+        }
+    }
+
+    // Request chunk cache manager to finalize I/O
+    if (current_idx_in_this_extent == 0) {
+        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+            // icecream::ic.enable(); IC(); IC(io_requested_cdf_ids[toggle][i], toggle, i); icecream::ic.disable();
+        }
+    }
+
+    // Initialize output DataChunk & copy each column
+    if (!is_output_chunk_initialized) {
+        output.Reset();
+        output.Initialize(ext_property_type);
+    }
+    CompressionHeader comp_header;
+    
+    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) return false;
+    size_t remain_data_size = num_tuples_in_current_extent[toggle] - (current_idx_in_this_extent * scan_size);
+    size_t output_cardinality = std::min((size_t) scan_size, remain_data_size);
+    output.SetCardinality(output_cardinality);
+    output_eid = ext_ids_to_iterate[current_idx];
+    idx_t scan_begin_offset = current_idx_in_this_extent * scan_size;
+    idx_t scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
+    // D_ASSERT(comp_header.data_len <= STORAGE_STANDARD_VECTOR_SIZE);
+    for (size_t i = 0; i < ext_property_type.size(); i++) {
+        if ((ext_property_type[i] != LogicalType::ID) && (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max())) {
+            FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
+            // FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
+            continue;
+        }
+        if (ext_property_type[i] != LogicalType::ID) {
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+                            i, i, io_requested_cdf_ids[toggle][i], (int)ext_property_type[i].id(), output.size(), scan_size,
+                            scan_begin_offset, scan_end_offset, comp_header.data_len,
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
+                            io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
+#endif
+        } else {
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld\n", i, i);
+#endif
+        }
+        auto comp_header_valid_size = sizeof(CompressionHeader);
+        if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
+            if (comp_header.comp_type == DICTIONARY) {
+                D_ASSERT(false);
+                PhysicalType p_type = ext_property_type[i].InternalType();
+                DeCompressionFunction decomp_func(DICTIONARY, p_type);
+                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] - comp_header_valid_size,
+                                       output.data[i], comp_header.data_len);
+            } else {
+                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
+                auto strings = FlatVector::GetData<string_t>(output.data[i]);
+                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
+                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
+                uint64_t string_offset, prev_string_offset;
+                size_t output_idx = 0;
+                for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
+                    prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
+                    string_offset = offset_arr[input_idx];                    
+                    strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                    output_idx++;
+                }
+            }
+        } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
+            size_t type_size = sizeof(list_entry_t);
+            size_t data_array_offset = comp_header.data_len * type_size;
+
+            // ListVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+            // ListVector::SetChildData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + data_array_offset);
+        } else if (ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
+        } else if (ext_property_type[i].id() == LogicalTypeId::ID) {
+            idx_t physical_id_base = (idx_t)output_eid;
+            physical_id_base = physical_id_base << 32;
+            idx_t *id_column = (idx_t *)output.data[i].GetData();
+            idx_t output_seqno = 0;
+            for (size_t seqno = scan_begin_offset; seqno < scan_end_offset; seqno++)
+                id_column[output_seqno++] = physical_id_base + seqno;
+        } else {
+            if (comp_header.comp_type == BITPACKING) {
+                D_ASSERT(false);
+                PhysicalType p_type = ext_property_type[i].InternalType();
+                DeCompressionFunction decomp_func(BITPACKING, p_type);
+                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
+                                       output.data[i], comp_header.data_len);
+            } else {
+                size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
+                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
+            }
+        }
+    }
+    
+    current_idx_in_this_extent++;
+    return true;
+}
+
 // Get Next Extent with all properties. For full scan
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs, size_t scan_size, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
@@ -909,7 +1063,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                    ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
                                    vector<idx_t> &target_seqnos, bool is_output_chunk_initialized) {
     int prev_toggle = toggle;
-    // icecream::ic.enable(); IC(); IC(target_eid, current_eid); icecream::ic.disable();
     auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
     if (target_eid != current_eid) {
         // Keep previous values
@@ -966,7 +1119,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[target_idx_per_eid[next_idx]][j++] - target_idxs_offset];
                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
                 string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-                // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
                 ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
             }
             num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
@@ -1110,60 +1262,136 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // For Seek Operator + Filter predicate - Bulk Mode
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                                    int64_t &filterKeyColIdx, Value &filterValue, ExtentID target_eid, DataChunk &input,
-                                   idx_t nodeColIdx, vector<idx_t> &output_column_idxs, idx_t start_seqno, idx_t end_seqno,
+                                   idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
                                    idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized) {
     int prev_toggle = toggle;
+    auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
     Catalog& cat_instance = context.db->GetCatalog();
+    // if (target_eid != current_eid) {
+    //     // Keep previous values
+    //     if (current_eid != std::numeric_limits<uint32_t>::max())
+    //        toggle = (toggle + 1) % num_data_chunks;
+    //     int next_toggle = (toggle + 1) % num_data_chunks;
+    //     idx_t previous_idx = current_idx++;
+    //     if (current_idx > max_idx) return false;
+
+    //     // Request I/O to the next extent if we can support double buffering
+    //     if (support_double_buffering && current_idx < max_idx) {
+    //         // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
+    //         if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
+    //             ExtentCatalogEntry* extent_cat_entry = 
+    //                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+                
+    //             // Unpin previous chunks
+    //             if (current_eid != std::numeric_limits<uint32_t>::max()) {
+    //                 if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
+    //                 for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+    //                     if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+    //                     ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
+    //                 }
+    //             }
+
+    //             size_t chunk_size = ext_property_type.empty() ? extent_cat_entry->chunks.size() : ext_property_type.size();
+    //             io_requested_cdf_ids[next_toggle].resize(chunk_size);
+    //             io_requested_buf_ptrs[next_toggle].resize(chunk_size);
+    //             io_requested_buf_sizes[next_toggle].resize(chunk_size);
+                
+    //             int j = 0;
+    //             for (int i = 0; i < chunk_size; i++) {
+    //                 if (!ext_property_type.empty() && ext_property_type[i] == LogicalType::ID) {
+    //                     io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+    //                     j++;
+    //                     continue;
+    //                 }
+    //                 if (!target_idx.empty() && (target_idx[j] == std::numeric_limits<uint64_t>::max())) {
+    //                     io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+    //                     j++;
+    //                     continue;
+    //                 }
+    //                 ChunkDefinitionID cdf_id = target_idx.empty() ? 
+    //                     extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idx[j++] - target_idxs_offset];
+    //                 io_requested_cdf_ids[next_toggle][i] = cdf_id;
+    //                 string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+    //                 ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
+    //             }
+    //             num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
+    //         }
+    //     }
+
+    //     // Request chunk cache manager to finalize I/O
+    //     for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+    //         if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+    //         ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+    //     }
+    //     current_eid = ext_ids_to_iterate[previous_idx];
+
+    //     // Initialize output DataChunk & copy each column
+    //     if (!is_output_chunk_initialized) {
+    //         output.Reset();
+    //         output.Initialize(ext_property_type);
+    //     }
+        
+    //     output_eid = ext_ids_to_iterate[previous_idx];
+    // } else {
+    //     output_eid = current_eid;
+    // }
     if (target_eid != current_eid) {
         // Keep previous values
-        if (current_eid != std::numeric_limits<uint32_t>::max())
-           toggle = (toggle + 1) % num_data_chunks;
+        idx_t previous_idx, next_idx;
+        if (current_eid != std::numeric_limits<uint32_t>::max()) {
+            toggle = (toggle + 1) % num_data_chunks;
+            previous_idx = current_idx++;
+            next_idx = current_idx + 1;
+        } else {
+            // first time here
+            previous_idx = current_idx;
+            next_idx = current_idx + 1;
+        }
         int next_toggle = (toggle + 1) % num_data_chunks;
-        idx_t previous_idx = current_idx++;
+        int prev_toggle = (toggle - 1 + num_data_chunks) % num_data_chunks;
         if (current_idx > max_idx) return false;
+        cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
 
         // Request I/O to the next extent if we can support double buffering
-        if (support_double_buffering && current_idx < max_idx) {
-            // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
-            if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
-                ExtentCatalogEntry* extent_cat_entry = 
-                    (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
-                
-                // Unpin previous chunks
-                if (current_eid != std::numeric_limits<uint32_t>::max()) {
-                    if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
-                    for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
-                        if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-                        ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
-                    }
+        if (support_double_buffering && next_idx < max_idx) {
+            ExtentCatalogEntry* extent_cat_entry = 
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[next_idx]));
+            
+            // Unpin previous chunks
+            if (current_eid != std::numeric_limits<uint32_t>::max()) {
+                if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
+                for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
+                    if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+                    ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
                 }
-
-                size_t chunk_size = ext_property_type.empty() ? extent_cat_entry->chunks.size() : ext_property_type.size();
-                io_requested_cdf_ids[next_toggle].resize(chunk_size);
-                io_requested_buf_ptrs[next_toggle].resize(chunk_size);
-                io_requested_buf_sizes[next_toggle].resize(chunk_size);
-                
-                int j = 0;
-                for (int i = 0; i < chunk_size; i++) {
-                    if (!ext_property_type.empty() && ext_property_type[i] == LogicalType::ID) {
-                        io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                        j++;
-                        continue;
-                    }
-                    if (!target_idx.empty() && (target_idx[j] == std::numeric_limits<uint64_t>::max())) {
-                        io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                        j++;
-                        continue;
-                    }
-                    ChunkDefinitionID cdf_id = target_idx.empty() ? 
-                        extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idx[j++] - target_idxs_offset];
-                    io_requested_cdf_ids[next_toggle][i] = cdf_id;
-                    string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-                    // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
-                    ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
-                }
-                num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
             }
+
+            auto &next_ext_property_type = ext_property_types[target_idx_per_eid[next_idx]];
+            size_t chunk_size = next_ext_property_type.empty() ? extent_cat_entry->chunks.size() : next_ext_property_type.size();
+            io_requested_cdf_ids[next_toggle].resize(chunk_size);
+            io_requested_buf_ptrs[next_toggle].resize(chunk_size);
+            io_requested_buf_sizes[next_toggle].resize(chunk_size);
+            
+            int j = 0;
+            for (int i = 0; i < chunk_size; i++) {
+                if (!next_ext_property_type.empty() && next_ext_property_type[i] == LogicalType::ID) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
+                    continue;
+                }
+                if (!target_idxs[target_idx_per_eid[next_idx]].empty() && 
+                    (target_idxs[target_idx_per_eid[next_idx]][j] == std::numeric_limits<uint64_t>::max())) {
+                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
+                    j++;
+                    continue;
+                }
+                ChunkDefinitionID cdf_id = target_idxs[target_idx_per_eid[next_idx]].empty() ? 
+                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idxs[target_idx_per_eid[next_idx]][j++] - target_idxs_offset];
+                io_requested_cdf_ids[next_toggle][i] = cdf_id;
+                string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
+                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
+            }
+            num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
         }
 
         // Request chunk cache manager to finalize I/O
@@ -1171,15 +1399,23 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
         }
-        current_eid = ext_ids_to_iterate[previous_idx];
+        current_eid = ext_ids_to_iterate[current_idx];
+
+        // Initialize DataChunk using cached buffer
+        /*data_chunks[prev_toggle]->Destroy();
+        data_chunks[prev_toggle]->Initialize(ext_property_type, io_requested_buf_ptrs[prev_toggle]);
+        data_chunks[prev_toggle]->SetCardinality(io_requested_buf_sizes[prev_toggle][0] / GetTypeIdSize(ext_property_type[0].InternalType())); // XXX.. bug can occur
+        output = data_chunks[prev_toggle];*/
 
         // Initialize output DataChunk & copy each column
         if (!is_output_chunk_initialized) {
+            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Reset();
-            output.Initialize(ext_property_type);
+            // icecream::ic.enable();IC();icecream::ic.disable();
+            output.Initialize(cur_ext_property_type);
         }
         
-        output_eid = ext_ids_to_iterate[previous_idx];
+        output_eid = ext_ids_to_iterate[current_idx];
     } else {
         output_eid = current_eid;
     }
@@ -1194,7 +1430,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         for (idx_t i = 0; i < target_idxs[0].size(); i++) { valid_output[i] = true; }
     } else { // filter column does not need to be loaded (TODO)
         for (idx_t i = 0; i < target_idxs[0].size(); i++) {
-            if (target_idxs[i][0] == filterKeyColIdx) valid_output[i] = false;
+            if (target_idxs[0][i] == filterKeyColIdx) valid_output[i] = false;
             else valid_output[i] = true;
         }
     }
@@ -1222,7 +1458,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 find_block_to_scan = true;
 
                 // Find the index of a row that matches a predicate.
-                findRowsThatSatisfyPredicate(input, nodeColIdx, start_seqno, end_seqno, filterValue, col_idx, scan_start_offset, scan_end_offset, matched_row_idxs, sel);
+                findRowsThatSatisfyPredicate(input, nodeColIdx, target_seqnos, filterValue, col_idx, scan_start_offset, scan_end_offset, matched_row_idxs, sel);
             }
         }
         if (!find_block_to_scan) {
@@ -1232,7 +1468,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     } else {
         scan_start_offset = 0;
         scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
-        findRowsThatSatisfyPredicate(input, nodeColIdx, start_seqno, end_seqno, filterValue, col_idx, scan_start_offset, scan_end_offset, matched_row_idxs, sel);
+        findRowsThatSatisfyPredicate(input, nodeColIdx, target_seqnos, filterValue, col_idx, scan_start_offset, scan_end_offset, matched_row_idxs, sel);
     }
 
     if (matched_row_idxs.size() > 0) {
@@ -1248,15 +1484,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     idx_t output_chunk_idx;
     idx_t j = 0;
-    for (size_t i = 0; i < ext_property_type.size(); i++) {
+    for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         output_chunk_idx = cur_output_idx;
         if (!valid_output[i]) continue;
-        if (ext_property_type[i] != LogicalType::ID) {
+        if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[j], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) ext_property_type[i].id(), comp_header.data_len,
+                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) cur_ext_property_type[i].id(), comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
@@ -1265,10 +1501,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #endif
         }
         auto comp_header_valid_size = sizeof(CompressionHeader);
-        if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
+        if (cur_ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
-                PhysicalType p_type = ext_property_type[i].InternalType();
+                PhysicalType p_type = cur_ext_property_type[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
                                        output.data[i], comp_header.data_len);
@@ -1286,43 +1522,43 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[j]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
                 }
             }
-        } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
+        } else if (cur_ext_property_type[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
             size_t offset_array_size = comp_header.data_len * type_size;
 
             D_ASSERT(false); /* zero copy for LIST is not implemented in this function */
 
-            Vector &vids = input.data[nodeColIdx];
-            size_t list_offset = 0;
-            size_t list_size_to_append = 0;
-            size_t child_type_size = GetTypeIdSize(ListType::GetChildType(ext_property_type[i]).InternalType());
-            list_entry_t *list_vec = (list_entry_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
-            list_entry_t *output_list_vec = (list_entry_t *)output.data[output_column_idxs[j]].GetData();
+            // Vector &vids = input.data[nodeColIdx];
+            // size_t list_offset = 0;
+            // size_t list_size_to_append = 0;
+            // size_t child_type_size = GetTypeIdSize(ListType::GetChildType(cur_ext_property_type[i]).InternalType());
+            // list_entry_t *list_vec = (list_entry_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+            // list_entry_t *output_list_vec = (list_entry_t *)output.data[output_column_idxs[j]].GetData();
 
-            for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                idx_t seqno = matched_row_idxs[idx];
-                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                output_list_vec[output_chunk_idx++].length = list_vec[target_seqno].length;
-                list_size_to_append += (list_vec[target_seqno].length * child_type_size);
-            }
+            // for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
+            //     idx_t seqno = matched_row_idxs[idx];
+            //     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+            //     output_list_vec[output_chunk_idx++].length = list_vec[target_seqno].length;
+            //     list_size_to_append += (list_vec[target_seqno].length * child_type_size);
+            // }
 
-            Vector &child_vec = ListVector::GetEntry(output.data[output_column_idxs[j]]);
-            size_t last_offset = start_seqno == 0 ? 0 : output_list_vec[start_seqno - 1].offset + output_list_vec[start_seqno - 1].length;
-            ListVector::Reserve(output.data[output_column_idxs[j]], last_offset + list_size_to_append);
-            output_chunk_idx = cur_output_idx;
+            // Vector &child_vec = ListVector::GetEntry(output.data[output_column_idxs[j]]);
+            // size_t last_offset = start_seqno == 0 ? 0 : output_list_vec[start_seqno - 1].offset + output_list_vec[start_seqno - 1].length;
+            // ListVector::Reserve(output.data[output_column_idxs[j]], last_offset + list_size_to_append);
+            // output_chunk_idx = cur_output_idx;
 
-            for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                idx_t seqno = matched_row_idxs[idx];
-                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                icecream::ic.enable(); IC(); IC(target_seqno, last_offset, start_seqno, seqno, end_seqno, offset_array_size, list_vec[target_seqno].offset, list_vec[target_seqno].length, child_type_size); icecream::ic.disable();
-                memcpy(child_vec.GetData() + last_offset * child_type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + offset_array_size + list_vec[target_seqno].offset * child_type_size, list_vec[target_seqno].length * child_type_size);
-                output_list_vec[output_chunk_idx++].offset = last_offset;
-                last_offset += list_vec[target_seqno].length;
-            }
-        } else if (ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
+            // for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
+            //     idx_t seqno = matched_row_idxs[idx];
+            //     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
+            //     // icecream::ic.enable(); IC(); IC(target_seqno, last_offset, start_seqno, seqno, end_seqno, offset_array_size, list_vec[target_seqno].offset, list_vec[target_seqno].length, child_type_size); icecream::ic.disable();
+            //     memcpy(child_vec.GetData() + last_offset * child_type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + offset_array_size + list_vec[target_seqno].offset * child_type_size, list_vec[target_seqno].length * child_type_size);
+            //     output_list_vec[output_chunk_idx++].offset = last_offset;
+            //     last_offset += list_vec[target_seqno].length;
+            // }
+        } else if (cur_ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || cur_ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             // TODO
             D_ASSERT(false);
-        } else if (ext_property_type[i].id() == LogicalTypeId::ID) {
+        } else if (cur_ext_property_type[i].id() == LogicalTypeId::ID) {
             Vector &vids = input.data[nodeColIdx];
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
@@ -1338,12 +1574,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
-                PhysicalType p_type = ext_property_type[i].InternalType();
+                PhysicalType p_type = cur_ext_property_type[i].InternalType();
                 DeCompressionFunction decomp_func(BITPACKING, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
                                        output.data[i], comp_header.data_len);
             } else {
-                size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
+                size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];
                 
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {

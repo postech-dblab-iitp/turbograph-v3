@@ -17,7 +17,7 @@ elif [ "$#" -eq 3 ]; then
 	fi
 fi
 
-iterations="--num-iterations:5"
+iterations="--num-iterations:1"
 
 run_query() {
 	query_str=$1
@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --show-top ${iterations}
+	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain --show-top ${iterations}
 }
 
 run_ldbc_s() {

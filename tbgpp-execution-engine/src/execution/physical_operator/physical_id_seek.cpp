@@ -105,14 +105,14 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
-				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_types,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_type,
 				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
-		  scan_type(scan_types), scan_projection_mapping(scan_projection_mapping), filter_pushdown_key_idx(filterKeyIndex),
-		  filter_pushdown_value(filterValue) {
+		  scan_projection_mapping(scan_projection_mapping), filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue) {
 	
 	this->inner_col_maps.push_back(std::move(inner_col_map));
 	this->outer_col_maps.push_back(std::move(outer_col_map));
+	this->scan_types.push_back(std::move(scan_type));
 	for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
 		target_types.push_back(sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
 	}
@@ -200,7 +200,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 				output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
 			}
 			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
-				target_eids, boundary_position, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, 
+				target_eids, target_seqnos_per_extent, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx, 
 				filter_pushdown_value);
 		}
 	}

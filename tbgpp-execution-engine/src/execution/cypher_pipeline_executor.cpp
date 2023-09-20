@@ -77,6 +77,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		source_chunk.Destroy();
 		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
 		FetchFromSource(source_chunk);
+		source_chunk.SetSchemaIdx(0); // TODO temporary
 
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[FetchFromSource (" << pipeline->GetSource()->ToString() << ")] num_tuples: " << source_chunk.size() << std::endl;
