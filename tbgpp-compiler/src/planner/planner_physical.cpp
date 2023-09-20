@@ -248,7 +248,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	scan_projection_mapping.push_back(scan_ident_mapping);
 
 	gpos::ULONG pred_attr_pos; duckdb::Value literal_val;
-	if(do_filter_pushdown) {
+	if (do_filter_pushdown) {
 		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 		CColRefTable *lhs_colref = (CColRefTable*)(col_factory->LookupColRef( ((CScalarIdent*)filter_pred_expr->operator[](0)->Pop())->Pcr()->Id() ));
 		gpos::INT lhs_attrnum = lhs_colref->AttrNum();
@@ -270,7 +270,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	tmp_schema.setStoredColumnNames(out_col_names);
 	duckdb::CypherPhysicalOperator* op = nullptr;
 
-	if(!do_filter_pushdown) {
+	if (!do_filter_pushdown) {
 		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping);
 	} else {
 		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, literal_val);
