@@ -335,9 +335,6 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 
 	// refer expression_type.h
 	bool child_exists = children.size() > 0;
-	CColRef* child_colref = nullptr;
-	D_ASSERT(children.size()<=1); 	// not sure yet
-	
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
 	vector<duckdb::LogicalType> child_types;
 	for (auto i = 0; i < children.size(); i++) {

@@ -872,12 +872,12 @@ unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 
     // TODO need to improve deciding literal type => need reference!
     try {
-        auto literal = make_unique<Literal>(TypeUtils::convertToUint64(ctx.DecimalInteger()->getText().c_str()));
+        auto literal = make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
         return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
     } catch (std::exception ex) {}
 
     try {
-        auto literal = make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
+        auto literal = make_unique<Literal>(TypeUtils::convertToUint64(ctx.DecimalInteger()->getText().c_str()));
         return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
     } catch (std::exception ex) {}
 
