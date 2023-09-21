@@ -210,6 +210,7 @@ bool isExpressionComparison(ExpressionType type);
 bool isExpressionNullOperator(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
+bool isExpressionScalarFunc(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
 bool isExpressionCaseElse(ExpressionType type);
 bool isExpressionFunction(ExpressionType type);
