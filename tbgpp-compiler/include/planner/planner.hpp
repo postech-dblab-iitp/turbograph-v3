@@ -351,7 +351,11 @@ private:
 		return name;
 	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
-		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
+		auto type_id = pConvertTypeOidToLogicalTypeId(oid);
+		if (type_id == duckdb::LogicalTypeId::DECIMAL) {
+			return duckdb::LogicalType::DECIMAL(12, 2); // TODO temporal
+		}
+		return duckdb::LogicalType(type_id);
 	}
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid - LOGICAL_TYPE_BASE_ID);

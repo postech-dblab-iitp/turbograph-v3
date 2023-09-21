@@ -132,8 +132,14 @@ public:
     }
 
     idx_t GetTypeSize(idx_t type_id) {
-        LogicalType tmp_type((LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
-        return GetTypeIdSize(tmp_type.InternalType());
+        LogicalTypeId type_id_ = (LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
+        if (type_id_ == LogicalTypeId::DECIMAL) {
+            LogicalType tmp_type = LogicalType::DECIMAL(12, 2); // TODO temporary
+            return GetTypeIdSize(tmp_type.InternalType());
+        } else {
+            LogicalType tmp_type((LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
+            return GetTypeIdSize(tmp_type.InternalType());
+        }
     }
 
     bool isTypeFixedLength(idx_t type_id) {

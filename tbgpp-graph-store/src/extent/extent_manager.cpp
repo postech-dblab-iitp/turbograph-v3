@@ -149,8 +149,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
-        fprintf(stdout, "[ChunkCacheManager] %s%ld Get size %ld buffer, requested buf size = %ld\n",
-            file_path_prefix.c_str(), cdf_id, buf_size, alloc_buf_size);
+        // fprintf(stdout, "[ChunkCacheManager] %s%ld Get size %ld buffer, requested buf size = %ld\n",
+        //     file_path_prefix.c_str(), cdf_id, buf_size, alloc_buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();

@@ -652,7 +652,6 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
-	fprintf(stdout, "Load backward edge = %s\n", load_backward_edge ? "True":"False");
 	for (auto &edge_file: edge_files) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
@@ -752,8 +751,12 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			vector<idx_t *> src_key_columns, dst_key_columns;
 			src_key_columns.resize(src_column_idx.size());
 			dst_key_columns.resize(dst_column_idx.size());
-			for (size_t i = 0; i < src_key_columns.size(); i++) src_key_columns[i] = (idx_t *)data.data[src_column_idx[i]].GetData();
-			for (size_t i = 0; i < dst_key_columns.size(); i++) dst_key_columns[i] = (idx_t *)data.data[dst_column_idx[i]].GetData();
+			for (size_t i = 0; i < src_key_columns.size(); i++) {
+				src_key_columns[i] = (idx_t *)data.data[src_column_idx[i]].GetData();
+			}
+			for (size_t i = 0; i < dst_key_columns.size(); i++) {
+				dst_key_columns[i] = (idx_t *)data.data[dst_column_idx[i]].GetData();
+			}
 			
 			idx_t src_seqno = 0;
 			idx_t begin_idx = 0, end_idx;
@@ -795,7 +798,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 					}
 				}
 			} else if (src_column_idx.size() == 2) {
-				while(src_seqno < max_seqno) {
+				while (src_seqno < max_seqno) {
 					src_key.first = src_key_columns[0][src_seqno];
 					src_key.second = src_key_columns[1][src_seqno];
 					cur_src_pid = src_lid_to_pid_map_instance.at(src_key);

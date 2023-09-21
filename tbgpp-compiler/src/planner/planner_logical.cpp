@@ -187,7 +187,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 	LogicalPlan *qg_plan = prev_plan;
 
 	GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
-	for (int idx=0; idx < qgc.getNumQueryGraphs(); idx++){
+	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++){
 		QueryGraph *qg = qgc.getQueryGraph(idx);
 
 		for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
@@ -287,9 +287,9 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			GPOS_ASSERT(qg_plan != nullptr);
 		}
 		// if no edge, this is single node scan case
-		if(qg->getQueryNodes().size() == 1) {
-			LogicalPlan* nodescan_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qg->getQueryNodes()[0].get(), true);
-			if(qg_plan == nullptr) {
+		if (qg->getQueryNodes().size() == 1) {
+			LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qg->getQueryNodes()[0].get(), true);
+			if (qg_plan == nullptr) {
 				qg_plan = nodescan_plan;
 			} else {
 				// cartprod
