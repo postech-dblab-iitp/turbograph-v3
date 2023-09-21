@@ -245,18 +245,18 @@ private:
 	
 	
 	// scalar expression
-	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarBoolOp(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
-	CExpression *lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
-	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarFuncExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
-	CExpression *lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarBoolOp(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarComparisonExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression* lExprScalarCmpEq(CExpression *left_expr, CExpression *right_expr);	// note that two inputs are gpos::CExpression*
+	CExpression *lTryGenerateScalarIdent(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarPropertyExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan);
+	CExpression *lExprScalarLiteralExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarAggFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -368,8 +368,11 @@ private:
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
-	static duckdb::JoinType pTranslateJoinType(COperator* op);
-	static CColRef* pGetColRefFromScalarIdent(CExpression* ident_expr);
+	static duckdb::JoinType pTranslateJoinType(COperator *op);
+	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);
+	static OID pGetTypeIdFromScalar(CExpression *expr);
+	static OID pGetTypeIdFromScalarIdent(CExpression *ident_expr);
+	static OID pGetTypeIdFromScalarConst(CExpression *const_expr);
 
 private:
 	// config

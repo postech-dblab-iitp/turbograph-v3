@@ -240,11 +240,35 @@ duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperato
 	}
 }
 
-CColRef* Planner::pGetColRefFromScalarIdent(CExpression* ident_expr) {
+CColRef *Planner::pGetColRefFromScalarIdent(CExpression *ident_expr) {
 	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	return col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
 }
 
+OID Planner::pGetTypeIdFromScalar(CExpression *expr) {
+	if (expr->Pop()->Eopid() == COperator::EopScalarIdent) {
+		return pGetTypeIdFromScalarIdent(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarConst) {
+		return pGetTypeIdFromScalarConst(expr);
+	} else {
+		D_ASSERT(false); // not implemented yet
+	}
+}
+
+OID Planner::pGetTypeIdFromScalarIdent(CExpression *ident_expr) {
+	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRef *colref = col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
+	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
+	return type_mdid->Oid();
+}
+
+OID Planner::pGetTypeIdFromScalarConst(CExpression *const_expr) {
+	D_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
+	CScalarConst *const_op = CScalarConst::PopConvert(const_expr->Pop());
+	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_op->MdidType());
+	return type_mdid->Oid();
+}
 
 }
