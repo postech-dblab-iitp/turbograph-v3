@@ -34,6 +34,10 @@ bool isExpressionAggregate(ExpressionType type) {
     return AGGREGATE_FUNCTION == type;
 }
 
+bool isExpressionScalarFunc(ExpressionType type) {
+    return FUNCTION == type;
+}
+
 bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
 }

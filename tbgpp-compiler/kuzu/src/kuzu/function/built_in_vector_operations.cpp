@@ -2,9 +2,9 @@
 
 #include "binder/expression/expression.h"
 // #include "function/arithmetic/vector_arithmetic_operations.h"
-// #include "function/cast/vector_cast_operations.h"
+#include "function/cast/vector_cast_operations.h"
 #include "function/comparison/vector_comparison_operations.h"
-// #include "function/date/vector_date_operations.h"
+#include "function/date/vector_date_operations.h"
 // #include "function/interval/vector_interval_operations.h"
 // #include "function/list/vector_list_operations.h"
 // #include "function/string/vector_string_operations.h"
@@ -16,11 +16,11 @@ namespace function {
 void BuiltInVectorOperations::registerVectorOperations() {
     registerComparisonOperations();
     // registerArithmeticOperations();
-    // registerDateOperations();
+    registerDateOperations();
     // registerTimestampOperations();
     // registerIntervalOperations();
     // registerStringOperations();
-    // registerCastOperations();
+    registerCastOperations();
     // registerListOperations();
     // registerInternalIDOperation();
 }
@@ -222,18 +222,18 @@ void BuiltInVectorOperations::registerComparisonOperations() {
 //     vectorOperations.insert({TAN_FUNC_NAME, TanVectorOperation::getDefinitions()});
 // }
 
-// void BuiltInVectorOperations::registerDateOperations() {
-//     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
-//     vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
-//     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
-//     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
-//     vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
-//     vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
-//     vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
-//     vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
-// }
+void BuiltInVectorOperations::registerDateOperations() {
+    vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
+    vectorOperations.insert({DAYNAME_FUNC_NAME, DayNameVectorOperation::getDefinitions()});
+    vectorOperations.insert({GREATEST_FUNC_NAME, GreatestVectorOperation::getDefinitions()});
+    vectorOperations.insert({LAST_DAY_FUNC_NAME, LastDayVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEAST_FUNC_NAME, LeastVectorOperation::getDefinitions()});
+    vectorOperations.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorOperation::getDefinitions()});
+    vectorOperations.insert({MONTHNAME_FUNC_NAME, MonthNameVectorOperation::getDefinitions()});
+}
 
 // void BuiltInVectorOperations::registerTimestampOperations() {
 //     vectorOperations.insert({CENTURY_FUNC_NAME, CenturyVectorOperation::getDefinitions()});
@@ -281,15 +281,15 @@ void BuiltInVectorOperations::registerComparisonOperations() {
 //     vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
 // }
 
-// void BuiltInVectorOperations::registerCastOperations() {
-//     vectorOperations.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorOperation::getDefinitions()});
-//     vectorOperations.insert(
-//         {CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampVectorOperation::getDefinitions()});
-//     vectorOperations.insert(
-//         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
-//     vectorOperations.insert(
-//         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
-// }
+void BuiltInVectorOperations::registerCastOperations() {
+    vectorOperations.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
+}
 
 // void BuiltInVectorOperations::registerListOperations() {
 //     vectorOperations.insert(

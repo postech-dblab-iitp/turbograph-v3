@@ -269,9 +269,9 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         children.push_back(move(child));
     }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
-    // if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
-    //     return staticEvaluate(functionName, parsedExpression, children);
-    // }
+    if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
+        return staticEvaluate(functionName, parsedExpression, children);
+    }
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         auto targetType =
