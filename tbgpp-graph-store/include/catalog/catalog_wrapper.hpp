@@ -51,8 +51,22 @@ public:
     }
     
     idx_t GetScalarFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
+        auto &catalog = db.GetCatalog();
+        ScalarFunctionCatalogEntry *scalarfunc_cat =
+            (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::SCALAR_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
 
-        return 0;
+        if (scalarfunc_cat == nullptr) { throw InvalidInputException("Unsupported scalar func name: " + func_name); }
+
+        auto &scalar_funcset = scalarfunc_cat->functions->functions;
+        D_ASSERT(scalar_funcset.size() <= FUNC_GROUP_SIZE);
+        std::string error_msg;
+        idx_t scalar_funcset_idx =
+            Function::BindFunction(func_name, scalar_funcset, arguments, error_msg);
+
+        if (scalar_funcset_idx == DConstants::INVALID_INDEX) { throw InvalidInputException("Unsupported scalar func"); }
+
+        idx_t scalarfunc_mdid = FUNCTION_BASE_ID + (scalarfunc_cat->GetOid() * FUNC_GROUP_SIZE) + scalar_funcset_idx;
+        return scalarfunc_mdid;
     }
 
     PartitionCatalogEntry *GetPartition(ClientContext &context, idx_t partition_oid) {

@@ -30,7 +30,10 @@ CExpression *Planner::lExprScalarExpression(Expression *expression, LogicalPlan 
 		return lExprScalarCaseElseExpr(expression, prev_plan);
 	} else if (isExpressionSubquery(expr_type)) {
 		return lExprScalarExistentialSubqueryExpr(expression, prev_plan);
-	} else {
+	} else if (isExpressionFunction(expr_type)) {
+		return lExprScalarFuncExpr(expression, prev_plan);
+	} 
+	else {
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
@@ -318,6 +321,61 @@ CExpression * Planner::lExprScalarAggFuncExpr(Expression* expression, LogicalPla
 	}
 	D_ASSERT(false);
 }
+
+
+CExpression * Planner::lExprScalarFuncExpr(Expression* expression, LogicalPlan* prev_plan) {
+	CMemoryPool *mp = this->memory_pool;
+
+    ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
+    kuzu::binder::expression_vector children = scalarfunc_expr->getChildren();
+
+    std::string func_name = (scalarfunc_expr)->getRawFuncName();
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);   // to lower case
+    D_ASSERT(func_name != "");
+
+    // refer expression_type.h
+    bool child_exists = children.size() > 0;
+    CColRef* child_colref = nullptr;
+    D_ASSERT(children.size()<=1);   // not sure yet
+
+    CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
+    vector<duckdb::LogicalType> child_types;
+    for (auto i = 0; i < children.size(); i++) {
+        CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan);
+        child_exprs->Append(child_expr);
+        CColRef* colref = pGetColRefFromScalarIdent(child_expr);
+        CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
+        OID type_oid = type_mdid->Oid();
+        child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+    }
+
+    // refer expression_type.h for kuzu function names
+    duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetScalarFuncMdId(*context, func_name, child_types);
+    
+	
+	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);
+    func_mdid->AddRef();
+    const IMDFunction *pmdscalar = lGetMDAccessor()->RetrieveFunc(func_mdid);
+    IMDId *scalarfunc_mdid = pmdscalar->MDId();
+    scalarfunc_mdid->AddRef();
+    CWStringConst *str = GPOS_NEW(mp)
+        CWStringConst(mp, pmdscalar->Mdname().GetMDName()->GetBuffer());
+		
+    IMDId *mdid_return_type = pmdscalar->GetResultTypeMdid();
+    COperator *pop = GPOS_NEW(mp) CScalarFunc(
+            mp, scalarfunc_mdid, mdid_return_type, 0/*pdxlopFuncExpr->TypeModifier()*/, str);
+    CExpression *pexpr;
+    if (child_exists) {
+        pexpr = GPOS_NEW(mp)
+            CExpression(mp, pop, child_exprs);
+    } else {
+        pexpr = GPOS_NEW(mp)
+            CExpression(mp, pop);
+    }
+    pexpr->AddRef();
+    return pexpr;
+}
+
 
 CExpression *Planner::lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan) {
 	CMemoryPool* mp = this->memory_pool;

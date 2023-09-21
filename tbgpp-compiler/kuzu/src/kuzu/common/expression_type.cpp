@@ -42,6 +42,10 @@ bool isExpressionCaseElse(ExpressionType type) {
     return CASE_ELSE == type;
 }
 
+bool isExpressionFunction(ExpressionType type) {
+    return FUNCTION == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:

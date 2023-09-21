@@ -212,6 +212,7 @@ bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
 bool isExpressionCaseElse(ExpressionType type);
+bool isExpressionFunction(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 
