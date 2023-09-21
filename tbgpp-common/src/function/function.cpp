@@ -308,7 +308,6 @@ static int64_t BindFunctionCost(SimpleFunction &func, vector<LogicalType> &argum
 	}
 	if (func.arguments.size() != arguments.size()) {
 		// invalid argument count: check the next function
-		fprintf(stdout, "A\n");
 		return -1;
 	}
 	int64_t cost = 0;
@@ -318,7 +317,6 @@ static int64_t BindFunctionCost(SimpleFunction &func, vector<LogicalType> &argum
 			continue;
 		}
 		int64_t cast_cost = CastRules::ImplicitCast(arguments[i], func.arguments[i]);
-		fprintf(stdout, "Cast %d -> %d cost: %ld\n", arguments[i].id(), func.arguments[i].id(), cast_cost);
 		if (cast_cost >= 0) {
 			// we can implicitly cast, add the cost to the total cost
 			cost += cast_cost;
@@ -340,7 +338,6 @@ static idx_t BindFunctionFromArguments(const string &name, vector<T> &functions,
 		auto &func = functions[f_idx];
 		// check the arguments of the function
 		int64_t cost = BindFunctionCost(func, arguments);
-		fprintf(stdout, "arguments.id: (%d, %d), cost: %ld\n", arguments[0].id(), arguments[1].id(), cost);
 		if (cost < 0) {
 			// auto casting was not possible
 			continue;
