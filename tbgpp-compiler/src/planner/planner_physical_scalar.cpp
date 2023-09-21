@@ -141,15 +141,17 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	D_ASSERT(child.size() <= 1);
 
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
-	auto aggfunc_catalog_entry = context->db->GetCatalogWrapper().GetAggFunc(*context, agg_func_id);
+	duckdb::AggregateFunctionCatalogEntry *aggfunc_catalog_entry;
+	duckdb::idx_t function_idx;
+	context->db->GetCatalogWrapper().GetAggFuncAndIdx(*context, agg_func_id, aggfunc_catalog_entry, function_idx);
 
-	vector<duckdb::LogicalType> arguments;
-	for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
-	auto& functions = aggfunc_catalog_entry->functions.get()->functions;
-	std::string error_string;
+	// vector<duckdb::LogicalType> arguments;
+	// for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
+	auto &functions = aggfunc_catalog_entry->functions.get()->functions;
+	// std::string error_string;
 
-	duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(aggfunc_catalog_entry->name), functions, arguments, error_string);
-	D_ASSERT(function_idx != duckdb::idx_t(-1));
+	// duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(aggfunc_catalog_entry->name), functions, arguments, error_string);
+	// D_ASSERT(function_idx != duckdb::idx_t(-1));
 
 	// return duckdb::AggregateFunction::BindAggregateFunction(
 	// 	*context, functions[function_idx], move(child), nullptr, op->IsDistinct(), nullptr
@@ -170,16 +172,11 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scala
 	}
 
 	OID func_id = CMDIdGPDB::CastMdid(op->FuncMdId())->Oid();
-	auto func_catalog_entry = context->db->GetCatalogWrapper().GetScalarFunc(*context, func_id);
+	duckdb::ScalarFunctionCatalogEntry *func_catalog_entry;
+	duckdb::idx_t function_idx;
+	context->db->GetCatalogWrapper().GetScalarFuncAndIdx(*context, func_id, func_catalog_entry, function_idx);
 
-	vector<duckdb::LogicalType> arguments;
-	for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
-	auto& functions = func_catalog_entry->functions.get()->functions;
-	std::string error_string;
-
-	duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(func_catalog_entry->name), functions, arguments, error_string);
-	D_ASSERT(function_idx != duckdb::idx_t(-1));
-	auto function = functions[function_idx];
+	auto function = func_catalog_entry->functions.get()->functions[function_idx];
 
 	return make_unique<duckdb::BoundFunctionExpression>(
 		function.return_type, function, std::move(child), nullptr);

@@ -57,6 +57,14 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::DATE: {
+				out_length = 4;
+				int32_t val = kuzu_literal->val.dateVal.days;
+				int32_t *mem_ptr = (int32_t *)malloc(out_length);
+				(*mem_ptr) = val;
+				out_mem_ptr = (void *)mem_ptr;
+				break;
+			}
 			default:
 				D_ASSERT(false);
 		}
@@ -106,6 +114,10 @@ public:
 			case duckdb::LogicalType::BOOLEAN: {
 				int8_t value = *((int8_t*)mem_ptr);
 				return duckdb::Value::BOOLEAN(value);
+			}
+			case duckdb::LogicalType::DATE: {
+				int32_t value = *((int32_t *)mem_ptr);
+				return duckdb::Value::DATE(duckdb::date_t(value));
 			}
 			default:
 				D_ASSERT(false);
