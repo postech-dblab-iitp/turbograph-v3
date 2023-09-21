@@ -1979,7 +1979,6 @@ CTranslatorTBGPPToDXL::LookupFuncProps(
 CMDFunctionGPDB *
 CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 {
-	D_ASSERT(false);
 	OID func_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 	GPOS_ASSERT(InvalidOid != func_oid);
