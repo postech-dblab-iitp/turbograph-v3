@@ -1928,44 +1928,44 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::LookupFuncProps
-// //
-// //	@doc:
-// //		Lookup function properties
-// //
-// //---------------------------------------------------------------------------
-// void
-// CTranslatorTBGPPToDXL::LookupFuncProps(
-// 	OID func_oid,
-// 	IMDFunction::EFuncStbl *stability,	// output: function stability
-// 	IMDFunction::EFuncDataAcc *access,	// output: function datya access
-// 	BOOL *is_strict,					// output: is function strict?
-// 	BOOL *is_ndv_preserving,			// output: preserves NDVs of inputs
-// 	BOOL *returns_set,					// output: does function return set?
-// 	BOOL *
-// 		is_allowed_for_PS  // output: is this a lossy (non-implicit) cast which is allowed for Partition selection
-// )
-// {
-// 	GPOS_ASSERT(NULL != stability);
-// 	GPOS_ASSERT(NULL != access);
-// 	GPOS_ASSERT(NULL != is_strict);
-// 	GPOS_ASSERT(NULL != is_ndv_preserving);
-// 	GPOS_ASSERT(NULL != returns_set);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::LookupFuncProps
+//
+//	@doc:
+//		Lookup function properties
+//
+//---------------------------------------------------------------------------
+void
+CTranslatorTBGPPToDXL::LookupFuncProps(
+	OID func_oid,
+	IMDFunction::EFuncStbl *stability,	// output: function stability
+	IMDFunction::EFuncDataAcc *access,	// output: function datya access
+	BOOL *is_strict,					// output: is function strict?
+	BOOL *is_ndv_preserving,			// output: preserves NDVs of inputs
+	BOOL *returns_set,					// output: does function return set?
+	BOOL *
+		is_allowed_for_PS  // output: is this a lossy (non-implicit) cast which is allowed for Partition selection
+)
+{
+	GPOS_ASSERT(NULL != stability);
+	GPOS_ASSERT(NULL != access);
+	GPOS_ASSERT(NULL != is_strict);
+	GPOS_ASSERT(NULL != is_ndv_preserving);
+	GPOS_ASSERT(NULL != returns_set);
 
-// 	*stability = GetFuncStability(gpdb::FuncStability(func_oid));
-// 	*access = GetEFuncDataAccess(gpdb::FuncDataAccess(func_oid));
+	// *stability = GetFuncStability(gpdb::FuncStability(func_oid));
+	// *access = GetEFuncDataAccess(gpdb::FuncDataAccess(func_oid));
 
-// 	if (gpdb::FuncExecLocation(func_oid) != PROEXECLOCATION_ANY)
-// 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-// 				   GPOS_WSZ_LIT("unsupported exec location"));
+	// if (gpdb::FuncExecLocation(func_oid) != PROEXECLOCATION_ANY)
+	// 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+	// 			   GPOS_WSZ_LIT("unsupported exec location"));
 
-// 	*returns_set = gpdb::GetFuncRetset(func_oid);
-// 	*is_strict = gpdb::FuncStrict(func_oid);
-// 	*is_ndv_preserving = gpdb::IsFuncNDVPreserving(func_oid);
-// 	*is_allowed_for_PS = gpdb::IsFuncAllowedForPartitionSelection(func_oid);
-// }
+	// *returns_set = gpdb::GetFuncRetset(func_oid);
+	// *is_strict = gpdb::FuncStrict(func_oid);
+	// *is_ndv_preserving = gpdb::IsFuncNDVPreserving(func_oid);
+	// *is_allowed_for_PS = gpdb::IsFuncAllowedForPartitionSelection(func_oid);
+}
 
 
 //---------------------------------------------------------------------------
@@ -1984,34 +1984,41 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 
 	GPOS_ASSERT(InvalidOid != func_oid);
 
-	// // get func name
-	// CHAR *name = gpdb::GetFuncName(func_oid);
+	// get aggfunc catalog entry
+	duckdb::ScalarFunctionCatalogEntry *scalar_func_cat =
+		duckdb::GetScalarFunc(func_oid);
 
-	// if (NULL == name)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid->GetBuffer());
-	// }
+	// get func name
+	string name_str = scalar_func_cat->GetName();
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str());
 
-	// CWStringDynamic *func_name_str =
-	// 	CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
-	// CMDName *mdname = GPOS_NEW(mp) CMDName(mp, func_name_str);
+	if (NULL == name)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid->GetBuffer());
+	}
 
-	// // CMDName ctor created a copy of the string
-	// GPOS_DELETE(func_name_str);
+	CWStringDynamic *func_name_str =
+		CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
+	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, func_name_str);
 
-	// // get result type
-	// OID result_oid = gpdb::GetFuncRetType(func_oid);
+	// CMDName ctor created a copy of the string
+	GPOS_DELETE(func_name_str);
 
-	// GPOS_ASSERT(InvalidOid != result_oid);
+	// get result type
+	idx_t scalar_func_idx = duckdb::GetScalarFuncIndex(func_oid);
+	GPOS_ASSERT(scalar_func_cat->functions->functions.size() > scalar_func_idx);
+	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) scalar_func_cat->functions->functions[scalar_func_idx].return_type.id();
 
-	// CMDIdGPDB *result_type_mdid =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+	GPOS_ASSERT(InvalidOid != result_oid);
 
-	// // get output argument types if any
+	CMDIdGPDB *result_type_mdid =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+
+	// get output argument types if any
 	// List *out_arg_types_list = gpdb::GetFuncOutputArgTypes(func_oid);
 
-	// IMdIdArray *arg_type_mdids = NULL;
+	IMdIdArray *arg_type_mdids = NULL;
 	// if (NULL != out_arg_types_list)
 	// {
 	// 	ListCell *lc = NULL;
@@ -2029,21 +2036,21 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 	// 	gpdb::GPDBFree(out_arg_types_list);
 	// }
 
-	// IMDFunction::EFuncStbl stability = IMDFunction::EfsImmutable;
-	// IMDFunction::EFuncDataAcc access = IMDFunction::EfdaNoSQL;
-	// BOOL is_strict = true;
-	// BOOL returns_set = true;
-	// BOOL is_ndv_preserving = true;
-	// BOOL is_allowed_for_PS = false;
+	IMDFunction::EFuncStbl stability = IMDFunction::EfsImmutable;
+	IMDFunction::EFuncDataAcc access = IMDFunction::EfdaNoSQL;
+	BOOL is_strict = true;
+	BOOL returns_set = true;
+	BOOL is_ndv_preserving = true;
+	BOOL is_allowed_for_PS = false;
 	// LookupFuncProps(func_oid, &stability, &access, &is_strict,
 	// 				&is_ndv_preserving, &returns_set, &is_allowed_for_PS);
 
-	// mdid->AddRef();
-	// CMDFunctionGPDB *md_func = GPOS_NEW(mp) CMDFunctionGPDB(
-	// 	mp, mdid, mdname, result_type_mdid, arg_type_mdids, returns_set,
-	// 	stability, access, is_strict, is_ndv_preserving, is_allowed_for_PS);
+	mdid->AddRef();
+	CMDFunctionGPDB *md_func = GPOS_NEW(mp) CMDFunctionGPDB(
+		mp, mdid, mdname, result_type_mdid, arg_type_mdids, returns_set,
+		stability, access, is_strict, is_ndv_preserving, is_allowed_for_PS);
 
-	// return md_func;
+	return md_func;
 }
 
 //---------------------------------------------------------------------------
