@@ -44,12 +44,12 @@ duckdb::GetLogicalIndexType(Oid index_oid)
 	return IndexType::ART;
 }
 
-duckdb::PartitionCatalogEntry*
+duckdb::PartitionCatalogEntry *
 duckdb::GetPartition(idx_t partition_oid) {
 	return catalog_wrapper->GetPartition(*client_wrapper.get(), partition_oid);
 }
 
-duckdb::PropertySchemaCatalogEntry*
+duckdb::PropertySchemaCatalogEntry *
 duckdb::GetRelation(idx_t rel_oid) {
 	// GP_WRAP_START;
 	{
@@ -60,14 +60,24 @@ duckdb::GetRelation(idx_t rel_oid) {
 	return NULL;
 }
 
-duckdb::AggregateFunctionCatalogEntry*
+duckdb::AggregateFunctionCatalogEntry *
 duckdb::GetAggFunc(idx_t aggfunc_oid) {
 	return catalog_wrapper->GetAggFunc(*client_wrapper.get(), aggfunc_oid);
+}
+
+duckdb::ScalarFunctionCatalogEntry *
+duckdb::GetScalarFunc(idx_t scalarfunc_oid) {
+	return catalog_wrapper->GetScalarFunc(*client_wrapper.get(), scalarfunc_oid);
 }
 
 idx_t
 duckdb::GetAggFuncIndex(idx_t aggfunc_oid) {
 	return (aggfunc_oid - FUNCTION_BASE_ID) % 65536;
+}
+
+idx_t
+duckdb::GetScalarFuncIndex(idx_t scalarfunc_oid) {
+	return (scalarfunc_oid - FUNCTION_BASE_ID) % 65536;
 }
 
 idx_t
