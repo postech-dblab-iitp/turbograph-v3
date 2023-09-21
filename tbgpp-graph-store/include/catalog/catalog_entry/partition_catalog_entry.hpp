@@ -51,6 +51,7 @@ public:
 	idx_t_vector adjlist_indexes;
 	idx_t_vector property_indexes;
 	LogicalTypeId_vector global_property_typesid;
+	uint16_t_vector extra_typeinfo_vec;
 	string_vector global_property_key_names;
 	idx_t num_columns;
 	atomic<ExtentID> local_extent_id_version;

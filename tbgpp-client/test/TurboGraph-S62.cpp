@@ -629,16 +629,12 @@ icecream::ic.disable();
 	string query_str;
 
 	if (is_query_string_given) {
-		// try {
-		// 	// protected code
-		// 	CompileAndRun(input_query_string, client);
-		// } catch( std::exception e1 ) {
-		// 	std::cerr << e1.what() << std::endl;
-		// }
 		CompileAndRun(input_query_string, client, planner);
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
+			// input_cmd.reset(readline(shell_prompt.c_str()));
+			// query_str = input_cmd.get();
 			// std::cout << "TurboGraph-S62 >> ";
 			// std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
 			// check termination

@@ -55,7 +55,7 @@ cat ${basedir}/lineitem_suppliedBy_supplier.tbl | sort -t '|' -n -k 3 -k 1 -k 2 
 cat ${basedir}/nation_isLocatedIn_region.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/nation_isLocatedIn_region.tbl.backward
 cat ${basedir}/orders_madeBy_customer.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/orders_madeBy_customer.tbl.backward
 cat ${basedir}/supplier_belongTo_nation.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/supplier_belongTo_nation.tbl.backward
-cat ${basedir}/partsupp.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1"|"$3"|"$4"|"$5}' > ${basedir}/partsupp.tbl.backward
+tail -n+2 ${basedir}/partsupp.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1"|"$3"|"$4"|"$5}' > ${basedir}/partsupp.tbl.backward
 
 # Insert edge header
 edge_list=(
