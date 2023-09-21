@@ -101,6 +101,7 @@
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarFunc.h"
 #include "gpopt/operators/CScalarAggFunc.h"
 #include "gpopt/operators/CScalarValuesList.h"
 
@@ -253,6 +254,7 @@ private:
 	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
 	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
+	CExpression *lExprScalarFuncExpr(Expression* expression, LogicalPlan* prev_plan);
 	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
 	CExpression *lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan);
 
@@ -327,6 +329,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 

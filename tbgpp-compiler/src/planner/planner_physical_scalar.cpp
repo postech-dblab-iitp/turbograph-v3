@@ -10,6 +10,7 @@
 #include "planner/expression/bound_operator_expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
+#include "planner/expression/bound_function_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
 #include "planner/expression/bound_cast_expression.hpp"
 
@@ -25,6 +26,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, child_cols, rhs_child_cols);
 		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, child_cols, rhs_child_cols);
 		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, child_cols, rhs_child_cols);
+		case COperator::EopScalarFunc: return pTransformScalarFunc(scalar_expr, child_cols, rhs_child_cols);
 		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, child_cols, rhs_child_cols);
 		default:
 			D_ASSERT(false); // NOT implemented yet
@@ -156,6 +158,31 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	return make_unique<duckdb::BoundAggregateExpression>(
 		functions[function_idx], std::move(child), nullptr, nullptr, op->IsDistinct());
 	
+}
+
+unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+	CScalarFunc* op = (CScalarFunc*)scalar_expr->Pop();
+	CExpressionArray* scalarfunc_exprs = scalar_expr->PdrgPexpr();
+
+	vector<unique_ptr<duckdb::Expression>> child;
+	for (ULONG child_idx = 0; child_idx < scalarfunc_exprs->Size(); child_idx++) {
+		child.push_back(pTransformScalarExpr(scalarfunc_exprs->operator[](child_idx), child_cols, rhs_child_cols));
+	}
+
+	OID func_id = CMDIdGPDB::CastMdid(op->FuncMdId())->Oid();
+	auto func_catalog_entry = context->db->GetCatalogWrapper().GetScalarFunc(*context, func_id);
+
+	vector<duckdb::LogicalType> arguments;
+	for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
+	auto& functions = func_catalog_entry->functions.get()->functions;
+	std::string error_string;
+
+	duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(func_catalog_entry->name), functions, arguments, error_string);
+	D_ASSERT(function_idx != duckdb::idx_t(-1));
+	auto function = functions[function_idx];
+
+	return make_unique<duckdb::BoundFunctionExpression>(
+		function.return_type, function, std::move(child), nullptr);
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols) {
