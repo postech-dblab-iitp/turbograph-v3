@@ -2815,7 +2815,7 @@ CTranslatorTBGPPToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
 
 	OID src_oid = CMDIdGPDB::CastMdid(mdid_src)->Oid();
 	OID dest_oid = CMDIdGPDB::CastMdid(mdid_dest)->Oid();
-	// CoercionPathType pathtype;
+	CoercionPathType pathtype;
 
 	OID cast_fn_oid = 0;
 	BOOL is_binary_coercible = false;
