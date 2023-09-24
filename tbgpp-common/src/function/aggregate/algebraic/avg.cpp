@@ -170,7 +170,8 @@ AggregateFunction GetAverageAggregate(PhysicalType type) {
 
 unique_ptr<FunctionData> BindDecimalAvg(ClientContext &context, AggregateFunction &function,
                                         vector<unique_ptr<Expression>> &arguments) {
-	auto decimal_type = arguments[0]->return_type;
+	// auto decimal_type = arguments[0]->return_type;
+	LogicalType decimal_type = LogicalType::DECIMAL(12, 2); // TODO decimal temporary
 	function = GetAverageAggregate(decimal_type.InternalType());
 	function.name = "avg";
 	function.arguments[0] = decimal_type;
@@ -181,8 +182,10 @@ unique_ptr<FunctionData> BindDecimalAvg(ClientContext &context, AggregateFunctio
 
 void AvgFun::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet avg("avg");
-	avg.AddFunction(AggregateFunction({LogicalTypeId::DECIMAL}, LogicalTypeId::DECIMAL, nullptr, nullptr, nullptr,
-	                                  nullptr, nullptr, true, nullptr, BindDecimalAvg));
+	// avg.AddFunction(AggregateFunction({LogicalTypeId::DECIMAL}, LogicalTypeId::DECIMAL, nullptr, nullptr, nullptr,
+	//                                   nullptr, nullptr, true, nullptr, BindDecimalAvg));
+	avg.AddFunction(AggregateFunction({LogicalTypeId::DECIMAL}, LogicalTypeId::DOUBLE, nullptr, nullptr, nullptr,
+	                                  nullptr, nullptr, true, nullptr, BindDecimalAvg)); // TODO decimal temporary
 	avg.AddFunction(GetAverageAggregate(PhysicalType::INT16));
 	avg.AddFunction(GetAverageAggregate(PhysicalType::INT32));
 	avg.AddFunction(GetAverageAggregate(PhysicalType::INT64));

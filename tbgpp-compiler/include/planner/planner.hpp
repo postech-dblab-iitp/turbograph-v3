@@ -356,7 +356,7 @@ private:
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
 		auto type_id = pConvertTypeOidToLogicalTypeId(oid);
 		if (type_id == duckdb::LogicalTypeId::DECIMAL) {
-			return duckdb::LogicalType::DECIMAL(12, 2); // TODO temporal
+			return duckdb::LogicalType::DECIMAL(12, 2); // TODO decimal temporary
 		}
 		return duckdb::LogicalType(type_id);
 	}
@@ -373,6 +373,7 @@ private:
 	static OID pGetTypeIdFromScalar(CExpression *expr);
 	static OID pGetTypeIdFromScalarIdent(CExpression *ident_expr);
 	static OID pGetTypeIdFromScalarConst(CExpression *const_expr);
+	static OID pGetTypeIdFromScalarFunc(CExpression *func_expr);
 
 private:
 	// config

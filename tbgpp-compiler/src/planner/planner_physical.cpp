@@ -1367,7 +1367,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
 		OID type_oid = type_mdid->Oid();
 		ULONG ref_col_idx = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col);
-		std::cout << "col_id: " << col_id << ", ref_col_idx: " << ref_col_idx << std::endl;
+		// std::cout << "col_id: " << col_id << ", ref_col_idx: " << ref_col_idx << std::endl;
 		
 		unique_ptr<duckdb::Expression> order_expr =
 			make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid),

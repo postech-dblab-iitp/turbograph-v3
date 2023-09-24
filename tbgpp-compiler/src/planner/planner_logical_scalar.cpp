@@ -279,21 +279,32 @@ CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expressi
 
 	// refer expression_type.h
 	bool child_exists = children.size() > 0;
-	CColRef* child_colref = nullptr;
+	CColRef *child_colref = nullptr;
 	D_ASSERT(children.size()<=1); 	// not sure yet
 	
-	vector<CExpression*> child_exprs;
-	vector<duckdb::LogicalType> child_types;
-	if (child_exists) {
-		CExpression* child_expr = lExprScalarExpression(children[0].get(), prev_plan);
-		D_ASSERT(child_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
-		child_exprs.push_back(child_expr);
+	// vector<duckdb::LogicalType> child_types;
+	// if (child_exists) {
+	// 	CExpression* child_expr = lExprScalarExpression(children[0].get(), prev_plan);
+	// 	D_ASSERT(child_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
+	// 	child_exprs.push_back(child_expr);
 
-		CColRef *colref = pGetColRefFromScalarIdent(child_expr);
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
-		OID type_oid = type_mdid->Oid();
+	// 	CColRef *colref = pGetColRefFromScalarIdent(child_expr);
+	// 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
+	// 	OID type_oid = type_mdid->Oid();
+	// 	child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	// 	child_colref = colref;
+
+	// 	OID type_oid = pGetTypeIdFromScalar(child_expr);
+	// }
+
+	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
+	vector<duckdb::LogicalType> child_types;
+	for (auto i = 0; i < children.size(); i++) {
+		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan);
+		child_exprs->Append(child_expr);
+
+		OID type_oid = pGetTypeIdFromScalar(child_expr);
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
-		child_colref = colref;
 	}
 	// refer expression_type.h for kuzu function names
 	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
@@ -308,19 +319,27 @@ CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expressi
 		CWStringConst(mp, pmdagg->Mdname().GetMDName()->GetBuffer());
 
 	// refer cutils.h
-	if(child_exists) {
-		return CUtils::PexprAggFunc(mp, agg_mdid, str, child_colref, aggfunc_expr->isDistinct(),
-						EaggfuncstageGlobal /*fGlobal*/, false /*fSplit*/);
-	} else {
-		CScalarAggFunc *popScAggFunc = CUtils::PopAggFunc(mp, agg_mdid, str, aggfunc_expr->isDistinct() /*is_distinct*/,
-				   EaggfuncstageGlobal /*eaggfuncstage*/, false /*fSplit*/, NULL, EaggfunckindNormal);
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp); // empty child
-		CExpression *pexpr = GPOS_NEW(mp)
-			CExpression(mp, popScAggFunc, CUtils::PexprAggFuncArgs(mp, pdrgpexprChildren));
-		pexpr->AddRef();
-		return pexpr;
-	}
-	D_ASSERT(false);
+	// if (child_exists) {
+	// 	return CUtils::PexprAggFunc(mp, agg_mdid, str, child_colref, aggfunc_expr->isDistinct(),
+	// 					EaggfuncstageGlobal /*fGlobal*/, false /*fSplit*/);
+	// } else {
+	// 	CScalarAggFunc *popScAggFunc = CUtils::PopAggFunc(mp, agg_mdid, str, aggfunc_expr->isDistinct() /*is_distinct*/,
+	// 			   EaggfuncstageGlobal /*eaggfuncstage*/, false /*fSplit*/, NULL, EaggfunckindNormal);
+	// 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp); // empty child
+	// 	CExpression *pexpr = GPOS_NEW(mp)
+	// 		CExpression(mp, popScAggFunc, CUtils::PexprAggFuncArgs(mp, pdrgpexprChildren));
+	// 	pexpr->AddRef();
+	// 	return pexpr;
+	// }
+
+	CScalarAggFunc *popScAggFunc = CUtils::PopAggFunc(mp, agg_mdid, str, aggfunc_expr->isDistinct() /*is_distinct*/,
+				EaggfuncstageGlobal /*eaggfuncstage*/, false /*fSplit*/, NULL, EaggfunckindNormal);
+	// CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp); // empty child
+	CExpression *pexpr = GPOS_NEW(mp)
+		CExpression(mp, popScAggFunc, CUtils::PexprAggFuncArgs(mp, child_exprs));
+	pexpr->AddRef();
+	return pexpr;
+	// D_ASSERT(false);
 }
 
 CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *prev_plan) {

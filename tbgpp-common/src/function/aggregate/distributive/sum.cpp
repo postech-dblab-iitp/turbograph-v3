@@ -159,7 +159,8 @@ AggregateFunction SumFun::GetSumAggregate(PhysicalType type) {
 
 unique_ptr<FunctionData> BindDecimalSum(ClientContext &context, AggregateFunction &function,
                                         vector<unique_ptr<Expression>> &arguments) {
-	auto decimal_type = arguments[0]->return_type;
+	// auto decimal_type = arguments[0]->return_type;
+	LogicalType decimal_type = LogicalType::DECIMAL(12, 2); // TODO decimal temporary
 	function = SumFun::GetSumAggregate(decimal_type.InternalType());
 	function.name = "sum";
 	function.arguments[0] = decimal_type;
