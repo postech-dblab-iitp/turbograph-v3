@@ -5,7 +5,7 @@ workspace=$2
 debug_plan=$3
 
 if [ "$#" -eq 1 ]; then
-	workspace="/data/ldbc/sf1_230919/"
+	workspace="/data/tpch/sf1/"
 	debug_plan_option=""
 elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo $query_str
-	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain --show-top ${iterations}
+	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations}
 }
 
 run_ldbc_s() {
@@ -620,10 +620,54 @@ run_ldbc() {
 	run_ldbc_c
 }
 
+run_tpch1() {
+	# TPC-H Q1 Pricing Summary Report Query
+	run_query "MATCH (item:LINEITEM)
+		WHERE item.L_SHIPDATE <= date('1998-12-01')
+		WITH
+			item,
+			item.L_RETURNFLAG AS ret_flag,
+			item.L_LINESTATUS AS line_stat,
+			item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT) AS disc_price,
+			item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX) AS charge
+		RETURN
+			ret_flag,
+			line_stat,
+			sum(item.L_QUANTITY) AS sum_qty,
+			sum(item.L_EXTENDEDPRICE) AS sum_base_price,
+			sum(disc_price) AS sum_disc_price,
+			sum(charge) AS sum_charge,
+			avg(item.L_QUANTITY) AS avg_qty,
+			avg(item.L_EXTENDEDPRICE) AS avg_price,
+			avg(item.L_DISCOUNT) AS avg_disc,
+			COUNT(*) AS count_order
+		ORDER BY
+			ret_flag,
+			line_stat" 0
+}
+
+run_tpch() {
+	# TPC-H
+	echo "RUN TPC-H"
+	echo "Enter queries to run (query_num|All)"
+	read -a queries
+
+	for query in "${queries[@]}"; do
+		echo "RUN TPC-H query" $query
+		if [ $query == 'All' ]; then
+			run_tpch1
+		else
+			run_tpch${query}
+		fi
+	done
+}
+
 if [ $workload_type == "ldbc" ]; then
 	run_ldbc
 elif [ $workload_type == "ldbc_s" ]; then
 	run_ldbc_s
 elif [ $workload_type == "ldbc_c" ]; then
 	run_ldbc_c
+elif [ $workload_type == "tpch" ]; then
+	run_tpch
 fi

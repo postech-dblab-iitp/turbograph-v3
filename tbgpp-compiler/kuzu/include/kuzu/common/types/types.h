@@ -127,7 +127,7 @@ public:
         //     };
         // currently supported integer types
         return std::vector<DataTypeID>{
-            INT64, DOUBLE, INTEGER, FLOAT, UINTEGER, UBIGINT// added in duckdb
+            INT64, DOUBLE, INTEGER, FLOAT, UINTEGER, UBIGINT, DECIMAL// added in duckdb
             };
     }
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {

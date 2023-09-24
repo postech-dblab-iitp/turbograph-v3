@@ -145,21 +145,20 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	duckdb::idx_t function_idx;
 	context->db->GetCatalogWrapper().GetAggFuncAndIdx(*context, agg_func_id, aggfunc_catalog_entry, function_idx);
 
-	// vector<duckdb::LogicalType> arguments;
-	// for(auto& ch: child) { arguments.push_back(ch.get()->return_type); }
 	auto &functions = aggfunc_catalog_entry->functions.get()->functions;
-	// std::string error_string;
+	auto &function = functions[function_idx];
+	unique_ptr<duckdb::FunctionData> bind_info;
+	if (function.bind) {
+		bind_info = function.bind(*context, function, child);
+		child.resize(std::min(function.arguments.size(), child.size()));
+	}
 
-	// duckdb::idx_t function_idx = duckdb::Function::BindFunction(std::string(aggfunc_catalog_entry->name), functions, arguments, error_string);
-	// D_ASSERT(function_idx != duckdb::idx_t(-1));
+	// function.CastToFunctionArguments(child); // need?
 
-	// return duckdb::AggregateFunction::BindAggregateFunction(
-	// 	*context, functions[function_idx], move(child), nullptr, op->IsDistinct(), nullptr
-	// );	// TODO currently no support on GB having and aggregate orderbys
-
+	// return make_unique<duckdb::BoundAggregateExpression>(
+	// 	functions[function_idx], std::move(child), nullptr, nullptr, op->IsDistinct());
 	return make_unique<duckdb::BoundAggregateExpression>(
-		functions[function_idx], std::move(child), nullptr, nullptr, op->IsDistinct());
-	
+		function, std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
@@ -177,9 +176,14 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scala
 	context->db->GetCatalogWrapper().GetScalarFuncAndIdx(*context, func_id, func_catalog_entry, function_idx);
 
 	auto function = func_catalog_entry->functions.get()->functions[function_idx];
+	unique_ptr<duckdb::FunctionData> bind_info;
+	if (function.bind) {
+		bind_info = function.bind(*context, function, child);
+		child.resize(std::min(function.arguments.size(), child.size()));
+	}
 
 	return make_unique<duckdb::BoundFunctionExpression>(
-		function.return_type, function, std::move(child), nullptr);
+		function.return_type, function, std::move(child), std::move(bind_info));
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols) {
@@ -248,6 +252,8 @@ OID Planner::pGetTypeIdFromScalar(CExpression *expr) {
 		return pGetTypeIdFromScalarIdent(expr);
 	} else if (expr->Pop()->Eopid() == COperator::EopScalarConst) {
 		return pGetTypeIdFromScalarConst(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarFunc) {
+		return pGetTypeIdFromScalarFunc(expr);
 	} else {
 		D_ASSERT(false); // not implemented yet
 	}
@@ -264,6 +270,13 @@ OID Planner::pGetTypeIdFromScalarIdent(CExpression *ident_expr) {
 OID Planner::pGetTypeIdFromScalarConst(CExpression *const_expr) {
 	D_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
 	CScalarConst *const_op = CScalarConst::PopConvert(const_expr->Pop());
+	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_op->MdidType());
+	return type_mdid->Oid();
+}
+
+OID Planner::pGetTypeIdFromScalarFunc(CExpression *func_expr) {
+	D_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
+	CScalarFunc *const_op = CScalarFunc::PopConvert(func_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_op->MdidType());
 	return type_mdid->Oid();
 }

@@ -82,6 +82,7 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::DOUBLE:
 		return PhysicalType::DOUBLE;
 	case LogicalTypeId::DECIMAL: {
+		return PhysicalType::INT64; // TODO decimal temporary for TPC-H
 		if (!type_info_) {
 			return PhysicalType::INVALID;
 		}
@@ -710,8 +711,10 @@ bool LogicalType::GetDecimalProperties(uint8_t &width, uint8_t &scale) const {
 		scale = 0;
 		break;
 	case LogicalTypeId::DECIMAL:
-		width = DecimalType::GetWidth(*this);
-		scale = DecimalType::GetScale(*this);
+		// width = DecimalType::GetWidth(*this); // TODO decimal temporary
+		// scale = DecimalType::GetScale(*this);
+		width = 12;
+		scale = 2;
 		break;
 	default:
 		return false;

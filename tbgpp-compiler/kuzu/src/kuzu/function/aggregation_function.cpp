@@ -38,8 +38,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
 	case UINTEGER:
 	case UBIGINT:
     case INT64:
-        return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     case DOUBLE:
+    case DECIMAL:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
@@ -59,8 +59,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
 	case UINTEGER:
 	case UBIGINT:
 	case INT64:
-        return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     case DOUBLE:
+    case DECIMAL:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
