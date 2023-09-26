@@ -329,6 +329,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, duckdb::LogicalTypeId child_ref_type_id, int child_ref_idx, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
@@ -374,6 +375,7 @@ private:
 	static OID pGetTypeIdFromScalarIdent(CExpression *ident_expr);
 	static OID pGetTypeIdFromScalarConst(CExpression *const_expr);
 	static OID pGetTypeIdFromScalarFunc(CExpression *func_expr);
+	static OID pGetTypeIdFromScalarAggFunc(CExpression *agg_expr);
 
 private:
 	// config

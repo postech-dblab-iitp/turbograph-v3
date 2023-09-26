@@ -59,6 +59,8 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
         return NODE_ID;
     } else if ("INT64" == dataTypeIDString) {
         return INT64;
+    } else if ("UBIGINT" == dataTypeIDString) {
+        return UBIGINT;
     } else if ("DOUBLE" == dataTypeIDString) {
         return DOUBLE;
     } else if ("BOOLEAN" == dataTypeIDString) {
@@ -100,6 +102,8 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "BOOL";
     case INT64:
         return "INT64";
+    case UBIGINT:
+        return "UBIGINT";
     case DOUBLE:
         return "DOUBLE";
     case DATE:
@@ -145,6 +149,8 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(uint8_t);
     case INT64:
         return sizeof(int64_t);
+    case UBIGINT:
+        return sizeof(uint64_t);
     case DOUBLE:
         return sizeof(double_t);
     case DATE:

@@ -80,10 +80,9 @@ public:
 private:
     bool _CheckIsMemoryEnough();
 
-    inline void findRowsThatSatisfyPredicate(DataChunk &input, idx_t nodeColIdx, vector<idx_t> &target_seqnos,
+    void findRowsThatSatisfyPredicate(DataChunk &input, idx_t nodeColIdx, vector<idx_t> &target_seqnos,
                                              Value &filterValue, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                              vector<idx_t> &matched_row_idxs, SelectionVector &sel) {
-
         CompressionHeader comp_header;
         Vector &vids = input.data[nodeColIdx];
         auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
@@ -129,7 +128,6 @@ private:
                     if (target_seqno < scan_start_offset || target_seqno >= scan_end_offset) continue;
                     if (column_vec.GetValue(target_seqno) == filterValue) {
                         matched_row_idxs.push_back(seqno);
-                        // find_matched_row = true;
                     }
                 }
             }

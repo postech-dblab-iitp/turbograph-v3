@@ -279,12 +279,11 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
     }
     DataType returnType;
-    // if (function->bindFunc) {
-    //     function->bindFunc(childrenTypes, function, returnType);
-    // } else {
-    //     returnType = DataType(function->returnTypeID);
-    // }
-    returnType = DataType(function->returnTypeID);
+    if (function->bindFunc) {
+        function->bindFunc(childrenTypes, function, returnType);
+    } else {
+        returnType = DataType(function->returnTypeID);
+    }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),

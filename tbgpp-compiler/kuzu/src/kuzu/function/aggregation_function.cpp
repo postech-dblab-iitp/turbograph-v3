@@ -93,6 +93,7 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
 	case USMALLINT:
 	case UINTEGER:
 	case UBIGINT:
+    case DECIMAL:
     case INT64:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
@@ -103,8 +104,8 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
     case STRING:
-        return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(),
-            inputType, isDistinct);
+        return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
+            isDistinct);
     case NODE_ID:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
