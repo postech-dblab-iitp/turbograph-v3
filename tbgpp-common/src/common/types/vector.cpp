@@ -52,7 +52,8 @@ Vector::Vector(Vector &other, idx_t offset) : type(other.type) {
 	Slice(other, offset);
 }
 
-Vector::Vector(const Value &value) : type(value.type()) {
+// Vector::Vector(const Value &value) : type(value.type()) {
+Vector::Vector(const Value &value) : type(value.type()), capacity(STANDARD_VECTOR_SIZE) {
 	Reference(value);
 }
 

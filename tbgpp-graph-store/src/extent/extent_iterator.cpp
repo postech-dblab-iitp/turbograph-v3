@@ -41,7 +41,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = extent_cat_entry->chunks.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -95,7 +95,7 @@ void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEnt
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
 
         size_t chunk_size = ext_property_type.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -157,7 +157,7 @@ void ExtentIterator::Initialize(ClientContext &context, vector<LogicalType> &tar
     {
         // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = ext_property_type.size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -198,7 +198,7 @@ ExtentIterator::RequestNewIO(ClientContext &context, vector<LogicalType> &target
     // Request I/O for the new extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
         for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
             if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
@@ -267,7 +267,7 @@ ExtentIterator::Initialize(ClientContext &context, vector<vector<LogicalType>> &
     // Request I/O for the first extent
     {
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
         size_t chunk_size = ext_property_types[current_idx].size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
@@ -316,7 +316,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         int next_toggle = (toggle + 1) % num_data_chunks;
         if (current_idx < max_idx - 1) {
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx + 1]));
             
             // Unpin previous chunks
             for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
@@ -470,7 +470,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         int next_toggle = (toggle + 1) % num_data_chunks;
         if (current_idx < max_idx - 1) {
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx + 1]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx + 1]));
             
             // Unpin previous chunks
             for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
@@ -632,7 +632,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (support_double_buffering && current_idx < max_idx) {
         toggle = (toggle + 1) % num_data_chunks;
         ExtentCatalogEntry* extent_cat_entry = 
-            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+            (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
         // Unpin previous chunks
         if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[toggle].size() == 0);
@@ -891,7 +891,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
             if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
                 ExtentCatalogEntry* extent_cat_entry = 
-                    (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+                    (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
                 
                 // Unpin previous chunks
                 if (current_eid != std::numeric_limits<uint32_t>::max()) {
@@ -946,9 +946,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
         // Initialize output DataChunk & copy each column
         if (!is_output_chunk_initialized) {
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Reset();
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Initialize(ext_property_type);
         }
         
@@ -1085,7 +1083,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         Catalog& cat_instance = context.db->GetCatalog();
         if (support_double_buffering && next_idx < max_idx) {
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[next_idx]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[next_idx]));
             
             // Unpin previous chunks
             if (current_eid != std::numeric_limits<uint32_t>::max()) {
@@ -1139,9 +1137,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
         // Initialize output DataChunk & copy each column
         if (!is_output_chunk_initialized) {
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Reset();
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Initialize(cur_ext_property_type);
         }
         
@@ -1280,7 +1276,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     //         // IC(toggle, prev_toggle, target_eid, current_eid, current_idx, ext_ids_to_iterate[current_idx]);
     //         if (current_idx < 2 || (ext_ids_to_iterate[current_idx] != ext_ids_to_iterate[current_idx - 2])) {
     //             ExtentCatalogEntry* extent_cat_entry = 
-    //                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[current_idx]));
+    //                 (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
                 
     //             // Unpin previous chunks
     //             if (current_eid != std::numeric_limits<uint32_t>::max()) {
@@ -1355,7 +1351,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         // Request I/O to the next extent if we can support double buffering
         if (support_double_buffering && next_idx < max_idx) {
             ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, "ext_" + std::to_string(ext_ids_to_iterate[next_idx]));
+                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[next_idx]));
             
             // Unpin previous chunks
             if (current_eid != std::numeric_limits<uint32_t>::max()) {
@@ -1409,9 +1405,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
         // Initialize output DataChunk & copy each column
         if (!is_output_chunk_initialized) {
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Reset();
-            // icecream::ic.enable();IC();icecream::ic.disable();
             output.Initialize(cur_ext_property_type);
         }
         
@@ -1474,11 +1468,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (matched_row_idxs.size() > 0) {
         idx_t tmp_output_idx = cur_output_idx;
         for (idx_t i = 0; i < matched_row_idxs.size(); i++) {
-            sel.set_index(matched_row_idxs[i], tmp_output_idx++);
+            // sel.set_index(matched_row_idxs[i], tmp_output_idx++);
+            // fprintf(stdout, "sel.set_index (%ld, %ld)\n", tmp_output_idx, matched_row_idxs[i]);
+            sel.set_index(tmp_output_idx++, matched_row_idxs[i]);
         }
-        output.SetCardinality(matched_row_idxs.size());
+        // output.SetCardinality(matched_row_idxs.size());
     } else {
-        output.SetCardinality(0);
+        // output.SetCardinality(0);
         return true;
     }
 

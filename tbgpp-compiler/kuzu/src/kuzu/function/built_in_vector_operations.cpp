@@ -6,7 +6,7 @@
 #include "function/comparison/vector_comparison_operations.h"
 #include "function/date/vector_date_operations.h"
 // #include "function/interval/vector_interval_operations.h"
-// #include "function/list/vector_list_operations.h"
+#include "function/list/vector_list_operations.h"
 // #include "function/string/vector_string_operations.h"
 // #include "function/timestamp/vector_timestamp_operations.h"
 
@@ -21,7 +21,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     // registerIntervalOperations();
     // registerStringOperations();
     registerCastOperations();
-    // registerListOperations();
+    registerListOperations();
     // registerInternalIDOperation();
 }
 
@@ -291,9 +291,9 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
 }
 
-// void BuiltInVectorOperations::registerListOperations() {
-//     vectorOperations.insert(
-//         {LIST_CREATION_FUNC_NAME, ListCreationVectorOperation::getDefinitions()});
+void BuiltInVectorOperations::registerListOperations() {
+    vectorOperations.insert(
+        {LIST_CREATION_FUNC_NAME, ListCreationVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_LEN_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
@@ -318,15 +318,15 @@ void BuiltInVectorOperations::registerCastOperations() {
 //         {LIST_INDEXOF_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
 //     vectorOperations.insert(
 //         {ARRAY_INDEXOF_FUNC_NAME, ListPositionVectorOperation::getDefinitions()});
-//     vectorOperations.insert(
-//         {LIST_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LIST_HAS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_HAS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
 //     vectorOperations.insert(
 //         {ARRAY_CONTAINS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
 //     vectorOperations.insert({ARRAY_HAS_FUNC_NAME, ListContainsVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
 //     vectorOperations.insert({ARRAY_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
-// }
+}
 
 // void BuiltInVectorOperations::registerInternalIDOperation() {
 //     vector<unique_ptr<VectorOperationDefinition>> definitions;

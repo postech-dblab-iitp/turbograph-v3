@@ -161,6 +161,34 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 		function, std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
 }
 
+unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, duckdb::LogicalTypeId child_ref_type_id, int child_ref_idx, CColRefArray* rhs_child_cols) {
+
+	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
+	CExpression* aggargs_expr = scalar_expr->operator[](0);
+	CScalarValuesList* aggargs = (CScalarValuesList*)(scalar_expr->operator[](0)->Pop());
+	unique_ptr<duckdb::Expression> result;
+
+	vector<unique_ptr<duckdb::Expression>> child;
+	child.push_back(make_unique<duckdb::BoundReferenceExpression>(child_ref_type_id, child_ref_idx));
+	D_ASSERT(child.size() <= 1);
+
+	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
+	duckdb::AggregateFunctionCatalogEntry *aggfunc_catalog_entry;
+	duckdb::idx_t function_idx;
+	context->db->GetCatalogWrapper().GetAggFuncAndIdx(*context, agg_func_id, aggfunc_catalog_entry, function_idx);
+
+	auto &functions = aggfunc_catalog_entry->functions.get()->functions;
+	auto &function = functions[function_idx];
+	unique_ptr<duckdb::FunctionData> bind_info;
+	if (function.bind) {
+		bind_info = function.bind(*context, function, child);
+		child.resize(std::min(function.arguments.size(), child.size()));
+	}
+
+	return make_unique<duckdb::BoundAggregateExpression>(
+		function, std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
+}
+
 unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
 	CScalarFunc* op = (CScalarFunc*)scalar_expr->Pop();
 	CExpressionArray* scalarfunc_exprs = scalar_expr->PdrgPexpr();
@@ -254,6 +282,8 @@ OID Planner::pGetTypeIdFromScalar(CExpression *expr) {
 		return pGetTypeIdFromScalarConst(expr);
 	} else if (expr->Pop()->Eopid() == COperator::EopScalarFunc) {
 		return pGetTypeIdFromScalarFunc(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarAggFunc) {
+		return pGetTypeIdFromScalarAggFunc(expr);
 	} else {
 		D_ASSERT(false); // not implemented yet
 	}
@@ -276,8 +306,15 @@ OID Planner::pGetTypeIdFromScalarConst(CExpression *const_expr) {
 
 OID Planner::pGetTypeIdFromScalarFunc(CExpression *func_expr) {
 	D_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
-	CScalarFunc *const_op = CScalarFunc::PopConvert(func_expr->Pop());
-	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_op->MdidType());
+	CScalarFunc *func_op = CScalarFunc::PopConvert(func_expr->Pop());
+	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(func_op->MdidType());
+	return type_mdid->Oid();
+}
+
+OID Planner::pGetTypeIdFromScalarAggFunc(CExpression *agg_expr) {
+	D_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
+	CScalarAggFunc *aggfunc_op = CScalarAggFunc::PopConvert(agg_expr->Pop());
+	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(aggfunc_op->MdidType());
 	return type_mdid->Oid();
 }
 

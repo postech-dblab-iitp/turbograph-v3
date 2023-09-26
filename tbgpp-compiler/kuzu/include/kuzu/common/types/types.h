@@ -48,6 +48,7 @@ enum DataTypeID : uint8_t {
     NODE_ID = 108,
     BOOL = 10,
     INT64 = 14,     // BIGINT
+    UBIGINT = 31,
     DOUBLE = 23,
     DATE = 15,
     TIMESTAMP = 19,
@@ -83,7 +84,6 @@ enum DataTypeID : uint8_t {
 	UTINYINT = 28,
 	USMALLINT = 29,
 	UINTEGER = 30,
-	UBIGINT = 31,
 	TIMESTAMP_TZ = 32,
 	TIME_TZ = 34,
 	JSON = 35,

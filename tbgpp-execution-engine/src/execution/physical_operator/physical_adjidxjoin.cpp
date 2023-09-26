@@ -72,8 +72,6 @@ void PhysicalAdjIdxJoin::ProcessSemiAntiJoin(ExecutionContext& context, DataChun
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
-
-
 }
 
 void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &input, OperatorState &lstate) const {
