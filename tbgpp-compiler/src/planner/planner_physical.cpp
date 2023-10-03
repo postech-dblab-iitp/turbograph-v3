@@ -204,23 +204,23 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	CPhysicalFilter* filter_op = NULL;
 	CExpression* filter_pred_expr = NULL;
 
-	if( plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter ) {
+	if (plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter) {
 		filter_expr = plan_expr;
-		filter_op = (CPhysicalFilter*) filter_expr->Pop();
+		filter_op = (CPhysicalFilter *)filter_expr->Pop();
 		filter_pred_expr = filter_expr->operator[](1);
 		scan_expr = filter_expr->operator[](0);
-		scan_op = (CPhysicalTableScan*) scan_expr->Pop();
+		scan_op = (CPhysicalTableScan *)scan_expr->Pop();
 		// TODO current assume all predicates are pushdown-able
 		D_ASSERT( filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp );
 		D_ASSERT( filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
 		D_ASSERT( filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst );
 	} else {
 		scan_expr = plan_expr;
-		scan_op = (CPhysicalTableScan*) scan_expr->Pop();
+		scan_op = (CPhysicalTableScan *)scan_expr->Pop();
 	}
 	bool do_filter_pushdown = filter_op != NULL;
 	
-	CMDIdGPDB* table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
+	CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
 	OID table_obj_id = table_mdid->Oid();
 	
 	CColRefSet* output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
@@ -452,10 +452,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			filter_op = (CPhysicalFilter*) filter_expr->Pop();
 			filter_pred_expr = filter_expr->operator[](1);
 			// TODO current assume all predicates are pushdown-able
-			D_ASSERT(filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
-			D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
-			D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
-			// D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
+			// D_ASSERT(filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
+			// D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+			// D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+			// // D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
 
 			do_filter_pushdown = true;
 		}
@@ -576,15 +576,26 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		duckdb::Schema tmp_schema_seek, tmp_schema_adjidxjoin;
 		tmp_schema_seek.setStoredTypes(types);
 
-		if (load_eid) {
+		if (load_eid) {	
 			// if we already load eid, use it for id seek operation
-			D_ASSERT(false); // not implemented yet
+			seek_sid_col_idx = inner_col_map[0];
+			tmp_schema_adjidxjoin.setStoredTypes(types);
+
+			outer_col_map_seek.resize(types.size());
+			for (int i = 0; i < outer_col_map_seek.size(); i++) {
+				auto it = std::find(inner_col_map_seek.begin(), inner_col_map_seek.end(), i);
+				if (it == inner_col_map_seek.end()) outer_col_map_seek[i] = i;
+				else outer_col_map_seek[i] = std::numeric_limits<uint32_t>::max();
+			}
 		} else {
 			// if we do not load eid, we need to load eid temporarily for id seek operation
+			
+			// append id type & adjust tmp_schema, inner_col_map
 			types.push_back(duckdb::LogicalType::ID);
 			seek_sid_col_idx = types.size() - 1;
 			tmp_schema_adjidxjoin.setStoredTypes(types);
 			inner_col_map.push_back(seek_sid_col_idx);
+
 			outer_col_map_seek.resize(types.size() - 1);
 			for (int i = 0; i < outer_col_map_seek.size(); i++) {
 				auto it = std::find(inner_col_map_seek.begin(), inner_col_map_seek.end(), i);
@@ -801,6 +812,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			}
 		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
 			// IndexOnlyScan on physical id index. We don't need to do idseek
+			D_ASSERT(inner_root->Arity() >= 1);
+			CExpression *scalar_expr = inner_root;
+			CExpression *scalar_expr_child = scalar_expr->operator[](0);
+			vector<unique_ptr<duckdb::Expression>> scalar_filter_exprs;
+			if (scalar_expr_child->Pop()->Eopid() != COperator::EopScalarCmp) {
+				// we need additional filter
+
+			}
 
 			// if output_cols size != outer_cols, we need to do projection
 			/* Generate operator and push */
@@ -951,6 +970,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
 		inner_col_map.push_back(id_idx);
 	}
+	// for (ULONG col_idx = 0; col_idx < idxscan_output_cols_arr->Size(); col_idx++) {
+	// 	CColRef* col = idxscan_output_cols_arr->operator[](col_idx);
+	// 	ULONG col_id = col->Id();
+	// 	auto id_idx = id_map.at(col_id); // std::out_of_range exception if col_id does not exist in id_map
+	// 	inner_col_map.push_back(id_idx);
+	// }
 
 	gpos::ULONG pred_attr_pos, pred_pos; duckdb::Value literal_val; duckdb::LogicalType pred_attr_type;
 	if (has_filter && do_filter_pushdown) {
@@ -972,8 +997,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	if (!do_filter_pushdown) {
 		if (has_filter) {
 			// D_ASSERT(scan_projection_mapping == output_projection_mapping); // TODO we currently support scan = output
+			// duckdb::CypherPhysicalOperator *op = 
+			// 	new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, scan_projection_mapping, outer_col_map, inner_col_map, move(filter_exprs));
 			duckdb::CypherPhysicalOperator *op = 
-				new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, scan_projection_mapping, outer_col_map, inner_col_map, move(filter_exprs));
+				new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, output_projection_mapping, outer_col_map, inner_col_map, scan_types,
+										   scan_projection_mapping, move(filter_exprs));
 			result->push_back(op);
 		} else {
 			duckdb::CypherPhysicalOperator *op = 
@@ -1181,9 +1209,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId());
 		
-		types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
+		// types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
 		output_column_names.push_back(pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()));
 		proj_exprs.push_back(std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
+		types.push_back(proj_exprs.back()->return_type);
 	}
 
 	D_ASSERT( pexprProjList->Arity() >= proj_exprs.size() );	// may be less, since we project duplicate projetions only once
@@ -1243,15 +1272,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	bool has_pre_projection = false;
 	bool has_post_projection = false;
 	bool adjust_agg_groups_performed = false;
-	// D_ASSERT(pexprProjList->Arity() == 1); // TODO
 	// handle aggregation expressions
 	for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
 		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
 		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
 		CExpression *pexprAggExpr;
 		
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId() );
-		types.push_back( pConvertTypeOidToLogicalType(type_mdid->Oid()) );
 		output_column_names.push_back( pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()) );
 
 		if (pexprScalarExpr->Pop()->Eopid() != COperator::EopScalarAggFunc) {
@@ -1260,13 +1286,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 			CExpression *aggargs_expr = pexprScalarExpr->operator[](0);
 			if (aggargs_expr->Arity() == 0) { // no child
 				agg_exprs.push_back(std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
+				types.push_back(agg_exprs.back()->return_type);
 				continue;
 			}
 			if (aggargs_expr->operator[](0)->Pop()->Eopid() != COperator::EopScalarIdent) {
 				has_pre_projection = true;
 				if (!adjust_agg_groups_performed) {
-					// vector<unique_ptr<duckdb::Expression>> tmp_proj_exprs = std::move(proj_exprs);
-					// duckdb::idx_t agg_group_idx = 0;
 					for (ULONG agg_group_idx = 0; agg_group_idx < agg_groups.size(); agg_group_idx++) {
 						auto agg_group_expr = (duckdb::BoundReferenceExpression *)agg_groups[agg_group_idx].get();
 						agg_group_expr->index = agg_group_idx;
@@ -1279,39 +1304,21 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 							bound_expr->index = agg_groups.size() + accm_agg_expr_idx++;
 						}
 					}
-					// for (ULONG output_col_idx = 0; output_col_idx < output_cols->Size(); output_col_idx++) {
-					// 	CColRef *col = output_cols->operator[](output_col_idx);
-					// 	if (grouping_cols->IndexOf(col) == gpos::ulong_max) continue;
-					// 	OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
-					// 	duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
-					// 	// proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(col_type, child_cols->IndexOf(col)));
-					// 	auto agg_group_expr = (duckdb::BoundReferenceExpression *)agg_groups[agg_group_idx].get();
-					// 	agg_group_expr->index = agg_group_idx++;
-					// }
-					// for (auto i = 0; i < tmp_proj_exprs.size(); i++) {
-					// 	proj_exprs.push_back(std::move(tmp_proj_exprs[i]));
-					// }
 					adjust_agg_groups_performed = true;
 				}
 				proj_exprs.push_back(std::move(pTransformScalarExpr(aggargs_expr->operator[](0), child_cols)));
-				agg_exprs.push_back(std::move(pTransformScalarAggFunc(pexprScalarExpr, child_cols, proj_exprs.back()->return_type.id(), proj_exprs.size() - 1)));
-				if (proj_exprs.back()->return_type.id() == duckdb::LogicalTypeId::DECIMAL) {
-					proj_types.push_back(duckdb::LogicalType::DECIMAL(12, 2)); // TODO decimal temporary
-				} else {
-					proj_types.push_back(proj_exprs.back()->return_type.id());
-				}
+				agg_exprs.push_back(std::move(pTransformScalarAggFunc(pexprScalarExpr, child_cols, proj_exprs.back()->return_type, proj_exprs.size() - 1)));
+				proj_types.push_back(proj_exprs.back()->return_type);
+				types.push_back(agg_exprs.back()->return_type);
 			} else {
 				proj_exprs.push_back(std::move(pTransformScalarExpr(aggargs_expr->operator[](0), child_cols)));
 				if (has_pre_projection) {
-					agg_exprs.push_back(std::move(pTransformScalarAggFunc(pexprScalarExpr, child_cols, proj_exprs.back()->return_type.id(), proj_exprs.size() - 1)));
+					agg_exprs.push_back(std::move(pTransformScalarAggFunc(pexprScalarExpr, child_cols, proj_exprs.back()->return_type, proj_exprs.size() - 1)));
 				} else {
 					agg_exprs.push_back(std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
 				}
-				if (proj_exprs.back()->return_type.id() == duckdb::LogicalTypeId::DECIMAL) {
-					proj_types.push_back(duckdb::LogicalType::DECIMAL(12, 2)); // TODO decimal temporary
-				} else {
-					proj_types.push_back(proj_exprs.back()->return_type.id());
-				}
+				proj_types.push_back(proj_exprs.back()->return_type);
+				types.push_back(agg_exprs.back()->return_type);
 			}
 		}
 	}
@@ -1452,22 +1459,28 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	const COrderSpec *pos = proj_op->Pos();
 
 	CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprOuter = (*plan_expr)[0];
+	CColRefArray* outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+	duckdb::CypherPhysicalOperator *last_op = result->back();
+	auto &last_op_result_types = last_op->GetTypes();
 
 	vector<duckdb::BoundOrderByNode> orders;
 	for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
 		const CColRef *col = pos->Pcr(ul);
-		ULONG col_id= col->Id();
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
-		OID type_oid = type_mdid->Oid();
-		ULONG ref_col_idx = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col);
+		ULONG idx = outer_cols->IndexOf(col);
+		// ULONG col_id= col->Id();
+		// CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		// OID type_oid = type_mdid->Oid();
+		// ULONG ref_col_idx = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col);
 		// std::cout << "col_id: " << col_id << ", ref_col_idx: " << ref_col_idx << std::endl;
 		
 		unique_ptr<duckdb::Expression> order_expr =
-			make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid),
+			make_unique<duckdb::BoundReferenceExpression>(last_op_result_types[idx],
 				plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col));
 
 		duckdb::OrderType order_type = 
-			IMDId::MDIdCompare( pos->GetMdIdSortOp(ul), col->RetrieveType()->GetMdidForCmpType(IMDType::EcmptG) )	// EcmptG => ">" => desc?? // TODO not sure...
+			IMDId::MDIdCompare(pos->GetMdIdSortOp(ul), col->RetrieveType()->GetMdidForCmpType(IMDType::EcmptG))	// EcmptG => ">" => desc?? // TODO not sure...
 				== false ? duckdb::OrderType::ASCENDING : duckdb::OrderType::DESCENDING;
 
 		duckdb::BoundOrderByNode order(order_type, pTranslateNullType(pos->Ent(ul)), move(order_expr));
@@ -1475,7 +1488,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	}
 
 	duckdb::Schema tmp_schema;
-	duckdb::CypherPhysicalOperator *last_op = result->back();
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
 		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 10000, 0); // TODO we have topn sort only..

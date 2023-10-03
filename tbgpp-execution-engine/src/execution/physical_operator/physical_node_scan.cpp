@@ -146,7 +146,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	/* GetData() should return empty chunk to indicate scan is finished. */
 	
 	// icecream::ic.enable();
-	// std::cout << "[PhysicalNodeScan] output" << std::endl;
+	// std::cout << "[PhysicalNodeScan] output size: " << chunk.size() << std::endl;
 	// if (chunk.size() > 0) {
 	// 	IC(chunk.ToString(std::min((idx_t)10, chunk.size())));
 	// }

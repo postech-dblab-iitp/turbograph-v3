@@ -47,14 +47,15 @@ enum DataTypeID : uint8_t {
     // physical fixed size types
     NODE_ID = 108,
     BOOL = 10,
+    INTEGER = 13,
     INT64 = 14,     // BIGINT
     UBIGINT = 31,
     DOUBLE = 23,
     DATE = 15,
     TIMESTAMP = 19,
     INTERVAL = 27,
-
     STRING = 25,
+    UINTEGER = 30,
     LIST = 101,
 
     // not existent in kuzu, but existent in duckdb
@@ -66,7 +67,6 @@ enum DataTypeID : uint8_t {
 //	BOOLEAN = 10,
 	TINYINT = 11,
 	SMALLINT = 12,
-	INTEGER = 13,
 //	BIGINT = 14,
 //	DATE = 15,
 	TIME = 16,
@@ -83,7 +83,6 @@ enum DataTypeID : uint8_t {
 //	INTERVAL = 27,
 	UTINYINT = 28,
 	USMALLINT = 29,
-	UINTEGER = 30,
 	TIMESTAMP_TZ = 32,
 	TIME_TZ = 34,
 	JSON = 35,

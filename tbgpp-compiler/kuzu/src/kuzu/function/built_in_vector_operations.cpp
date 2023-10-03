@@ -7,7 +7,7 @@
 #include "function/date/vector_date_operations.h"
 // #include "function/interval/vector_interval_operations.h"
 #include "function/list/vector_list_operations.h"
-// #include "function/string/vector_string_operations.h"
+#include "function/string/vector_string_operations.h"
 // #include "function/timestamp/vector_timestamp_operations.h"
 
 namespace kuzu {
@@ -19,7 +19,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerDateOperations();
     // registerTimestampOperations();
     // registerIntervalOperations();
-    // registerStringOperations();
+    registerStringOperations();
     registerCastOperations();
     registerListOperations();
     // registerInternalIDOperation();
@@ -254,32 +254,32 @@ void BuiltInVectorOperations::registerDateOperations() {
 //         {TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
 // }
 
-// void BuiltInVectorOperations::registerStringOperations() {
-//     vectorOperations.insert(
-//         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
-//     vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
-//     vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
-//     vectorOperations.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LCASE_FUNC_NAME, LowerVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
-//     vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
-//     vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
-//     vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
-//     vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
-//     vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
-//     vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
-//     vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
-//     vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-//     vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
-//     vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
-//     vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
-//     vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-//     vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
-// }
+void BuiltInVectorOperations::registerStringOperations() {
+    vectorOperations.insert(
+        {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONCAT_FUNC_NAME, ConcatVectorOperation::getDefinitions()});
+    vectorOperations.insert({CONTAINS_FUNC_NAME, ContainsVectorOperation::getDefinitions()});
+    vectorOperations.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({LCASE_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LEFT_FUNC_NAME, LeftVectorOperation::getDefinitions()});
+    vectorOperations.insert({LENGTH_FUNC_NAME, LengthVectorOperation::getDefinitions()});
+    vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
+    vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
+    vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
+    vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
+    vectorOperations.insert({RPAD_FUNC_NAME, RpadVectorOperation::getDefinitions()});
+    vectorOperations.insert({RTRIM_FUNC_NAME, RtrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
+    vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
+    vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+    vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});
+}
 
 void BuiltInVectorOperations::registerCastOperations() {
     vectorOperations.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorOperation::getDefinitions()});

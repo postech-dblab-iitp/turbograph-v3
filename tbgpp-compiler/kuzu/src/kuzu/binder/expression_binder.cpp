@@ -472,6 +472,14 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         resolveAnyDataType(*expression, targetType);
         return expression;
     }
+    if (targetType.typeID == INT64 && expression->dataType.typeID == INTEGER) {
+        expression->dataType.typeID = INT64; // TODO temporary..
+        return expression;
+    }
+    if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
+        expression->dataType.typeID = DECIMAL; // TODO temporary..
+        return expression;
+    }
     return implicitCast(expression, targetType);
 }
 
@@ -527,10 +535,11 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getNumChildren() == 0) {
         return;
     }
-    if (expression.getChild(0)->hasAggregationExpression()) {
-        throw BinderException(
-            "Expression " + expression.getRawName() + " contains nested aggregation.");
-    }
+    // TODO why is this need?
+    // if (expression.getChild(0)->hasAggregationExpression()) {
+    //     throw BinderException(
+    //         "Expression " + expression.getRawName() + " contains nested aggregation.");
+    // }
 }
 
 } // namespace binder

@@ -58,7 +58,8 @@ public:
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
-                       vector<duckdb::LogicalType> &scanSchema, bool is_output_chunk_initialized=true);
+                       vector<duckdb::LogicalType> &scanSchema, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE,
+                       bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
@@ -71,6 +72,10 @@ public:
                        int64_t &filterKeyColIdx, Value &filterValue, ExtentID target_eid, DataChunk &input,
                        idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
                        idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
+    // bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+    //                    ExpressionExecutor &executor, ExtentID target_eid, DataChunk &input,
+    //                    idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
+    //                    idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized);
 
     bool IsInitialized() {

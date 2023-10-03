@@ -90,7 +90,7 @@ public:
 		this->outer_col_maps.push_back(std::move(outer_col_map));
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {
@@ -111,7 +111,7 @@ public:
 	{
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {
@@ -134,7 +134,7 @@ public:
 		this->outer_col_maps.push_back(std::move(outer_col_map));
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {

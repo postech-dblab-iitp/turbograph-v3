@@ -402,8 +402,8 @@ CUtils::PexprScalarCmp(CMemoryPool *mp, CExpression *pexprLeft,
 
 	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(
 		md_accessor, pexprNewLeft, pexprNewRight, cmp_type);
-	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft,
-										 pexprNewRight, op_mdid);
+	// CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, // s62 disable temporary..
+	// 									 pexprNewRight, op_mdid);
 
 	GPOS_ASSERT(pexprNewLeft != NULL);
 	GPOS_ASSERT(pexprNewRight != NULL);
