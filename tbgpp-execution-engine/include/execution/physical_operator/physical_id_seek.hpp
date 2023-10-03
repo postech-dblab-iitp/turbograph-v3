@@ -20,6 +20,9 @@ public:
 	PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
 				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_type,
 				   vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
+	PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_type,
+				   vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>> predicates);
 	~PhysicalIdSeek() {}
 
 public:
@@ -41,6 +44,7 @@ public:
 	mutable vector<LogicalType> scan_type;  		// types scan
 	mutable vector<vector<LogicalType>> scan_types;  		// types scan
 	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
+	mutable vector<vector<uint64_t>> tmp_chunk_mapping;
 
 	// filter pushdown
 	bool do_filter_pushdown;

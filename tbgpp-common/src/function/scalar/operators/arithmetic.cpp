@@ -608,9 +608,9 @@ unique_ptr<FunctionData> BindDecimalMultiply(ClientContext &context, ScalarFunct
 	uint8_t result_width = 0, result_scale = 0;
 	uint8_t max_width = 0;
 	for (idx_t i = 0; i < arguments.size(); i++) {
-		// if (arguments[i]->return_type.id() == LogicalTypeId::UNKNOWN) { // TODO decimal temporary
-		// 	continue;
-		// }
+		if (arguments[i]->return_type.id() == LogicalTypeId::UNKNOWN) { // TODO decimal temporary
+			continue;
+		}
 		uint8_t width, scale;
 		auto can_convert = arguments[i]->return_type.GetDecimalProperties(width, scale);
 		if (!can_convert) {
@@ -622,8 +622,6 @@ unique_ptr<FunctionData> BindDecimalMultiply(ClientContext &context, ScalarFunct
 		result_width += width;
 		result_scale += scale;
 	}
-	result_width = 12; // TODO decimal temporary
-	result_scale = 2; // TODO decimal temporary
 	D_ASSERT(max_width > 0);
 	if (result_scale > Decimal::MAX_WIDTH_DECIMAL) {
 		throw OutOfRangeException(

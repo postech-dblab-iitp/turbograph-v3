@@ -90,6 +90,7 @@ void Vector::Reference(const Value &value) {
 	} else {
 		auxiliary.reset();
 		data = buffer->GetData();
+		// std::memset(data, 0, STANDARD_VECTOR_SIZE * GetTypeIdSize(value.type().InternalType())); // TODO super overhead
 		SetValue(0, value);
 	}
 }

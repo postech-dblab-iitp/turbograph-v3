@@ -10,37 +10,37 @@
 
 namespace s62 {
 
-CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan) {
+CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
 	// if expression appears in previous plan, generate ScalarIdent expression	
 	CExpression *expr = lTryGenerateScalarIdent(expression, prev_plan);
 	if (expr != NULL) { /* found */ return expr; }
 
 	auto expr_type = expression->expressionType;
 	if (isExpressionBoolConnection(expr_type)) {
-		return lExprScalarBoolOp(expression, prev_plan);
+		return lExprScalarBoolOp(expression, prev_plan, required_type);
 	} else if (isExpressionComparison(expr_type)) {
-		return lExprScalarComparisonExpr(expression, prev_plan);
+		return lExprScalarComparisonExpr(expression, prev_plan, required_type);
 	} else if (PROPERTY == expr_type) {
-		return lExprScalarPropertyExpr(expression, prev_plan);
+		return lExprScalarPropertyExpr(expression, prev_plan, required_type);
 	} else if (isExpressionLiteral(expr_type)) {
-		return lExprScalarLiteralExpr(expression, prev_plan);
+		return lExprScalarLiteralExpr(expression, prev_plan, required_type);
 	} else if (isExpressionAggregate(expr_type)) {			// must first check aggfunc over func
-		return lExprScalarAggFuncExpr(expression, prev_plan);
+		return lExprScalarAggFuncExpr(expression, prev_plan, required_type);
 	} else if (isExpressionScalarFunc(expr_type)) {
-		return lExprScalarFuncExpr(expression, prev_plan);
+		return lExprScalarFuncExpr(expression, prev_plan, required_type);
 	} else if (isExpressionCaseElse(expr_type)) {
-		return lExprScalarCaseElseExpr(expression, prev_plan);
+		return lExprScalarCaseElseExpr(expression, prev_plan, required_type);
 	} else if (isExpressionSubquery(expr_type)) {
-		return lExprScalarExistentialSubqueryExpr(expression, prev_plan);
+		return lExprScalarExistentialSubqueryExpr(expression, prev_plan, required_type);
 	} else if (isExpressionFunction(expr_type)) {
-		return lExprScalarFuncExpr(expression, prev_plan);
+		return lExprScalarFuncExpr(expression, prev_plan, required_type);
 	} 
 	else {
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
 
-CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, LogicalPlan* prev_plan) {
+CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 
 	CMemoryPool* mp = this->memory_pool;
 	ScalarFunctionExpression* bool_expr = (ScalarFunctionExpression*) expression;
@@ -50,7 +50,7 @@ CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, Lo
 
 	vector<CExpression*> child_exprs;
 	for(int idx = 0; idx < children.size(); idx++) {
-		child_exprs.push_back(lExprScalarExpression(children[idx].get(), prev_plan));
+		child_exprs.push_back(lExprScalarExpression(children[idx].get(), prev_plan, required_type));
 	}
 
 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
@@ -75,15 +75,15 @@ CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, Lo
 
 }
 
-CExpression* Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan) {
+CExpression* Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 
 	CMemoryPool* mp = this->memory_pool;
 	ScalarFunctionExpression* comp_expr = (ScalarFunctionExpression*) expression;
 	D_ASSERT( comp_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
 	auto children = comp_expr->getChildren();
 	// lhs, rhs
-	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan);
-	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan);
+	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan, required_type);
+	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan, required_type);
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
@@ -171,7 +171,7 @@ CExpression *Planner::lTryGenerateScalarIdent(kuzu::binder::Expression* expressi
 	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarPropertyExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan) {
+CExpression* Planner::lExprScalarPropertyExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -236,12 +236,17 @@ CExpression *Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan 
 	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarLiteralExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan) {
+CExpression* Planner::lExprScalarLiteralExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 
 	CMemoryPool* mp = this->memory_pool;
 
 	LiteralExpression* lit_expr = (LiteralExpression*) expression;
-	DataType type = lit_expr->literal.get()->dataType;
+	DataType type;
+	if (required_type == DataTypeID::INVALID) {
+		type = lit_expr->literal.get()->dataType;
+	} else {
+		type = DataType(required_type);
+	}
 
 	// D_ASSERT( !lit_expr->isNull() && "currently null not supported");
 
@@ -267,7 +272,7 @@ CExpression* Planner::lExprScalarLiteralExpr(kuzu::binder::Expression* expressio
 	return pexpr;
 }
 
-CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan) {
+CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 	CMemoryPool* mp = this->memory_pool;
 	
 	AggregateFunctionExpression* aggfunc_expr = (AggregateFunctionExpression*) expression;
@@ -300,13 +305,14 @@ CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expressi
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
 	vector<duckdb::LogicalType> child_types;
 	for (auto i = 0; i < children.size(); i++) {
-		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan);
+		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan, required_type);
 		child_exprs->Append(child_expr);
 
 		OID type_oid = pGetTypeIdFromScalar(child_expr);
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
 	}
 	// refer expression_type.h for kuzu function names
+	duckdb::AggregateFunctionCatalogEntry *agg_func_cat;
 	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
 	// no assert?
 
@@ -342,7 +348,7 @@ CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expressi
 	// D_ASSERT(false);
 }
 
-CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *prev_plan) {
+CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
 	CMemoryPool *mp = this->memory_pool;
 	
 	ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
@@ -357,7 +363,7 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
 	vector<duckdb::LogicalType> child_types;
 	for (auto i = 0; i < children.size(); i++) {
-		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan);
+		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan, required_type);
 		child_exprs->Append(child_expr);
 
 		OID type_oid = pGetTypeIdFromScalar(child_expr);
@@ -391,13 +397,19 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	return pexpr;
 }
 
-CExpression *Planner::lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan) {
+CExpression *Planner::lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
 	CMemoryPool* mp = this->memory_pool;
 
 	CaseExpression *case_expr = (CaseExpression *)expression;
 
 	size_t numCaseAlts = case_expr->getNumCaseAlternatives();
 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+
+	// get return data type
+	DataType return_type = case_expr->getDataType();
+	uint32_t return_type_id = LOGICAL_TYPE_BASE_ID + (OID)return_type.typeID;
+	CMDIdGPDB* return_type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, return_type_id, 1, 0);
+	return_type_mdid->AddRef();
 
 	// generate expression for CaseAlternatives
 	for (size_t idx = 0; idx < numCaseAlts; idx++) {
@@ -409,7 +421,7 @@ CExpression *Planner::lExprScalarCaseElseExpr(kuzu::binder::Expression *expressi
 
 		// convert when & then expr
 		CExpression *c_when_expr = lExprScalarExpression(when_expr.get(), prev_plan);
-		CExpression *c_then_expr = lExprScalarExpression(then_expr.get(), prev_plan);
+		CExpression *c_then_expr = lExprScalarExpression(then_expr.get(), prev_plan, return_type.typeID);
 		
 		pdrgpexprChildren->Append(c_when_expr);
 		pdrgpexprChildren->Append(c_then_expr);
@@ -421,14 +433,8 @@ CExpression *Planner::lExprScalarCaseElseExpr(kuzu::binder::Expression *expressi
 
 	// generate expression for Else
 	auto else_expr = case_expr->getElseExpression();
-	CExpression *else_expr_tmp = lExprScalarExpression(else_expr.get(), prev_plan);
+	CExpression *else_expr_tmp = lExprScalarExpression(else_expr.get(), prev_plan, return_type.typeID);
 	pdrgpexpr->Append(else_expr_tmp);
-
-	// get return data type
-	DataType return_type = case_expr->getDataType();
-	uint32_t return_type_id = LOGICAL_TYPE_BASE_ID + (OID)return_type.typeID;
-	CMDIdGPDB* return_type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, return_type_id, 1, 0);
-	return_type_mdid->AddRef();
 
 	CExpression *result_expr = GPOS_NEW(mp) CExpression(
 		mp, GPOS_NEW(mp) CScalarSwitch(mp, return_type_mdid), pdrgpexpr);
@@ -436,7 +442,7 @@ CExpression *Planner::lExprScalarCaseElseExpr(kuzu::binder::Expression *expressi
 	return result_expr;
 }
 
-CExpression *Planner::lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan) {
+CExpression *Planner::lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
 
 	CMemoryPool* mp = this->memory_pool;
 

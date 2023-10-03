@@ -81,6 +81,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 		target_types.push_back(sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
 		scan_types[0].push_back(sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
 	}
+	// tmp_chunk.InitializeEmpty(scan_types[0]);
 
 	D_ASSERT(predicates.size() > 0);
 	if (predicates.size() > 1) {
@@ -126,13 +127,62 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 	has_expression = false;
 }
 
+PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
+				   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, std::vector<duckdb::LogicalType> scan_type,
+				   vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>> predicates)
+		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
+		  scan_projection_mapping(scan_projection_mapping) {
+	
+	this->inner_col_maps.push_back(std::move(inner_col_map));
+	this->outer_col_maps.push_back(std::move(outer_col_map));
+	this->scan_types.push_back(std::move(scan_type));
+	for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
+		target_types.push_back(sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
+	}
+	// tmp_chunk.InitializeEmpty(scan_types[0]);
+
+	D_ASSERT(predicates.size() > 0);
+	if (predicates.size() > 1) {
+		auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+		for (auto &expr : predicates) {
+			conjunction->children.push_back(move(expr));
+		}
+		expression = move(conjunction);
+	} else {
+		expression = move(predicates[0]);
+	}
+
+	executor.AddExpression(*expression);
+
+	D_ASSERT(oids.size() == projection_mapping.size());
+	for (auto i = 0; i < oids.size(); i++) {
+		ps_oid_to_projection_mapping.insert({oids[i], i});
+	}
+
+	D_ASSERT(projection_mapping.size() == scan_projection_mapping.size());
+	tmp_chunk_mapping.resize(scan_projection_mapping.size());
+	for (idx_t i = 0; i < tmp_chunk_mapping.size(); i++) {
+		idx_t proj_map_idx = 0;
+		if (projection_mapping[i].size() == 0) continue;
+		for (idx_t scanproj_map_idx = 0; scanproj_map_idx < scan_projection_mapping[i].size(); scanproj_map_idx++) {
+			if (scan_projection_mapping[i][scanproj_map_idx] == projection_mapping[i][proj_map_idx]) {
+				tmp_chunk_mapping[i].push_back(scanproj_map_idx);
+				proj_map_idx++;
+			}
+		}
+	}
+
+	do_filter_pushdown = false;
+	has_expression = true;
+}
+
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<IdSeekState>();
 }
 
 OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (IdSeekState &)lstate;
-	if(input.size() == 0) {
+	if (input.size() == 0) {
 		chunk.SetCardinality(0);
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
@@ -167,31 +217,52 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		// 	validity.SetAllInvalid(input.size());
 		// }
 		
-		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-			vector<idx_t> output_col_idx;
-			for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-				output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
-			}
-			context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
-				target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);
-		}
 		if (has_expression) {
+			// init intermediate chunk
 			if (!is_tmp_chunk_initialized) {
 				auto input_chunk_type = std::move(input.GetTypes());
-				for (idx_t i = 0; i < inner_col_maps[0].size(); i++) { // TODO inner_col_maps[schema_idx]
-					input_chunk_type.push_back(chunk.data[inner_col_maps[0][i]].GetType());
+				for (idx_t i = 0; i < scan_types[0].size(); i++) { // TODO inner_col_maps[schema_idx]
+					input_chunk_type.push_back(scan_types[0][i]);
 				}
-				tmp_chunk.InitializeEmpty(input_chunk_type);
+				tmp_chunk.Initialize(input_chunk_type);
 				is_tmp_chunk_initialized = true;
+			} else {
+				tmp_chunk.Reset();
 			}
+
+			// do VertexIdSeek
+			vector<idx_t> output_col_idx;
+			for (idx_t i = 0; i <  scan_types[0].size(); i++) {
+				output_col_idx.push_back(input.ColumnCount() + i);
+			}
+			for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
+				
+				// for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+				// 	output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+				// }
+				
+				context.client->graph_store->doVertexIndexSeek(state.ext_its, tmp_chunk, input, nodeColIdx, target_types, 
+					target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);
+			}
+
+			// Refer input chunk & execute expression
 			for (idx_t i = 0; i < input.ColumnCount(); i++) {
 				tmp_chunk.data[i].Reference(input.data[i]);
 			}
-			for (idx_t i = 0; i < inner_col_maps[0].size(); i++) {
-				tmp_chunk.data[input.ColumnCount() + i].Reference(chunk.data[inner_col_maps[0][i]]);
-			}
+			// for (idx_t i = 0; i < inner_col_maps[0].size(); i++) {
+			// 	tmp_chunk.data[input.ColumnCount() + i].Reference(chunk.data[inner_col_maps[0][i]]);
+			// }
 			tmp_chunk.SetCardinality(input.size());
 			output_idx = executor.SelectExpression(tmp_chunk, state.sel);
+		} else {
+			for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
+				vector<idx_t> output_col_idx;
+				for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+					output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+				}
+				context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
+					target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);
+			}
 		}
 	} else {
 		for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
@@ -240,7 +311,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 			}
 		}
 		for (int i = 0; i < inner_col_maps[schema_idx].size(); i++) { // TODO inner_col_maps[schema_idx]
-			chunk.data[inner_col_maps[schema_idx][i]].Slice(chunk.data[inner_col_maps[schema_idx][i]], state.sel, output_idx);
+			chunk.data[inner_col_maps[schema_idx][i]].Slice(tmp_chunk.data[input.ColumnCount() + tmp_chunk_mapping[schema_idx][i]], state.sel, output_idx);
 		}
 		chunk.SetCardinality(output_idx);
 	} else {

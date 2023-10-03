@@ -118,12 +118,19 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
     // We currently do not support the number of rows to skip/limit written as an expression (eg.
     // SKIP 3 + 2 is not supported).
-    if (expression.getExpressionType() != LITERAL ||
-        (((LiteralExpression&)(*boundExpression)).getDataType().typeID != UBIGINT
-        && ((LiteralExpression&)(*boundExpression)).getDataType().typeID != INT64)) {
-        throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
+    if (expression.getExpressionType() == LITERAL &&
+        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == UINTEGER
+        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == INTEGER)) {
+        return ((LiteralExpression&)(*boundExpression)).literal->val.uint32Val;
     }
-    return ((LiteralExpression&)(*boundExpression)).literal->val.uint64Val;
+
+    if (expression.getExpressionType() == LITERAL &&
+        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == UBIGINT
+        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == INT64)) {
+        return ((LiteralExpression&)(*boundExpression)).literal->val.uint64Val;
+    }
+
+    throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
 }
 
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {

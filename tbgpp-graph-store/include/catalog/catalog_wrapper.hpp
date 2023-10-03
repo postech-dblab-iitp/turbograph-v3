@@ -167,22 +167,25 @@ public:
     }
 
     string GetTypeName(idx_t type_id) {
-        return LogicalTypeIdToString((LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
+        return LogicalTypeIdToString((LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES));
     }
 
     idx_t GetTypeSize(idx_t type_id) {
-        LogicalTypeId type_id_ = (LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
+        LogicalTypeId type_id_ = (LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+        uint16_t extra_info = ((type_id - LOGICAL_TYPE_BASE_ID) / NUM_MAX_LOGICAL_TYPES);
         if (type_id_ == LogicalTypeId::DECIMAL) {
-            LogicalType tmp_type = LogicalType::DECIMAL(12, 2); // TODO decimal temporary
+            uint8_t width = (uint8_t)(extra_info >> 8);
+            uint8_t scale = (uint8_t)(extra_info & 0xFF);
+            LogicalType tmp_type = LogicalType::DECIMAL(width, scale);
             return GetTypeIdSize(tmp_type.InternalType());
         } else {
-            LogicalType tmp_type((LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
+            LogicalType tmp_type(type_id_);
             return GetTypeIdSize(tmp_type.InternalType());
         }
     }
 
     bool isTypeFixedLength(idx_t type_id) {
-        LogicalType tmp_type((LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID));
+        LogicalType tmp_type((LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES));
         return TypeIsConstantSize(tmp_type.InternalType());
     }
 
@@ -195,8 +198,8 @@ public:
     idx_t GetComparisonOperator(idx_t left_type_id, idx_t right_type_id, ExpressionType etype) {
         return OPERATOR_BASE_ID
             + (((idx_t) etype) * (256 * 256))
-            + ((left_type_id - LOGICAL_TYPE_BASE_ID) * 256)
-            + ((right_type_id - LOGICAL_TYPE_BASE_ID));
+            + (((left_type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES) * 256)
+            + ((right_type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
     }
 
     inline ExpressionType GetComparisonType(idx_t op_id) {
