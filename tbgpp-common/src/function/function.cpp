@@ -117,7 +117,7 @@ void BuiltinFunctions::Initialize() {
 	RegisterOperators();
 	// RegisterSequenceFunctions();
 	RegisterStringFunctions();
-	// RegisterNestedFunctions();
+	RegisterNestedFunctions();
 	// RegisterTrigonometricsFunctions();
 
 	// RegisterPragmaFunctions();
@@ -308,7 +308,6 @@ static int64_t BindFunctionCost(SimpleFunction &func, vector<LogicalType> &argum
 	}
 	if (func.arguments.size() != arguments.size()) {
 		// invalid argument count: check the next function
-		fprintf(stdout, "A\n");
 		return -1;
 	}
 	int64_t cost = 0;

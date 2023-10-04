@@ -9,6 +9,16 @@
 namespace kuzu {
 namespace common {
 
+int32_t TypeUtils::convertToInt32(const char* data) {
+    istringstream iss(data);
+    int32_t val;
+    if (!(iss >> val)) {
+        throw ConversionException(
+            StringUtils::string_format("Failed to convert %s to int32_t", data));
+    }
+    return val;
+}
+
 int64_t TypeUtils::convertToInt64(const char* data) {
     char* eptr;
     errno = 0;
@@ -21,6 +31,16 @@ int64_t TypeUtils::convertToInt64(const char* data) {
     return retVal;
 }
 
+uint32_t TypeUtils::convertToUint32(const char* data) {
+    istringstream iss(data);
+    uint32_t val;
+    if (!(iss >> val)) {
+        throw ConversionException(
+            StringUtils::string_format("Failed to convert %s to uint32_t", data));
+    }
+    return val;
+}
+
 uint64_t TypeUtils::convertToUint64(const char* data) {
     char* eptr;
     errno = 0;
@@ -31,16 +51,6 @@ uint64_t TypeUtils::convertToUint64(const char* data) {
             prefixConversionExceptionMessage(data, UBIGINT) + " Input out of range.");
     }
     return retVal;
-}
-
-uint32_t TypeUtils::convertToUint32(const char* data) {
-    istringstream iss(data);
-    uint32_t val;
-    if (!(iss >> val)) {
-        throw ConversionException(
-            StringUtils::string_format("Failed to convert %s to uint32_t", data));
-    }
-    return val;
 }
 
 double_t TypeUtils::convertToDouble(const char* data) {
@@ -72,9 +82,13 @@ string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr
     switch (dataType.typeID) {
     case BOOL:
         return TypeUtils::toString(((bool*)overflowPtr)[pos]);
+    case INTEGER:
+        return TypeUtils::toString(((int32_t*)overflowPtr)[pos]);
     case INT64:
         return TypeUtils::toString(((int64_t*)overflowPtr)[pos]);
-     case UBIGINT:
+    case UINTEGER:
+        return TypeUtils::toString(((uint32_t*)overflowPtr)[pos]);
+    case UBIGINT:
         return TypeUtils::toString(((uint64_t*)overflowPtr)[pos]);
     case DOUBLE:
         return TypeUtils::toString(((double_t*)overflowPtr)[pos]);
@@ -114,8 +128,12 @@ string TypeUtils::toString(const Literal& literal) {
     switch (literal.dataType.typeID) {
     case BOOL:
         return TypeUtils::toString(literal.val.booleanVal);
+    case INTEGER:
+        return TypeUtils::toString(literal.val.int32Val);
     case INT64:
         return TypeUtils::toString(literal.val.int64Val);
+    case UINTEGER:
+        return TypeUtils::toString(literal.val.uint32Val);
     case UBIGINT:
         return TypeUtils::toString(literal.val.uint64Val);
     case DOUBLE:

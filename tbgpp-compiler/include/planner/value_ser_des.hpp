@@ -24,10 +24,18 @@ public:
 	// TODO may need to apply templates if necessary
 	static void SerializeKUZULiteralIntoOrcaByteArray(uint32_t type_id, kuzu::common::Literal* kuzu_literal, void*& out_mem_ptr, uint64_t& out_length) {
 
-		DataType kuzu_type = kuzu_literal->dataType;
-		D_ASSERT( type_id == LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
-		
-		switch(kuzu_type.typeID) {
+		// DataType kuzu_type = kuzu_literal->dataType;
+		// D_ASSERT( type_id == LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
+		DataTypeID data_type_id = DataTypeID((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+
+		switch (data_type_id) {
+			case DataTypeID::INTEGER: {
+				out_length = 4;
+				int32_t* mem_ptr = (int32_t*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.int32Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			case DataTypeID::INT64: {
 				out_length = 8;
 				int64_t* mem_ptr = (int64_t*) malloc(out_length);
@@ -35,10 +43,24 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::UINTEGER: {
+				out_length = 4;
+				uint32_t* mem_ptr = (uint32_t*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.uint32Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			case DataTypeID::UBIGINT: {
 				out_length = 8;
 				uint64_t* mem_ptr = (uint64_t*) malloc(out_length);
 				(*mem_ptr) = kuzu_literal->val.uint64Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
+			case DataTypeID::DOUBLE: {
+				out_length = 8;
+				double* mem_ptr = (double*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.doubleVal;
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
@@ -57,6 +79,21 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::DATE: {
+				out_length = 4;
+				int32_t val = kuzu_literal->val.dateVal.days;
+				int32_t *mem_ptr = (int32_t *)malloc(out_length);
+				(*mem_ptr) = val;
+				out_mem_ptr = (void *)mem_ptr;
+				break;
+			}
+			case DataTypeID::DECIMAL: { // TODO decimal temporary
+				out_length = 8;
+				int64_t* mem_ptr = (int64_t*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.int64Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			default:
 				D_ASSERT(false);
 		}
@@ -67,20 +104,20 @@ public:
 		// TODO api should not copy return value
 	static duckdb::Value DeserializeOrcaByteArrayIntoDuckDBValue(uint32_t type_id, const void* mem_ptr, uint64_t length) {
 
-		duckdb::LogicalTypeId duckdb_type = (duckdb::LogicalTypeId) (type_id - LOGICAL_TYPE_BASE_ID);
+		duckdb::LogicalTypeId duckdb_type = (duckdb::LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 
 		// TODO deallocation is responsible here
 		switch (duckdb_type) {
-			case duckdb::LogicalType::UBIGINT: {
-				D_ASSERT(length == 8 || length == 0);
+			case duckdb::LogicalTypeId::INTEGER: {
+				D_ASSERT(length == 4 || length == 0);
 				if (length == 0) {
-					return duckdb::Value(duckdb::LogicalType::UBIGINT);
+					return duckdb::Value(duckdb::LogicalType::INTEGER);	// TODO to BIGINT
 				} else {
-					uint64_t value = *((uint64_t*)mem_ptr);
-					return duckdb::Value::UBIGINT(value);
+					int32_t value = *((int32_t*)mem_ptr);
+					return duckdb::Value::INTEGER((int32_t)value);	// TODO to BIGINT
 				}
 			}
-			case duckdb::LogicalType::BIGINT: {
+			case duckdb::LogicalTypeId::BIGINT: {
 				D_ASSERT(length == 8 || length == 0);
 				if (length == 0) {
 					return duckdb::Value(duckdb::LogicalType::UBIGINT);	// TODO to BIGINT
@@ -89,12 +126,39 @@ public:
 					return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
 				}
 			}
-			case duckdb::LogicalType::VARCHAR: {
+			case duckdb::LogicalTypeId::UINTEGER: {
+				D_ASSERT(length == 4 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::UINTEGER);
+				} else {
+					uint32_t value = *((uint32_t*)mem_ptr);
+					return duckdb::Value::UINTEGER((uint32_t)value);
+				}
+			}
+			case duckdb::LogicalTypeId::UBIGINT: {
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::UBIGINT);
+				} else {
+					uint64_t value = *((uint64_t*)mem_ptr);
+					return duckdb::Value::UBIGINT(value);
+				}
+			}
+			case duckdb::LogicalTypeId::DOUBLE: {
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::DOUBLE);
+				} else {
+					double value = *((double*)mem_ptr);
+					return duckdb::Value::DOUBLE(value);
+				}
+			}
+			case duckdb::LogicalTypeId::VARCHAR: {
 				string str_value((char*)mem_ptr);
 				duckdb::string_t value(str_value);
 				return duckdb::Value(value);
 			}
-			case duckdb::LogicalType::ID: {
+			case duckdb::LogicalTypeId::ID: {
 				D_ASSERT(length == 8 || length == 0);
 				if (length == 0) {
 					return duckdb::Value(duckdb::LogicalType::ID);
@@ -103,9 +167,17 @@ public:
 					return duckdb::Value::ID(value);
 				}
 			}
-			case duckdb::LogicalType::BOOLEAN: {
+			case duckdb::LogicalTypeId::BOOLEAN: {
 				int8_t value = *((int8_t*)mem_ptr);
 				return duckdb::Value::BOOLEAN(value);
+			}
+			case duckdb::LogicalTypeId::DATE: {
+				int32_t value = *((int32_t *)mem_ptr);
+				return duckdb::Value::DATE(duckdb::date_t(value));
+			}
+			case duckdb::LogicalTypeId::DECIMAL: { // TODO decimal temporary
+				int64_t value = *((int64_t *)mem_ptr);
+				return duckdb::Value::DECIMAL(value, 12, 2);
 			}
 			default:
 				D_ASSERT(false);

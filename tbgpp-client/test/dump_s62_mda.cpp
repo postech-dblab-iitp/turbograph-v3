@@ -79,7 +79,8 @@ void print_depth(string data, int depth=0) {
 }
 
 void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
-	vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
+	// vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
+	vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "epart_IS_PART_OF"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -96,12 +97,12 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// 	fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
 	// }
 	
-	vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "HAS_MODERATOR_fwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
-	for (auto &index_cat_name : index_cat_list) {
-		IndexCatalogEntry *index_cat =
-			(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
-		fprintf(stdout, "%s oid %ld, AdjColIdx = %ld\n", index_cat_name.c_str(), index_cat->GetOid(), index_cat->GetAdjColIdx());
-	}
+	// vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "HAS_MODERATOR_fwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
+	// for (auto &index_cat_name : index_cat_list) {
+	// 	IndexCatalogEntry *index_cat =
+	// 		(IndexCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::INDEX_ENTRY, DEFAULT_SCHEMA, index_cat_name);
+	// 	fprintf(stdout, "%s oid %ld, AdjColIdx = %ld\n", index_cat_name.c_str(), index_cat->GetOid(), index_cat->GetAdjColIdx());
+	// }
 
 	// vector<string> agg_function_catalog_list = {"count_star"};	// count_star oid=33, mdid=72162688
 	// for (auto &agg_function_cat_name : agg_function_catalog_list) {
@@ -247,7 +248,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless/";
+	DiskAioParameters::WORKSPACE = "/data/tpch/sf1/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;

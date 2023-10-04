@@ -806,8 +806,8 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		// }
 
 		ULONG col_len = gpos::ulong_max;
-		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) rel->GetType(ul) + LOGICAL_TYPE_BASE_ID);
+		CMDIdGPDB *mdid_col = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral,
+			(OID) rel->GetType(ul) + NUM_MAX_LOGICAL_TYPES * rel->GetExtraTypeInfo(ul) + LOGICAL_TYPE_BASE_ID);
 		// HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
 
 		// Column width priority:
@@ -2008,7 +2008,7 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 	idx_t scalar_func_idx = duckdb::GetScalarFuncIndex(func_oid);
 	GPOS_ASSERT(scalar_func_cat->functions->functions.size() > scalar_func_idx);
 	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) scalar_func_cat->functions->functions[scalar_func_idx].return_type.id();
-
+	
 	GPOS_ASSERT(InvalidOid != result_oid);
 
 	CMDIdGPDB *result_type_mdid =

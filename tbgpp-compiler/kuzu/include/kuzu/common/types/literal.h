@@ -31,6 +31,14 @@ public:
         this->val.int64Val = value;
     }
 
+    explicit Literal(int32_t value) : _isNull{false}, dataType(INTEGER) {
+        this->val.int32Val = value;
+    }
+
+    explicit Literal(uint32_t value) : _isNull{false}, dataType(UINTEGER) {
+        this->val.uint32Val = value;
+    }
+
     explicit Literal(double value) : _isNull{false}, dataType(DOUBLE) {
         this->val.doubleVal = value;
     }
@@ -72,8 +80,10 @@ public:
 
     union Val {
         bool booleanVal;
-        uint64_t uint64Val;
+        int32_t int32Val;
+        uint32_t uint32Val;
         int64_t int64Val;
+        uint64_t uint64Val;
         double doubleVal;
         nodeID_t nodeID;
         date_t dateVal;

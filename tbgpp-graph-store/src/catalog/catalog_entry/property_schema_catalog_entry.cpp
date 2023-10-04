@@ -47,6 +47,10 @@ LogicalTypeId PropertySchemaCatalogEntry::GetType(idx_t i) {
 	return property_typesid[i];
 }
 
+uint16_t PropertySchemaCatalogEntry::GetExtraTypeInfo(idx_t i) {
+	return extra_typeinfo_vec[i];
+}
+
 vector<LogicalType> PropertySchemaCatalogEntry::GetTypesWithCopy() {
 	vector<LogicalType> types;
 	for (auto &it : this->property_typesid) {

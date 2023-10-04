@@ -72,6 +72,7 @@ public:
 	LogicalTypeId_vector *GetTypes();
 	uint16_t_vector *GetExtraTypeInfos();
 	LogicalTypeId GetType(idx_t i);
+	uint16_t GetExtraTypeInfo(idx_t i);
 	vector<LogicalType> GetTypesWithCopy();
 	uint64_t GetTypeSize(idx_t i);
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);

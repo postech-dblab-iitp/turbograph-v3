@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.11.1
+// Generated from Cypher.g4 by ANTLR 4.13.1
 
 #pragma once
 
@@ -259,6 +259,9 @@ public:
 
   virtual void enterOC_ListOperatorExpression(CypherParser::OC_ListOperatorExpressionContext *ctx) = 0;
   virtual void exitOC_ListOperatorExpression(CypherParser::OC_ListOperatorExpressionContext *ctx) = 0;
+
+  virtual void enterKU_ListPropertyOrLabelsExpression(CypherParser::KU_ListPropertyOrLabelsExpressionContext *ctx) = 0;
+  virtual void exitKU_ListPropertyOrLabelsExpression(CypherParser::KU_ListPropertyOrLabelsExpressionContext *ctx) = 0;
 
   virtual void enterKU_ListExtractOperatorExpression(CypherParser::KU_ListExtractOperatorExpressionContext *ctx) = 0;
   virtual void exitKU_ListExtractOperatorExpression(CypherParser::KU_ListExtractOperatorExpressionContext *ctx) = 0;

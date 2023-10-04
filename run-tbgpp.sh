@@ -5,7 +5,7 @@ workspace=$2
 debug_plan=$3
 
 if [ "$#" -eq 1 ]; then
-	workspace="/data/ldbc/sf1_230919/"
+	workspace="/data/tpch/sf1/"
 	debug_plan_option=""
 elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
@@ -28,8 +28,9 @@ run_query() {
 		fi
 	fi
 
-	echo $query_str
-	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain --show-top ${iterations}
+	echo "$query_str"
+	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:query
+	# ./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations}
 }
 
 run_ldbc_s() {
@@ -620,10 +621,552 @@ run_ldbc() {
 	run_ldbc_c
 }
 
+run_tpch1() {
+	# TPC-H Q1 Pricing Summary Report Query
+	run_query "MATCH (item:LINEITEM)
+		WHERE item.L_SHIPDATE <= date('1998-08-25')
+		RETURN
+			item.L_RETURNFLAG AS ret_flag,
+			item.L_LINESTATUS AS line_stat,
+			sum(item.L_QUANTITY) AS sum_qty,
+			sum(item.L_EXTENDEDPRICE) AS sum_base_price,
+			sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price,
+			sum(item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX)) AS sum_charge,
+			avg(item.L_QUANTITY) AS avg_qty,
+			avg(item.L_EXTENDEDPRICE) AS avg_price,
+			avg(item.L_DISCOUNT) AS avg_disc,
+			COUNT(*) AS count_order
+		ORDER BY
+			ret_flag,
+			line_stat;" 0
+}
+
+run_tpch2() {
+	# TPC-H Q2 Minimum Cost Supplier Query
+	# p2.PS_SUPPLYCOST = minvalue
+	run_query "MATCH (r:REGION)<-[:IS_LOCATED_IN]-(:NATION)<-[:SUPP_BELONG_TO]-(:SUPPLIER)<-[p:PARTSUPP]-(pa:PART)
+		WHERE r.R_NAME = 'AMERICA'
+		WITH min(p.PS_SUPPLYCOST) as minvalue
+		MATCH (r2:REGION)<-[:IS_LOCATED_IN]-(n2:NATION)<-[:SUPP_BELONG_TO]-(s2:SUPPLIER)<-[p2:PARTSUPP]-(pa2:PART)
+		WHERE pa2.P_SIZE = 43
+			AND r2.R_NAME = 'AMERICA'
+			AND pa2.P_TYPE CONTAINS 'COPPER'
+		RETURN
+			s2.S_ACCTBAL,
+			s2.S_NAME,
+			n2.N_NAME,
+			pa2.P_PARTKEY,
+			pa2.P_MFGR,
+			s2.S_ADDRESS,
+			s2.S_PHONE,
+			s2.S_COMMENT
+		ORDER BY
+			s2.S_ACCTBAL DESC,
+			n2.N_NAME,
+			s2.S_NAME,
+			pa2.P_PARTKEY;" 0
+}
+
+run_tpch3() {
+	# TPC-H Q3 Shipping Priority Query
+	run_query "MATCH (l:LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)-[:MADE_BY]->(c:CUSTOMER)
+		WHERE c.C_MKTSEGMENT = 'FURNITURE'
+			AND ord.O_ORDERDATE < date('1995-03-07')
+			AND l.L_SHIPDATE > date('1995-03-07')
+		RETURN
+			ord.O_ORDERKEY,
+			sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS revenue,
+			ord.O_ORDERDATE AS ord_date,
+			ord.O_SHIPPRIORITY
+		ORDER BY
+			revenue DESC,
+			ord_date
+		LIMIT 10;" 0
+}
+
+run_tpch4() {
+	# TPC-H Q4 Order Priority Checking Query
+	# TODO distinct bug
+	run_query "MATCH (l: LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)
+		WHERE l.L_COMMITDATE < l.L_RECEIPTDATE 
+			AND ord.O_ORDERDATE >= date('1994-01-01')
+			AND ord.O_ORDERDATE < date('1994-04-01')
+		WITH distinct(ord)
+		RETURN
+			ord.O_ORDERPRIORITY AS ord_pr,
+			COUNT(*) AS ORDER_COUNT
+		ORDER BY
+			ord_pr;" 1
+	run_query "MATCH (l: LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)
+		WHERE l.L_COMMITDATE < l.L_RECEIPTDATE 
+			AND ord.O_ORDERDATE >= date('1994-01-01')
+			AND ord.O_ORDERDATE < date('1994-04-01')
+		RETURN
+			ord.O_ORDERPRIORITY AS ord_pr,
+			COUNT(*) AS ORDER_COUNT
+		ORDER BY
+			ord_pr;" 0
+}
+
+run_tpch5() {
+	# TPC-H Q5 Local Supplier Volume Query
+	run_query "MATCH (l:LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n: NATION)-[:IS_LOCATED_IN]->(r:REGION)
+		WHERE r.R_NAME = 'ASIA'
+			AND ord.O_ORDERDATE >= date('1994-01-01')
+			AND ord.O_ORDERDATE < date('1994-04-01')
+		RETURN
+			n.N_NAME,
+			sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS REVENUE
+		ORDER BY
+			REVENUE DESC;" 1
+	run_query "MATCH (ord:ORDERS)-[:MADE_BY]->(c:CUSTOMER),
+			(l:LINEITEM)-[:IS_PART_OF]->(ord),
+			(l)-[:SUPPLIED_BY]->(s:SUPPLIER),
+			(s)-[:SUPP_BELONG_TO]->(n:NATION),
+			(c)-[:CUST_BELONG_TO]->(n)-[:IS_LOCATED_IN]->(r:REGION)
+		WHERE r.R_NAME = 'EUROPE'
+			AND ord.O_ORDERDATE >= date('1994-01-01')
+			AND ord.O_ORDERDATE < date('1995-01-01')
+		RETURN
+			n.N_NAME,
+			sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS REVENUE
+		ORDER BY
+			REVENUE DESC;" 0
+}
+
+run_tpch6() {
+	# TPC-H Q6 Forecasting Revenue Change Query
+	run_query "MATCH (li:LINEITEM)
+		WHERE li.L_SHIPDATE >= date('1994-01-01')
+			AND li.L_SHIPDATE < date('1995-01-01')
+			AND li.L_DISCOUNT >= 0.05 - 0.01
+			AND li.L_DISCOUNT <= 0.05 + 0.01
+			AND li.L_QUANTITY < 24
+		RETURN
+			sum(li.L_EXTENDEDPRICE * li.L_DISCOUNT) as revenue;" 0
+}
+
+run_tpch7() {
+	# TPC-H Q7 Volume Shipping Query
+	# date(li.L_SHIPDATE).year as l_year,
+	run_query "MATCH (li:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n1:NATION)
+		MATCH (li)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n2:NATION) 
+		WHERE ((n1.N_NAME = 'IRAN' AND n2.N_NAME = 'ETHIOPIA')
+			OR (n1.N_NAME = 'ETHIOPIA' AND n2.N_NAME = 'IRAN'))
+			AND li.L_SHIPDATE > date('1995-01-01')
+			AND li.L_SHIPDATE < date('1996-12-31')
+		RETURN 
+			n1.N_NAME AS supp_nation,
+			n2.N_NAME AS cust_nation,
+			li.L_SHIPDATE AS l_year,
+			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as volume
+		ORDER BY
+			supp_nation,
+			cust_nation,
+			l_year;" 0
+}
+
+run_tpch8() {
+	# TPC-H Q8 National Market Share Query
+	# date(o.O_ORDERDATE) as o_year
+	# / volume 
+	run_query "MATCH (li:LINEITEM)-[:COMPOSED_BY]->(p:PART)
+		MATCH (li)-[:SUPPLIED_BY]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
+		MATCH (li)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n1:NATION)-[:IS_LOCATED_IN]->(r:REGION)
+		WHERE r.R_NAME = 'AMERICA'
+			AND o.O_ORDERDATE > date('1995-01-01')
+			AND o.O_ORDERDATE < date('1996-12-31')
+			AND p.P_TYPE = 'ECONOMY ANODIZED STEEL'
+		WITH 
+			o.O_ORDERDATE AS o_year,
+			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
+			n2.N_NAME AS nation
+		RETURN o_year,
+			sum(CASE WHEN nation = 'ETHIOPIA'
+				THEN volume
+				ELSE 0 END) as mkt_share
+		ORDER BY o_year;" 1
+	run_query "MATCH (li:LINEITEM)-[:COMPOSED_BY]->(p:PART)
+		MATCH (li)-[:SUPPLIED_BY]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
+		MATCH (li)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n1:NATION)-[:IS_LOCATED_IN]->(r:REGION)
+		WHERE r.R_NAME = 'AMERICA'
+			AND o.O_ORDERDATE > date('1995-01-01')
+			AND o.O_ORDERDATE < date('1996-12-31')
+			AND p.P_TYPE = 'ECONOMY ANODIZED STEEL'
+		RETURN 
+			o.O_ORDERDATE AS o_year,
+			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
+			n2.N_NAME AS nation;" 0
+}
+
+run_tpch9() {
+	# TPC-H Q9 Product Type Profit Measure Query
+	run_query "MATCH (o:ORDERS)<-[:IS_PART_OF]-(li:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)
+		MATCH (p:PART)-[ps:PARTSUPP]->(s)
+		WHERE p.P_NAME CONTAINS 'salmon'
+		RETURN
+			n.N_NAME as nation,
+			o.O_ORDERDATE as year,
+			sum(li.L_EXTENDEDPRICE * (1 -li.L_DISCOUNT) - ps.PS_SUPPLYCOST * li.L_QUANTITY) as amount
+		ORDER BY nation DESC, year;" 0
+}
+
+run_tpch10() {
+	# TPC-H Q10 Returned Item Reporting Query
+	run_query "MATCH (li:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n:NATION)
+		WHERE o.O_ORDERDATE >= date('1993-07-01')
+			AND o.O_ORDERDATE < date('1993-10-01')
+			AND li.L_RETURNFLAG = 'R'
+		RETURN
+			c.C_CUSTKEY,
+			c.C_NAME,
+			c.C_ACCTBAL,
+			n.N_NAME,
+			c.C_ADDRESS,
+			c.C_PHONE,
+			c.C_COMMENT,
+			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as revenue
+		ORDER BY 
+			revenue desc
+		LIMIT 20;" 0
+}
+
+run_tpch11() {
+	# TPC-H Q11 Important Stock Identification Query
+	# WITH sum(tmp1) * 0.0001 as subquery, sum(tmp2) as value 
+	run_query "MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)
+		WHERE n.N_NAME = 'GERMANY'
+		WITH sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) as subquery, sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) as value 
+		MATCH (pa2:PART)-[:PARTSUPP]->(s2:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
+		WHERE n2.N_NAME = 'GERMANY' AND value > subquery
+		RETURN
+			pa2.P_PARTKEY,
+			value
+		ORDER BY
+			value desc;" 0
+}
+
+run_tpch12() {
+	# TPC-H Q12 Shipping Modes and Order Priority Query
+	run_query "MATCH (li:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
+		WHERE (li.L_SHIPMODE = 'REG AIR' OR li.L_SHIPMODE = 'FOB')
+			AND li.L_COMMITDATE < li.L_RECEIPTDATE
+			AND li.L_SHIPDATE < li.L_COMMITDATE
+			AND li.L_RECEIPTDATE >= date('1997-01-01')
+			AND li.L_RECEIPTDATE < date('1998-01-01')
+		RETURN 
+			li.L_SHIPMODE AS l_shipmode,
+			sum(CASE WHEN o.O_ORDERPRIORITY = '1-URGENT' OR o.O_ORDERPRIORITY = '2-HIGH'
+				THEN 1
+				ELSE 0 END) as high_line_count,
+			sum(CASE WHEN o.O_ORDERPRIORITY = '3-MEDIUM' OR o.O_ORDERPRIORITY = '4-NOT SPECIFIED' OR o.O_ORDERPRIORITY = '5-LOW'
+				THEN 1
+				ELSE 0 END) as low_line_count
+		ORDER BY l_shipmode;" 0
+}
+
+run_tpch13() {
+	# TPC-H Q13 Customer Distribution Query
+	# WHERE NOT (order.O_COMMENT =~ '.*special.*.*requests.*')
+	run_query "MATCH (ord: ORDERS)
+		OPTIONAL MATCH (ord)-[:MADE_BY]->(c: CUSTOMER)
+		WHERE NOT (ord.O_COMMENT CONTAINS 'express' AND ord.O_COMMENT CONTAINS 'deposits')
+		WITH c.C_CUSTKEY AS c_id, COUNT(ord.O_ORDERKEY) AS c_count
+		RETURN
+			c_count,
+			COUNT(c_id) AS custdist
+		ORDER BY
+			custdist DESC,
+			c_count DESC;" 0
+}
+
+run_tpch14() {
+	# TPC-H Q14 Promotion Effect Query
+	# 100 * SUM(CASE WHEN part.P_TYPE =~ '.*PROMO.*'
+	run_query "MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+		WHERE item.L_SHIPDATE >= date('1995-09-01') 
+			AND item.L_SHIPDATE < date('1995-12-01')
+		RETURN
+			SUM(CASE WHEN part.P_TYPE CONTAINS 'PROMO'
+				THEN item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT) 
+				ELSE 0 END) / SUM(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS PROMO_REVENUE;" 1
+	run_query "MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+		WHERE item.L_SHIPDATE >= date('1995-09-01') 
+			AND item.L_SHIPDATE < date('1995-12-01')
+		RETURN
+			SUM(CASE WHEN part.P_TYPE CONTAINS 'PROMO'
+				THEN item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT) 
+				ELSE 0 END) AS PROMO_REVENUE1,
+			SUM(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS PROMO_REVENUE2;" 0
+}
+
+run_tpch15() {
+	# TPC-H Q15 Top Supplier Query
+	run_query "MATCH (li:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER)
+		WHERE li.L_SHIPDATE >= date('1995-11-01')
+			AND  li.L_SHIPDATE < date('1996-02-01')
+		WITH s.S_SUPPKEY as suppkey,
+			avg(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as total_revenue
+		MATCH (li2:LINEITEM)-[:SUPPLIED_BY]->(s2:SUPPLIER)
+		WHERE li2.L_SHIPDATE >= date('1995-11-01')
+			AND li2.L_SHIPDATE < date('1996-02-01')
+		WITH s2, sum(li2.L_EXTENDEDPRICE * (1-li2.L_DISCOUNT)) as total_revenue2, total_revenue
+		WHERE total_revenue2 = total_revenue
+		RETURN
+			s2.S_SUPPKEY AS S_SUPPKEY,
+			s2.S_NAME,
+			s2.S_ADDRESS,
+			s2.S_PHONE,
+			total_revenue2
+		ORDER BY S_SUPPKEY;" 1
+	run_query "MATCH (li:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER)
+		WHERE li.L_SHIPDATE >= date('1995-11-01')
+			AND li.L_SHIPDATE < date('1996-02-01')
+		WITH s.S_SUPPKEY as suppkey, sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as total_revenue
+		WITH max(total_revenue) as max_total_revenue
+		MATCH (li2:LINEITEM)-[:SUPPLIED_BY]->(s2:SUPPLIER)
+		WHERE li2.L_SHIPDATE >= date('1995-11-01')
+			AND li2.L_SHIPDATE < date('1996-02-01')
+		WITH
+			s2.S_SUPPKEY AS S_SUPPKEY,
+			s2.S_NAME AS S_NAME,
+			s2.S_ADDRESS AS S_ADDRESS,
+			s2.S_PHONE AS S_PHONE,
+			max_total_revenue,
+			sum(li2.L_EXTENDEDPRICE * (1-li2.L_DISCOUNT)) as total_revenue2
+		WHERE total_revenue2 = max_total_revenue
+		RETURN
+			S_SUPPKEY,
+			S_NAME,
+			S_ADDRESS,
+			S_PHONE,
+			total_revenue2,
+			max_total_revenue
+		ORDER BY S_SUPPKEY;" 0
+}
+
+run_tpch16() {
+	# TPC-H Q16 Parts/Supplier Relationship Query
+	# 			AND p.P_SIZE in [49,14,23,45,19,3,36,9]
+	run_query "MATCH (s:SUPPLIER)
+		WHERE s.S_COMMENT CONTAINS 'Complaints'
+		WITH s.S_SUPPKEY as p_id
+		MATCH (s2:SUPPLIER)<-[:PARTSUPP]-(p:PART)
+		WHERE p.P_BRAND <> 'Brand#45' 
+			AND NOT (p.P_TYPE CONTAINS 'MEDIUM POLISHED')
+			AND NOT s2.S_SUPPKEY = p_id
+		RETURN 
+			p.P_BRAND AS P_BRAND,
+			p.P_TYPE AS P_TYPE,
+			p.P_SIZE AS P_SIZE,
+			count(distinct s2.S_SUPPKEY) as supplier_cnt
+		ORDER BY
+			supplier_cnt desc,
+			P_BRAND,
+			P_TYPE,
+			P_SIZE;" 1
+	run_query "MATCH (s:SUPPLIER)<-[:PARTSUPP]-(p:PART)
+		WHERE NOT s.S_COMMENT CONTAINS 'Complaints'
+			AND p.P_BRAND <> 'Brand#45'
+			AND NOT (p.P_TYPE CONTAINS 'MEDIUM POLISHED')
+			AND ((p.P_SIZE = 49)
+				OR (p.P_SIZE = 14)
+				OR (p.P_SIZE = 23)
+				OR (p.P_SIZE = 45)
+				OR (p.P_SIZE = 19)
+				OR (p.P_SIZE = 3)
+				OR (p.P_SIZE = 36)
+				OR (p.P_SIZE = 9))
+		RETURN
+			p.P_BRAND,
+			p.P_TYPE,
+			p.P_SIZE,
+			count(s.S_SUPPKEY) as supplier_cnt" 0
+}
+
+run_tpch17() {
+	# TPC-H Q17 Small-Quantity-Order Revenue Query
+	# 		WITH 0.2 * lineitem.L_QUANTITY AS tmp1
+	# SUM(item.L_EXTENDEDPRICE) /7.0 AS avg_yearly;" 0
+	# remove part2.P_BRAND, part2.P_CONTAINER
+	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+		WITH avg(lineitem.L_QUANTITY) AS L_QUANTITY
+		MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part2: PART)
+		WHERE part2.P_BRAND = 'Brand#15'
+			AND part2.P_CONTAINER = 'LG CASE'
+			AND item.L_QUANTITY < L_QUANTITY
+		RETURN
+			SUM(item.L_EXTENDEDPRICE) AS avg_yearly;" 0
+}
+
+run_tpch18() {
+	# TPC-H Q18 Large Volume Customer Query
+	# WHERE ord.O_ORDERKEY IN [l_orderkey]
+	run_query "MATCH (lineitem: LINEITEM)
+		WITH lineitem.L_ORDERKEY as l_orderkey, sum(lineitem.L_QUANTITY) AS sum_lquantity
+		WHERE sum_lquantity > 315
+		MATCH (item:LINEITEM)-[:IS_PART_OF]->(ord: ORDERS)-[:MADE_BY]->(customer: CUSTOMER)
+		WHERE item.L_ORDERKEY = l_orderkey
+		RETURN
+			customer.C_NAME,
+			customer.C_CUSTKEY,
+			ord.O_ORDERKEY,
+			ord.O_ORDERDATE AS orderdate,
+			ord.O_TOTALPRICE AS totalprice,
+			SUM(item.L_QUANTITY)
+		ORDER BY
+			totalprice DESC,
+			orderdate
+		LIMIT 100;" 0
+}
+
+run_tpch19() {
+	# TPC-H Q19 Discounted Revenue Query
+	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part:PART)
+		WHERE (part.P_BRAND = 'Brand#25'
+			AND (part.P_CONTAINER = 'SM CASE' OR part.P_CONTAINER = 'SM BOX' OR part.P_CONTAINER = 'SM PACK' OR part.P_CONTAINER = 'SM PKG')
+			AND lineitem.L_QUANTITY >= 8 AND lineitem.L_QUANTITY <= 8 + 10
+			AND part.P_SIZE >= 1 AND part.P_SIZE <= 5
+			AND (lineitem.L_SHIPMODE = 'AIR' OR lineitem.L_SHIPMODE = 'AIR REG')
+			AND lineitem.L_SHIPINSTRUCT = 'DELIVER IN PERSON')
+		OR (part.P_BRAND = 'Brand#51'
+			AND (part.P_CONTAINER = 'MED BAG' OR part.P_CONTAINER = 'MED BOX' OR part.P_CONTAINER = 'MED PACK' OR part.P_CONTAINER = 'MED PKG')
+			AND lineitem.L_QUANTITY >= 19 AND lineitem.L_QUANTITY <= 19 + 10
+			AND part.P_SIZE >= 1 AND part.P_SIZE <= 10
+			AND (lineitem.L_SHIPMODE = 'AIR' OR lineitem.L_SHIPMODE = 'AIR REG')
+			AND lineitem.L_SHIPINSTRUCT = 'DELIVER IN PERSON')
+		OR (part.P_BRAND = 'Brand#51'
+			AND (part.P_CONTAINER = 'LG CASE' OR part.P_CONTAINER = 'LG BOX' OR part.P_CONTAINER = 'LG PACK' OR part.P_CONTAINER = 'LG PKG')
+			AND lineitem.L_QUANTITY >= 29 AND lineitem.L_QUANTITY <= 29 + 10
+			AND part.P_SIZE >= 1 AND part.P_SIZE <= 15
+			AND (lineitem.L_SHIPMODE = 'AIR' OR lineitem.L_SHIPMODE = 'AIR REG')
+			AND lineitem.L_SHIPINSTRUCT = 'DELIVER IN PERSON')
+		RETURN
+			SUM(lineitem.L_EXTENDEDPRICE * (1 - lineitem.L_DISCOUNT)) AS revenue;" 0
+}
+
+run_tpch20() {
+	# TPC-H Q20 Potential Part Promotion Query
+	# WITH ps, s, 0.5 * sum(li.L_QUANTITY) as quantity_sum
+	# CONTAINS -> STARTS WITH
+	# load_eid WHERE ps.PS_AVAILQTY > quantity_sum
+	run_query "MATCH (s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION),
+			(p:PART)-[ps:PARTSUPP]->(s),
+			(li:LINEITEM)-[:COMPOSED_BY]->(p),
+			(li)-[:SUPPLIED_BY]->(s)
+		WHERE n.N_NAME = 'BRAZIL'
+			AND p.P_NAME CONTAINS 'smoke'
+			AND li.L_SHIPDATE >= date('1997-01-01')
+			AND li.L_SHIPDATE < date('1998-01-01')
+		RETURN
+			s" 0
+}
+
+run_tpch21() {
+	# TPC-H Q21 Suppliers Who Kept Orders Waiting Query
+	run_query "MATCH (l1:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER), 
+			(l1)-[:IS_PART_OF]->(o:ORDERS), 
+			(s)-[:SUPP_BELONG_TO]->(n:NATION),
+			(l2:LINEITEM)-[:SUPPLIED_BY]->(s2:SUPPLIER),
+			(l3:LINEITEM)-[:SUPPLIED_BY]->(s3:SUPPLIER)
+		WHERE n.N_NAME = 'SAUDI ARABIA'
+			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
+			AND o.O_ORDERSTATUS = 'F'
+			AND l1.L_ORDERKEY = l2.L_ORDERKEY
+			AND s.S_SUPPKEY <> s2.S_SUPPKEY
+			AND l1.L_ORDERKEY = l3.L_ORDERKEY
+			AND s.S_SUPPKEY <> s3.S_SUPPKEY
+			AND l3.L_RECEIPTDATE > l3.L_COMMITDATE
+		WITH s, count(l2) as l2_count, count(l3) as l3_count
+		WHERE
+			l2_count > 0 and
+			l3_count = 0
+		RETURN
+			s.S_NAME AS S_NAME,
+			COUNT(*) AS numwait
+		ORDER BY
+			numwait desc,
+			S_NAME
+		LIMIT 100;" 0
+}
+
+run_tpch22() {
+	# TPC-H Q22 Global Sales Opportunity Query
+	run_query "MATCH (c1:CUSTOMER)
+		WHERE c1.C_ACCTBAL > 0.00
+			AND (substring(c1.C_PHONE,1,2) = '12'
+				OR substring(c1.C_PHONE,1,2) = '32'
+				OR substring(c1.C_PHONE,1,2) = '16'
+				OR substring(c1.C_PHONE,1,2) = '29'
+				OR substring(c1.C_PHONE,1,2) = '11'
+				OR substring(c1.C_PHONE,1,2) = '14'
+				OR substring(c1.C_PHONE,1,2) = '27')
+		WITH avg(c1.C_ACCTBAL) as avg_bal
+		MATCH (c2:CUSTOMER)
+		WHERE NOT EXISTS {
+				MATCH (o:ORDERS)-[:MADE_BY]->(c2)
+			}
+			AND (substring(c2.C_PHONE,1,2) = '12'
+				OR substring(c2.C_PHONE,1,2) = '32'
+				OR substring(c2.C_PHONE,1,2) = '16'
+				OR substring(c2.C_PHONE,1,2) = '29'
+				OR substring(c2.C_PHONE,1,2) = '11'
+				OR substring(c2.C_PHONE,1,2) = '14'
+				OR substring(c2.C_PHONE,1,2) = '27')
+			AND c2.C_ACCTBAL > avg_bal
+		WITH c2.C_ACCTBAL AS acctbal, substring(c2.C_PHONE,1,2) AS cntrycode
+		RETURN
+			cntrycode,
+			COUNT(*) as numcust,
+			sum(acctbal) as totacctbal;" 1
+	run_query "MATCH (c1:CUSTOMER)
+		WHERE c1.C_ACCTBAL > 0.00
+			AND (substring(c1.C_PHONE,1,2) = '12'
+				OR substring(c1.C_PHONE,1,2) = '32'
+				OR substring(c1.C_PHONE,1,2) = '16'
+				OR substring(c1.C_PHONE,1,2) = '29'
+				OR substring(c1.C_PHONE,1,2) = '11'
+				OR substring(c1.C_PHONE,1,2) = '14'
+				OR substring(c1.C_PHONE,1,2) = '27')
+		WITH avg(c1.C_ACCTBAL) as avg_bal
+		MATCH (c2:CUSTOMER)
+		WHERE (substring(c2.C_PHONE,1,2) = '12'
+				OR substring(c2.C_PHONE,1,2) = '32'
+				OR substring(c2.C_PHONE,1,2) = '16'
+				OR substring(c2.C_PHONE,1,2) = '29'
+				OR substring(c2.C_PHONE,1,2) = '11'
+				OR substring(c2.C_PHONE,1,2) = '14'
+				OR substring(c2.C_PHONE,1,2) = '27')
+			AND c2.C_ACCTBAL > avg_bal
+		WITH c2.C_ACCTBAL AS acctbal, substring(c2.C_PHONE,1,2) AS cntrycode
+		RETURN
+			cntrycode,
+			COUNT(*) as numcust,
+			sum(acctbal) as totacctbal;" 0
+}
+
+run_tpch() {
+	# TPC-H
+	echo "RUN TPC-H"
+	echo "Enter queries to run (query_num|All)"
+	read -a queries
+
+	for query in "${queries[@]}"; do
+		echo "RUN TPC-H query" $query
+		if [ $query == 'All' ]; then
+			run_tpch1
+		else
+			run_tpch${query}
+		fi
+	done
+}
+
 if [ $workload_type == "ldbc" ]; then
 	run_ldbc
 elif [ $workload_type == "ldbc_s" ]; then
 	run_ldbc_s
 elif [ $workload_type == "ldbc_c" ]; then
 	run_ldbc_c
+elif [ $workload_type == "tpch" ]; then
+	run_tpch
 fi
