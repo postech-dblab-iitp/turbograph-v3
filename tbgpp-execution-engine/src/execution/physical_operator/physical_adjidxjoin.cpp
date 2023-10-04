@@ -327,9 +327,15 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	} else {
 		ProcessEquiJoin(context, input, chunk, lstate, join_type == JoinType::LEFT);
 		// update states
-		state.resetForMoreOutput();
-		if( state.lhs_idx >= input.size() ) {
+		
+		// TODO correctness check
+		if (state.lhs_idx >= input.size()) {
 			state.join_finished = true;
+			state.resetForNewInput();
+			return OperatorResultType::NEED_MORE_INPUT;
+		} else {
+			state.resetForMoreOutput();
+			return OperatorResultType::HAVE_MORE_OUTPUT;
 		}
 		return OperatorResultType::HAVE_MORE_OUTPUT;
 	}

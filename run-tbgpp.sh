@@ -29,8 +29,10 @@ run_query() {
 	fi
 
 	echo "$query_str"
-	./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:query
-	# ./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations}
+	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:query
+	# ./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:greedy
+	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:exhaustive
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:exhaustive2
 }
 
 run_ldbc_s() {
