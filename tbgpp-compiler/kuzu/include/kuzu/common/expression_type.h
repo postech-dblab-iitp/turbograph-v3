@@ -25,6 +25,7 @@ const string LAST_FUNC_NAME = "LAST";
 
 // cast
 const string CAST_TO_DATE_FUNC_NAME = "DATE";
+const string CAST_TO_YEAR_FUNC_NAME = "YEAR";
 const string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
 const string CAST_TO_STRING_FUNC_NAME = "STRING";
@@ -142,6 +143,7 @@ const string UCASE_FUNC_NAME = "UCASE";
 const string UPPER_FUNC_NAME = "UPPER";
 
 // Date functions.
+const string DATE_PART_YEAR_FUNC_NAME = "YEAR";
 const string DATE_PART_FUNC_NAME = "DATE_PART";
 const string DATEPART_FUNC_NAME = "DATEPART";
 const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";

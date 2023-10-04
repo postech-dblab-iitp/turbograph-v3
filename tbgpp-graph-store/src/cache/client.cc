@@ -182,9 +182,9 @@ LightningClient::LightningClient(const std::string &store_socket,
   // page alignment check
   assert((size_t)base_ % 4096 == 0);
   // flush pages to reduce page faults; also do in the cache-friendly way
-  volatile char checksum = 0;
-  for (long i = size_ - 4096; i >= 0; i -= 4096)
-    checksum ^= base_[i];
+  // volatile char checksum = 0;
+  // for (long i = size_ - 4096; i >= 0; i -= 4096)
+  //   checksum ^= base_[i];
 
 #ifdef USE_MPK
   init_mpk();

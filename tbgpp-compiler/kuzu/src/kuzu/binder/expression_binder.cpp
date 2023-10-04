@@ -330,7 +330,11 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
-    } else {
+    } else if (functionName == CAST_TO_YEAR_FUNC_NAME) {
+        return make_shared<LiteralExpression>(DataType(INT64),
+            make_unique<Literal>(Date::getDatePart(DatePartSpecifier::YEAR, ((LiteralExpression*)children[0].get())->literal->val.dateVal)));
+    }
+    else {
         assert(functionName == ID_FUNC_NAME);
         return bindInternalIDExpression(parsedExpression);
     }
