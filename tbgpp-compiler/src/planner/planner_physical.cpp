@@ -812,6 +812,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			}
 		} else if (inner_root->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
 			// IndexOnlyScan on physical id index. We don't need to do idseek
+			// maybe we need to process filter expression
 			D_ASSERT(inner_root->Arity() >= 1);
 			CExpression *scalar_expr = inner_root;
 			CExpression *scalar_expr_child = scalar_expr->operator[](0);
@@ -827,7 +828,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 			vector<unique_ptr<duckdb::Expression>> proj_exprs;
 			tmp_schema.setStoredTypes(types);
 
-			bool project_physical_id_column = (output_cols->Size() == outer_cols->Size()); // TODO always works?
+			// bool project_physical_id_column = (output_cols->Size() == outer_cols->Size()); // TODO always works?
+			bool project_physical_id_column = true; // TODO we need a logic..
+			pGetAllScalarIdents(inner_root->operator[](0), sccmp_colids);
 			for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
 				CColRef *col = (*output_cols)[col_idx];
 				ULONG idx = outer_cols->IndexOf(col);
@@ -837,10 +840,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 					if (!project_physical_id_column) {
 						continue;
 					} else {
-						for (uint32_t i = 0; i < inner_root->operator[](0)->Arity(); i++) {
-							CScalarIdent *sc_ident = (CScalarIdent *)(inner_root->operator[](0)->operator[](i)->Pop());
-							sccmp_colids.push_back(sc_ident->Pcr()->Id());
-						}
+						
+						// for (uint32_t i = 0; i < inner_root->operator[](0)->Arity(); i++) {
+						// 	CScalarIdent *sc_ident = (CScalarIdent *)(inner_root->operator[](0)->operator[](i)->Pop());
+						// 	sccmp_colids.push_back(sc_ident->Pcr()->Id());
+						// }
 						for (ULONG outer_col_idx = 0; outer_col_idx < outer_cols->Size(); outer_col_idx++) {
 							CColRef *col = (*outer_cols)[outer_col_idx];
 							ULONG outer_col_id = col->Id();

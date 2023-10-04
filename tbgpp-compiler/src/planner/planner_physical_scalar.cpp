@@ -33,6 +33,32 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 	}
 }
 
+void Planner::pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids) {
+	switch (scalar_expr->Pop()->Eopid()) {
+		case COperator::EopScalarIdent: {
+			CScalarIdent *sc_ident = (CScalarIdent *)(scalar_expr->Pop());
+			sccmp_colids.push_back(sc_ident->Pcr()->Id());
+			return;
+		}
+		case COperator::EopScalarConst: return;
+		case COperator::EopScalarCmp: {
+			pGetAllScalarIdents(scalar_expr->operator[](0), sccmp_colids);
+			pGetAllScalarIdents(scalar_expr->operator[](1), sccmp_colids);
+			return;
+		}
+		case COperator::EopScalarBoolOp: {
+			for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
+				pGetAllScalarIdents(scalar_expr->operator[](child_idx), sccmp_colids);
+			}
+		}
+		case COperator::EopScalarAggFunc: return;
+		case COperator::EopScalarFunc: return;
+		case COperator::EopScalarSwitch: return;
+		default:
+			D_ASSERT(false); // NOT implemented yet
+	}
+}
+
 unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols) {
 	
 	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
