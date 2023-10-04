@@ -2808,91 +2808,93 @@ CTranslatorTBGPPToDXL::RetrieveNumChildPartitions(OID rel_oid)
 IMDCacheObject *
 CTranslatorTBGPPToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
 {
-	CMDIdCast *mdid_cast = CMDIdCast::CastMdid(mdid);
-	IMDId *mdid_src = mdid_cast->MdidSrc();
-	IMDId *mdid_dest = mdid_cast->MdidDest();
-	IMDCast::EmdCoercepathType coercePathType;
+	// CMDIdCast *mdid_cast = CMDIdCast::CastMdid(mdid);
+	// IMDId *mdid_src = mdid_cast->MdidSrc();
+	// IMDId *mdid_dest = mdid_cast->MdidDest();
+	// IMDCast::EmdCoercepathType coercePathType;
 
-	OID src_oid = CMDIdGPDB::CastMdid(mdid_src)->Oid();
-	OID dest_oid = CMDIdGPDB::CastMdid(mdid_dest)->Oid();
+	// OID src_oid = CMDIdGPDB::CastMdid(mdid_src)->Oid();
+	// OID dest_oid = CMDIdGPDB::CastMdid(mdid_dest)->Oid();
 	// CoercionPathType pathtype;
 
-	OID cast_fn_oid = 0;
-	BOOL is_binary_coercible = false;
+	// OID cast_fn_oid = 0;
+	// BOOL is_binary_coercible = false;
 
-	BOOL cast_exists = false; //gpdb::GetCastFunc(
-		// src_oid, dest_oid, &is_binary_coercible, &cast_fn_oid, &pathtype);
+	// BOOL cast_exists = false; //gpdb::GetCastFunc(
+	// 	// src_oid, dest_oid, &is_binary_coercible, &cast_fn_oid, &pathtype);
 
-	if (!cast_exists)
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-				   mdid->GetBuffer());
-	}
-
-	CHAR *func_name = NULL;
-	// if (InvalidOid != cast_fn_oid)
+	// if (!cast_exists)
 	// {
-	// 	func_name = gpdb::GetFuncName(cast_fn_oid);
-	// }
-	// else
-	// {
-	// 	// no explicit cast function: use the destination type name as the cast name
-	// 	func_name = gpdb::GetTypeName(dest_oid);
+	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+	// 			   mdid->GetBuffer());
 	// }
 
-	if (NULL == func_name)
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-				   mdid->GetBuffer());
-	}
+	// CHAR *func_name = NULL;
+	// // if (InvalidOid != cast_fn_oid)
+	// // {
+	// // 	func_name = gpdb::GetFuncName(cast_fn_oid);
+	// // }
+	// // else
+	// // {
+	// // 	// no explicit cast function: use the destination type name as the cast name
+	// // 	func_name = gpdb::GetTypeName(dest_oid);
+	// // }
 
-	mdid->AddRef();
-	mdid_src->AddRef();
-	mdid_dest->AddRef();
-
-	CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, func_name);
-
-	// switch (pathtype)
+	// if (NULL == func_name)
 	// {
-	// 	case COERCION_PATH_ARRAYCOERCE:
-	// 	{
-	// 		coercePathType = IMDCast::EmdtArrayCoerce;
-	// 		return GPOS_NEW(mp) CMDArrayCoerceCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtArrayCoerce, default_type_modifier, false,
-	// 			EdxlcfImplicitCast, -1);
-	// 	}
-	// 	break;
-	// 	case COERCION_PATH_FUNC:
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtFunc);
-	// 		break;
-	// 	case COERCION_PATH_RELABELTYPE:
-	// 		// binary-compatible cast, no function
-	// 		GPOS_ASSERT(cast_fn_oid == 0);
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest,
-	// 			true /*is_binary_coercible*/,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
-	// 		break;
-	// 	case COERCION_PATH_COERCEVIAIO:
-	// 		// uses IO functions from types, no function in the cast
-	// 		GPOS_ASSERT(cast_fn_oid == 0);
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtCoerceViaIO);
-	// 	default:
-	// 		break;
+	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+	// 			   mdid->GetBuffer());
 	// }
 
-	// fall back for none path types
-	return GPOS_NEW(mp)
-		CMDCastGPDB(mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-					GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+	// mdid->AddRef();
+	// mdid_src->AddRef();
+	// mdid_dest->AddRef();
+
+	// CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, func_name);
+
+	// // switch (pathtype)
+	// // {
+	// // 	case COERCION_PATH_ARRAYCOERCE:
+	// // 	{
+	// // 		coercePathType = IMDCast::EmdtArrayCoerce;
+	// // 		return GPOS_NEW(mp) CMDArrayCoerceCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtArrayCoerce, default_type_modifier, false,
+	// // 			EdxlcfImplicitCast, -1);
+	// // 	}
+	// // 	break;
+	// // 	case COERCION_PATH_FUNC:
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtFunc);
+	// // 		break;
+	// // 	case COERCION_PATH_RELABELTYPE:
+	// // 		// binary-compatible cast, no function
+	// // 		GPOS_ASSERT(cast_fn_oid == 0);
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest,
+	// // 			true /*is_binary_coercible*/,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+	// // 		break;
+	// // 	case COERCION_PATH_COERCEVIAIO:
+	// // 		// uses IO functions from types, no function in the cast
+	// // 		GPOS_ASSERT(cast_fn_oid == 0);
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtCoerceViaIO);
+	// // 	default:
+	// // 		break;
+	// // }
+
+	// // fall back for none path types
+	// return GPOS_NEW(mp)
+	// 	CMDCastGPDB(mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// 				GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+
+	return nullptr;
 }
 
 //---------------------------------------------------------------------------

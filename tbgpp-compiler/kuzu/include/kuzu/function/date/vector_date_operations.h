@@ -10,6 +10,10 @@ struct DatePartVectorOperation : public VectorDateOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct DatePartYearVectorOperation : public VectorDateOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct DateTruncVectorOperation : public VectorDateOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };

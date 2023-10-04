@@ -76,5 +76,41 @@ CastToStringVectorOperation::getDefinitions() {
     return result;
 }
 
+std::vector<std::unique_ptr<VectorOperationDefinition>> 
+CastToDoubleVectorFunction::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
+        std::vector<DataTypeID>{INT64}, DOUBLE,
+        empty_scalar_exec_func()));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
+        std::vector<DataTypeID>{FLOAT}, DOUBLE,
+        empty_scalar_exec_func()));
+    return result;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+CastToFloatVectorFunction::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
+        std::vector<DataTypeID>{INT64}, FLOAT,
+        empty_scalar_exec_func()));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE}, FLOAT,
+        empty_scalar_exec_func()));
+    return result;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> 
+CastToInt64VectorFunction::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INT64_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE}, INT64,
+        empty_scalar_exec_func()));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INT64_FUNC_NAME,
+        std::vector<DataTypeID>{FLOAT}, INT64,
+        empty_scalar_exec_func()));
+    return result;
+}
+
 } // namespace function
 } // namespace kuzu
