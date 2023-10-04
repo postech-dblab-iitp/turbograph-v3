@@ -35,6 +35,10 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
         children[0]->expressionType == LITERAL && children[0]->dataType.typeID == STRING) {
         return true; // bind as literal
     }
+    if (functionName == CAST_TO_YEAR_FUNC_NAME && 
+        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == DATE) {
+        return true; // bind as literal
+    }
     return false;
 }
 
@@ -224,6 +228,7 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
 
 void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_PART_YEAR_FUNC_NAME, DatePartYearVectorOperation::getDefinitions()});
     vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
@@ -289,6 +294,10 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorFunction::getDefinitions()});
+    vectorOperations.insert({CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorFunction::getDefinitions()});
+    vectorOperations.insert({CAST_TO_INT64_FUNC_NAME, CastToInt64VectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

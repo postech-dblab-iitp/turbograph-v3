@@ -32,6 +32,7 @@
 #include "gpos/memory/CMemoryPool.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/CMDTypeBoolGPDB.h"
+#include "naucrates/md/IMDCast.h"
 
 #include "gpopt/operators/CLogicalGet.h"
 
@@ -64,6 +65,7 @@
 #include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarCast.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
@@ -257,6 +259,7 @@ private:
 	CExpression *lExprScalarFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -292,6 +295,9 @@ private:
 	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
+
+	// helper functions
+	bool lIsCastingFunction(std::string& func_name);
 
 private:
 	// planner_physical.cpp

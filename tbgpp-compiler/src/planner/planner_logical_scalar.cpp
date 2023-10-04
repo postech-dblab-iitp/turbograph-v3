@@ -355,6 +355,7 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	kuzu::binder::expression_vector children = scalarfunc_expr->getChildren();
 
 	std::string func_name = (scalarfunc_expr)->getRawFuncName();
+	if (lIsCastingFunction(func_name)) { return lExprScalarCastExpr(expression, prev_plan); }
 	std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
 	D_ASSERT(func_name != "");
 
@@ -471,6 +472,48 @@ CExpression *Planner::lExprScalarExistentialSubqueryExpr(kuzu::binder::Expressio
 			CExpression(mp, GPOS_NEW(mp) CScalarSubqueryExists(mp), inner_plan->getPlanExpr());
 	
 	return pexprSubqueryExistential;
+}
+
+CExpression *Planner::lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan) {
+	CMemoryPool* mp = this->memory_pool;
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
+
+	// Get child expr
+	kuzu::binder::expression_vector children = scalarfunc_expr->getChildren();
+	D_ASSERT(children.size() == 1);
+	CExpression* child_expr = lExprScalarExpression(children[0].get(), prev_plan);
+
+	// Get child type mdid
+	DataType child_type = children[0]->getDataType();
+	uint32_t child_type_id = LOGICAL_TYPE_BASE_ID + (OID)child_type.typeID;
+	CMDIdGPDB* child_type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, child_type_id, 1, 0);
+	child_type_mdid->AddRef();
+
+	// Get return type mdid
+	DataType return_type = scalarfunc_expr->getDataType();
+	uint32_t return_type_id = LOGICAL_TYPE_BASE_ID + (OID)return_type.typeID;
+	CMDIdGPDB* return_type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, return_type_id, 1, 0);
+	return_type_mdid->AddRef();
+
+	// Get function mdid
+	auto cast_func = md_accessor->Pmdcast((IMDId*) child_type_mdid, (IMDId*) return_type_mdid);
+	IMDId* cast_func_mdid = cast_func->GetCastFuncMdId();
+
+	// Generate cast expression
+	CExpression *result_expr = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CScalarCast(mp, (IMDId*) return_type_mdid, cast_func_mdid, false), child_expr);
+
+	return result_expr;
+}
+
+bool Planner::lIsCastingFunction(std::string& func_name) {
+	if(func_name == CAST_TO_DOUBLE_FUNC_NAME || func_name == CAST_TO_FLOAT_FUNC_NAME || func_name == CAST_TO_INT64_FUNC_NAME) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 }
