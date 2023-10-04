@@ -478,24 +478,17 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 }
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
-// IC();
-	// fprintf(stdout, "catalogset %p\n", this);
-	// fprintf(stdout, "catalog_set_name %s\n", catalog_set_name.c_str());
 	MappingValue *mapping_value;
-// IC();
 	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
-// IC();
 	char_string name_(temp_charallocator);
-// IC();
 	name_ = name.c_str();
-// IC();
+
 	auto entry = mapping->find(name_);
 	if (entry != mapping->end()) {
 		mapping_value = entry->second;
 	} else {
 		return nullptr;
 	}
-// IC();
 	if (get_latest) {
 		return mapping_value;
 	}
@@ -506,7 +499,7 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 		mapping_value = mapping_value->child;
 		D_ASSERT(mapping_value);
 	}
-// IC();
+
 	return mapping_value;
 }
 

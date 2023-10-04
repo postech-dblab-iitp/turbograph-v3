@@ -56,7 +56,8 @@ ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionC
 
 void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, ExtentID eid) {
     Catalog& cat_instance = context.db->GetCatalog();
-    ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, "main", "ext_" + std::to_string(eid));
+    ExtentCatalogEntry* extent_cat_entry = 
+        (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(eid));
     PartitionID pid = static_cast<PartitionID>(eid >> 16);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, eid);
 }

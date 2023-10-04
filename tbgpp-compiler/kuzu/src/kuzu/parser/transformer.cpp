@@ -628,7 +628,10 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
     unique_ptr<ParsedExpression> listOperator;
-    if (ctx.kU_ListSliceOperatorExpression()) {
+    if (ctx.kU_ListPropertyOrLabelsExpression()) {
+        listOperator = transformListPropertyOrLabelsExpression(
+            *ctx.kU_ListPropertyOrLabelsExpression(), std::move(propertyExpression));
+    } else if (ctx.kU_ListSliceOperatorExpression()) {
         listOperator = transformListSliceOperatorExpression(
             *ctx.kU_ListSliceOperatorExpression(), std::move(propertyExpression));
     } else {
@@ -642,6 +645,18 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
         return listOperator;
     }
 }
+
+// TODO correctness check
+unique_ptr<ParsedExpression> Transformer::transformListPropertyOrLabelsExpression(
+    CypherParser::KU_ListPropertyOrLabelsExpressionContext& ctx,
+    unique_ptr<ParsedExpression> propertyExpression) {
+    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
+    auto right = transformPropertyOrLabelsExpression(*ctx.oC_PropertyOrLabelsExpression());
+    // return make_unique<ParsedFunctionExpression>(
+    //     LIST_CONTAINS_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+    return make_unique<ParsedFunctionExpression>( // right contains propertyExpression
+        LIST_CONTAINS_FUNC_NAME, std::move(right), std::move(propertyExpression), rawExpression);
+};
 
 unique_ptr<ParsedExpression> Transformer::transformListSliceOperatorExpression(
     CypherParser::KU_ListSliceOperatorExpressionContext& ctx,
@@ -871,6 +886,16 @@ unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
 
     // TODO need to improve deciding literal type => need reference!
+    try {
+        auto literal = make_unique<Literal>(TypeUtils::convertToInt32(ctx.DecimalInteger()->getText().c_str()));
+        return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
+    } catch (std::exception ex) {}
+
+    try {
+        auto literal = make_unique<Literal>(TypeUtils::convertToUint32(ctx.DecimalInteger()->getText().c_str()));
+        return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
+    } catch (std::exception ex) {}
+
     try {
         auto literal = make_unique<Literal>(TypeUtils::convertToInt64(ctx.DecimalInteger()->getText().c_str()));
         return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    
