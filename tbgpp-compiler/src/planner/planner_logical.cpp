@@ -497,7 +497,7 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 		vector<CExpression*> generated_exprs;
 		vector<CColRef*> generated_colrefs;
 		kuzu::binder::Expression* proj_expr = proj_expr_ptr.get();
-		if( proj_expr->expressionType != kuzu::common::ExpressionType::VARIABLE ) {
+		if (proj_expr->expressionType != kuzu::common::ExpressionType::VARIABLE) {
 			CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
 			D_ASSERT( expr->Pop()->FScalar());
 			string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
@@ -517,7 +517,6 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 				} else {
 					new_schema.appendColumn(col_name, generated_colrefs.back());
 				}
-				
 			} else {
 				// get new colref
 				CScalar* scalar_op = (CScalar*)(expr->Pop());
@@ -652,21 +651,37 @@ LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, Logical
 				if (property_columns.size() == 0) {
 					property_columns = std::move(prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName()));
 				}
-				for (auto& col: property_columns) {
-					// consider all columns as key columns
-					// TODO this is inefficient
-					key_columns->Append(col);
-					if (proj_expr->hasAlias()) {
-						new_schema.appendColumn(col_name, col);
-					} else {
-						if( prev_plan->getSchema()->isNodeBound(proj_expr->getUniqueName()) ) {
-							// consider as node
-							new_schema.appendNodeProperty(proj_expr->getUniqueName(),
-								prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
+				if (property_columns.size() == 0) {
+					CExpression* expr = lExprScalarExpression(proj_expr, prev_plan);
+					string col_name = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
+					// get new colref
+					CScalar* scalar_op = (CScalar*)(expr->Pop());
+					std::wstring w_col_name = L"";
+					w_col_name.assign(col_name.begin(), col_name.end());
+					const CWStringConst col_name_str(w_col_name.c_str());
+					CName col_cname(&col_name_str);
+					CColRef *new_colref = col_factory->PcrCreate(
+						lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);
+					key_columns->Append(new_colref);
+					// generated_colrefs.push_back(new_colref);
+					new_schema.appendColumn(col_name, new_colref);
+				} else {
+					for (auto& col: property_columns) {
+						// consider all columns as key columns
+						// TODO this is inefficient
+						key_columns->Append(col);
+						if (proj_expr->hasAlias()) {
+							new_schema.appendColumn(col_name, col);
 						} else {
-							// considera as edge
-							new_schema.appendEdgeProperty(proj_expr->getUniqueName(),
-								prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
+							if( prev_plan->getSchema()->isNodeBound(proj_expr->getUniqueName()) ) {
+								// consider as node
+								new_schema.appendNodeProperty(proj_expr->getUniqueName(),
+									prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
+							} else {
+								// considera as edge
+								new_schema.appendEdgeProperty(proj_expr->getUniqueName(),
+									prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
+							}
 						}
 					}
 				}
@@ -694,7 +709,7 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 	vector<CColRef*> sort_colrefs;
 	for (auto &orderby_expr: orderby_exprs) {
 		auto &orderby_expr_type = orderby_expr.get()->expressionType;
-		if(orderby_expr_type == kuzu::common::ExpressionType::PROPERTY) {
+		if (orderby_expr_type == kuzu::common::ExpressionType::PROPERTY) {
 			// first depth projection = simple projection
 			PropertyExpression *prop_expr = (PropertyExpression *)(orderby_expr.get());
 			string k1 = prop_expr->getVariableName();

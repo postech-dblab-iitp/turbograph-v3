@@ -29,10 +29,10 @@ run_query() {
 	fi
 
 	echo "$query_str"
-	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:query
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query
 	# ./build_debug/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:greedy
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:exhaustive
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:exhaustive2
+	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only --explain ${iterations} --join-order-optimizer:exhaustive2
 }
 
 run_ldbc_s() {
@@ -760,7 +760,7 @@ run_tpch7() {
 		RETURN 
 			n1.N_NAME AS supp_nation,
 			n2.N_NAME AS cust_nation,
-			li.L_SHIPDATE AS l_year,
+			year(li.L_SHIPDATE) AS l_year,
 			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as volume
 		ORDER BY
 			supp_nation,
@@ -780,7 +780,7 @@ run_tpch8() {
 			AND o.O_ORDERDATE < date('1996-12-31')
 			AND p.P_TYPE = 'ECONOMY ANODIZED STEEL'
 		WITH 
-			o.O_ORDERDATE AS o_year,
+			year(o.O_ORDERDATE) AS o_year,
 			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
 			n2.N_NAME AS nation
 		RETURN o_year,
@@ -796,7 +796,7 @@ run_tpch8() {
 			AND o.O_ORDERDATE < date('1996-12-31')
 			AND p.P_TYPE = 'ECONOMY ANODIZED STEEL'
 		RETURN 
-			o.O_ORDERDATE AS o_year,
+			year(o.O_ORDERDATE) AS o_year,
 			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
 			n2.N_NAME AS nation;" 0
 }
@@ -808,7 +808,7 @@ run_tpch9() {
 		WHERE p.P_NAME CONTAINS 'salmon'
 		RETURN
 			n.N_NAME as nation,
-			o.O_ORDERDATE as year,
+			year(o.O_ORDERDATE) as year,
 			sum(li.L_EXTENDEDPRICE * (1 -li.L_DISCOUNT) - ps.PS_SUPPLYCOST * li.L_QUANTITY) as amount
 		ORDER BY nation DESC, year;" 0
 }
