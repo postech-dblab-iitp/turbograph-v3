@@ -25,6 +25,7 @@ const string LAST_FUNC_NAME = "LAST";
 
 // cast
 const string CAST_TO_DATE_FUNC_NAME = "DATE";
+const string CAST_TO_YEAR_FUNC_NAME = "YEAR";
 const string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
 const string CAST_TO_STRING_FUNC_NAME = "STRING";
@@ -33,6 +34,9 @@ const string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
 const string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";
 const string IMPLICIT_CAST_TO_DATE_FUNC_NAME = "_DATE";
 const string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
+const string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
+const string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
+const string CAST_TO_INT64_FUNC_NAME = "TO_INTEGER";
 
 // list
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
@@ -117,6 +121,7 @@ const string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
 const string CONCAT_FUNC_NAME = "CONCAT";
 const string CONTAINS_FUNC_NAME = "CONTAINS";
 const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
+const string RE_MATCH_FUNC_NAME = "RE_MATCH";
 const string LCASE_FUNC_NAME = "LCASE";
 const string LEFT_FUNC_NAME = "LEFT";
 const string LENGTH_FUNC_NAME = "LENGTH";
@@ -138,6 +143,7 @@ const string UCASE_FUNC_NAME = "UCASE";
 const string UPPER_FUNC_NAME = "UPPER";
 
 // Date functions.
+const string DATE_PART_YEAR_FUNC_NAME = "YEAR";
 const string DATE_PART_FUNC_NAME = "DATE_PART";
 const string DATEPART_FUNC_NAME = "DATEPART";
 const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
@@ -210,8 +216,10 @@ bool isExpressionComparison(ExpressionType type);
 bool isExpressionNullOperator(ExpressionType type);
 bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
+bool isExpressionScalarFunc(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
 bool isExpressionCaseElse(ExpressionType type);
+bool isExpressionFunction(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

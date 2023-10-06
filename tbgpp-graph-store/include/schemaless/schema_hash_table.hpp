@@ -75,18 +75,25 @@ public:
 
     void find(SchemaKeyIDsVec &schema_key_ids, int64_t &tuple_group_id) {
         uint64_t hashValue = hashFunction(schema_key_ids);
+        bool found = false;
         for (auto& tupleGroup : table[hashValue]) {
             if (tupleGroup.schema_key_ids.size() != schema_key_ids.size()) {
                 continue;
             } else {
+                found = true;
                 for (int64_t i = 0; i < schema_key_ids.size(); i++) {
                     if (tupleGroup.schema_key_ids.find(schema_key_ids[i]) == tupleGroup.schema_key_ids.end()) {
-                        tuple_group_id = INVALID_TUPLE_GROUP_ID;
-                        return;
+                        found = false;
+                        break;
                     }
                 }
-                tuple_group_id = tupleGroup.tuple_group_id;
-                return;
+                if (found) {
+                    tuple_group_id = tupleGroup.tuple_group_id;
+                    return;
+                } else {
+                    found = false;
+                    continue;
+                }
             }
         }
         tuple_group_id = INVALID_TUPLE_GROUP_ID;

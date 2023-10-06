@@ -1379,7 +1379,7 @@ CCostModelGPDB::CostNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	// with the cardinality of outer tuples, rows and width of the materialized inner side.
 	// 3. output tuples. This part is correlated with outer rows and width of the join result.
 	CCost costLocal = CCost(
-		pci->NumRebinds() *
+		10.0 * pci->NumRebinds() * // S62 penalize 10.0
 		(
 			// cost of feeding outer tuples
 			ulColsUsed * num_rows_outer * dJoinFeedingTupColumnCostUnit +
@@ -1690,7 +1690,8 @@ CCostModelGPDB::CostIndexPathScan(CMemoryPool *,  // mp
 	GPOS_ASSERT(NULL != pci);
 
 	// S62VAR TODO fixme
-	return CCost( 3.66e-06 * pci->Rows() * 12.0);
+	// return CCost( 3.66e-06 * pci->Rows() * 12.0);
+	return CCost( 3.66e-06 * pci->Rows() * 2.0);
 }
 
 

@@ -105,6 +105,7 @@ protected:
 public:
     ExpressionType expressionType;
     DataType dataType;
+    bool is_processed = false;
 
 protected:
     // Name that serves as the unique identifier.

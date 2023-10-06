@@ -34,12 +34,20 @@ bool isExpressionAggregate(ExpressionType type) {
     return AGGREGATE_FUNCTION == type;
 }
 
+bool isExpressionScalarFunc(ExpressionType type) {
+    return FUNCTION == type;
+}
+
 bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
 }
 
 bool isExpressionCaseElse(ExpressionType type) {
     return CASE_ELSE == type;
+}
+
+bool isExpressionFunction(ExpressionType type) {
+    return FUNCTION == type;
 }
 
 string expressionTypeToString(ExpressionType type) {

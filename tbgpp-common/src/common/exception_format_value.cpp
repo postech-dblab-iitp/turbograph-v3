@@ -53,7 +53,7 @@ ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(hugeint_t value) {
 	return ExceptionFormatValue(value);
 }
 
-string ExceptionFormatValue::Format(const string &msg, vector<ExceptionFormatValue> &values) {/*
+string ExceptionFormatValue::Format(const string &msg, vector<ExceptionFormatValue> &values) {
 	std::vector<duckdb_fmt::basic_format_arg<duckdb_fmt::printf_context>> format_args;
 	for (auto &val : values) {
 		switch (val.type) {
@@ -69,7 +69,7 @@ string ExceptionFormatValue::Format(const string &msg, vector<ExceptionFormatVal
 		}
 	}
 	return duckdb_fmt::vsprintf(msg, duckdb_fmt::basic_format_args<duckdb_fmt::printf_context>(
-	                                     format_args.data(), static_cast<int>(format_args.size())));*/
+	                                     format_args.data(), static_cast<int>(format_args.size())));
 }
 
 } // namespace duckdb

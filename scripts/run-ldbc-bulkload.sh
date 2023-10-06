@@ -5,7 +5,7 @@ intermdir="/converted/"
 #"/graphs/csv/interactive/composite-projected-fk/"
 
 ./tbgpp-execution-engine/bulkload_using_map \
-	--output_dir:"/data/ldbc/sf1_test" \
+	--output_dir:"/data/ldbc_test" \
 	--nodes:Person ${basedir}/sf${SF}/${intermdir}/dynamic/Person.csv \
 	--nodes:Comment:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Comment.csv \
 	--nodes:Post:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Post.csv \

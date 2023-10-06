@@ -70,6 +70,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	# third_party
 	"${PROJECT_SOURCE_DIR}/include/third_party"
 	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_fmt/include"
+	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_re2/"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
 	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"

@@ -20,7 +20,7 @@
 #include "naucrates/md/CGPDBTypeHelper.h"
 #include "naucrates/md/IMDTypeBool.h"
 
-#define GPDB_BOOL_BASE_ID OID(10000000) // S62 TODO remove this? same with LOGICAL_TYPE_BASE_ID
+#define GPDB_BOOL_BASE_ID OID(1000000) // S62 TODO remove this? same with LOGICAL_TYPE_BASE_ID
 #define GPDB_BOOL_OID (GPDB_BOOL_BASE_ID + OID(10))
 #define GPDB_BOOL_OPFAMILY (GPDB_BOOL_BASE_ID + OID(2222))
 #define GPDB_BOOL_LEGACY_OPFAMILY (GPDB_BOOL_BASE_ID + OID(7124))

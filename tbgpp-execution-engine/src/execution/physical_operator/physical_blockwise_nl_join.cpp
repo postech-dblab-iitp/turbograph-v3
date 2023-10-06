@@ -148,7 +148,6 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 			ConstructOutputChunk(chunk, output_chunk);
 			return OperatorResultType::NEED_MORE_INPUT;
 		} else {
-			ConstructOutputChunk(chunk, output_chunk);
 			return OperatorResultType::FINISHED;
 		}
 	}

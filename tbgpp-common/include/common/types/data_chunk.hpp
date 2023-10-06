@@ -59,6 +59,12 @@ public:
 	inline void SetCapacity(const DataChunk &other) {
 		this->capacity = other.capacity;
 	}
+	inline void SetSchemaIdx(idx_t schema_idx) {
+		this->schema_idx = schema_idx;
+	}
+	idx_t GetSchemaIdx() {
+		return this->schema_idx;
+	}
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);
@@ -145,5 +151,6 @@ private:
 	//! Vector caches, used to store data when ::Initialize is called
 	vector<VectorCache> vector_caches;
 	bool has_row_chunk;
+	idx_t schema_idx;
 };
 } // namespace duckdb

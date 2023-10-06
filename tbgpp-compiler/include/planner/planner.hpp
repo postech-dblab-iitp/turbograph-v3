@@ -32,6 +32,7 @@
 #include "gpos/memory/CMemoryPool.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/CMDTypeBoolGPDB.h"
+#include "naucrates/md/IMDCast.h"
 
 #include "gpopt/operators/CLogicalGet.h"
 
@@ -64,6 +65,7 @@
 #include "gpopt/operators/CLogicalProjectColumnar.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarCast.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/COperator.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
@@ -101,6 +103,7 @@
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarBoolOp.h"
+#include "gpopt/operators/CScalarFunc.h"
 #include "gpopt/operators/CScalarAggFunc.h"
 #include "gpopt/operators/CScalarValuesList.h"
 
@@ -239,27 +242,29 @@ private:
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanGroupBy(const expression_vector &expressions, LogicalPlan* prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
-	LogicalPlan *lPlanDistinct(CColRefArray *colrefs, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
 	
 	
 	// scalar expression
-	CExpression *lExprScalarExpression(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarBoolOp(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarComparisonExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression* lExprScalarCmpEq(CExpression* left_expr, CExpression* right_expr);	// note that two inputs are gpos::CExpression*
-	CExpression *lTryGenerateScalarIdent(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarPropertyExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan* prev_plan);
-	CExpression *lExprScalarLiteralExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarAggFuncExpr(Expression* expression, LogicalPlan* prev_plan);
-	CExpression *lExprScalarCaseElseExpr(Expression *expression, LogicalPlan *prev_plan);
-	CExpression *lExprScalarExistentialSubqueryExpr(Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type = DataTypeID::INVALID);
+	CExpression *lExprScalarBoolOp(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarComparisonExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression* lExprScalarCmpEq(CExpression *left_expr, CExpression *right_expr);	// note that two inputs are gpos::CExpression*
+	CExpression *lTryGenerateScalarIdent(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarPropertyExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan);
+	CExpression *lExprScalarLiteralExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarAggFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> oids,
-		map<uint64_t, map<uint64_t, uint64_t>> * schema_proj_mapping, bool insert_projection
+		string name, vector<uint64_t> &oids,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
@@ -290,6 +295,9 @@ private:
 	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
+
+	// helper functions
+	bool lIsCastingFunction(std::string& func_name);
 
 private:
 	// planner_physical.cpp
@@ -327,8 +335,11 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray* rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
+	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -351,18 +362,33 @@ private:
 		return name;
 	}
 	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
-		return duckdb::LogicalType( pConvertTypeOidToLogicalTypeId(oid) );
+		auto type_id = pConvertTypeOidToLogicalTypeId(oid);
+		if (type_id == duckdb::LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = (oid - LOGICAL_TYPE_BASE_ID) / NUM_MAX_LOGICAL_TYPES;
+			uint8_t width = (uint8_t)(width_scale >> 8);
+			uint8_t scale = (uint8_t)(width_scale & 0xFF);
+			// D_ASSERT(width != 0);
+			if (width_scale == 0) return duckdb::LogicalType::DECIMAL(12, 2); // TODO decimal temporary
+			return duckdb::LogicalType::DECIMAL(width, scale);
+		}
+		return duckdb::LogicalType(type_id);
 	}
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
-		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>(oid - LOGICAL_TYPE_BASE_ID);
+		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 	}
 
 	// scalar helper functions 
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
-	static duckdb::JoinType pTranslateJoinType(COperator* op);
-	static CColRef* pGetColRefFromScalarIdent(CExpression* ident_expr);
+	static duckdb::JoinType pTranslateJoinType(COperator *op);
+	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);
+	static OID pGetTypeIdFromScalar(CExpression *expr);
+	static OID pGetTypeIdFromScalarIdent(CExpression *ident_expr);
+	static OID pGetTypeIdFromScalarConst(CExpression *const_expr);
+	static OID pGetTypeIdFromScalarFunc(CExpression *func_expr);
+	static OID pGetTypeIdFromScalarAggFunc(CExpression *agg_expr);
+	static OID pGetTypeIdFromScalarSwitch(CExpression *switch_expr);
 
 private:
 	// config

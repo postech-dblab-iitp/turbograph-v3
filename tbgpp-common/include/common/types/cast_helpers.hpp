@@ -13,7 +13,7 @@
 #include "common/types/decimal.hpp"
 #include "common/types/interval.hpp"
 #include "common/types/hugeint.hpp"
-//#include "common/types/vector.hpp"
+#include "common/types/vector.hpp"
 #include "duckdb_fmt/format.h"
 
 namespace duckdb {
@@ -58,8 +58,8 @@ public:
 
 	template <class SIGNED, class UNSIGNED>
 	static string_t FormatSigned(SIGNED value, Vector &vector) {
-		D_ASSERT(false);
-		/*int sign = -(value < 0);
+		// D_ASSERT(false);
+		int sign = -(value < 0);
 		UNSIGNED unsigned_value = UNSIGNED(value ^ sign) - sign;
 		int length = UnsignedLength<UNSIGNED>(unsigned_value) - sign;
 		string_t result = StringVector::EmptyString(vector, length);
@@ -70,7 +70,7 @@ public:
 			*--endptr = '-';
 		}
 		result.Finalize();
-		return result;*/
+		return result;
 	}
 
 	template <class T>

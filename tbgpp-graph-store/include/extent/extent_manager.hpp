@@ -20,10 +20,11 @@ public:
     ~ExtentManager() {}
 
     // for bulk loading
-    ExtentID CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat);
-    //ExtentID CreateEdgeExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &prop_schema_cat_entry);
-    void CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &partition_cat, ExtentID new_eid);
-    void AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, PropertySchemaCatalogEntry &property_schema_cat, ExtentID eid);
+    ExtentID CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat, 
+                          PropertySchemaCatalogEntry &ps_cat);
+    void CreateExtent(ClientContext &context, DataChunk &input, PartitionCatalogEntry &part_cat,
+                      PropertySchemaCatalogEntry &ps_cat, ExtentID new_eid);
+    void AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, ExtentID eid);
 
     // Add Index
     void AddIndex(ClientContext &context, DataChunk &input) {}

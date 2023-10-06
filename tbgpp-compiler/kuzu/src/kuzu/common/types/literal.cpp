@@ -51,8 +51,14 @@ void Literal::bind(const Literal& other) {
     case BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;
+    case INTEGER: {
+        val.int32Val = other.val.int32Val;
+    } break;
     case INT64: {
         val.int64Val = other.val.int64Val;
+    } break;
+    case UINTEGER: {
+        val.uint32Val = other.val.uint32Val;
     } break;
     case UBIGINT: {
         val.uint64Val = other.val.uint64Val;

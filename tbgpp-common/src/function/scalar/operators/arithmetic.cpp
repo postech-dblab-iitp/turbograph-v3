@@ -608,7 +608,7 @@ unique_ptr<FunctionData> BindDecimalMultiply(ClientContext &context, ScalarFunct
 	uint8_t result_width = 0, result_scale = 0;
 	uint8_t max_width = 0;
 	for (idx_t i = 0; i < arguments.size(); i++) {
-		if (arguments[i]->return_type.id() == LogicalTypeId::UNKNOWN) {
+		if (arguments[i]->return_type.id() == LogicalTypeId::UNKNOWN) { // TODO decimal temporary
 			continue;
 		}
 		uint8_t width, scale;

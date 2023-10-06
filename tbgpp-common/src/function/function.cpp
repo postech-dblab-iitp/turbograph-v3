@@ -21,6 +21,7 @@
 #include "planner/expression/bound_cast_expression.hpp"
 #include "planner/expression/bound_function_expression.hpp"
 // #include "planner/expression_binder.hpp"
+#include <iostream>
 
 namespace duckdb {
 
@@ -116,7 +117,7 @@ void BuiltinFunctions::Initialize() {
 	RegisterOperators();
 	// RegisterSequenceFunctions();
 	RegisterStringFunctions();
-	// RegisterNestedFunctions();
+	RegisterNestedFunctions();
 	// RegisterTrigonometricsFunctions();
 
 	// RegisterPragmaFunctions();

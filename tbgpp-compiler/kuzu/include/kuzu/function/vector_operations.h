@@ -18,11 +18,11 @@ struct VectorOperationDefinition;
 
 // using scalar_exec_func = std::function<void(const vector<shared_ptr<ValueVector>>&, ValueVector&)>;
 // using scalar_select_func = std::function<bool(const vector<shared_ptr<ValueVector>>&, SelectionVector&)>;
-// using scalar_bind_func = std::function<void(const vector<DataType>&, VectorOperationDefinition*, DataType&)>;
+using scalar_bind_func = std::function<void(const vector<DataType>&, VectorOperationDefinition*, DataType&)>;
 
 using scalar_exec_func = std::function<void(void)>;
 using scalar_select_func = std::function<bool(void)>;
-using scalar_bind_func = std::function<void(void)>;
+// using scalar_bind_func = std::function<void(void)>;
 
 static std::function<void(void)> empty_scalar_exec_func() { return []() -> void { return; } ; }
 static std::function<bool(void)> empty_scalar_select_func() { return []() -> bool { return true; } ; }

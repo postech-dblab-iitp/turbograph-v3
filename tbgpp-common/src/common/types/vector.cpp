@@ -52,7 +52,8 @@ Vector::Vector(Vector &other, idx_t offset) : type(other.type) {
 	Slice(other, offset);
 }
 
-Vector::Vector(const Value &value) : type(value.type()) {
+// Vector::Vector(const Value &value) : type(value.type()) {
+Vector::Vector(const Value &value) : type(value.type()), capacity(STANDARD_VECTOR_SIZE) {
 	Reference(value);
 }
 
@@ -89,6 +90,7 @@ void Vector::Reference(const Value &value) {
 	} else {
 		auxiliary.reset();
 		data = buffer->GetData();
+		// std::memset(data, 0, STANDARD_VECTOR_SIZE * GetTypeIdSize(value.type().InternalType())); // TODO super overhead
 		SetValue(0, value);
 	}
 }
