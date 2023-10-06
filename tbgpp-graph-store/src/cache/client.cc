@@ -190,7 +190,7 @@ LightningClient::LightningClient(const std::string &store_socket,
   init_mpk();
 #endif
 
-  std::cout << "header_ = " << (unsigned long)base_ << std::endl;
+  // std::cout << "header_ = " << (unsigned long)base_ << std::endl;
 }
 
 void LightningClient::init_mpk() {

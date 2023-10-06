@@ -1,11 +1,11 @@
 #include "main/query_profiler.hpp"
 #include "common/to_string.hpp"
 // #include "common/fstream.hpp"
-// #include "common/printer.hpp"
-// #include "common/string_util.hpp"
+#include "common/printer.hpp"
+#include "common/string_util.hpp"
 // #include "execution/operator/join/physical_delim_join.hpp"
 // #include "execution/operator/helper/physical_execute.hpp"
-// #include "common/tree_renderer.hpp"
+#include "common/tree_renderer.hpp"
 #include "common/limits.hpp"
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_function_expression.hpp"
@@ -99,18 +99,18 @@ void QueryProfiler::EndQuery() {
 	// // print or output the query profiling after termination, if this is enabled
 	// if (automatic_print_format != ProfilerPrintFormat::NONE) {
 	// 	// check if this query should be output based on the operator types
-	// 	string query_info;
+		string query_info;
 	// 	if (automatic_print_format == ProfilerPrintFormat::JSON) {
 	// 		query_info = ToJSON();
 	// 	} else if (automatic_print_format == ProfilerPrintFormat::QUERY_TREE) {
 	// 		query_info = ToString();
 	// 	} else if (automatic_print_format == ProfilerPrintFormat::QUERY_TREE_OPTIMIZER) {
-	// 		query_info = ToString(true);
+			query_info = ToString(true);
 	// 	}
 	// 	auto save_location = GetSaveLocation();
 	// 	if (save_location.empty()) {
-	// 		Printer::Print(query_info);
-	// 		Printer::Print("\n");
+			Printer::Print(query_info);
+			Printer::Print("\n");
 	// 	} else {
 	// 		WriteToFile(save_location.c_str(), query_info);
 	// 	}
@@ -285,96 +285,96 @@ static string DrawPadded(const string &str, idx_t width) {
 	}
 }
 
-// static string RenderTitleCase(string str) {
-// 	str = StringUtil::Lower(str);
-// 	str[0] = toupper(str[0]);
-// 	for (idx_t i = 0; i < str.size(); i++) {
-// 		if (str[i] == '_') {
-// 			str[i] = ' ';
-// 			if (i + 1 < str.size()) {
-// 				str[i + 1] = toupper(str[i + 1]);
-// 			}
-// 		}
-// 	}
-// 	return str;
-// }
+static string RenderTitleCase(string str) {
+	str = StringUtil::Lower(str);
+	str[0] = toupper(str[0]);
+	for (idx_t i = 0; i < str.size(); i++) {
+		if (str[i] == '_') {
+			str[i] = ' ';
+			if (i + 1 < str.size()) {
+				str[i + 1] = toupper(str[i + 1]);
+			}
+		}
+	}
+	return str;
+}
 
-// static string RenderTiming(double timing) {
-// 	string timing_s;
-// 	if (timing >= 1) {
-// 		timing_s = StringUtil::Format("%.2f", timing);
-// 	} else if (timing >= 0.1) {
-// 		timing_s = StringUtil::Format("%.3f", timing);
-// 	} else {
-// 		timing_s = StringUtil::Format("%.4f", timing);
-// 	}
-// 	return timing_s + "s";
-// }
+static string RenderTiming(double timing) {
+	string timing_s;
+	if (timing >= 1) {
+		timing_s = StringUtil::Format("%.2f", timing);
+	} else if (timing >= 0.1) {
+		timing_s = StringUtil::Format("%.3f", timing);
+	} else {
+		timing_s = StringUtil::Format("%.4f", timing);
+	}
+	return timing_s + "s";
+}
 
-// string QueryProfiler::ToString(bool print_optimizer_output) const {
-// 	std::stringstream str;
-// 	ToStream(str, print_optimizer_output);
-// 	return str.str();
-// }
+string QueryProfiler::ToString(bool print_optimizer_output) const {
+	std::stringstream str;
+	ToStream(str, print_optimizer_output);
+	return str.str();
+}
 
-// void QueryProfiler::ToStream(std::ostream &ss, bool print_optimizer_output) const {
-// 	if (!IsEnabled()) {
-// 		ss << "Query profiling is disabled. Call "
-// 		      "Connection::EnableProfiling() to enable profiling!";
-// 		return;
-// 	}
-// 	ss << "┌─────────────────────────────────────┐\n";
-// 	ss << "│┌───────────────────────────────────┐│\n";
-// 	ss << "││    Query Profiling Information    ││\n";
-// 	ss << "│└───────────────────────────────────┘│\n";
-// 	ss << "└─────────────────────────────────────┘\n";
-// 	ss << StringUtil::Replace(query, "\n", " ") + "\n";
-// 	if (query.empty()) {
-// 		return;
-// 	}
+void QueryProfiler::ToStream(std::ostream &ss, bool print_optimizer_output) const {
+	if (!IsEnabled()) {
+		ss << "Query profiling is disabled. Call "
+		      "Connection::EnableProfiling() to enable profiling!";
+		return;
+	}
+	ss << "┌─────────────────────────────────────┐\n";
+	ss << "│┌───────────────────────────────────┐│\n";
+	ss << "││    Query Profiling Information    ││\n";
+	ss << "│└───────────────────────────────────┘│\n";
+	ss << "└─────────────────────────────────────┘\n";
+	// ss << StringUtil::Replace(query, "\n", " ") + "\n";
+	if (query.empty()) {
+		return;
+	}
 
-// 	constexpr idx_t TOTAL_BOX_WIDTH = 39;
-// 	ss << "┌─────────────────────────────────────┐\n";
-// 	ss << "│┌───────────────────────────────────┐│\n";
-// 	string total_time = "Total Time: " + RenderTiming(main_query.Elapsed());
-// 	ss << "││" + DrawPadded(total_time, TOTAL_BOX_WIDTH - 4) + "││\n";
-// 	ss << "│└───────────────────────────────────┘│\n";
-// 	ss << "└─────────────────────────────────────┘\n";
-// 	// print phase timings
-// 	if (print_optimizer_output) {
-// 		bool has_previous_phase = false;
-// 		for (const auto &entry : GetOrderedPhaseTimings()) {
-// 			if (!StringUtil::Contains(entry.first, " > ")) {
-// 				// primary phase!
-// 				if (has_previous_phase) {
-// 					ss << "│└───────────────────────────────────┘│\n";
-// 					ss << "└─────────────────────────────────────┘\n";
-// 				}
-// 				ss << "┌─────────────────────────────────────┐\n";
-// 				ss << "│" +
-// 				          DrawPadded(RenderTitleCase(entry.first) + ": " + RenderTiming(entry.second),
-// 				                     TOTAL_BOX_WIDTH - 2) +
-// 				          "│\n";
-// 				ss << "│┌───────────────────────────────────┐│\n";
-// 				has_previous_phase = true;
-// 			} else {
-// 				string entry_name = StringUtil::Split(entry.first, " > ")[1];
-// 				ss << "││" +
-// 				          DrawPadded(RenderTitleCase(entry_name) + ": " + RenderTiming(entry.second),
-// 				                     TOTAL_BOX_WIDTH - 4) +
-// 				          "││\n";
-// 			}
-// 		}
-// 		if (has_previous_phase) {
-// 			ss << "│└───────────────────────────────────┘│\n";
-// 			ss << "└─────────────────────────────────────┘\n";
-// 		}
-// 	}
-// 	// render the main operator tree
-// 	if (root) {
-// 		Render(*root, ss);
-// 	}
-// }
+	constexpr idx_t TOTAL_BOX_WIDTH = 39;
+	ss << "┌─────────────────────────────────────┐\n";
+	ss << "│┌───────────────────────────────────┐│\n";
+	string total_time = "Total Time: " + RenderTiming(main_query.Elapsed());
+	ss << "││" + DrawPadded(total_time, TOTAL_BOX_WIDTH - 4) + "││\n";
+	ss << "│└───────────────────────────────────┘│\n";
+	ss << "└─────────────────────────────────────┘\n";
+	// print phase timings
+	if (print_optimizer_output) {
+		bool has_previous_phase = false;
+		for (const auto &entry : GetOrderedPhaseTimings()) {
+			if (!StringUtil::Contains(entry.first, " > ")) {
+				// primary phase!
+				if (has_previous_phase) {
+					ss << "│└───────────────────────────────────┘│\n";
+					ss << "└─────────────────────────────────────┘\n";
+				}
+				ss << "┌─────────────────────────────────────┐\n";
+				ss << "│" +
+				          DrawPadded(RenderTitleCase(entry.first) + ": " + RenderTiming(entry.second),
+				                     TOTAL_BOX_WIDTH - 2) +
+				          "│\n";
+				ss << "│┌───────────────────────────────────┐│\n";
+				has_previous_phase = true;
+			} else {
+				string entry_name = StringUtil::Split(entry.first, " > ")[1];
+				ss << "││" +
+				          DrawPadded(RenderTitleCase(entry_name) + ": " + RenderTiming(entry.second),
+				                     TOTAL_BOX_WIDTH - 4) +
+				          "││\n";
+			}
+		}
+		if (has_previous_phase) {
+			ss << "│└───────────────────────────────────┘│\n";
+			ss << "└─────────────────────────────────────┘\n";
+		}
+	}
+	// render the main operator tree
+	if (root) {
+		Render(*root, ss);
+	}
+}
 
 // static string JSONSanitize(const string &text) {
 // 	string result;
@@ -558,19 +558,19 @@ unique_ptr<QueryProfiler::TreeNode> QueryProfiler::CreateTree(CypherPhysicalOper
 	return node;
 }
 
-// void QueryProfiler::Render(const QueryProfiler::TreeNode &node, std::ostream &ss) const {
-// 	TreeRenderer renderer;
-// 	if (IsDetailedEnabled()) {
-// 		renderer.EnableDetailed();
-// 	} else {
-// 		renderer.EnableStandard();
-// 	}
-// 	renderer.Render(node, ss);
-// }
+void QueryProfiler::Render(const QueryProfiler::TreeNode &node, std::ostream &ss) const {
+	TreeRenderer renderer;
+	if (IsDetailedEnabled()) {
+		renderer.EnableDetailed();
+	} else {
+		renderer.EnableStandard();
+	}
+	renderer.Render(node, ss);
+}
 
-// void QueryProfiler::Print() {
-// 	Printer::Print(ToString());
-// }
+void QueryProfiler::Print() {
+	Printer::Print(ToString());
+}
 
 vector<QueryProfiler::PhaseTimingItem> QueryProfiler::GetOrderedPhaseTimings() const {
 	vector<PhaseTimingItem> result;
