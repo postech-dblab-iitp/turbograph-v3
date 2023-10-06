@@ -11,8 +11,9 @@ namespace duckdb {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
-	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc),
-	property_key_names(void_alloc), property_typesid(void_alloc), num_columns(0) {
+	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc), property_typesid(void_alloc),
+	property_key_names(void_alloc), adjlist_typesid(void_alloc), adjlist_names(void_alloc), num_columns(0),
+	extra_typeinfo_vec(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->partition_oid = info->partition_oid;
@@ -38,8 +39,16 @@ LogicalTypeId_vector *PropertySchemaCatalogEntry::GetTypes() {
 	return &this->property_typesid;
 }
 
+uint16_t_vector *PropertySchemaCatalogEntry::GetExtraTypeInfos() {
+	return &this->extra_typeinfo_vec;
+}
+
 LogicalTypeId PropertySchemaCatalogEntry::GetType(idx_t i) {
 	return property_typesid[i];
+}
+
+uint16_t PropertySchemaCatalogEntry::GetExtraTypeInfo(idx_t i) {
+	return extra_typeinfo_vec[i];
 }
 
 vector<LogicalType> PropertySchemaCatalogEntry::GetTypesWithCopy() {
@@ -66,6 +75,13 @@ void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	for (auto &it : types) {
 		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
 		property_typesid.push_back(it.id());
+		if (it.id() == LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = DecimalType::GetWidth(it);
+			width_scale = width_scale << 8 | DecimalType::GetScale(it);
+			extra_typeinfo_vec.push_back(width_scale);
+		} else {
+			extra_typeinfo_vec.push_back(0);
+		}
 	}
 }
 
@@ -107,7 +123,8 @@ vector<idx_t> PropertySchemaCatalogEntry::GetKeyColumnIdxs() {
 }
 
 void PropertySchemaCatalogEntry::AppendType(LogicalType type) {
-	if (type != LogicalType::FORWARD_ADJLIST && type != LogicalType::BACKWARD_ADJLIST) num_columns++;
+	D_ASSERT((type != LogicalType::FORWARD_ADJLIST) && (type != LogicalType::BACKWARD_ADJLIST));
+	num_columns++;
 	property_typesid.push_back(move(type.id()));
 }
 
@@ -117,6 +134,19 @@ idx_t PropertySchemaCatalogEntry::AppendKey(ClientContext &context, string key) 
 	key_ = key.c_str();
 	property_key_names.push_back(move(key_));
 	return property_key_names.size() - 1;
+}
+
+void PropertySchemaCatalogEntry::AppendAdjListType(LogicalType type) {
+	D_ASSERT((type == LogicalType::FORWARD_ADJLIST) || (type == LogicalType::BACKWARD_ADJLIST));
+	adjlist_typesid.push_back(move(type.id()));
+}
+
+idx_t PropertySchemaCatalogEntry::AppendAdjListKey(ClientContext &context, string key) {
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	char_string key_(temp_charallocator);
+	key_ = key.c_str();
+	adjlist_names.push_back(move(key_));
+	return adjlist_names.size() - 1;
 }
 
 PartitionID PropertySchemaCatalogEntry::GetPartitionID() {
@@ -132,6 +162,11 @@ string PropertySchemaCatalogEntry::GetPropertyKeyName(idx_t i) {
 }
 
 uint64_t PropertySchemaCatalogEntry::GetTypeSize(idx_t i) {
+	if (property_typesid[i] == LogicalTypeId::DECIMAL) {
+		uint8_t width = extra_typeinfo_vec[i] & 0xFF00;
+		uint8_t scale = extra_typeinfo_vec[i] & 0x00FF;
+		return GetTypeIdSize(LogicalType::DECIMAL(width, scale).InternalType());
+	}
 	return GetTypeIdSize(LogicalType(property_typesid[i]).InternalType());
 }
 
@@ -152,9 +187,7 @@ uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
 }
 
 void PropertySchemaCatalogEntry::InitializeAccumulators() {
-	for (auto prop_type: property_types) {
-		
-	}
+	
 }
 
 void PropertySchemaCatalogEntry::AccumulateExtent(DataChunk &chunk) {

@@ -45,7 +45,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 { 
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
-	scan_types[0] = std::move(sch.getStoredTypes());
+	scan_types[0] = std::move(scan_types_);
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
 
@@ -58,7 +58,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 { 
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
-	scan_types[0] = std::move(sch.getStoredTypes());
+	scan_types[0] = std::move(scan_types_);
 	D_ASSERT(filter_pushdown_key_idx >= 0);
 }
 	
@@ -96,28 +96,57 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 
 		auto initializeAPIResult =
 			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, scan_types);
-		D_ASSERT(initializeAPIResult == StoreAPIResult::OK); 
-
+		D_ASSERT(initializeAPIResult == StoreAPIResult::OK);
 	}
 	D_ASSERT(state.ext_its.size() > 0);
+	idx_t j = 0;
+	// for (auto i = 0; i < chunk.ColumnCount(); i++) { // TODO
+	// 	if (projection_mapping[current_schema_idx][j] == i) {
+	// 		j++;
+	// 	} else {
+	// 		auto &validity = FlatVector::Validity(chunk.data[i]);
+	// 		validity.EnsureWritable(STANDARD_VECTOR_SIZE);
+	// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
+	// 	}
+	// }
 
 	StoreAPIResult res;
-	if( filter_pushdown_key_idx < 0 ) {
+	if (filter_pushdown_key_idx < 0) {
 		// no filter pushdown
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
+		if (projection_mapping.size() == 1) {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
+		} else {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
+		}
 	} else {
 		// filter pushdown applied
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
 	}
+	
+	current_schema_idx = 0; // TODO temporary logic!
+	chunk.SetSchemaIdx(current_schema_idx);
 
 	if (res == StoreAPIResult::DONE) {
-		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
+		// printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		if (++current_schema_idx == num_schemas) return;
+		// idx_t j = 0;
+		// for (auto i = 0; i < chunk.ColumnCount(); i++) {
+		// 	if (projection_mapping[current_schema_idx][j] == i) {
+		// 		j++;
+		// 	} else {
+		// 		auto &validity = FlatVector::Validity(chunk.data[i]);
+		// 		validity.EnsureWritable(STANDARD_VECTOR_SIZE);
+		// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
+		// 	}
+		// }
 		GetData(context, chunk, lstate);
 	}
+
+	
 	/* GetData() should return empty chunk to indicate scan is finished. */
 	
 	// icecream::ic.enable();
+	// std::cout << "[PhysicalNodeScan] output size: " << chunk.size() << std::endl;
 	// if (chunk.size() > 0) {
 	// 	IC(chunk.ToString(std::min((idx_t)10, chunk.size())));
 	// }

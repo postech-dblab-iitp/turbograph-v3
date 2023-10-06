@@ -32,6 +32,9 @@ inline uint64_t& getIdRefFromVector(Vector& vector, idx_t index) {
 		case VectorType::FLAT_VECTOR: {
 			return ((uint64_t *)vector.GetData())[index];
 		}
+		case VectorType::CONSTANT_VECTOR: {
+			return ((uint64_t *)ConstantVector::GetData<uintptr_t>(vector))[0];
+		}
 		default: {
 			D_ASSERT(false);
 		}
@@ -69,8 +72,6 @@ void PhysicalAdjIdxJoin::ProcessSemiAntiJoin(ExecutionContext& context, DataChun
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
-
-
 }
 
 void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &input, OperatorState &lstate) const {
@@ -83,6 +84,13 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChunk &in
 			const auto &child = DictionaryVector::Child(input.data[state.srcColIdx]);
 			for(idx_t i = 0; i < input.size(); i++) {
 				state.src_nullity[i] = FlatVector::IsNull( child, sel_vector.get_index(i) );
+			}
+			break;
+		}
+		case VectorType::CONSTANT_VECTOR: {
+			auto is_null = ConstantVector::IsNull(input.data[state.srcColIdx]);
+			for (idx_t i = 0; i < input.size(); i++) {
+				state.src_nullity[i] = is_null;
 			}
 			break;
 		}
@@ -237,12 +245,15 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		}
 	}
 	// chunk determined. now fill in lhs using slice operation
-	D_ASSERT(input.ColumnCount() == state.outer_col_map.size());
+	idx_t schema_idx = input.GetSchemaIdx();
+	// std::cout << "Input schema idx: " << schema_idx << ", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
+	D_ASSERT(schema_idx < state.outer_col_maps.size());
+	D_ASSERT(input.ColumnCount() == state.outer_col_maps[schema_idx].size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
-		if( state.outer_col_map[colId] != std::numeric_limits<uint32_t>::max() ) {
+		if (state.outer_col_maps[schema_idx][colId] != std::numeric_limits<uint32_t>::max()) {
 			// when outer col map marked uint32_max, do not return
-			D_ASSERT(state.outer_col_map[colId] < chunk.ColumnCount());
-			chunk.data[state.outer_col_map[colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
+			D_ASSERT(state.outer_col_maps[schema_idx][colId] < chunk.ColumnCount());
+			chunk.data[state.outer_col_maps[schema_idx][colId]].Slice(input.data[colId], state.rhs_sel, state.output_idx);
 		}
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
@@ -294,6 +305,7 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		}
 		
 		state.outer_col_map = move(outer_col_map);
+		state.outer_col_maps = move(outer_col_maps);
 		state.inner_col_map = move(inner_col_map);
 		// Get join matches (sizes) for the LHS. Initialized one time per LHS
 		GetJoinMatches(context, input, lstate);
@@ -315,9 +327,15 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 	} else {
 		ProcessEquiJoin(context, input, chunk, lstate, join_type == JoinType::LEFT);
 		// update states
-		state.resetForMoreOutput();
-		if( state.lhs_idx >= input.size() ) {
+		
+		// TODO correctness check
+		if (state.lhs_idx >= input.size()) {
 			state.join_finished = true;
+			state.resetForNewInput();
+			return OperatorResultType::NEED_MORE_INPUT;
+		} else {
+			state.resetForMoreOutput();
+			return OperatorResultType::HAVE_MORE_OUTPUT;
 		}
 		return OperatorResultType::HAVE_MORE_OUTPUT;
 	}

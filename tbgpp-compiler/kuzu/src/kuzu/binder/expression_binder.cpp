@@ -269,9 +269,9 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         children.push_back(move(child));
     }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
-    // if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
-    //     return staticEvaluate(functionName, parsedExpression, children);
-    // }
+    if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
+        return staticEvaluate(functionName, parsedExpression, children);
+    }
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         auto targetType =
@@ -279,12 +279,11 @@ shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
     }
     DataType returnType;
-    // if (function->bindFunc) {
-    //     function->bindFunc(childrenTypes, function, returnType);
-    // } else {
-    //     returnType = DataType(function->returnTypeID);
-    // }
-    returnType = DataType(function->returnTypeID);
+    if (function->bindFunc) {
+        function->bindFunc(childrenTypes, function, returnType);
+    } else {
+        returnType = DataType(function->returnTypeID);
+    }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, move(childrenAfterCast),
@@ -331,7 +330,11 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
         return make_shared<LiteralExpression>(DataType(INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
-    } else {
+    } else if (functionName == CAST_TO_YEAR_FUNC_NAME) {
+        return make_shared<LiteralExpression>(DataType(INT64),
+            make_unique<Literal>(Date::getDatePart(DatePartSpecifier::YEAR, ((LiteralExpression*)children[0].get())->literal->val.dateVal)));
+    }
+    else {
         assert(functionName == ID_FUNC_NAME);
         return bindInternalIDExpression(parsedExpression);
     }
@@ -473,6 +476,14 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         resolveAnyDataType(*expression, targetType);
         return expression;
     }
+    if (targetType.typeID == INT64 && expression->dataType.typeID == INTEGER) {
+        expression->dataType.typeID = INT64; // TODO temporary..
+        return expression;
+    }
+    if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
+        expression->dataType.typeID = DECIMAL; // TODO temporary..
+        return expression;
+    }
     return implicitCast(expression, targetType);
 }
 
@@ -528,10 +539,11 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getNumChildren() == 0) {
         return;
     }
-    if (expression.getChild(0)->hasAggregationExpression()) {
-        throw BinderException(
-            "Expression " + expression.getRawName() + " contains nested aggregation.");
-    }
+    // TODO why is this need?
+    // if (expression.getChild(0)->hasAggregationExpression()) {
+    //     throw BinderException(
+    //         "Expression " + expression.getRawName() + " contains nested aggregation.");
+    // }
 }
 
 } // namespace binder

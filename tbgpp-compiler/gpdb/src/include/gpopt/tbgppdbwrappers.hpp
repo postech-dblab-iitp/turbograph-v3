@@ -32,7 +32,9 @@ idx_t_vector *GetRelationAdjIndexes(idx_t partition_oid);
 idx_t_vector *GetRelationPropertyIndexes(idx_t partition_oid);
 IndexCatalogEntry *GetIndex(idx_t index_oid);
 AggregateFunctionCatalogEntry *GetAggFunc(idx_t aggfunc_oid);
+ScalarFunctionCatalogEntry *GetScalarFunc(idx_t scalarfunc_oid);
 idx_t GetAggFuncIndex(idx_t aggfunc_oid);
+idx_t GetScalarFuncIndex(idx_t scalarfunc_oid);
 
 // get type related informations
 string GetTypeName(idx_t type_id);

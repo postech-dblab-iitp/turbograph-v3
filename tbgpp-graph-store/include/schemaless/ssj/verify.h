@@ -73,20 +73,20 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 
 	bool exact_match = true;
 	// if (r1.size() != r2.size()) exact_match = false;
-	printf("[verify-before] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
-		r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
+	// printf("[verify-before] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
+	// 	r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
 	
-	printf("Compare: ");
-	for (int i = 0; i < r1.size(); i++) {
-		if (posr1 == i) printf("[ ");
-		printf("%d ", r1[i]);
-	}
-	printf("] vs ");
-	for (int i = 0; i < r2.size(); i++) {
-		if (posr2 == i) printf("[ ");
-		printf("%d ", r2[i]);
-	}
-	printf("]\n");
+	// printf("Compare: ");
+	// for (int i = 0; i < r1.size(); i++) {
+	// 	if (posr1 == i) printf("[ ");
+	// 	printf("%d ", r1[i]);
+	// }
+	// printf("] vs ");
+	// for (int i = 0; i < r2.size(); i++) {
+	// 	if (posr2 == i) printf("[ ");
+	// 	printf("%d ", r2[i]);
+	// }
+	// printf("]\n");
 
 	// while(maxr1 >= overlapthres && maxr2 >= overlapthres && foundoverlap < overlapthres) {
 	while(maxr1 >= overlapthres && maxr2 >= overlapthres && posr1 < r1.size() && posr2 < r2.size()) {
@@ -104,8 +104,8 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 		}
 	}
 
-	printf("[verify-after] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
-		r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
+	// printf("[verify-after] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
+	// 	r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
 	
 	if(foundoverlap >= overlapthres) {
 		// extStatistics.verifyTrueSteps.add(steps);

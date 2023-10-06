@@ -140,6 +140,7 @@ string workspace;
 string input_query_string;
 bool is_query_string_given = false;
 bool run_plan_wo_compile = false;
+bool show_top_10_only = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
 bool enable_profile = false;			// passed to client context as config
@@ -266,6 +267,8 @@ class InputParser{
 			planner_config.INDEX_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
 			run_plan_wo_compile = true;
+		} else if (std::strncmp(current_str.c_str(), "--show-top", 10) == 0) {
+			show_top_10_only = true;
 		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
 			std::string num_iter = std::string(*itr).substr(17);
 			planner_config.num_iterations = std::stoi(num_iter);
@@ -329,8 +332,21 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 		int num_tuples_to_print;
 		int cur_offset_in_chunk = 0;
 		int chunk_idx = 0;
+		int num_tuples_to_skip;
+		bool skip_tuples = false;
 		while (chunk_idx < resultChunks.size()) {
 			auto &chunk = resultChunks[chunk_idx];
+			if (skip_tuples) {
+				if ((chunk->size() - cur_offset_in_chunk) < num_tuples_to_skip) {
+					num_tuples_to_skip -= (chunk->size() - cur_offset_in_chunk);
+					cur_offset_in_chunk = 0;
+					chunk_idx++;
+					continue;
+				} else {
+					skip_tuples = false;
+					cur_offset_in_chunk += num_tuples_to_skip;
+				}
+			}
 			num_tuples_to_print = std::min((int)(chunk->size()) - cur_offset_in_chunk, LIMIT);
 			for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
 				for( int i = 0; i < chunk->ColumnCount(); i++ ) {
@@ -352,7 +368,7 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 					bool continue_print;
 					while (true) {
 						string show_more;
-						printf("Show 10 more tuples [y/n]: ");
+						printf("Show 10 more tuples [y/n/s]: ");
 						std::getline(std::cin, show_more);
 						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
 						if ((show_more == "y") || (show_more == "")) {
@@ -360,6 +376,15 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 							break;
 						} else if (show_more == "n") {
 							continue_print = false;
+							break;
+						} else if (show_more == "s") {
+							string to_be_skipped;
+							printf("Num tuples to skip: ");
+							std::getline(std::cin, to_be_skipped);
+							num_tuples_to_skip = std::stoi(to_be_skipped);
+							num_tuples_printed += num_tuples_to_skip;
+							continue_print = true;
+							skip_tuples = true;
 							break;
 						} else {
 							printf("Please Enter Either Y or N\n");
@@ -392,7 +417,6 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
-
 	boost::timer::cpu_timer compile_timer;
 	compile_timer.start();
 
@@ -423,7 +447,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 
-		if(planner_config.DEBUG_PRINT) {
+		if (planner_config.DEBUG_PRINT) {
 			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 			std::cout << "Tree => " << std::endl;
 			printer.print();
@@ -445,7 +469,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		vector<double> query_execution_times;
 		for (int i = 0; i < planner_config.num_iterations; i++) {
 			auto executors = planner.genPipelineExecutors();
-			if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
+			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 			boost::timer::cpu_timer query_timer;
 			auto &profiler = QueryProfiler::Get(*client.get());
@@ -455,19 +479,19 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
 			query_timer.start();
 			int idx = 0;
-			for( auto exec : executors ) { 
-				if(planner_config.DEBUG_PRINT) {
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 					std::cout << exec->pipeline->toString() << std::endl;
 				}
 			}
 			idx=0;
-			for( auto exec : executors ) { 
-				if(planner_config.DEBUG_PRINT) {
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 				}
 				exec->ExecutePipeline();
-				if(planner_config.DEBUG_PRINT) {
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "done pipeline execution!!" << std::endl;
 				}
 			}
@@ -481,18 +505,35 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			DUMP RESULT
 		*/
 			
-			if (enable_profile) {
-				// TODO need improvement
-				std::cout << "[Profile Info]" << std::endl;
-				for(const auto& mapping: profiler.GetTreeMap()) {
-					std::cout << "- " << std::setw(20) << mapping.second->name << std::setw(15) << mapping.second->info.time*1000.0 << std::setw(15) << mapping.second->info.elements << std::endl;
-				}
-			}
+			// if (enable_profile) {
+			// 	Table profile_info;
+			// 	idx_t root_depth = profiler.GetTreeMap().size();
+			// 	std::vector<std::vector<string>> profile_print_output;
+			// 	profile_print_output.resize(root_depth);
+			// 	profile_info.layout(unicode_box_light_headerline())
+			// 				.aligns({Right, Right, Right, Right});
+			// 	std::cout << std::endl << "[Profile Info]" << std::endl;
+			// 	profile_info << "#" << "Operator Name" << "Elapsed Time(ms)" << "# Processed Tuples" << endr;
+			// 	for (const auto& mapping: profiler.GetTreeMap()) {
+			// 		std::cout << "Root: " << root_depth << ", mapping.depth: " << mapping.second->depth << std::endl;
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(mapping.second->name);
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.time * 1000.0));
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.elements));
+			// 	}
+			// 	for (int depth = profile_print_output.size() - 1; depth >= 0; depth--) {
+			// 		profile_info << depth;
+			// 		profile_info << profile_print_output[depth][0];
+			// 		profile_info << profile_print_output[depth][1];
+			// 		profile_info << profile_print_output[depth][2];
+			// 		profile_info << endr;
+			// 	}
+			// 	std::cout << profile_info << std::endl;
+			// }
 
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
 			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			printOutput(planner, resultChunks, schema, false);
+			printOutput(planner, resultChunks, schema, show_top_10_only);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 		}
@@ -533,15 +574,13 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		D_ASSERT( executors.back()->context->query_results != nullptr );
 		auto& resultChunks = *(executors.back()->context->query_results);
 		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		printOutput(planner, resultChunks, schema, false);
+		printOutput(planner, resultChunks, schema, show_top_10_only);
 		
 		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}
 }
 
 int main(int argc, char** argv) {
-icecream::ic.disable();
-
 	// Init planner config
 	planner_config = s62::PlannerConfig();
 
@@ -556,42 +595,34 @@ icecream::ic.disable();
 	// set_signal_handler();
 	// setbuf(stdout, NULL);
 
-	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
 	DiskAioParameters::WORKSPACE = workspace;
-	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
+	fprintf(stdout, "\nWorkspace: %s\n\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
 	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 
 	// Initialize ChunkCacheManager
-	// fprintf(stdout, "\nInitialize ChunkCacheManager\n");
 	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
 
-	// Run Catch Test
-	argc = 1;
-
 	// Initialize Database
-	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	
 	// Initialize ClientContext
-	icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
-	if(enable_profile) {
+	if (enable_profile) {
 		client.get()->EnableProfiling();
 	} else {
 		client.get()->DisableProfiling();
 	}
-
 
 	// Run planner
 	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
@@ -603,17 +634,12 @@ icecream::ic.disable();
 	string query_str;
 
 	if (is_query_string_given) {
-		// try {
-		// 	// protected code
-		// 	CompileAndRun(input_query_string, client);
-		// } catch( std::exception e1 ) {
-		// 	std::cerr << e1.what() << std::endl;
-		// }
 		CompileAndRun(input_query_string, client, planner);
 	} else {
 		while(true) {
-			input_cmd.reset(readline(shell_prompt.c_str()));
-			query_str = input_cmd.get();
+			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
+			// input_cmd.reset(readline(shell_prompt.c_str()));
+			// query_str = input_cmd.get();
 			// std::cout << "TurboGraph-S62 >> ";
 			// std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
 			// check termination

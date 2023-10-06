@@ -806,8 +806,8 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		// }
 
 		ULONG col_len = gpos::ulong_max;
-		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) rel->GetType(ul) + LOGICAL_TYPE_BASE_ID);
+		CMDIdGPDB *mdid_col = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral,
+			(OID) rel->GetType(ul) + NUM_MAX_LOGICAL_TYPES * rel->GetExtraTypeInfo(ul) + LOGICAL_TYPE_BASE_ID);
 		// HeapTuple stats_tup = gpdb::GetAttStats(rel->rd_id, ul + 1);
 
 		// Column width priority:
@@ -1928,44 +1928,44 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::LookupFuncProps
-// //
-// //	@doc:
-// //		Lookup function properties
-// //
-// //---------------------------------------------------------------------------
-// void
-// CTranslatorTBGPPToDXL::LookupFuncProps(
-// 	OID func_oid,
-// 	IMDFunction::EFuncStbl *stability,	// output: function stability
-// 	IMDFunction::EFuncDataAcc *access,	// output: function datya access
-// 	BOOL *is_strict,					// output: is function strict?
-// 	BOOL *is_ndv_preserving,			// output: preserves NDVs of inputs
-// 	BOOL *returns_set,					// output: does function return set?
-// 	BOOL *
-// 		is_allowed_for_PS  // output: is this a lossy (non-implicit) cast which is allowed for Partition selection
-// )
-// {
-// 	GPOS_ASSERT(NULL != stability);
-// 	GPOS_ASSERT(NULL != access);
-// 	GPOS_ASSERT(NULL != is_strict);
-// 	GPOS_ASSERT(NULL != is_ndv_preserving);
-// 	GPOS_ASSERT(NULL != returns_set);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::LookupFuncProps
+//
+//	@doc:
+//		Lookup function properties
+//
+//---------------------------------------------------------------------------
+void
+CTranslatorTBGPPToDXL::LookupFuncProps(
+	OID func_oid,
+	IMDFunction::EFuncStbl *stability,	// output: function stability
+	IMDFunction::EFuncDataAcc *access,	// output: function datya access
+	BOOL *is_strict,					// output: is function strict?
+	BOOL *is_ndv_preserving,			// output: preserves NDVs of inputs
+	BOOL *returns_set,					// output: does function return set?
+	BOOL *
+		is_allowed_for_PS  // output: is this a lossy (non-implicit) cast which is allowed for Partition selection
+)
+{
+	GPOS_ASSERT(NULL != stability);
+	GPOS_ASSERT(NULL != access);
+	GPOS_ASSERT(NULL != is_strict);
+	GPOS_ASSERT(NULL != is_ndv_preserving);
+	GPOS_ASSERT(NULL != returns_set);
 
-// 	*stability = GetFuncStability(gpdb::FuncStability(func_oid));
-// 	*access = GetEFuncDataAccess(gpdb::FuncDataAccess(func_oid));
+	// *stability = GetFuncStability(gpdb::FuncStability(func_oid));
+	// *access = GetEFuncDataAccess(gpdb::FuncDataAccess(func_oid));
 
-// 	if (gpdb::FuncExecLocation(func_oid) != PROEXECLOCATION_ANY)
-// 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
-// 				   GPOS_WSZ_LIT("unsupported exec location"));
+	// if (gpdb::FuncExecLocation(func_oid) != PROEXECLOCATION_ANY)
+	// 	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+	// 			   GPOS_WSZ_LIT("unsupported exec location"));
 
-// 	*returns_set = gpdb::GetFuncRetset(func_oid);
-// 	*is_strict = gpdb::FuncStrict(func_oid);
-// 	*is_ndv_preserving = gpdb::IsFuncNDVPreserving(func_oid);
-// 	*is_allowed_for_PS = gpdb::IsFuncAllowedForPartitionSelection(func_oid);
-// }
+	// *returns_set = gpdb::GetFuncRetset(func_oid);
+	// *is_strict = gpdb::FuncStrict(func_oid);
+	// *is_ndv_preserving = gpdb::IsFuncNDVPreserving(func_oid);
+	// *is_allowed_for_PS = gpdb::IsFuncAllowedForPartitionSelection(func_oid);
+}
 
 
 //---------------------------------------------------------------------------
@@ -1979,39 +1979,45 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 CMDFunctionGPDB *
 CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 {
-	D_ASSERT(false);
 	OID func_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
 	GPOS_ASSERT(InvalidOid != func_oid);
 
-	// // get func name
-	// CHAR *name = gpdb::GetFuncName(func_oid);
+	// get aggfunc catalog entry
+	duckdb::ScalarFunctionCatalogEntry *scalar_func_cat =
+		duckdb::GetScalarFunc(func_oid);
 
-	// if (NULL == name)
-	// {
-	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-	// 			   mdid->GetBuffer());
-	// }
+	// get func name
+	string name_str = scalar_func_cat->GetName();
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str());
 
-	// CWStringDynamic *func_name_str =
-	// 	CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
-	// CMDName *mdname = GPOS_NEW(mp) CMDName(mp, func_name_str);
+	if (NULL == name)
+	{
+		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+				   mdid->GetBuffer());
+	}
 
-	// // CMDName ctor created a copy of the string
-	// GPOS_DELETE(func_name_str);
+	CWStringDynamic *func_name_str =
+		CDXLUtils::CreateDynamicStringFromCharArray(mp, name);
+	CMDName *mdname = GPOS_NEW(mp) CMDName(mp, func_name_str);
 
-	// // get result type
-	// OID result_oid = gpdb::GetFuncRetType(func_oid);
+	// CMDName ctor created a copy of the string
+	GPOS_DELETE(func_name_str);
 
-	// GPOS_ASSERT(InvalidOid != result_oid);
+	// get result type
+	idx_t scalar_func_idx = duckdb::GetScalarFuncIndex(func_oid);
+	GPOS_ASSERT(scalar_func_cat->functions->functions.size() > scalar_func_idx);
+	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) scalar_func_cat->functions->functions[scalar_func_idx].return_type.id();
+	
+	GPOS_ASSERT(InvalidOid != result_oid);
 
-	// CMDIdGPDB *result_type_mdid =
-	// 	GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
+	CMDIdGPDB *result_type_mdid =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, result_oid);
 
-	// // get output argument types if any
+	// get output argument types if any
 	// List *out_arg_types_list = gpdb::GetFuncOutputArgTypes(func_oid);
 
-	// IMdIdArray *arg_type_mdids = NULL;
+	IMdIdArray *arg_type_mdids = NULL;
 	// if (NULL != out_arg_types_list)
 	// {
 	// 	ListCell *lc = NULL;
@@ -2029,21 +2035,21 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 	// 	gpdb::GPDBFree(out_arg_types_list);
 	// }
 
-	// IMDFunction::EFuncStbl stability = IMDFunction::EfsImmutable;
-	// IMDFunction::EFuncDataAcc access = IMDFunction::EfdaNoSQL;
-	// BOOL is_strict = true;
-	// BOOL returns_set = true;
-	// BOOL is_ndv_preserving = true;
-	// BOOL is_allowed_for_PS = false;
+	IMDFunction::EFuncStbl stability = IMDFunction::EfsImmutable;
+	IMDFunction::EFuncDataAcc access = IMDFunction::EfdaNoSQL;
+	BOOL is_strict = true;
+	BOOL returns_set = true;
+	BOOL is_ndv_preserving = true;
+	BOOL is_allowed_for_PS = false;
 	// LookupFuncProps(func_oid, &stability, &access, &is_strict,
 	// 				&is_ndv_preserving, &returns_set, &is_allowed_for_PS);
 
-	// mdid->AddRef();
-	// CMDFunctionGPDB *md_func = GPOS_NEW(mp) CMDFunctionGPDB(
-	// 	mp, mdid, mdname, result_type_mdid, arg_type_mdids, returns_set,
-	// 	stability, access, is_strict, is_ndv_preserving, is_allowed_for_PS);
+	mdid->AddRef();
+	CMDFunctionGPDB *md_func = GPOS_NEW(mp) CMDFunctionGPDB(
+		mp, mdid, mdname, result_type_mdid, arg_type_mdids, returns_set,
+		stability, access, is_strict, is_ndv_preserving, is_allowed_for_PS);
 
-	// return md_func;
+	return md_func;
 }
 
 //---------------------------------------------------------------------------
@@ -2802,91 +2808,93 @@ CTranslatorTBGPPToDXL::RetrieveNumChildPartitions(OID rel_oid)
 IMDCacheObject *
 CTranslatorTBGPPToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
 {
-	CMDIdCast *mdid_cast = CMDIdCast::CastMdid(mdid);
-	IMDId *mdid_src = mdid_cast->MdidSrc();
-	IMDId *mdid_dest = mdid_cast->MdidDest();
-	IMDCast::EmdCoercepathType coercePathType;
+	// CMDIdCast *mdid_cast = CMDIdCast::CastMdid(mdid);
+	// IMDId *mdid_src = mdid_cast->MdidSrc();
+	// IMDId *mdid_dest = mdid_cast->MdidDest();
+	// IMDCast::EmdCoercepathType coercePathType;
 
-	OID src_oid = CMDIdGPDB::CastMdid(mdid_src)->Oid();
-	OID dest_oid = CMDIdGPDB::CastMdid(mdid_dest)->Oid();
+	// OID src_oid = CMDIdGPDB::CastMdid(mdid_src)->Oid();
+	// OID dest_oid = CMDIdGPDB::CastMdid(mdid_dest)->Oid();
 	// CoercionPathType pathtype;
 
-	OID cast_fn_oid = 0;
-	BOOL is_binary_coercible = false;
+	// OID cast_fn_oid = 0;
+	// BOOL is_binary_coercible = false;
 
-	BOOL cast_exists = false; //gpdb::GetCastFunc(
-		// src_oid, dest_oid, &is_binary_coercible, &cast_fn_oid, &pathtype);
+	// BOOL cast_exists = false; //gpdb::GetCastFunc(
+	// 	// src_oid, dest_oid, &is_binary_coercible, &cast_fn_oid, &pathtype);
 
-	if (!cast_exists)
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-				   mdid->GetBuffer());
-	}
-
-	CHAR *func_name = NULL;
-	// if (InvalidOid != cast_fn_oid)
+	// if (!cast_exists)
 	// {
-	// 	func_name = gpdb::GetFuncName(cast_fn_oid);
-	// }
-	// else
-	// {
-	// 	// no explicit cast function: use the destination type name as the cast name
-	// 	func_name = gpdb::GetTypeName(dest_oid);
+	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+	// 			   mdid->GetBuffer());
 	// }
 
-	if (NULL == func_name)
-	{
-		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
-				   mdid->GetBuffer());
-	}
+	// CHAR *func_name = NULL;
+	// // if (InvalidOid != cast_fn_oid)
+	// // {
+	// // 	func_name = gpdb::GetFuncName(cast_fn_oid);
+	// // }
+	// // else
+	// // {
+	// // 	// no explicit cast function: use the destination type name as the cast name
+	// // 	func_name = gpdb::GetTypeName(dest_oid);
+	// // }
 
-	mdid->AddRef();
-	mdid_src->AddRef();
-	mdid_dest->AddRef();
-
-	CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, func_name);
-
-	// switch (pathtype)
+	// if (NULL == func_name)
 	// {
-	// 	case COERCION_PATH_ARRAYCOERCE:
-	// 	{
-	// 		coercePathType = IMDCast::EmdtArrayCoerce;
-	// 		return GPOS_NEW(mp) CMDArrayCoerceCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtArrayCoerce, default_type_modifier, false,
-	// 			EdxlcfImplicitCast, -1);
-	// 	}
-	// 	break;
-	// 	case COERCION_PATH_FUNC:
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtFunc);
-	// 		break;
-	// 	case COERCION_PATH_RELABELTYPE:
-	// 		// binary-compatible cast, no function
-	// 		GPOS_ASSERT(cast_fn_oid == 0);
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest,
-	// 			true /*is_binary_coercible*/,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
-	// 		break;
-	// 	case COERCION_PATH_COERCEVIAIO:
-	// 		// uses IO functions from types, no function in the cast
-	// 		GPOS_ASSERT(cast_fn_oid == 0);
-	// 		return GPOS_NEW(mp) CMDCastGPDB(
-	// 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-	// 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
-	// 			IMDCast::EmdtCoerceViaIO);
-	// 	default:
-	// 		break;
+	// 	GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
+	// 			   mdid->GetBuffer());
 	// }
 
-	// fall back for none path types
-	return GPOS_NEW(mp)
-		CMDCastGPDB(mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
-					GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+	// mdid->AddRef();
+	// mdid_src->AddRef();
+	// mdid_dest->AddRef();
+
+	// CMDName *mdname = CDXLUtils::CreateMDNameFromCharArray(mp, func_name);
+
+	// // switch (pathtype)
+	// // {
+	// // 	case COERCION_PATH_ARRAYCOERCE:
+	// // 	{
+	// // 		coercePathType = IMDCast::EmdtArrayCoerce;
+	// // 		return GPOS_NEW(mp) CMDArrayCoerceCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtArrayCoerce, default_type_modifier, false,
+	// // 			EdxlcfImplicitCast, -1);
+	// // 	}
+	// // 	break;
+	// // 	case COERCION_PATH_FUNC:
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtFunc);
+	// // 		break;
+	// // 	case COERCION_PATH_RELABELTYPE:
+	// // 		// binary-compatible cast, no function
+	// // 		GPOS_ASSERT(cast_fn_oid == 0);
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest,
+	// // 			true /*is_binary_coercible*/,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+	// // 		break;
+	// // 	case COERCION_PATH_COERCEVIAIO:
+	// // 		// uses IO functions from types, no function in the cast
+	// // 		GPOS_ASSERT(cast_fn_oid == 0);
+	// // 		return GPOS_NEW(mp) CMDCastGPDB(
+	// // 			mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// // 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid),
+	// // 			IMDCast::EmdtCoerceViaIO);
+	// // 	default:
+	// // 		break;
+	// // }
+
+	// // fall back for none path types
+	// return GPOS_NEW(mp)
+	// 	CMDCastGPDB(mp, mdid, mdname, mdid_src, mdid_dest, is_binary_coercible,
+	// 				GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, cast_fn_oid));
+
+	return nullptr;
 }
 
 //---------------------------------------------------------------------------

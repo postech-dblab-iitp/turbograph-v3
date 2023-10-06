@@ -23,7 +23,7 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     
     if (!ext_it ->IsInitialized()) {
         // ext_it = std::make_shared<ExtentIterator>();
-        ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
+        ext_it->Initialize(context, target_types, target_idxs, target_eid); // TODO
         eid_to_bufptr_idx_map->insert( {target_eid, 0} );
         // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, 0); icecream::ic.disable();
         return false;
@@ -37,7 +37,7 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
             } else {
                 // Evicted extent
                 ExtentID evicted_eid;
-                int bufptr_idx = ext_it->RequestNewIO(context, nullptr, target_types, target_idxs, target_eid, evicted_eid);
+                int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
                 eid_to_bufptr_idx_map->at(target_eid) = bufptr_idx;
                 // eid_to_bufptr_idx_map[target_eid] = bufptr_idx;
                 // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, bufptr_idx, evicted_eid); icecream::ic.disable();
@@ -48,7 +48,7 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
             // icecream::ic.enable(); IC(); icecream::ic.disable();
             // Fail to find
             ExtentID evicted_eid;
-            int bufptr_idx = ext_it->RequestNewIO(context, nullptr, target_types, target_idxs, target_eid, evicted_eid);
+            int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
             eid_to_bufptr_idx_map->insert( {target_eid, bufptr_idx} );
             // icecream::ic.enable(); IC(); fprintf(stdout, "%p\n", ext_it); IC(target_eid, bufptr_idx, evicted_eid); icecream::ic.disable();
             if (evicted_eid != std::numeric_limits<ExtentID>::max()) (*eid_to_bufptr_idx_map)[evicted_eid] = -1;

@@ -47,9 +47,11 @@ public:
 	PropertyKeyID_vector property_keys;
 	idx_t_vector extent_ids;
 	idx_t_vector key_column_idxs;
-	vector<LogicalType> property_types; // TODO SHM
 	LogicalTypeId_vector property_typesid;
+	uint16_t_vector extra_typeinfo_vec;
 	string_vector property_key_names;
+	LogicalTypeId_vector adjlist_typesid;
+	string_vector adjlist_names;
 	idx_t num_columns;
 	idx_t last_extent_num_tuples;
 	
@@ -64,9 +66,13 @@ public:
 	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);
 	idx_t AppendKey(ClientContext &context, string key_name);
+	void AppendAdjListType(LogicalType type);
+	idx_t AppendAdjListKey(ClientContext &context, string key_name);
 	//! Returns a list of types of the table
 	LogicalTypeId_vector *GetTypes();
+	uint16_t_vector *GetExtraTypeInfos();
 	LogicalTypeId GetType(idx_t i);
+	uint16_t GetExtraTypeInfo(idx_t i);
 	vector<LogicalType> GetTypesWithCopy();
 	uint64_t GetTypeSize(idx_t i);
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);

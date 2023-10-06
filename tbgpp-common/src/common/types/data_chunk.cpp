@@ -118,6 +118,7 @@ void DataChunk::Reference(DataChunk &chunk) {
 	for (idx_t i = 0; i < chunk.ColumnCount(); i++) {
 		data[i].Reference(chunk.data[i]);
 	}
+	SetSchemaIdx(chunk.GetSchemaIdx());
 }
 
 void DataChunk::Move(DataChunk &chunk) {
