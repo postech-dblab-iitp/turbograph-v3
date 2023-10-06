@@ -138,7 +138,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
 	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
-	fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
+	// fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
 	int64_t num_objects_in_catalog = 0;
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
@@ -192,7 +192,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
 	// fprintf(stdout, "Else\n");
 	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
-	fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
+	// fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
 	
 	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
 	if (create_new_db) {

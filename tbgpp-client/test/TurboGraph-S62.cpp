@@ -417,7 +417,6 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
-
 	boost::timer::cpu_timer compile_timer;
 	compile_timer.start();
 
@@ -448,7 +447,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
 
-		if(planner_config.DEBUG_PRINT) {
+		if (planner_config.DEBUG_PRINT) {
 			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
 			std::cout << "Tree => " << std::endl;
 			printer.print();
@@ -470,7 +469,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		vector<double> query_execution_times;
 		for (int i = 0; i < planner_config.num_iterations; i++) {
 			auto executors = planner.genPipelineExecutors();
-			if( executors.size() == 0 ) { std::cerr << "Plan empty!!" << std::endl; return; }
+			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
 
 			boost::timer::cpu_timer query_timer;
 			auto &profiler = QueryProfiler::Get(*client.get());
@@ -480,19 +479,19 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
 			query_timer.start();
 			int idx = 0;
-			for( auto exec : executors ) { 
-				if(planner_config.DEBUG_PRINT) {
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 					std::cout << exec->pipeline->toString() << std::endl;
 				}
 			}
 			idx=0;
-			for( auto exec : executors ) { 
-				if(planner_config.DEBUG_PRINT) {
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
 				}
 				exec->ExecutePipeline();
-				if(planner_config.DEBUG_PRINT) {
+				if (planner_config.DEBUG_PRINT) {
 					std::cout << "done pipeline execution!!" << std::endl;
 				}
 			}
@@ -506,13 +505,30 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			DUMP RESULT
 		*/
 			
-			if (enable_profile) {
-				// TODO need improvement
-				std::cout << "[Profile Info]" << std::endl;
-				for(const auto& mapping: profiler.GetTreeMap()) {
-					std::cout << "- " << std::setw(20) << mapping.second->name << std::setw(15) << mapping.second->info.time*1000.0 << std::setw(15) << mapping.second->info.elements << std::endl;
-				}
-			}
+			// if (enable_profile) {
+			// 	Table profile_info;
+			// 	idx_t root_depth = profiler.GetTreeMap().size();
+			// 	std::vector<std::vector<string>> profile_print_output;
+			// 	profile_print_output.resize(root_depth);
+			// 	profile_info.layout(unicode_box_light_headerline())
+			// 				.aligns({Right, Right, Right, Right});
+			// 	std::cout << std::endl << "[Profile Info]" << std::endl;
+			// 	profile_info << "#" << "Operator Name" << "Elapsed Time(ms)" << "# Processed Tuples" << endr;
+			// 	for (const auto& mapping: profiler.GetTreeMap()) {
+			// 		std::cout << "Root: " << root_depth << ", mapping.depth: " << mapping.second->depth << std::endl;
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(mapping.second->name);
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.time * 1000.0));
+			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.elements));
+			// 	}
+			// 	for (int depth = profile_print_output.size() - 1; depth >= 0; depth--) {
+			// 		profile_info << depth;
+			// 		profile_info << profile_print_output[depth][0];
+			// 		profile_info << profile_print_output[depth][1];
+			// 		profile_info << profile_print_output[depth][2];
+			// 		profile_info << endr;
+			// 	}
+			// 	std::cout << profile_info << std::endl;
+			// }
 
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
@@ -566,8 +582,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 }
 
 int main(int argc, char** argv) {
-icecream::ic.disable();
-
 	// Init planner config
 	planner_config = s62::PlannerConfig();
 
@@ -582,42 +596,34 @@ icecream::ic.disable();
 	// set_signal_handler();
 	// setbuf(stdout, NULL);
 
-	// fprintf(stdout, "Initialize DiskAioParameters\n\n");
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
 	DiskAioParameters::WORKSPACE = workspace;
-	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
+	fprintf(stdout, "\nWorkspace: %s\n\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
 	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
 
 	// Initialize ChunkCacheManager
-	// fprintf(stdout, "\nInitialize ChunkCacheManager\n");
 	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
 
-	// Run Catch Test
-	argc = 1;
-
 	// Initialize Database
-	// helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
 	
 	// Initialize ClientContext
-	icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
-	if(enable_profile) {
+	if (enable_profile) {
 		client.get()->EnableProfiling();
 	} else {
 		client.get()->DisableProfiling();
 	}
-
 
 	// Run planner
 	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
