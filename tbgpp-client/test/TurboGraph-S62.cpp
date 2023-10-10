@@ -138,9 +138,11 @@ vector<std::pair<string, string>> edge_files;
 vector<std::pair<string, string>> edge_files_backward;
 string workspace;
 string input_query_string;
+string dump_file_path;
 bool is_query_string_given = false;
 bool run_plan_wo_compile = false;
 bool show_top_10_only = false;
+bool dump_output = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
 bool enable_profile = false;			// passed to client context as config
@@ -269,6 +271,10 @@ class InputParser{
 			run_plan_wo_compile = true;
 		} else if (std::strncmp(current_str.c_str(), "--show-top", 10) == 0) {
 			show_top_10_only = true;
+		} else if (std::strncmp(current_str.c_str(), "--dump-output", 10) == 0) {
+			itr++;
+			dump_file_path = std::string(*itr);
+			dump_output = true;
 		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
 			std::string num_iter = std::string(*itr).substr(17);
 			planner_config.num_iterations = std::stoi(num_iter);
@@ -297,11 +303,50 @@ class InputParser{
     std::vector <std::string> tokens;
 };
 
-void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema, bool show_top_tuples_only = true) {
+void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema) {
 	int LIMIT = 10;
 	size_t num_total_tuples = 0;
 	size_t num_tuples_printed = 0;
 	for (auto &it : resultChunks) num_total_tuples += it->size();
+	
+	Table t;
+	t.layout(unicode_box_light_headerline());
+
+	PropertyKeys col_names;
+	col_names = planner.getQueryOutputColNames();
+	if (col_names.size() == 0) {
+		col_names = schema.getStoredColumnNames();
+	}
+	
+	for (int i = 0; i < col_names.size(); i++) {
+		t << col_names[i];
+	}
+	t << endr;
+
+	if (dump_output) {
+		std::cout << "Dump Output File. Path: " << dump_file_path << std::endl;
+		int chunk_idx = 0;
+		std::ofstream dump_file;
+		dump_file.open(dump_file_path.c_str());
+		for (int i = 0; i < col_names.size(); i++) {
+			dump_file << col_names[i];
+			if (i != col_names.size() - 1) dump_file << "|";
+		}
+		dump_file << "\n";
+		while (chunk_idx < resultChunks.size()) {
+			auto &chunk = resultChunks[chunk_idx];
+			auto num_cols = chunk->ColumnCount();
+			for (int idx = 0 ; idx < chunk->size(); idx++) {
+				for (int i = 0; i < num_cols; i++) {
+					dump_file << chunk->GetValue(i, idx).ToString();
+					if (i != num_cols - 1) dump_file << "|";
+				}
+				dump_file << "\n";
+			}
+			chunk_idx++;
+		}
+		std::cout << "Dump Done!" << std::endl << std::endl;;
+	}
 
 	std::cout << "===================================================" << std::endl;
 	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
@@ -310,23 +355,6 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 	} else {
 		std::cout << std::endl;
 	}
-	
-	Table t;
-	t.layout(unicode_box_light_headerline());
-
-	PropertyKeys col_names;
-	col_names = planner.getQueryOutputColNames();
-	if (col_names.size() != 0) {
-		for( int i = 0; i < col_names.size(); i++ ) {
-			t << col_names[i] ;
-		}
-	} else {
-		col_names = schema.getStoredColumnNames();
-		for( int i = 0; i < col_names.size(); i++ ) {
-			t << col_names[i] ;
-		}
-	}
-	t << endr;
 
 	if (num_total_tuples != 0) {
 		int num_tuples_to_print;
@@ -348,8 +376,8 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 				}
 			}
 			num_tuples_to_print = std::min((int)(chunk->size()) - cur_offset_in_chunk, LIMIT);
-			for( int idx = 0 ; idx < num_tuples_to_print ; idx++) {
-				for( int i = 0; i < chunk->ColumnCount(); i++ ) {
+			for (int idx = 0 ; idx < num_tuples_to_print ; idx++) {
+				for (int i = 0; i < chunk->ColumnCount(); i++) {
 					t << chunk->GetValue(i, cur_offset_in_chunk + idx).ToString();
 				}
 				t << endr;
@@ -362,7 +390,7 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 				LIMIT = 10;
 				num_tuples_printed += 10;
 				cur_offset_in_chunk += 10;
-				if (show_top_tuples_only) {
+				if (show_top_10_only) {
 					break;
 				} else {
 					bool continue_print;
@@ -533,7 +561,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
 			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			printOutput(planner, resultChunks, schema, show_top_10_only);
+			printOutput(planner, resultChunks, schema);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 		}
@@ -575,7 +603,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		D_ASSERT( executors.back()->context->query_results != nullptr );
 		auto& resultChunks = *(executors.back()->context->query_results);
 		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		printOutput(planner, resultChunks, schema, show_top_10_only);
+		printOutput(planner, resultChunks, schema);
 		
 		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 	}
@@ -639,6 +667,7 @@ int main(int argc, char** argv) {
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
+			std::cin.ignore();
 			// input_cmd.reset(readline(shell_prompt.c_str()));
 			// query_str = input_cmd.get();
 			// std::cout << "TurboGraph-S62 >> ";
