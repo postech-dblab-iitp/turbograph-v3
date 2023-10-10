@@ -27,6 +27,7 @@ int DiskAioThread::FetchRequests(int num) {
 
 void DiskAioThread::SubmitToKernel(int num) {
 	int rc = io_submit(ctx_, num, (struct iocb**) requests_);
+	fprintf(stdout, "io_submit %d\n", rc);
 	if (rc < 0) assert (false);
 }
 
@@ -36,6 +37,8 @@ int DiskAioThread::WaitKernel(struct timespec* to, int num) {
 	do {
 		ret = io_getevents(ctx_, num, max_num_ongoing_, ep, to);
 	} while (ret == -EINTR);
+
+	fprintf(stdout, "io_getevents %d\n", ret);
 
 	if (ret < 0) assert(false);
 
@@ -55,11 +58,11 @@ int DiskAioThread::Complete(int num) {
 		if (req->cb.aio_lio_opcode == IO_CMD_PREAD) {
 			stats_.num_reads++;
 			stats_.num_read_bytes += req->cb.u.c.nbytes;
-			// fprintf(stdout, "num_reads %ld, read_bytes %ld\n", stats_.num_reads, stats_.num_read_bytes);
+			fprintf(stdout, "num_reads %ld, read_bytes %ld\n", stats_.num_reads, stats_.num_read_bytes);
 		} else {
 			stats_.num_writes++;
 			stats_.num_write_bytes += req->cb.u.c.nbytes;
-			// fprintf(stdout, "num_writes %ld, num_write_bytes %ld\n", stats_.num_writes, stats_.num_write_bytes);
+			fprintf(stdout, "num_writes %ld, num_write_bytes %ld\n", stats_.num_writes, stats_.num_write_bytes);
 		}
 		//assert (n == 1);
 		int c = req->Complete();
@@ -75,7 +78,7 @@ void DiskAioThread::run() {
 	tspec.tv_sec = tspec.tv_nsec = 0;
 	while (num_ongoing_ > 0 || fetched > 0) {
 		if (fetched > 0) {
-			// fprintf(stdout, "fetched request %d\n", fetched);
+			fprintf(stdout, "fetched request %d\n", fetched);
 			SubmitToKernel(fetched);
 			num_ongoing_ += fetched;
 		}

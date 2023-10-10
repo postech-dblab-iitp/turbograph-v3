@@ -101,6 +101,7 @@ ChunkCacheManager::~ChunkCacheManager() {
 
     bool is_dirty;
     client->GetDirty(file_handler.first, is_dirty);
+    fprintf(stdout, "File %s, is_dirty %s, size = %ld\n", std::to_string(file_handler.first).c_str(), is_dirty ? "True" : "False", file_handler.second->file_size());
     if (!is_dirty) continue;
 
     // TODO we need a write lock
@@ -126,9 +127,12 @@ void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler
    * 3. Proceeding clients can read the data from disk, and swizzle it.
   */
   PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
+  fprintf(stdout, "PinSegment ptr = %p, %s\n", ptr, file_handler->GetFilePath().c_str());
   CacheDataTransformer::Unswizzle(ptr);
   file_handler->FlushAll();
   file_handler->WaitAllPendingDiskIO(false);
+  int x;
+  std::cin >> x;
   CacheDataTransformer::Swizzle(ptr);
   file_handler->Close();
   UnPinSegment(cid);

@@ -19,10 +19,8 @@ void CacheDataTransformer::Swizzle(uint8_t* ptr) {
     SwizzlingType swizzle_type = GetSwizzlingType(ptr);
     switch(swizzle_type) {      
         case SwizzlingType::SWIZZLE_NONE:
-            std::cout << "NO SWIZZLING" << std::endl;
             break;
         case SwizzlingType::SWIZZLE_VARCHAR:
-            std::cout << "SWIZZLE_VARCHAR" << std::endl;
             SwizzleVarchar(ptr);
             break;
         default:
