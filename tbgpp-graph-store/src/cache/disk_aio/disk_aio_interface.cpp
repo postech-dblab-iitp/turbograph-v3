@@ -12,7 +12,7 @@ void DiskAioInterface::Register(DiskAioThread* disk_aio_thread) {
 
 int DiskAioInterface::ProcessResponses() {
     int n = complete_queue_.fetch(reqs_, max_num_ongoing_);
-	// fprintf(stdout, "ProcessResponses %d\n", n);
+	fprintf(stdout, "ProcessResponses %d\n", n);
     if (n == 0) { std::this_thread::yield(); } 
     for (int i = 0; i < n; ++i) {
         a_callback_t func = (a_callback_t) reqs_[i]->GetFunc();
@@ -44,10 +44,10 @@ DiskAioRequest* DiskAioInterface::PackRequest(
 	if (fd < 0) assert(false);
 
 	if (io_type == DISK_AIO_READ) {
-		// fprintf(stdout, "io_prep_pread %p %d %ld %ld\n", buffer, fd, iosize, offset);
+		fprintf(stdout, "io_prep_pread %p %d %ld %ld\n", buffer, fd, iosize, offset);
 		io_prep_pread(&(req->cb), fd, buffer, iosize, offset);
 	} else {
-		// fprintf(stdout, "io_prep_pwrite\n");
+		fprintf(stdout, "io_prep_pwrite %p %d %ld %ld\n", buffer, fd, iosize, offset);
 		io_prep_pwrite(&(req->cb), fd, buffer, iosize, offset);
 	}
 

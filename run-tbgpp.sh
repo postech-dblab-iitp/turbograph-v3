@@ -5,7 +5,7 @@ workspace=$2
 debug_plan=$3
 
 if [ "$#" -eq 1 ]; then
-	workspace="/data/tpch/sf1/"
+	workspace="/data/tpch/sf1_swizzling/"
 	debug_plan_option=""
 elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
