@@ -99,15 +99,17 @@ private:
                 throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
             } else {
                 size_t string_data_offset = comp_header_valid_size + comp_header.data_len * sizeof(uint64_t);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size);
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + comp_header_valid_size);
                 uint64_t string_offset, prev_string_offset;
                 for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                     idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     if (target_seqno < scan_start_offset || target_seqno >= scan_end_offset) continue;
-                    prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    string_offset = offset_arr[target_seqno];
-                    string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                    // prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
+                    // string_offset = offset_arr[target_seqno];
+                    // string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                    std::string string_val = std::string(varchar_arr[target_seqno].GetDataUnsafe(), varchar_arr[target_seqno].GetSize());
                     Value str_val(string_val);
                     if (str_val == filterValue) {
                         matched_row_idxs.push_back(seqno);
