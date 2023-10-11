@@ -7,6 +7,5 @@ int DiskAioRequest::Complete() {
 	DiskAioInterface* interface = (DiskAioInterface*) cb.data;
 	DiskAioRequest* itself = (DiskAioRequest*) this;
 	int ret = interface->complete_queue_.push(&itself, 1);
-	fprintf(stdout, "Complete io request ret %d\n", ret);
 	return ret;
 }

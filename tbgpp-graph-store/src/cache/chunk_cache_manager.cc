@@ -101,7 +101,6 @@ ChunkCacheManager::~ChunkCacheManager() {
 
     bool is_dirty;
     client->GetDirty(file_handler.first, is_dirty);
-    fprintf(stdout, "File %s, is_dirty %s, size = %ld\n", std::to_string(file_handler.first).c_str(), is_dirty ? "True" : "False", file_handler.second->file_size());
     if (!is_dirty) continue;
 
     // TODO we need a write lock
@@ -111,7 +110,7 @@ ChunkCacheManager::~ChunkCacheManager() {
 }
 
 void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
-  uint8_t* ptr;
+  uint8_t *ptr;
   size_t size;
 
   /**
@@ -127,19 +126,15 @@ void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler
    * 3. Proceeding clients can read the data from disk, and swizzle it.
   */
   PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
-  fprintf(stdout, "PinSegment ptr = %p, %s\n", ptr, file_handler->GetFilePath().c_str());
   CacheDataTransformer::Unswizzle(ptr);
   file_handler->FlushAll();
   file_handler->WaitAllPendingDiskIO(false);
-  int x;
-  std::cin >> x;
   CacheDataTransformer::Swizzle(ptr);
   file_handler->Close();
   UnPinSegment(cid);
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
-// icecream::ic.enable();
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);
@@ -151,11 +146,9 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   size_t file_size = file_handler->file_size();
   size_t required_memory_size = file_size + 512; // Add 512 byte for memory aligning
   D_ASSERT(file_size >= segment_size);
-// IC(cid);
 
   // Pin Segment using Lightning Get()
   if (client->Get(cid, ptr, size) != 0) {
-    // IC();
     // Get() fail: 1) object not found, 2) object is not sealed yet
     // TODO: Check if there is enough memory space
 
@@ -168,46 +161,35 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
     if (client->Create(cid, ptr, required_memory_size) == 0) {
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
-      // IC();
+
       // Read data & Seal object
       // TODO: we fix read_data_async as false, due to swizzling. May move logic to iterator.
       // ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       ReadData(cid, file_path, file_ptr, file_size, false);
-      // IC();
-      if(!is_initial_loading) {
-        // icecream::ic.enable(); IC(); icecream::ic.disable();
+
+      if (!is_initial_loading) {
         std::cout << "SWIZZLE CID: " << cid << std::endl;
         CacheDataTransformer::Swizzle(*ptr);
       }
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
-      // IC();
       *size = segment_size - sizeof(size_t);
     } else {
-      // IC();
       // Create fail -> Subscribe object
       client->Subscribe(cid);
-      // IC();
+
       int status = client->Get(cid, ptr, size);
-      // fprintf(stdout, "cid %ld, ptr %p, status %d\n", cid, ptr, status);
-      // IC();
       D_ASSERT(status == 0);
 
       // Align memory & adjust size
       MemAlign(ptr, segment_size, required_memory_size, file_handler);
-      // IC();
       *size = segment_size - sizeof(size_t);
-      // IC();
     }
-    // icecream::ic.disable();
     return NOERROR;
   }
-  // IC();
   // Get() success. Align memory & adjust size
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
-  // IC();
   *size = segment_size - sizeof(size_t);
-  // icecream::ic.disable();
 
   return NOERROR;
 }
