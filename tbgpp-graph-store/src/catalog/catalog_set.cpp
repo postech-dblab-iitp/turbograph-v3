@@ -615,11 +615,9 @@ CatalogEntry *CatalogSet::CreateEntryInternal(ClientContext &context, unique_ptr
 }
 
 CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
-// IC();
 	// unique_lock<mutex> lock(catalog_lock); // TODO disable in debug phase..
 	// fprintf(stdout, "CatalogSet address %p\n", this);
 	auto mapping_value = GetMapping(context, name);
-// IC();
 	if (mapping_value != nullptr && !mapping_value->deleted) {
 		// we found an entry for this name
 		// check the version numbers
@@ -631,19 +629,18 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		}
 		return current;
 	}
-icecream::ic.enable(); IC(name);
+icecream::ic.enable(); IC(name); icecream::ic.disable();
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
-		IC();
+		icecream::ic.enable(); IC(); icecream::ic.disable();
 		return nullptr;
 	}
-IC();
+
 	// this catalog set has a default map defined
 	// check if there is a default entry that we can create with this name
 	// lock.unlock(); // XXX disable in debug phase..
 	auto entry = defaults->CreateDefaultEntry(context, name);
-IC(); icecream::ic.disable();
 	// lock.lock(); // XXX disable in debug phase
 	if (!entry) {
 		// no default entry
@@ -654,7 +651,6 @@ IC(); icecream::ic.disable();
 	if (result) {
 		return result;
 	}
-// IC();
 	// we found a default entry, but failed
 	// this means somebody else created the entry first
 	// just retry?

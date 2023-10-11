@@ -149,13 +149,11 @@ void ExtentIterator::Initialize(ClientContext &context, vector<LogicalType> &tar
     max_idx = 1;
     ext_property_type = target_types_;
     target_idx = target_idxs_;
-// icecream::ic.enable(); IC(); icecream::ic.disable();
     ext_ids_to_iterate.push_back(target_eid);
 
     Catalog& cat_instance = context.db->GetCatalog();
     // Request I/O for the first extent
     {
-        // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
@@ -357,7 +355,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
             if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
-            // icecream::ic.enable(); IC(); IC(io_requested_cdf_ids[toggle][i], toggle, i); icecream::ic.disable();
         }
     }
 
@@ -383,9 +380,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             continue;
         }
         if (ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+            fprintf(stdout, "[Full Scan1] Load Column %ld -> %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
                             i, i, io_requested_cdf_ids[toggle][i], (int)ext_property_type[i].id(), output.size(), scan_size,
                             scan_begin_offset, scan_end_offset, comp_header.data_len,
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
@@ -393,7 +390,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld\n", i, i);
+            fprintf(stdout, "[Full Scan1] Load Column %ld -> %ld\n", i, i);
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
@@ -539,9 +536,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             continue;
         }
         if (ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
+            fprintf(stdout, "[Full Scan2] Load Column %ld -> %ld, cdf %ld, type %d, scan_size = %ld %ld (from %ld to %ld), total_size = %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], (int)ext_property_type[i].id(), output.size(), scan_size,
                             scan_begin_offset, scan_end_offset, comp_header.data_len,
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len,
@@ -550,7 +547,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Full Scan] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
+            fprintf(stdout, "[Full Scan2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
@@ -980,17 +977,19 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // Find the index of a row that matches a predicate
     vector<idx_t> matched_row_idxs;
     if (ext_property_type[col_idx] == LogicalType::VARCHAR) {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == DICTIONARY) {
             throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
         } else {
-            size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
-            uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + sizeof(CompressionHeader));
+            size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t);
+            // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
+            string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
             uint64_t string_offset, prev_string_offset;
             for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                string_offset = offset_arr[input_idx];
-                string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                // prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
+                // string_offset = offset_arr[input_idx];
+                // string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                std::string string_val = std::string(varchar_arr[input_idx].GetDataUnsafe(), varchar_arr[input_idx].GetSize());
                 Value str_val(string_val);
                 if (str_val == filterValue) {
                     matched_row_idxs.push_back(input_idx);
@@ -1002,12 +1001,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     } else if (ext_property_type[col_idx] == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
     } else {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
             LogicalType column_type = ext_property_type[col_idx];
-            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + sizeof(CompressionHeader)));
+            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
             for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
                 if (column_vec.GetValue(input_idx) == filterValue) {
                     matched_row_idxs.push_back(input_idx);
@@ -1027,7 +1026,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_type.size(); i++) {
         if (!valid_output[i]) continue;
         if (ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Scan With Filter] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
                             i, output_idx, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
@@ -1048,13 +1047,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             } else {
                 // FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + comp_header_valid_size + sizeof(string_t) * matched_row_idx);
                 auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet());
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
-                    uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                    uint64_t prev_string_offset = seqno == 0 ? 0 : offset_arr[seqno - 1];
-                    uint64_t string_offset = offset_arr[seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[idx] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    // uint64_t prev_string_offset = seqno == 0 ? 0 : offset_arr[seqno - 1];
+                    // uint64_t string_offset = offset_arr[seqno];
+                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
+                    // strings[idx] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    strings[idx] = varchar_arr[seqno];
                 }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
@@ -1087,7 +1088,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
-                    memcpy(output.data[output_idx].GetData() + idx * type_size, io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + seqno * type_size, type_size);
+                    memcpy(output.data[output_idx].GetData() + idx * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
                 }
             }
         }
@@ -1191,7 +1192,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     for (size_t i = 0; i < ext_property_type.size(); i++) {
         if (ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
@@ -1213,15 +1214,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[output_column_idxs[i]], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 for (idx_t seqno = start_seqno; seqno <= end_seqno; seqno++) {
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    uint64_t string_offset = offset_arr[target_seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
-                    // strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
+                    // uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
+                    // uint64_t string_offset = offset_arr[target_seqno];
+                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
+                    // strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    // // strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
+                    strings[seqno] = varchar_arr[target_seqno];
                 }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
@@ -1382,7 +1385,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         if (cur_ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, target_seqnos.size() = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
@@ -1394,7 +1397,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (cur_ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -1404,17 +1407,19 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
                 for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                     idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    uint64_t string_offset = offset_arr[target_seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    // uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
+                    // uint64_t string_offset = offset_arr[target_seqno];
+                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
+                    // strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
                     // strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
+                    strings[seqno] = varchar_arr[target_seqno];
                     validity.SetValid(seqno);
                 }
             }
@@ -1717,7 +1722,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         output_chunk_idx = cur_output_idx;
         if (!valid_output[i]) continue;
         if (cur_ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[j], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
@@ -1739,16 +1744,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[j]]);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
                     // strings[output_chunk_idx++] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
-                    uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    uint64_t string_offset = offset_arr[target_seqno];
-                    size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[j]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    // uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
+                    // uint64_t string_offset = offset_arr[target_seqno];
+                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
+                    // strings[output_chunk_idx++] = StringVector::AddString(output.data[output_column_idxs[j]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
+                    strings[output_chunk_idx++] = varchar_arr[target_seqno];
                 }
             }
         } else if (cur_ext_property_type[i].id() == LogicalTypeId::LIST) {
@@ -1855,7 +1862,7 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is
     
     D_ASSERT(ext_property_type.size() == 1);
     for (size_t i = 0; i < ext_property_type.size(); i++) {
-        chunk_ptr = (data_ptr_t)(io_requested_buf_ptrs[target_toggle][i] + sizeof(CompressionHeader));
+        chunk_ptr = (data_ptr_t)(io_requested_buf_ptrs[target_toggle][i] + CompressionHeader::GetSizeWoBitSet());
     }
     return true;
 }
