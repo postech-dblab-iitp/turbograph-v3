@@ -114,8 +114,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
              // Accumulate the length of all non-inlined strings
             for (size_t i = 0; i < input.size(); i++)
-                string_len_total += string_buffer[i].GetSize();
-                // string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+                string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
 
             // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
@@ -129,7 +128,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             size_t list_len_total = 0;
             size_t child_type_size = GetTypeIdSize(ListType::GetChildType(l_type).InternalType());
             list_entry_t *list_buffer = (list_entry_t*)input.data[input_chunk_idx].GetData();
-            // fprintf(stderr, "input_chunk_idx %ld list_buffer %p\n", input_chunk_idx, list_buffer);
             for (size_t i = 0; i < input.size(); i++) { // Accumulate the length of all child datas
                 list_len_total += list_buffer[i].length;
             }
@@ -143,11 +141,11 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             D_ASSERT(TypeIsConstantSize(p_type));
             alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
         }
-        
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
             + std::to_string(new_eid) + std::string("/chunk_");
         ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
+        std::memset(buf_ptr, 0, buf_size);
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
@@ -170,7 +168,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr, &comp_header, comp_header_size);
 
                 // For each string_t, write string_t and actual string if not inlined
-                string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+                string_t *string_buffer = (string_t *)input.data[input_chunk_idx].GetData();
                 uint64_t accumulated_string_len = 0;
                 for (size_t i = 0; i < input.size(); i++) {
                     string_t& str = string_buffer[i];
@@ -178,7 +176,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                         memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
                     } else {
                         // Calculate pointer address
-                        uint8_t* swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
+                        uint8_t *swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
                         string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
                         memcpy(buf_ptr + string_t_offset, &swizzled_str, sizeof(string_t));
                         // Copy actual string
@@ -200,7 +198,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, &comp_header, comp_header_size);
             memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), input_size * sizeof(list_entry_t));
             memcpy(buf_ptr + comp_header_size + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t));
-            icecream::ic.enable(); IC(); IC(comp_header_size + input_size * sizeof(list_entry_t), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t)); icecream::ic.disable();
+            // icecream::ic.enable(); IC(); IC(comp_header_size + input_size * sizeof(list_entry_t), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t)); icecream::ic.disable();
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();

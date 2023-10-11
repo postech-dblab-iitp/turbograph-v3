@@ -89,8 +89,9 @@ void CacheDataTransformer::UnswizzleVarchar(uint8_t* ptr) {
 
         // Check not inlined
         if (!str.IsInlined()) {
-            string_t unswizzled_str(str.GetDataUnsafe(), str.GetSize(), acc_string_length);
-            memcpy(ptr + string_t_offset, &unswizzled_str, sizeof(string_t));
+            // string_t unswizzled_str(str.GetDataUnsafe(), str.GetSize(), acc_string_length);
+            // memcpy(ptr + string_t_offset, &unswizzled_str, sizeof(string_t));
+            str.SetOffset(acc_string_length);
             acc_string_length += str.GetSize();
         }
 

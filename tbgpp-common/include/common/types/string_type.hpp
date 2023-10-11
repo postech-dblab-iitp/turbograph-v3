@@ -87,6 +87,10 @@ public:
 		return value.offset.offset;
 	}
 
+	void SetOffset(uint64_t offset) {
+		value.offset.offset = offset;
+	}
+
 	explicit operator string() const {
 		return GetString();
 	}

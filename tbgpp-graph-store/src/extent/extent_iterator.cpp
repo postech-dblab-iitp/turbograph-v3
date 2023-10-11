@@ -396,7 +396,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Full Scan] Load Column %ld -> %ld\n", i, i);
 #endif
         }
-        auto comp_header_valid_size = sizeof(CompressionHeader);
+        auto comp_header_valid_size = comp_header.GetValidSize();
         if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -405,18 +405,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] - comp_header_valid_size,
                                        output.data[i], comp_header.data_len);
             } else {
-                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
-                auto strings = FlatVector::GetData<string_t>(output.data[i]);
-                size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
-                uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
-                uint64_t string_offset, prev_string_offset;
-                size_t output_idx = 0;
-                for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
-                    prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                    string_offset = offset_arr[input_idx];                    
-                    strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                    output_idx++;
-                }
+                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + sizeof(string_t) * scan_begin_offset);
+                // auto strings = FlatVector::GetData<string_t>(output.data[i]);
+                // size_t string_data_offset = sizeof(CompressionHeader) + comp_header.data_len * sizeof(uint64_t);
+                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader));
+                // uint64_t string_offset, prev_string_offset;
+                // size_t output_idx = 0;
+                // for (size_t input_idx = scan_begin_offset; input_idx < scan_end_offset; input_idx++) {
+                //     prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
+                //     string_offset = offset_arr[input_idx];                    
+                //     strings[output_idx] = StringVector::AddString(output.data[i], (const char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                //     output_idx++;
+                // }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
             size_t type_size = sizeof(list_entry_t);
@@ -441,8 +441,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
-                // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
+                FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+                // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
             }
         }
     }
@@ -505,7 +505,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
         }
     }
-// IC();
 
     // Request chunk cache manager to finalize I/O
     if (current_idx_in_this_extent == 0) {
@@ -591,8 +590,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
                 // FlatVector::SetData(output.data[i], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
-                // FlatVector::SetData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
-                memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
+                FlatVector::SetData(output.data[output_column_idxs[i]], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + scan_begin_offset * type_size);
+                // memcpy(output.data[i].GetData(), io_requested_buf_ptrs[toggle][i] + sizeof(CompressionHeader) + scan_begin_offset * type_size, (scan_end_offset - scan_begin_offset) * type_size);
             }
         }
     }
