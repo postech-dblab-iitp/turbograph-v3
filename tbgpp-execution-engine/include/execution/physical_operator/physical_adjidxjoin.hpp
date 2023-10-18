@@ -22,6 +22,7 @@ public:
 		src_nullity.resize(STANDARD_VECTOR_SIZE);
 		join_sizes.resize(STANDARD_VECTOR_SIZE);
 		total_join_size.resize(STANDARD_VECTOR_SIZE);
+		prev_eid = std::numeric_limits<ExtentID>::max();
 	}
 	//! Called when starting processing for new chunk
 	inline void resetForNewInput() {
@@ -43,6 +44,7 @@ public:
 public:
 	// operator data
 	AdjacencyListIterator *adj_it;
+	ExtentID prev_eid;
 	// initialize rest of operator members
 	idx_t srcColIdx;
 	idx_t edgeColIdx;
@@ -161,6 +163,7 @@ public:
 	void ProcessSemiAntiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const;
 	void ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const;
 	void ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const;
+	void GetAdjListAndFillOutput();
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

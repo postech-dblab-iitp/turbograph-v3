@@ -28,7 +28,7 @@ namespace duckdb {
 
 struct ParsedCSV {
   uint64_t n_indexes{0};
-  uint32_t *indexes;
+  uint64_t *indexes;
 };
 
 struct simd_input {
@@ -112,49 +112,49 @@ really_inline uint64_t find_quote_mask(simd_input in, uint64_t &prev_iter_inside
 // base_ptr[base] incrementing base as we go
 // will potentially store extra values beyond end of valid bits, so base_ptr
 // needs to be large enough to handle this
-really_inline void flatten_bits(uint32_t *base_ptr, uint64_t &base,
+really_inline void flatten_bits(uint64_t *base_ptr, uint64_t &base,
                                 uint64_t idx, uint64_t bits) {
   if (bits != 0u) {
     uint64_t cnt = hamming(bits);
     uint64_t next_base = base + cnt;
-    base_ptr[base + 0] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 0] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 1] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 1] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 2] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 2] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 3] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 3] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 4] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 4] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 5] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 5] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 6] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 6] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
-    base_ptr[base + 7] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+    base_ptr[base + 7] = idx + trailingzeroes(bits);
     bits = bits & (bits - 1);
     if (cnt > 8) {
-      base_ptr[base + 8] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 8] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 9] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 9] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 10] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 10] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 11] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 11] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 12] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 12] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 13] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 13] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 14] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 14] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
-      base_ptr[base + 15] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+      base_ptr[base + 15] = idx + trailingzeroes(bits);
       bits = bits & (bits - 1);
     }
     if (cnt > 16) {
       base += 16;
       do {
-        base_ptr[base] = static_cast<uint32_t>(idx) + trailingzeroes(bits);
+        base_ptr[base] = idx + trailingzeroes(bits);
         bits = bits & (bits - 1);
         base++;
       } while (bits != 0);
@@ -184,7 +184,7 @@ bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) {
 #endif
   size_t lenminus64 = len < 64 ? 0 : len - 64;
   size_t idx = 0;
-  uint32_t *base_ptr = pcsv.indexes;
+  uint64_t *base_ptr = pcsv.indexes;
   uint64_t base = 0;
 #ifdef SIMDCSV_BUFFERING
   // we do the index decoding in bulk for better pipelining.
@@ -534,7 +534,7 @@ public:
 
     // Parse CSV File
     // std::cout << "File: " << csv_file_path << ", string size: " << p.size() << std::endl;
-    pcsv.indexes = new (std::nothrow) uint32_t[p.size()]; // can't have more indexes than we have data
+    pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
     if(pcsv.indexes == nullptr) {
       throw InvalidInputException("You are running out of memory.");
     }
@@ -661,7 +661,7 @@ public:
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
+    std::cout << "[ " << row_cursor << " / " << num_rows << " ]" << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {

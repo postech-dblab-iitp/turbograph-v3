@@ -24,7 +24,7 @@ void CacheDataTransformer::Swizzle(uint8_t* ptr) {
             SwizzleVarchar(ptr);
             break;
         default:
-            std::cout << "Swizzling type not implemented" << std::endl;
+            std::cout << "Swizzling type" << (size_t)swizzle_type << "not implemented" << std::endl;
             throw NotImplementedException("Swizzling type not implemented");
     }
 }
