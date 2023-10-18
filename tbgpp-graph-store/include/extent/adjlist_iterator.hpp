@@ -41,6 +41,7 @@ private:
     ExtentID cur_eid = std::numeric_limits<ExtentID>::max();
     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
     data_ptr_t cur_adj_list;
+    idx_t *adjListBase;
 };
 
 class DFSIterator {

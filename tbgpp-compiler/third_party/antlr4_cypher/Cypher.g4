@@ -235,7 +235,9 @@ oC_Pattern
     : oC_PatternPart ( SP? ',' SP? oC_PatternPart )* ;
 
 oC_PatternPart
-    : oC_AnonymousPatternPart ;
+           :  ( oC_Variable SP? '=' SP? oC_AnonymousPatternPart )
+               | oC_AnonymousPatternPart
+               ;
 
 oC_AnonymousPatternPart
     : oC_PatternElement ;

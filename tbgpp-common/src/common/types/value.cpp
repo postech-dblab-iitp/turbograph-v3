@@ -1326,10 +1326,10 @@ string Value::ToString() const {
 		return Interval::ToString(value_.interval);
 	case LogicalTypeId::JSON:
 	case LogicalTypeId::VARCHAR:
-		if (str_value.size() < 15) {
+		if (str_value.size() < 25) {
 			return str_value;
 		} else {
-			return str_value.substr(0, 15) + " ...";
+			return str_value.substr(0, 25) + " ...";
 		}
 	case LogicalTypeId::BLOB:
 		return Blob::ToString(string_t(str_value));

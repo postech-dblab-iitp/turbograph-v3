@@ -762,61 +762,72 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan) {
 	// TODO bug..
 	CMemoryPool* mp = this->memory_pool;
-	CColRefArray* key_columns = GPOS_NEW(mp) CColRefArray(mp);
-	CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
-	key_columns->AddRef();
+	// CColRefArray* key_columns = GPOS_NEW(mp) CColRefArray(mp);
+	// CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
+	// key_columns->AddRef();
 
 	for (auto& proj_expr_ptr: expressions) {
-		vector<CExpression *> generated_exprs;
-		vector<CColRef *> generated_colrefs;
-		kuzu::binder::Expression* proj_expr = proj_expr_ptr.get();
+	// 	vector<CExpression *> generated_exprs;
+	// 	vector<CColRef *> generated_colrefs;
+		kuzu::binder::Expression *proj_expr = proj_expr_ptr.get();
 		string col_name = proj_expr->getUniqueName();
 		string col_name_print = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
 		if (proj_expr->hasAggregationExpression()) {
-			D_ASSERT(false); // TODO
+	// 		D_ASSERT(false); // TODO
 		} else {
 			if (proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY) {
 				D_ASSERT(false); // TODO not implemented yet
 			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::VARIABLE) {
-				kuzu::binder::NodeOrRelExpression *var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
-				auto property_columns = prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName());
-				if (proj_expr->getDataType().typeID == kuzu::common::DataTypeID::NODE) {
-					// distinct on physical id column
-					key_columns->Append(property_columns[0]);
-					for (auto i = 0; i < property_columns.size(); i++) {
-						generated_colrefs.push_back(property_columns[i]);
-						generated_exprs.push_back(lExprScalarPropertyExpr(var_expr->getUniqueName(),
-							prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getUniqueName(), property_columns[i]), prev_plan));
-					}
-				} else {
-					for (auto& col: property_columns) {
-						// consider all columns as key columns
-						// TODO this is inefficient
-						key_columns->Append(col);
-					}
-				}
+	// 			kuzu::binder::NodeOrRelExpression *var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
+	// 			auto property_columns = prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName());
+	// 			if (proj_expr->getDataType().typeID == kuzu::common::DataTypeID::NODE) {
+	// 				// distinct on physical id column
+	// 				key_columns->Append(property_columns[0]);
+	// 				for (auto i = 0; i < property_columns.size(); i++) {
+	// 					generated_colrefs.push_back(property_columns[i]);
+	// 					generated_exprs.push_back(lExprScalarPropertyExpr(var_expr->getUniqueName(),
+	// 						prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getUniqueName(), property_columns[i]), prev_plan));
+	// 				}
+	// 			} else {
+	// 				for (auto& col: property_columns) {
+	// 					// consider all columns as key columns
+	// 					// TODO this is inefficient
+	// 					key_columns->Append(col);
+	// 				}
+	// 			}
 			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::FUNCTION) {
 				D_ASSERT(false); // TODO not implemented yet
 			} else {
 				D_ASSERT(false); // TODO not implemented yet
 			}
 		}
-		D_ASSERT(generated_exprs.size() > 0 && generated_exprs.size() == generated_colrefs.size());
-		for (int expr_idx = 0; expr_idx < generated_exprs.size(); expr_idx++) {
-			CExpression* scalar_proj_elem = GPOS_NEW(mp) CExpression(
-				mp, GPOS_NEW(mp) CScalarProjectElement(mp, generated_colrefs[expr_idx]), generated_exprs[expr_idx]);
-			proj_array->Append(scalar_proj_elem);
-		}
+	// 	D_ASSERT(generated_exprs.size() > 0 && generated_exprs.size() == generated_colrefs.size());
+	// 	for (int expr_idx = 0; expr_idx < generated_exprs.size(); expr_idx++) {
+	// 		CExpression* scalar_proj_elem = GPOS_NEW(mp) CExpression(
+	// 			mp, GPOS_NEW(mp) CScalarProjectElement(mp, generated_colrefs[expr_idx]), generated_exprs[expr_idx]);
+	// 		proj_array->Append(scalar_proj_elem);
+	// 	}
 	}
+
+	// CLogicalGbAgg *pop_gbagg = 
+	// 	GPOS_NEW(mp) CLogicalGbAgg(
+	// 		mp, key_columns, COperator::EgbaggtypeGlobal /*egbaggtype*/);
+	// CExpression *gbagg_expr =  GPOS_NEW(mp) CExpression(
+	// 	mp, 
+	// 	pop_gbagg, 
+	// 	prev_plan->getPlanExpr(),
+	// 	GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array));
+	
+	// prev_plan->addUnaryParentOp(gbagg_expr);
+	
 
 	CLogicalGbAgg *pop_gbagg = 
 		GPOS_NEW(mp) CLogicalGbAgg(
-			mp, key_columns, COperator::EgbaggtypeGlobal /*egbaggtype*/);
-	CExpression *gbagg_expr =  GPOS_NEW(mp) CExpression(
-		mp, 
-		pop_gbagg, 
-		prev_plan->getPlanExpr(),
-		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array));
+			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/);
+	CExpression *gbagg_expr =  GPOS_NEW(mp)
+		CExpression(mp, pop_gbagg, prev_plan->getPlanExpr(),
+		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
+	// colrefs->AddRef();
 	
 	prev_plan->addUnaryParentOp(gbagg_expr);
 	

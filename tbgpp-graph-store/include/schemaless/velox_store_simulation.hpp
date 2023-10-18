@@ -124,7 +124,7 @@ public:
 
         // Parse CSV File
         // std::cout << "File: " << csv_file_path << ", string size: " << p.size() << std::endl;
-        pcsv.indexes = new (std::nothrow) uint32_t[p.size()]; // can't have more indexes than we have data
+        pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
         if(pcsv.indexes == nullptr) {
             throw InvalidInputException("You are running out of memory.");
         }
@@ -975,7 +975,7 @@ public:
 
         // Parse CSV File
         // std::cout << "File: " << csv_file_path << ", string size: " << p.size() << std::endl;
-        pcsv.indexes = new (std::nothrow) uint32_t[p.size()]; // can't have more indexes than we have data
+        pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
         if(pcsv.indexes == nullptr) {
             throw InvalidInputException("You are running out of memory.");
         }

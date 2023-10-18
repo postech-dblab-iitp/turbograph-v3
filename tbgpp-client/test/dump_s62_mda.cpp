@@ -80,7 +80,8 @@ void print_depth(string data, int depth=0) {
 
 void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
-	vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "epart_IS_PART_OF"};
+	vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
+		"vpart_REGION", "vpart_SUPPLIER"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -248,7 +249,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/tpch/sf1/";
+	DiskAioParameters::WORKSPACE = "/data/tpch/sf1_swizzling/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;

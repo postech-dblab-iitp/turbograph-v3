@@ -1048,7 +1048,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 // FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + comp_header_valid_size + sizeof(string_t) * matched_row_idx);
                 auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
                 // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet());
-                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
                     // uint64_t prev_string_offset = seqno == 0 ? 0 : offset_arr[seqno - 1];

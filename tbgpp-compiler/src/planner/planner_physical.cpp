@@ -114,6 +114,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr);
 			break;
 		}
+		case COperator::EOperatorId::EopPhysicalCorrelatedLeftSemiNLJoin:
+		case COperator::EOperatorId::EopPhysicalCorrelatedLeftAntiSemiNLJoin: {
+			result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr, true);
+			break;
+		}
 		case COperator::EOperatorId::EopPhysicalLeftOuterNLJoin:		// LEFT
 		case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:			// SEMI
 		case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin: {	// ANTI
@@ -1077,7 +1082,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerNLJo
 	return lhs_result;
 }
 
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression* plan_expr) {
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression* plan_expr, bool is_correlated) {
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -1133,14 +1138,25 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToB
 	duckdb::CypherPhysicalOperator *op = 
 		new duckdb::PhysicalBlockwiseNLJoin(schema, move(join_condition_expr), join_type, outer_col_map, inner_col_map);
 
-	// finish rhs pipeline
-	rhs_result->push_back(op);
-	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
-	pipelines.push_back(pipeline);
+	if (is_correlated) {
+		// finish lhs pipeline
+		lhs_result->push_back(op);
+		auto pipeline = new duckdb::CypherPipeline(*lhs_result);
+		pipelines.push_back(pipeline);
 
-	// return lhs pipeline
-	lhs_result->push_back(op);
-	return lhs_result;
+		// return rhs pipeline
+		rhs_result->push_back(op);
+		return rhs_result;
+	} else {
+		// finish rhs pipeline
+		rhs_result->push_back(op);
+		auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+		pipelines.push_back(pipeline);
+
+		// return lhs pipeline
+		lhs_result->push_back(op);
+		return lhs_result;
+	}
 }
 
 
@@ -1783,11 +1799,13 @@ duckdb::JoinType Planner::pTranslateJoinType(COperator* op) {
 			return duckdb::JoinType::LEFT;
 		}
 		case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin:
-		case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin: {
+		case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
+		case COperator::EOperatorId::EopPhysicalCorrelatedLeftAntiSemiNLJoin: { // correct?
 			return duckdb::JoinType::ANTI;
 		}
 		case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:
-		case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin: {
+		case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin:
+		case COperator::EOperatorId::EopPhysicalCorrelatedLeftSemiNLJoin: { // correct?
 			return duckdb::JoinType::SEMI;
 		}
 		// TODO where is FULL OUTER??????
