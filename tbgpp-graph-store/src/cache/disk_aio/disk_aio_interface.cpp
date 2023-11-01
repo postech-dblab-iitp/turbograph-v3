@@ -47,7 +47,8 @@ DiskAioRequest* DiskAioInterface::PackRequest(
 		// fprintf(stdout, "io_prep_pread %p %d %ld %ld\n", buffer, fd, iosize, offset);
 		io_prep_pread(&(req->cb), fd, buffer, iosize, offset);
 	} else {
-		// fprintf(stdout, "io_prep_pwrite\n");
+		// fprintf(stdout, "io_prep_pwrite %p %d %ld %ld, %p %d %d\n",
+		// 	buffer, fd, iosize, offset, req->cb.data, req->cb.key, req->cb.aio_fildes);
 		io_prep_pwrite(&(req->cb), fd, buffer, iosize, offset);
 	}
 

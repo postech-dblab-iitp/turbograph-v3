@@ -144,7 +144,7 @@ public:
 
 private:
 	unique_ptr<TreeNode> CreateTree(CypherPhysicalOperator *root, idx_t depth = 0);
-	// void Render(const TreeNode &node, std::ostream &str) const;
+	void Render(const TreeNode &node, std::ostream &str) const;
 
 public:
 	DUCKDB_API bool IsEnabled() const;
@@ -167,9 +167,9 @@ public:
 
 	DUCKDB_API void Initialize(CypherPhysicalOperator *root);
 
-	// DUCKDB_API string ToString(bool print_optimizer_output = false) const;
-	// DUCKDB_API void ToStream(std::ostream &str, bool print_optimizer_output = false) const;
-	// DUCKDB_API void Print();
+	DUCKDB_API string ToString(bool print_optimizer_output = false) const;
+	DUCKDB_API void ToStream(std::ostream &str, bool print_optimizer_output = false) const;
+	DUCKDB_API void Print();
 
 	// DUCKDB_API string ToJSON() const;
 	// DUCKDB_API void WriteToFile(const char *path, string &info) const;

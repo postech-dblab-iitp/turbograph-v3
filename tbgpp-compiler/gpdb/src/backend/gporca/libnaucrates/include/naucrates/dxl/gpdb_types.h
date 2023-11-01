@@ -20,7 +20,7 @@ typedef ULONG OID;
 #define GPDB_INT2 OID(1000000000 + 21) // S62
 #define GPDB_INT4 OID(1000000000 + 23) // S62
 #define GPDB_INT8 OID(1000000000 + 20) // S62 
-#define GPDB_BOOL OID(10000000 + 10) // TODO remove..
+#define GPDB_BOOL OID(1000000 + 10) // TODO remove..
 #define GPDB_TID OID(27)
 #define GPDB_OID OID(26)
 #define GPDB_XID OID(28)

@@ -182,15 +182,15 @@ LightningClient::LightningClient(const std::string &store_socket,
   // page alignment check
   assert((size_t)base_ % 4096 == 0);
   // flush pages to reduce page faults; also do in the cache-friendly way
-  volatile char checksum = 0;
-  for (long i = size_ - 4096; i >= 0; i -= 4096)
-    checksum ^= base_[i];
+  // volatile char checksum = 0;
+  // for (long i = size_ - 4096; i >= 0; i -= 4096)
+  //   checksum ^= base_[i];
 
 #ifdef USE_MPK
   init_mpk();
 #endif
 
-  std::cout << "header_ = " << (unsigned long)base_ << std::endl;
+  // std::cout << "header_ = " << (unsigned long)base_ << std::endl;
 }
 
 void LightningClient::init_mpk() {
@@ -421,6 +421,39 @@ int LightningClient::SetDirty(uint64_t object_id) {
   LOCK;
   disk_->BeginTx();
   int status = set_dirty_internal(object_id);
+  disk_->CommitTx();
+  UNLOCK;
+  mpk_lock();
+  return status;
+}
+
+int LightningClient::clear_dirty_internal(uint64_t object_id) {
+  int64_t object_index = find_object(object_id);
+
+  if (object_index < 0) {
+    // object not found
+    return -1;
+  }
+
+  ObjectEntry *object_entry = &header_->object_entries[object_index];
+
+  if (!object_entry->sealed) {
+    // object is not sealed yet
+    return -1;
+  }
+
+  LOGGED_WRITE(object_entry->dirty_bit, 0, header_,
+               disk_);
+  // object_entry->dirty_bit = 0;
+
+  return 0;
+}
+
+int LightningClient::ClearDirty(uint64_t object_id) {
+  mpk_unlock();
+  LOCK;
+  disk_->BeginTx();
+  int status = clear_dirty_internal(object_id);
   disk_->CommitTx();
   UNLOCK;
   mpk_lock();

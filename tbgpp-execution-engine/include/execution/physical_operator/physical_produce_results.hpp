@@ -11,8 +11,10 @@ class PhysicalProduceResults: public CypherPhysicalOperator {
 public:
 	PhysicalProduceResults(Schema& sch)
 		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch) { }
-	PhysicalProduceResults(Schema& sch, std::vector<uint8_t> projection_mapping)
+	PhysicalProduceResults(Schema& sch, vector<uint8_t> projection_mapping)
 		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch), projection_mapping(projection_mapping) { }
+	PhysicalProduceResults(Schema& sch, vector<vector<uint8_t>> projection_mappings)
+		: CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch), projection_mappings(projection_mappings) { }
 	~PhysicalProduceResults() { }
 
 public:
@@ -26,7 +28,8 @@ public:
 	std::string ToString() const override;
 
 private:
-	std::vector<uint8_t> projection_mapping;
+	vector<uint8_t> projection_mapping;
+	vector<vector<uint8_t>> projection_mappings;
 };	
 
 }

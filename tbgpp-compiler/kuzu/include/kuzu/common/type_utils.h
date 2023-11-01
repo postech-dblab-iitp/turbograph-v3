@@ -9,14 +9,17 @@ namespace common {
 class TypeUtils {
 
 public:
+    static int32_t convertToInt32(const char* data);
     static int64_t convertToInt64(const char* data);
+    static uint32_t convertToUint32(const char* data);
     static uint64_t convertToUint64(const char* data);
     static double_t convertToDouble(const char* data);
-    static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
     static inline string toString(bool boolVal) { return boolVal ? "True" : "False"; }
+    static inline string toString(int32_t val) { return to_string(val); }
     static inline string toString(int64_t val) { return to_string(val); }
+    static inline string toString(uint32_t val) { return to_string(val); }
     static inline string toString(uint64_t val) { return to_string(val); }
     static inline string toString(double val) { return to_string(val); }
     static inline string toString(const nodeID_t& val) {

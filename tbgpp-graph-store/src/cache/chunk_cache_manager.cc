@@ -21,28 +21,21 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
   client = new LightningClient("/tmp/lightning", "password");
 
   // Initialize file handlers
-// icecream::ic.enable();
-// IC();
   std::string partition_path = std::string(path);
-// IC(partition_path);
   for (const auto &partition_entry : std::filesystem::directory_iterator(partition_path)) { // /path/
     std::string partition_entry_path = std::string(partition_entry.path());
     std::string partition_entry_name = partition_entry_path.substr(partition_entry_path.find_last_of("/") + 1);
-    // IC(partition_entry_name);
     if (StringUtil::StartsWith(partition_entry_name, "part_")) {
       std::string extent_path = partition_entry_path + std::string("/");
-      // IC(extent_path);
       for (const auto &extent_entry : std::filesystem::directory_iterator(extent_path)) { // /path/part_/
         std::string extent_entry_path = std::string(extent_entry.path());
         std::string extent_entry_name = extent_entry_path.substr(extent_entry_path.find_last_of("/") + 1);
         if (StringUtil::StartsWith(extent_entry_name, "ext_")) {
           std::string chunk_path = extent_entry_path + std::string("/");
-          // IC(chunk_path);
           for (const auto &chunk_entry : std::filesystem::directory_iterator(chunk_path)) { // /path/part_/ext_/
             std::string chunk_entry_path = std::string(chunk_entry.path());
             std::string chunk_entry_name = chunk_entry_path.substr(chunk_entry_path.find_last_of("/") + 1);
             ChunkDefinitionID chunk_id = (ChunkDefinitionID) std::stoull(chunk_entry_name.substr(chunk_entry_name.find("_") + 1));
-            // fprintf(stdout, "chunk_entry_path %s\n", chunk_entry_path.c_str());
 
             // Open File & Insert into file_handlers
             D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
@@ -57,41 +50,15 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
 
             file_handlers[chunk_id]->Read(0, 512, first_block, this, nullptr);
             file_handlers[chunk_id]->WaitAllPendingDiskIO(true);
-            // file_handlers[chunk_id]->WaitForMyIoRequests(true, true);
-            // if (chunk_id == 0) {
-              // fprintf(stdout, "%p %d\n", first_block, file_handlers[chunk_id]->fdval());
-              // int *arr = (int *)first_block;
-              // for (size_t i = 0; i < 512 / sizeof(int); i++) {
-              //   std::cout << std::hex << std::setfill('0') << std::setw(2) << arr[i] << " ";
-              // }
-              // fprintf(stdout, "\n");
-            // }
-
-            // XXX Temporary use mmap
-            // int open_flag, mmap_prot, mmap_flag, file_descriptor;
-            // size_t file_size_ = file_handlers[chunk_id]->file_size();
-            // file_descriptor = file_handlers[chunk_id]->fdval();
-            // open_flag = O_RDONLY;
-            // mmap_prot = PROT_READ;
-            // mmap_flag = MAP_SHARED;
-            // char* pFileMap_ = (char *) mmap64(NULL, file_size_, mmap_prot, mmap_flag, file_descriptor, 0);
 
             size_t requested_size = ((size_t *)first_block)[0];
-            // memcpy(&requested_size, first_block, sizeof(size_t));
             file_handlers[chunk_id]->SetRequestedSize(requested_size);
-            // fprintf(stdout, "Open %s, requested_size = %ld, file_size = %ld\n", chunk_entry_path.c_str(), requested_size, file_handlers[chunk_id]->file_size());
-            // munmap(pFileMap_, file_size_);
             delete first_block;
           }
         }
       }
     }
   }
-// icecream::ic.disable();
-  //   file_handlers[cid] = new Turbo_bin_aio_handler();
-  // ReturnStatus rs = file_handlers[cid]->OpenFile((file_path + std::to_string(cid)).c_str(), true, true, true, true);
-  // Initialize file_handlers as nullptr
-  //for (int i = 0; i < NUM_MAX_SEGMENTS; i++) file_handlers[i] = nullptr;
 }
 
 ChunkCacheManager::~ChunkCacheManager() {
@@ -103,16 +70,38 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    CacheDataTransformer::Unswizzle(file_handler.second->GetDataPtr());
-
-    file_handler.second->FlushAll();
-    file_handler.second->WaitAllPendingDiskIO(false);
-    file_handler.second->Close();
+    // TODO we need a write lock
+    UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
+    client->ClearDirty(file_handler.first);
   }
 }
 
+void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
+  uint8_t *ptr;
+  size_t size;
+
+  /**
+   * TODO we need a write lock
+   * We flush in-memory data format to disk format.
+   * Thus, unswizzling is needed.
+   * However, since change the data in memory, we need to swizzle again.
+   * After implementing eviction and so one, this code should be changed.
+   * 
+   * Ideal code is like below:
+   * 1. Extent Manager write unswizzled data into memory
+   * 2. ChunkCacheManager flush the data into disk, and remove all objects from store
+   * 3. Proceeding clients can read the data from disk, and swizzle it.
+  */
+  PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
+  CacheDataTransformer::Unswizzle(ptr);
+  file_handler->FlushAll();
+  file_handler->WaitAllPendingDiskIO(false);
+  CacheDataTransformer::Swizzle(ptr);
+  file_handler->Close();
+  UnPinSegment(cid);
+}
+
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
-// icecream::ic.enable();
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);
@@ -124,11 +113,9 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   size_t file_size = file_handler->file_size();
   size_t required_memory_size = file_size + 512; // Add 512 byte for memory aligning
   D_ASSERT(file_size >= segment_size);
-// IC(cid);
 
   // Pin Segment using Lightning Get()
   if (client->Get(cid, ptr, size) != 0) {
-    // IC();
     // Get() fail: 1) object not found, 2) object is not sealed yet
     // TODO: Check if there is enough memory space
 
@@ -141,39 +128,34 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
     if (client->Create(cid, ptr, required_memory_size) == 0) {
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
-      // IC();
+
       // Read data & Seal object
-      ReadData(cid, file_path, file_ptr, file_size, read_data_async);
-      // IC();
-      if(!is_initial_loading) CacheDataTransformer::Swizzle(*ptr);
-      // IC();
+      // TODO: we fix read_data_async as false, due to swizzling. May move logic to iterator.
+      // ReadData(cid, file_path, file_ptr, file_size, read_data_async);
+      ReadData(cid, file_path, file_ptr, file_size, false);
+
+      if (!is_initial_loading) {
+        // std::cout << "SWIZZLE CID: " << cid << std::endl;
+        CacheDataTransformer::Swizzle(*ptr);
+      }
       client->Seal(cid);
       // if (!read_data_async) client->Seal(cid); // WTF???
-      // IC();
       *size = segment_size - sizeof(size_t);
     } else {
-      // IC();
       // Create fail -> Subscribe object
       client->Subscribe(cid);
-      // IC();
+
       int status = client->Get(cid, ptr, size);
-      // fprintf(stdout, "cid %ld, ptr %p, status %d\n", cid, ptr, status);
-      // IC();
       D_ASSERT(status == 0);
 
       // Align memory & adjust size
       MemAlign(ptr, segment_size, required_memory_size, file_handler);
-      // IC();
       *size = segment_size - sizeof(size_t);
-      // IC();
     }
-    // icecream::ic.disable();
     return NOERROR;
   }
-  // IC();
   // Get() success. Align memory & adjust size
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
-  // IC();
   *size = segment_size - sizeof(size_t);
 
   return NOERROR;
@@ -321,24 +303,19 @@ ReturnStatus ChunkCacheManager::CreateNewFile(ChunkID cid, std::string file_path
 }
 
 void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler) {
-// IC();
   void* target_ptr = (void*) *ptr;
-// IC();
   std::align(512, segment_size, target_ptr, required_memory_size);
-// IC();
   if (target_ptr == nullptr) {
-    // IC();
     exit(-1);
     // TODO throw exception
   }
-// IC();
+
   size_t real_requested_segment_size = segment_size - sizeof(size_t);
-  // fprintf(stdout, "segment_size %ld, real_requested_size %ld\n", segment_size, real_requested_segment_size);
   memcpy(target_ptr, &real_requested_segment_size, sizeof(size_t));
   *ptr = (uint8_t*) target_ptr;
   file_handler->SetDataPtr(*ptr);
   *ptr = *ptr + sizeof(size_t);
-// IC();
+
   return target_ptr;
 }
 

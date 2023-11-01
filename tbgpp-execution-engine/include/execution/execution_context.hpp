@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 #include "main/client_context.hpp"
-
+#include "execution/schema_flow_graph.hpp"
 
 namespace duckdb {
 
@@ -29,6 +29,8 @@ public:
 	ClientContext *client;
 	//! The thread-local context for this execution
 	ThreadContext *thread;
+	//! The schema flow graph for this execution
+	SchemaFlowGraph *sfg;
 	
 	//! if this is the last pipeline, store pointer to query results here
 	vector<DataChunk*> *query_results;

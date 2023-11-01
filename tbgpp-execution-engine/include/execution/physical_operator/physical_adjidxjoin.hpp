@@ -22,6 +22,7 @@ public:
 		src_nullity.resize(STANDARD_VECTOR_SIZE);
 		join_sizes.resize(STANDARD_VECTOR_SIZE);
 		total_join_size.resize(STANDARD_VECTOR_SIZE);
+		prev_eid = std::numeric_limits<ExtentID>::max();
 	}
 	//! Called when starting processing for new chunk
 	inline void resetForNewInput() {
@@ -43,6 +44,7 @@ public:
 public:
 	// operator data
 	AdjacencyListIterator *adj_it;
+	ExtentID prev_eid;
 	// initialize rest of operator members
 	idx_t srcColIdx;
 	idx_t edgeColIdx;
@@ -50,6 +52,7 @@ public:
 
 	// input -> output col mapping information
 	vector<uint32_t> outer_col_map;
+	vector<vector<uint32_t>> outer_col_maps;
 	vector<uint32_t> inner_col_map;
 	
 	// join state - initialized per output
@@ -83,12 +86,34 @@ public:
 	PhysicalAdjIdxJoin(Schema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid,
 					   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, bool load_eid_temporarily = false)
 		: CypherPhysicalOperator(PhysicalOperatorType::ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
-			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), inner_col_map(move(inner_col_map)),
+			load_eid_temporarily(load_eid_temporarily)
+	{
+		this->outer_col_maps.push_back(std::move(outer_col_map));
+		discard_tgt = discard_edge = false;
+		if (load_eid) {
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
+			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
+		} else {
+			D_ASSERT(this->inner_col_map.size() == 1);	// inner = (tid)
+			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+			discard_edge = true;
+		}
+		if (load_eid_temporarily) { D_ASSERT(load_eid); }
+		
+		setFillFunc();
+	}
+
+	PhysicalAdjIdxJoin(Schema& sch, uint64_t adjidx_obj_id, JoinType join_type, uint64_t sid_col_idx, bool load_eid,
+					   vector<vector<uint32_t>> &outer_col_maps, vector<uint32_t> &inner_col_map, bool load_eid_temporarily = false)
+		: CypherPhysicalOperator(PhysicalOperatorType::ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_maps(move(outer_col_maps)), inner_col_map(move(inner_col_map)),
 			load_eid_temporarily(load_eid_temporarily)
 	{
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {
@@ -105,12 +130,13 @@ public:
 					   vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map, bool do_filter_pushdown,
 					   uint32_t outer_pos, uint32_t inner_pos, bool load_eid_temporarily = false)
 		: CypherPhysicalOperator(PhysicalOperatorType::ADJ_IDX_JOIN, sch), adjidx_obj_id(adjidx_obj_id), join_type(join_type), sid_col_idx(sid_col_idx), load_eid(load_eid),
-			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_map(move(outer_col_map)), inner_col_map(move(inner_col_map)),
+			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), inner_col_map(move(inner_col_map)),
 			do_filter_pushdown(do_filter_pushdown), outer_pos(outer_pos), inner_pos(inner_pos), load_eid_temporarily(load_eid_temporarily)
 	{
+		this->outer_col_maps.push_back(std::move(outer_col_map));
 		discard_tgt = discard_edge = false;
 		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() == 2);	// inner = (tid, eid)
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {
@@ -137,6 +163,7 @@ public:
 	void ProcessSemiAntiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const;
 	void ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate, bool is_left_join) const;
 	void ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const;
+	void GetAdjListAndFillOutput();
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;
@@ -145,6 +172,7 @@ public:
 	uint64_t sid_col_idx;	// source id column
 
 	vector<uint32_t> outer_col_map;
+	vector<vector<uint32_t>> outer_col_maps;
 	vector<uint32_t> inner_col_map;
 	
 	JoinType join_type;

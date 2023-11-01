@@ -70,6 +70,7 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	# third_party
 	"${PROJECT_SOURCE_DIR}/include/third_party"
 	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_fmt/include"
+	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_re2/"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
 	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
 	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
@@ -92,7 +93,7 @@ file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
 
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto)
+target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(tbgpp-common-lib duckdb_fastpforlib)
 target_link_libraries(tbgpp-common-lib turbograph_simdcsv)
 target_link_libraries(tbgpp-common-lib

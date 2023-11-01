@@ -20,9 +20,9 @@
 #include "common/types/null_value.hpp"
 #include "common/types/time.hpp"
 #include "common/types/timestamp.hpp"
-//#include "common/types/vector.hpp"
+#include "common/types/vector.hpp"
 #include "common/value_operations/value_operations.hpp"
-//#include "common/vector_operations/vector_operations.hpp"
+#include "common/vector_operations/vector_operations.hpp"
 #include "common/string_util.hpp"
 #include "common/types/cast_helpers.hpp"
 #include "common/types/hash.hpp"
@@ -1261,6 +1261,7 @@ hash_t Value::Hash() const {
 
 string Value::ToString() const {
 	if (IsNull()) {
+		// return "";
 		return "NULL";
 	}
 	switch (type_.id()) {
@@ -1325,7 +1326,11 @@ string Value::ToString() const {
 		return Interval::ToString(value_.interval);
 	case LogicalTypeId::JSON:
 	case LogicalTypeId::VARCHAR:
-		return str_value;
+		if (str_value.size() < 25) {
+			return str_value;
+		} else {
+			return str_value.substr(0, 25) + " ...";
+		}
 	case LogicalTypeId::BLOB:
 		return Blob::ToString(string_t(str_value));
 	case LogicalTypeId::POINTER:
@@ -1623,14 +1628,14 @@ bool Value::TryCastAs(const LogicalType &target_type, Value &new_value, string *
 		new_value = Copy();
 		return true;
 	}
-	D_ASSERT(false);
-	/*Vector input(*this);
+	// D_ASSERT(false);
+	Vector input(*this);
 	Vector result(target_type);
 	if (!VectorOperations::TryCast(input, result, 1, error_message, strict)) {
 		return false;
 	}
-	new_value = result.GetValue(0);*?
-	return true;*/
+	new_value = result.GetValue(0);
+	return true;
 }
 
 Value Value::CastAs(const LogicalType &target_type, bool strict) const {

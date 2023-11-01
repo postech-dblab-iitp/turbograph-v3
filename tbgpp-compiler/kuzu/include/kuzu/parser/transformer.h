@@ -136,6 +136,10 @@ private:
     unique_ptr<ParsedExpression> transformListOperatorExpression(
         CypherParser::OC_ListOperatorExpressionContext& ctx,
         unique_ptr<ParsedExpression> propertyExpression);
+    
+     unique_ptr<ParsedExpression> transformListPropertyOrLabelsExpression(
+        CypherParser::KU_ListPropertyOrLabelsExpressionContext& ctx,
+        unique_ptr<ParsedExpression> propertyExpression);
 
     unique_ptr<ParsedExpression> transformListSliceOperatorExpression(
         CypherParser::KU_ListSliceOperatorExpressionContext& ctx,

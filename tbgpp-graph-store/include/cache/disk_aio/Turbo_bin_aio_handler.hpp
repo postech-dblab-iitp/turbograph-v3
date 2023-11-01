@@ -132,7 +132,6 @@ class Turbo_bin_aio_handler {
     {
       diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(read);
       if (my_io != NULL) {
-        // fprintf(stdout, "WaitMyPendingDiskIO my_io %p\n", my_io);
         WaitMyPendingDiskIO(my_io);
       }
     }
@@ -308,13 +307,15 @@ class Turbo_bin_aio_handler {
     diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(false);
     AioRequest req;
     req.buf = (char*) aligned_data_ptr;
-    req.start_pos = 0; 
+    req.start_pos = 0;
     req.io_size = file_size();
     req.user_info.file_id = file_id;
     //req.user_info.do_user_cb = true;
     req.user_info.caller = NULL;
     
     bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
+    // fprintf(stdout, "Write File %d size %ld, %p, my_io %p, %s\n",
+    //   file_id, file_size(), aligned_data_ptr, my_io, success ? "True" : "False");
 
     if (is_reserved) {
       is_reserved = false;

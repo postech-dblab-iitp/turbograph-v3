@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.11.1
+// Generated from Cypher.g4 by ANTLR 4.13.1
 
 #pragma once
 
@@ -26,13 +26,13 @@ public:
     ORDER = 69, BY = 70, L_SKIP = 71, LIMIT = 72, ASCENDING = 73, ASC = 74, 
     DESCENDING = 75, DESC = 76, WHERE = 77, RANGE = 78, OR = 79, XOR = 80, 
     AND = 81, NOT = 82, INVALID_NOT_EQUAL = 83, MINUS = 84, FACTORIAL = 85, 
-    STARTS = 86, ENDS = 87, CONTAINS = 88, IS = 89, NULL_ = 90, TRUE = 91, 
-    FALSE = 92, EXISTS = 93, CASE = 94, ELSE = 95, END = 96, WHEN = 97, 
-    THEN = 98, StringLiteral = 99, EscapedChar = 100, DecimalInteger = 101, 
-    HexLetter = 102, HexDigit = 103, Digit = 104, NonZeroDigit = 105, NonZeroOctDigit = 106, 
-    ZeroDigit = 107, RegularDecimalReal = 108, UnescapedSymbolicName = 109, 
-    IdentifierStart = 110, IdentifierPart = 111, EscapedSymbolicName = 112, 
-    SP = 113, WHITESPACE = 114, Comment = 115, Unknown = 116
+    IN = 86, STARTS = 87, ENDS = 88, CONTAINS = 89, IS = 90, NULL_ = 91, 
+    TRUE = 92, FALSE = 93, EXISTS = 94, CASE = 95, ELSE = 96, END = 97, 
+    WHEN = 98, THEN = 99, StringLiteral = 100, EscapedChar = 101, DecimalInteger = 102, 
+    HexLetter = 103, HexDigit = 104, Digit = 105, NonZeroDigit = 106, NonZeroOctDigit = 107, 
+    ZeroDigit = 108, RegularDecimalReal = 109, UnescapedSymbolicName = 110, 
+    IdentifierStart = 111, IdentifierPart = 112, EscapedSymbolicName = 113, 
+    SP = 114, WHITESPACE = 115, Comment = 116, Unknown = 117
   };
 
   enum {
@@ -63,16 +63,17 @@ public:
     RuleOC_MultiplyDivideModuloExpression = 76, RuleKU_MultiplyDivideModuloOperator = 77, 
     RuleOC_PowerOfExpression = 78, RuleOC_UnaryAddSubtractOrFactorialExpression = 79, 
     RuleOC_StringListNullOperatorExpression = 80, RuleOC_ListOperatorExpression = 81, 
-    RuleKU_ListExtractOperatorExpression = 82, RuleKU_ListSliceOperatorExpression = 83, 
-    RuleOC_StringOperatorExpression = 84, RuleOC_NullOperatorExpression = 85, 
-    RuleOC_PropertyOrLabelsExpression = 86, RuleOC_Atom = 87, RuleOC_Literal = 88, 
-    RuleOC_BooleanLiteral = 89, RuleOC_ListLiteral = 90, RuleOC_ParenthesizedExpression = 91, 
-    RuleOC_FunctionInvocation = 92, RuleOC_FunctionName = 93, RuleOC_ExistentialSubquery = 94, 
-    RuleOC_PropertyLookup = 95, RuleOC_CaseExpression = 96, RuleOC_CaseAlternative = 97, 
-    RuleOC_Variable = 98, RuleOC_NumberLiteral = 99, RuleOC_Parameter = 100, 
-    RuleOC_PropertyExpression = 101, RuleOC_PropertyKeyName = 102, RuleOC_IntegerLiteral = 103, 
-    RuleOC_DoubleLiteral = 104, RuleOC_SchemaName = 105, RuleOC_SymbolicName = 106, 
-    RuleOC_LeftArrowHead = 107, RuleOC_RightArrowHead = 108, RuleOC_Dash = 109
+    RuleKU_ListPropertyOrLabelsExpression = 82, RuleKU_ListExtractOperatorExpression = 83, 
+    RuleKU_ListSliceOperatorExpression = 84, RuleOC_StringOperatorExpression = 85, 
+    RuleOC_NullOperatorExpression = 86, RuleOC_PropertyOrLabelsExpression = 87, 
+    RuleOC_Atom = 88, RuleOC_Literal = 89, RuleOC_BooleanLiteral = 90, RuleOC_ListLiteral = 91, 
+    RuleOC_ParenthesizedExpression = 92, RuleOC_FunctionInvocation = 93, 
+    RuleOC_FunctionName = 94, RuleOC_ExistentialSubquery = 95, RuleOC_PropertyLookup = 96, 
+    RuleOC_CaseExpression = 97, RuleOC_CaseAlternative = 98, RuleOC_Variable = 99, 
+    RuleOC_NumberLiteral = 100, RuleOC_Parameter = 101, RuleOC_PropertyExpression = 102, 
+    RuleOC_PropertyKeyName = 103, RuleOC_IntegerLiteral = 104, RuleOC_DoubleLiteral = 105, 
+    RuleOC_SchemaName = 106, RuleOC_SymbolicName = 107, RuleOC_LeftArrowHead = 108, 
+    RuleOC_RightArrowHead = 109, RuleOC_Dash = 110
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -174,6 +175,7 @@ public:
   class OC_UnaryAddSubtractOrFactorialExpressionContext;
   class OC_StringListNullOperatorExpressionContext;
   class OC_ListOperatorExpressionContext;
+  class KU_ListPropertyOrLabelsExpressionContext;
   class KU_ListExtractOperatorExpressionContext;
   class KU_ListSliceOperatorExpressionContext;
   class OC_StringOperatorExpressionContext;
@@ -969,7 +971,10 @@ public:
   public:
     OC_PatternPartContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    OC_VariableContext *oC_Variable();
     OC_AnonymousPatternPartContext *oC_AnonymousPatternPart();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -1504,6 +1509,7 @@ public:
   public:
     OC_ListOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    KU_ListPropertyOrLabelsExpressionContext *kU_ListPropertyOrLabelsExpression();
     KU_ListExtractOperatorExpressionContext *kU_ListExtractOperatorExpression();
     KU_ListSliceOperatorExpressionContext *kU_ListSliceOperatorExpression();
     OC_ListOperatorExpressionContext *oC_ListOperatorExpression();
@@ -1514,6 +1520,22 @@ public:
   };
 
   OC_ListOperatorExpressionContext* oC_ListOperatorExpression();
+
+  class  KU_ListPropertyOrLabelsExpressionContext : public antlr4::ParserRuleContext {
+  public:
+    KU_ListPropertyOrLabelsExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *IN();
+    OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  KU_ListPropertyOrLabelsExpressionContext* kU_ListPropertyOrLabelsExpression();
 
   class  KU_ListExtractOperatorExpressionContext : public antlr4::ParserRuleContext {
   public:

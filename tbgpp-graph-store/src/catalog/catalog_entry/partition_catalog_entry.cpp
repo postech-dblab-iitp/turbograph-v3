@@ -13,7 +13,8 @@ namespace duckdb {
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc),
 	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc),
-	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc) {
+	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc),
+	  extra_typeinfo_vec(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->num_columns = 0;
@@ -44,8 +45,18 @@ unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
 	//return make_unique<PartitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
+void PartitionCatalogEntry::SetPartitionID(PartitionID pid) {
+	this->pid = pid;
+}
+
 PartitionID PartitionCatalogEntry::GetPartitionID() {
 	return pid;
+}
+
+ExtentID PartitionCatalogEntry::GetNewExtentID() {
+	ExtentID new_eid = pid;
+	new_eid = new_eid << 16;
+	return new_eid + local_extent_id_version++;
 }
 
 void PartitionCatalogEntry::GetPropertySchemaIDs(vector<idx_t> &psids) {
@@ -84,6 +95,13 @@ void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	for (auto &it : types) {
 		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
 		global_property_typesid.push_back(it.id());
+		if (it.id() == LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = DecimalType::GetWidth(it);
+			width_scale = width_scale << 8 | DecimalType::GetScale(it);
+			extra_typeinfo_vec.push_back(width_scale);
+		} else {
+			extra_typeinfo_vec.push_back(0);
+		}
 	}
 }
 

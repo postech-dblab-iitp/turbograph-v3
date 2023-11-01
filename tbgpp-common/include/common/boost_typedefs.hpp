@@ -14,6 +14,7 @@ namespace duckdb {
 	typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
 	typedef boost::interprocess::allocator<bool, segment_manager_t> bool_allocator;
 	typedef boost::interprocess::allocator<idx_t, segment_manager_t> idx_t_allocator;
+    typedef boost::interprocess::allocator<uint16_t, segment_manager_t> uint16_t_allocator;
     typedef boost::interprocess::allocator<int64_t, segment_manager_t> int64_t_allocator;
     typedef boost::interprocess::allocator<void*, segment_manager_t> void_pointer_allocator;
 	typedef boost::interprocess::allocator<char, segment_manager_t> char_allocator;
@@ -26,6 +27,7 @@ namespace duckdb {
     typedef boost::interprocess::allocator<char_string, segment_manager_t> string_allocator;
     typedef boost::interprocess::allocator<LogicalTypeId, segment_manager_t> logicaltypeid_allocator;
     typedef boost::interprocess::vector<idx_t, idx_t_allocator> idx_t_vector;
+    typedef boost::interprocess::vector<uint16_t, uint16_t_allocator> uint16_t_vector;
     typedef boost::interprocess::vector<int64_t, int64_t_allocator> int64_t_vector;
     typedef boost::interprocess::vector<void*, void_pointer_allocator> void_pointer_vector;
     typedef boost::interprocess::vector<char_string, string_allocator> string_vector;

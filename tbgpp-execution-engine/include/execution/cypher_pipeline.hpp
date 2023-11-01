@@ -28,8 +28,21 @@ public:
 		ops.pop_back();
 		operators = ops;
 	}
-	std::vector<CypherPhysicalOperator *> GetOperators() {
+	std::vector<CypherPhysicalOperator *> &GetOperators() {
 		return operators;	
+	}
+
+	std::vector<CypherPhysicalOperator *> GetOperators() const {
+		vector<CypherPhysicalOperator *> result;
+		D_ASSERT(source);
+		result.push_back(source);
+		for (auto &op : operators) {
+			result.push_back(op);
+		}
+		if (sink) {
+			result.push_back(sink);
+		}
+		return result;
 	}
 
 	CypherPhysicalOperator *GetSink() {

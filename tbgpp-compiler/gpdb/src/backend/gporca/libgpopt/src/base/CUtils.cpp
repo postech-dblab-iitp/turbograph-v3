@@ -402,8 +402,8 @@ CUtils::PexprScalarCmp(CMemoryPool *mp, CExpression *pexprLeft,
 
 	IMDId *op_mdid = CMDAccessorUtils::GetScCmpMdIdConsiderCasts(
 		md_accessor, pexprNewLeft, pexprNewRight, cmp_type);
-	CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft,
-										 pexprNewRight, op_mdid);
+	// CMDAccessorUtils::ApplyCastsForScCmp(mp, md_accessor, pexprNewLeft, // s62 disable temporary..
+	// 									 pexprNewRight, op_mdid);
 
 	GPOS_ASSERT(pexprNewLeft != NULL);
 	GPOS_ASSERT(pexprNewRight != NULL);
@@ -2210,12 +2210,8 @@ CUtils::PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 			col_factory->AddComputedToUsedColsMap(pexprPrEl);
 		}
 	}
-	// return GPOS_NEW(mp)
-	// 	CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
-
-	// S62
 	return GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pexpr, pexprPrjList);
+		CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
 }
 
 // generate a sequence project expression

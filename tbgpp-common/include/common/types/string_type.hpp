@@ -79,11 +79,16 @@ public:
 	}
 
 	string GetString() const {
+		// if (GetSize() > 100) return ""; // TODO temporary
 		return string(GetDataUnsafe(), GetSize());
 	}
 
 	uint64_t GetOffset() const {
 		return value.offset.offset;
+	}
+
+	void SetOffset(uint64_t offset) {
+		value.offset.offset = offset;
 	}
 
 	explicit operator string() const {

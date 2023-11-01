@@ -1,7 +1,7 @@
 #include "common/exception.hpp"
 #include "common/operator/comparison_operators.hpp"
 #include "common/value_operations/value_operations.hpp"
-//#include "planner/expression/bound_comparison_expression.hpp"
+// #include "planner/expression/bound_comparison_expression.hpp"
 
 namespace duckdb {
 
@@ -102,14 +102,21 @@ static bool TemplatedBooleanOperation(const Value &left, const Value &right) {
 		Value left_copy = left;
 		Value right_copy = right;
 
-		D_ASSERT(false);
-		return true;
-		//LogicalType comparison_type = BoundComparisonExpression::BindComparison(left_type, right_type);
-		//if (!left_copy.TryCastAs(comparison_type) || !right_copy.TryCastAs(comparison_type)) {
-		//	return false;
-		//}
-		//D_ASSERT(left_copy.type() == right_copy.type());
-		//return TemplatedBooleanOperation<OP>(left_copy, right_copy);
+		// D_ASSERT(false);
+		// return true;
+		// LogicalType comparison_type = BoundComparisonExpression::BindComparison(left_type, right_type);
+		LogicalType comparison_type = LogicalType::MaxLogicalType(left_type, right_type);
+		if (comparison_type.id() == LogicalTypeId::DECIMAL ||
+			comparison_type.id() == LogicalTypeId::VARCHAR) {
+				D_ASSERT(false);
+		} else if (comparison_type.id() == LogicalTypeId::UNKNOWN) {
+			comparison_type = LogicalType::VARCHAR;
+		}
+		if (!left_copy.TryCastAs(comparison_type) || !right_copy.TryCastAs(comparison_type)) {
+			return false;
+		}
+		D_ASSERT(left_copy.type() == right_copy.type());
+		return TemplatedBooleanOperation<OP>(left_copy, right_copy);
 	}
 	switch (left_type.InternalType()) {
 	case PhysicalType::BOOL:

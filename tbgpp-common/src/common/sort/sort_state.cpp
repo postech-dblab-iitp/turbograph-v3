@@ -204,7 +204,6 @@ void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
 	auto input_data = payload.Orrify();
 	auto payload_heap_ptr = payload_heap.get();
 	RowOperations::Scatter(payload, input_data.get(), *payload_layout, addresses, *payload_heap_ptr, sel_ptr, payload.size());
-// IC();
 }
 
 idx_t LocalSortState::SizeInBytes() const {

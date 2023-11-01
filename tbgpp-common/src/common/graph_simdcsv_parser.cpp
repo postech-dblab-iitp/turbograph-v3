@@ -17,7 +17,7 @@ namespace duckdb{
 // Explanation: It slightly reduces cache misses, but that's probably irrelevant,
 // However, it seems to improve drastically the number of instructions per cycle.
 #define SIMDCSV_BUFFERING 
-bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) { //Made this "inline" to avoid multiple definition error. Does it matter?
+bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) {
   // does the previous iteration end inside a double-quote pair?
   uint64_t prev_iter_inside_quote = 0ULL;  // either all zeros or all ones
 #ifdef CRLF
@@ -25,7 +25,7 @@ bool find_indexes(const uint8_t * buf, size_t len, ParsedCSV & pcsv) { //Made th
 #endif
   size_t lenminus64 = len < 64 ? 0 : len - 64;
   size_t idx = 0;
-  uint32_t *base_ptr = pcsv.indexes;
+  uint64_t *base_ptr = pcsv.indexes;
   uint64_t base = 0;
 #ifdef SIMDCSV_BUFFERING
   // we do the index decoding in bulk for better pipelining.
