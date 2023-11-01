@@ -38,7 +38,7 @@ std::vector<atom> GraphPartitioner::lid_to_pid_map_locks;
 std::vector<std::pair<std::string, std::unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> GraphPartitioner::lid_pair_to_epid_map; // For Backward AdjList. No need to consider while processing vertices
 std::vector<atom> GraphPartitioner::lid_pair_to_epid_map_locks;
 // static std::vector<std::pair<std::string, ART*>> lid_to_pid_index; // Not being used now?
-std::atomic<int> GraphPartitioner::local_file_seq_number;
+std::atomic<int> GraphPartitioner::local_file_seq_number = 0;
 
 
 void GraphPartitioner::SendExtentFromQueue(int32_t my_sender_id) { //This function could be executed by many threads paralelly.
@@ -153,10 +153,18 @@ void GraphPartitioner::InitializePartitioner(std::shared_ptr<ClientContext> clie
     MPI_Comm_size(MPI_COMM_WORLD, &process_count);
     MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
 
+    Aio_Helper::Initialize(DEFAULT_AIO_THREAD); 
+    std::thread* rr_receiver_ = new std::thread(RequestRespond::ReceiveRequest);
+    PartitionStatistics::init();
+    turbo_tcp::init_host();
+    RequestRespond::Initialize(4 * 1024 * 1024L, 128, 2 * 1024 * 1024 * 1024L, DEFAULT_NIO_BUFFER_SIZE, DEFAULT_NIO_THREADS, 0);
+    RequestRespond::SetMaxDynamicBufferSize(1 * (1024 * 1024 * 1024L));
+
     if(AmIMaster(process_rank)) role = Role::MASTER;
     else role = Role::SEGMENT;
-
     turbo_tcp::establish_all_connections(&server_sockets, &client_sockets);
+
+    printf("Turbo tcp connection established\n");
 
     GraphPartitioner::client = client;
     GraphPartitioner::cat_instance = cat_instance;
@@ -180,7 +188,7 @@ void GraphPartitioner::InitializePartitioner(std::shared_ptr<ClientContext> clie
     return;
 }
 
-void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
+void GraphPartitioner::ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
 	std::istringstream iss(labelset);
 	string label;
 
@@ -270,7 +278,7 @@ void GraphPartitioner::ReadVertexFileAndCreateDataChunk(DistributionPolicy polic
     file_meta_info.hash_columns = hash_columns;
     file_meta_info.key_column_idxs = key_column_idxs;
 
-    reader.ReadVertexCSVFileUsingHash(process_count);
+    reader.ReadVertexCSVFileUsingHash(file_seq_number);
     return;
 }
 

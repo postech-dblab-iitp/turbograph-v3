@@ -72,7 +72,7 @@ class turbo_tcp {
 		void set_port() {
 			const char* base_portnum_str = getenv("TCP_BASE_PORTNUM");
 			int BASE_PORTNUM = atoi(base_portnum_str);
-			base_portnum = BASE_PORTNUM + PartitionStatistics::num_machines() * connection_count;
+			base_portnum = BASE_PORTNUM + PartitionStatistics::num_machines() * PartitionStatistics::num_machines()* connection_count + PartitionStatistics::my_machine_id() * PartitionStatistics::num_machines(); //TODO: change this. Changed this polity to run two instances on the same machine
 			close_count = 10000 * (PartitionStatistics::my_machine_id() + 1);
 			if(PartitionStatistics::my_machine_id() == 0) {
 				fprintf(stdout, "[turbo_tcp] Establishing tcp connections between all machines, base_portnum = %d\n", base_portnum);
@@ -160,7 +160,7 @@ class turbo_tcp {
 
 				memset(&server_addr[i], 0, sizeof(sockaddr_in));
 				server_addr[i].sin_family = AF_INET;
-				server_addr[i].sin_port = htons(base_portnum + PartitionStatistics::my_machine_id());
+				server_addr[i].sin_port = htons(base_portnum + (i - PartitionStatistics::my_machine_id()) * PartitionStatistics::num_machines() + PartitionStatistics::my_machine_id());  //TODO: change this. Changed this polity to run multiple instances on the same machine
 				server_addr[i].sin_addr.s_addr = inet_addr(hostname_list[i]);
 			}
 			return OK;

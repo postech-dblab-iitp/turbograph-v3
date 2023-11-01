@@ -10,6 +10,7 @@ project(tbgpp-graph-store)
 ####################################################
 set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -w")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
@@ -21,12 +22,23 @@ endif()
 # FIND PACKAGES
 ####################################################
 
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
+link_libraries(${Boost_LIBRARIES})
+
 find_package(OpenMP REQUIRED)
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 find_package(Catch2 REQUIRED)
 find_package(MPI REQUIRED)
+
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
+include_directories(${TBB_INCLUDE_DIRS})
+link_directories(${TBB_LIBRARY_DIRS})
+link_libraries(${TBB_LIBRARIES})
 
 ####################################################
 # DECLARE TARGETS
@@ -67,6 +79,8 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
   # cache
   "${PROJECT_SOURCE_DIR}/include/cache" 
   "${PROJECT_SOURCE_DIR}/include/cache/disk_aio"
+  # cache
+  "${PROJECT_SOURCE_DIR}/include/parallel" 
   # catalog
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
@@ -76,9 +90,14 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
   # execution-engine
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/execution"
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/storage"
+  # tbgpp-common
+  "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/types" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/operator"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/value_operations" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/vector_operations"
 )
 target_link_libraries(tbgpp-graph-store-lib tbgpp-common-lib)
 target_link_libraries(tbgpp-graph-store-lib tbgpp-main)
+target_link_libraries(tbgpp-graph-store-lib "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem")
 target_link_libraries(tbgpp-graph-store-lib MPI::MPI_CXX)
 
 
@@ -152,7 +171,7 @@ file(GLOB TILE_TEST_SRC
 
 file(GLOB PARALLEL_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
-  #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new.cpp"
+  "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new.cpp"
 )
 
 # if (FALSE)

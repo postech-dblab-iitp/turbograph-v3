@@ -320,7 +320,7 @@ class InputParser{
 
 int main(int argc, char** argv) {
 icecream::ic.disable();
-    MPI_Init(&argc, &argv);
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, NULL);
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
@@ -357,17 +357,21 @@ icecream::ic.disable();
 	// Initialize Database
     int process_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
-	if (GraphPartitioner::AmIMaster(process_rank))
+	// if (GraphPartitioner::AmIMaster(process_rank)) //TODO: is it okay that each segment do this?
         helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog //Only Master has catalog
+	fprintf(stdout, "\nInitialize shared memory for Catalog in master\n");
 
 	std::unique_ptr<DuckDB> database;
 	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
+	fprintf(stdout, "\nFind database workspace\n");
 	
 	// Initialize ClientContext
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
+	fprintf(stdout, "\nInitialize ClientContext\n");
     
 	Catalog* cat_instance = (GraphPartitioner::AmIMaster(process_rank) ? &(database->instance->GetCatalog()) : NULL); //only master have catalog in current design.
+	fprintf(stdout, "\nInitialize Catalog\n");
 
 	ExtentManager ext_mng; // TODO put this into database
 	// vector<std::pair<string, unordered_map<idx_t, idx_t>>> lid_to_pid_map; // For Forward & Backward AdjList
@@ -385,13 +389,14 @@ icecream::ic.disable();
 		graph_cat = (GraphCatalogEntry*) cat_instance->CreateGraph(*client.get(), &graph_info);
 	}
     GraphPartitioner::InitializePartitioner(client, cat_instance, &ext_mng, graph_cat);
-
+	fprintf(stdout, "\nInitialize Partitioner\n");
 	// Read Vertex CSV File & CreateVertexExtents
 	// ReadVertexCSVFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
     
 	if(GraphPartitioner::role == Role::MASTER) { //Only Master process file. Segment's operations will be covered by RequestRespond's respond functions.
 		GraphPartitioner::SpawnGeneratorAndSenderThreads();
 		for (auto &vertex_file: GraphPartitioner::vertex_files) {
+			printf("Processing vertex file : %s", vertex_file.second.c_str());
 			DistributionPolicy dist_polity = DistributionPolicy::DIST_HASH;
 			std::vector<string> hash_columns;
 			hash_columns.push_back("id"); //Temporary. Do all vertices have "id" column?
@@ -403,8 +408,11 @@ icecream::ic.disable();
 		GraphPartitioner::WaitForGeneratorThreads();
 		GraphPartitioner::WaitForSenderThreads();
 	}
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	fprintf(stdout, "Vertex File Loading Done\n\n");
+
+
 	
 	/*
 	// Read Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents

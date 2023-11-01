@@ -111,7 +111,9 @@ bool GraphSIMDCSVFileParser::ReadVertexCSVFileUsingHash(int32_t file_seq_number)
 
     D_ASSERT(num_columns == key_names.size()); //Assume that key_names contains all columns.
     vector<idx_t> hash_column_idxs;
+    printf("hasy column size = %d", GraphPartitioner::file_meta_infos[file_seq_number].hash_columns.size());
     for (auto &key: GraphPartitioner::file_meta_infos[file_seq_number].hash_columns) { //For hash columns
+        std::cout<<"finding key "<<key<<"\n"; //TODO: remove this
         auto key_it = std::find(key_names.begin(), key_names.end(), key);
         if (key_it != key_names.end()) {
             idx_t key_idx = key_it - key_names.begin();

@@ -5,9 +5,9 @@
 # Parse user input
 
 # Target image
-IMAGE_NAME="tbgpp-v3-u20.04"
-IMAGE_TAG="sys"
-CONTAINER_NAME="tbgppv3-docker-tslee"
+IMAGE_NAME="tbgpp_image_tjyoon_sep11"
+IMAGE_TAG="latest"
+CONTAINER_NAME="tbgppv3-docker-tjyoon-sep11"
 
 # TODO override from user input
 SHARED_MEM_SIZE="100g"
@@ -30,6 +30,7 @@ SOURCE_DATA_DIR=$2
 	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 docker run -itd --cap-add SYS_ADMIN \
 	--cap-add SYS_PTRACE \
+	--cap-add SYS_NICE \
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
