@@ -3,6 +3,7 @@ SF=1
 basedir="/source-data/ldbc-hadoop/"
 intermdir="/converted/"
 num_total_threads=2
+output_dir="/data"
 debug=""
 if [ $# -gt 0 ]; then
     debug="-gdb"
@@ -10,7 +11,31 @@ fi
 
 #"/graphs/csv/interactive/composite-projected-fk/"
 
-mpirun -n ${num_total_threads} ${debug} /turbograph-v3/build/tbgpp-graph-store/graph_partition_simulation_new \
+rm -rf $output_dir/*
+
+cd /turbograph-v3/build
+./tbgpp-graph-store/store &
+pid_store=$!
+echo -n "Store process: "
+echo $pid_store
+
+cd /turbograph-v3/build
+for (( i=0; i<$num_total_threads; i++ )) do 
+	output_dir_for_this_thread=$output_dir"/"$i
+	mkdir $output_dir_for_this_thread
+	./tbgpp-graph-store/catalog_test_catalog_server $output_dir_for_this_thread &
+	pid_cat_server=$!
+	echo -n "generated catalog server "
+	echo -n $i
+	echo -n ": "
+	echo $pid_cat_server
+	echo -n "for "
+	echo -n $output_dir_for_this_thread
+	pid_cat_server_arr+=($pid_cat_server)
+done
+
+
+mpirun -n ${num_total_threads} ${debug} /turbograph-v3/build/tbgpp-graph-store/graph_partition_simulation_new_new \
 	--output_dir:"/data" \
 	--nodes:Person ${basedir}/sf${SF}/${intermdir}/dynamic/Person.csv #\
 	# --nodes:Comment:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Comment.csv \
@@ -66,3 +91,8 @@ mpirun -n ${num_total_threads} ${debug} /turbograph-v3/build/tbgpp-graph-store/g
 	# --relationships_backward:IS_SUBCLASS_OF ${basedir}/sf${SF}/${intermdir}/static/TagClass_isSubclassOf_TagClass.csv.backward \
 	# --relationships:HAS_TYPE ${basedir}/sf${SF}/${intermdir}/static/Tag_hasType_TagClass.csv \
 	# --relationships_backward:HAS_TYPE ${basedir}/sf${SF}/${intermdir}/static/Tag_hasType_TagClass.csv.backward	
+
+kill $pid_store
+for cat_server_pid in "${pid_cat_server_arr[@]}"; do	
+	kill $cat_server_pid
+done

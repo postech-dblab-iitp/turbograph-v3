@@ -8,6 +8,7 @@
 #include <vector>
 #include "extent/extent_manager.hpp"
 #include "common/graph_simdcsv_parser.hpp"
+// #include "common/graph_simdjson_parser.hpp" //This causes build error. Handle later.
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -65,6 +66,7 @@ class ExtentWithMetaData {
     int64_t size_extent;
     duckdb::ChunkDefinitionID chunk_def_id;
     duckdb::LogicalType type;
+    char extent_dir_path[256]; //This is "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid). Not including WORKSPACE.
     //If need more metadata, add here.
 
     char data[1];
@@ -86,6 +88,7 @@ class FileMetaInfo { //Vector of FileMetaInfo will be in GraphPartitioner.
     PropertySchemaCatalogEntry* property_schema_cat;
     std::vector<std::string> hash_columns;
     std::vector<int64_t> key_column_idxs;
+    PartitionCatalogEntry* part_cat;    //TODO: set this.
     //If need more for edge file, add here.
 };
 
@@ -93,7 +96,11 @@ class GraphPartitioner {
     public:
     static void     InitializePartitioner(std::shared_ptr<ClientContext> client, Catalog* cat_instance, ExtentManager* ext_mng, GraphCatalogEntry* graph_cat);
     static void     ReadVertexFileAndCreateDataChunk(DistributionPolicy policy, std::vector<std::string> hash_columns, std::pair<std::string, std::string> fileinfo);
-    static void     ReceiveAndStoreExtent(); 
+    static void     CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
+							  std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
+							  vector<LogicalType> &types, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat);
+
+    static void     ReceiveAndStoreExtent(int size); 
     static bool     AmIMaster(int32_t process_rank);
     static void     ClearPartitioner();
     static void     SpawnGeneratorAndSenderThreads();
@@ -111,14 +118,21 @@ class GraphPartitioner {
     static std::string output_path; //Temporarily store output to "dir/process_rank" to test in single machine. In distributed system, this should be changed.
     static duckdb::ProcessID process_count;
     static Role role;
+    static std::thread* rr_receiver_;
 
     //Followings are set at InputParser::getCmdOption()
-    static std::vector<std::pair<string, string>> vertex_files;
-    static std::vector<std::pair<string, string>> edge_files;
-    static std::vector<std::pair<string, string>> edge_files_backward;
-    static std::string output_dir;
+    // vector<std::pair<string, string>> json_files;
+    // vector<JsonFileType> json_file_types;
+    // vector<vector<std::pair<string, string>>> json_file_vertices;
+    // vector<vector<std::pair<string, string>>> json_file_edges;
+    static vector<std::pair<string, string>> vertex_files;
+    static vector<std::pair<string, string>> edge_files;
+    static vector<std::pair<string, string>> edge_files_backward;
+    static string output_dir;
+
     static bool load_edge;
-    static bool load_backward_edge;
+    static bool load_backward_edge; 
+
     
     static std::vector<FileMetaInfo> file_meta_infos;   //indexed by file_seq_number. Used by GenerateExtentFromChunkQueue, ...
 
@@ -138,11 +152,11 @@ class GraphPartitioner {
     static std::queue<std::future<void>> extent_sender_futures;
     static std::atomic<bool> file_reading_finished;
     static std::atomic<bool> extent_generating_finished; //TODO set and use this in main / sender thread
-    static std::vector<std::pair<std::string, std::unordered_map<idx_t, idx_t>>> lid_to_pid_map;
+    static vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_to_pid_map;
     static std::vector<atom> lid_to_pid_map_locks;
-  	static std::vector<std::pair<std::string, std::unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList. No need to consider while processing vertices
+	static vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
     static std::vector<atom> lid_pair_to_epid_map_locks;
-	// static std::vector<std::pair<std::string, ART*>> lid_to_pid_index; // Not being used now?
+	static vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
     static std::atomic<int> local_file_seq_number;
 
     public:

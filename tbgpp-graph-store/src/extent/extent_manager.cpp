@@ -418,16 +418,18 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
     
     catalog_access_lock.lock();
     PropertySchemaCatalogEntry *prop_schema_cat_entry = GraphPartitioner::file_meta_infos[file_seq_number].property_schema_cat;
-    PartitionID pid = prop_schema_cat_entry->GetPartitionID();
-    ExtentID new_eid = prop_schema_cat_entry->GetNewExtentID();
+    PartitionCatalogEntry *part_cat = GraphPartitioner::file_meta_infos[file_seq_number].part_cat;
+    PartitionID pid = part_cat->GetPartitionID();
+    PropertySchemaID psid = prop_schema_cat_entry->GetOid();
+    ExtentID new_eid = part_cat->GetNewExtentID();
     Catalog& cat_instance = GraphPartitioner::client->db->GetCatalog();
-    string extent_name = "ext_" + std::to_string(new_eid);
-    CreateExtentInfo extent_info("main", extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, input.size());
+    string extent_name = DEFAULT_EXTENT_PREFIX + std::to_string(new_eid);
+    CreateExtentInfo extent_info(DEFAULT_SCHEMA, extent_name.c_str(), ExtentType::EXTENT, new_eid, pid, psid, input.size());
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(*GraphPartitioner::client, &extent_info);
-    
+
     // MkDir for the extent
-    std::string extent_dir_path = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
-    MkDir(extent_dir_path, true);
+    std::string extent_dir_path = "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
+    // MkDir(extent_dir_path, true); //TODO: This does not make sense. MkDir should be done on destination(segment) DB.
     catalog_access_lock.unlock();
 
     // // Append Chunk
@@ -519,6 +521,9 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
         ((::ExtentWithMetaData*)cont.data)->size_extent = buf_size;
         ((::ExtentWithMetaData*)cont.data)->chunk_def_id = cdf_id;
         ((::ExtentWithMetaData*)cont.data)->type = l_type;
+        ((::ExtentWithMetaData*)cont.data)->dest_process_id = dest;
+        D_ASSERT(extent_dir_path.length() <=256);
+        strcpy(((::ExtentWithMetaData*)cont.data)->extent_dir_path, extent_dir_path.c_str());
         cont.size_used = buf_size + offsetof(::ExtentWithMetaData, data[0]);
 
         // Copy (or Compress and Copy) DataChunk

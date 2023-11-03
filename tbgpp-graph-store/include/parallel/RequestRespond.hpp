@@ -53,6 +53,7 @@
 #include "TwoLevelBitMap.hpp"
 #include "cache/disk_aio/eXDB_dist_internal.hpp"
 #include "parallel/Aio_Helper.hpp"
+#include "parallel/graph_partition.hpp"
 
 #define DEFAULT_NUM_GENERAL_TCP_CONNECTIONS 8 //This was in Global.h but I moved to here.
 #define PER_THREAD_BUFF_SIZE (840*1024)
@@ -73,7 +74,7 @@ enum RequestType {
 	// NewAdjListBatchIo = 11,
 	// NewAdjListBatchIoData = 12,
 	// SequentialVectorRead = 15,
-	PartitionedExtentRead = 16,
+	PartitionedExtentReadMessage = 16,
 	Exit = 99999999,
 
 };
@@ -327,6 +328,8 @@ class RequestRespond {
 
 	template <typename RequestType>
 	static void Respond(RequestType* req, int num_reqs = 1);
+	
+	static void PartitionedExtentRead(int32_t size, int from);
 
 	// static void RespondSequentialVectorRead(int32_t vectorID, int64_t chunkID, int from, int lv);
 	// static void RespondInputVectorRead(int32_t vectorID, int64_t chunkID, int from, int lv);

@@ -244,6 +244,11 @@ void RequestRespond::ReturnTempNodeBitMap(bool sender_or_receiver, TwoLevelBitMa
 	temp_bitmap_queue_[queue_idx].enqueue(tmp_bitmap);
 }
 
+void RequestRespond::PartitionedExtentRead(int32_t size, int from) {
+	D_ASSERT(from == 0);
+	GraphPartitioner::ReceiveAndStoreExtent(size);
+}
+
 // void RequestRespond::RespondSequentialVectorRead(int32_t vectorID, int64_t chunkID, int from, int lv) {
 // 	TG_DistributedVectorBase::vectorID2vector(vectorID)->RespondSequentialVectorPull(chunkID, from, lv);
 // }
@@ -1118,6 +1123,13 @@ void RequestRespond::ReceiveRequest() {
             case Exit: {
                 is_working = false;
                 break; }
+			case PartitionedExtentReadMessage: {
+                PartitionedExtentReadRequest* tmp_r = (PartitionedExtentReadRequest*) tmp_buffer;
+                respond = rr_.async_resp_pool.enqueue(RequestRespond::PartitionedExtentRead, tmp_r->size, tmp_r->from);
+                is_working = true;
+                ReturnTempReqReceiveBuffer(tmp_buffer);
+                break;
+			}
             // case OutputVectorRead: {
             //     OutputVectorReadRequest* tmp_r = (OutputVectorReadRequest*) tmp_buffer;
             //     respond = rr_.async_resp_pool.enqueue(RequestRespond::RespondOutputVectorRead, tmp_r->vectorID, tmp_r->chunkID, tmp_r->from, tmp_r->lv);
@@ -1617,6 +1629,7 @@ void RequestRespond::SendRequest(int partition_id, RequestType req_buffer) {
 	MPI_Send((void *) &req_buffer, sizeof(RequestType), MPI_CHAR, partition_id, 1, MPI_COMM_WORLD);
 }
 template void RequestRespond::SendRequest<PartitionedExtentReadRequest>(int partition_id, PartitionedExtentReadRequest req_buffer);
+template void RequestRespond::SendRequest<ExitRequest>(int partition_id, ExitRequest req_buffer);
 
 
 template<typename RequestType>
