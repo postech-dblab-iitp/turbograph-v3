@@ -271,7 +271,7 @@ private:
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
-		CExpression* relation, vector<uint64_t> col_ids_to_project,
+		CExpression* relation, vector<uint64_t> &col_ids_to_project,
 		vector<pair<IMDId*, gpos::INT>>* target_schema_types
 	);
 	CExpression* lExprLogicalJoin(CExpression* lhs, CExpression* rhs,

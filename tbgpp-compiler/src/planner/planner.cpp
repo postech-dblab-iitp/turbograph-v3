@@ -367,7 +367,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		/* LogicalRules */
 		CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
 		{
-			if(planner->config.DEBUG_PRINT) {
+			if (planner->config.DEBUG_PRINT) {
 				std::cout << "[PREPROCESSED LOGICAL PLAN]" << std::endl;
 				CWStringDynamic str(mp);
 				COstreamString oss(&str);
@@ -381,7 +381,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		CExpression *orca_physical_plan = eng.PexprExtractPlan();	// best plan
 		(void) orca_physical_plan->PrppCompute(mp, pqc->Prpp());
 		{
-			if(planner->config.DEBUG_PRINT) {
+			if (planner->config.DEBUG_PRINT) {
 				std::cout << "[PHYSICAL PLAN]" << std::endl;
 				CWStringDynamic str(mp);
 				COstreamString oss(&str);

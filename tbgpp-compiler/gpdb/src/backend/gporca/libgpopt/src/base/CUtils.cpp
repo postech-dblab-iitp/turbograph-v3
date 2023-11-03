@@ -4647,7 +4647,8 @@ CUtils::FCorrelatedExistsAnySubquery(CExpression *pexpr)
 CScalarProjectElement *
 CUtils::PNthProjectElement(CExpression *pexpr, ULONG ul)
 {
-	GPOS_ASSERT(pexpr->Pop()->Eopid() == COperator::EopLogicalProject);
+	GPOS_ASSERT(pexpr->Pop()->Eopid() == COperator::EopLogicalProject
+		|| pexpr->Pop()->Eopid() == COperator::EopLogicalProjectColumnar);
 
 	// Logical Project's first child is relational child and the second
 	// child is the project list. We initially get the project list and then
@@ -4659,7 +4660,8 @@ CUtils::PNthProjectElement(CExpression *pexpr, ULONG ul)
 CExpression *
 CUtils::PNthProjectElementExpr(CExpression *pexpr, ULONG ul)
 {
-	GPOS_ASSERT(pexpr->Pop()->Eopid() == COperator::EopLogicalProject);
+	GPOS_ASSERT(pexpr->Pop()->Eopid() == COperator::EopLogicalProject
+		|| pexpr->Pop()->Eopid() == COperator::EopLogicalProjectColumnar);
 
 	// Logical Project's first child is relational child and the second
 	// child is the project list. We initially get the project list and then

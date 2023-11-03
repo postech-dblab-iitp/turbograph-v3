@@ -1202,6 +1202,16 @@ CNormalizer::PexprNormalize(CMemoryPool *mp, CExpression *pexpr)
 
 	CExpression *pexprResult = NULL;
 	COperator *pop = pexpr->Pop();
+	// CWStringDynamic str1(mp);
+	// COstreamString oss1(&str1);
+	// std::cout << "[PREPROCESSED LOGICAL PLAN - PexprNormalize] ";
+	// pop->OsPrint(oss1);
+	// GPOS_TRACE(str1.GetBuffer());
+	// std::cout << std::endl;
+	// CWStringDynamic str5(mp);
+	// COstreamString oss5(&str5);
+	// pexpr->OsPrint(oss5);
+	// GPOS_TRACE(str5.GetBuffer());
 	if (pop->FLogical() && CLogical::PopConvert(pop)->FSelectionOp())
 	{
 		if (FPushThruOuterChild(pexpr))
@@ -1243,6 +1253,17 @@ CNormalizer::PexprNormalize(CMemoryPool *mp, CExpression *pexpr)
 		pexprResult = PexprRecursiveNormalize(mp, pexpr);
 	}
 	GPOS_ASSERT(NULL != pexprResult);
+
+	// CWStringDynamic str2(mp);
+	// COstreamString oss2(&str2);
+	// std::cout << "[PREPROCESSED LOGICAL PLAN - PexprNormalizeResult] ";
+	// pop->OsPrint(oss2);
+	// GPOS_TRACE(str2.GetBuffer());
+	// std::cout << std::endl;
+	// CWStringDynamic str3(mp);
+	// COstreamString oss3(&str3);
+	// pexprResult->OsPrint(oss3);
+	// GPOS_TRACE(str3.GetBuffer());
 
 	return pexprResult;
 }

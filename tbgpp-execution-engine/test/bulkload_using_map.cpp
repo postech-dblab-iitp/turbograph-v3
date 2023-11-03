@@ -170,7 +170,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
-							  PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
+							  string &dst_column_name, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
 							  LogicalType edge_direction_type) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
 	string property_schema_name = DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX + edge_type;
@@ -217,15 +217,18 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	}
 	
 	// Get Src Vertex PS Catalog Entry
-	vector<idx_t> vertex_part_cat_oids = 
-		graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
-	if (vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input source key corresponds to multiple vertex partitions.");
-	PartitionCatalogEntry *vertex_part_cat_entry = 
-		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_part_cat_oids[0]);
-	vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+	PartitionCatalogEntry *src_vertex_part_cat_entry = 
+		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA,
+			DEFAULT_VERTEX_PARTITION_PREFIX + src_column_name);
+	PartitionCatalogEntry *dst_vertex_part_cat_entry = 
+		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA,
+			DEFAULT_VERTEX_PARTITION_PREFIX + dst_column_name);
+	src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+	graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
+	partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	
 	idx_t adj_col_idx; // TODO bug fix
-	for (auto i = 0; i < vertex_part_cat_oids.size(); i++) {
+	for (auto i = 0; i < vertex_ps_cat_oids.size(); i++) {
 		PropertySchemaCatalogEntry *vertex_ps_cat_entry = 
 			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[i]);
 		// Add Adjacency Index Info to Vertex PS Catalog Entry
@@ -724,8 +727,8 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers;
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, partition_cat,
-			property_schema_cat, LogicalType::FORWARD_ADJLIST);
+		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST);
 
 		// Initialize variables related to vertex extent
 		LidPair cur_src_id, cur_dst_id, prev_id;
@@ -923,8 +926,8 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		vector<idx_t> adj_list_buffer;
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, partition_cat,
-			property_schema_cat, LogicalType::BACKWARD_ADJLIST);
+		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST);
 		
 		// Initialize variables related to vertex extent
 		LidPair cur_src_id, cur_dst_id, prev_id;

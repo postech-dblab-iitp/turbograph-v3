@@ -570,12 +570,16 @@ public:
         vector<vector<idx_t>> per_cluster_key_column_idxs;
         per_cluster_key_column_idxs.resize(num_clusters);
         for (size_t i = 0; i < num_clusters; i++) {
-            // printf("Cluster %ld\n", i);
             string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_" + std::to_string(i);
-            // fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
             CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
             property_schema_cats[i] = 
                 (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
+             
+             // Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+            CreateIndexInfo idx_info(DEFAULT_SCHEMA, label_name + "_" + std::to_string(property_schema_cats[i]->GetOid()) + "_id", IndexType::PHYSICAL_ID, 
+                partition_cat->GetOid(), property_schema_cats[i]->GetOid(), 0, {-1});
+            IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
+            partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
             
             // Parse schema informations
             vector<PropertyKeyID> property_key_ids;
@@ -602,12 +606,6 @@ public:
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
 
-        // Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-        CreateIndexInfo idx_info(DEFAULT_SCHEMA, label_name + "_id", IndexType::PHYSICAL_ID, 
-            partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
-        IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
-        partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
-
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {
 			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
@@ -632,7 +630,7 @@ public:
                 datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
                 ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat, *property_schema_cats[cluster_id]);
                 property_schema_cats[cluster_id]->AddExtent(new_eid, datas.size());
-                StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
+                if (load_edge) StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
             }
@@ -644,7 +642,7 @@ public:
             datas[i].SetCardinality(num_tuples_per_cluster[i]);
             ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat, *property_schema_cats[i]);
             property_schema_cats[i]->AddExtent(new_eid, datas.size());
-            StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
+            if (load_edge) StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
         }
 
         printf("# of documents = %ld\n", num_tuples);
@@ -659,10 +657,24 @@ public:
 private:
     bool get_key_and_type(string &key_path, vector<string> &keys, vector<LogicalType> &types) {
         auto pos = key_path.rfind("_");
-        LogicalTypeId type_id = static_cast<LogicalTypeId>((uint8_t)std::stoi(key_path.substr(pos + 1)));
+        string type_info = key_path.substr(pos + 1);
+        auto aux_type_begin_pos = type_info.find("(");
+        LogicalTypeId type_id;
+        LogicalTypeId child_type_id;
+        if (aux_type_begin_pos == string::npos) {
+            type_id = static_cast<LogicalTypeId>((uint8_t)std::stoi(key_path.substr(pos + 1)));
+        } else {
+            auto aux_type_end_pos = type_info.find(")");
+            type_id = static_cast<LogicalTypeId>((uint8_t)std::stoi(type_info.substr(0, aux_type_begin_pos)));
+            child_type_id = static_cast<LogicalTypeId>((uint8_t)std::stoi(type_info.substr(aux_type_begin_pos + 1, aux_type_end_pos - aux_type_begin_pos - 1)));
+        }
 
         keys.push_back(key_path.substr(0, pos));
-        types.push_back(LogicalType(type_id));
+        if (type_id == LogicalTypeId::LIST) {
+            types.push_back(LogicalType::LIST(child_type_id));
+        } else {
+            types.push_back(LogicalType(type_id));
+        }
 
         if (keys.back() == NEO4J_VERTEX_ID_NAME) return true;
         else return false;
@@ -671,11 +683,11 @@ private:
     void recursive_collect_key_paths_jsonl(ondemand::value element, std::string &current_prefix, bool in_array, vector<uint64_t> &schema, int current_idx) {
         switch (element.type()) {
         case ondemand::json_type::array: {
-            for (auto child : element.get_array()) {
-                // We need the call to value() to get
-                // an ondemand::value type.
-                recursive_collect_key_paths_jsonl(child.value(), current_prefix, in_array, schema, current_idx);
-            }
+            // for (auto child : element.get_array()) {
+            //     // We need the call to value() to get
+            //     // an ondemand::value type.
+            //     recursive_collect_key_paths_jsonl(child.value(), current_prefix, in_array, schema, current_idx);
+            // }
             break;
         }
         case ondemand::json_type::object: {
@@ -694,11 +706,52 @@ private:
                 // Get field type
                 switch (field.value().type()) {
                 case ondemand::json_type::array: {
-                    current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::LIST);
+                    // Get child type
+                    LogicalTypeId child_type_id = LogicalTypeId::INVALID;
+                    for (auto child : field.value().get_array()) {
+                        // We need the call to value() to get
+                        // an ondemand::value type.
+                        switch(child.value().type()) {
+                        case ondemand::json_type::array:
+                        case ondemand::json_type::object:
+                            break;
+                        case ondemand::json_type::number: {
+                            ondemand::number_type t = child.value().get_number_type();
+                            switch(t) {
+                            case ondemand::number_type::signed_integer:
+                                child_type_id = LogicalTypeId::BIGINT;
+                                break;
+                            case ondemand::number_type::unsigned_integer:
+                                child_type_id = LogicalTypeId::UBIGINT;
+                                break;
+                            case ondemand::number_type::floating_point_number:
+                                child_type_id = LogicalTypeId::DOUBLE;
+                                break;
+                            default:
+                                break;
+                            }
+                            break;
+                        }
+                        case ondemand::json_type::string: {
+                            child_type_id = LogicalTypeId::VARCHAR;
+                            break;
+                        }
+                        case ondemand::json_type::boolean: {
+                            child_type_id = LogicalTypeId::BOOLEAN;
+                            break;
+                        }
+                        case ondemand::json_type::null: {
+                            child_type_id = LogicalTypeId::SQLNULL;
+                            break;
+                        }
+                        }
+                        break; // see first element only
+                    }
+                    current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::LIST)
+                        + std::string("(") + std::to_string((uint8_t)child_type_id) + std::string(")");
                     break;
                 }
                 case ondemand::json_type::object: {
-                    //current_prefix = current_prefix + "obj";
                     break;
                 }
                 case ondemand::json_type::number: {
@@ -726,7 +779,6 @@ private:
                 }
                 }
 
-                // std::cout << "\"" << key << "/" << current_prefix << "\": " << std::endl;;
                 //if (in_array && field.value().type() != ondemand::json_type::object) transactions[current_idx].emplace_back(current_prefix);
                 if (field.value().type() != ondemand::json_type::object) { // TODO stop traversing if (child != (obj or arr))
                     uint64_t prop_id;
