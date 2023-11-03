@@ -69,6 +69,11 @@ void PartitionCatalogEntry::SetPhysicalIDIndex(idx_t index_oid) {
 	physical_id_index = index_oid;
 }
 
+void PartitionCatalogEntry::SetSrcDstPartOid(idx_t src_part_oid, idx_t dst_part_oid) {
+	this->src_part_oid = src_part_oid;
+	this->dst_part_oid = dst_part_oid;
+}
+
 void PartitionCatalogEntry::AddAdjIndex(idx_t index_oid) {
 	adjlist_indexes.push_back(index_oid);
 }
@@ -80,6 +85,14 @@ void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
 	D_ASSERT(physical_id_index != INVALID_OID);
 	return physical_id_index;
+}
+
+idx_t PartitionCatalogEntry::GetSrcPartOid() {
+	return src_part_oid;
+}
+
+idx_t PartitionCatalogEntry::GetDstPartOid() {
+	return dst_part_oid;
 }
 
 idx_t_vector *PartitionCatalogEntry::GetAdjIndexOidVec() {

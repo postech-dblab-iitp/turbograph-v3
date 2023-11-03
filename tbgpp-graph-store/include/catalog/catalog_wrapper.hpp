@@ -19,15 +19,81 @@ public:
     CatalogWrapper(DatabaseInstance &db) : db(db) {}
     ~CatalogWrapper() {}
 
-    void GetSubPartitionIDs(ClientContext &context, vector<string> labelset_names, vector<idx_t> &oids, GraphComponentType g_type) {
+    void GetEdgeAndConnectedSrcDstPartitionIDs(ClientContext &context, vector<string> labelset_names, vector<uint64_t> &partitionIDs,
+        vector<uint64_t> &srcPartitionIDs, vector<uint64_t> &dstPartitionIDs, GraphComponentType g_type) {
         auto &catalog = db.GetCatalog();
-        GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, "graph1");
-        vector<idx_t> pids = std::move(gcat->LookupPartition(context, labelset_names, g_type));
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        partitionIDs = std::move(gcat->LookupPartition(context, labelset_names, g_type));
 
-        for (auto &pid : pids) {
+        for (auto &pid : partitionIDs) {
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
+            srcPartitionIDs.push_back(p_cat->GetSrcPartOid());
+            dstPartitionIDs.push_back(p_cat->GetDstPartOid());
+        }
+    }
+
+    void GetPartitionIDs(ClientContext &context, vector<string> labelset_names, vector<uint64_t> &partitionIDs, GraphComponentType g_type) {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        partitionIDs = std::move(gcat->LookupPartition(context, labelset_names, g_type));
+    }
+
+    void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, GraphComponentType g_type) {
+        auto &catalog = db.GetCatalog();
+
+        for (auto &pid : partitionIDs) {
             PartitionCatalogEntry *p_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             p_cat->GetPropertySchemaIDs(oids);
+        }
+    }
+
+    void GetSubPartitionIDs(ClientContext &context, vector<string> labelset_names, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, GraphComponentType g_type) {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        partitionIDs = std::move(gcat->LookupPartition(context, labelset_names, g_type));
+
+        for (auto &pid : partitionIDs) {
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
+            p_cat->GetPropertySchemaIDs(oids);
+        }
+    }
+
+    void GetConnectedEdgeSubPartitionIDs(ClientContext &context, vector<idx_t> &src_oids, vector<uint64_t> &partitionIDs, vector<uint64_t> &dstPartitionIDs) {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+
+        for (auto &src_oid : src_oids) {
+            gcat->GetConnectedEdgeOids(context, src_oid, partitionIDs);
+        }
+
+        for (auto &edge_pid : partitionIDs) {
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, edge_pid);
+            dstPartitionIDs.push_back(p_cat->GetDstPartOid());
+        }
+    }
+
+    void GetConnectedEdgeSubPartitionIDs(ClientContext &context, vector<idx_t> &src_oids, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, vector<uint64_t> &dstPartitionIDs) {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+
+        for (auto &src_oid : src_oids) {
+            gcat->GetConnectedEdgeOids(context, src_oid, partitionIDs);
+        }
+
+        for (auto &edge_pid : partitionIDs) {
+            PartitionCatalogEntry *p_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, edge_pid);
+            p_cat->GetPropertySchemaIDs(oids);
+            dstPartitionIDs.push_back(p_cat->GetDstPartOid());
         }
     }
 

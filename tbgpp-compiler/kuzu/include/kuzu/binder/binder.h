@@ -123,21 +123,35 @@ private:
 
     unique_ptr<QueryGraph> bindPatternElement(
         const PatternElement& patternElement, PropertyKeyValCollection& collection);
+    unique_ptr<QueryGraph> bindPatternElementTmp(
+        const PatternElement& patternElement, PropertyKeyValCollection& collection);
 
     void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
         const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
+    void bindQueryRelTmp(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
+        const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
+        PropertyKeyValCollection& collection);
+    void bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPattern& relPattern,
+        QueryGraph& queryGraph, PropertyKeyValCollection& collection);
     pair<uint64_t, uint64_t> bindVariableLengthRelBound(const RelPattern& relPattern);
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
+    shared_ptr<NodeExpression> bindQueryNodeTmp(const NodePattern& nodePattern, QueryGraph& queryGraph,
+        PropertyKeyValCollection& collection);
+    void bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode, const NodePattern& nodePattern,
+        QueryGraph& queryGraph, PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
-    inline vector<table_id_t> bindNodeTableIDs(const vector<string>& tableNames) {
-        return bindTableIDs(tableNames, NODE);
-    }
-    inline vector<table_id_t> bindRelTableIDs(const vector<string>& tableNames) {
-        return bindTableIDs(tableNames, REL);
-    }
-    vector<table_id_t> bindTableIDs(const vector<string>& tableNames, DataTypeID nodeOrRelType);
+    shared_ptr<NodeExpression> createQueryNodeTmp(const NodePattern& nodePattern);
+    void bindNodePartitionIDs(const vector<string>& tableNames, vector<uint64_t> &partitionIDs);
+    void bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs);
+    void bindNodeTableIDs(const vector<string>& tableNames, vector<uint64_t> &partitionIDs,
+        vector<uint64_t> &tableIDs);
+    void bindRelPartitionIDs(const vector<string> &tableNames, const shared_ptr<NodeExpression> &srcNode,
+        const shared_ptr<NodeExpression> &dstNode, vector<uint64_t> &partitionIDs);
+    void bindRelTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs);
+    void bindRelTableIDs(const vector<string> &tableNames, const shared_ptr<NodeExpression> &srcNode,
+        const shared_ptr<NodeExpression> &dstNode, vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age

@@ -10,8 +10,8 @@ namespace binder {
 class NodeOrRelExpression : public Expression {
 public:
     NodeOrRelExpression(
-        DataTypeID dataTypeID, const string& uniqueName, vector<table_id_t> tableIDs)
-        : Expression{VARIABLE, dataTypeID, uniqueName}, tableIDs{std::move(tableIDs)} {}
+        DataTypeID dataTypeID, const string& uniqueName, vector<table_id_t> partitionIDs, vector<table_id_t> tableIDs)
+        : Expression{VARIABLE, dataTypeID, uniqueName}, partitionIDs{std::move(partitionIDs)}, tableIDs{std::move(tableIDs)} {}
     virtual ~NodeOrRelExpression() = default;
 
     inline void addTableIDs(const vector<table_id_t>& tableIDsToAdd) {
@@ -22,8 +22,14 @@ public:
             }
         }
     }
+    inline void pushBackTableIDs(const vector<table_id_t>& tableIDsToAdd) {
+        for (auto i = 0; i < tableIDsToAdd.size(); i++) {
+            tableIDs.push_back(tableIDsToAdd[i]);
+        }
+    }
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
-    inline vector<table_id_t> getTableIDs() const { return tableIDs; }
+    inline vector<table_id_t> &getPartitionIDs() { return partitionIDs; }
+    inline vector<table_id_t> &getTableIDs() { return tableIDs; }
     inline table_id_t getSingleTableID() const {
         assert(tableIDs.size() == 1);
         return tableIDs[0];
@@ -45,11 +51,21 @@ public:
         return properties;
     }
 
+    bool isSchemainfoBound() {
+        return schema_info_bound;
+    }
+
+    void setSchemainfoBound(bool schema_info_bound_) {
+        schema_info_bound = schema_info_bound_;
+    }
+
 protected:
-    vector<table_id_t> tableIDs;
+    vector<table_id_t> partitionIDs;
+    vector<table_id_t> tableIDs; 
     unordered_map<std::string, size_t> propertyNameToIdx;
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
+    bool schema_info_bound = false;
 };
 
 } // namespace binder

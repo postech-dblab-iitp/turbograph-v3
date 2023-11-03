@@ -87,7 +87,7 @@ public:
     inline bool containsQueryNode(const string& queryNodeName) const {
         return queryNodeNameToPosMap.find(queryNodeName) != queryNodeNameToPosMap.end();
     }
-    inline vector<shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
+    inline vector<shared_ptr<NodeExpression>> &getQueryNodes() { return queryNodes; }
     inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
@@ -113,7 +113,7 @@ public:
     inline bool containsQueryRel(const string& queryRelName) const {
         return queryRelNameToPosMap.find(queryRelName) != queryRelNameToPosMap.end();
     }
-    inline vector<shared_ptr<RelExpression>> getQueryRels() const { return queryRels; }
+    inline vector<shared_ptr<RelExpression>> &getQueryRels() { return queryRels; }
     inline shared_ptr<RelExpression> getQueryRel(const string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }

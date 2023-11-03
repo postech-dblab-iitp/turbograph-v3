@@ -11,7 +11,7 @@
 
 #include <cassert>
 
-// #define DEBUG_PRINT_PIPELINE
+#define DEBUG_PRINT_PIPELINE
 
 namespace duckdb {
 

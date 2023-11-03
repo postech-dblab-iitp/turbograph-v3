@@ -165,6 +165,7 @@ public:
 		ExfPushGbWithHavingBelowJoin,
 		ExfPushGbBelowUnion,
 		ExfPushGbBelowUnionAll,
+		// ExfPushJoinBelowUnionAll, // S62 added
 		ExfSplitGbAgg,
 		ExfSplitGbAggDedup,
 		ExfSplitDQA,

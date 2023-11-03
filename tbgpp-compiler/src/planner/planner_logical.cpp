@@ -937,24 +937,23 @@ LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPl
 	return prev_plan;
 }
 
-LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is_node) {
-
+LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node) {
 	auto table_oids = node_expr->getTableIDs();
 	GPOS_ASSERT(table_oids.size() >= 1);
 
 	map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
-	for( auto& t_oid: table_oids) {
+	for (auto &t_oid: table_oids) {
 		schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
 	}
 	GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
 
 	// these properties include system columns (e.g. _id)
-	auto& prop_exprs = node_expr->getPropertyExpressions();
-	for( int colidx=0; colidx < prop_exprs.size(); colidx++) {
-		auto& _prop_expr = prop_exprs[colidx];
-		PropertyExpression* expr = static_cast<PropertyExpression*>(_prop_expr.get());
-		for( auto& t_oid: table_oids) {
-			if( expr->hasPropertyID(t_oid) ) {
+	auto &prop_exprs = node_expr->getPropertyExpressions();
+	for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
+		auto &_prop_expr = prop_exprs[colidx];
+		PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
+		for (auto &t_oid: table_oids) {
+			if (expr->hasPropertyID(t_oid)) {
 				// table has property
 				schema_proj_mapping.find(t_oid)->
 					second.insert({(uint64_t)colidx, (uint64_t)(expr->getPropertyID(t_oid))});
@@ -970,27 +969,27 @@ LogicalPlan* Planner::lPlanNodeOrRelExpr(NodeOrRelExpression* node_expr, bool is
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
 
-	// auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
-	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
-	CExpression* plan_expr = get_output.first;
-	D_ASSERT( prop_exprs.size() == get_output.second->Size() );
+	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
+	// auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
+	CExpression *plan_expr = get_output.first;
+	D_ASSERT(prop_exprs.size() == get_output.second->Size());
 
 	// insert node schema
 	LogicalSchema schema;
-	for(int col_idx = 0; col_idx < prop_exprs.size(); col_idx++ ) {
-		auto& _prop_expr = prop_exprs[col_idx];
-		PropertyExpression* expr = static_cast<PropertyExpression*>(_prop_expr.get());
+	for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+		auto &_prop_expr = prop_exprs[col_idx];
+		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());
 		string expr_name = expr->getUniqueName();
-		if( is_node ) {
+		if (is_node) {
 			schema.appendNodeProperty(node_name, expr_name, get_output.second->operator[](col_idx));
 		}  else {
 			schema.appendEdgeProperty(node_name, expr_name, get_output.second->operator[](col_idx));
 		}
 	}
-	GPOS_ASSERT( schema.getNumPropertiesOfKey(node_name) == prop_exprs.size() );
+	GPOS_ASSERT(schema.getNumPropertiesOfKey(node_name) == prop_exprs.size());
 
-	LogicalPlan* plan = new LogicalPlan(plan_expr, schema);
-	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
+	LogicalPlan *plan = new LogicalPlan(plan_expr, schema);
+	GPOS_ASSERT(!plan->getSchema()->isEmpty());
 	return plan;
 }
 
@@ -1035,7 +1034,15 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
 	}
 
-	CColRefArray* idx0_output_array;
+	CColRefArray *idx0_output_array;
+	// CColRefArray *pdrgpcrOutput;
+	CColRef2dArray *pdrgdrgpcrInput;
+	CExpressionArray *pdrgpexpr;
+	if (relation_oids.size() > 1) {
+		// pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+		pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+		pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	}
 	for (int idx = 0; idx < relation_oids.size(); idx++) {
 		auto& oid = relation_oids[idx];
 
@@ -1046,7 +1053,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 		expr = lExprLogicalGet(oid, name);
 
 		// conform schema if necessary
-		CColRefArray* output_array;
+		CColRefArray *output_array;
 		vector<uint64_t> project_col_ids;
 		if (do_schema_mapping) {
 			auto& mapping = (*schema_proj_mapping)[oid];
@@ -1064,16 +1071,30 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 		}
 
 		/* Single table might not have the identical column mapping with original table. Thus projection is required */
-		if (idx == 0) {
+		if (relation_oids.size() == 1) {
 			// REL
 			union_plan = expr;
 			idx0_output_array = output_array;
 		} else {
 			// REL/UNION + REL
 			// As the result of Union ALL keeps the colrefs of LHS, we always set lhs array as idx0_output_array
-			union_plan = lExprLogicalUnionAllWithMapping(
-				union_plan, idx0_output_array, expr, output_array);
+			// union_plan = lExprLogicalUnionAllWithMapping(
+			// 	union_plan, idx0_output_array, expr, output_array);
+			if (idx == 0) {
+				idx0_output_array = output_array;
+				idx0_output_array->AddRef();
+				pdrgdrgpcrInput->Append(idx0_output_array);
+			} else {
+				pdrgdrgpcrInput->Append(output_array);
+			}
+			pdrgpexpr->Append(expr);
 		}
+	}
+
+	if (relation_oids.size() > 1) {
+		union_plan = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, idx0_output_array, pdrgdrgpcrInput),
+			pdrgpexpr);
 	}
 
 	return make_pair(union_plan, idx0_output_array);
@@ -1126,8 +1147,8 @@ CExpression *Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefA
 /*
  * CExpression* returns result of projected schema.
 */
-std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProject(CExpression* relation,
-	vector<uint64_t> col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>>* target_schema_types) {
+std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProject(CExpression *relation,
+	vector<uint64_t> &col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>> *target_schema_types) {
 	// col_ids_to_project may include std::numeric_limits<uint64_t>::max(),
 	// which indicates null projection
 	CMemoryPool* mp = this->memory_pool;
@@ -1187,10 +1208,89 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 	return make_pair(proj_expr, output_col_array);
 }
 
-CExpression * Planner::lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, gpopt::COperator::EOperatorId join_op) {
-		
-	CMemoryPool* mp = this->memory_pool;
+CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op) {
+	
+	CMemoryPool* mp = this->memory_pool;	
+	// if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
+	// 	rhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
+	// 	// need pushdown & branch elimination
+	// 	CExpression *join_result;
+	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	// 	bool is_output_initialized = false;
+
+	// 	for (auto i = 0; i < lhs->Arity(); i++) {
+	// 		for (auto j = 0; j < rhs->Arity(); j++) {
+	// 			CExpression *expr = lExprLogicalJoin((*lhs)[i], (*rhs)[j],
+	// 				lhs_colref, rhs_colref, join_op);
+	// 			expr->AddRef();
+	// 			CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+	// 			pdrgpexpr->Append(expr);
+	// 			pdrgdrgpcrInput->Append(output_array);
+	// 			if (!is_output_initialized) {
+	// 				pdrgpcrOutput->AppendArray(output_array);
+	// 				is_output_initialized = true;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	join_result =  GPOS_NEW(mp) CExpression(
+	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+	// 		pdrgpexpr);
+	// 	return join_result;
+	// } else if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
+	// 	rhs->Pop()->Eopid() != gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
+	// 	// need pushdown & branch elimination
+	// 	CExpression *join_result;
+	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	// 	bool is_output_initialized = false;
+
+	// 	for (auto i = 0; i < lhs->Arity(); i++) {
+	// 		CExpression *expr = lExprLogicalJoin((*lhs)[i], rhs,
+	// 			lhs_colref, rhs_colref, join_op);
+	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+	// 		pdrgpexpr->Append(expr);
+	// 		pdrgdrgpcrInput->Append(output_array);
+	// 		if (!is_output_initialized) {
+	// 			pdrgpcrOutput->AppendArray(output_array);
+	// 			is_output_initialized = true;
+	// 		}
+	// 	}
+
+	// 	join_result =  GPOS_NEW(mp) CExpression(
+	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+	// 		pdrgpexpr);
+	// 	return join_result;
+	// } else if (lhs->Pop()->Eopid() != gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
+	// 	rhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
+	// 	// need pushdown & branch elimination
+	// 	CExpression *join_result;
+	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	// 	bool is_output_initialized = false;
+
+	// 	for (auto j = 0; j < rhs->Arity(); j++) {
+	// 		CExpression *expr = lExprLogicalJoin(lhs, (*rhs)[j],
+	// 			lhs_colref, rhs_colref, join_op);
+	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+	// 		pdrgpexpr->Append(expr);
+	// 		pdrgdrgpcrInput->Append(output_array);
+	// 		if (!is_output_initialized) {
+	// 			pdrgpcrOutput->AppendArray(output_array);
+	// 			is_output_initialized = true;
+	// 		}
+	// 	}
+
+	// 	join_result =  GPOS_NEW(mp) CExpression(
+	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
+	// 		pdrgpexpr);
+	// 	return join_result;
+	// }
 
 	CColRef *pcrLeft = lhs_colref;
 	CColRef *pcrRight = rhs_colref;
@@ -1205,7 +1305,7 @@ CExpression * Planner::lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
 	switch(join_op) {
 		case gpopt::COperator::EOperatorId::EopLogicalInnerJoin: {
 			join_result = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(mp, lhs, rhs, pexprEquality);
-break;
+			break;
 		}
 		case gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin: {
 			join_result = CUtils::PexprLogicalJoin<CLogicalRightOuterJoin>(mp, lhs, rhs, pexprEquality);

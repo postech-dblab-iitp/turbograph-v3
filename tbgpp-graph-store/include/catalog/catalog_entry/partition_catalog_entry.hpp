@@ -48,6 +48,8 @@ public:
 	//vector<Constraints> constraints;
 	PartitionID pid;
 	idx_t physical_id_index;
+	idx_t src_part_oid;
+	idx_t dst_part_oid;
 	idx_t_vector adjlist_indexes;
 	idx_t_vector property_indexes;
 	LogicalTypeId_vector global_property_typesid;
@@ -57,29 +59,26 @@ public:
 	atomic<ExtentID> local_extent_id_version;
 
 public:
-	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
-	void GetPropertySchemaIDs(vector<idx_t> &psids);
-	void SetPhysicalIDIndex(idx_t index_oid);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
+	void SetPhysicalIDIndex(idx_t index_oid);
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+	void SetSrcDstPartOid(idx_t src_part_oid, idx_t dst_part_oid);
+
+	void GetPropertySchemaIDs(vector<idx_t> &psids);
+	uint64_t GetNumberOfColumns() const;
 	idx_t GetPhysicalIDIndexOid();
+	idx_t GetSrcPartOid();
+	idx_t GetDstPartOid();
 	idx_t_vector *GetAdjIndexOidVec();
 	idx_t_vector *GetPropertyIndexOidVec();
-	uint64_t GetNumberOfColumns() const;
 
 	//! Returns a list of types of the table
-	//vector<LogicalType> GetTypes();
 	void SetPartitionID(PartitionID pid);
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
-
-	//! Serialize the meta information of the TableCatalogEntry a serializer
-	//virtual void Serialize(Serializer &serializer);
-	//! Deserializes to a CreateTableInfo
-	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 };

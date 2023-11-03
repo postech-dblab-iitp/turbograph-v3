@@ -41,6 +41,10 @@ class GraphCatalogEntry : public StandardEntry {
        	, boost::hash<VertexLabelID>, std::equal_to<VertexLabelID>
 		, label_to_partitionvec_map_value_type_allocator>
 	VertexLabelToPartitionVecUnorderedMap;
+	typedef boost::unordered_map< idx_t, idx_t_vector
+       	, boost::hash<idx_t>, std::equal_to<idx_t>
+		, idx_t_to_idx_t_vec_map_value_type_allocator>
+	PartitionToPartitionVecUnorderedMap;
 
 public:
 	//! Create a real GraphCatalogEntry
@@ -57,6 +61,7 @@ public:
 	//unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	EdgeTypeToPartitionUnorderedMap type_to_partition_index;
 	VertexLabelToPartitionVecUnorderedMap label_to_partition_index;
+	PartitionToPartitionVecUnorderedMap src_part_to_connected_edge_part_index;
 
 	atomic<VertexLabelID> vertex_label_id_version;
 	atomic<EdgeTypeID> edge_type_id_version;
@@ -68,6 +73,7 @@ public:
 	void AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, EdgeTypeID edge_type_id);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, string type);
+	void AddEdgeConnectionInfo(ClientContext &context, idx_t src_part_oid, idx_t edge_part_oid);
 
 	vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 	void GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids);
@@ -75,6 +81,7 @@ public:
 	void GetEdgeTypes(vector<string>& type_names);
 	void GetVertexPartitionIndexesInLabel(ClientContext &context, string label, vector<idx_t> &vertex_partition_indexes);
 	void GetEdgePartitionIndexesInType(ClientContext &context, string type, vector<idx_t> &edge_partition_indexes);
+	void GetConnectedEdgeOids(ClientContext &context, idx_t src_part_oid, vector<idx_t> &edge_part_oids);
 
 	vector<idx_t> Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();

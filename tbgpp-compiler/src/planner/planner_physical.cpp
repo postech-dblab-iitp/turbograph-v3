@@ -91,7 +91,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 
 	switch (plan_expr->Pop()->Eopid()) {
 		case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
-			D_ASSERT(false);
 			// Currently not working
 			if (pIsUnionAllOpAccessExpression(plan_expr)) {
 				result = pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
@@ -304,7 +303,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 	vector<duckdb::LogicalType> global_types;
 
-	for( int i=0; i<projections_size; i++ ){
+	for (int i = 0; i < projections_size; i++) {
 		CExpression* projection = projections->operator[](i);
 		CExpression* scan_expr = projection->PdrgPexpr()->operator[](0);
 		CPhysicalScan* scan_op = (CPhysicalScan*) scan_expr->Pop();
@@ -320,38 +319,38 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 		vector<duckdb::LogicalType> local_types;
 		
 		// for each object id, generate projection mapping. (if null projection required, ulong::max)
-		projection_mapping.push_back( vector<uint64_t>() );
-		for(int j = 0; j < proj_list_expr_size; j++) {
+		projection_mapping.push_back(vector<uint64_t>());
+		for (int j = 0; j < proj_list_expr_size; j++) {
 			CExpression* proj_elem = proj_list_expr->PdrgPexpr()->operator[](j);
 			auto scalarident_pattern = vector<COperator::EOperatorId>({
 				COperator::EOperatorId::EopScalarProjectElement,
 				COperator::EOperatorId::EopScalarIdent });
 
-			CExpression* proj_item;
-			if( pMatchExprPattern(proj_elem, scalarident_pattern) ) {
+			CExpression *proj_item;
+			if (pMatchExprPattern(proj_elem, scalarident_pattern)) {
 				/* CScalarProjectList - CScalarIdent */
-				CScalarIdent* ident_op = (CScalarIdent*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				CScalarIdent *ident_op = (CScalarIdent *)proj_elem->PdrgPexpr()->operator[](0)->Pop();
 				auto col_idx = pGetColIdxFromTable(table_obj_id, ident_op->Pcr());
 
 				projection_mapping[i].push_back(col_idx);
 				// add local types
-				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
+				CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 				OID type_oid = type_mdid->Oid();
 				local_types.push_back( pConvertTypeOidToLogicalType(type_oid) );
 				
 			} else {
 				/* CScalarProjectList - CScalarConst (null) */
 				projection_mapping[i].push_back(std::numeric_limits<uint64_t>::max());
-				CScalarConst* const_null_op = (CScalarConst*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				CScalarConst *const_null_op = (CScalarConst*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
 				// add local types
-				CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid( const_null_op->MdidType() );
+				CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_null_op->MdidType());
 				OID type_oid = type_mdid->Oid();
-				local_types.push_back( pConvertTypeOidToLogicalType(type_oid) );
+				local_types.push_back(pConvertTypeOidToLogicalType(type_oid));
 			}
 		}
 		// aggregate local types to global types
-		if( i == 0 ) {
-			for(auto& t: local_types) {
+		if (i == 0) {
+			for (auto &t: local_types) {
 				global_types.push_back(t);
 			}
 		}
@@ -511,7 +510,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 		auto it_ = id_map.find(col_id);
 
 		if (it_ == id_map.end()) {
-			inner_col_map.push_back( std::numeric_limits<uint32_t>::max() );
+			// inner_col_map.push_back( std::numeric_limits<uint32_t>::max() ); // TODO disabled 231103, bug
 		} else {
 			auto id_idx = it_->second;
 			if (colref_table->AttrNum() >= 3) {
@@ -1274,6 +1273,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 	const CColRefArray* grouping_cols = agg_op->PdrgpcrGroupingCols();
 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
+	vector<unique_ptr<duckdb::Expression>> post_proj_exprs;
 		
 	// get agg groups
 	for (ULONG output_col_idx = 0; output_col_idx < output_cols->Size(); output_col_idx++) {
