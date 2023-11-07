@@ -32,6 +32,7 @@ add_subdirectory(tbgpp-graph-store)
 add_subdirectory(tbgpp-execution-engine)
 add_subdirectory(tbgpp-compiler)
 add_subdirectory(tbgpp-client)
+add_subdirectory(tbgpp-api-server)
 
 ####################
 ### Set compiler ###

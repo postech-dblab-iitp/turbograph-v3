@@ -18,7 +18,12 @@ int main(int argc, char** argv) {
       exit(-1);
   }
 
-  std::string workspace("/data");
+  std::string workspace;
+  if (argc == 2) {
+    workspace = std::string(argv[1]);
+  } else {
+    workspace = std::string("/data/");
+  }
 
   fprintf(stdout, "Connection Server Directory: %s\n", workspace.c_str());
 
