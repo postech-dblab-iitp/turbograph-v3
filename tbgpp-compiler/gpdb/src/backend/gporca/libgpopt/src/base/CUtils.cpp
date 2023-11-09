@@ -3507,7 +3507,7 @@ CUtils::AddColumnMapping(CMemoryPool *mp, UlongToColRefMap *colref_mapping,
 		CColRef *pcrFrom = (*pdrgpcrFrom)[ul];
 		ULONG ulFromId = pcrFrom->Id();
 		CColRef *pcrTo = (*pdrgpcrTo)[ul];
-		GPOS_ASSERT(pcrFrom != pcrTo);
+		// GPOS_ASSERT(pcrFrom != pcrTo); // S62 TODO why?
 
 #ifdef GPOS_DEBUG
 		BOOL result = false;

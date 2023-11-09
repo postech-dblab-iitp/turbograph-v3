@@ -80,8 +80,9 @@ void print_depth(string data, int depth=0) {
 
 void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
-	vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
-		"vpart_REGION", "vpart_SUPPLIER"};
+	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
+	// 	"vpart_REGION", "vpart_SUPPLIER"};
+	vector<string> part_cat_list = {"vpart_Pathway"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -92,11 +93,12 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 		}
 	}
 	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
-	// for (auto &ps_cat_name : ps_cat_list) {
-	// 	PropertySchemaCatalogEntry *ps_cat =
-	// 		(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
-	// 	fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
-	// }
+	vector<string> ps_cat_list = {"vps_Pathway_0", "vps_Pathway_1"};
+	for (auto &ps_cat_name : ps_cat_list) {
+		PropertySchemaCatalogEntry *ps_cat =
+			(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
+		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	}
 	
 	// vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "HAS_MODERATOR_fwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
 	// for (auto &index_cat_name : index_cat_list) {
@@ -249,7 +251,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/tpch/sf1_swizzling/";
+	DiskAioParameters::WORKSPACE = "/data/ckg_swizzling/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;

@@ -65,6 +65,10 @@ public:
         return union_schema_per_operator[operator_idx];
     }
 
+    vector<vector<uint64_t>> &GetNumSchemasOfChilds() {
+        return num_schemas_of_childs;
+    }
+
 private:
     size_t pipeline_length;
     vector<OperatorType> pipeline_operator_types;

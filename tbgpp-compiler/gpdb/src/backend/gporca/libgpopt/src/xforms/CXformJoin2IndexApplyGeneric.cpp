@@ -93,9 +93,12 @@ CXformJoin2IndexApplyGeneric::Exfp(CExpressionHandle &exprhdl) const
 {
 	if (0 == exprhdl.DeriveUsedColumns(2)->Size() ||
 		exprhdl.DeriveHasSubquery(2) || exprhdl.HasOuterRefs() ||
-		1 !=
+		2 <
 			exprhdl.DeriveJoinDepth(
-				1))	 // inner is definitely not a single get (with optional select/project/grby)
+				1))	 // S62 allows inner depth 1 & 2 for union-all
+		// 1 !=
+		// 	exprhdl.DeriveJoinDepth(
+		// 		1))	 // inner is definitely not a single get (with optional select/project/grby)
 	{
 		return CXform::ExfpNone;
 	}
@@ -121,7 +124,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CExpression *pexprScalar = (*pexpr)[2];
 
 	/* S62 check if variable length join */
-	if( pexprInner->Pop()->Eopid() == COperator::EopLogicalPathGet ) {
+	if (pexprInner->Pop()->Eopid() == COperator::EopLogicalPathGet) {
 		TransformApplyOnPathGet(pxfctxt, pxfres, pexpr);
 		return;
 	}
@@ -135,6 +138,9 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 
 	// the logical get node (dynamic or regular get) at the bottom of the inner tree
 	CExpression *pexprGet = NULL;
+
+	// the logical union all node
+	CExpression *pexprUnionAll = NULL;
 
 	// the highest node of the right child that gets inserted above the index get
 	// into the alternative, or NULL if there is no such node
@@ -178,6 +184,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	const CColRefSet *distributionCols = NULL;
 	CLogicalDynamicGet *popDynamicGet = NULL;
 	CAutoRef<CColRefSet> groupingColsToCheck;
+	BOOL hasUnionAllOverLogicalGet = false;
 
 	// walk down the right child tree, accepting some unary operators
 	// like project and GbAgg and select, until we find a logical get
@@ -190,6 +197,28 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 			case COperator::EopLogicalUnionAll:
 				// S62 handle this case totally specially, using different set of internal functions
 				//return TransformOnUnionAllInner(pxfctxt, pxfres, pexpr);
+			{
+				if (((*pexprCurrInnerChild)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) &&
+					((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
+					pexprUnionAll = pexprCurrInnerChild;
+					pexprGet = (*(*pexprCurrInnerChild)[0])[0]; // TODO S62 currently consider only first Get
+					CLogicalGet *popGet =
+						CLogicalGet::PopConvert(pexprGet->Pop());
+
+					ptabdescInner = popGet->Ptabdesc();
+					distributionCols = popGet->PcrsDist();
+
+					if (NULL != groupingColsToCheck.Value() &&
+						!groupingColsToCheck->ContainsAll(distributionCols))
+					{
+						// the grouping columns are not a superset of the distribution columns
+						return;
+					}
+					
+					hasUnionAllOverLogicalGet = true;
+				}
+			}
+			break;
 			case COperator::EopLogicalSelect:
 				// if the select pred has a subquery, don't generate alternatives
 				if ((*pexprCurrInnerChild)[1]->DeriveHasSubquery())
@@ -224,7 +253,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 					
 
 					if (pexprCurrInnerChild->Pop()->Eopid() != COperator::EopLogicalProjectColumnar
-						&&joinPredUsesProjectedColumnsRowMajor)
+						&& joinPredUsesProjectedColumnsRowMajor)
 					{
 						// For COperator::EopLogicalGbAgg and COperator::EopLogicalProject
 						// The join predicate uses columns that neither come from the outer table
@@ -362,7 +391,11 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 		else
 		{
 			// insert all right child nodes above the get node
-			endOfNodesToInsertAboveIndexGet = pexprGet;
+			if (hasUnionAllOverLogicalGet) {
+				endOfNodesToInsertAboveIndexGet = pexprUnionAll;
+			} else {
+				endOfNodesToInsertAboveIndexGet = pexprGet;
+			}
 		}
 	}
 
@@ -376,13 +409,22 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 		return;
 	}
 
-	// insert the btree or bitmap alternatives
-	CreateHomogeneousIndexApplyAlternatives(
-		mp, pexpr->Pop(), pexprOuter, pexprGet, pexprAllPredicates, pexprScalar,
-		nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
-		ptabdescInner, popDynamicGet, pxfres,
-		(m_generateBitmapPlans ? IMDIndex::EmdindBitmap
-							   : IMDIndex::EmdindBtree));
+	if (hasUnionAllOverLogicalGet) {
+		CreateHomogeneousIndexApplyAlternativesUnionAll(
+			mp, pexpr->Pop(), pexprOuter, pexprUnionAll, pexprAllPredicates, pexprScalar,
+			nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
+			ptabdescInner, popDynamicGet, pxfres,
+			(m_generateBitmapPlans ? IMDIndex::EmdindBitmap
+								: IMDIndex::EmdindBtree));
+	} else {
+		// insert the btree or bitmap alternatives
+		CreateHomogeneousIndexApplyAlternatives(
+			mp, pexpr->Pop(), pexprOuter, pexprGet, pexprAllPredicates, pexprScalar,
+			nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
+			ptabdescInner, popDynamicGet, pxfres,
+			(m_generateBitmapPlans ? IMDIndex::EmdindBitmap
+								: IMDIndex::EmdindBtree));
+	}
 
 	CRefCount::SafeRelease(pexprAllPredicates);
 }

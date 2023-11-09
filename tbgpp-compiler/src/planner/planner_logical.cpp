@@ -176,6 +176,15 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 	string ID_COLNAME = "_id";
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
+	std::wstring w_id_col_name = L"_id";
+	std::wstring w_sid_col_name = L"_sid";
+	std::wstring w_tid_col_name = L"_tid";
+	const CWStringConst id_col_name_str(w_id_col_name.c_str());
+	const CWStringConst sid_col_name_str(w_sid_col_name.c_str());
+	const CWStringConst tid_col_name_str(w_tid_col_name.c_str());
+	const CName id_col_cname(&id_col_name_str);
+	const CName sid_col_cname(&sid_col_name_str);
+	const CName tid_col_cname(&tid_col_name_str);
 
 	s62::LogicalSchema *prev_plan_schema;	// maintain snapshot of the prev. schema, which is used for optional match
 	if (prev_plan == nullptr) {
@@ -229,8 +238,9 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 				edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
 				// A join R
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					id_col_cname, sid_col_cname,
+					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
+					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					ar_join_type);
 			} else {
 				edge_plan = lPlanPathGet((RelExpression*)qedge);
@@ -268,8 +278,9 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 					// gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
-					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					tid_col_cname, id_col_cname,
+					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					rb_join_type);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
@@ -317,6 +328,16 @@ LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& 
 	string ID_COLNAME = "_id";
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
+	std::wstring w_id_col_name = L"_id";
+	std::wstring w_sid_col_name = L"_sid";
+	std::wstring w_tid_col_name = L"_tid";
+	const CWStringConst id_col_name_str(w_id_col_name.c_str());
+	const CWStringConst sid_col_name_str(w_sid_col_name.c_str());
+	const CWStringConst tid_col_name_str(w_tid_col_name.c_str());
+	const CName id_col_cname(&id_col_name_str);
+	const CName sid_col_cname(&sid_col_name_str);
+	const CName tid_col_cname(&tid_col_name_str);
+
 
 	LogicalPlan* qg_plan = nullptr; // start from nowhere, global subquery plan
 	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
@@ -369,8 +390,9 @@ LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& 
 					lhs_plan = qg_plan; 
 				}
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					id_col_cname, sid_col_cname,
+					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
+					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
 				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
 				lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
@@ -407,8 +429,9 @@ LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& 
 					rhs_plan = qg_plan;
 				}
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
-					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					tid_col_cname, id_col_cname,
+					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
@@ -1001,6 +1024,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection) {
 	
 	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	CExpression* union_plan = nullptr;
 	const bool do_schema_mapping = insert_projection;
@@ -1009,6 +1033,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	// generate type infos to the projected schema
 	uint64_t num_proj_cols;								// size of the union schema
 	vector<pair<gpmd::IMDId*, gpos::INT>> union_schema_types;	// mdid type and type modifier for both types
+	vector<CColRef *> union_schema_colrefs;
+	CColRefArray *union_output_array = GPOS_NEW(mp) CColRefArray(mp);
 	num_proj_cols =
 		(*schema_proj_mapping)[relation_oids[0]].size() > 0
 			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
@@ -1029,13 +1055,21 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 		}
 		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
 		// extract info and maintain vector of column type infos
-		gpmd::IMDId* col_type_imdid = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->MdidType();
-		gpos::INT col_type_modifier = lGetRelMd(valid_oid)->GetMdCol(valid_cid)->TypeModifier();
+		auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
+		gpmd::IMDId *col_type_imdid = mdcol->MdidType();
+		gpos::INT col_type_modifier = mdcol->TypeModifier();
 		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
+
+		// generate new reference having same name
+		// CName col_name(mdcol->Mdname().GetMDName());
+		// CColRef *new_colref 
+		// 	= col_factory->PcrCreate(lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
+		// union_schema_colrefs.push_back(new_colref);
+		// union_output_array->Append(new_colref);
 	}
 
-	CColRefArray *idx0_output_array;
 	// CColRefArray *pdrgpcrOutput;
+	CColRefArray *idx0_output_array;
 	CColRef2dArray *pdrgdrgpcrInput;
 	CExpressionArray *pdrgpexpr;
 	if (relation_oids.size() > 1) {
@@ -1062,7 +1096,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 				project_col_ids.push_back(mapping.find(proj_col_idx)->second);
 			}
 			GPOS_ASSERT(project_col_ids.size() > 0);
-			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_col_ids, &union_schema_types);
+			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_col_ids, &union_schema_types, union_schema_colrefs);
 			expr = proj_result.first;
 			output_array = proj_result.second;
 		} else {
@@ -1082,14 +1116,14 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 			// 	union_plan, idx0_output_array, expr, output_array);
 			if (idx == 0) {
 				idx0_output_array = output_array;
-				idx0_output_array->AddRef();
-				pdrgdrgpcrInput->Append(idx0_output_array);
+				pdrgdrgpcrInput->Append(output_array);
 			} else {
 				pdrgdrgpcrInput->Append(output_array);
 			}
 			pdrgpexpr->Append(expr);
 		}
 	}
+	// union_output_array->AddRef();
 
 	if (relation_oids.size() > 1) {
 		union_plan = GPOS_NEW(mp) CExpression(
@@ -1148,7 +1182,8 @@ CExpression *Planner::lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefA
  * CExpression* returns result of projected schema.
 */
 std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProject(CExpression *relation,
-	vector<uint64_t> &col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>> *target_schema_types) {
+	vector<uint64_t> &col_ids_to_project, vector<pair<gpmd::IMDId*, gpos::INT>> *target_schema_types,
+	vector<CColRef *> &union_schema_colrefs) {
 	// col_ids_to_project may include std::numeric_limits<uint64_t>::max(),
 	// which indicates null projection
 	CMemoryPool* mp = this->memory_pool;
@@ -1165,6 +1200,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			GPOS_ASSERT(target_schema_types != nullptr);
 			// project null column
 			auto& type_info = (*target_schema_types)[target_col_id];
+			// CColRef *new_colref = union_schema_colrefs[target_col_id];
 			CExpression* null_expr =
 				CUtils::PexprScalarConstNull(mp, lGetMDAccessor()->RetrieveType(type_info.first) , type_info.second);
 			const CWStringConst col_name_str(GPOS_WSZ_LIT("const_null"));
@@ -1188,12 +1224,13 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			output_col_array->Append(colref);
 			// ######
 			// CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
+			// // CColRef *new_colref = union_schema_colrefs[target_col_id];
 			// CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
 			// CExpression* ident_expr = GPOS_NEW(mp)
 			// 		CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			// scalar_proj_elem = GPOS_NEW(mp) CExpression(
 			// 	mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // TODO S62 change to colref
-			// proj_array->Append(scalar_proj_elem);	
+			// proj_array->Append(scalar_proj_elem);
 			// output_col_array->Append(new_colref);
 		}
 		target_col_id++;
@@ -1204,12 +1241,13 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
 	CExpression *proj_expr =  GPOS_NEW(mp)
 		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), relation, pexprPrjList);
+	// CExpression *proj_expr = relation;
 
 	return make_pair(proj_expr, output_col_array);
 }
 
 CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op) {
+		const CName &lhs_colname, const CName &rhs_colname, gpopt::COperator::EOperatorId join_op) {
 	
 	CMemoryPool* mp = this->memory_pool;	
 	// if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
@@ -1224,7 +1262,7 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	// 	for (auto i = 0; i < lhs->Arity(); i++) {
 	// 		for (auto j = 0; j < rhs->Arity(); j++) {
 	// 			CExpression *expr = lExprLogicalJoin((*lhs)[i], (*rhs)[j],
-	// 				lhs_colref, rhs_colref, join_op);
+	// 				lhs_colname, rhs_colname, join_op);
 	// 			expr->AddRef();
 	// 			CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
 	// 			pdrgpexpr->Append(expr);
@@ -1251,7 +1289,7 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 
 	// 	for (auto i = 0; i < lhs->Arity(); i++) {
 	// 		CExpression *expr = lExprLogicalJoin((*lhs)[i], rhs,
-	// 			lhs_colref, rhs_colref, join_op);
+	// 			lhs_colname, rhs_colname, join_op);
 	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
 	// 		pdrgpexpr->Append(expr);
 	// 		pdrgdrgpcrInput->Append(output_array);
@@ -1276,7 +1314,7 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 
 	// 	for (auto j = 0; j < rhs->Arity(); j++) {
 	// 		CExpression *expr = lExprLogicalJoin(lhs, (*rhs)[j],
-	// 			lhs_colref, rhs_colref, join_op);
+	// 			lhs_colname, rhs_colname, join_op);
 	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
 	// 		pdrgpexpr->Append(expr);
 	// 		pdrgdrgpcrInput->Append(output_array);
@@ -1292,8 +1330,22 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	// 	return join_result;
 	// }
 
-	CColRef *pcrLeft = lhs_colref;
-	CColRef *pcrRight = rhs_colref;
+	// TODO efficiency problem?
+	CColRefSet *pcrsLhs = lhs->DeriveOutputColumns();
+	CColRefSet *pcrsRhs = rhs->DeriveOutputColumns();
+	CColRef *pcrLeft, *pcrRight;
+	for (auto i = 0; i < pcrsLhs->Size(); i++) {
+		pcrLeft = pcrsLhs->PcrIth(i);
+		if (wcsstr(pcrLeft->Name().Pstr()->GetBuffer(), lhs_colname.Pstr()->GetBuffer()) != 0) {
+			break;
+		}
+	}
+	for (auto i = 0; i < pcrsRhs->Size(); i++) {
+		pcrRight = pcrsRhs->PcrIth(i);
+		if (wcsstr(pcrRight->Name().Pstr()->GetBuffer(), rhs_colname.Pstr()->GetBuffer()) != 0) {
+			break;
+		}
+	}
 
 	lhs->AddRef();
 	rhs->AddRef();

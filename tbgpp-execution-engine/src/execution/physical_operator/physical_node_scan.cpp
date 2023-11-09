@@ -123,11 +123,11 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
 	}
 	
-	current_schema_idx = 0; // TODO temporary logic!
+	// current_schema_idx = 0; // TODO temporary logic!
 	chunk.SetSchemaIdx(current_schema_idx);
 
 	if (res == StoreAPIResult::DONE) {
-		// printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
+		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		if (++current_schema_idx == num_schemas) return;
 		// idx_t j = 0;
 		// for (auto i = 0; i < chunk.ColumnCount(); i++) {
