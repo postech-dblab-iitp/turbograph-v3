@@ -29,7 +29,7 @@ run_query() {
 	fi
 
 	echo "$query_str"
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain --debug-orca
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:greedy --profile --explain
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive --profile --explain
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --profile --explain
@@ -873,11 +873,12 @@ run_tpch9() {
 			(s)-[:SUPP_BELONG_TO]->(n:NATION),
 			(li)-[:IS_PART_OF]->(o:ORDERS)
 		WHERE p.P_NAME CONTAINS 'salmon'
+		WITH n.N_NAME as nation, year(o.O_ORDERDATE) as year, li.L_EXTENDEDPRICE * (1 -li.L_DISCOUNT) - ps.PS_SUPPLYCOST * li.L_QUANTITY as tmp
 		RETURN
-			n.N_NAME as nation,
-			o.O_ORDERDATE as year,
-			sum(li.L_EXTENDEDPRICE * (1 -li.L_DISCOUNT) - ps.PS_SUPPLYCOST * li.L_QUANTITY) as amount
-		ORDER BY nation DESC, year;" 0
+			nation,
+			year, 
+			sum(tmp) as amount
+		ORDER BY nation, year desc;" 0
 }
 
 run_tpch10() {
@@ -1087,7 +1088,26 @@ run_tpch16() {
 			p.P_BRAND,
 			p.P_TYPE,
 			p.P_SIZE,
-			count(s.S_SUPPKEY) as supplier_cnt" 0
+			count(s.S_SUPPKEY) as supplier_cnt" 1
+	run_query "MATCH (s:SUPPLIER)<-[:PARTSUPP]-(p:PART)
+		WHERE NOT s.S_COMMENT CONTAINS 'Complaints'
+			AND p.P_BRAND <> 'Brand#51'
+			AND NOT (p.P_TYPE CONTAINS 'PROMO PLATED')
+			AND ((p.P_SIZE = 11)
+				OR (p.P_SIZE = 44)
+				OR (p.P_SIZE = 42)
+				OR (p.P_SIZE = 8)
+				OR (p.P_SIZE = 45)
+				OR (p.P_SIZE = 14)
+				OR (p.P_SIZE = 40)
+				OR (p.P_SIZE = 46))
+		RETURN
+			p.P_BRAND as P_BRAND,
+			p.P_TYPE as P_TYPE,
+			p.P_SIZE as P_SIZE,
+			count(s.S_SUPPKEY) as supplier_cnt
+		ORDER BY
+			supplier_cnt desc, P_BRAND, P_TYPE, P_SIZE;" 0
 }
 
 run_tpch17() {
@@ -1103,6 +1123,16 @@ run_tpch17() {
 		WHERE part2.P_BRAND = 'Brand#15'
 			AND part2.P_CONTAINER = 'LG CASE'
 			AND item.L_QUANTITY < L_QUANTITY
+		RETURN
+			SUM(item.L_EXTENDEDPRICE) AS avg_yearly;" 1
+	run_query "MATCH (lineitem: LINEITEM)<-[:COMPOSED_BY_BWD]-(part:PART)
+		WHERE part.P_BRAND = 'Brand#15'
+			AND part.P_CONTAINER = 'LG CASE'
+		WITH 0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
+		MATCH (item: LINEITEM)<-[:COMPOSED_BY_BWD]-(part2:PART)
+		WHERE part2.P_BRAND = 'Brand#15'
+			AND part2.P_CONTAINER = 'LG CASE'
+			AND item.L_QUANTITY < avg_quantity
 		RETURN
 			SUM(item.L_EXTENDEDPRICE) AS avg_yearly;" 0
 }

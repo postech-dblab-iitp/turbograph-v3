@@ -309,7 +309,8 @@ void Planner::_orcaSetOptCtxt(CMemoryPool* mp, CMDAccessor* mda, gpdbcost::CCost
 }
 
 void * Planner::_orcaExec(void* planner_ptr) {
-
+	boost::timer::cpu_timer orca_compile_timer;
+	orca_compile_timer.start();
 	Planner* planner = (Planner*) planner_ptr;
 	CMemoryPool* mp = planner->memory_pool;
 	
@@ -389,6 +390,8 @@ void * Planner::_orcaExec(void* planner_ptr) {
 				GPOS_TRACE(str.GetBuffer());
 			}
 		}
+		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+		std::cout << "\nCompile Time: "  << orca_compile_time_ms << " ms)" << std::endl;
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
 		
 		orca_logical_plan->Release();
@@ -408,7 +411,6 @@ void * Planner::_orcaExec(void* planner_ptr) {
 }
 
 vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
-
 	D_ASSERT(pipelines.size() > 0);
 
 	/* inject per-operator-dependencies and per-pipeline dependencies
@@ -416,47 +418,51 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 		- per-pipeline: child_executors / dep_executors
 	*/
 
-	std::vector<duckdb::CypherPipelineExecutor*> executors;
+	std::vector<duckdb::CypherPipelineExecutor *> executors;
 
-	for(auto& pipe: pipelines) {
+	D_ASSERT(pipelines.size() == sfgs.size());
+	for (auto pipe_idx = 0; pipe_idx < pipelines.size(); pipe_idx++) {
+		auto &pipe = pipelines[pipe_idx];
+		auto &sfg = sfgs[pipe_idx];
 		// find children and deps - the child/dep ordering matters. 
 		// must run in ascending order of the vector
-		auto* new_ctxt = new duckdb::ExecutionContext(context);
-		vector<duckdb::CypherPipelineExecutor*> child_executors;									// child : pipe's sink == op's source
-		std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> dep_executors;	// dep   : pipe's sink == op's operator
+		auto *new_ctxt = new duckdb::ExecutionContext(context);
+		vector<duckdb::CypherPipelineExecutor *> child_executors;									// child : pipe's sink == op's source
+		std::map<duckdb::CypherPhysicalOperator *, duckdb::CypherPipelineExecutor *> dep_executors;	// dep   : pipe's sink == op's operator
 
 		// inject per-operator dependencies in a pipeline
-		for(duckdb::idx_t op_idx=1; op_idx < pipe->pipelineLength; op_idx++) {
+		for (duckdb::idx_t op_idx = 1; op_idx < pipe->pipelineLength; op_idx++) {
 			pipe->GetIdxOperator(op_idx)->children.push_back(
-				pipe->GetIdxOperator(op_idx-1)
+				pipe->GetIdxOperator(op_idx - 1)
 			);
 		}
 
 		// find children pipeline
-		for( auto& ce: executors ) {
+		for (auto& ce: executors) {
 			// connect SOURCE with previous SINK
-			if ( pipe->GetSource() == ce->pipeline->GetSink() ) {
+			if (pipe->GetSource() == ce->pipeline->GetSink()) {
 				child_executors.push_back(ce);
 			}
 		}
+
 		// find dependent pipeline
-		for( auto& ce: executors ) {
+		for (auto& ce: executors) {
 			// connect OPERATORS with previous SINK
-			for( int op_idx = 0; op_idx < pipe->GetOperators().size(); op_idx++) {
-				duckdb::CypherPhysicalOperator* op = pipe->GetOperators()[op_idx];
-				if ( op == ce->pipeline->GetSink() ) {
+			for (int op_idx = 0; op_idx < pipe->GetOperators().size(); op_idx++) {
+				duckdb::CypherPhysicalOperator *op = pipe->GetOperators()[op_idx];
+				if (op == ce->pipeline->GetSink()) {
 					dep_executors.insert(std::make_pair(op,ce));
 					// add previous of ce to children
-					if(ce->pipeline->pipelineLength == 2) {
+					if (ce->pipeline->pipelineLength == 2) {
 						op->children.push_back(ce->pipeline->GetSource());
 					} else {
-						op->children.push_back(ce->pipeline->GetIdxOperator(ce->pipeline->pipelineLength-2));	// last one in operators
+						op->children.push_back(ce->pipeline->GetIdxOperator(ce->pipeline->pipelineLength - 2));	// last one in operators
 					}
 				}
 			}
 		}
 		duckdb::CypherPipelineExecutor *pipe_exec;
-		pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, move(child_executors), move(dep_executors));
+		pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, sfg, move(child_executors), move(dep_executors));
 		executors.push_back(pipe_exec);
 	}
 

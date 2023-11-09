@@ -126,6 +126,16 @@ protected:
 		CExpression *endOfNodesToInsertAboveIndexGet,
 		CTableDescriptor *PtabdescInner, CLogicalDynamicGet *popDynamicGet,
 		CXformResult *pxfres, gpmd::IMDIndex::EmdindexType emdtype) const;
+	
+	// S62 helper to add IndexApply expression to given xform results container
+	// for homogeneous indexes
+	virtual void CreateHomogeneousIndexApplyAlternativesUnionAll(
+		CMemoryPool *mp, COperator *joinOp, CExpression *pexprOuter,
+		CExpression *pexprInner, CExpression *pexprScalar,
+		CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
+		CExpression *endOfNodesToInsertAboveIndexGet,
+		CTableDescriptor *PtabdescInner, CLogicalDynamicGet *popDynamicGet,
+		CXformResult *pxfres, gpmd::IMDIndex::EmdindexType emdtype) const;
 
 	// helper to add IndexApply expression to given xform results container
 	// for partial indexes

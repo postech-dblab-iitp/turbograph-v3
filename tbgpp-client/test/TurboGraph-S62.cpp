@@ -489,6 +489,8 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
 		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
 
+		std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
+
 	/*
 		EXECUTE QUERY
 	*/
@@ -498,6 +500,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		for (int i = 0; i < planner_config.num_iterations; i++) {
 			auto executors = planner.genPipelineExecutors();
 			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
+			std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
 
 			boost::timer::cpu_timer query_timer;
 			auto &profiler = QueryProfiler::Get(*client.get());
@@ -564,6 +567,11 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			printOutput(planner, resultChunks, schema);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+
+			if (planner_config.num_iterations == 1) {
+				// Print result plan
+				exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
+			}
 		}
 		double max_exec_time = std::numeric_limits<double>::min();
 		double min_exec_time = std::numeric_limits<double>::max();

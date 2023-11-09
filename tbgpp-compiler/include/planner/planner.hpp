@@ -272,10 +272,12 @@ private:
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
 		CExpression* relation, vector<uint64_t> &col_ids_to_project,
-		vector<pair<IMDId*, gpos::INT>>* target_schema_types
+		vector<pair<IMDId*, gpos::INT>>* target_schema_types, vector<CColRef *> &union_schema_colrefs
 	);
+	// CExpression* lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
+	// 	CColRef* lhs_colref, CColRef* rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, gpopt::COperator::EOperatorId join_op);
+		const CName &lhs_colname, const CName &rhs_colname, gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
 		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);
@@ -355,6 +357,8 @@ private:
 	void pGenerateColumnNames(CColRefArray* columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef* target_col);
 	void pGenerateFilterExprs(CColRefArray* outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
+	void pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops);
+	void pResetSchemaFlowGraph();
 
 	inline string pGetColNameFromColRef(const CColRef* column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
@@ -407,7 +411,14 @@ private:
 	vector<std::string> logical_plan_output_col_names;							// output col names
 	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
 	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
-	
+
+	// schema flow graph
+	vector<duckdb::OperatorType> pipeline_operator_types;
+	vector<vector<uint64_t>> num_schemas_of_childs;
+	vector<vector<duckdb::Schema>> pipeline_schemas;
+	vector<duckdb::Schema> pipeline_union_schema;
+	vector<duckdb::SchemaFlowGraph> sfgs;
+
 	// logical soptimization context
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan
 	LogicalPlan* l_registered_outer_plan;	// registered plan

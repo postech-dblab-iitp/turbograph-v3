@@ -706,7 +706,7 @@ CXformUtils::FSameDatatype(CColRef2dArray *pdrgpdrgpcrInput)
 			CColRefArray *pdrgpcrInnner = (*pdrgpdrgpcrInput)[ulChildCounter];
 			CColRef *pcrInner = (*pdrgpcrInnner)[ulColCounter];
 
-			GPOS_ASSERT(pcrOuter != pcrInner);
+			// GPOS_ASSERT(pcrOuter != pcrInner); S62 TODO why?
 
 			if (pcrInner->RetrieveType() != pcrOuter->RetrieveType())
 			{
@@ -2282,21 +2282,21 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 
 		ULONG ulPosInColRefArray = gpos::ulong_max;
 	
-		CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](0);
-		CMDIdGPDB* rel = CMDIdGPDB::CastMdid( colref_table->GetMdidTable() );
+		CColRefTable *colref_table = (CColRefTable*) colref_array->operator[](0);
+		CMDIdGPDB *rel = CMDIdGPDB::CastMdid( colref_table->GetMdidTable() );
 		const IMDRelation *rel_md = COptCtxt::PoctxtFromTLS()->Pmda()->RetrieveRel(rel);
 
 		// given ulPosNonDropped, find matching colref index() in array
 		gpos::INT target_attr_no = rel_md->GetMdCol(ulPos)->AttrNum();
 
-		for(ULONG idx = 0; idx < colref_array->Size(); idx++ ){
-			CColRefTable* colref_table = (CColRefTable*) colref_array->operator[](idx);
+		for (ULONG idx = 0; idx < colref_array->Size(); idx++){
+			CColRefTable *colref_table = (CColRefTable *)colref_array->operator[](idx);
 			INT attr_no = colref_table->AttrNum();
 			if(target_attr_no == attr_no) {
 				ulPosInColRefArray = idx;
 			}
 		}
- 		if( ulPosInColRefArray == gpos::ulong_max) { // index not found
+ 		if (ulPosInColRefArray == gpos::ulong_max) { // index not found
 			continue;
 		}
 
@@ -2370,7 +2370,7 @@ CXformUtils::FIndexApplicable(CMemoryPool *mp, const IMDIndex *pmdindex,
 		CXformUtils::PcrsIndexKeys(mp, pdrgpcrOutput, pmdindex, pmdrel);
 
 	// 230203 funny logic
-	if( ! (pcrsIndexCols->Size() > 0 && pcrsIncludedCols->Size() > 0 ) ) {
+	if (!(pcrsIndexCols->Size() > 0 && pcrsIncludedCols->Size() > 0)) {
 		fApplicable = false;
 	}
 
@@ -2964,7 +2964,7 @@ CXformUtils::PexprBuildIndexPlan(
 	// expression must include outer references for it to be an alternative
 	// worth considering. Otherwise it has the same effect as a regular NLJ
 	// with an index lookup.
-	if (0 == pdrgpexprIndex->Size() )//|| outer_refs_in_index_get->Size() == 0) // 230303
+	if (0 == pdrgpexprIndex->Size()) //|| outer_refs_in_index_get->Size() == 0) // 230303
 	{
 		// clean up
 		GPOS_DELETE(alias);
@@ -4887,7 +4887,9 @@ CXformUtils::AddALinearStackOfUnaryExpressions(
 	{
 		CExpression *scalarChild = (*topOfStack)[ul];
 
-		GPOS_ASSERT(scalarChild->Pop()->FScalar());
+		// if (!scalarChild->Pop()->FScalar()) continue; // S62 temporary
+
+		// GPOS_ASSERT(scalarChild->Pop()->FScalar());
 		scalarChild->AddRef();
 		childrenArray->Append(scalarChild);
 	}

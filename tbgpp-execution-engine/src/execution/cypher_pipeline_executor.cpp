@@ -77,7 +77,6 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		source_chunk.Destroy();
 		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
 		FetchFromSource(source_chunk);
-		source_chunk.SetSchemaIdx(0); // TODO temporary
 
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[FetchFromSource (" << pipeline->GetSource()->ToString() << ")] num_tuples: " << source_chunk.size() << std::endl;
@@ -176,12 +175,13 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 			current_idx >= (pipeline->pipelineLength - 2) ? result : *opOutputChunks[current_idx]; // connect result when at last operator
 		auto &prev_output_chunk = *opOutputChunks[current_idx - 1];
 		current_output_chunk.Reset();
-		// auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
-		// auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
-		// current_output_chunk.SetSchemaIdx(current_output_schema_idx);
-		current_output_chunk.SetSchemaIdx(0);
+		auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
+		auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+		current_output_chunk.SetSchemaIdx(current_output_schema_idx);
+		// current_output_chunk.SetSchemaIdx(0);
 #ifdef DEBUG_PRINT_PIPELINE
-		std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() <<")] prev num_tuples: " << prev_output_chunk.size() << std::endl;
+		std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk.size()
+			<< ", schema_idx " << prev_output_schema_idx << " -> " << current_output_schema_idx << std::endl;
 #endif
 
 		duckdb::OperatorResultType opResult;

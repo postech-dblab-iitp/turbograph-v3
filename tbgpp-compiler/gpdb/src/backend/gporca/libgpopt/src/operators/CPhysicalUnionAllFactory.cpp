@@ -25,12 +25,13 @@ CPhysicalUnionAllFactory::PopPhysicalUnionAll(CMemoryPool *mp, BOOL fParallel)
 	CColRefArray *pdrgpcrOutput = m_popLogicalUnionAll->PdrgpcrOutput();
 	CColRef2dArray *pdrgpdrgpcrInput = m_popLogicalUnionAll->PdrgpdrgpcrInput();
 
-	// TODO:  May 2nd 2012; support compatible types
-	if (!CXformUtils::FSameDatatype(pdrgpdrgpcrInput))
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
-				   GPOS_WSZ_LIT("Union of non-identical types"));
-	}
+	// S62 TODO what is this..
+	// // TODO:  May 2nd 2012; support compatible types
+	// if (!CXformUtils::FSameDatatype(pdrgpdrgpcrInput))
+	// {
+	// 	GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp,
+	// 			   GPOS_WSZ_LIT("Union of non-identical types"));
+	// }
 
 	pdrgpcrOutput->AddRef();
 	pdrgpdrgpcrInput->AddRef();
