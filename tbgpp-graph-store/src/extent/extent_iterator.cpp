@@ -8,7 +8,29 @@
 
 #include "icecream.hpp"
 
-// #define DEBUG_LOAD_COLUMN
+#include "velox/type/Filter.h"
+#include "velox/common/base/Nulls.h"
+#include "velox/dwio/common/DecoderUtil.h"
+#include "common/types/validity_mask.hpp"
+#include "common/types/value.hpp"
+#include "velox/vector/tests/utils/VectorTestBase.h"
+
+
+using namespace facebook::velox;
+
+namespace facebook::velox::dwio::common {
+struct NoHook {
+  void addValue(
+      vector_size_t /*row*/,
+      const void* FOLLY_NULLABLE /*value*/) {}
+  void addValues(
+      const int32_t* /*rows*/,
+      const void* /*values*/,
+      int32_t /*size*/,
+      uint8_t /*valueWidth*/) {}
+};
+} 
+
 
 namespace duckdb {
 
@@ -976,7 +998,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // Find the index of a row that matches a predicate
     vector<idx_t> matched_row_idxs;
-    if (ext_property_type[col_idx] == LogicalType::VARCHAR) {
+    LogicalType column_type = ext_property_type[col_idx];
+    if (column_type == LogicalType::FORWARD_ADJLIST || column_type == LogicalType::BACKWARD_ADJLIST) {
+        throw InvalidInputException("Filter predicate on ADJLIST column");
+    } else if (column_type == LogicalType::ID) {
+        throw InvalidInputException("Filter predicate on PID column");
+    } 
+#ifndef ENABLE_VELOX_FILTERING
+    else if (column_type == LogicalType::VARCHAR) {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == DICTIONARY) {
             throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
@@ -996,11 +1025,112 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 }
             }
         }
-    } else if (ext_property_type[col_idx] == LogicalType::FORWARD_ADJLIST || ext_property_type[col_idx] == LogicalType::BACKWARD_ADJLIST) {
-        throw InvalidInputException("Filter predicate on ADJLIST column");
-    } else if (ext_property_type[col_idx] == LogicalType::ID) {
-        throw InvalidInputException("Filter predicate on PID column");
-    } else {
+    }
+#else
+    // SIMD-related Variables
+    int32_t num_values_output = 0;
+    constexpr bool filter_only = true;
+    facebook::velox::dwio::common::NoHook noHook;
+    raw_vector<int32_t> hits(STANDARD_VECTOR_SIZE);
+    raw_vector<int32_t> rows(STANDARD_VECTOR_SIZE); 
+    std::iota(rows.begin(), rows.end(), 0);
+    auto ranged_rows = folly::Range<const int32_t*>((const int32_t*) rows.data(), STANDARD_VECTOR_SIZE);
+
+    // Header Processing
+    memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+
+    // Vector Processing
+    Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
+    auto validity_mask = column_vec.GetValidity();
+
+    if (column_type == LogicalType::VARCHAR) {
+
+    } else if (column_type == LogicalType::BIGINT) {
+        auto data_size = comp_header.data_len * sizeof(uint64_t);
+        dwio::common::SeekableArrayInputStream input_stream((const char *)FlatVector::GetData(column_vec), data_size);
+        const char* bufferStart = (const char *)FlatVector::GetData(column_vec);
+        const char* bufferEnd = bufferStart + data_size;
+        auto bigint_value = duckdb::BigIntValue::Get(filterValue);
+        auto filter = std::make_unique<common::BigintRange>(bigint_value, bigint_value, false);
+
+        if (validity_mask.AllValid()) {
+            dwio::common::fixedWidthScan<int64_t, filter_only, false>(
+                ranged_rows,
+                nullptr,
+                nullptr,
+                hits.data(),
+                num_values_output,
+                input_stream,
+                bufferStart,
+                bufferEnd,
+                *filter,
+                noHook);
+        }
+        else {
+            raw_vector<int32_t> outer_vector;
+            dwio::common::nonNullRowsFromDense((uint64_t *)validity_mask.GetData(), comp_header.data_len, outer_vector);
+            auto non_null_ranged_rows = folly::Range<const int32_t*>(outer_vector.data(), outer_vector.size());
+
+            dwio::common::fixedWidthScan<int64_t, filter_only, false>(
+                non_null_ranged_rows,
+                nullptr,
+                nullptr,
+                hits.data(),
+                num_values_output,
+                input_stream,
+                bufferStart,
+                bufferEnd,
+                *filter,
+                noHook);
+        }
+
+        matched_row_idxs.reserve(hits.size());
+        for (int32_t val : hits) { matched_row_idxs.push_back(static_cast<idx_t>(val)); }
+    }
+    else if (column_type == LogicalType::INTEGER) {
+        auto data_size = comp_header.data_len * sizeof(int32_t);
+        dwio::common::SeekableArrayInputStream input_stream((const char *)FlatVector::GetData(column_vec), data_size);
+        const char* bufferStart = (const char *)FlatVector::GetData(column_vec);
+        const char* bufferEnd = bufferStart + data_size;
+        auto int_value = duckdb::IntegerValue::Get(filterValue);
+        auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int_value), static_cast<int64_t>(int_value), false);
+
+        if (validity_mask.AllValid()) {
+            dwio::common::fixedWidthScan<int32_t, filter_only, false>(
+                ranged_rows,
+                nullptr,
+                nullptr,
+                hits.data(),
+                num_values_output,
+                input_stream,
+                bufferStart,
+                bufferEnd,
+                *filter,
+                noHook);
+        }
+        else {
+            raw_vector<int32_t> outer_vector;
+            dwio::common::nonNullRowsFromDense((uint64_t *)validity_mask.GetData(), comp_header.data_len, outer_vector);
+            auto non_null_ranged_rows = folly::Range<const int32_t*>(outer_vector.data(), outer_vector.size());
+
+            dwio::common::fixedWidthScan<int32_t, filter_only, false>(
+                non_null_ranged_rows,
+                nullptr,
+                nullptr,
+                hits.data(),
+                num_values_output,
+                input_stream,
+                bufferStart,
+                bufferEnd,
+                *filter,
+                noHook);
+        }
+
+        matched_row_idxs.reserve(num_values_output);
+        for (int64_t i = 0; i < num_values_output; i++) { matched_row_idxs.push_back(static_cast<idx_t>(hits[i])); }
+    } 
+#endif
+    else {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
