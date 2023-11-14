@@ -1003,7 +1003,27 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         throw InvalidInputException("Filter predicate on ADJLIST column");
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
-    } 
+    } else if (column_type == LogicalType::VARCHAR) {
+        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+        if (comp_header.comp_type == DICTIONARY) {
+            throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
+        } else {
+            size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t);
+            // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
+            string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
+            uint64_t string_offset, prev_string_offset;
+            for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
+                // prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
+                // string_offset = offset_arr[input_idx];
+                // string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
+                std::string string_val = std::string(varchar_arr[input_idx].GetDataUnsafe(), varchar_arr[input_idx].GetSize());
+                Value str_val(string_val);
+                if (str_val == filterValue) {
+                    matched_row_idxs.push_back(input_idx);
+                }
+            }
+        }
+    }
 #ifndef ENABLE_VELOX_FILTERING
     else if (column_type == LogicalType::VARCHAR) {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
@@ -1027,108 +1047,26 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
     }
 #else
-    // SIMD-related Variables
-    int32_t num_values_output = 0;
-    constexpr bool filter_only = true;
-    facebook::velox::dwio::common::NoHook noHook;
-    raw_vector<int32_t> hits(STANDARD_VECTOR_SIZE);
-    raw_vector<int32_t> rows(STANDARD_VECTOR_SIZE); 
-    std::iota(rows.begin(), rows.end(), 0);
-    auto ranged_rows = folly::Range<const int32_t*>((const int32_t*) rows.data(), STANDARD_VECTOR_SIZE);
-
-    // Header Processing
+    Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
 
-    // Vector Processing
-    Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
-    auto validity_mask = column_vec.GetValidity();
-
-    if (column_type == LogicalType::VARCHAR) {
-
-    } else if (column_type == LogicalType::BIGINT) {
-        auto data_size = comp_header.data_len * sizeof(uint64_t);
-        dwio::common::SeekableArrayInputStream input_stream((const char *)FlatVector::GetData(column_vec), data_size);
-        const char* bufferStart = (const char *)FlatVector::GetData(column_vec);
-        const char* bufferEnd = bufferStart + data_size;
+    // avx2 does not supports UBIGINT
+    if (column_type == LogicalType::BIGINT) {
         auto bigint_value = duckdb::BigIntValue::Get(filterValue);
         auto filter = std::make_unique<common::BigintRange>(bigint_value, bigint_value, false);
-
-        if (validity_mask.AllValid()) {
-            dwio::common::fixedWidthScan<int64_t, filter_only, false>(
-                ranged_rows,
-                nullptr,
-                nullptr,
-                hits.data(),
-                num_values_output,
-                input_stream,
-                bufferStart,
-                bufferEnd,
-                *filter,
-                noHook);
-        }
-        else {
-            raw_vector<int32_t> outer_vector;
-            dwio::common::nonNullRowsFromDense((uint64_t *)validity_mask.GetData(), comp_header.data_len, outer_vector);
-            auto non_null_ranged_rows = folly::Range<const int32_t*>(outer_vector.data(), outer_vector.size());
-
-            dwio::common::fixedWidthScan<int64_t, filter_only, false>(
-                non_null_ranged_rows,
-                nullptr,
-                nullptr,
-                hits.data(),
-                num_values_output,
-                input_stream,
-                bufferStart,
-                bufferEnd,
-                *filter,
-                noHook);
-        }
-
-        matched_row_idxs.reserve(hits.size());
-        for (int32_t val : hits) { matched_row_idxs.push_back(static_cast<idx_t>(val)); }
+        evalEQPredicateSIMD<int64_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
     else if (column_type == LogicalType::INTEGER) {
-        auto data_size = comp_header.data_len * sizeof(int32_t);
-        dwio::common::SeekableArrayInputStream input_stream((const char *)FlatVector::GetData(column_vec), data_size);
-        const char* bufferStart = (const char *)FlatVector::GetData(column_vec);
-        const char* bufferEnd = bufferStart + data_size;
         auto int_value = duckdb::IntegerValue::Get(filterValue);
         auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int_value), static_cast<int64_t>(int_value), false);
-
-        if (validity_mask.AllValid()) {
-            dwio::common::fixedWidthScan<int32_t, filter_only, false>(
-                ranged_rows,
-                nullptr,
-                nullptr,
-                hits.data(),
-                num_values_output,
-                input_stream,
-                bufferStart,
-                bufferEnd,
-                *filter,
-                noHook);
-        }
-        else {
-            raw_vector<int32_t> outer_vector;
-            dwio::common::nonNullRowsFromDense((uint64_t *)validity_mask.GetData(), comp_header.data_len, outer_vector);
-            auto non_null_ranged_rows = folly::Range<const int32_t*>(outer_vector.data(), outer_vector.size());
-
-            dwio::common::fixedWidthScan<int32_t, filter_only, false>(
-                non_null_ranged_rows,
-                nullptr,
-                nullptr,
-                hits.data(),
-                num_values_output,
-                input_stream,
-                bufferStart,
-                bufferEnd,
-                *filter,
-                noHook);
-        }
-
-        matched_row_idxs.reserve(num_values_output);
-        for (int64_t i = 0; i < num_values_output; i++) { matched_row_idxs.push_back(static_cast<idx_t>(hits[i])); }
+        evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     } 
+    else if (column_type.id() == LogicalTypeId::DECIMAL) {
+        auto width = DecimalType::GetWidth(column_type);
+        auto scale = DecimalType::GetScale(column_type);
+        auto decimal_value = filterValue.GetValue<double>();
+        std::cout << "decimal_value: " << decimal_value << std::endl;
+    }
 #endif
     else {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
@@ -2006,4 +1944,64 @@ bool ExtentIterator::_CheckIsMemoryEnough() {
     return enough;
 }
 
+template <typename T, typename TFilter>
+void ExtentIterator::evalEQPredicateSIMD(Vector& column_vec, size_t data_len, std::unique_ptr<TFilter>& filter, 
+                        idx_t scan_start_offset, idx_t scan_end_offset, vector<idx_t>& matched_row_idxs) {
+    int32_t num_values_output = 0;
+    facebook::velox::dwio::common::NoHook noHook;
+    auto scan_length = scan_end_offset - scan_start_offset;
+    raw_vector<int32_t> hits(STANDARD_VECTOR_SIZE);
+    raw_vector<int32_t> rows(scan_length); 
+    std::iota(rows.begin(), rows.end(), scan_start_offset);
+
+    auto data_size = data_len * sizeof(T);
+    dwio::common::SeekableArrayInputStream input_stream((const char *)FlatVector::GetData(column_vec), data_size);
+    const char* bufferStart = (const char *)FlatVector::GetData(column_vec);
+    const char* bufferEnd = bufferStart + data_size;
+
+    auto ranged_rows = folly::Range<const int32_t*>((const int32_t*) rows.data(), scan_length);
+
+    auto validity_mask = column_vec.GetValidity();
+    if (validity_mask.AllValid()) {
+        dwio::common::fixedWidthScan<T, true, false>(
+            ranged_rows,
+            nullptr,
+            nullptr,
+            hits.data(),
+            num_values_output,
+            input_stream,
+            bufferStart,
+            bufferEnd,
+            *filter,
+            noHook);
+    }
+    else {
+        raw_vector<int32_t> unfiltered_vec;
+        vector<int32_t> filtered_vec;
+        dwio::common::nonNullRowsFromDense((uint64_t *)validity_mask.GetData(), data_len, unfiltered_vec);
+        std::copy_if(unfiltered_vec.begin(), unfiltered_vec.end(), std::back_inserter(filtered_vec), 
+                    [scan_start_offset, scan_end_offset](int index) {
+                        return index >= scan_start_offset && index < scan_end_offset;
+                    });
+        auto non_null_ranged_rows = folly::Range<const int32_t*>(filtered_vec.data(), filtered_vec.size());
+
+        dwio::common::fixedWidthScan<T, true, false>(
+            non_null_ranged_rows,
+            nullptr,
+            nullptr,
+            hits.data(),
+            num_values_output,
+            input_stream,
+            bufferStart,
+            bufferEnd,
+            *filter,
+            noHook);
+    }
+
+    matched_row_idxs.reserve(num_values_output);
+    for (int64_t i = 0; i < num_values_output; i++) { matched_row_idxs.push_back(static_cast<idx_t>(hits[i])); }
+}   
+
+template void ExtentIterator::evalEQPredicateSIMD<int32_t, common::BigintRange>(Vector&, size_t, std::unique_ptr<common::BigintRange>&, idx_t, idx_t, vector<idx_t>&);
+template void ExtentIterator::evalEQPredicateSIMD<int64_t, common::BigintRange>(Vector&, size_t, std::unique_ptr<common::BigintRange>&, idx_t, idx_t, vector<idx_t>&);
 }

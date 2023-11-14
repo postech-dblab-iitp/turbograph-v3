@@ -626,7 +626,7 @@ run_ldbc() {
 run_tpch1() {
 	# TPC-H Q1 Pricing Summary Report Query
 	run_query "MATCH (item:LINEITEM)
-		WHERE item.L_QUANTITY = 10
+		WHERE item.L_SHIPDATE <= date('1998-08-25')
 		RETURN
 			item.L_RETURNFLAG AS ret_flag,
 			item.L_LINESTATUS AS line_stat,
