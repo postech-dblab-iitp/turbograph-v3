@@ -34,6 +34,13 @@ struct NoHook {
 
 namespace duckdb {
 
+inline int128_t ConvertTo128(const hugeint_t &value) {
+    int128_t result = static_cast<int128_t>(value.upper);
+    result = result << 64;
+    result |= static_cast<int128_t>(value.lower);
+    return result;
+}
+
 // TODO: select extent to iterate using min & max & key
 // Initialize iterator that iterates all extents
 void ExtentIterator::Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry) {
@@ -1049,8 +1056,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #else
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+    auto value_type = filterValue.type();
 
-    // avx2 does not supports UBIGINT
     if (column_type == LogicalType::BIGINT) {
         auto bigint_value = duckdb::BigIntValue::Get(filterValue);
         auto filter = std::make_unique<common::BigintRange>(bigint_value, bigint_value, false);
@@ -1061,11 +1068,47 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int_value), static_cast<int64_t>(int_value), false);
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     } 
-    else if (column_type.id() == LogicalTypeId::DECIMAL) {
-        auto width = DecimalType::GetWidth(column_type);
-        auto scale = DecimalType::GetScale(column_type);
-        auto decimal_value = filterValue.GetValue<double>();
-        std::cout << "decimal_value: " << decimal_value << std::endl;
+    else if (column_type == LogicalType::HUGEINT) {
+        D_ASSERT(false); //AVX2 not supported for Hugeint
+        // auto hugeint_value = duckdb::HugeIntValue::Get(filterValue);
+        // auto int128_value = ConvertTo128(hugeint_value);
+        // auto filter = std::make_unique<common::HugeintRange>(static_cast<int64_t>(int128_value), static_cast<int64_t>(int128_value), false);
+        // evalEQPredicateSIMD<int128_t, common::HugeintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
+    }
+    else if (column_type.id() == LogicalTypeId::DECIMAL && value_type.id() == LogicalTypeId::DECIMAL) {
+        switch(column_type.InternalType()) {
+        case PhysicalType::INT16:
+        {
+            auto int16_value = duckdb::SmallIntValue::Get(filterValue);
+            std::cout << "int16_value: " << int16_value << std::endl;
+            auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int16_value), static_cast<int64_t>(int16_value), false);
+            evalEQPredicateSIMD<int16_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
+            break;
+        }
+        case PhysicalType::INT32:
+        {
+            auto int32_value = duckdb::IntegerValue::Get(filterValue);
+            std::cout << "int32_value: " << int32_value << std::endl;
+            auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int32_value), static_cast<int64_t>(int32_value), false);
+            evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
+            break;
+        }
+        case PhysicalType::INT64:
+        {
+            auto int64_value = duckdb::BigIntValue::Get(filterValue);
+            auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int64_value), static_cast<int64_t>(int64_value), false);
+            evalEQPredicateSIMD<int64_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
+            break;
+        }
+        default:
+            D_ASSERT(false);
+        }
+    }
+    else if (column_type == LogicalType::DATE) {
+        auto date_value = duckdb::DateValue::Get(filterValue);
+        auto days = date_value.days;
+        auto filter = std::make_unique<common::BigintRange>(days, days, false);
+        evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
 #endif
     else {
@@ -2002,6 +2045,7 @@ void ExtentIterator::evalEQPredicateSIMD(Vector& column_vec, size_t data_len, st
     for (int64_t i = 0; i < num_values_output; i++) { matched_row_idxs.push_back(static_cast<idx_t>(hits[i])); }
 }   
 
+template void ExtentIterator::evalEQPredicateSIMD<int16_t, common::BigintRange>(Vector&, size_t, std::unique_ptr<common::BigintRange>&, idx_t, idx_t, vector<idx_t>&);
 template void ExtentIterator::evalEQPredicateSIMD<int32_t, common::BigintRange>(Vector&, size_t, std::unique_ptr<common::BigintRange>&, idx_t, idx_t, vector<idx_t>&);
 template void ExtentIterator::evalEQPredicateSIMD<int64_t, common::BigintRange>(Vector&, size_t, std::unique_ptr<common::BigintRange>&, idx_t, idx_t, vector<idx_t>&);
 }
