@@ -70,7 +70,8 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 }
 
 StoreAPIResult
-iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
+iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
+					std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
 	vector<idx_t> output_column_idxs; // TODO this should be generated in physical planning step // TODO s62 change me
@@ -86,6 +87,28 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 			return StoreAPIResult::DONE;
 	}
 }
+
+StoreAPIResult
+iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
+					std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue) {
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	vector<idx_t> output_column_idxs; // TODO this should be generated in physical planning step // TODO s62 change me
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, rangeFilterValue.l_value, rangeFilterValue.r_value, 
+											rangeFilterValue.l_inclusive, rangeFilterValue.r_inclusive, projection_mapping[0], scanSchema); 
+	if (scan_ongoing) {
+		return StoreAPIResult::OK;
+	} else {
+		ext_its.pop();
+		delete ext_it;
+		if (ext_its.size() > 0)
+			return StoreAPIResult::OK;
+		else
+			return StoreAPIResult::DONE;
+	}
+}
+
+
 
 StoreAPIResult 
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, DataChunk &input, idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position) {

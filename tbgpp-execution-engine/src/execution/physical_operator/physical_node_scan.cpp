@@ -54,13 +54,27 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	int64_t filterKeyIndex, duckdb::Value filterValue) :
 		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
 		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0),
-		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue)
+		filter_pushdown_key_idx(filterKeyIndex), filter_pushdown_value(filterValue), filter_pushdown_type(FilterPushdownType::FP_EQ)
 { 
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
 	scan_types[0] = std::move(scan_types_);
 	D_ASSERT(filter_pushdown_key_idx >= 0);
 }
+
+PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping, 
+	int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive) :
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_type(FilterPushdownType::FP_RANGE),
+		range_filter_pushdown_value{l_filterValue, r_filterValue, l_inclusive, r_inclusive}, filter_pushdown_key_idx(filterKeyIndex)
+{ 
+	num_schemas = 1;
+	scan_types.resize(num_schemas);
+	scan_types[0] = std::move(scan_types_);
+	D_ASSERT(filter_pushdown_key_idx >= 0);
+}
+
 	
 // TODO delete me!
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
