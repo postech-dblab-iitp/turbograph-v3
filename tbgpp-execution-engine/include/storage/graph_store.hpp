@@ -9,7 +9,6 @@
 #include "common/vector.hpp"
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
-//#include "common/types/chunk_collection.hpp"
 
 #include <boost/timer/timer.hpp>
 #include <queue>
@@ -17,10 +16,16 @@
 
 namespace duckdb {
 
+struct RangeFilterValue {
+	Value l_value;
+	Value r_value;
+	bool l_inclusive;
+	bool r_inclusive;
+};
+
 class ExtentIterator;
 class AdjacencyListIterator;
 class ClientContext;
-
 class GraphStore { 
 
 public:
@@ -61,6 +66,8 @@ public:
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx);
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping,
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::Value &filterValue);
+	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping,
+						  std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue);
 	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 											 vector<idx_t> &boundary_position);
