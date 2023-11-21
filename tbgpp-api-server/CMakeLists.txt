@@ -41,6 +41,7 @@ target_link_libraries(tbgpp-api-server tbgpp-common-lib)
 target_link_libraries(tbgpp-api-server tbgpp-graph-store-lib)
 target_link_libraries(tbgpp-api-server tbgpp-execution-engine-lib)
 target_link_libraries(tbgpp-api-server tbgpp-compiler)
+target_link_libraries(tbgpp-api-server nlohmann_json::nlohmann_json)
 
 target_compile_options(tbgpp-api-server PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-api-server PUBLIC ${CXX_DEFINITION})
@@ -67,7 +68,7 @@ foreach(test_file ${CLIENT_TEST_SRC})
     tbgpp-common-lib
     tbgpp-graph-store-lib
     tbgpp-execution-engine-lib
-	tbgpp-api-server
-	"-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
+	  tbgpp-api-server
+	  nlohmann_json::nlohmann_json "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
   )
 endforeach(test_file ${CLIENT_TEST_SRC})

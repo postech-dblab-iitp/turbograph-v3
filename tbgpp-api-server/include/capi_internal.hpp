@@ -13,9 +13,12 @@
 #include "common/types.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/case_insensitive_map.hpp"
+#include "execution/cypher_pipeline_executor.hpp"
 
+#include <nlohmann/json.hpp>
 #include <cstring>
 #include <cassert>
+#include <string>
 
 #ifdef _WIN32
 #ifndef strdup
@@ -23,13 +26,14 @@
 #endif
 #endif
 
+using json = nlohmann::json;
+
 namespace duckdb {
-
-struct PreparedStatementWrapper {
-	//! Map of name -> values
-	case_insensitive_map_t<Value> values;
-	unique_ptr<CypherPreparedStatement> statement;
-};
-
+	
+s62_type ConvertCPPTypeToC(const LogicalType &type);
+LogicalTypeId ConvertCTypeToCPP(s62_type c_type);
+idx_t GetCTypeSize(s62_type type);
+std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors);
+json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root);
 
 } // namespace duckdb

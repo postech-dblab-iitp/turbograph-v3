@@ -22,134 +22,144 @@ extern "C" {
 // Type Information
 //===--------------------------------------------------------------------===//
 typedef uint64_t idx_t;
-
 typedef const char* s62_version;
+typedef char* s62_query;
+typedef char* s62_plan;
+typedef char* s62_label_name;
+typedef char* s62_property_name;
+typedef char* s62_sql_type;
+typedef int s62_property_order;
+typedef int s62_precision;
+typedef int s62_scale;
+typedef int s62_num_metadata;
+typedef int s62_num_properties;
 
-typedef const char* Query;
+typedef enum S62_METADATA_TYPE {
+	S62_NODE = 0,
+	S62_EDGE = 1,
+	S62_OTHER = 2,
+} s62_metadata_type;
 
-typedef enum DUCKDB_TYPE {
-	DUCKDB_TYPE_INVALID = 0,
+typedef enum S62_TYPE {
+	S62_TYPE_INVALID = 0,
 	// bool
-	DUCKDB_TYPE_BOOLEAN,
+	S62_TYPE_BOOLEAN,
 	// int8_t
-	DUCKDB_TYPE_TINYINT,
+	S62_TYPE_TINYINT,
 	// int16_t
-	DUCKDB_TYPE_SMALLINT,
+	S62_TYPE_SMALLINT,
 	// int32_t
-	DUCKDB_TYPE_INTEGER,
+	S62_TYPE_INTEGER,
 	// int64_t
-	DUCKDB_TYPE_BIGINT,
+	S62_TYPE_BIGINT,
 	// uint8_t
-	DUCKDB_TYPE_UTINYINT,
+	S62_TYPE_UTINYINT,
 	// uint16_t
-	DUCKDB_TYPE_USMALLINT,
+	S62_TYPE_USMALLINT,
 	// uint32_t
-	DUCKDB_TYPE_UINTEGER,
+	S62_TYPE_UINTEGER,
 	// uint64_t
-	DUCKDB_TYPE_UBIGINT,
+	S62_TYPE_UBIGINT,
 	// float
-	DUCKDB_TYPE_FLOAT,
+	S62_TYPE_FLOAT,
 	// double
-	DUCKDB_TYPE_DOUBLE,
-	// duckdb_timestamp, in microseconds
-	DUCKDB_TYPE_TIMESTAMP,
-	// duckdb_date
-	DUCKDB_TYPE_DATE,
-	// duckdb_time
-	DUCKDB_TYPE_TIME,
-	// duckdb_interval
-	DUCKDB_TYPE_INTERVAL,
-	// duckdb_hugeint
-	DUCKDB_TYPE_HUGEINT,
+	S62_TYPE_DOUBLE,
+	// S62_timestamp, in microseconds
+	S62_TYPE_TIMESTAMP,
+	// S62_date
+	S62_TYPE_DATE,
+	// S62_time
+	S62_TYPE_TIME,
+	// S62_interval
+	S62_TYPE_INTERVAL,
+	// S62_hugeint
+	S62_TYPE_HUGEINT,
 	// const char*
-	DUCKDB_TYPE_VARCHAR,
-	// duckdb_blob
-	DUCKDB_TYPE_BLOB,
+	S62_TYPE_VARCHAR,
+	// S62_blob
+	S62_TYPE_BLOB,
 	// decimal
-	DUCKDB_TYPE_DECIMAL,
-	// duckdb_timestamp, in seconds
-	DUCKDB_TYPE_TIMESTAMP_S,
-	// duckdb_timestamp, in milliseconds
-	DUCKDB_TYPE_TIMESTAMP_MS,
-	// duckdb_timestamp, in nanoseconds
-	DUCKDB_TYPE_TIMESTAMP_NS,
+	S62_TYPE_DECIMAL,
+	// S62_timestamp, in seconds
+	S62_TYPE_TIMESTAMP_S,
+	// S62_timestamp, in milliseconds
+	S62_TYPE_TIMESTAMP_MS,
+	// S62_timestamp, in nanoseconds
+	S62_TYPE_TIMESTAMP_NS,
 	// enum type, only useful as logical type
-	DUCKDB_TYPE_ENUM,
+	S62_TYPE_ENUM,
 	// list type, only useful as logical type
-	DUCKDB_TYPE_LIST,
+	S62_TYPE_LIST,
 	// struct type, only useful as logical type
-	DUCKDB_TYPE_STRUCT,
+	S62_TYPE_STRUCT,
 	// map type, only useful as logical type
-	DUCKDB_TYPE_MAP,
-	// duckdb_hugeint
-	DUCKDB_TYPE_UUID,
+	S62_TYPE_MAP,
+	// S62_hugeint
+	S62_TYPE_UUID,
 	// union type, only useful as logical type
-	DUCKDB_TYPE_UNION,
-	// duckdb_bit
-	DUCKDB_TYPE_BIT,
-} duckdb_type;
+	S62_TYPE_UNION,
+	// S62_bit
+	S62_TYPE_BIT,
+} s62_type;
 
 //! Days are stored as days since 1970-01-01
 //! Use the duckdb_from_date/duckdb_to_date function to extract individual information
 typedef struct {
 	int32_t days;
-} duckdb_date;
+} s62_date;
 
 typedef struct {
 	int32_t year;
 	int8_t month;
 	int8_t day;
-} duckdb_date_struct;
+} s62_date_struct;
 
 //! Time is stored as microseconds since 00:00:00
 //! Use the duckdb_from_time/duckdb_to_time function to extract individual information
 typedef struct {
 	int64_t micros;
-} duckdb_time;
+} s62_time;
 
 typedef struct {
 	int8_t hour;
 	int8_t min;
 	int8_t sec;
 	int32_t micros;
-} duckdb_time_struct;
+} s62_time_struct;
 
 //! Timestamps are stored as microseconds since 1970-01-01
 //! Use the duckdb_from_timestamp/duckdb_to_timestamp function to extract individual information
 typedef struct {
 	int64_t micros;
-} duckdb_timestamp;
+} s62_timestamp;
 
 typedef struct {
-	duckdb_date_struct date;
-	duckdb_time_struct time;
-} duckdb_timestamp_struct;
+	s62_date_struct date;
+	s62_time_struct time;
+} s62_timestamp_struct;
 
 typedef struct {
 	int32_t months;
 	int32_t days;
 	int64_t micros;
-} duckdb_interval;
+} s62_interval;
 
-//! Hugeints are composed in a (lower, upper) component
-//! The value of the hugeint is upper * 2^64 + lower
-//! For easy usage, the functions duckdb_hugeint_to_double/duckdb_double_to_hugeint are recommended
 typedef struct {
 	uint64_t lower;
 	int64_t upper;
-} duckdb_hugeint;
+} s62_hugeint;
 
 typedef struct {
 	uint8_t width;
 	uint8_t scale;
 
-	duckdb_hugeint value;
-} duckdb_decimal;
+	s62_hugeint value;
+} s62_decimal;
 
 typedef struct {
 	char *data;
 	idx_t size;
-} duckdb_string;
+} s62_string;
 
 /*
     The internal data representation of a VARCHAR/BLOB column
@@ -166,103 +176,107 @@ typedef struct {
 			char inlined[12];
 		} inlined;
 	} value;
-} duckdb_string_t;
-
-typedef struct {
-	void *data;
-	idx_t size;
-} duckdb_blob;
+} s62_string_t;
 
 typedef struct {
 	uint64_t offset;
 	uint64_t length;
-} duckdb_list_entry;
+} s62_list_entry;
 
-typedef struct {
-#if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
-	void *data;
-	bool *nullmask;
-	duckdb_type type;
-	char *name;
-#else
-	// deprecated, use duckdb_column_data
-	void *__deprecated_data;
-	// deprecated, use duckdb_nullmask_data
-	bool *__deprecated_nullmask;
-	// deprecated, use duckdb_column_type
-	duckdb_type __deprecated_type;
-	// deprecated, use duckdb_column_name
-	char *__deprecated_name;
-#endif
-	void *internal_data;
-} duckdb_column;
+// typedef struct {
+// #if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
+// 	void *data;
+// 	bool *nullmask;
+// 	duckdb_type type;
+// 	char *name;
+// #else
+// 	// deprecated, use duckdb_column_data
+// 	void *__deprecated_data;
+// 	// deprecated, use duckdb_nullmask_data
+// 	bool *__deprecated_nullmask;
+// 	// deprecated, use duckdb_column_type
+// 	duckdb_type __deprecated_type;
+// 	// deprecated, use duckdb_column_name
+// 	char *__deprecated_name;
+// #endif
+// 	void *internal_data;
+// } duckdb_column;
 
-typedef struct {
-#if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
-	idx_t column_count;
-	idx_t row_count;
-	idx_t rows_changed;
-	duckdb_column *columns;
-	char *error_message;
-#else
-	// deprecated, use duckdb_column_count
-	idx_t __deprecated_column_count;
-	// deprecated, use duckdb_row_count
-	idx_t __deprecated_row_count;
-	// deprecated, use duckdb_rows_changed
-	idx_t __deprecated_rows_changed;
-	// deprecated, use duckdb_column_ family of functions
-	duckdb_column *__deprecated_columns;
-	// deprecated, use duckdb_result_error
-	char *__deprecated_error_message;
-#endif
-	void *internal_data;
-} duckdb_result;
+// typedef struct {
+// #if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
+// 	idx_t column_count;
+// 	idx_t row_count;
+// 	idx_t rows_changed;
+// 	duckdb_column *columns;
+// 	char *error_message;
+// #else
+// 	// deprecated, use duckdb_column_count
+// 	idx_t __deprecated_column_count;
+// 	// deprecated, use duckdb_row_count
+// 	idx_t __deprecated_row_count;
+// 	// deprecated, use duckdb_rows_changed
+// 	idx_t __deprecated_rows_changed;
+// 	// deprecated, use duckdb_column_ family of functions
+// 	duckdb_column *__deprecated_columns;
+// 	// deprecated, use duckdb_result_error
+// 	char *__deprecated_error_message;
+// #endif
+// 	void *internal_data;
+// } duckdb_result;
+
+typedef struct _s62_property {
+	s62_label_name label_name;
+	s62_metadata_type label_type;
+	s62_property_order order;
+	s62_property_name property_name;
+	s62_type property_type;
+	s62_sql_type property_sql_type;
+	s62_precision precision;
+	s62_scale scale;
+	struct _s62_property *next;
+} s62_property;
 
 typedef struct _s62_prepared_statement {
-	void *__prep;
-} * s62_prepared_statement;
+	s62_query query;
+	s62_plan plan;
+	s62_num_properties num_properties;
+	s62_property *property;
+	void *__internal_prepared_statement;
+} s62_prepared_statement;
+
 typedef struct _s62_value {
 	void *__val;
 } * s62_value;
 
-typedef struct _duckdb_extracted_statements {
-	void *__extrac;
-} * duckdb_extracted_statements;
-typedef struct _duckdb_pending_result {
-	void *__pend;
-} * duckdb_pending_result;
-typedef struct _duckdb_config {
-	void *__cnfg;
-} * duckdb_config;
-typedef struct _duckdb_arrow_schema {
-	void *__arrs;
-} * duckdb_arrow_schema;
-typedef struct _duckdb_arrow_array {
-	void *__arra;
-} * duckdb_arrow_array;
-typedef struct _duckdb_logical_type {
-	void *__lglt;
-} * duckdb_logical_type;
-typedef struct _duckdb_data_chunk {
-	void *__dtck;
-} * duckdb_data_chunk;
-typedef struct _duckdb_vector {
-	void *__vctr;
-} * duckdb_vector;
-typedef struct _duckdb_value {
-	void *__val;
-} * duckdb_value;
+typedef struct _s62_metadata {
+	s62_label_name label_name;
+	s62_metadata_type type;
+	struct _s62_metadata *next;
+} s62_metadata;
 
 typedef enum {
     S62_SUCCESS = 0,
-    S62_ERROR = 1,
+    S62_ERROR = -1,
 } s62_state;
 
 typedef enum {
+    S62_CONNECTED = 0,
+    S62_NOT_CONNECTED = 1,
+} s62_conn_state;
+
+typedef enum {
     S62_NO_ERROR = 0,
-    S62_ERROR_CONNECTION_FAILED = -1
-	S62_ERROR_INVALID_STATEMENT = -2
+    S62_ERROR_CONNECTION_FAILED = -1,
+	S62_ERROR_INVALID_STATEMENT = -2,
+	S62_ERROR_INVALID_PARAMETER_INDEX = -3,
+	S62_ERROR_UNSUPPORTED_OPERATION = -4,
+	S62_ERROR_INVALID_METADATA = -5,
+	S62_ERROR_INVALID_LABEL = -6,
+	S62_ERROR_INVALID_PROPERTY = -7,
+	S62_ERROR_INVALID_NUMBER_OF_PROPERTIES = -8,
+	S62_ERROR_INVALID_PREPARED_STATEMENT = -9,
+	S62_ERROR_INVALID_METADATA_TYPE = -10,
+	S62_ERROR_INVALID_PLAN = -11,
 } s62_error_code;
 
 typedef enum {
@@ -272,7 +286,6 @@ typedef enum {
 	DUCKDB_PENDING_NO_TASKS_AVAILABLE = 3
 } duckdb_pending_state;
 
-
 //===--------------------------------------------------------------------===//
 // Open/Connect
 //===--------------------------------------------------------------------===//
@@ -281,20 +294,73 @@ s62_state s62_connect(const char *dbname);
 
 void s62_disconnect();
 
-s62_state s62_is_connected();
+s62_conn_state s62_is_connected();
 
 s62_error_code s62_get_last_error(char *errmsg);
 
 s62_version s62_get_version();
 
+//===--------------------------------------------------------------------===//
+// Metadata
+//===--------------------------------------------------------------------===//
+
+s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_flag, bool filter_flag, s62_metadata **metadata);
+
+s62_state s62_close_metadata(s62_metadata *metadata);
+
+s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metadata_type type, s62_property** property);
+
+s62_state s62_close_property(s62_property *property);
 
 //===--------------------------------------------------------------------===//
-// Query
+// s62_query
 //===--------------------------------------------------------------------===//
 
-s62_prepared_statement* s62_prepare(Query query);
+s62_prepared_statement* s62_prepare(s62_query query);
 
-s62_state s62_bind_value(s62_prepared_statement*, int32_t param_idx, int value);
+s62_state s62_close_prepared_statement(s62_prepared_statement* prepared_statement);
+
+s62_state s62_bind_value(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_value val);
+
+s62_state s62_bind_boolean(s62_prepared_statement* prepared_statement, idx_t param_idx, bool val);
+
+s62_state s62_bind_int8(s62_prepared_statement* prepared_statement, idx_t param_idx, int8_t val);
+
+s62_state s62_bind_int16(s62_prepared_statement* prepared_statement, idx_t param_idx, int16_t val);
+
+s62_state s62_bind_int32(s62_prepared_statement* prepared_statement, idx_t param_idx, int32_t val);
+
+s62_state s62_bind_int64(s62_prepared_statement* prepared_statement, idx_t param_idx, int64_t val);
+
+s62_state s62_bind_hugeint(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_hugeint val);
+
+s62_state s62_bind_uint8(s62_prepared_statement* prepared_statement, idx_t param_idx, uint8_t val);
+
+s62_state s62_bind_uint16(s62_prepared_statement* prepared_statement, idx_t param_idx, uint16_t val);
+
+s62_state s62_bind_uint32(s62_prepared_statement* prepared_statement, idx_t param_idx, uint32_t val);
+
+s62_state s62_bind_uint64(s62_prepared_statement* prepared_statement, idx_t param_idx, uint64_t val);
+
+s62_state s62_bind_float(s62_prepared_statement* prepared_statement, idx_t param_idx, float val);
+
+s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t param_idx, double val);
+
+s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val);
+
+s62_state s62_bind_time(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_time val);
+
+s62_state s62_bind_timestamp(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_timestamp val);
+
+s62_state s62_bind_interval(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_interval val);
+
+s62_state s62_bind_varchar(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val);
+
+s62_state s62_bind_varchar_length(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val, idx_t length);
+
+s62_state s62_bind_decimal(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_decimal val);
+
+s62_state s62_bind_null(s62_prepared_statement* prepared_statement, idx_t param_idx);
 
 s62_state s62_execute(s62_prepared_statement* prep_query);
 
