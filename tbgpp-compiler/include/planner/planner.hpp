@@ -135,6 +135,7 @@
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
+#include "kuzu/binder/expression/parameter_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -205,6 +206,7 @@ public:
 	void execute(BoundStatement* bound_statement);
 	vector<duckdb::CypherPipelineExecutor*> genPipelineExecutors();
 	vector<string> getQueryOutputColNames();
+	LogicalSchema getQueryOutputSchema();
 
 private:
 	// planner.cpp
@@ -260,6 +262,7 @@ private:
 	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
@@ -407,6 +410,7 @@ private:
 	vector<std::string> logical_plan_output_col_names;							// output col names
 	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
 	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
+	LogicalSchema logical_plan_output_schema;									// final output schema of the logical plan (user's view)
 	
 	// logical soptimization context
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan
