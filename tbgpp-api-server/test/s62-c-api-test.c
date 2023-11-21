@@ -30,7 +30,6 @@ int main() {
     printf("Fetching results...\n");
     int value;
     while (s62_fetch(query, &value)) {
-        // Assuming s62_fetch() populates 'value' with the integer from the current row
         printf("Fetched row value: %d\n", value);
     }
     printf("s62_fetch() done\n");

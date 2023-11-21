@@ -222,6 +222,9 @@ typedef struct {
 typedef struct _s62_prepared_statement {
 	void *__prep;
 } * s62_prepared_statement;
+typedef struct _s62_value {
+	void *__val;
+} * s62_value;
 
 typedef struct _duckdb_extracted_statements {
 	void *__extrac;
@@ -259,6 +262,7 @@ typedef enum {
 typedef enum {
     S62_NO_ERROR = 0,
     S62_ERROR_CONNECTION_FAILED = -1
+	S62_ERROR_INVALID_STATEMENT = -2
 } s62_error_code;
 
 typedef enum {

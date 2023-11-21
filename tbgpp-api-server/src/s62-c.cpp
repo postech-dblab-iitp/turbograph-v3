@@ -100,6 +100,25 @@ s62_prepared_statement* s62_prepare(Query query) {
     return nullptr;
 }
 
+s62_state s62_bind_value(s62_prepared_statement prepared_statement, idx_t param_idx, s62_value val) {
+	auto value = reinterpret_cast<Value *>(val);
+	auto wrapper = reinterpret_cast<PreparedStatementWrapper *>(prepared_statement);
+	if (!wrapper || !wrapper->statement) {
+        last_error_message = "Invalid prepared statement";
+        last_error_code = S62_ERROR_INVALID_STATEMENT;
+		return S62_ERROR;
+	}
+	if (param_idx <= 0 || param_idx > wrapper->statement->n_param) {
+		wrapper->statement->error =
+		    duckdb::InvalidInputException("Can not bind to parameter number %d, statement only has %d parameter(s)",
+		                                  param_idx, wrapper->statement->n_param);
+		return DuckDBError;
+	}
+	auto identifier = duckdb_parameter_name_internal(prepared_statement, param_idx);
+	wrapper->values[identifier] = *value;
+	return DuckDBSuccess;
+}
+
 s62_state s62_bind_value(s62_prepared_statement*, int32_t param_idx, int value) {
     return S62_SUCCESS;
 }
