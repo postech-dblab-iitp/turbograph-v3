@@ -391,7 +391,7 @@ s62_time s62_get_time(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
 s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
-const char* s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
 #ifdef __cplusplus
 }

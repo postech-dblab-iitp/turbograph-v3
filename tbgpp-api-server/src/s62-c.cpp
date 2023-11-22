@@ -791,7 +791,11 @@ s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col
 	return result;
 }
 
-const char* s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	string_t& str = s62_get_value<duckdb::string_t, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
-	return str.GetDataUnsafe();
+s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	duckdb::string_t str = s62_get_value<duckdb::string_t, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
+	s62_string result;
+	result.size = str.GetSize();
+	result.data = (char*)malloc(result.size);
+    strcpy(result.data, str.GetDataUnsafe());
+	return result;
 }

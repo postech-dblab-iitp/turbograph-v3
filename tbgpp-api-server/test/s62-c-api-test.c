@@ -95,14 +95,15 @@ int main() {
 
     // Fetch results=
     while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
-        const char *ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
+        s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
+        s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
+        s62_hugeint sum_qty_value = s62_get_hugeint(resultset_wrapper, 2);
         double avg_qty_value = s62_get_double(resultset_wrapper, 6);
         double avg_price_value = s62_get_double(resultset_wrapper, 7);
         double avg_disc_value = s62_get_double(resultset_wrapper, 8);
         int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
-        printf("ret_flag: %s\n", ret_flag_value);
-        printf("avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
-                avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
+        printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
+                ret_flag_value.data, line_stat_value.data, sum_qty_value.upper, sum_qty_value.lower, avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
     }
     printf("s62_fetch() done\n");
 
