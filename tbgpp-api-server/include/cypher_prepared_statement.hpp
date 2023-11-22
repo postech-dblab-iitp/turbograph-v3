@@ -7,6 +7,8 @@
 #include <sstream>
 #include <regex>
 #include <stdexcept>
+#include "types/value.hpp"
+#include "types/data_chunk.hpp"
 
 namespace duckdb {
 
@@ -15,7 +17,7 @@ public:
     std::string originalQuery;
     std::map<std::string, std::string> params; // Stores param names and their values
     std::vector<std::string> paramOrder; // Stores the order of param names for indexed access
-    int boundParams = 0;
+	std::vector<DataChunk*> queryResults;
 
     CypherPreparedStatement(const std::string& query) : originalQuery(query) {
         std::regex paramRegex("\\$[a-zA-Z_][a-zA-Z0-9_]*"); // Regex to match named parameters like $name
@@ -30,68 +32,21 @@ public:
         }
     }
 
+    bool checkParamsAllSet() {
+        for (const auto& pair : params) {
+            if (pair.second == "") {
+                return false;
+            }
+        }
+        return true;
+    }
+
     size_t getNumParams() {
         return params.size();
     }
 
-    void setParam(const std::string& paramName, const std::string& value) {
-        if (params.find(paramName) != params.end()) {
-            params[paramName] = "'" + value + "'";
-            boundParams++;
-        } else {
-            throw std::out_of_range("Parameter name not found: " + paramName);
-        }
-    }
-
-    void setParam(int index, const std::string& value) {
-        if (index >= 0 && index < paramOrder.size()) {
-            setParam(paramOrder[index], value);
-        } else {
-            throw std::out_of_range("Parameter index out of bounds: " + std::to_string(index));
-        }
-    }
-
-    // void setParam(int index, const std::string& value) {
-    //     if (index > 0 && index <= params.size()) {
-    //         params[index - 1] = "'" + value + "'";
-    //         boundParams++;
-    //     } else {
-    //         throw std::out_of_range("Index out of bounds for string, index " + std::to_string(index));
-    //     }
-    // }
-
-    // void setParam(int index, int value) {
-    //     if (index > 0 && index <= params.size()) {
-    //         params[index - 1] = std::to_string(value);
-    //         boundParams++;
-    //     } else {
-    //         throw std::out_of_range("Index out of bounds for integer, index " + std::to_string(index));
-    //     }
-    // }
-
-    // void setParam(int index, double value) {
-    //     if (index > 0 && index <= params.size()) {
-    //         params[index - 1] = std::to_string(value);
-    //         boundParams++;
-    //     } else {
-    //         throw std::out_of_range("Index out of bounds for double, index " + std::to_string(index));
-    //     }
-    // }
-
-    // void setParam(int index, bool value) {
-    //     if (index > 0 && index <= params.size()) {
-    //         params[index - 1] = value ? "true" : "false";
-    //         boundParams++;
-    //     } else {
-    //         throw std::out_of_range("Index out of bounds for boolean, index " + std::to_string(index));
-    //     }
-    // }
-
-    std::string getQuery() {
-        if (boundParams != params.size()) {
-            std::cerr << "Not all parameters have been set!" << std::endl;
-            return "";
-        }
+    std::string getBoundQuery() {
+        D_ASSERT(checkParamsAllSet());
 
         std::string result = originalQuery;
         for (const auto& pair : params) {
@@ -102,6 +57,42 @@ public:
             }
         }
         return result;
+    }
+
+    bool bindValue(int index, Value& value) {
+        if (index >= 0 && index < paramOrder.size()) {
+            auto type = value.type();
+            auto type_id = type.id();
+            
+            if (type_id == LogicalTypeId::BOOLEAN) {
+                params[paramOrder[index]] = value.GetValue<bool>() ? "true" : "false";
+            }
+            else if (type_id == LogicalTypeId::VARCHAR) {
+                params[paramOrder[index]] = "'" + value.GetValue<string>() + "'";
+            } 
+            else {
+                params[paramOrder[index]] = value.ToString();
+            }
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    void copyResults(vector<DataChunk*>& results) {
+        for (size_t i = 0; i < results.size(); i++) {
+            queryResults.push_back(new DataChunk());
+        }
+        for (size_t i = 0; i < results.size(); i++) {
+            queryResults[i]->Move(*results[i]);
+        }
+    }
+
+    size_t getNumRows() {
+        size_t num_total_tuples = 0;
+        for (auto &it : queryResults) num_total_tuples += it->size();
+        return num_total_tuples;
     }
 };
 }
