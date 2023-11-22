@@ -31,8 +31,10 @@ typedef char* s62_sql_type;
 typedef int s62_property_order;
 typedef int s62_precision;
 typedef int s62_scale;
-typedef int s62_num_metadata;
-typedef int s62_num_properties;
+typedef size_t s62_num_metadata;
+typedef size_t s62_num_properties;
+typedef size_t s62_num_rows;
+typedef size_t s62_cursor;
 
 typedef enum S62_METADATA_TYPE {
 	S62_NODE = 0,
@@ -183,47 +185,6 @@ typedef struct {
 	uint64_t length;
 } s62_list_entry;
 
-// typedef struct {
-// #if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
-// 	void *data;
-// 	bool *nullmask;
-// 	duckdb_type type;
-// 	char *name;
-// #else
-// 	// deprecated, use duckdb_column_data
-// 	void *__deprecated_data;
-// 	// deprecated, use duckdb_nullmask_data
-// 	bool *__deprecated_nullmask;
-// 	// deprecated, use duckdb_column_type
-// 	duckdb_type __deprecated_type;
-// 	// deprecated, use duckdb_column_name
-// 	char *__deprecated_name;
-// #endif
-// 	void *internal_data;
-// } duckdb_column;
-
-// typedef struct {
-// #if DUCKDB_API_VERSION < DUCKDB_API_0_3_2
-// 	idx_t column_count;
-// 	idx_t row_count;
-// 	idx_t rows_changed;
-// 	duckdb_column *columns;
-// 	char *error_message;
-// #else
-// 	// deprecated, use duckdb_column_count
-// 	idx_t __deprecated_column_count;
-// 	// deprecated, use duckdb_row_count
-// 	idx_t __deprecated_row_count;
-// 	// deprecated, use duckdb_rows_changed
-// 	idx_t __deprecated_rows_changed;
-// 	// deprecated, use duckdb_column_ family of functions
-// 	duckdb_column *__deprecated_columns;
-// 	// deprecated, use duckdb_result_error
-// 	char *__deprecated_error_message;
-// #endif
-// 	void *internal_data;
-// } duckdb_result;
-
 typedef struct _s62_property {
 	s62_label_name label_name;
 	s62_metadata_type label_type;
@@ -248,6 +209,26 @@ typedef struct _s62_value {
 	void *__val;
 } * s62_value;
 
+typedef struct _s62_result {
+	s62_type data_type;
+	s62_sql_type data_sql_type;
+	s62_num_rows num_rows;
+	void* __internal_data;
+	struct _s62_result *next;
+} s62_result;
+
+typedef struct _s62_resultset {
+	s62_num_properties num_properties;
+	s62_result *result;
+	struct _s62_resultset *next;
+} s62_resultset;
+
+typedef struct _s62_resultset_wrapper {
+	s62_num_rows num_total_rows;
+	s62_cursor cursor;
+	struct _s62_resultset *result_set;
+} s62_resultset_wrapper;
+
 typedef struct _s62_metadata {
 	s62_label_name label_name;
 	s62_metadata_type type;
@@ -265,6 +246,12 @@ typedef enum {
 } s62_conn_state;
 
 typedef enum {
+	S62_MORE_RESULT = 1,
+	S62_END_OF_RESULT = 0,
+	S62_ERROR_RESULT = -1,
+} s62_fetch_state;
+
+typedef enum {
     S62_NO_ERROR = 0,
     S62_ERROR_CONNECTION_FAILED = -1,
 	S62_ERROR_INVALID_STATEMENT = -2,
@@ -277,6 +264,10 @@ typedef enum {
 	S62_ERROR_INVALID_PREPARED_STATEMENT = -9,
 	S62_ERROR_INVALID_METADATA_TYPE = -10,
 	S62_ERROR_INVALID_PLAN = -11,
+	S62_ERROR_INVALID_RESULT_SET = -12,
+	S62_ERROR_INVALID_COLUMN_INDEX = -13,
+	S62_ERROR_INVALID_COLUMN_TYPE = -14,
+	S62_ERROR_INVALID_CURSOR = -15,
 } s62_error_code;
 
 typedef enum {
@@ -352,8 +343,6 @@ s62_state s62_bind_time(s62_prepared_statement* prepared_statement, idx_t param_
 
 s62_state s62_bind_timestamp(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_timestamp val);
 
-s62_state s62_bind_interval(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_interval val);
-
 s62_state s62_bind_varchar(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val);
 
 s62_state s62_bind_varchar_length(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val, idx_t length);
@@ -362,9 +351,47 @@ s62_state s62_bind_decimal(s62_prepared_statement* prepared_statement, idx_t par
 
 s62_state s62_bind_null(s62_prepared_statement* prepared_statement, idx_t param_idx);
 
-s62_state s62_execute(s62_prepared_statement* prep_query);
+//===--------------------------------------------------------------------===//
+// s62_execute
+//===--------------------------------------------------------------------===//
 
-int s62_fetch(s62_prepared_statement* prep_query, int* value);
+s62_num_rows s62_execute(s62_prepared_statement* prep_query, s62_resultset_wrapper** result_set_wrp);
+
+s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp);
+
+s62_fetch_state s62_fetch_next(s62_resultset_wrapper* result_set_wrp);
+
+bool s62_get_bool(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+int8_t s62_get_int8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+int16_t s62_get_int16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+int32_t s62_get_int32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+int64_t s62_get_int64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+s62_hugeint s62_get_hugeint(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+uint8_t s62_get_uint8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+uint16_t s62_get_uint16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+uint32_t s62_get_uint32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+uint64_t s62_get_uint64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+float s62_get_float(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+double s62_get_double(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+s62_date s62_get_date(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+s62_time s62_get_time(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+const char* s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
 #ifdef __cplusplus
 }

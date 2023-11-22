@@ -13,7 +13,7 @@ int main() {
     s62_metadata* metadata;
     s62_num_metadata num_metadata = s62_get_metadata_from_catalog(NULL, false, false, &metadata);
     printf("s62_get_metadata_from_catalog() done\n");
-    printf("num_metadata: %d\n", num_metadata);
+    printf("num_metadata: %ld\n", num_metadata);
     
     // Iterate over linked list, and print label name and type
     s62_metadata* current = metadata;
@@ -29,7 +29,7 @@ int main() {
         s62_property* properties;
         s62_num_properties num_properties = s62_get_property_from_catalog(current_metadata->label_name, current_metadata->type, &properties);
         printf("s62_get_properties_from_catalog() done\n");
-        printf("num_properties: %d\n", num_properties);
+        printf("num_properties: %ld\n", num_properties);
 
         s62_property* current_property = properties;
         while (current_property != NULL) {
@@ -46,7 +46,7 @@ int main() {
 
     // Prepare query
     s62_prepared_statement* prep_stmt = s62_prepare("MATCH (item:LINEITEM) \
-		WHERE item.L_SHIPDATE <= $date \
+		WHERE item.L_EXTENDEDPRICE <= $ext \
 		RETURN \
 			item.L_RETURNFLAG AS ret_flag, \
 			item.L_LINESTATUS AS line_stat, \ 
@@ -66,7 +66,7 @@ int main() {
 
     printf("Prepared statement original query: %s\n", prep_stmt->query);
     printf("Prepared statement plan: %s\n", prep_stmt->plan);
-    printf("Prepared statement num_properties: %d\n", prep_stmt->num_properties);
+    printf("Prepared statement num_properties: %ld\n", prep_stmt->num_properties);
     s62_property* current_property = prep_stmt->property;
     while (current_property != NULL) {
         if (current_property->label_name == NULL) {
@@ -80,31 +80,39 @@ int main() {
         current_property = current_property->next;
     }
 
+    // Bind value
+    // Create s62_decimal value
+    s62_hugeint hint_value = {100010, 0};
+    s62_decimal dec_value = {5, 2, hint_value};
+    s62_bind_decimal(prep_stmt, 1, dec_value);
+    printf("s62_bind_value() done\n");
+
+    // Execute query
+    s62_resultset_wrapper *resultset_wrapper;
+    s62_num_rows rows = s62_execute(prep_stmt, &resultset_wrapper);
+    printf("s62_execute_query() done\n");
+    printf("rows: %ld, num_properties: %ld, cursor: %ld\n", rows, resultset_wrapper->result_set->num_properties, resultset_wrapper->cursor);
+
+    // Fetch results=
+    while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
+        const char *ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
+        double avg_qty_value = s62_get_double(resultset_wrapper, 6);
+        double avg_price_value = s62_get_double(resultset_wrapper, 7);
+        double avg_disc_value = s62_get_double(resultset_wrapper, 8);
+        int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
+        printf("ret_flag: %s\n", ret_flag_value);
+        printf("avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
+                avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
+    }
+    printf("s62_fetch() done\n");
+
+    s62_close_resultset(resultset_wrapper);
+    printf("s62_close_resultset() done\n");
+
     s62_close_prepared_statement(prep_stmt);
+    printf("s62_close_prepared_statement() done\n");
 
-    // // Bind values
-    // int lower_bound = 1;
-    // int upper_bound = 100;
-    // s62_bind_value(query, 1, lower_bound);
-    // s62_bind_value(query, 2, upper_bound);
-    // printf("s62_bind_value() done\n");
+    s62_disconnect();
 
-    // // Execute query
-    // state = s62_execute(query);
-    // printf("s62_execute_query() done\n");
-    // printf("state: %d\n", state);
-
-    // // Fetch results
-    // printf("Fetching results...\n");
-    // int value;
-    // while (s62_fetch(query, &value)) {
-    //     printf("Fetched row value: %d\n", value);
-    // }
-    // printf("s62_fetch() done\n");
-
-    // // Disconnect
-    // s62_disconnect();
-    // printf("s62_disconnect() done\n");
-    
     return 0;
 }

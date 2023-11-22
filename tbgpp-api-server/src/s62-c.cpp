@@ -382,7 +382,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 s62_prepared_statement* s62_prepare(s62_query query) {
 	auto prep_stmt = (s62_prepared_statement*)malloc(sizeof(s62_prepared_statement));
 	prep_stmt->query = query;
-	prep_stmt->__internal_prepared_statement = new CypherPreparedStatement(string(query));
+	prep_stmt->__internal_prepared_statement = reinterpret_cast<void*>(new CypherPreparedStatement(string(query)));
 	s62_compile_query(string(query));
 	s62_extract_query_metadata(prep_stmt);
     return prep_stmt;
@@ -416,7 +416,7 @@ s62_state s62_bind_value(s62_prepared_statement* prepared_statement, idx_t param
         last_error_code = S62_ERROR_INVALID_STATEMENT;
 		return S62_ERROR;
 	}
-	if (param_idx <= 0 || param_idx > cypher_stmt->getNumParams()) {
+	if (!cypher_stmt->bindValue(param_idx - 1, *value)) {
         last_error_message = "Can not bind to parameter number " + std::to_string(param_idx) + ", statement only has " + std::to_string(cypher_stmt->getNumParams()) + " parameter(s)";
         last_error_code = S62_ERROR_INVALID_PARAMETER_INDEX;
 		return S62_ERROR;
@@ -507,11 +507,6 @@ s62_state s62_bind_timestamp(s62_prepared_statement* prepared_statement, idx_t p
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 
-s62_state s62_bind_interval(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_interval val) {
-	auto value = Value::INTERVAL(val.months, val.days, val.micros);
-	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
-}
-
 s62_state s62_bind_varchar(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val) {
 	try {
 		auto value = Value(val);
@@ -547,18 +542,256 @@ s62_state s62_bind_null(s62_prepared_statement* prepared_statement, idx_t param_
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 
+static void s62_register_resultset(s62_prepared_statement* prepared_statement, s62_resultset_wrapper** _results_set_wrp) {
+	auto cypher_prep_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
 
-s62_state s62_execute(s62_prepared_statement* prepared_statement) {
-    return S62_SUCCESS;
+	// Create linked list of s62_resultset
+	s62_resultset *result_set = nullptr;
+	s62_resultset *prev_result_set = nullptr;
+
+	for (auto data_chunk: cypher_prep_stmt->queryResults) {
+		s62_resultset *new_result_set = (s62_resultset*)malloc(sizeof(s62_resultset));
+		new_result_set->num_properties = prepared_statement->num_properties;
+		new_result_set->next = nullptr;
+
+		// Create linked list of s62_result and register to result
+		{
+			s62_result *result = nullptr;
+			s62_result *prev_result = nullptr;
+			s62_property *property = prepared_statement->property;
+
+			for (int i = 0; i < prepared_statement->num_properties; i++) {
+				s62_result *new_result = (s62_result*)malloc(sizeof(s62_result));
+				new_result->data_type = property->property_type;
+				new_result->data_sql_type = property->property_sql_type;
+				new_result->num_rows = data_chunk->size();
+				new_result->__internal_data = (void*)(&data_chunk->data[i]);
+				new_result->next = nullptr;
+
+				if (!result) {
+					result = new_result;
+				} else {
+					prev_result->next = new_result;
+				}
+				prev_result = new_result;
+				property = property->next;
+			}
+			new_result_set->result = result;
+		}
+
+		if (!result_set) {
+			result_set = new_result_set;
+		} else {
+			prev_result_set->next = new_result_set;
+		}
+		prev_result_set = new_result_set;
+	}
+
+	s62_resultset_wrapper *result_set_wrp = (s62_resultset_wrapper*)malloc(sizeof(s62_resultset_wrapper));
+	result_set_wrp->result_set = result_set;
+	result_set_wrp->cursor = 0;
+	result_set_wrp->num_total_rows = cypher_prep_stmt->getNumRows();
+	*_results_set_wrp = result_set_wrp;
 }
 
-int s62_fetch(s62_prepared_statement* prep_query, int* value) {
-    static int i = 0;
-    if (i < 100 ) {
-        *value = i;
-        i++;
-        return 1;
-    } else {
-        return 0;
+s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_resultset_wrapper** result_set_wrp) {
+	auto cypher_prep_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
+	std::cout << cypher_prep_stmt->getBoundQuery() << std::endl;
+	s62_compile_query(cypher_prep_stmt->getBoundQuery());
+	auto executors = planner->genPipelineExecutors();
+    if (executors.size() == 0) { 
+		last_error_message = "Invalid plan";
+		last_error_code = S62_ERROR_INVALID_PLAN;
+		return S62_ERROR;
     }
+    else {
+        for( auto exec : executors ) { exec->ExecutePipeline(); }
+		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
+		s62_register_resultset(prepared_statement, result_set_wrp);
+    	return cypher_prep_stmt->getNumRows();
+    }
+}
+
+s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
+	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
+		last_error_message = "Invalid result set";
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return S62_ERROR;
+	}
+
+	s62_resultset *next_result_set = nullptr;
+	s62_resultset *result_set = result_set_wrp->result_set;
+	while (result_set != nullptr) {
+		next_result_set = result_set->next;
+		s62_result *next_result = nullptr;
+		s62_result *result = result_set->result;
+		while (result != nullptr) {
+			auto next_result = result->next;
+			free(result);
+			result = next_result;
+		}
+		free(result_set);
+		result_set = next_result_set;
+	}
+	free(result_set_wrp);
+
+	return S62_SUCCESS;
+}
+
+s62_fetch_state s62_fetch_next(s62_resultset_wrapper* result_set_wrp) {
+	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
+		last_error_message = "Invalid result set";
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return S62_ERROR_RESULT;
+	}
+
+	if (result_set_wrp->cursor >= result_set_wrp->num_total_rows) {
+		return S62_END_OF_RESULT;
+	}
+	else {
+		result_set_wrp->cursor++;
+		if (result_set_wrp->cursor <= result_set_wrp->num_total_rows) {
+			return S62_MORE_RESULT;
+		} else {
+			return S62_END_OF_RESULT;
+		}
+	}
+}
+
+static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set_wrp, idx_t col_idx, size_t& local_cursor) {
+	auto cursor = result_set_wrp->cursor - 1;
+	size_t acc_rows = 0;
+
+	s62_resultset *result_set = result_set_wrp->result_set;
+	while (result_set != nullptr) {
+		auto num_rows = result_set->result->num_rows;
+		if (cursor < acc_rows + num_rows) {
+			break;
+		}
+		acc_rows += num_rows;
+		result_set = result_set->next;
+	}
+	local_cursor = cursor - acc_rows;
+
+	if (result_set == nullptr) {
+		last_error_message = "Invalid result set";
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return nullptr;
+	}
+
+	auto result = result_set->result;
+	for (int i = 0; i < col_idx; i++) {
+		result = result->next;
+	}
+
+	if (result == nullptr) {
+		last_error_message = "Invalid column index";
+		last_error_code = S62_ERROR_INVALID_COLUMN_INDEX;
+		return nullptr;
+	}
+
+	return result;
+}
+
+template <typename T, duckdb::LogicalTypeId TYPE_ID>
+static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	// Check cursor
+	if (result_set_wrp == nullptr) {
+		last_error_message = "Invalid result set";
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return T();
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == nullptr) { return T(); }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != TYPE_ID) {
+        last_error_message = "Invalid column type";
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return T();
+    }
+    else {
+        return FlatVector::GetData<T>(*vec)[local_cursor];
+    }
+}
+
+bool s62_get_bool(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+    return s62_get_value<bool, duckdb::LogicalTypeId::BOOLEAN>(result_set_wrp, col_idx);
+}
+
+int8_t s62_get_int8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+    return s62_get_value<int8_t, duckdb::LogicalTypeId::TINYINT>(result_set_wrp, col_idx);
+}
+
+int16_t s62_get_int16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<int16_t, duckdb::LogicalTypeId::SMALLINT>(result_set_wrp, col_idx);
+}
+
+int32_t s62_get_int32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<int32_t, duckdb::LogicalTypeId::INTEGER>(result_set_wrp, col_idx);
+}
+
+int64_t s62_get_int64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<int64_t, duckdb::LogicalTypeId::BIGINT>(result_set_wrp, col_idx);
+}
+
+s62_hugeint s62_get_hugeint(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	hugeint_t hugeint = s62_get_value<hugeint_t, duckdb::LogicalTypeId::HUGEINT>(result_set_wrp, col_idx);
+	s62_hugeint result;
+	result.lower = hugeint.lower;
+	result.upper = hugeint.upper;
+	return result;
+}
+
+uint8_t s62_get_uint8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<uint8_t, duckdb::LogicalTypeId::UTINYINT>(result_set_wrp, col_idx);
+}
+
+uint16_t s62_get_uint16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<uint16_t, duckdb::LogicalTypeId::SMALLINT>(result_set_wrp, col_idx);
+}
+
+uint32_t s62_get_uint32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<uint32_t, duckdb::LogicalTypeId::INTEGER>(result_set_wrp, col_idx);
+}
+
+uint64_t s62_get_uint64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<uint64_t, duckdb::LogicalTypeId::BIGINT>(result_set_wrp, col_idx);
+}
+
+float s62_get_float(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<float, duckdb::LogicalTypeId::FLOAT>(result_set_wrp, col_idx);
+}
+
+double s62_get_double(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<double, duckdb::LogicalTypeId::DOUBLE>(result_set_wrp, col_idx);
+}
+
+s62_date s62_get_date(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	duckdb::date_t date = s62_get_value<duckdb::date_t, duckdb::LogicalTypeId::DATE>(result_set_wrp, col_idx);
+	s62_date result;
+	result.days = date.days;
+	return result;
+}
+
+s62_time s62_get_time(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	duckdb::dtime_t time = s62_get_value<duckdb::dtime_t, duckdb::LogicalTypeId::TIME>(result_set_wrp, col_idx);
+	s62_time result;
+	result.micros = time.micros;
+	return result;
+}
+
+s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	duckdb::timestamp_t timestamp = s62_get_value<duckdb::timestamp_t, duckdb::LogicalTypeId::TIMESTAMP>(result_set_wrp, col_idx);
+	s62_timestamp result;
+	result.micros = timestamp.value;
+	return result;
+}
+
+const char* s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	string_t& str = s62_get_value<duckdb::string_t, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
+	return str.GetDataUnsafe();
 }
