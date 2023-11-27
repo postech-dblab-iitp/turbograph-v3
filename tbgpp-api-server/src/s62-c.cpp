@@ -30,6 +30,17 @@ static s62::Planner* planner;
 static s62_error_code last_error_code = S62_NO_ERROR;
 static std::string last_error_message;
 
+// Message Constants
+static const std::string INVALID_METADATA_MSG = "Invalid metadata";
+static const std::string UNSUPPORTED_OPERATION_MSG = "Unsupported operation";
+static const std::string INVALID_LABEL_MSG = "Invalid label";
+static const std::string INVALID_METADATA_TYPE_MSG = "Invalid metadata type";
+static const std::string INVALID_NUMBER_OF_PROPERTIES_MSG = "Invalid number of properties";
+static const std::string INVALID_PROPERTY_MSG = "Invalid property";
+static const std::string INVALID_PLAN_MSG = "Invalid plan";
+static const std::string INVALID_PREPARED_STATEMENT_MSG = "Invalid prepared statement";
+static const std::string INVALID_RESULT_SET_MSG = "Invalid result set";
+
 s62_state s62_connect(const char *dbname) {
     try
     {
@@ -94,8 +105,8 @@ s62_conn_state s62_is_connected() {
     }
 }
 
-s62_error_code s62_get_last_error(char *errmsg) {
-    errmsg = (char*)last_error_message.c_str();
+s62_error_code s62_get_last_error(char **errmsg) {
+    *errmsg = (char*)last_error_message.c_str();
     return last_error_code;
 }
 
@@ -122,7 +133,7 @@ inline static PartitionCatalogEntry* s62_get_edge_partition_catalog_entry(string
 
 s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_flag, bool filter_flag, s62_metadata **_metadata) {
 	if(label != NULL && !like_flag && !filter_flag) {
-        last_error_message = "Unsupported operation";
+        last_error_message = UNSUPPORTED_OPERATION_MSG;
 		last_error_code = S62_ERROR_UNSUPPORTED_OPERATION;
 		return last_error_code;
 	}
@@ -171,7 +182,7 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 
 s62_state s62_close_metadata(s62_metadata *metadata) {
 	if (metadata == nullptr) {
-		last_error_message = "Invalid metadata";
+		last_error_message = INVALID_METADATA_MSG.c_str();
 		last_error_code = S62_ERROR_INVALID_METADATA;
 		return S62_ERROR;
 	}
@@ -206,7 +217,7 @@ static void s62_extract_width_scale_from_type(s62_property* property, LogicalTyp
 
 s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metadata_type type, s62_property** _property) {
 	if (label == NULL) {
-		last_error_message = "Invalid label";
+		last_error_message = INVALID_LABEL_MSG;
 		last_error_code = S62_ERROR_INVALID_LABEL;
 		return S62_ERROR;
 	}
@@ -222,7 +233,7 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 	} else if (type == S62_METADATA_TYPE::S62_EDGE) {
 		partition_cat_entry = s62_get_edge_partition_catalog_entry(string(label));
 	} else {
-		last_error_message = "Invalid metadata type";
+		last_error_message = INVALID_METADATA_TYPE_MSG;
 		last_error_code = S62_ERROR_INVALID_METADATA_TYPE;
 		return S62_ERROR;
 	}
@@ -231,7 +242,7 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 	auto num_types = partition_cat_entry->global_property_typesid.size();
 
 	if (num_properties != num_types) {
-		last_error_message = "Invalid number of properties";
+		last_error_message = INVALID_NUMBER_OF_PROPERTIES_MSG;
 		last_error_code = S62_ERROR_INVALID_NUMBER_OF_PROPERTIES;
 		return S62_ERROR;
 	}
@@ -272,7 +283,7 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 
 s62_state s62_close_property(s62_property *property) {
 	if (property == nullptr) {
-		last_error_message = "Invalid property";
+		last_error_message = INVALID_PROPERTY_MSG;
 		last_error_code = S62_ERROR_INVALID_PROPERTY;
 		return S62_ERROR;
 	}
@@ -336,7 +347,7 @@ static void s62_get_label_name_type_from_ccolref(CColRef* col_ref, s62_property 
 static void s62_extract_query_metadata(s62_prepared_statement* prepared_statement) {
     auto executors = planner->genPipelineExecutors();
 	 if (executors.size() == 0) {
-		last_error_message = "Invalid plan";
+		last_error_message = INVALID_PLAN_MSG;
 		last_error_code = S62_ERROR_INVALID_PLAN;
 		return;
     }
@@ -390,14 +401,14 @@ s62_prepared_statement* s62_prepare(s62_query query) {
 
 s62_state s62_close_prepared_statement(s62_prepared_statement* prepared_statement) {
 	if (prepared_statement == nullptr) {
-		last_error_message = "Invalid prepared statement";
+		last_error_message = INVALID_PREPARED_STATEMENT_MSG;
 		last_error_code = S62_ERROR_INVALID_STATEMENT;
 		return S62_ERROR;
 	}
 
 	auto cypher_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
 	if (!cypher_stmt) {
-		last_error_message = "Invalid prepared statement";
+		last_error_message = INVALID_PREPARED_STATEMENT_MSG;
 		last_error_code = S62_ERROR_INVALID_STATEMENT;
 		return S62_ERROR;
 	}
@@ -412,7 +423,7 @@ s62_state s62_bind_value(s62_prepared_statement* prepared_statement, idx_t param
 	auto value = reinterpret_cast<Value *>(val);
 	auto cypher_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
 	if (!cypher_stmt) {
-        last_error_message = "Invalid prepared statement";
+        last_error_message = INVALID_PREPARED_STATEMENT_MSG;
         last_error_code = S62_ERROR_INVALID_STATEMENT;
 		return S62_ERROR;
 	}
@@ -600,7 +611,7 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 	s62_compile_query(cypher_prep_stmt->getBoundQuery());
 	auto executors = planner->genPipelineExecutors();
     if (executors.size() == 0) { 
-		last_error_message = "Invalid plan";
+		last_error_message = INVALID_PLAN_MSG;
 		last_error_code = S62_ERROR_INVALID_PLAN;
 		return S62_ERROR;
     }
@@ -614,7 +625,7 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 
 s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
 	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
-		last_error_message = "Invalid result set";
+		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return S62_ERROR;
 	}
@@ -640,7 +651,7 @@ s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
 
 s62_fetch_state s62_fetch_next(s62_resultset_wrapper* result_set_wrp) {
 	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
-		last_error_message = "Invalid result set";
+		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return S62_ERROR_RESULT;
 	}
@@ -674,7 +685,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 	local_cursor = cursor - acc_rows;
 
 	if (result_set == nullptr) {
-		last_error_message = "Invalid result set";
+		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return nullptr;
 	}
@@ -685,7 +696,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 	}
 
 	if (result == nullptr) {
-		last_error_message = "Invalid column index";
+		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_COLUMN_INDEX;
 		return nullptr;
 	}
@@ -695,9 +706,8 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 
 template <typename T, duckdb::LogicalTypeId TYPE_ID>
 static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	// Check cursor
 	if (result_set_wrp == nullptr) {
-		last_error_message = "Invalid result set";
+		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return T();
 	}
@@ -709,7 +719,7 @@ static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
 
     if (vec->GetType().id() != TYPE_ID) {
-        last_error_message = "Invalid column type";
+        last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return T();
     }
@@ -798,4 +808,42 @@ s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx)
 	result.data = (char*)malloc(result.size);
     strcpy(result.data, str.GetDataUnsafe());
 	return result;
+}
+
+s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	// Decimal needs special handling
+	auto default_value = s62_decimal{0,0,{0,0}};
+	if (result_set_wrp == nullptr) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return default_value;
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == nullptr) { return default_value; }
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	auto data_type = vec->GetType();
+	auto width = duckdb::DecimalType::GetWidth(data_type);
+	auto scale = duckdb::DecimalType::GetScale(data_type);
+	std::cout << "Width: " << width << " Scale: " << scale << std::endl;
+	switch (data_type.InternalType()) {
+		case duckdb::PhysicalType::INT16:
+			return s62_decimal{width,scale,{s62_get_int16(result_set_wrp, col_idx),0}};
+		case duckdb::PhysicalType::INT32:
+			return s62_decimal{width,scale,{s62_get_int32(result_set_wrp, col_idx),0}};
+		case duckdb::PhysicalType::INT64:
+			return s62_decimal{width,scale,{s62_get_int64(result_set_wrp, col_idx),0}};
+		case duckdb::PhysicalType::INT128:
+		{
+			auto int128_val = s62_get_hugeint(result_set_wrp, col_idx);
+			return s62_decimal{width,scale,{int128_val.lower,int128_val.upper}};
+			break;
+		}
+		default:
+		{
+			return default_value;
+		}
+	}
+
 }

@@ -6,9 +6,9 @@ int main() {
     printf("s62_connect() done\n");
     printf("state: %d\n", state);
 
-    state = s62_is_connected();
+    s62_conn_state state2 = s62_is_connected();
     printf("s62_is_connected() done\n");
-    printf("state: %d\n", state);
+    printf("state: %d\n", state2);
 
     s62_metadata* metadata;
     s62_num_metadata num_metadata = s62_get_metadata_from_catalog(NULL, false, false, &metadata);
