@@ -21,7 +21,7 @@ endif()
 ####################################################
 # DECLARE TARGETS
 ####################################################
-add_library(tbgpp-api-server STATIC)
+add_library(tbgpp-api-server SHARED)
 
 ####################################################
 # GLOBAL DEFINITION
@@ -64,11 +64,6 @@ foreach(test_file ${CLIENT_TEST_SRC})
 	"${PROJECT_SOURCE_DIR}/include"
   )
   target_link_libraries(${prog_name} PRIVATE
-    tbgpp-main
-    tbgpp-common-lib
-    tbgpp-graph-store-lib
-    tbgpp-execution-engine-lib
 	  tbgpp-api-server
-	  nlohmann_json::nlohmann_json "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
   )
 endforeach(test_file ${CLIENT_TEST_SRC})
