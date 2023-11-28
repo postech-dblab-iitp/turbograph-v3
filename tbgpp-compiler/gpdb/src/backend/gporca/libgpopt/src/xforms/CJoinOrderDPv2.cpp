@@ -1984,3 +1984,58 @@ CJoinOrderDPv2::OsPrintProperty(IOstream &os,
 
 	return os;
 }
+
+size_t CJoinOrderDPv2::CountTotalGroups() const 
+{
+	size_t total_groups = 0;
+
+    const gpopt::CJoinOrderDPv2::DPv2Levels *levels = m_join_levels;
+
+    if (levels != NULL)
+    {
+        // Iterate over each level
+        for (ULONG i = 0; i < levels->Size(); i++)
+        {
+            const gpopt::CJoinOrderDPv2::SLevelInfo *levelInfo = (*levels)[i];
+            if (levelInfo != NULL && levelInfo->m_groups != NULL)
+            {
+                // Add the number of groups in this level to the total count
+                total_groups += levelInfo->m_groups->Size();
+            }
+        }
+    }
+
+    return total_groups;
+}
+
+size_t CJoinOrderDPv2::CountTotalExpressions() const
+{
+    int total_expressions = 0;
+
+    const gpopt::CJoinOrderDPv2::DPv2Levels *levels = m_join_levels;
+
+    if (levels != NULL)
+    {
+        // Iterate over each level
+        for (ULONG i = 0; i < levels->Size(); i++)
+        {
+            const gpopt::CJoinOrderDPv2::SLevelInfo *levelInfo = (*levels)[i];
+            if (levelInfo != NULL && levelInfo->m_groups != NULL)
+            {
+                // Iterate over each group in this level
+                const gpopt::CJoinOrderDPv2::SGroupInfoArray *groups = levelInfo->m_groups;
+                for (ULONG j = 0; j < groups->Size(); j++)
+                {
+                    const gpopt::CJoinOrderDPv2::SGroupInfo *groupInfo = (*groups)[j];
+                    if (groupInfo != NULL && groupInfo->m_best_expr_info_array != NULL)
+                    {
+                        // Add the number of expressions in this group to the total count
+                        total_expressions += groupInfo->m_best_expr_info_array->Size();
+                    }
+                }
+            }
+        }
+    }
+
+    return total_expressions;
+}
