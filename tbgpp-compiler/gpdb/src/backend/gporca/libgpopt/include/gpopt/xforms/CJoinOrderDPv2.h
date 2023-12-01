@@ -571,8 +571,6 @@ public:
 		return CXform::ExfExpandNAryJoinDPv2;
 	}
 
-	IOstream &OsPrintDataStructures(IOstream &os) const;
-
 	size_t CountTotalGroups() const;
 
 	size_t CountTotalExpressions() const;

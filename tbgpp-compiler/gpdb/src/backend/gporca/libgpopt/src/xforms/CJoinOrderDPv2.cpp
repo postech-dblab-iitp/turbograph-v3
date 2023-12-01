@@ -1985,11 +1985,6 @@ CJoinOrderDPv2::OsPrintProperty(IOstream &os,
 	return os;
 }
 
-IOstream & CJoinOrderDPv2::OsPrintDataStructures(IOstream &os) const
-{
-	
-}
-
 size_t CJoinOrderDPv2::CountTotalGroups() const 
 {
 	size_t total_groups = 0;
