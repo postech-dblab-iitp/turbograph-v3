@@ -112,6 +112,8 @@ s62_type ConvertCPPTypeToC(const LogicalType &sql_type) {
 		return S62_TYPE_MAP;
 	case LogicalTypeId::UUID:
 		return S62_TYPE_UUID;
+	case LogicalTypeId::ID:
+		return S62_TYPE_ID;
 	default: // LCOV_EXCL_START
 		D_ASSERT(0);
 		return S62_TYPE_INVALID;
@@ -160,6 +162,8 @@ idx_t GetCTypeSize(s62_type type) {
 		return sizeof(s62_interval);
 	case S62_TYPE_DECIMAL:
 		return sizeof(s62_hugeint);
+	case S62_TYPE_ID:
+		return sizeof(uint64_t);
 	default: // LCOV_EXCL_START
 		// unsupported type
 		D_ASSERT(0);

@@ -158,6 +158,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 // icecream::ic.disable();
 	
 	uint64_t *adj_start, *adj_end;
+	uint64_t *src_adj_column = nullptr;
 	uint64_t *tgt_adj_column = nullptr;
 	uint64_t *eid_adj_column = nullptr;
 	uint64_t src_vid;
@@ -171,6 +172,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 		D_ASSERT(discard_edge || (state.edgeColIdx >= 0 && state.edgeColIdx < chunk.ColumnCount()));
 		if (!discard_edge) eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	}
+	if (!discard_src) src_adj_column = (uint64_t *)chunk.data[state.tgtColIdx - 1].GetData();	// always flatvector[ID]. so ok to access directly
 	if (!discard_tgt) tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	Vector &outer_vec = input.data[outer_pos];
 	// inner_vec = adj_start; // TODO
@@ -197,7 +199,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					state.all_adjs_null = false;
 
 					// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
+					fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
 				}
 				
 				// update lhs_idx and adj_idx for next iteration
@@ -206,7 +208,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					if (state.adj_idx == state.adj_col_idxs.size() - 1) {
 						if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
 							// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-							fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
+							fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
 						}
 						state.all_adjs_null = true;
 						state.lhs_idx++;
@@ -239,7 +241,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					state.all_adjs_null = false;
 
 					// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
+					fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
 				}
 				
 				// update lhs_idx and adj_idx for next iteration
@@ -248,7 +250,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					if (state.adj_idx == state.adj_col_idxs.size() - 1) {
 						if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
 							// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-							fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
+							fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
 						}
 						state.all_adjs_null = true;
 						state.lhs_idx++;
@@ -281,7 +283,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					state.all_adjs_null = false;
 
 					// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-					fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
+					fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
 				}
 				
 				// update lhs_idx and adj_idx for next iteration
@@ -290,7 +292,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 					if (state.adj_idx == state.adj_col_idxs.size() - 1) {
 						if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
 							// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-							fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
+							fillFunc(state, adj_start, src_vid, src_adj_column, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
 						}
 						state.all_adjs_null = true;
 						state.lhs_idx++;
@@ -384,14 +386,14 @@ OperatorResultType PhysicalAdjIdxJoin::ExecuteNaiveInput(ExecutionContext& conte
 		state.srcColIdx = sid_col_idx;
 		if (load_eid) {
 			if (load_eid_temporarily) {
-				state.tgtColIdx = inner_col_map[0];
-				state.edgeColIdx = inner_col_map[1];
+				state.tgtColIdx = inner_col_map.size() == 2 ? inner_col_map[0] : inner_col_map[1];
+				state.edgeColIdx = inner_col_map.size() == 2 ? inner_col_map[1] : inner_col_map[2];
 			} else {
+				state.tgtColIdx = inner_col_map.size() == 1 ? inner_col_map[1] : inner_col_map[2];
 				state.edgeColIdx = inner_col_map[0];
-				state.tgtColIdx = inner_col_map[1];
 			}
 		} else {
-			state.tgtColIdx = inner_col_map[0];
+			state.tgtColIdx = inner_col_map.size() == 1 ? inner_col_map[0] : inner_col_map[1];
 			state.edgeColIdx = -1;
 		}
 		
