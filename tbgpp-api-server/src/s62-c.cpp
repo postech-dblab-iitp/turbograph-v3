@@ -25,6 +25,7 @@ using namespace gpopt;
 static std::unique_ptr<DuckDB> database;
 static std::shared_ptr<ClientContext> client;
 static s62::Planner* planner;
+static DiskAioFactory* disk_aio_factory;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -92,13 +93,14 @@ s62_state s62_connect(const char *dbname) {
 void s62_disconnect() {
     delete ChunkCacheManager::ccm;
     delete planner;
+	delete disk_aio_factory;
     database.reset();
     client.reset();
     std::cout << "Database Disconnected" << std::endl;
 }
 
 s62_conn_state s62_is_connected() {
-    if (database != nullptr) {
+    if (database != NULL) {
         return S62_CONNECTED;
     } else {
         return S62_NOT_CONNECTED;
@@ -147,14 +149,14 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 	graph_cat->GetEdgeTypes(types);
 
 	// Create s62_metadata linked list with labels
-	s62_metadata *metadata = nullptr;
-	s62_metadata *prev = nullptr;
+	s62_metadata *metadata = NULL;
+	s62_metadata *prev = NULL;
 	for(int i = 0; i < labels.size(); i++) {
 		s62_metadata *new_metadata = (s62_metadata*)malloc(sizeof(s62_metadata));
 		new_metadata->label_name = strdup(labels[i].c_str());
 		new_metadata->type = S62_METADATA_TYPE::S62_NODE;
-		new_metadata->next = nullptr;
-		if(prev == nullptr) {
+		new_metadata->next = NULL;
+		if(prev == NULL) {
 			metadata = new_metadata;
 		} else {
 			prev->next = new_metadata;
@@ -167,8 +169,8 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 		s62_metadata *new_metadata = (s62_metadata*)malloc(sizeof(s62_metadata));
 		new_metadata->label_name = strdup(types[i].c_str());
 		new_metadata->type = S62_METADATA_TYPE::S62_EDGE;
-		new_metadata->next = nullptr;
-		if(prev == nullptr) {
+		new_metadata->next = NULL;
+		if(prev == NULL) {
 			metadata = new_metadata;
 		} else {
 			prev->next = new_metadata;
@@ -181,14 +183,14 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 }
 
 s62_state s62_close_metadata(s62_metadata *metadata) {
-	if (metadata == nullptr) {
+	if (metadata == NULL) {
 		last_error_message = INVALID_METADATA_MSG.c_str();
 		last_error_code = S62_ERROR_INVALID_METADATA;
 		return S62_ERROR;
 	}
 
 	s62_metadata *next;
-	while(metadata != nullptr) {
+	while(metadata != NULL) {
 		next = metadata->next;
 		free(metadata->label_name);
 		free(metadata);
@@ -224,9 +226,9 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 
 	auto graph_cat_entry = s62_get_graph_catalog_entry();
 	vector<idx_t> partition_indexes;
-	s62_property *property = nullptr;
-	s62_property *prev = nullptr;
-	PartitionCatalogEntry *partition_cat_entry = nullptr;
+	s62_property *property = NULL;
+	s62_property *prev = NULL;
+	PartitionCatalogEntry *partition_cat_entry = NULL;
 
 	if (type == S62_METADATA_TYPE::S62_NODE) {
 		partition_cat_entry = s62_get_vertex_partition_catalog_entry(string(label));
@@ -268,8 +270,8 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 			s62_extract_width_scale_from_type(new_property, property_logical_type);
 		}
 
-		new_property->next = nullptr;
-		if (prev == nullptr) {
+		new_property->next = NULL;
+		if (prev == NULL) {
 			property = new_property;
 		} else {
 			prev->next = new_property;
@@ -282,14 +284,14 @@ s62_num_properties s62_get_property_from_catalog(s62_label_name label, s62_metad
 }
 
 s62_state s62_close_property(s62_property *property) {
-	if (property == nullptr) {
+	if (property == NULL) {
 		last_error_message = INVALID_PROPERTY_MSG;
 		last_error_code = S62_ERROR_INVALID_PROPERTY;
 		return S62_ERROR;
 	}
 
 	s62_property *next;
-	while(property != nullptr) {
+	while(property != NULL) {
 		next = property->next;
 		free(property->property_name);
 		free(property->property_sql_type);
@@ -317,10 +319,10 @@ static void s62_compile_query(string query) {
 }
 
 static void s62_get_label_name_type_from_ccolref(CColRef* col_ref, s62_property *new_property) {
-	if (((CColRefTable*) col_ref)->GetMdidTable() != nullptr) {
+	if (((CColRefTable*) col_ref)->GetMdidTable() != NULL) {
 		OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) col_ref)->GetMdidTable())->Oid();
 		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, table_obj_id);
-		D_ASSERT(ps_cat_entry != nullptr);
+		D_ASSERT(ps_cat_entry != NULL);
 		idx_t partition_oid = ps_cat_entry->partition_oid;
 		auto graph_cat = s62_get_graph_catalog_entry();
 
@@ -339,7 +341,7 @@ static void s62_get_label_name_type_from_ccolref(CColRef* col_ref, s62_property 
 		}
 	}
 
-	new_property->label_name = nullptr;
+	new_property->label_name = NULL;
 	new_property->label_type = S62_METADATA_TYPE::S62_OTHER;
 	return;
 }
@@ -356,8 +358,8 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 		auto col_types = executors.back()->pipeline->GetSink()->schema.getStoredTypes();
 		auto logical_schema = planner->getQueryOutputSchema();
 
-		s62_property *property = nullptr;
-		s62_property *prev = nullptr;
+		s62_property *property = NULL;
+		s62_property *prev = NULL;
 
 		for (s62_property_order i = 0; i < col_names.size(); i++) {
 			s62_property *new_property = (s62_property*)malloc(sizeof(s62_property));
@@ -375,8 +377,8 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 			s62_get_label_name_type_from_ccolref(logical_schema.getColRefofIndex(i), new_property);
 			s62_extract_width_scale_from_type(new_property, property_logical_type);
 
-			new_property->next = nullptr;
-			if (prev == nullptr) {
+			new_property->next = NULL;
+			if (prev == NULL) {
 				property = new_property;
 			} else {
 				prev->next = new_property;
@@ -400,7 +402,7 @@ s62_prepared_statement* s62_prepare(s62_query query) {
 }
 
 s62_state s62_close_prepared_statement(s62_prepared_statement* prepared_statement) {
-	if (prepared_statement == nullptr) {
+	if (prepared_statement == NULL) {
 		last_error_message = INVALID_PREPARED_STATEMENT_MSG;
 		last_error_code = S62_ERROR_INVALID_STATEMENT;
 		return S62_ERROR;
@@ -557,18 +559,18 @@ static void s62_register_resultset(s62_prepared_statement* prepared_statement, s
 	auto cypher_prep_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
 
 	// Create linked list of s62_resultset
-	s62_resultset *result_set = nullptr;
-	s62_resultset *prev_result_set = nullptr;
+	s62_resultset *result_set = NULL;
+	s62_resultset *prev_result_set = NULL;
 
 	for (auto data_chunk: cypher_prep_stmt->queryResults) {
 		s62_resultset *new_result_set = (s62_resultset*)malloc(sizeof(s62_resultset));
 		new_result_set->num_properties = prepared_statement->num_properties;
-		new_result_set->next = nullptr;
+		new_result_set->next = NULL;
 
 		// Create linked list of s62_result and register to result
 		{
-			s62_result *result = nullptr;
-			s62_result *prev_result = nullptr;
+			s62_result *result = NULL;
+			s62_result *prev_result = NULL;
 			s62_property *property = prepared_statement->property;
 
 			for (int i = 0; i < prepared_statement->num_properties; i++) {
@@ -577,7 +579,7 @@ static void s62_register_resultset(s62_prepared_statement* prepared_statement, s
 				new_result->data_sql_type = property->property_sql_type;
 				new_result->num_rows = data_chunk->size();
 				new_result->__internal_data = (void*)(&data_chunk->data[i]);
-				new_result->next = nullptr;
+				new_result->next = NULL;
 
 				if (!result) {
 					result = new_result;
@@ -624,19 +626,19 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 }
 
 s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
-	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
+	if (result_set_wrp == NULL || result_set_wrp->result_set == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return S62_ERROR;
 	}
 
-	s62_resultset *next_result_set = nullptr;
+	s62_resultset *next_result_set = NULL;
 	s62_resultset *result_set = result_set_wrp->result_set;
-	while (result_set != nullptr) {
+	while (result_set != NULL) {
 		next_result_set = result_set->next;
-		s62_result *next_result = nullptr;
+		s62_result *next_result = NULL;
 		s62_result *result = result_set->result;
-		while (result != nullptr) {
+		while (result != NULL) {
 			auto next_result = result->next;
 			free(result);
 			result = next_result;
@@ -650,7 +652,7 @@ s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
 }
 
 s62_fetch_state s62_fetch_next(s62_resultset_wrapper* result_set_wrp) {
-	if (result_set_wrp == nullptr || result_set_wrp->result_set == nullptr) {
+	if (result_set_wrp == NULL || result_set_wrp->result_set == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return S62_ERROR_RESULT;
@@ -674,7 +676,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 	size_t acc_rows = 0;
 
 	s62_resultset *result_set = result_set_wrp->result_set;
-	while (result_set != nullptr) {
+	while (result_set != NULL) {
 		auto num_rows = result_set->result->num_rows;
 		if (cursor < acc_rows + num_rows) {
 			break;
@@ -684,10 +686,10 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 	}
 	local_cursor = cursor - acc_rows;
 
-	if (result_set == nullptr) {
+	if (result_set == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
-		return nullptr;
+		return NULL;
 	}
 
 	auto result = result_set->result;
@@ -695,10 +697,10 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 		result = result->next;
 	}
 
-	if (result == nullptr) {
+	if (result == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_COLUMN_INDEX;
-		return nullptr;
+		return NULL;
 	}
 
 	return result;
@@ -706,7 +708,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 
 template <typename T, duckdb::LogicalTypeId TYPE_ID>
 static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	if (result_set_wrp == nullptr) {
+	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return T();
@@ -714,7 +716,7 @@ static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 
     size_t local_cursor;
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
-    if (result == nullptr) { return T(); }
+    if (result == NULL) { return T(); }
 
 	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
 
@@ -724,7 +726,7 @@ static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
         return T();
     }
     else {
-        return FlatVector::GetData<T>(*vec)[local_cursor];
+        return vec->GetValue(local_cursor).GetValue<T>();
     }
 }
 
@@ -769,7 +771,7 @@ uint32_t s62_get_uint32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 }
 
 uint64_t s62_get_uint64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint64_t, duckdb::LogicalTypeId::BIGINT>(result_set_wrp, col_idx);
+	return s62_get_value<uint64_t, duckdb::LogicalTypeId::UBIGINT>(result_set_wrp, col_idx);
 }
 
 float s62_get_float(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
@@ -802,18 +804,18 @@ s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col
 }
 
 s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	duckdb::string_t str = s62_get_value<duckdb::string_t, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
+	string str = s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
 	s62_string result;
-	result.size = str.GetSize();
-	result.data = (char*)malloc(result.size);
-    strcpy(result.data, str.GetDataUnsafe());
+	result.size = str.length();
+	result.data = (char*)malloc(result.size + 1);
+    strcpy(result.data, str.c_str());
 	return result;
 }
 
 s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	// Decimal needs special handling
 	auto default_value = s62_decimal{0,0,{0,0}};
-	if (result_set_wrp == nullptr) {
+	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
 		return default_value;
@@ -821,12 +823,11 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 
     size_t local_cursor;
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
-    if (result == nullptr) { return default_value; }
+    if (result == NULL) { return default_value; }
 	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
 	auto data_type = vec->GetType();
 	auto width = duckdb::DecimalType::GetWidth(data_type);
 	auto scale = duckdb::DecimalType::GetScale(data_type);
-	std::cout << "Width: " << width << " Scale: " << scale << std::endl;
 	switch (data_type.InternalType()) {
 		case duckdb::PhysicalType::INT16:
 			return s62_decimal{width,scale,{s62_get_int16(result_set_wrp, col_idx),0}};
@@ -845,5 +846,8 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 			return default_value;
 		}
 	}
+}
 
+uint64_t s62_get_id(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	return s62_get_value<uint64_t, duckdb::LogicalTypeId::ID>(result_set_wrp, col_idx);
 }

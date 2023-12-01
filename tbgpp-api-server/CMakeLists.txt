@@ -51,6 +51,7 @@ target_compile_definitions(tbgpp-api-server PUBLIC ${CXX_DEFINITION})
 ####################################################
 file(GLOB CLIENT_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/s62-c-api-test.c"
+  "${PROJECT_SOURCE_DIR}/test/s62-c-api-test-1.c"
 )
 
 foreach(test_file ${CLIENT_TEST_SRC})

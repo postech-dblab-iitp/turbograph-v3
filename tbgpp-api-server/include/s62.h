@@ -102,6 +102,8 @@ typedef enum S62_TYPE {
 	S62_TYPE_UNION,
 	// S62_bit
 	S62_TYPE_BIT,
+	// S62_ID
+	S62_TYPE_ID,
 } s62_type;
 
 //! Days are stored as days since 1970-01-01
@@ -394,6 +396,8 @@ s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col
 s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
 s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
+
+uint64_t s62_get_id(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
 #ifdef __cplusplus
 }
