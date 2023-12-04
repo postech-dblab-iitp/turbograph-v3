@@ -136,6 +136,17 @@ CXformExpandNAryJoinDPv2::Transform(CXformContext *pxfctxt,
 						childPredIndexes, outerRefs);
 	jodp.PexprExpand();
 
+	size_t num_groups = jodp.CountTotalGroups();
+	size_t num_expressions = jodp.CountTotalExpressions();
+	CWStringDynamic str(mp);
+	COstreamString oss(&str);
+	oss << "Expand n-ary join using dynamic programming v2: #groups = "
+		<< num_groups << ", #expressions = " << num_expressions << "\n\n";
+
+	jodp.OsPrint(oss);
+	GPOS_TRACE(str.GetBuffer());
+
+
 	// Retrieve top K join orders from jodp and add as alternatives
 	CExpression *nextJoinOrder = NULL;
 

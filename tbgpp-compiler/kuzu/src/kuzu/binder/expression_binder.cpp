@@ -147,7 +147,6 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
-
 // TODO jhko do nothing
         return make_shared<Expression>(kuzu::common::ExpressionType::VARIABLE, kuzu::common::DataType(), "EMPTY_EXPRESSION");
 

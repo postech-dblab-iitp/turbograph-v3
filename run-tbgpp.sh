@@ -732,6 +732,41 @@ run_tpch4() {
 			ord.O_ORDERPRIORITY AS ord_pr;" 0
 }
 
+# MATCH (c:CUSTOMER)-[:MADE_BY_BWD]->(ord:ORDERS)-[:IS_PART_OF_BWD]->(l:LINEITEM)
+# 		WHERE c.C_MKTSEGMENT = 'BUILDING'
+# 			AND ord.O_ORDERDATE < date('1995-03-15')
+# 			AND l.L_SHIPDATE > date('1995-03-15')
+# 		RETURN
+# 			ord.O_ORDERKEY,
+# 			sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS revenue,
+# 			ord.O_ORDERDATE AS ord_date,
+# 			ord.O_SHIPPRIORITY
+# 		ORDER BY
+# 			revenue DESC,
+# 			ord_date
+# 		LIMIT 10;
+
+# MATCH (c:CUSTOMER)-[r:MADE_BY_BWD]->(ord:ORDERS)-[r1:IS_PART_OF_BWD]->(l:LINEITEM)
+#         WHERE c.C_MKTSEGMENT = 'BUILDING'
+#             AND ord.O_ORDERDATE < date('1995-03-15')
+#             AND l.L_SHIPDATE > date('1995-03-15')
+#         RETURN
+# 	    	l,
+# 			r,
+# 			ord,
+# 			r1,
+# 			c,
+#             ord.O_ORDERKEY,
+#             sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS revenue,
+#             ord.O_ORDERDATE AS ord_date,
+#             ord.O_SHIPPRIORITY
+#         ORDER BY
+#             revenue DESC,
+#             ord_date
+#         LIMIT 10;
+
+# MATCH (n:NATION)-[r:CUST_BELONG_TO_BWD]->(c:CUSTOMER) WHERE n.N_NATIONKEY > 14 and c.C_CUSTKEY < 1000 RETURN n, r, c;
+
 run_tpch5() {
 	# TPC-H Q5 Local Supplier Volume Query
 	run_query "MATCH (l:LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n: NATION)-[:IS_LOCATED_IN]->(r:REGION)
