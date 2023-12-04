@@ -3244,10 +3244,24 @@ CExpressionPreprocessor::PexprPreprocess(
 		PexprTransposeSelectAndProject(mp, pexprExistWithPredFromINSubq);
 	pexprExistWithPredFromINSubq->Release();
 
+	// std::cout << "[PREPROCESSED LOGICAL PLAN - PexprTransposeSelectAndProjectColumnar Before]";
+	// std::cout << std::endl;
+	// CWStringDynamic str3(mp);
+	// COstreamString oss3(&str3);
+	// pexprTransposeSelectAndProject->OsPrint(oss3);
+	// GPOS_TRACE(str3.GetBuffer());
+
 	// S62 swap logical select over logical project columnar
 	CExpression *pexprTransposeSelectAndProjectColumnar = 
 		PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
 	pexprTransposeSelectAndProject->Release();
+
+	// std::cout << "[PREPROCESSED LOGICAL PLAN - PexprTransposeSelectAndProjectColumnar After] ";
+	// std::cout << std::endl;
+	// CWStringDynamic str4(mp);
+	// COstreamString oss4(&str4);
+	// pexprTransposeSelectAndProjectColumnar->OsPrint(oss4);
+	// GPOS_TRACE(str4.GetBuffer());
 
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =

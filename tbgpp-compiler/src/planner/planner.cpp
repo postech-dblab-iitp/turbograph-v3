@@ -350,6 +350,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		/* Register logical column colrefs / names */
 		std::vector<CColRef*> output_columns;
 		std::vector<std::string> output_names;
+		planner->logical_plan_output_schema = *logical_plan->getSchema();
 		logical_plan->getSchema()->getOutputColumns(output_columns);
 		for(auto& col: output_columns) {
 			// check if alternative column name exists on property_col_to_output_col_names_mapping
@@ -467,6 +468,10 @@ vector<string> Planner::getQueryOutputColNames(){
 	
 	// TODO no asserts?
 	return logical_plan_output_col_names;
+}
+
+LogicalSchema Planner::getQueryOutputSchema() {
+	return logical_plan_output_schema;
 }
 
 
