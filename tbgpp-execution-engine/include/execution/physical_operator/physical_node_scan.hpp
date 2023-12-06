@@ -14,6 +14,10 @@ namespace duckdb {
 enum class FilterPushdownType: uint8_t {
 	FP_EQ,
 	FP_NEQ,
+	FP_L,
+	FP_LEQ,
+	FP_G,
+	FP_GEQ,
 	FP_RANGE
 };
 

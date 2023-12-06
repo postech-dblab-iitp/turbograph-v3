@@ -276,6 +276,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	tmp_schema.setStoredColumnNames(out_col_names);
 	duckdb::CypherPhysicalOperator* op = nullptr;
 
+	/* add expression type for pushdown */
+
 	if (!do_filter_pushdown) {
 		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping);
 	} else {
@@ -1757,7 +1759,13 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
 
 	auto ok = 
 		filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp
-		&& ((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptEq
+		&& (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptEq ||
+			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptNEq ||
+			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptL ||
+			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptLEq ||
+			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptG ||
+			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptGEq
+		)
 		&& filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent
 		&& filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst;
 	
