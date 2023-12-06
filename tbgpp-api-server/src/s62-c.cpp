@@ -25,7 +25,6 @@ using namespace gpopt;
 static std::unique_ptr<DuckDB> database;
 static std::shared_ptr<ClientContext> client;
 static s62::Planner* planner;
-static DiskAioFactory* disk_aio_factory;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -93,7 +92,6 @@ s62_state s62_connect(const char *dbname) {
 void s62_disconnect() {
     delete ChunkCacheManager::ccm;
     delete planner;
-	delete disk_aio_factory;
     database.reset();
     client.reset();
     std::cout << "Database Disconnected" << std::endl;
@@ -618,7 +616,11 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 		return S62_ERROR;
     }
     else {
-        for( auto exec : executors ) { exec->ExecutePipeline(); }
+        for( auto exec : executors ) { 
+			std::cout << exec->pipeline->toString() << std::endl;
+			exec->ExecutePipeline(); 
+			
+		}
 		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
 		s62_register_resultset(prepared_statement, result_set_wrp);
     	return cypher_prep_stmt->getNumRows();
