@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 int main() {
-    s62_state state = s62_connect("/data/tpch/sf1/");
+    s62_state state = s62_connect("/data/tpch/tpch_demo/");
     printf("s62_connect() done\n");
     printf("state: %d\n", state);
 
@@ -45,10 +45,7 @@ int main() {
     s62_close_metadata(metadata);
 
     // Prepare query
-    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (n:NATION)-[r:CUST_BELONG_TO_BWD]->(c:CUSTOMER) \
-        WHERE n.N_NATIONKEY > $var \
-        AND c.C_CUSTKEY < 1000 \
-        RETURN n, r, c");
+    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (c:CUSTOMER)-[r:CUST_BELONG_TO]->(n:NATION) WHERE c.C_CUSTKEY < $ext RETURN n, r, c");
 
     printf("s62_prepare_query() done\n");
 

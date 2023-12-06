@@ -22,10 +22,9 @@ using namespace antlr4;
 using namespace gpopt;
 
 // Database
-static std::unique_ptr<DuckDB> database;
-static std::shared_ptr<ClientContext> client;
-static s62::Planner* planner;
-static DiskAioFactory* disk_aio_factory;
+static std::unique_ptr<DuckDB> database = nullptr;
+static std::shared_ptr<ClientContext> client = nullptr;
+static std::unique_ptr<s62::Planner> planner = nullptr;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -73,7 +72,7 @@ s62_state s62_connect(const char *dbname) {
         planner_config.INDEX_JOIN_ONLY = true;
 		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
 		planner_config.DEBUG_PRINT = false;
-        planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+        planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
 
         // Print done
         std::cout << "Database Connected" << std::endl;
@@ -92,10 +91,9 @@ s62_state s62_connect(const char *dbname) {
 
 void s62_disconnect() {
     delete ChunkCacheManager::ccm;
-    delete planner;
-	delete disk_aio_factory;
     database.reset();
     client.reset();
+	planner.reset();
     std::cout << "Database Disconnected" << std::endl;
 }
 
