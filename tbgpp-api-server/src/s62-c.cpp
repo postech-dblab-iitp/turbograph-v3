@@ -22,9 +22,9 @@ using namespace antlr4;
 using namespace gpopt;
 
 // Database
-static std::unique_ptr<DuckDB> database = nullptr;
-static std::shared_ptr<ClientContext> client = nullptr;
-static std::unique_ptr<s62::Planner> planner = nullptr;
+static std::unique_ptr<DuckDB> database;
+static std::shared_ptr<ClientContext> client;
+static s62::Planner* planner;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -72,7 +72,7 @@ s62_state s62_connect(const char *dbname) {
         planner_config.INDEX_JOIN_ONLY = true;
 		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
 		planner_config.DEBUG_PRINT = false;
-        planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
+        planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 
         // Print done
         std::cout << "Database Connected" << std::endl;
@@ -91,9 +91,9 @@ s62_state s62_connect(const char *dbname) {
 
 void s62_disconnect() {
     delete ChunkCacheManager::ccm;
+    delete planner;
     database.reset();
     client.reset();
-	planner.reset();
     std::cout << "Database Disconnected" << std::endl;
 }
 
@@ -316,10 +316,9 @@ static void s62_compile_query(string query) {
 	planner->execute(bst);
 }
 
-static void s62_get_label_name_type_from_ccolref(CColRef* col_ref, s62_property *new_property) {
-	if (((CColRefTable*) col_ref)->GetMdidTable() != NULL) {
-		OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) col_ref)->GetMdidTable())->Oid();
-		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, table_obj_id);
+static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_property) {
+	if (col_oid != GPDB_UNKNOWN) {
+		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, col_oid);
 		D_ASSERT(ps_cat_entry != NULL);
 		idx_t partition_oid = ps_cat_entry->partition_oid;
 		auto graph_cat = s62_get_graph_catalog_entry();
@@ -354,11 +353,11 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
     else {
 		auto col_names = planner->getQueryOutputColNames();
 		auto col_types = executors.back()->pipeline->GetSink()->schema.getStoredTypes();
-		auto logical_schema = planner->getQueryOutputSchema();
+		auto col_oids = planner->getQueryOutputOIDs();
 
 		s62_property *property = NULL;
 		s62_property *prev = NULL;
-
+		
 		for (s62_property_order i = 0; i < col_names.size(); i++) {
 			s62_property *new_property = (s62_property*)malloc(sizeof(s62_property));
 
@@ -372,7 +371,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 			new_property->property_type = property_s62_type;
 			new_property->property_sql_type = strdup(property_sql_type.c_str());
 
-			s62_get_label_name_type_from_ccolref(logical_schema.getColRefofIndex(i), new_property);
+			s62_get_label_name_type_from_ccolref(col_oids[i], new_property);
 			s62_extract_width_scale_from_type(new_property, property_logical_type);
 
 			new_property->next = NULL;
@@ -616,7 +615,11 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 		return S62_ERROR;
     }
     else {
-        for( auto exec : executors ) { exec->ExecutePipeline(); }
+        for( auto exec : executors ) { 
+			std::cout << exec->pipeline->toString() << std::endl;
+			exec->ExecutePipeline(); 
+			
+		}
 		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
 		s62_register_resultset(prepared_statement, result_set_wrp);
     	return cypher_prep_stmt->getNumRows();
