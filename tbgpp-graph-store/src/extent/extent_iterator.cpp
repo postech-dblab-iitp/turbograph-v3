@@ -921,7 +921,7 @@ ChunkDefinitionID ExtentIterator::getFilterCDFID(ExtentID output_eid, int64_t fi
 }
 
 bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
-                                size_t scan_size, idx_t scan_start_offset, idx_t scan_end_offset) {
+                                size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset) {
     Catalog& cat_instance = context.db->GetCatalog();
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
             (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, DEFAULT_SCHEMA, "cdf_" + std::to_string(filter_cdf_id));
@@ -979,7 +979,7 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
     } 
-#ifndef ENABLE_VELOX_FILTERING
+#ifdef ENABLE_VELOX_FILTERING
     else if (column_type == LogicalType::VARCHAR) {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == DICTIONARY) {
