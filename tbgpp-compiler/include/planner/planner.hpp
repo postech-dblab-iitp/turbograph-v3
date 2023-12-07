@@ -206,7 +206,7 @@ public:
 	void execute(BoundStatement* bound_statement);
 	vector<duckdb::CypherPipelineExecutor*> genPipelineExecutors();
 	vector<string> getQueryOutputColNames();
-	LogicalSchema getQueryOutputSchema();
+	vector<OID> getQueryOutputOIDs();
 
 private:
 	// planner.cpp
@@ -408,9 +408,9 @@ private:
 	vector<duckdb::CypherPipeline*> pipelines;									// output plan pipelines
 	std::map<CColRef*, std::string> property_col_to_output_col_names_mapping; 	// actual output col names for property columns
 	vector<std::string> logical_plan_output_col_names;							// output col names
+	vector<OID> logical_plan_output_col_oids;									// output col oids			
 	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
 	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
-	LogicalSchema logical_plan_output_schema;									// final output schema of the logical plan (user's view)
 	
 	// logical soptimization context
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan

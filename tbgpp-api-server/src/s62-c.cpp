@@ -316,10 +316,9 @@ static void s62_compile_query(string query) {
 	planner->execute(bst);
 }
 
-static void s62_get_label_name_type_from_ccolref(CColRef* col_ref, s62_property *new_property) {
-	if (((CColRefTable*) col_ref)->GetMdidTable() != NULL) {
-		OID table_obj_id = CMDIdGPDB::CastMdid(((CColRefTable*) col_ref)->GetMdidTable())->Oid();
-		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, table_obj_id);
+static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_property) {
+	if (col_oid != GPDB_UNKNOWN) {
+		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, col_oid);
 		D_ASSERT(ps_cat_entry != NULL);
 		idx_t partition_oid = ps_cat_entry->partition_oid;
 		auto graph_cat = s62_get_graph_catalog_entry();
@@ -354,11 +353,11 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
     else {
 		auto col_names = planner->getQueryOutputColNames();
 		auto col_types = executors.back()->pipeline->GetSink()->schema.getStoredTypes();
-		auto logical_schema = planner->getQueryOutputSchema();
+		auto col_oids = planner->getQueryOutputOIDs();
 
 		s62_property *property = NULL;
 		s62_property *prev = NULL;
-
+		
 		for (s62_property_order i = 0; i < col_names.size(); i++) {
 			s62_property *new_property = (s62_property*)malloc(sizeof(s62_property));
 
@@ -372,7 +371,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 			new_property->property_type = property_s62_type;
 			new_property->property_sql_type = strdup(property_sql_type.c_str());
 
-			s62_get_label_name_type_from_ccolref(logical_schema.getColRefofIndex(i), new_property);
+			s62_get_label_name_type_from_ccolref(col_oids[i], new_property);
 			s62_extract_width_scale_from_type(new_property, property_logical_type);
 
 			new_property->next = NULL;

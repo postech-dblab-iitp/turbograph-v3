@@ -979,7 +979,7 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
     } 
-#ifdef ENABLE_VELOX_FILTERING
+#ifndef ENABLE_VELOX_FILTERING
     else if (column_type == LogicalType::VARCHAR) {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == DICTIONARY) {
