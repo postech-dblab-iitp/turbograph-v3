@@ -13,11 +13,6 @@ namespace duckdb {
 
 enum class FilterPushdownType: uint8_t {
 	FP_EQ,
-	FP_NEQ,
-	FP_L,
-	FP_LEQ,
-	FP_G,
-	FP_GEQ,
 	FP_RANGE
 };
 
@@ -34,7 +29,7 @@ public:
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
 		int64_t filterKeyIndex, duckdb::Value filterValue);
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
+		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
 		int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive);
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 

@@ -63,7 +63,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 }
 
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping, 
+	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping,
 	int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive) :
 		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
 		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_type(FilterPushdownType::FP_RANGE),
@@ -134,7 +134,11 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	} else {
 		// filter pushdown applied
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
+		if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, range_filter_pushdown_value);
+		} else {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
+		}
 	}
 	
 	current_schema_idx = 0; // TODO temporary logic!
