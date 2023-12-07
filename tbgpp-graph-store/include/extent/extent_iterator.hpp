@@ -157,7 +157,7 @@ private:
     void requestFinalizeIO();
 
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
-                    size_t scan_size, idx_t scan_start_offset, idx_t scan_end_offset);
+                    size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
     void getValidOutputMask(vector<idx_t> &output_column_idxs, vector<bool>& valid_output_mask);
     void findMatchedRowsEQFilter(CompressionHeader& comp_header, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                 Value &filterValue, vector<idx_t>& matched_row_idxs);
