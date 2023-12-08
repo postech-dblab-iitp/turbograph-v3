@@ -708,7 +708,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 }
 
 template <typename T, duckdb::LogicalTypeId TYPE_ID>
-static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -728,6 +728,30 @@ static T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
     }
     else {
         return vec->GetValue(local_cursor).GetValue<T>();
+    }
+}
+
+template <>
+string s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	if (result_set_wrp == NULL) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return string();
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == NULL) { return string(); }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != duckdb::LogicalTypeId::VARCHAR) {
+        last_error_message = INVALID_RESULT_SET_MSG;
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return string();
+    }
+    else {
+		return ((string_t*)vec->GetData())[local_cursor].GetString();
     }
 }
 
