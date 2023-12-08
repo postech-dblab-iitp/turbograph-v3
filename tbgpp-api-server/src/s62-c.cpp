@@ -16,6 +16,7 @@
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
+#include "common/types/decimal.hpp"
 
 using namespace duckdb;
 using namespace antlr4;
@@ -317,6 +318,7 @@ static void s62_compile_query(string query) {
 }
 
 static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_property) {
+	std::cout << "OID: " << col_oid << "\n";
 	if (col_oid != GPDB_UNKNOWN) {
 		PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)client->db->GetCatalog().GetEntry(*client.get(), DEFAULT_SCHEMA, col_oid);
 		D_ASSERT(ps_cat_entry != NULL);
@@ -338,6 +340,7 @@ static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_
 		}
 	}
 
+	std::cout << "????" << std::endl;
 	new_property->label_name = NULL;
 	new_property->label_type = S62_METADATA_TYPE::S62_OTHER;
 	return;
@@ -371,6 +374,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 			new_property->property_type = property_s62_type;
 			new_property->property_sql_type = strdup(property_sql_type.c_str());
 
+			std::cout << "property_name: " << property_name << std::endl;
 			s62_get_label_name_type_from_ccolref(col_oids[i], new_property);
 			s62_extract_width_scale_from_type(new_property, property_logical_type);
 
@@ -393,8 +397,11 @@ s62_prepared_statement* s62_prepare(s62_query query) {
 	auto prep_stmt = (s62_prepared_statement*)malloc(sizeof(s62_prepared_statement));
 	prep_stmt->query = query;
 	prep_stmt->__internal_prepared_statement = reinterpret_cast<void*>(new CypherPreparedStatement(string(query)));
+	std::cout << "IN" << std::endl;
 	s62_compile_query(string(query));
+	std::cout << "IN2" << std::endl;
 	s62_extract_query_metadata(prep_stmt);
+	std::cout << "IN3" << std::endl;
     return prep_stmt;
 }
 
@@ -721,7 +728,7 @@ T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 
 	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != TYPE_ID) {
+    if (vec->GetType().id() != TYPE_ID && vec->GetType().InternalType() != duckdb::LogicalType(TYPE_ID).InternalType()) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return T();
@@ -867,12 +874,37 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 			break;
 		}
 		default:
-		{
 			return default_value;
-		}
 	}
 }
 
 uint64_t s62_get_id(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	return s62_get_value<uint64_t, duckdb::LogicalTypeId::ID>(result_set_wrp, col_idx);
+}
+
+s62_string s62_decimal_to_string(s62_decimal val) {
+	auto type_ = duckdb::LogicalType::DECIMAL(val.width, val.scale);
+	auto internal_type = type_.InternalType();
+	auto scale = DecimalType::GetScale(type_);
+
+	string str;
+	if (internal_type == PhysicalType::INT16) {
+		str = Decimal::ToString((int16_t)val.value.lower, scale);
+	} else if (internal_type == PhysicalType::INT32) {
+		str = Decimal::ToString((int32_t)val.value.lower, scale);
+	} else if (internal_type == PhysicalType::INT64) {
+		str = Decimal::ToString((int64_t)val.value.lower, scale);
+	} else {
+		D_ASSERT(internal_type == PhysicalType::INT128);
+		auto hugeint_val = hugeint_t();
+		hugeint_val.lower = val.value.lower;
+		hugeint_val.upper = val.value.upper;
+		str = Decimal::ToString(hugeint_val, scale);
+	}
+
+	s62_string result;
+	result.size = str.length();
+	result.data = (char*)malloc(result.size + 1);
+	strcpy(result.data, str.c_str());
+	return result;
 }
