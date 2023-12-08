@@ -156,7 +156,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 	
 	// Set up catalog informations
 	graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
-	graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+	graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
 
 	partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 	partition_cat->SetKeys(*client.get(), key_names);
@@ -164,7 +164,8 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 	partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 	partition_cat->SetPartitionID(new_pid);
 
-	property_schema_cat->SetKeys(*client.get(), key_names);
+	property_schema_cat->SetKeys(*client.get(), key_names); // TODO need?
+	property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
 	property_schema_cat->SetTypes(types);
 }
 
@@ -197,7 +198,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		
 		// Set up catalog informations
 		graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
-		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
+		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
 
 		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		partition_cat->SetKeys(*client.get(), key_names);
@@ -206,6 +207,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		partition_cat->SetPartitionID(new_pid);
 
 		property_schema_cat->SetKeys(*client.get(), key_names);
+		property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
 		property_schema_cat->SetTypes(types);
 	} else if (edge_direction_type == LogicalType::BACKWARD_ADJLIST) {
 		partition_cat = 

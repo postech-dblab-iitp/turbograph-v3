@@ -54,14 +54,21 @@ public:
 	string_vector adjlist_names;
 	idx_t num_columns;
 	idx_t last_extent_num_tuples;
+	bool is_fake = false;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+	void SetKeyIDs(ClientContext &context, vector<PropertyKeyID> &key_ids);
 	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
+	void SetFake() {
+		is_fake = true;
+	}
+
 	string_vector *GetKeys();
+	PropertyKeyID_vector *GetKeyIDs();
 	vector<string> GetKeysWithCopy();
 	string GetPropertyKeyName(idx_t i);
 	void AppendType(LogicalType type);

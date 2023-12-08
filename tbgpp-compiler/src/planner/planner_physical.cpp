@@ -220,13 +220,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	auto* mp = this->memory_pool;
 
 	// leaf node
-	auto result = new vector<duckdb::CypherPhysicalOperator*>();
+	auto result = new vector<duckdb::CypherPhysicalOperator *>();
 
-	CExpression* scan_expr = NULL;
-	CExpression* filter_expr = NULL;
-	CPhysicalTableScan* scan_op = NULL;
-	CPhysicalFilter* filter_op = NULL;
-	CExpression* filter_pred_expr = NULL;
+	CExpression *scan_expr = NULL;
+	CExpression *filter_expr = NULL;
+	CPhysicalTableScan *scan_op = NULL;
+	CPhysicalFilter *filter_op = NULL;
+	CExpression *filter_pred_expr = NULL;
 
 	if (plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter) {
 		filter_expr = plan_expr;
@@ -235,14 +235,92 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 		scan_expr = filter_expr->operator[](0);
 		scan_op = (CPhysicalTableScan *)scan_expr->Pop();
 		// TODO current assume all predicates are pushdown-able
-		D_ASSERT( filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp );
-		D_ASSERT( filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent );
-		D_ASSERT( filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst );
+		D_ASSERT(filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
+		D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+		D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst);
 	} else {
 		scan_expr = plan_expr;
 		scan_op = (CPhysicalTableScan *)scan_expr->Pop();
 	}
 	bool do_filter_pushdown = filter_op != NULL;
+
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+	CTableDescriptor *tab_desc = scan_op->Ptabdesc();
+	if (tab_desc->IsInstanceDescriptor()) {
+		// get partition catalog
+		CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(tab_desc->MDId());
+		OID instance_obj_id = table_mdid->Oid();
+
+		duckdb::Catalog &cat_instance = context->db->GetCatalog();
+		duckdb::GraphCatalogEntry *graph_cat =
+			(duckdb::GraphCatalogEntry *)cat_instance.GetEntry(*context, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+		duckdb::PropertySchemaCatalogEntry *instance_ps_cat =
+			(duckdb::PropertySchemaCatalogEntry *)cat_instance.GetEntry(*context, DEFAULT_SCHEMA, instance_obj_id);
+		OID partition_oid = instance_ps_cat->GetPartitionOID();
+
+		duckdb::PartitionCatalogEntry *partition_cat =
+			(duckdb::PartitionCatalogEntry *)cat_instance.GetEntry(*context, DEFAULT_SCHEMA, partition_oid);
+
+		CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);	// columns required for the output of NodeScan
+		CColRefArray *scan_cols = scan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);		// columns required to be scanned from storage
+		// D_ASSERT(scan_cols->ContainsAll(output_cols)); 				// output_cols is the subset of scan_cols
+		
+		// generate plan for each schema
+		vector<duckdb::idx_t> oids;
+		vector<vector<uint64_t>> projection_mappings;
+		vector<vector<uint64_t>> scan_projection_mappings;
+		partition_cat->GetPropertySchemaIDs(oids);
+
+		duckdb::Schema global_schema;
+		vector<duckdb::Schema> local_schemas;
+		vector<duckdb::LogicalType> global_types;
+		vector<duckdb::idx_t> scan_cols_id;
+
+		local_schemas.resize(oids.size());
+
+		for (auto i = 0; i < scan_cols->Size(); i++) {
+			ULONG col_id = scan_cols->operator[](i)->ColId();
+			scan_cols_id.push_back(col_id);
+
+			// get type from col_id -> type idx
+			duckdb::LogicalTypeId type_id = graph_cat->GetTypeIdFromPropertyKeyID(col_id);
+			D_ASSERT(type_id != duckdb::LogicalTypeId::DECIMAL); // TODO
+			global_types.push_back(duckdb::LogicalType(type_id));
+		}
+
+		for (auto i = 0; i < oids.size(); i++) {
+			projection_mappings.push_back(vector<uint64_t>());
+			scan_projection_mappings.push_back(vector<uint64_t>());
+
+			vector<duckdb::LogicalType> local_types;
+
+			// get schema info of i-th schema oids[i]
+			duckdb::PropertySchemaCatalogEntry *ps_cat =
+				(duckdb::PropertySchemaCatalogEntry *)cat_instance.GetEntry(*context, DEFAULT_SCHEMA, oids[i]);
+			duckdb::PropertyKeyID_vector *key_ids = ps_cat->GetKeyIDs();
+
+			pGenerateMappingInfo(scan_cols_id, key_ids, global_types, local_types, projection_mappings.back(), scan_projection_mappings.back());
+			local_schemas[i].setStoredTypes(local_types);
+		}
+
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({local_schemas.size()});
+		pipeline_schemas.push_back(local_schemas);
+		pipeline_union_schema.push_back(global_schema);
+
+		duckdb::CypherPhysicalOperator *op = nullptr;
+		if (!do_filter_pushdown) {
+			op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, move(oids), move(projection_mappings), move(scan_projection_mappings));
+		} else {
+			// op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, literal_val);
+		}
+
+		D_ASSERT(op != nullptr);
+		result->push_back(op);
+		
+		return result;	
+	}
+#endif
 	
 	CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
 	OID table_obj_id = table_mdid->Oid();
@@ -1798,6 +1876,28 @@ void Planner::pResetSchemaFlowGraph() {
 	pipeline_schemas.clear();
 	pipeline_union_schema.clear();
 	sfgs.clear();
+}
+
+void Planner::pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
+		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping)
+{
+	D_ASSERT(scan_cols_id.size() == global_types.size());
+	duckdb::idx_t i = 0, j = 0, output_idx = 0;
+	size_t i_max = scan_cols_id.size();
+	size_t j_max = key_ids->size();
+	while (i < i_max && j < j_max) {
+		if (scan_cols_id[i] == (*key_ids)[j]) {
+			projection_mapping.push_back(output_idx);
+			scan_projection_mapping.push_back(j);
+			local_types.push_back(global_types[i]);
+
+			i++; j++; output_idx++;
+		} else if (scan_cols_id[i] > (*key_ids)[j]) {
+			j++;
+		} else { // scan_cols_id[i] < (*key_ids)[j]
+			i++;
+		}
+	}
 }
 
 bool Planner::pIsColumnarProjectionSimpleProject(CExpression* proj_expr) {

@@ -73,6 +73,9 @@ private:
 	// name: SQL alias or artificial name
 	const CName *m_pname;
 
+	// S62 added property key id
+	const ULONG m_colid;
+
 	// private copy ctor
 	CColRef(const CColRef &);
 
@@ -93,6 +96,8 @@ public:
 
 	// ctor
 	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+			const CName *pname);
+	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id, ULONG colid,
 			const CName *pname);
 
 	// dtor
@@ -124,6 +129,13 @@ public:
 	Id() const
 	{
 		return m_id;
+	}
+
+	// colid
+	ULONG
+	ColId() const
+	{
+		return m_colid;
 	}
 
 	// overloaded equality operator

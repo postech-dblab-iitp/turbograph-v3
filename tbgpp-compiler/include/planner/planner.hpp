@@ -149,7 +149,6 @@
 
 #include "mdprovider/MDProviderTBGPP.h"
 
-
 using namespace kuzu::binder;
 using namespace gpopt;
 
@@ -266,8 +265,13 @@ private:
 		string name, vector<uint64_t> &oids,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
+	/* Helper functions for generating orca logical plans */
+	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
+		string name, uint64_t partition_oid,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
+	);
 
-	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, string alias = "");
+	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false, string alias = "");
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
@@ -359,6 +363,8 @@ private:
 	void pGenerateFilterExprs(CColRefArray* outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
 	void pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops);
 	void pResetSchemaFlowGraph();
+	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
+		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
 
 	inline string pGetColNameFromColRef(const CColRef* column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());

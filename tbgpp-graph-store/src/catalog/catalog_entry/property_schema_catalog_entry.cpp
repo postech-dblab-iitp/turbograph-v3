@@ -95,6 +95,13 @@ void PropertySchemaCatalogEntry::SetKeys(ClientContext &context, vector<string> 
 	}
 }
 
+void PropertySchemaCatalogEntry::SetKeyIDs(ClientContext &context, vector<PropertyKeyID> &key_ids) {
+	D_ASSERT(property_keys.empty());
+	for (auto i = 0; i < key_ids.size(); i++) {
+		property_keys.push_back(key_ids[i]);
+	}
+}
+
 void PropertySchemaCatalogEntry::SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_) {
 	for (auto &it : key_column_idxs_) {
 		key_column_idxs.push_back(it);
@@ -102,8 +109,11 @@ void PropertySchemaCatalogEntry::SetKeyColumnIdxs(vector<idx_t> &key_column_idxs
 }
 
 string_vector *PropertySchemaCatalogEntry::GetKeys() {
-	// TODO remove adjlist column
 	return &property_key_names;
+}
+
+PropertyKeyID_vector *PropertySchemaCatalogEntry::GetKeyIDs() {
+	return &property_keys;
 }
 
 vector<string> PropertySchemaCatalogEntry::GetKeysWithCopy() {
@@ -176,10 +186,11 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately() {
 	// # of extents * # rows per extent
-	D_ASSERT(extent_ids.size() >= 1);
-	uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
+	// D_ASSERT(extent_ids.size() >= 1); // TODO 
+	// uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
 
-	return num_tuples_except_last_extent + last_extent_num_tuples;
+	// return num_tuples_except_last_extent + last_extent_num_tuples;
+	return 1; // TODO extend for fake
 }
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {

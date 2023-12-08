@@ -50,6 +50,7 @@ public:
 	idx_t physical_id_index;
 	idx_t src_part_oid;
 	idx_t dst_part_oid;
+	idx_t univ_ps_oid;
 	idx_t_vector adjlist_indexes;
 	idx_t_vector property_indexes;
 	LogicalTypeId_vector global_property_typesid;
@@ -60,6 +61,7 @@ public:
 
 public:
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
+	void SetUnivPropertySchema(idx_t psid);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
 	void SetPhysicalIDIndex(idx_t index_oid);
@@ -69,6 +71,7 @@ public:
 
 	void GetPropertySchemaIDs(vector<idx_t> &psids);
 	uint64_t GetNumberOfColumns() const;
+	idx_t GetUnivPSOid();
 	idx_t GetPhysicalIDIndexOid();
 	idx_t GetSrcPartOid();
 	idx_t GetDstPartOid();

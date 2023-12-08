@@ -41,13 +41,15 @@ public:
         partitionIDs = std::move(gcat->LookupPartition(context, labelset_names, g_type));
     }
 
-    void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, GraphComponentType g_type) {
+    void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, idx_t &univTableID, GraphComponentType g_type) {
         auto &catalog = db.GetCatalog();
 
+        D_ASSERT(partitionIDs.size() == 1); // TODO
         for (auto &pid : partitionIDs) {
             PartitionCatalogEntry *p_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             p_cat->GetPropertySchemaIDs(oids);
+            univTableID = p_cat->GetUnivPSOid();
         }
     }
 
@@ -210,8 +212,16 @@ public:
             (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, idx_t univ_oid, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
         auto &catalog = db.GetCatalog();
+
+        PropertySchemaCatalogEntry *univ_ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, univ_oid);
+        string_vector *univ_property_keys = univ_ps_cat->GetKeys();
+        for (int i = 0; i < univ_property_keys->size(); i++) {
+            string property_key = std::string((*univ_property_keys)[i]);
+            universal_schema.push_back(property_key);
+            pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{});
+        }
         for (auto &oid : oids) {
             PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
 
@@ -223,8 +233,7 @@ public:
                 string property_key = std::string((*property_keys)[i]);
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
-                    universal_schema.push_back(property_key);
-                    pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{std::make_tuple(oid, i + 1, (*property_key_types)[i])} );
+                    D_ASSERT(false);
                 } else {
                     it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }

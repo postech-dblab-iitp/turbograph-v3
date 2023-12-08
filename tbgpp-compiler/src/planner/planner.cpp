@@ -339,12 +339,13 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		{
 			if(planner->config.DEBUG_PRINT) {
 				std::cout << "[LOGICAL PLAN]" << std::endl;
-				CWStringDynamic str(mp);
+				CWStringDynamic str(mp, L"\n");
 				COstreamString oss(&str);
 				orca_logical_plan->OsPrint(oss);
 				GPOS_TRACE(str.GetBuffer());
 			}
 		}
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf(); // temp
 		CEngine eng(mp);
 		CQueryContext* pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
 	
@@ -370,7 +371,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		{
 			if (planner->config.DEBUG_PRINT) {
 				std::cout << "[PREPROCESSED LOGICAL PLAN]" << std::endl;
-				CWStringDynamic str(mp);
+				CWStringDynamic str(mp, L"\n");
 				COstreamString oss(&str);
 				orca_logical_plan_after_logical_opt->OsPrint(oss);
 				GPOS_TRACE(str.GetBuffer());
@@ -384,14 +385,14 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		{
 			if (planner->config.DEBUG_PRINT) {
 				std::cout << "[PHYSICAL PLAN]" << std::endl;
-				CWStringDynamic str(mp);
+				CWStringDynamic str(mp, L"\n");
 				COstreamString oss(&str);
 				orca_physical_plan->OsPrint(oss);
 				GPOS_TRACE(str.GetBuffer());
 			}
 		}
 		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
-		std::cout << "\nCompile Time: "  << orca_compile_time_ms << " ms)" << std::endl;
+		std::cout << "\nCompile Time: "  << orca_compile_time_ms << " ms" << std::endl;
 		planner->pGenPhysicalPlan(orca_physical_plan);	// convert to our plan
 		
 		orca_logical_plan->Release();

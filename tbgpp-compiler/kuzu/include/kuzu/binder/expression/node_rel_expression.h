@@ -27,9 +27,13 @@ public:
             tableIDs.push_back(tableIDsToAdd[i]);
         }
     }
+    void setUnivTableID(table_id_t univTableID) {
+        this->univTableID = univTableID;
+    }
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
     inline vector<table_id_t> &getPartitionIDs() { return partitionIDs; }
     inline vector<table_id_t> &getTableIDs() { return tableIDs; }
+    table_id_t getUnivTableID() { return univTableID; }
     inline table_id_t getSingleTableID() const {
         assert(tableIDs.size() == 1);
         return tableIDs[0];
@@ -61,7 +65,8 @@ public:
 
 protected:
     vector<table_id_t> partitionIDs;
-    vector<table_id_t> tableIDs; 
+    vector<table_id_t> tableIDs;
+    table_id_t univTableID;
     unordered_map<std::string, size_t> propertyNameToIdx;
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
