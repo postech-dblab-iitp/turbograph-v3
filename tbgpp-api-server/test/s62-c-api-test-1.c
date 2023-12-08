@@ -78,14 +78,15 @@ int main() {
     // Fetch results=
     while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
         uint64_t n_id = s62_get_id(resultset_wrapper, 0);
-        uint64_t n_nationkey = s62_get_uint64(resultset_wrapper, 1);
-        s62_string n_name = s62_get_varchar(resultset_wrapper, 2);
-        uint64_t r_id = s62_get_id(resultset_wrapper, 4);
-        uint64_t r_sid = s62_get_uint64(resultset_wrapper, 5);
-        uint64_t r_tid = s62_get_uint64(resultset_wrapper, 6);
+        int32_t n_nationkey = s62_get_int32(resultset_wrapper, 2);
+        s62_string n_name = s62_get_varchar(resultset_wrapper, 3);
+        s62_string n_comment = s62_get_varchar(resultset_wrapper, 5);
+        uint64_t r_id = s62_get_id(resultset_wrapper, 6);
+        uint64_t r_sid = s62_get_uint64(resultset_wrapper, 7);
+        uint64_t r_tid = s62_get_uint64(resultset_wrapper, 8);
 
-        printf("n_id: %ld, n_nationkey: %ld, n_name: %s, r_id: %ld, r_sid: %ld, r_tid: %ld\n", 
-            n_id, n_nationkey, n_name.data, r_id, r_sid, r_tid);
+        printf("n_id: %ld, n_nationkey: %d, n_name: %s, n_comment: %s, r_id: %ld, r_sid: %ld, r_tid: %ld\n", 
+            n_id, n_nationkey, n_name.data, n_comment.data, r_id, r_sid, r_tid);
     }
     printf("s62_fetch() done\n");
 
