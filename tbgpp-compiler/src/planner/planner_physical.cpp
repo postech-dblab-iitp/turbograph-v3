@@ -36,9 +36,6 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 
 	vector<duckdb::CypherPhysicalOperator*> final_pipeline_ops = *pTraverseTransformPhysicalPlan(orca_plan_root);
 
-	// Append PhysicalProduceResults
-	duckdb::Schema final_output_schema = final_pipeline_ops[final_pipeline_ops.size()-1]->schema;
-
 	// calculate mapping for produceresults
 	vector<uint8_t> projection_mapping;
 	for(uint8_t log_idx=0; log_idx<logical_plan_output_colrefs.size(); log_idx++) {
@@ -49,6 +46,17 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 		}
 	}
 	D_ASSERT(projection_mapping.size() == logical_plan_output_colrefs.size());
+
+	// calculate schema considering projection mapping
+	auto prev_stored_types = final_pipeline_ops[final_pipeline_ops.size()-1]->schema.getStoredTypes();
+	std::vector<duckdb::LogicalType> projected_stored_types(projection_mapping.size());
+	for(uint8_t log_idx=0; log_idx<logical_plan_output_colrefs.size(); log_idx++) {
+		projected_stored_types[log_idx] = prev_stored_types[projection_mapping[log_idx]];
+	}
+	duckdb::Schema final_output_schema;
+	final_output_schema.setStoredTypes(projected_stored_types);
+
+	// Create ProjectResults
 	auto op = new duckdb::PhysicalProduceResults(final_output_schema, projection_mapping);
 
 	final_pipeline_ops.push_back(op);
