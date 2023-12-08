@@ -45,7 +45,7 @@ int main() {
     s62_close_metadata(metadata);
 
     // Prepare query
-    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (c:CUSTOMER)-[r:CUST_BELONG_TO]->(n:NATION) WHERE c.C_CUSTKEY = 2 RETURN n, r, c;");
+    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (c:CUSTOMER)-[r:CUST_BELONG_TO]->(n:NATION) WHERE c.C_CUSTKEY < 1000 and c.C_NATIONKEY > 14 RETURN n, r, c limit 100");
 
     printf("s62_prepare_query() done\n");
 
