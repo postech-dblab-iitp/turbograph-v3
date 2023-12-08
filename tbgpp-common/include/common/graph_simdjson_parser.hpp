@@ -168,10 +168,11 @@ public:
 		property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
 		
 		vector<PropertyKeyID> property_key_ids;
-		graph_cat->GetPropertyKeyIDs(*client.get(), most_common_key_paths, property_key_ids);
+		graph_cat->GetPropertyKeyIDs(*client.get(), most_common_key_paths, most_common_schema, property_key_ids);
 		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
 		property_schema_cat->SetTypes(most_common_schema);
 		property_schema_cat->SetKeys(*client.get(), most_common_key_paths);
+        property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
 		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
 
         // Initialize LID_TO_PID_MAP
@@ -597,14 +598,32 @@ public:
             }
 
             // Set catalog informations
-            graph_cat->GetPropertyKeyIDs(*client.get(), cur_cluster_schema_names, property_key_ids);
+            graph_cat->GetPropertyKeyIDs(*client.get(), cur_cluster_schema_names, cur_cluster_schema_types, property_key_ids);
             partition_cat->AddPropertySchema(*client.get(), property_schema_cats[i]->GetOid(), property_key_ids);
             property_schema_cats[i]->SetTypes(cur_cluster_schema_types);
             property_schema_cats[i]->SetKeys(*client.get(), cur_cluster_schema_names);
+            property_schema_cats[i]->SetKeyIDs(*client.get(), property_key_ids);
             property_schema_cats[i]->SetKeyColumnIdxs(per_cluster_key_column_idxs[i]);
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
+
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+        if (num_clusters > 1) {
+            // create univ ps cat entry for dynamic schema instantiation
+            vector<PropertyKeyID> property_key_ids;
+            string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_univ";
+            CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
+            PropertySchemaCatalogEntry *univ_property_schema_cat = 
+                (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
+            graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
+            univ_property_schema_cat->SetTypes(types);
+            univ_property_schema_cat->SetKeys(*client.get(), key_names);
+            univ_property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
+            univ_property_schema_cat->SetFake();
+            partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
+        }
+#endif
 
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {

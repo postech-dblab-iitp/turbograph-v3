@@ -18,8 +18,9 @@ GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
     : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph, void_alloc),
 	vertex_partitions(void_alloc), edge_partitions(void_alloc), vertexlabel_map(void_alloc),
 	edgetype_map(void_alloc), propertykey_map(void_alloc), type_to_partition_index(void_alloc),
-	label_to_partition_index(void_alloc), src_part_to_connected_edge_part_index(void_alloc) {
-
+	label_to_partition_index(void_alloc), src_part_to_connected_edge_part_index(void_alloc),
+	propertykey_to_typeid_map(void_alloc)
+{
 	this->temporary = info->temporary;
 	vertex_label_id_version = 0;
 	edge_type_id_version = 0;
@@ -196,29 +197,34 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 	return return_pids;
 }
 
-void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>& property_schemas, vector<PropertyKeyID>& property_key_ids) {
+void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string> &property_names, vector<LogicalType> &property_types, vector<PropertyKeyID> &property_key_ids) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string property_schema_(temp_charallocator);
+
+	D_ASSERT(property_names.size() == property_types.size());
 	
-	for (int i = 0; i < property_schemas.size(); i++) {
-		property_schema_ = property_schemas[i].c_str();
+	for (int i = 0; i < property_names.size(); i++) {
+		property_schema_ = property_names[i].c_str();
 		auto property_key_id = propertykey_map.find(property_schema_);
 		if (property_key_id != propertykey_map.end()) {
 			property_key_ids.push_back(property_key_id->second);
 		} else {
-			PropertyKeyID new_pkid = GetPropertyKeyID();
+			PropertyKeyID new_pkid = GetPropertyKeyID(); // TODO key name + type ==> prop key id
+			uint8_t type_id = (uint8_t) property_types[i].id();
+			propertykey_map.insert(std::make_pair(property_schema_, new_pkid));
+			propertykey_to_typeid_map.insert(std::make_pair(new_pkid, type_id));
 			property_key_ids.push_back(new_pkid);
 		}
 	}
 }
 
-void GraphCatalogEntry::GetVertexLabels(vector<string>& label_names) {
+void GraphCatalogEntry::GetVertexLabels(vector<string> &label_names) {
 	for(auto it = vertexlabel_map.begin(); it != vertexlabel_map.end(); ++it) {
 		label_names.push_back(it->first);
 	}
 }
 
-void GraphCatalogEntry::GetEdgeTypes(vector<string>& type_names) {
+void GraphCatalogEntry::GetEdgeTypes(vector<string> &type_names) {
 	for(auto it = edgetype_map.begin(); it != edgetype_map.end(); ++it) {
 		type_names.push_back(it->first);
 	}
@@ -259,6 +265,14 @@ void GraphCatalogEntry::GetConnectedEdgeOids(ClientContext &context, idx_t src_p
 			edge_part_oids.push_back(oids_vec[i]);
 		}
 	}
+}
+
+LogicalTypeId GraphCatalogEntry::GetTypeIdFromPropertyKeyID(const PropertyKeyID pkid) {
+	auto it = propertykey_to_typeid_map.find(pkid);
+	D_ASSERT(it != propertykey_to_typeid_map.end());
+	D_ASSERT(it->second < std::numeric_limits<uint8_t>::max());
+	uint8_t type_id = (uint8_t)it->second;
+	return (LogicalTypeId)type_id;
 }
 
 VertexLabelID GraphCatalogEntry::GetVertexLabelID() {

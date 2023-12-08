@@ -462,6 +462,10 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		auto tokens = CommonTokenStream(&cypherLexer);
 		tokens.fill();
 
+		if (planner_config.DEBUG_PRINT) {
+			std::cout << "Parsing/Lexing Done" << std::endl;
+		}
+
 		// Parser
 		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
@@ -469,6 +473,10 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		// Transformer
 		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
 		auto statement = transformer.transform();
+
+		if (planner_config.DEBUG_PRINT) {
+			std::cout << "Transformation Done" << std::endl;
+		}
 		
 		// Binder
 		auto binder = kuzu::binder::Binder(client.get());

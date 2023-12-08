@@ -39,6 +39,10 @@ void PartitionCatalogEntry::AddPropertySchema(ClientContext &context, PropertySc
 	}
 }
 
+void PartitionCatalogEntry::SetUnivPropertySchema(idx_t psid) {
+	univ_ps_oid = psid;
+}
+
 unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context) {
 	D_ASSERT(false);
 	//auto create_info = make_unique<CreatePartitionInfo>(schema->name, name);
@@ -85,6 +89,10 @@ void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
 	D_ASSERT(physical_id_index != INVALID_OID);
 	return physical_id_index;
+}
+
+idx_t PartitionCatalogEntry::GetUnivPSOid() {
+	return univ_ps_oid;
 }
 
 idx_t PartitionCatalogEntry::GetSrcPartOid() {

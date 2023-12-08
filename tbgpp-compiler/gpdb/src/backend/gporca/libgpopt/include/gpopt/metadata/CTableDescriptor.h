@@ -98,6 +98,9 @@ private:
 	// returns true if this table descriptor has partial indexes
 	BOOL FDescriptorWithPartialIndexes();
 
+	// S62 added
+	BOOL m_instance_descriptor;
+
 public:
 	// ctor
 	CTableDescriptor(CMemoryPool *, IMDId *mdid, const CName &,
@@ -238,6 +241,18 @@ public:
 	{
 		return m_erelstoragetype == IMDRelation::ErelstorageAppendOnlyCols ||
 			   m_erelstoragetype == IMDRelation::ErelstorageAppendOnlyRows;
+	}
+
+	void
+	SetInstanceDescriptor(BOOL is_instance_descriptor)
+	{
+		m_instance_descriptor = is_instance_descriptor;
+	}
+
+	BOOL
+	IsInstanceDescriptor() const
+	{
+		return m_instance_descriptor;
 	}
 
 };	// class CTableDescriptor

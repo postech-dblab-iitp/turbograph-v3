@@ -962,6 +962,7 @@ LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPl
 
 LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node) {
 	auto table_oids = node_expr->getTableIDs();
+	auto univ_table_oid = node_expr->getUnivTableID();
 	GPOS_ASSERT(table_oids.size() >= 1);
 
 	map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
@@ -992,8 +993,16 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
 
-	auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true);
-	// auto get_output = lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false); // schema mapping necessary only when UNION ALL inserted
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+	std::pair<CExpression *, CColRefArray *> get_output;
+	if (table_oids.size() > 1) { // do dynamic schema instantiation
+		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, univ_table_oid, &schema_proj_mapping, false));
+	} else {
+		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false));
+	}
+#else
+	get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
+#endif
 	CExpression *plan_expr = get_output.first;
 	D_ASSERT(prop_exprs.size() == get_output.second->Size());
 
@@ -1016,10 +1025,6 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	return plan;
 }
 
-
-
-/*
-*/
 std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> &relation_oids,
 	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection) {
 	
@@ -1134,12 +1139,29 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	return make_pair(union_plan, idx0_output_array);
 }
 
-CExpression *Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, string alias) {
-	CMemoryPool* mp = this->memory_pool;
+std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string name, uint64_t instance_oid,
+	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection) {
 
-	if(alias == "") { alias = rel_name; }
+	CMemoryPool *mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
-	CTableDescriptor* ptabdesc = lCreateTableDescForRel( lGenRelMdid(obj_id), rel_name);
+	CExpression *get_plan = nullptr;
+	CColRefArray *output_array;
+	const bool do_schema_mapping = insert_projection;
+
+	get_plan = lExprLogicalGet(instance_oid, name, true);
+	output_array = get_plan->DeriveOutputColumns()->Pdrgpcr(mp);
+	
+	return make_pair(get_plan, output_array);
+}
+
+CExpression *Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance, string alias) {
+	CMemoryPool *mp = this->memory_pool;
+
+	if (alias == "") { alias = rel_name; }
+
+	CTableDescriptor *ptabdesc = lCreateTableDescForRel(lGenRelMdid(obj_id), rel_name);
+	ptabdesc->SetInstanceDescriptor(is_instance);
 
 	std::wstring w_alias = L"";
 	w_alias.assign(alias.begin(), alias.end());

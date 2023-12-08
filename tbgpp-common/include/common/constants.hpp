@@ -55,6 +55,8 @@ using std::make_shared;
 #define DEFAULT_EXTENT_PREFIX "ext_"
 #define DEFAULT_CHUNKDEFINITION_PREFIX "cdf_"
 
+#define DYNAMIC_SCHEMA_INSTANTIATION
+
 //! a saner size_t for loop indices etc
 typedef uint64_t idx_t;
 
