@@ -89,6 +89,7 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
   "${PROJECT_SOURCE_DIR}/../tbgpp-client/include/main"
   # execution-engine
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/execution"
+  "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/json/single_include"
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/storage"
   # tbgpp-common
   "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common" "${PROJECT_SOURCE_DIR}/../tbgpp-common/include/common/enums"
@@ -169,11 +170,11 @@ file(GLOB TILE_TEST_SRC
   "${PROJECT_SOURCE_DIR}/test/schemaless/schemaless_simulation.cpp"
 )
 
-# file(GLOB PARALLEL_TEST_SRC
-#   #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
-#   # "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new.cpp"
-#   # "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new_new.cpp"
-# )
+file(GLOB PARALLEL_TEST_SRC
+  #"${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation.cpp"
+  # "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new.cpp"
+  "${PROJECT_SOURCE_DIR}/test/parallel/graph_partition_simulation_new_new.cpp"
+)
 
 # if (FALSE)
 # foreach(test_file ${CACHE_TEST_SRC})
@@ -201,16 +202,16 @@ foreach(test_file ${TILE_TEST_SRC})
   target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib Catch2::Catch2WithMain)
 endforeach(test_file ${TILE_TEST_SRC})
 
-# foreach(test_file ${PARALLEL_TEST_SRC})
-#   set(CMAKE_CXX_COMPILER mpicxx)
-#   get_filename_component(prog_name ${test_file} NAME_WE)
-#   add_executable(${prog_name} ${test_file})
-#   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS}  -DTBB_ENABLE_IPO=OFF)
-#   target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
-#   target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib Catch2::Catch2WithMain -ltbb)
-#   target_link_libraries(${prog_name} PUBLIC MPI::MPI_CXX)
-# endforeach(test_file ${PARALLEL_TEST_SRC})
-# set(CMAKE_CXX_COMPILER g++)
+foreach(test_file ${PARALLEL_TEST_SRC})
+  set(CMAKE_CXX_COMPILER mpiicpc)
+  get_filename_component(prog_name ${test_file} NAME_WE)
+  add_executable(${prog_name} ${test_file})
+  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS}  -DTBB_ENABLE_IPO=OFF)
+  target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
+  target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib Catch2::Catch2WithMain -ltbb)
+  target_link_libraries(${prog_name} PUBLIC MPI::MPI_CXX)
+endforeach(test_file ${PARALLEL_TEST_SRC})
+set(CMAKE_CXX_COMPILER g++)
 
 
 #MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS} )

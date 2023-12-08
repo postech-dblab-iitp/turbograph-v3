@@ -75,6 +75,7 @@ enum RequestType {
 	// NewAdjListBatchIoData = 12,
 	// SequentialVectorRead = 15,
 	PartitionedExtentReadMessage = 16,
+	GenerateDirectoryMessage = 17,
 	Exit = 99999999,
 
 };
@@ -92,6 +93,12 @@ class Request {
 class PartitionedExtentReadRequest: public Request {
 	public: 
 	int64_t size; //Size of Extent + metadata.
+	int send_count; //The order of this request.
+};
+
+class GenerateDirectoryRequest: public Request {
+	public:
+	duckdb::PartitionID pid;
 };
 
 class Respond {
@@ -154,9 +161,9 @@ class RequestRespond {
 	~RequestRespond() {}
 
 	static void Initialize(int64_t trbs, int64_t mrs, int64_t tdbs, int64_t mds, int64_t nio_threads, int64_t udf_threads) {
-        rr_.async_req_pool.SpawnThreadsToCpuSet(nio_threads, udf_threads, NumaHelper::num_cores() - 1);
+        rr_.async_req_pool.SpawnThreadsToCpuSet(nio_threads, udf_threads, 0);
 		rr_.async_resp_pool.SpawnThreadsToCpuSet(nio_threads, udf_threads, NumaHelper::num_cores() - 1);
-        rr_.async_udf_pool.SpawnThreads(udf_threads, 0, udf_threads - 1);
+        rr_.async_udf_pool.SpawnThreads(udf_threads, 0, 0);
 
 		mutex_for_end.lock();
 		end = false;
@@ -214,12 +221,12 @@ class RequestRespond {
 
 		LocalStatistics::register_mem_alloc_info("RequestResond", (trbs + tdbs + per_thread_buffer_size_) / (1024 * 1024L));
 
-        turbo_tcp::establish_all_connections(&server_sockets, &client_sockets);
+        // turbo_tcp::establish_all_connections(&server_sockets, &client_sockets); //The sockets provided by RequestRespond is not used. We only use the request-respond functions.
         general_connection_pool.resize(DEFAULT_NUM_GENERAL_TCP_CONNECTIONS + 1, true);
         general_connection_pool[0] = false;
         general_connection_pool[1] = false;
         for (int i = 0; i < DEFAULT_NUM_GENERAL_TCP_CONNECTIONS; i++) {
-            turbo_tcp::establish_all_connections(&general_server_sockets[i], &general_client_sockets[i]);
+            // turbo_tcp::establish_all_connections(&general_server_sockets[i], &general_client_sockets[i]);
         }
     }
 
@@ -274,11 +281,11 @@ class RequestRespond {
         D_ASSERT(num_entries_in_per_thread_buffer_queue == 0);
 		NumaHelper::free_numa_memory(per_thread_buffer_, per_thread_buffer_size_);
 
-		client_sockets.close_socket();
-		server_sockets.close_socket();
+		// client_sockets.close_socket(); //The sockets provided by RequestRespond is not used. 
+		// server_sockets.close_socket();
         for (int i = 0; i < DEFAULT_NUM_GENERAL_TCP_CONNECTIONS; i++) {
-            general_client_sockets[i].close_socket();
-            general_server_sockets[i].close_socket();
+            // general_client_sockets[i].close_socket();
+            // general_server_sockets[i].close_socket();
         }
 	}
 
@@ -329,7 +336,8 @@ class RequestRespond {
 	template <typename RequestType>
 	static void Respond(RequestType* req, int num_reqs = 1);
 	
-	static void PartitionedExtentRead(int32_t size, int from);
+	static void PartitionedExtentRead(int32_t size, int from, int);
+	static void GenerateDirectory(duckdb::PartitionID pid, int from);
 
 	// static void RespondSequentialVectorRead(int32_t vectorID, int64_t chunkID, int from, int lv);
 	// static void RespondInputVectorRead(int32_t vectorID, int64_t chunkID, int from, int lv);

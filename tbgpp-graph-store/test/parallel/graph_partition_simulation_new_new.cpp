@@ -480,7 +480,7 @@ void BuildIndex() {
 	// std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
 	// fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
 }
-
+/*
 void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 	for (auto &vertex_file: vertex_files) {
@@ -595,6 +595,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
 	}
 }
+*/
 /*
 void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
@@ -1041,7 +1042,7 @@ class InputParser{ // TODO use boost options
 			this->tokens.push_back(std::string(argv[i]));
     	}
     }
-    void ParseCmdOption() const {
+    void ParseCmdOption(bool print) const {
     	std::vector<std::string>::const_iterator itr;
     	for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
     		std::string current_str = *itr;
@@ -1213,42 +1214,46 @@ class InputParser{ // TODO use boost options
 			} 
             */
             else if (std::strncmp(current_str.c_str(), "--output_dir:", 13) == 0) {
-				output_dir = std::string(*itr).substr(13);
+				GraphPartitioner::output_dir = std::string(*itr).substr(13);
 			}
     	}
-
-		// Print Bulkloading Informations
-		fprintf(stdout, "\nLoad Following Nodes\n");
-		for (int i = 0; i < GraphPartitioner::vertex_files.size(); i++) {
-			fprintf(stdout, "\t%s : %s\n", GraphPartitioner::vertex_files[i].first.c_str(), GraphPartitioner::vertex_files[i].second.c_str());
-		}
-		for (unsigned idx : util::lang::indices(json_files)) {
-			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
-				fprintf(stdout, "\t%s : %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_files[idx].second.c_str());
+		if(print) {
+			// Print Bulkloading Informations
+			fprintf(stdout, "\nLoad Following Nodes\n");
+			for (int i = 0; i < GraphPartitioner::vertex_files.size(); i++) {
+				fprintf(stdout, "\t%s : %s\n", GraphPartitioner::vertex_files[i].first.c_str(), GraphPartitioner::vertex_files[i].second.c_str());
 			}
+			// for (unsigned idx : util::lang::indices(json_files)) {
+			// 	for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
+			// 		fprintf(stdout, "\t%s : %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_files[idx].second.c_str());
+			// 	}
+			// }
+			fprintf(stdout, "\nLoad Following Relationships\n");
+			for (int i = 0; i < GraphPartitioner::edge_files.size(); i++)
+				fprintf(stdout, "\t%s : %s\n", GraphPartitioner::edge_files[i].first.c_str(), GraphPartitioner::edge_files[i].second.c_str());
+			fprintf(stdout, "\nLoad Following Backward Relationships\n");
+			for (int i = 0; i < GraphPartitioner::edge_files_backward.size(); i++)
+				fprintf(stdout, "\t%s : %s\n", GraphPartitioner::edge_files_backward[i].first.c_str(), GraphPartitioner::edge_files_backward[i].second.c_str());
 		}
-		fprintf(stdout, "\nLoad Following Relationships\n");
-		for (int i = 0; i < GraphPartitioner::edge_files.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", GraphPartitioner::edge_files[i].first.c_str(), GraphPartitioner::edge_files[i].second.c_str());
-		fprintf(stdout, "\nLoad Following Backward Relationships\n");
-		for (int i = 0; i < GraphPartitioner::edge_files_backward.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", GraphPartitioner::edge_files_backward[i].first.c_str(), GraphPartitioner::edge_files_backward[i].second.c_str());
     }
   private:
     std::vector <std::string> tokens;
 };
 
 int main(int argc, char** argv) {
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, NULL); //For RequestRespond communication. 
+	int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided); //For RequestRespond communication. 
+    int process_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
+	if(process_rank == 0)
+		 printf("Mpi initialization done.\n");
 
 	// Parse Command Option
 	InputParser input(argc, argv);
-	input.ParseCmdOption();
+	input.ParseCmdOption(process_rank == 0);
 
-    int process_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
-	
-	output_dir = output_dir + "/db" + to_string(process_rank) + "/";
+	printf("Graph partitioning main thread %d\n", process_rank);
+	GraphPartitioner::output_dir = GraphPartitioner::output_dir + "/" + to_string(process_rank) + "/";
 
     // TODO: Set directory on segments. 
 	// Initialize DiskAio Parameters
@@ -1277,7 +1282,7 @@ int main(int argc, char** argv) {
         CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
         graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
     }
-    GraphPartitioner::InitializePartitioner(client, cat_instance, &ext_mng, graph_cat);
+    GraphPartitioner::InitializePartitioner(client, &cat_instance, &ext_mng, graph_cat);
 
     if(GraphPartitioner::role == Role::MASTER) { //Only Master process file. Segment's operations will be covered by RequestRespond's respond functions.
 		GraphPartitioner::SpawnGeneratorAndSenderThreads();
@@ -1287,6 +1292,15 @@ int main(int argc, char** argv) {
 			std::vector<string> hash_columns;
 			hash_columns.push_back("id"); //Temporary. Do all vertices have "id" column?
 			GraphPartitioner::ReadVertexFileAndCreateDataChunk(dist_polity, hash_columns, vertex_file);
+		}
+		fprintf(stdout, "Vertex File Loading Done\n\n");
+		for(auto &edge_file: GraphPartitioner::edge_files) {
+			printf("Processing edge file : %s", edge_file.second.c_str());
+			//Process edge file here
+		}
+		for(auto &edge_file_backward: GraphPartitioner::edge_files_backward) {
+			printf("Processing backward edge file : %s", edge_file_backward.second.c_str());
+			//Process backward edge file here
 		}
 		asm volatile("" ::: "memory");
 		D_ASSERT(!GraphPartitioner::file_reading_finished.load());
@@ -1298,11 +1312,8 @@ int main(int argc, char** argv) {
         D_ASSERT(GraphPartitioner::role == Role::SEGMENT);
         //receive works will be handled by ReceiveRequest thread.
     }
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	fprintf(stdout, "Vertex File Loading Done\n\n");
-
-
+	MPI_Barrier(MPI_COMM_WORLD); //Here segments wait until master send all messages. And then start finalizing.
+	
     GraphPartitioner::ClearPartitioner(); //At here segment's main thread waits for the ReceiveRequest thread.
     /*
 	// Read Vertex CSV File & CreateVertexExtents
@@ -1327,5 +1338,8 @@ int main(int argc, char** argv) {
 
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
+	printf("Process %d, Delete of ChunkCacheManager done. Now Returning.\n", process_rank);
+
+	MPI_Finalize();
 	return 0;
 }

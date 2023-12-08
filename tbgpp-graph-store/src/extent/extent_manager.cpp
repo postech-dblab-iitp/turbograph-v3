@@ -9,10 +9,11 @@
 #include "cache/chunk_cache_manager.h"
 #include "common/directory_helper.hpp"
 #include "extent/compression/compression_function.hpp"
-#include "parallel/graph_partition.hpp"
 #include "parallel/util.hpp"
 #include "parallel/RequestRespond.hpp"
 #include "cache/cache_data_transformer.h"
+
+#include "parallel/graph_partition.hpp"
 namespace duckdb {
 
 ExtentManager::ExtentManager() {}
@@ -417,6 +418,7 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
     //Master node modify own catalog tables to reflect the new extent.
     
     catalog_access_lock.lock();
+
     PropertySchemaCatalogEntry *prop_schema_cat_entry = GraphPartitioner::file_meta_infos[file_seq_number].property_schema_cat;
     PartitionCatalogEntry *part_cat = GraphPartitioner::file_meta_infos[file_seq_number].part_cat;
     PartitionID pid = part_cat->GetPartitionID();
@@ -428,7 +430,7 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
     ExtentCatalogEntry* extent_cat_entry = (ExtentCatalogEntry*) cat_instance.CreateExtent(*GraphPartitioner::client, &extent_info);
 
     // MkDir for the extent
-    std::string extent_dir_path = "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
+    std::string extent_dir_path = "part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid);
     // MkDir(extent_dir_path, true); //TODO: This does not make sense. MkDir should be done on destination(segment) DB.
     catalog_access_lock.unlock();
 
@@ -477,11 +479,14 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
             // New Implementation
             size_t string_len_total = 0;
-            string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
+            string_t *string_buffer = (string_t*)(input.data[input_chunk_idx].GetData());
 
              // Accumulate the length of all non-inlined strings
             for (size_t i = 0; i < input.size(); i++)
+            {
                 string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+                // printf("length = %d, content = %s\n", string_buffer[i].GetSize(), string_buffer[i].GetString().c_str());
+            }
 
             // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
@@ -510,21 +515,23 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
             alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
         }
         
-        // string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
-        //     + std::to_string(new_eid) + std::string("/chunk_");
-        // ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
-        // ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
-        // fprintf(stderr, "[ChunkCacheManager] Get size %ld buffer, requested buf size = %ld\n", buf_size, alloc_buf_size);
+        if(alloc_buf_size > 100 * 1024 * 1024) {//buffer size is bigger than 100MB. This is error. {
+            printf("Error: buffer size is bigger than 100MB. This is error. alloc_buf_size=%ld\n", alloc_buf_size);
+            D_ASSERT(false);
+        }
         
-        ::SimpleContainer cont = RequestRespond::GetTempDataBuffer(buf_size + offsetof(::ExtentWithMetaData, data[0])); //extent size + additional metainfo
+        // printf("File Seq number = %d, Get buffer of size %ldKB\n", file_seq_number, alloc_buf_size/1000);
+        ::SimpleContainer cont = RequestRespond::GetTempDataBuffer(alloc_buf_size + offsetof(::ExtentWithMetaData, data[0])); //extent size + additional metainfo
+        
         buf_ptr = (uint8_t*)(((::ExtentWithMetaData*)cont.data)->data);
-        ((::ExtentWithMetaData*)cont.data)->size_extent = buf_size;
+        ((::ExtentWithMetaData*)cont.data)->size_extent = alloc_buf_size;
         ((::ExtentWithMetaData*)cont.data)->chunk_def_id = cdf_id;
-        ((::ExtentWithMetaData*)cont.data)->type = l_type;
+        ((::ExtentWithMetaData*)cont.data)->type = l_type.id();
         ((::ExtentWithMetaData*)cont.data)->dest_process_id = dest;
         D_ASSERT(extent_dir_path.length() <=256);
         strcpy(((::ExtentWithMetaData*)cont.data)->extent_dir_path, extent_dir_path.c_str());
-        cont.size_used = buf_size + offsetof(::ExtentWithMetaData, data[0]);
+        cont.size_used = alloc_buf_size + offsetof(::ExtentWithMetaData, data[0]);
+        buf_size = alloc_buf_size; //Is it okay to do this?
 
         // Copy (or Compress and Copy) DataChunk
         auto chunk_compression_start = std::chrono::high_resolution_clock::now();
@@ -564,6 +571,7 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
                     }
                     string_t_offset += sizeof(string_t);
                 }
+                CacheDataTransformer::Unswizzle(buf_ptr);
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
@@ -611,16 +619,12 @@ ExtentID ExtentManager::GenerateExtentFromChunkToSend(DataChunk& input, int32_t 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
 
-        CacheDataTransformer::Unswizzle(buf_ptr);
-
         GraphPartitioner::per_sender_buffer_queue[dest % SENDER_THREAD_COUNT].push(cont);
+        printf("Extent Generator, push extent of size %d if file %d to queue for dest %d\n", alloc_buf_size, file_seq_number, dest);
 
         // fprintf(stdout, "\t\tAppendChunk %ld -> %p size %ld, Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, buf_ptr, input.size(), chunk_duration.count(), chunk_compression_duration.count());
     }
-
-
     return new_eid;
-
 }
 
 } // namespace duckdb

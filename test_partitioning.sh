@@ -2,16 +2,16 @@
 SF=1
 basedir="/source-data/ldbc-hadoop/"
 intermdir="/converted/"
-num_total_threads=2
+num_total_threads=4
 output_dir="/data"
 debug=""
 if [ $# -gt 0 ]; then
     debug="-gdb"
 fi
 
-#"/graphs/csv/interactive/composite-projected-fk/"
-
 rm -rf $output_dir/*
+
+export TCP_BASE_PORTNUM=40000
 
 cd /turbograph-v3/build
 ./tbgpp-graph-store/store &
@@ -34,17 +34,27 @@ for (( i=0; i<$num_total_threads; i++ )) do
 	pid_cat_server_arr+=($pid_cat_server)
 done
 
+terminate() {
+	kill $pid_store
+	for cat_server_pid in "${pid_cat_server_arr[@]}"; do	
+		kill $cat_server_pid
+	done
+	exit 0
+}
+
+trap terminate SIGINT
+
 
 mpirun -n ${num_total_threads} ${debug} /turbograph-v3/build/tbgpp-graph-store/graph_partition_simulation_new_new \
 	--output_dir:"/data" \
-	--nodes:Person ${basedir}/sf${SF}/${intermdir}/dynamic/Person.csv #\
-	# --nodes:Comment:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Comment.csv \
-	# --nodes:Post:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Post.csv \
-	# --nodes:Forum ${basedir}/sf${SF}/${intermdir}/dynamic/Forum.csv \
-	# --nodes:Organisation ${basedir}/sf${SF}/${intermdir}/static/Organisation.csv \
-	# --nodes:Place ${basedir}/sf${SF}/${intermdir}/static/Place.csv \
-	# --nodes:Tag ${basedir}/sf${SF}/${intermdir}/static/Tag.csv \
-	# --nodes:TagClass ${basedir}/sf${SF}/${intermdir}/static/TagClass.csv \
+	--nodes:Person ${basedir}/sf${SF}/${intermdir}/dynamic/Person.csv \
+	--nodes:Forum ${basedir}/sf${SF}/${intermdir}/dynamic/Forum.csv \
+	--nodes:Organisation ${basedir}/sf${SF}/${intermdir}/static/Organisation.csv \
+	--nodes:Place ${basedir}/sf${SF}/${intermdir}/static/Place.csv \
+	--nodes:Tag ${basedir}/sf${SF}/${intermdir}/static/Tag.csv \
+	--nodes:TagClass ${basedir}/sf${SF}/${intermdir}/static/TagClass.csv \
+	--nodes:Comment:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Comment.csv \
+	--nodes:Post:Message ${basedir}/sf${SF}/${intermdir}/dynamic/Post.csv
 	# --relationships:HAS_CREATOR ${basedir}/sf${SF}/${intermdir}/dynamic/Comment_hasCreator_Person.csv \
 	# --relationships_backward:HAS_CREATOR ${basedir}/sf${SF}/${intermdir}/dynamic/Comment_hasCreator_Person.csv.backward \
 	# --relationships:POST_HAS_CREATOR ${basedir}/sf${SF}/${intermdir}/dynamic/Post_hasCreator_Person.csv \
@@ -92,7 +102,11 @@ mpirun -n ${num_total_threads} ${debug} /turbograph-v3/build/tbgpp-graph-store/g
 	# --relationships:HAS_TYPE ${basedir}/sf${SF}/${intermdir}/static/Tag_hasType_TagClass.csv \
 	# --relationships_backward:HAS_TYPE ${basedir}/sf${SF}/${intermdir}/static/Tag_hasType_TagClass.csv.backward	
 
-kill $pid_store
-for cat_server_pid in "${pid_cat_server_arr[@]}"; do	
-	kill $cat_server_pid
-done
+terminate
+
+# NOTE: If cmake cannot find MPI, try setting followings: 
+# export I_MPI_ROOT=/path/to/intel/mpi
+# export PATH=/path/to/intel/mpi/bin:$PATH
+# export LD_LIBRARY_PATH=/path/to/intel/mpi/lib:$LD_LIBRARY_PATH
+# And remove CMakeCache.txt too.
+# Also, set export TCP_BASE_PORTNUM=40000 /here 40000 is arbitrary number..

@@ -17,6 +17,7 @@
 #include <tbb/concurrent_queue.h>
 #include <thread>
 #include <atomic>
+#include <sys/stat.h>
 
 
 #include <boost/timer/timer.hpp>
@@ -24,7 +25,6 @@
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
-#include "extent/extent_manager.hpp"
 #include "extent/extent_iterator.hpp"
 #include "index/index.hpp"
 #include "index/art/art.hpp"
@@ -39,6 +39,8 @@
 #include "catalog/catalog_entry/list.hpp"
 #include "common/graph_csv_reader.hpp"
 #include "parallel/util.hpp"
+#include "cache/cache_data_transformer.h"
+#include "common/directory_helper.hpp"
 
 #define EXTENT_GENERATOR_THREAD_COUNT 8
 #define SENDER_THREAD_COUNT 8
@@ -65,7 +67,7 @@ class ExtentWithMetaData {
     int32_t dest_process_id;
     int64_t size_extent;
     duckdb::ChunkDefinitionID chunk_def_id;
-    duckdb::LogicalType type;
+    duckdb::LogicalTypeId type;
     char extent_dir_path[256]; //This is "/part_" + std::to_string(pid) + "/ext_" + std::to_string(new_eid). Not including WORKSPACE.
     //If need more metadata, add here.
 
@@ -100,7 +102,7 @@ class GraphPartitioner {
 							  std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
 							  vector<LogicalType> &types, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat);
 
-    static void     ReceiveAndStoreExtent(int size); 
+    static void     ReceiveAndStoreExtent(int size, int); 
     static bool     AmIMaster(int32_t process_rank);
     static void     ClearPartitioner();
     static void     SpawnGeneratorAndSenderThreads();
@@ -110,9 +112,11 @@ class GraphPartitioner {
     static void     GenerateExtentFromChunkQueue(int32_t my_generator_id);
     static void     SendExtentFromQueue(int32_t);
     // void DistributePartitionedFile();
+    static void     SendPartitionGenerationRequest(duckdb::PartitionID pid);
+
 
     static void     ParseLabelSet(std::string& label_set, std::vector<std::string>& labels);
-    static duckdb::DataChunk* AllocateNewChunk(int file_seq_number); //TODO: change this to use types.
+    static duckdb::DataChunk* AllocateNewChunk(int file_seq_number); 
 
     static duckdb::ProcessID process_rank;
     static std::string output_path; //Temporarily store output to "dir/process_rank" to test in single machine. In distributed system, this should be changed.
@@ -158,13 +162,21 @@ class GraphPartitioner {
     static std::vector<atom> lid_pair_to_epid_map_locks;
 	static vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
     static std::atomic<int> local_file_seq_number;
+    static std::vector<int> send_count; // # of sent file for segment i = send_count[i]
+
+    //For segment
+    // Currently, only one port is assigned for master-segment pair. So receive should be sequentially processed in order.
+    // Need to change this to better design. For example maintain multiple ports for each segment.
+    static std::mutex recv_mutex;
+    static std::condition_variable recv_cv;
+    static std::atomic<int> receive_count;
 
     public:
     //Temporarily use very simple hash functions. Maybe need to change this if necessary.
     template <typename T>
     static int32_t PartitionHash(T value) {
         static_assert(std::is_integral<T>::value, "Hash function for integers");
-        return (int32_t)(value%process_count-1) + 1; //1, 2, ..., process_count-1. Master node stores no grpah.
+        return (int32_t)(value%(process_count-1)) + 1; //1, 2, ..., process_count-1. Master node stores no grpah.
     }
 };
 

@@ -1,4 +1,5 @@
 #include "parallel/graph_partition.hpp"
+#include "unistd.h"
 
 using namespace duckdb;
 
@@ -46,8 +47,17 @@ vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> G
 std::vector<atom> GraphPartitioner::lid_pair_to_epid_map_locks;
 vector<std::pair<string, ART*>> GraphPartitioner::lid_to_pid_index; // For Forward & Backward AdjList
 std::atomic<int> GraphPartitioner::local_file_seq_number = 0;
+std::vector<int> GraphPartitioner::send_count; // # of sent file for segment i = send_count[i]
+
+
+std::mutex GraphPartitioner::recv_mutex;
+std::condition_variable GraphPartitioner::recv_cv;
+std::atomic<int> GraphPartitioner::receive_count(0);
+
 
 void GraphPartitioner::SpawnGeneratorAndSenderThreads() {
+    file_reading_finished.store(false);
+    extent_generating_finished.store(false);
     for(int32_t i = 0; i <EXTENT_GENERATOR_THREAD_COUNT; i++)
         extent_generator_futures.push(Aio_Helper::async_pool.enqueue(GraphPartitioner::GenerateExtentFromChunkQueue, i));
     for(int32_t i = 0; i <SENDER_THREAD_COUNT; i++)
@@ -71,42 +81,71 @@ void GraphPartitioner::WaitForSenderThreads() {
     }
 }
 
+void GraphPartitioner::SendPartitionGenerationRequest(duckdb::PartitionID pid) {
+    // Send partition generation request to all segments.
+    // dir_name is the directory name of the partition, not including the "workspace" prefix.
+    for(int dest_id = 1; dest_id < process_count; dest_id++)
+    {
+        GenerateDirectoryRequest request;
+        request.pid = pid;
+        request.rt = RequestType::GenerateDirectoryMessage;
+        request.from = PartitionStatistics::my_machine_id();
+        request.to = dest_id;
+        RequestRespond::SendRequest(dest_id, request);
+    }
+}
+
 void GraphPartitioner::SendExtentFromQueue(int32_t my_sender_id) { //This function could be executed by many threads paralelly.
+    printf("Sender thread %d started\n", my_sender_id);
     int64_t send_size; //Size of extent + metainfo
     int32_t dest_process_id;
-    tbb::concurrent_queue<::SimpleContainer> my_queue = per_sender_buffer_queue[my_sender_id];
-
-    while(!extent_generating_finished.load()) {
+    tbb::concurrent_queue<::SimpleContainer> &my_queue = per_sender_buffer_queue[my_sender_id];
+    
+    while(1) { 
         ::SimpleContainer container;
         if(my_queue.try_pop(container)) { 
             send_size = ((ExtentWithMetaData*)container.data)->size_extent + offsetof(ExtentWithMetaData, data[0]);
-            if(send_size == 0) continue; //This may happen if file reading is finished just after one chunk for a segment is finished and allocated new chunk.
             dest_process_id = ((ExtentWithMetaData*)container.data)->dest_process_id;
-            server_sockets.send_to_client((char*) container.data, 0, send_size, dest_process_id); //This also sends the directory that extent should be located.
+            printf("Sender thread %d, succeeded to pop, and trying to send. Extent of size %d to segment %d\n", my_sender_id, send_size, dest_process_id);
+
             PartitionedExtentReadRequest request;
             request.rt = PartitionedExtentReadMessage;
             request.from = PartitionStatistics::my_machine_id();
             request.to = dest_process_id;
             request.size = send_size;
+            request.send_count = send_count[dest_process_id]++; //Start from 0
             RequestRespond::SendRequest(dest_process_id, request);  //Send signal.
             RequestRespond::ReturnTempDataBuffer(container);    
-            // sending_to_process[proc_idx].store(false);
+            
+            printf("Sender thread %d, succeeded to send MPI request. Extent of size %d. Now do TCP write.\n", my_sender_id, send_size);
+            server_sockets.send_to_client((char*) container.data, 0, send_size, dest_process_id); //This also sends the directory that extent should be located.
+            printf("Master send Extent to %d\n", dest_process_id);
         }
         else if (extent_generating_finished.load()) {
-            break;
+            if(my_queue.empty()) break;
         }
         else std::this_thread::yield();
     }
+    printf("Sender thread %d finished\n", my_sender_id);
     return;
 }
 
-void GraphPartitioner::ReceiveAndStoreExtent(int size) {
+void GraphPartitioner::ReceiveAndStoreExtent(int size, int recv_count) {
     //design: while not finished, receive extent from tcp, and allocate buffer, and store. And swizzle.
-    //If a dummy extent is received, then finish.
     D_ASSERT(role == Role::SEGMENT);
+    // tcp_lock.lock();
+    // recv_mutex.lock();
+    std::unique_lock <std::mutex> recv_mutex_lock(recv_mutex);
     static int called_count = 0;
-    called_count++;
-
+    called_count++; //This is not atomic.
+    while(receive_count.load() < recv_count) {
+        printf("ReceiveAndStoreExtent %dth segment, %dth call, recv_count = %d, global receive_count = %d, go to sleep now.\n", GraphPartitioner::process_rank, called_count
+            , recv_count, receive_count.load());
+        recv_cv.wait(recv_mutex_lock); //Wait until notified.
+    }
+    printf("ReceiveAndStoreExtent %dth segment, %dth call, recv_count = %d, global receive_count = %d, woke up from sleep.\n", GraphPartitioner::process_rank, called_count
+        , recv_count, receive_count.load());
+    
     ::SimpleContainer cont = RequestRespond::GetTempDataBuffer(size + 128); //128 is just for safety
 
     int src_process_id = 0;
@@ -114,28 +153,46 @@ void GraphPartitioner::ReceiveAndStoreExtent(int size) {
     D_ASSERT(recv_size == size);
     ExtentWithMetaData *extent_with_metadata = ((::ExtentWithMetaData*)cont.data);
     string extent_dir_path(extent_with_metadata->extent_dir_path); 
+    string extent_dir_path_with_workspace = DiskAioParameters::WORKSPACE + extent_dir_path;
+    printf("Received Extent of size %d. Trying MkDir for directory %s\n", size, extent_dir_path_with_workspace.c_str());
+    MkDir(extent_dir_path_with_workspace, false);
+    if(access(extent_dir_path_with_workspace.c_str(), F_OK))
+        printf("Directory is not generated\n");
     string file_path_prefix = DiskAioParameters::WORKSPACE + extent_dir_path + std::string("/chunk_");
     ChunkDefinitionID cdf_id = extent_with_metadata->chunk_def_id;
     uint8_t *buf_ptr;
     size_t buf_size;
+    printf("Segment/ Trying to create segment: cdf_id = %lu, file_path_prefix = %s\n", cdf_id, file_path_prefix.c_str());
     ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, extent_with_metadata->size_extent, false);
     ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
     memset(buf_ptr, 0, buf_size);
     memcpy(buf_ptr, extent_with_metadata->data, extent_with_metadata->size_extent);
+    
+    if(extent_with_metadata->type == LogicalTypeId::VARCHAR)
+        CacheDataTransformer::Swizzle(buf_ptr);
     ChunkCacheManager::ccm->SetDirty(cdf_id);
     ChunkCacheManager::ccm->UnPinSegment(cdf_id);
-
+    RequestRespond::ReturnTempDataBuffer(cont);
     printf("ReceiveAndStoreExtent %dth segment, %dth call\n", GraphPartitioner::process_rank, called_count);
+    receive_count.fetch_add(1);
+    // tcp_lock.unlock();
+    // recv_mutex.unlock();
+    recv_mutex_lock.unlock();
+    recv_cv.notify_all();
     return;    
 }
 
 void GraphPartitioner::GenerateExtentFromChunkQueue(int32_t my_generator_id) {
+    printf("Generator thread %d started\n", my_generator_id);
     std::unordered_map <LidPair, duckdb::idx_t, boost::hash<LidPair>> local_lid_to_pid_map_instance;
     std::pair<std::pair<int32_t, int32_t>, duckdb::DataChunk*> datachunk_with_file_seq_number; //<<File seq No, dest proc ID>, datachunk> 
     while(1) {
         if(per_generator_datachunk_queue[my_generator_id].try_pop(datachunk_with_file_seq_number)) { 
             int file_seq_number = datachunk_with_file_seq_number.first.first;
+            if(my_generator_id ==1) printf("Generator thread %d, before call GenerateExtentFromChunkToSend\n", my_generator_id);
             ExtentID new_eid = ext_mng->GenerateExtentFromChunkToSend(*(datachunk_with_file_seq_number.second), datachunk_with_file_seq_number.first.first, datachunk_with_file_seq_number.first.second);
+            if(my_generator_id ==1) printf("Generator thread %d, after call GenerateExtentFromChunkToSend\n", my_generator_id);
+
             file_meta_infos[file_seq_number].property_schema_cat->AddExtent(new_eid, datachunk_with_file_seq_number.second->size()); //NOTE: Is this thread-safe? Maybe property schema cat will not overlap?
             if(load_edge && file_meta_infos[file_seq_number].file_type == GraphFileType::Vertex) { //TODO: check file type and add only if vertex file. 
 				idx_t pid_base = (idx_t) new_eid;
@@ -182,6 +239,7 @@ void GraphPartitioner::GenerateExtentFromChunkQueue(int32_t my_generator_id) {
             }
         }
     }
+    printf("Generator thread %d finished\n", my_generator_id);
     // for(duckdb::ProcessID i = my_generator_id; i < process_count; i += EXTENT_GENERATOR_THREAD_COUNT) {
     //     ::SimpleContainer container = RequestRespond::GetTempDataBuffer(offsetof(::ExtentWithMetaData, data[0]));
     //     ((::ExtentWithMetaData*)container.data)->size_extent = 0;
@@ -207,7 +265,7 @@ void GraphPartitioner::InitializePartitioner(std::shared_ptr<ClientContext> clie
     else role = Role::SEGMENT;
 
     if(role == Role::SEGMENT) 
-        std::thread* rr_receiver_ = new std::thread(RequestRespond::ReceiveRequest);
+        rr_receiver_ = new std::thread(RequestRespond::ReceiveRequest);
     turbo_tcp::establish_all_connections(&server_sockets, &client_sockets);
 
     printf("Turbo tcp connection established\n");
@@ -230,6 +288,7 @@ void GraphPartitioner::InitializePartitioner(std::shared_ptr<ClientContext> clie
         file_reading_finished.store(false);
         extent_generating_finished.store(false);
         file_meta_infos.resize(vertex_files.size() + edge_files.size() + edge_files_backward.size());
+        send_count.assign(process_count, 0);
     }
     return;
 }
@@ -477,6 +536,10 @@ void GraphPartitioner::CreateVertexCatalogInfos(Catalog &cat_instance, std::shar
 	
 	// Set up catalog informations
 	graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
+    
+    //Partition directory should be generated on all segments
+	GraphPartitioner::SendPartitionGenerationRequest(new_pid);
+
 	graph_cat->GetPropertyKeyIDs(*client.get(), key_names, property_key_ids);
 
 	partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
@@ -500,14 +563,22 @@ void GraphPartitioner::ClearPartitioner()
             request.rt = RequestType::Exit;
             request.from = PartitionStatistics::my_machine_id();
             request.to = dest_process_id;
+            printf("Master send exit message.\n");
             RequestRespond::SendRequest(dest_process_id, request);  //Send signal.
         }
         RequestRespond::Close();
+        printf("Master successfully closed RequestRespond.\n");
     }
-    if(role == Role::SEGMENT)
+    if(role == Role::SEGMENT) {
+        RequestRespond::WaitRequestRespond(false);
         rr_receiver_->join(); //This waits for the exit message in all segments.
         RequestRespond::Close();
-    //clear allocated send buffers (master only)
+        printf("Segment successfully closed RequestRespond.\n");
+    }
+
+    server_sockets.close_socket();
+    client_sockets.close_socket();
+    //TODO: clear allocated send buffers (master only)
     if(role == Role::MASTER) {
         // //clear allocated chunk
         // for(duckdb::ProcessID i = 0; i < process_count; i++) {

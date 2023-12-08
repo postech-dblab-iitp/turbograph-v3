@@ -94,121 +94,123 @@ bool GraphSIMDCSVFileParser::ReadVertexCSVFileUsingHash(int32_t file_seq_number)
   //Maintan local per-segment Datachunk, and if full or EOF, Insert datachunk into the queue of extent generator.
 
 	if (row_cursor == num_rows) return true; //maybe never happen unless file is empty.
-    idx_t current_index = 0;
+  idx_t current_index = 0;
 
-    //DO not need to compute "required key". Store all columns.
-    // vector<idx_t> required_key_column_idxs;
-    // for (auto &key: key_names) {
-    //     // Find keys in the schema and extract idxs
-    //     auto key_it = std::find(key_names.begin(), key_names.end(), key);
-    //     if (key_it != key_names.end()) {
-    //         idx_t key_idx = key_it - key_names.begin();
-    //         required_key_column_idxs.push_back(key_idx);
-    //     } else {
-    //         throw InvalidInputException("A");
-    //     }
-    // }
+  D_ASSERT(num_columns == key_names.size()); //Assume that key_names contains all columns.
+  vector<idx_t> hash_column_idxs;
+  for (auto &key: GraphPartitioner::file_meta_infos[file_seq_number].hash_columns) { //For hash columns
+      auto key_it = std::find(key_names.begin(), key_names.end(), key);
+      if (key_it != key_names.end()) {
+          idx_t key_idx = key_it - key_names.begin();
+          hash_column_idxs.push_back(key_idx);
+      } else {
+          throw InvalidInputException("A");
+      }
+  }
+  
+  //This function intended not to return until the given file is completely processed.
+  //Initially allocate Datachunks. 
+  std::vector<DataChunk*> datachunks;
+  for(int32_t proc_idx = 0; proc_idx < GraphPartitioner::process_count; proc_idx++) {
+      datachunks.push_back(GraphPartitioner::AllocateNewChunk(file_seq_number));
+  }
 
-    D_ASSERT(num_columns == key_names.size()); //Assume that key_names contains all columns.
-    vector<idx_t> hash_column_idxs;
-    printf("hasy column size = %d", GraphPartitioner::file_meta_infos[file_seq_number].hash_columns.size());
-    for (auto &key: GraphPartitioner::file_meta_infos[file_seq_number].hash_columns) { //For hash columns
-        std::cout<<"finding key "<<key<<"\n"; //TODO: remove this
-        auto key_it = std::find(key_names.begin(), key_names.end(), key);
-        if (key_it != key_names.end()) {
-            idx_t key_idx = key_it - key_names.begin();
-            hash_column_idxs.push_back(key_idx);
-        } else {
-            throw InvalidInputException("A");
-        }
+  std::vector<int32_t> index_per_chunk(GraphPartitioner::process_count, 0);
+
+  auto apply_hash = [&](LogicalType type, idx_t start_offset, idx_t end_offset){
+      switch(type.id()) { //Currently only consider integer-like types. Could be added later.
+          case LogicalTypeId::TINYINT:
+          {
+              int8_t numi8;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi8); 
+              return GraphPartitioner::PartitionHash(numi8);
+          }
+          case LogicalTypeId::SMALLINT:
+          {
+              int16_t numi16;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi16);
+              return GraphPartitioner::PartitionHash(numi16);
+          }
+          case LogicalTypeId::INTEGER:
+          {
+              int32_t numi32;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi32);
+              return GraphPartitioner::PartitionHash(numi32);
+          }
+          case LogicalTypeId::BIGINT:
+          {
+              int64_t numi64;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi64);
+              return GraphPartitioner::PartitionHash(numi64);
+          }
+          case LogicalTypeId::UTINYINT:
+          {
+              uint8_t numu8;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu8);
+              return GraphPartitioner::PartitionHash(numu8);
+          }
+          case LogicalTypeId::USMALLINT:
+          {
+              uint16_t numu16;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu16);
+              return GraphPartitioner::PartitionHash(numu16);
+          }
+          case LogicalTypeId::UINTEGER:
+          {
+              uint32_t numu32;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu32);
+              return GraphPartitioner::PartitionHash(numu32);
+          }
+          case LogicalTypeId::UBIGINT:
+          case LogicalTypeId::ID:
+          case LogicalTypeId::ADJLISTCOLUMN:
+          {
+              uint64_t numu64;
+              std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu64); 
+              return GraphPartitioner::PartitionHash(numu64);
+          }
+          default:
+              printf("Not implemented hash column type.\n");
+              return 1;
+      }
+  };
+
+  for (; row_cursor < num_rows; row_cursor++) {
+    uint64_t dest_rank = 0; //If there are more than one hash columns, simple add all hash values. This is the simplist approach, so can be changed.
+    for (size_t i = 0; i < hash_column_idxs.size(); i++) {
+
+        idx_t target_index = index_cursor + hash_column_idxs[i];
+        idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
+        idx_t end_offset = pcsv.indexes[target_index];
+        //apply hash
+        dest_rank += apply_hash(key_types[hash_column_idxs[i]], start_offset, end_offset);
     }
-    
-    //This function intended not to return until the given file is completely processed.
-    //Initially allocate Datachunks. 
-    std::vector<DataChunk*> datachunks;
-    for(int32_t proc_idx = 0; proc_idx < GraphPartitioner::process_count; proc_idx++) {
-        datachunks.push_back(GraphPartitioner::AllocateNewChunk(file_seq_number));
+    dest_rank = (dest_rank % (GraphPartitioner::process_count-1)) + 1; //Root (rank=0) do not store anything. Need to change this if want to change master-segment policy.
+    for (size_t column_idx = 0; column_idx < key_names.size(); column_idx++) {
+      idx_t target_index = index_cursor + column_idx;
+      idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
+      idx_t end_offset = pcsv.indexes[target_index];            
+      SetValueFromCSV(key_types[column_idx], *datachunks[dest_rank], column_idx, index_per_chunk[dest_rank], p, start_offset, end_offset);  //TODO: change datachunk policy: push into GenerateExtentFromChunkQueue's queue.
     }
-
-    std::vector<int32_t> index_per_chunk(GraphPartitioner::process_count, 0);
-
-    auto apply_hash = [&](LogicalType type, idx_t start_offset, idx_t end_offset){
-        switch(type.id()) { //Currently only consider integer-like types. Could be added later.
-            case LogicalTypeId::TINYINT:
-                int8_t numi8;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi8); 
-                return GraphPartitioner::PartitionHash(numi8);
-            case LogicalTypeId::SMALLINT:
-                int16_t numi16;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi16);
-                return GraphPartitioner::PartitionHash(numi16);
-            case LogicalTypeId::INTEGER:
-                int32_t numi32;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi32);
-                return GraphPartitioner::PartitionHash(numi32);
-            case LogicalTypeId::BIGINT:
-                int64_t numi64;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numi64);
-                return GraphPartitioner::PartitionHash(numi64);
-            case LogicalTypeId::UTINYINT:
-                uint8_t numu8;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu8);
-                return GraphPartitioner::PartitionHash(numu8);
-            case LogicalTypeId::USMALLINT:
-                uint16_t numu16;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu16);
-                return GraphPartitioner::PartitionHash(numu16);
-            case LogicalTypeId::UINTEGER:
-                uint32_t numu32;
-                std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu32);
-                return GraphPartitioner::PartitionHash(numu32);
-            case LogicalTypeId::UBIGINT:
-            case LogicalTypeId::ID:
-            case LogicalTypeId::ADJLISTCOLUMN:
-                uint64_t numu64;
-			    std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, numu64); 
-                return GraphPartitioner::PartitionHash(numu64);
-            default:
-                printf("Not implemented hash column type.\n");
-                return 1;
-        }
-    };
-
-    for (; row_cursor < num_rows; row_cursor++) {
-        uint64_t dest_rank = 0; //If there are more than one hash columns, simple add all hash values. This is the simplist approach, so can be changed.
-        for (size_t i = 0; i < hash_column_idxs.size(); i++) {
-
-            idx_t target_index = index_cursor + hash_column_idxs[i];
-            idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
-            idx_t end_offset = pcsv.indexes[target_index];
-            //apply hash
-            dest_rank += apply_hash(key_types[hash_column_idxs[i]], start_offset, end_offset);
-        }
-        dest_rank = (dest_rank % (GraphPartitioner::process_count-1)) + 1; //Root (rank=0) do not store anything. Need to change this if want to change master-segment policy.
-        for (size_t i = 0; i < key_names.size(); i++) {
-            idx_t target_index = index_cursor + i;
-            idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
-            idx_t end_offset = pcsv.indexes[target_index];
-            
-            SetValueFromCSV(key_types[i], *datachunks[dest_rank], i, current_index, p, start_offset, end_offset);  //TODO: change datachunk policy: push into GenerateExtentFromChunkQueue's queue.
-        }
-        current_index++;
-        index_cursor += num_columns;
-        if(++index_per_chunk[dest_rank] == STORAGE_STANDARD_VECTOR_SIZE) {
-            datachunks[dest_rank]->SetCardinality(index_per_chunk[dest_rank]);
-            GraphPartitioner::per_generator_datachunk_queue[dest_rank % EXTENT_GENERATOR_THREAD_COUNT].push(std::make_pair(std::make_pair(file_seq_number, dest_rank), datachunks[dest_rank]));
-            datachunks[dest_rank] = GraphPartitioner::AllocateNewChunk(dest_rank);
-            index_per_chunk[dest_rank] = 0;
-        }
-    }		
-    // output.SetCardinality(current_index);
-    for(int32_t proc_idx = 1; proc_idx < GraphPartitioner::process_count; proc_idx++) {
-        D_ASSERT(index_per_chunk[0] == 0); //root should store nothing.
-        datachunks[proc_idx]->SetCardinality(index_per_chunk[proc_idx]);
-        GraphPartitioner::per_generator_datachunk_queue[proc_idx % EXTENT_GENERATOR_THREAD_COUNT].push(std::make_pair(std::make_pair(file_seq_number, proc_idx), datachunks[proc_idx]));
+    current_index++;
+    index_cursor += num_columns;
+    if(++index_per_chunk[dest_rank] == STORAGE_STANDARD_VECTOR_SIZE) {
+      datachunks[dest_rank]->SetCardinality(index_per_chunk[dest_rank]);
+      GraphPartitioner::per_generator_datachunk_queue[dest_rank % EXTENT_GENERATOR_THREAD_COUNT].push(std::make_pair(std::make_pair(file_seq_number, dest_rank), datachunks[dest_rank]));
+      printf("pushed datachunk to queue for %d\n", dest_rank);
+      datachunks[dest_rank] = GraphPartitioner::AllocateNewChunk(file_seq_number);
+      index_per_chunk[dest_rank] = 0;
     }
-    D_ASSERT(row_cursor == num_rows);
-    return true;
+  }		
+  // output.SetCardinality(current_index);
+  D_ASSERT(index_per_chunk[0] == 0); //root should store nothing.
+  for(int32_t proc_idx = 1; proc_idx < GraphPartitioner::process_count; proc_idx++) {
+      datachunks[proc_idx]->SetCardinality(index_per_chunk[proc_idx]);
+      GraphPartitioner::per_generator_datachunk_queue[proc_idx % EXTENT_GENERATOR_THREAD_COUNT].push(std::make_pair(std::make_pair(file_seq_number, proc_idx), datachunks[proc_idx]));
+      printf("pushed datachunk to queue for %d\n", proc_idx);
+  }
+  D_ASSERT(row_cursor == num_rows);
+  return true;
 }
 
 }

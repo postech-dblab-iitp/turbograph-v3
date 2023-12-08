@@ -209,6 +209,7 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
                             std::basic_string_view<uint8_t> &p, idx_t start_offset, idx_t end_offset) {
 	auto data_ptr = output.data[i].GetData();
   size_t string_size = end_offset - start_offset;
+
 	switch (type.id()) {
 		case LogicalTypeId::BOOLEAN:
       D_ASSERT(false);
