@@ -481,7 +481,7 @@ CExpression *Planner::lExprScalarCastExpr(kuzu::binder::Expression *expression, 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
-
+	
 	// Get child expr
 	kuzu::binder::expression_vector children = scalarfunc_expr->getChildren();
 	D_ASSERT(children.size() == 1);
