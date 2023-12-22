@@ -49,8 +49,10 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
   "${PROJECT_SOURCE_DIR}/include/catalog/catalog_entry"
-  # catalog
+  # schemaless
   "${PROJECT_SOURCE_DIR}/include/schemaless"
+  # statistics
+  "${PROJECT_SOURCE_DIR}/include/statistics"
 )
 
 ####################################################

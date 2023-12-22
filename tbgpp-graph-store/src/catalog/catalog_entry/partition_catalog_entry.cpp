@@ -77,6 +77,10 @@ void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 	property_indexes.push_back(index_oid);
 }
 
+PropertySchemaID_vector *PartitionCatalogEntry::GetPropertySchemaIDs() {
+	return &property_schema_array;
+}
+
 idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
 	D_ASSERT(physical_id_index != INVALID_OID);
 	return physical_id_index;
@@ -103,6 +107,24 @@ void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 			extra_typeinfo_vec.push_back(0);
 		}
 	}
+}
+
+// TODO we need to create universal schema in memory only once & reuse
+// avoid serialize in-memory DS
+vector<LogicalType> PartitionCatalogEntry::GetTypes() {
+	vector<LogicalType> universal_schema;
+	for (auto i = 0; i < global_property_typesid.size(); i++) {
+		if (extra_typeinfo_vec[i] == 0) {
+			universal_schema.push_back(LogicalType(global_property_typesid[i]));
+		} else {
+			// decimal type case
+			uint8_t width = (uint8_t)((extra_typeinfo_vec[i] | 0xFF00) >> 8);
+			uint8_t scale = (uint8_t)(extra_typeinfo_vec[i] | 0xFF);
+			universal_schema.push_back(LogicalType::DECIMAL(width, scale));
+		}
+	}
+
+	return universal_schema;
 }
 
 void PartitionCatalogEntry::SetKeys(ClientContext &context, vector<string> &key_names) {

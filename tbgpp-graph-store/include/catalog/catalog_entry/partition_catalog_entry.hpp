@@ -59,20 +59,34 @@ public:
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
-	void GetPropertySchemaIDs(vector<idx_t> &psids);
 	void SetPhysicalIDIndex(idx_t index_oid);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+	void SetPartitionID(PartitionID pid);
+
+	//! Get Property Schema IDs
+	void GetPropertySchemaIDs(vector<idx_t> &psids);
+
+	//! Get Property Schema IDs w/o copy
+	PropertySchemaID_vector *GetPropertySchemaIDs();
+	
+	//! Get Catalog OID of Physical ID Index
 	idx_t GetPhysicalIDIndexOid();
+
+	//! Get Catalog OIDs of Adjacency Index
 	idx_t_vector *GetAdjIndexOidVec();
+
+	//! Get Catalog OIDs of Property Index
 	idx_t_vector *GetPropertyIndexOidVec();
+
+	//! Get Number of columns in the universal schema
 	uint64_t GetNumberOfColumns() const;
 
 	//! Returns a list of types of the table
-	//vector<LogicalType> GetTypes();
-	void SetPartitionID(PartitionID pid);
+	vector<LogicalType> GetTypes();
+	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
 
