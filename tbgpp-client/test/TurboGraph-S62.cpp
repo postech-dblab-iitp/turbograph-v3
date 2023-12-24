@@ -52,6 +52,7 @@ using namespace tblr;
 #include "extent/extent_iterator.hpp"
 #include "index/index.hpp"
 #include "index/art/art.hpp"
+#include "statistics/histogram_generator.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -674,6 +675,9 @@ int main(int argc, char** argv) {
 			// check termination
 			if (query_str.compare(":exit") == 0) {
 				break;
+			} else if (query_str.compare("analyze") == 0) {
+				HistogramGenerator hist_gen;
+				hist_gen.CreateHistogram(client);
 			}
 
 			if (query_str != prev_query_str) {

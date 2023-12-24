@@ -9,6 +9,7 @@
 #include "common/vector.hpp"
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
+#include "common/boost_typedefs.hpp"
 //#include "common/types/chunk_collection.hpp"
 
 #include <boost/timer/timer.hpp>
@@ -55,7 +56,12 @@ public:
 
 public:
 
+	//! Initialize Scan Operation
 	StoreAPIResult InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, vector<vector<duckdb::LogicalType>> &scanSchemas);
+
+	//! Initialize Scan Operation
+	StoreAPIResult InitializeScan(std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids, vector<vector<uint64_t>> &projection_mapping, vector<vector<duckdb::LogicalType>> &scanSchemas);
+
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, std::vector<duckdb::LogicalType> &scanSchema);
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping,
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx);

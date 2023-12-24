@@ -23,13 +23,25 @@ private:
     std::vector<idx_t> target_cols;
 
 public:
+    //! ctor
+    HistogramGenerator() {}
+
+    //! dtor
+    ~HistogramGenerator() {}
+
     //! Create histogram for all partitions in the database
     void CreateHistogram(std::shared_ptr<ClientContext> client);
+
+    //! Create histogram for the specific partition
+    void CreateHistogram(std::shared_ptr<ClientContext> client, string &part_name);
 
     //! Create histogram for the specific partition
     void CreateHistogram(std::shared_ptr<ClientContext> client, idx_t partition_oid);
 
 private:
+    //! Create histogram internal function
+    void _create_histogram(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat);
+
     //! Initialize accumulator for target types
     void _init_accumulators(vector<LogicalType> &universal_schema);
 
