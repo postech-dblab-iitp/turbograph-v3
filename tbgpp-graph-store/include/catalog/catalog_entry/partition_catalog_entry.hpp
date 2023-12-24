@@ -43,18 +43,46 @@ public:
 	//! Create a real PartitionCatalogEntry
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
+	//! PropertyKeyID -> Property schema catalog entries those contains the property
 	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
+
+	//! OIDs of property schema catalog entries
 	PropertySchemaID_vector property_schema_array;
+
 	//vector<Constraints> constraints;
+	
+	//! Logical partition ID
 	PartitionID pid;
+
+	//! OID of the physical ID index (_id)
 	idx_t physical_id_index;
+
+	//! OIDs of the adjacency list indexes
 	idx_t_vector adjlist_indexes;
+
+	//! OIDs of the property indexes
 	idx_t_vector property_indexes;
+
+	//! Universal schema logical type IDs
 	LogicalTypeId_vector global_property_typesid;
+
+	//! Extra info vector of universal schema
 	uint16_t_vector extra_typeinfo_vec;
+
+	//! Universal schema names
 	string_vector global_property_key_names;
+
+	//! # of columns in universal schema
 	idx_t num_columns;
+
+	//! Variable for the local extent ID generator
 	atomic<ExtentID> local_extent_id_version;
+
+	//! Offset infos
+	idx_t_vector offset_infos;
+
+	//! Boundary values of the histogram
+	idx_t_vector boundary_values;
 
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -86,6 +114,12 @@ public:
 
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
+
+	//! Get offset infos member variable
+	idx_t_vector *GetOffsetInfos();
+
+	//! Get boundary values member variable
+	idx_t_vector *GetBoundaryValues();
 	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();

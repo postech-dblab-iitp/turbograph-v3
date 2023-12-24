@@ -94,6 +94,14 @@ idx_t_vector *PartitionCatalogEntry::GetPropertyIndexOidVec() {
 	return &property_indexes;
 }
 
+idx_t_vector *PartitionCatalogEntry::GetOffsetInfos() {
+	return &offset_infos;
+}
+
+idx_t_vector *PartitionCatalogEntry::GetBoundaryValues() {
+	return &boundary_values;
+}
+
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(global_property_typesid.empty());
 	for (auto &it : types) {
