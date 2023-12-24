@@ -212,20 +212,20 @@ private:
 	// 	CMemoryPool *mp, const IMDType *md_type, const Datum *mcv_values,
 	// 	const float4 *mcv_frequencies, ULONG num_mcv_values);
 
-	// // transform GPDB's hist information to optimizer's histogram structure
-	// static CHistogram *TransformHistToOrcaHistogram(
-	// 	CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
-	// 	ULONG num_hist_values, CDouble num_distinct, CDouble hist_freq);
+	// transform GPDB's hist information to optimizer's histogram structure
+	static CHistogram *TransformHistToOrcaHistogram(
+		CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
+		ULONG num_hist_values, CDouble num_distinct, CDouble hist_freq);
 
-	// // histogram to array of dxl buckets
-	// static CDXLBucketArray *TransformHistogramToDXLBucketArray(
-	// 	CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist);
+	// histogram to array of dxl buckets
+	static CDXLBucketArray *TransformHistogramToDXLBucketArray(
+		CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist);
 
-	// // transform stats from pg_stats form to optimizer's preferred form
-	// static CDXLBucketArray *TransformStatsToDXLBucketArray(
-	// 	CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
-	// 	const Datum *mcv_values, const float4 *mcv_frequencies,
-	// 	ULONG num_mcv_values, const Datum *hist_values, ULONG num_hist_values);
+	// transform stats from pg_stats form to optimizer's preferred form
+	static CDXLBucketArray *TransformStatsToDXLBucketArray(
+		CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
+		const Datum *mcv_values, const float4 *mcv_frequencies,
+		ULONG num_mcv_values, const Datum *hist_values, ULONG num_hist_values);
 
 	// get partition keys and types for a relation
 	static void RetrievePartKeysAndTypes(CMemoryPool *mp, Relation rel, OID oid,
