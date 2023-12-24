@@ -2555,108 +2555,108 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// tuple for a given column
 	// AttStatsSlot mcv_slot;
 
-	// (void) gpdb::GetAttrStatsSlot(&mcv_slot, stats_tup, STATISTIC_KIND_MCV,
-	// 							  InvalidOid,
-	// 							  ATTSTATSSLOT_VALUES | ATTSTATSSLOT_NUMBERS);
-	// if (InvalidOid != mcv_slot.valuetype && mcv_slot.valuetype != att_type)
-	// {
-	// 	char msgbuf[NAMEDATALEN * 2 + 100];
-	// 	snprintf(
-	// 		msgbuf, sizeof(msgbuf),
-	// 		"Type mismatch between attribute %ls of table %ls having type %d and statistic having type %d, please ANALYZE the table again",
-	// 		md_col->Mdname().GetMDName()->GetBuffer(),
-	// 		md_rel->Mdname().GetMDName()->GetBuffer(), att_type,
-	// 		mcv_slot.valuetype);
-	// 	GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
+	(void) gpdb::GetAttrStatsSlot(&mcv_slot, stats_tup, STATISTIC_KIND_MCV,
+								  InvalidOid,
+								  ATTSTATSSLOT_VALUES | ATTSTATSSLOT_NUMBERS);
+	if (InvalidOid != mcv_slot.valuetype && mcv_slot.valuetype != att_type)
+	{
+		char msgbuf[NAMEDATALEN * 2 + 100];
+		snprintf(
+			msgbuf, sizeof(msgbuf),
+			"Type mismatch between attribute %ls of table %ls having type %d and statistic having type %d, please ANALYZE the table again",
+			md_col->Mdname().GetMDName()->GetBuffer(),
+			md_rel->Mdname().GetMDName()->GetBuffer(), att_type,
+			mcv_slot.valuetype);
+		GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
 
-	// 	gpdb::FreeAttrStatsSlot(&mcv_slot);
-	// 	is_dummy_stats = true;
-	// }
+		gpdb::FreeAttrStatsSlot(&mcv_slot);
+		is_dummy_stats = true;
+	}
 
-	// else if (mcv_slot.nvalues != mcv_slot.nnumbers)
-	// {
-	// 	char msgbuf[NAMEDATALEN * 2 + 100];
-	// 	snprintf(
-	// 		msgbuf, sizeof(msgbuf),
-	// 		"The number of most common values and frequencies do not match on column %ls of table %ls.",
-	// 		md_col->Mdname().GetMDName()->GetBuffer(),
-	// 		md_rel->Mdname().GetMDName()->GetBuffer());
-	// 	GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
+	else if (mcv_slot.nvalues != mcv_slot.nnumbers)
+	{
+		char msgbuf[NAMEDATALEN * 2 + 100];
+		snprintf(
+			msgbuf, sizeof(msgbuf),
+			"The number of most common values and frequencies do not match on column %ls of table %ls.",
+			md_col->Mdname().GetMDName()->GetBuffer(),
+			md_rel->Mdname().GetMDName()->GetBuffer());
+		GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
 
-	// 	// if the number of MCVs(nvalues) and number of MCFs(nnumbers) do not match, we discard the MCVs and MCFs
-	// 	gpdb::FreeAttrStatsSlot(&mcv_slot);
-	// 	is_dummy_stats = true;
-	// }
-	// else
-	// {
-	// 	// fix mcv and null frequencies (sometimes they can add up to more than 1.0)
-	// 	NormalizeFrequencies(mcv_slot.numbers, (ULONG) mcv_slot.nvalues,
-	// 						 &null_freq);
+		// if the number of MCVs(nvalues) and number of MCFs(nnumbers) do not match, we discard the MCVs and MCFs
+		gpdb::FreeAttrStatsSlot(&mcv_slot);
+		is_dummy_stats = true;
+	}
+	else
+	{
+		// fix mcv and null frequencies (sometimes they can add up to more than 1.0)
+		NormalizeFrequencies(mcv_slot.numbers, (ULONG) mcv_slot.nvalues,
+							 &null_freq);
 
-	// 	// total MCV frequency
-	// 	CDouble sum_mcv_freq = 0.0;
-	// 	for (int i = 0; i < mcv_slot.nvalues; i++)
-	// 	{
-	// 		sum_mcv_freq = sum_mcv_freq + CDouble(mcv_slot.numbers[i]);
-	// 	}
-	// }
+		// total MCV frequency
+		CDouble sum_mcv_freq = 0.0;
+		for (int i = 0; i < mcv_slot.nvalues; i++)
+		{
+			sum_mcv_freq = sum_mcv_freq + CDouble(mcv_slot.numbers[i]);
+		}
+	}
 
-	// // histogram values extracted from the pg_statistic tuple for a given column
-	// AttStatsSlot hist_slot;
+	// histogram values extracted from the pg_statistic tuple for a given column
+	AttStatsSlot hist_slot;
 
-	// // get histogram datums from pg_statistic entry
-	// (void) gpdb::GetAttrStatsSlot(&hist_slot, stats_tup,
-	// 							  STATISTIC_KIND_HISTOGRAM, InvalidOid,
-	// 							  ATTSTATSSLOT_VALUES);
+	// get histogram datums from pg_statistic entry
+	(void) gpdb::GetAttrStatsSlot(&hist_slot, stats_tup,
+								  STATISTIC_KIND_HISTOGRAM, InvalidOid,
+								  ATTSTATSSLOT_VALUES);
 
-	// if (InvalidOid != hist_slot.valuetype && hist_slot.valuetype != att_type)
-	// {
-	// 	char msgbuf[NAMEDATALEN * 2 + 100];
-	// 	snprintf(
-	// 		msgbuf, sizeof(msgbuf),
-	// 		"Type mismatch between attribute %ls of table %ls having type %d and statistic having type %d, please ANALYZE the table again",
-	// 		md_col->Mdname().GetMDName()->GetBuffer(),
-	// 		md_rel->Mdname().GetMDName()->GetBuffer(), att_type,
-	// 		hist_slot.valuetype);
-	// 	GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
+	if (InvalidOid != hist_slot.valuetype && hist_slot.valuetype != att_type)
+	{
+		char msgbuf[NAMEDATALEN * 2 + 100];
+		snprintf(
+			msgbuf, sizeof(msgbuf),
+			"Type mismatch between attribute %ls of table %ls having type %d and statistic having type %d, please ANALYZE the table again",
+			md_col->Mdname().GetMDName()->GetBuffer(),
+			md_rel->Mdname().GetMDName()->GetBuffer(), att_type,
+			hist_slot.valuetype);
+		GpdbEreport(ERRCODE_SUCCESSFUL_COMPLETION, NOTICE, msgbuf, NULL);
 
-	// 	gpdb::FreeAttrStatsSlot(&hist_slot);
-	// 	is_dummy_stats = true;
-	// }
+		gpdb::FreeAttrStatsSlot(&hist_slot);
+		is_dummy_stats = true;
+	}
 
-	// if (is_dummy_stats)
-	// {
-	// 	dxl_stats_bucket_array->Release();
-	// 	mdid_col_stats->AddRef();
+	if (is_dummy_stats)
+	{
+		dxl_stats_bucket_array->Release();
+		mdid_col_stats->AddRef();
 
-	// 	CDouble col_width = CStatistics::DefaultColumnWidth;
-	// 	gpdb::FreeHeapTuple(stats_tup);
-	// 	return CDXLColStats::CreateDXLDummyColStats(mp, mdid_col_stats,
-	// 												md_colname, col_width);
-	// }
+		CDouble col_width = CStatistics::DefaultColumnWidth;
+		gpdb::FreeHeapTuple(stats_tup);
+		return CDXLColStats::CreateDXLDummyColStats(mp, mdid_col_stats,
+													md_colname, col_width);
+	}
 
 	CDouble num_ndv_buckets(0.0);
 	CDouble num_freq_buckets(0.0);
 	CDouble distinct_remaining(0.0);
 	CDouble freq_remaining(0.0);
 
-	// // transform all the bits and pieces from pg_statistic
-	// // to a single bucket structure
-	// CDXLBucketArray *dxl_stats_bucket_array_transformed =
-	// 	TransformStatsToDXLBucketArray(
-	// 		mp, att_type, num_distinct, null_freq, mcv_slot.values,
-	// 		mcv_slot.numbers, ULONG(mcv_slot.nvalues), hist_slot.values,
-	// 		ULONG(hist_slot.nvalues));
+	// transform all the bits and pieces from pg_statistic
+	// to a single bucket structure
+	CDXLBucketArray *dxl_stats_bucket_array_transformed =
+		TransformStatsToDXLBucketArray(
+			mp, att_type, num_distinct, null_freq, mcv_slot.values,
+			mcv_slot.numbers, ULONG(mcv_slot.nvalues), hist_slot.values,
+			ULONG(hist_slot.nvalues));
 
-	// GPOS_ASSERT(NULL != dxl_stats_bucket_array_transformed);
+	GPOS_ASSERT(NULL != dxl_stats_bucket_array_transformed);
 
-	// const ULONG num_buckets = dxl_stats_bucket_array_transformed->Size();
-	// for (ULONG ul = 0; ul < num_buckets; ul++)
-	// {
-	// 	CDXLBucket *dxl_bucket = (*dxl_stats_bucket_array_transformed)[ul];
-	// 	num_ndv_buckets = num_ndv_buckets + dxl_bucket->GetNumDistinct();
-	// 	num_freq_buckets = num_freq_buckets + dxl_bucket->GetFrequency();
-	// }
+	const ULONG num_buckets = dxl_stats_bucket_array_transformed->Size();
+	for (ULONG ul = 0; ul < num_buckets; ul++)
+	{
+		CDXLBucket *dxl_bucket = (*dxl_stats_bucket_array_transformed)[ul];
+		num_ndv_buckets = num_ndv_buckets + dxl_bucket->GetNumDistinct();
+		num_freq_buckets = num_freq_buckets + dxl_bucket->GetFrequency();
+	}
 
 	// CUtils::AddRefAppend(dxl_stats_bucket_array,
 	// 					 dxl_stats_bucket_array_transformed);
@@ -2946,101 +2946,101 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, scalar_cmp_oid));
 }
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray
-// //
-// //	@doc:
-// //		transform stats from pg_stats form to optimizer's preferred form
-// //
-// //---------------------------------------------------------------------------
-// CDXLBucketArray *
-// CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
-// 	CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
-// 	const Datum *mcv_values, const float4 *mcv_frequencies,
-// 	ULONG num_mcv_values, const Datum *hist_values, ULONG num_hist_values)
-// {
-// 	CMDIdGPDB *mdid_atttype =
-// 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, att_type);
-// 	IMDType *md_type = RetrieveType(mp, mdid_atttype);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray
+//
+//	@doc:
+//		transform stats from pg_stats form to optimizer's preferred form
+//
+//---------------------------------------------------------------------------
+CDXLBucketArray *
+CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
+	CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
+	const Datum *mcv_values, const float4 *mcv_frequencies,
+	ULONG num_mcv_values, const Datum *hist_values, ULONG num_hist_values)
+{
+	CMDIdGPDB *mdid_atttype =
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, att_type);
+	IMDType *md_type = RetrieveType(mp, mdid_atttype);
 
-// 	// translate MCVs to Orca histogram. Create an empty histogram if there are no MCVs.
-// 	CHistogram *gpdb_mcv_hist = TransformMcvToOrcaHistogram(
-// 		mp, md_type, mcv_values, mcv_frequencies, num_mcv_values);
+	// translate MCVs to Orca histogram. Create an empty histogram if there are no MCVs.
+	CHistogram *gpdb_mcv_hist = TransformMcvToOrcaHistogram(
+		mp, md_type, mcv_values, mcv_frequencies, num_mcv_values);
 
-// 	GPOS_ASSERT(gpdb_mcv_hist->IsValid());
+	GPOS_ASSERT(gpdb_mcv_hist->IsValid());
 
-// 	CDouble mcv_freq = gpdb_mcv_hist->GetFrequency();
-// 	BOOL has_mcv = 0 < num_mcv_values && CStatistics::Epsilon < mcv_freq;
+	CDouble mcv_freq = gpdb_mcv_hist->GetFrequency();
+	BOOL has_mcv = 0 < num_mcv_values && CStatistics::Epsilon < mcv_freq;
 
-// 	CDouble hist_freq = 0.0;
-// 	if (1 < num_hist_values)
-// 	{
-// 		hist_freq = CDouble(1.0) - null_freq - mcv_freq;
-// 	}
+	CDouble hist_freq = 0.0;
+	if (1 < num_hist_values)
+	{
+		hist_freq = CDouble(1.0) - null_freq - mcv_freq;
+	}
 
-// 	BOOL is_text_type = mdid_atttype->Equals(&CMDIdGPDB::m_mdid_varchar) ||
-// 						mdid_atttype->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
-// 						mdid_atttype->Equals(&CMDIdGPDB::m_mdid_text);
-// 	BOOL has_hist = !is_text_type && 1 < num_hist_values &&
-// 					CStatistics::Epsilon < hist_freq;
+	BOOL is_text_type = mdid_atttype->Equals(&CMDIdGPDB::m_mdid_varchar) ||
+						mdid_atttype->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
+						mdid_atttype->Equals(&CMDIdGPDB::m_mdid_text);
+	BOOL has_hist = !is_text_type && 1 < num_hist_values &&
+					CStatistics::Epsilon < hist_freq;
 
-// 	CHistogram *histogram = NULL;
+	CHistogram *histogram = NULL;
 
-// 	// if histogram has any significant information, then extract it
-// 	if (has_hist)
-// 	{
-// 		// histogram from gpdb histogram
-// 		histogram = TransformHistToOrcaHistogram(
-// 			mp, md_type, hist_values, num_hist_values, num_distinct, hist_freq);
-// 		if (0 == histogram->GetNumBuckets())
-// 		{
-// 			has_hist = false;
-// 		}
-// 	}
+	// if histogram has any significant information, then extract it
+	if (has_hist)
+	{
+		// histogram from gpdb histogram
+		histogram = TransformHistToOrcaHistogram(
+			mp, md_type, hist_values, num_hist_values, num_distinct, hist_freq);
+		if (0 == histogram->GetNumBuckets())
+		{
+			has_hist = false;
+		}
+	}
 
-// 	CDXLBucketArray *dxl_stats_bucket_array = NULL;
+	CDXLBucketArray *dxl_stats_bucket_array = NULL;
 
-// 	if (has_hist && !has_mcv)
-// 	{
-// 		// if histogram exists and dominates, use histogram only
-// 		dxl_stats_bucket_array =
-// 			TransformHistogramToDXLBucketArray(mp, md_type, histogram);
-// 	}
-// 	else if (!has_hist && has_mcv)
-// 	{
-// 		// if MCVs exist and dominate, use MCVs only
-// 		dxl_stats_bucket_array =
-// 			TransformHistogramToDXLBucketArray(mp, md_type, gpdb_mcv_hist);
-// 	}
-// 	else if (has_hist && has_mcv)
-// 	{
-// 		// both histogram and MCVs exist and have significant info, merge MCV and histogram buckets
-// 		CHistogram *merged_hist =
-// 			CStatisticsUtils::MergeMCVHist(mp, gpdb_mcv_hist, histogram);
-// 		dxl_stats_bucket_array =
-// 			TransformHistogramToDXLBucketArray(mp, md_type, merged_hist);
-// 		GPOS_DELETE(merged_hist);
-// 	}
-// 	else
-// 	{
-// 		// no MCVs nor histogram
-// 		GPOS_ASSERT(!has_hist && !has_mcv);
-// 		dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
-// 	}
+	if (has_hist && !has_mcv)
+	{
+		// if histogram exists and dominates, use histogram only
+		dxl_stats_bucket_array =
+			TransformHistogramToDXLBucketArray(mp, md_type, histogram);
+	}
+	else if (!has_hist && has_mcv)
+	{
+		// if MCVs exist and dominate, use MCVs only
+		dxl_stats_bucket_array =
+			TransformHistogramToDXLBucketArray(mp, md_type, gpdb_mcv_hist);
+	}
+	else if (has_hist && has_mcv)
+	{
+		// both histogram and MCVs exist and have significant info, merge MCV and histogram buckets
+		CHistogram *merged_hist =
+			CStatisticsUtils::MergeMCVHist(mp, gpdb_mcv_hist, histogram);
+		dxl_stats_bucket_array =
+			TransformHistogramToDXLBucketArray(mp, md_type, merged_hist);
+		GPOS_DELETE(merged_hist);
+	}
+	else
+	{
+		// no MCVs nor histogram
+		GPOS_ASSERT(!has_hist && !has_mcv);
+		dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
+	}
 
-// 	// cleanup
-// 	mdid_atttype->Release();
-// 	md_type->Release();
-// 	GPOS_DELETE(gpdb_mcv_hist);
+	// cleanup
+	mdid_atttype->Release();
+	md_type->Release();
+	GPOS_DELETE(gpdb_mcv_hist);
 
-// 	if (NULL != histogram)
-// 	{
-// 		GPOS_DELETE(histogram);
-// 	}
+	if (NULL != histogram)
+	{
+		GPOS_DELETE(histogram);
+	}
 
-// 	return dxl_stats_bucket_array;
-// }
+	return dxl_stats_bucket_array;
+}
 
 // //---------------------------------------------------------------------------
 // //	@function:
@@ -3084,120 +3084,120 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 // 	return hist;
 // }
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram
-// //
-// //	@doc:
-// //		Transform GPDB's hist info to optimizer's histogram
-// //
-// //---------------------------------------------------------------------------
-// CHistogram *
-// CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
-// 	CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
-// 	ULONG num_hist_values, CDouble num_distinct, CDouble hist_freq)
-// {
-// 	GPOS_ASSERT(1 < num_hist_values);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram
+//
+//	@doc:
+//		Transform GPDB's hist info to optimizer's histogram
+//
+//---------------------------------------------------------------------------
+CHistogram *
+CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
+	CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
+	ULONG num_hist_values, CDouble num_distinct, CDouble hist_freq)
+{
+	GPOS_ASSERT(1 < num_hist_values);
 
-// 	const ULONG num_buckets = num_hist_values - 1;
-// 	CDouble distinct_per_bucket = num_distinct / CDouble(num_buckets);
-// 	CDouble freq_per_bucket = hist_freq / CDouble(num_buckets);
+	const ULONG num_buckets = num_hist_values - 1;
+	CDouble distinct_per_bucket = num_distinct / CDouble(num_buckets);
+	CDouble freq_per_bucket = hist_freq / CDouble(num_buckets);
 
-// 	BOOL last_bucket_was_singleton = false;
-// 	// create buckets
-// 	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
-// 	for (ULONG ul = 0; ul < num_buckets; ul++)
-// 	{
-// 		IDatum *min_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
-// 			mp, md_type, false /* is_null */, hist_values[ul]);
-// 		IDatum *max_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
-// 			mp, md_type, false /* is_null */, hist_values[ul + 1]);
-// 		BOOL is_lower_closed, is_upper_closed;
+	BOOL last_bucket_was_singleton = false;
+	// create buckets
+	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
+	for (ULONG ul = 0; ul < num_buckets; ul++)
+	{
+		IDatum *min_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
+			mp, md_type, false /* is_null */, hist_values[ul]);
+		IDatum *max_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
+			mp, md_type, false /* is_null */, hist_values[ul + 1]);
+		BOOL is_lower_closed, is_upper_closed;
 
-// 		if (min_datum->StatsAreEqual(max_datum))
-// 		{
-// 			// Singleton bucket !!!!!!!!!!!!!
-// 			is_lower_closed = true;
-// 			is_upper_closed = true;
-// 			last_bucket_was_singleton = true;
-// 		}
-// 		else if (last_bucket_was_singleton)
-// 		{
-// 			// Last bucket was a singleton, so lower must be open now.
-// 			is_lower_closed = false;
-// 			is_upper_closed = false;
-// 			last_bucket_was_singleton = false;
-// 		}
-// 		else
-// 		{
-// 			// Normal bucket
-// 			// GPDB histograms assumes lower bound to be closed and upper bound to be open
-// 			is_lower_closed = true;
-// 			is_upper_closed = false;
-// 		}
+		if (min_datum->StatsAreEqual(max_datum))
+		{
+			// Singleton bucket !!!!!!!!!!!!!
+			is_lower_closed = true;
+			is_upper_closed = true;
+			last_bucket_was_singleton = true;
+		}
+		else if (last_bucket_was_singleton)
+		{
+			// Last bucket was a singleton, so lower must be open now.
+			is_lower_closed = false;
+			is_upper_closed = false;
+			last_bucket_was_singleton = false;
+		}
+		else
+		{
+			// Normal bucket
+			// GPDB histograms assumes lower bound to be closed and upper bound to be open
+			is_lower_closed = true;
+			is_upper_closed = false;
+		}
 
-// 		if (ul == num_buckets - 1)
-// 		{
-// 			// last bucket upper bound is also closed
-// 			is_upper_closed = true;
-// 		}
+		if (ul == num_buckets - 1)
+		{
+			// last bucket upper bound is also closed
+			is_upper_closed = true;
+		}
 
-// 		CBucket *bucket = GPOS_NEW(mp)
-// 			CBucket(GPOS_NEW(mp) CPoint(min_datum),
-// 					GPOS_NEW(mp) CPoint(max_datum), is_lower_closed,
-// 					is_upper_closed, freq_per_bucket, distinct_per_bucket);
-// 		buckets->Append(bucket);
+		CBucket *bucket = GPOS_NEW(mp)
+			CBucket(GPOS_NEW(mp) CPoint(min_datum),
+					GPOS_NEW(mp) CPoint(max_datum), is_lower_closed,
+					is_upper_closed, freq_per_bucket, distinct_per_bucket);
+		buckets->Append(bucket);
 
-// 		if (!min_datum->StatsAreComparable(max_datum) ||
-// 			!min_datum->StatsAreLessThan(max_datum))
-// 		{
-// 			// if less than operation is not supported on this datum,
-// 			// or the translated histogram does not conform to GPDB sort order (e.g. text column in Linux platform),
-// 			// then no point building a histogram. return an empty histogram
+		if (!min_datum->StatsAreComparable(max_datum) ||
+			!min_datum->StatsAreLessThan(max_datum))
+		{
+			// if less than operation is not supported on this datum,
+			// or the translated histogram does not conform to GPDB sort order (e.g. text column in Linux platform),
+			// then no point building a histogram. return an empty histogram
 
-// 			// TODO: 03/01/2014 translate histogram into Orca even if sort
-// 			// order is different in GPDB, and use const expression eval to compare
-// 			// datums in Orca (MPP-22780)
-// 			buckets->Release();
-// 			return GPOS_NEW(mp) CHistogram(mp);
-// 		}
-// 	}
+			// TODO: 03/01/2014 translate histogram into Orca even if sort
+			// order is different in GPDB, and use const expression eval to compare
+			// datums in Orca (MPP-22780)
+			buckets->Release();
+			return GPOS_NEW(mp) CHistogram(mp);
+		}
+	}
 
-// 	CHistogram *hist = GPOS_NEW(mp) CHistogram(mp, buckets);
-// 	return hist;
-// }
+	CHistogram *hist = GPOS_NEW(mp) CHistogram(mp, buckets);
+	return hist;
+}
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray
-// //
-// //	@doc:
-// //		Histogram to array of dxl buckets
-// //
-// //---------------------------------------------------------------------------
-// CDXLBucketArray *
-// CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray(
-// 	CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist)
-// {
-// 	CDXLBucketArray *dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
-// 	const CBucketArray *buckets = hist->GetBuckets();
-// 	ULONG num_buckets = buckets->Size();
-// 	for (ULONG ul = 0; ul < num_buckets; ul++)
-// 	{
-// 		CBucket *bucket = (*buckets)[ul];
-// 		IDatum *datum_lower = bucket->GetLowerBound()->GetDatum();
-// 		CDXLDatum *dxl_lower = md_type->GetDatumVal(mp, datum_lower);
-// 		IDatum *datum_upper = bucket->GetUpperBound()->GetDatum();
-// 		CDXLDatum *dxl_upper = md_type->GetDatumVal(mp, datum_upper);
-// 		CDXLBucket *dxl_bucket = GPOS_NEW(mp)
-// 			CDXLBucket(dxl_lower, dxl_upper, bucket->IsLowerClosed(),
-// 					   bucket->IsUpperClosed(), bucket->GetFrequency(),
-// 					   bucket->GetNumDistinct());
-// 		dxl_stats_bucket_array->Append(dxl_bucket);
-// 	}
-// 	return dxl_stats_bucket_array;
-// }
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray
+//
+//	@doc:
+//		Histogram to array of dxl buckets
+//
+//---------------------------------------------------------------------------
+CDXLBucketArray *
+CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray(
+	CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist)
+{
+	CDXLBucketArray *dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
+	const CBucketArray *buckets = hist->GetBuckets();
+	ULONG num_buckets = buckets->Size();
+	for (ULONG ul = 0; ul < num_buckets; ul++)
+	{
+		CBucket *bucket = (*buckets)[ul];
+		IDatum *datum_lower = bucket->GetLowerBound()->GetDatum();
+		CDXLDatum *dxl_lower = md_type->GetDatumVal(mp, datum_lower);
+		IDatum *datum_upper = bucket->GetUpperBound()->GetDatum();
+		CDXLDatum *dxl_upper = md_type->GetDatumVal(mp, datum_upper);
+		CDXLBucket *dxl_bucket = GPOS_NEW(mp)
+			CDXLBucket(dxl_lower, dxl_upper, bucket->IsLowerClosed(),
+					   bucket->IsUpperClosed(), bucket->GetFrequency(),
+					   bucket->GetNumDistinct());
+		dxl_stats_bucket_array->Append(dxl_bucket);
+	}
+	return dxl_stats_bucket_array;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
