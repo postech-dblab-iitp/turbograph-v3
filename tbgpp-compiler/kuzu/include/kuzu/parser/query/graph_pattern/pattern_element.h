@@ -25,6 +25,10 @@ public:
         patternElementChains.push_back(move(patternElementChain));
     }
 
+    inline string getPathName() const { return pathName; }
+
+    inline PatternType getPatternType() const { return patternType; }
+
     inline void setPathName(string name) { pathName = move(name); }
 
     inline void setPatternType(PatternType type) { patternType = type; }
@@ -37,7 +41,7 @@ public:
 
 private:
     string pathName;
-    PatternType patternType;
+    PatternType patternType = PatternType::NONE;
     unique_ptr<NodePattern> nodePattern;
     vector<unique_ptr<PatternElementChain>> patternElementChains;
 };

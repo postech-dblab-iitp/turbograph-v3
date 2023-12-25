@@ -121,7 +121,7 @@ private:
     pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
         const vector<unique_ptr<PatternElement>>& graphPattern);
 
-    unique_ptr<QueryGraph> bindPatternElement(
+    shared_ptr<QueryGraph> bindPatternElement(
         const PatternElement& patternElement, PropertyKeyValCollection& collection);
 
     void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,

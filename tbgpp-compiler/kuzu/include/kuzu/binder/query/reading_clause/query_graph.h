@@ -72,12 +72,16 @@ private:
 };
 
 // QueryGraph represents a connected pattern specified in MATCH clause.
-class QueryGraph : public ParseTreeNode {
+enum QueryGraphType: uint8_t { NONE = 0, SHORTEST = 1, ALL_SHORTEST = 2 };
+
+class QueryGraph : public Expression  {
 public:
-    QueryGraph() = default;
+    QueryGraph(const string& uniqueName) : Expression{VARIABLE, DataTypeID::PATH, uniqueName} {}
 
     QueryGraph(const QueryGraph& other)
-        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
+        : Expression{VARIABLE, DataTypeID::PATH, other.getUniqueName()},
+          queryGraphType{other.queryGraphType},
+          queryNodeNameToPosMap{other.queryNodeNameToPosMap},
           queryRelNameToPosMap{other.queryRelNameToPosMap},
           queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
 
@@ -131,7 +135,7 @@ public:
 
     void merge(const QueryGraph& other);
 
-    inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
+    inline unique_ptr<QueryGraph> copyQueryGraph() const { return make_unique<QueryGraph>(*this); }
 
     std::string getName() override { return "[QueryGraph]"; }
     std::list<ParseTreeNode*> getChildNodes() override { 
@@ -148,7 +152,13 @@ public:
         return result;
     }
 
+    void setQueryGraphType(QueryGraphType queryGraphType) {
+        assert(this->queryGraphType == QueryGraphType::NONE);
+        this->queryGraphType = queryGraphType;
+    }
+
 private:
+    QueryGraphType queryGraphType = QueryGraphType::NONE;
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<shared_ptr<NodeExpression>> queryNodes;
@@ -161,7 +171,7 @@ class QueryGraphCollection : public ParseTreeNode {
 public:
     QueryGraphCollection() = default;
 
-    void addAndMergeQueryGraphIfConnected(unique_ptr<QueryGraph> queryGraphToAdd);
+    void addAndMergeQueryGraphIfConnected(shared_ptr<QueryGraph> queryGraphToAdd);
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
@@ -180,7 +190,7 @@ public:
     }
 
 private:
-    vector<unique_ptr<QueryGraph>> queryGraphs;
+    vector<shared_ptr<QueryGraph>> queryGraphs;
 };
 
 class PropertyKeyValCollection {

@@ -28,9 +28,9 @@ Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern)
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-unique_ptr<QueryGraph> Binder::bindPatternElement(
+shared_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement& patternElement, PropertyKeyValCollection& collection) {
-    auto queryGraph = make_unique<QueryGraph>();
+    auto queryGraph = make_shared<QueryGraph>(getUniqueExpressionName(patternElement.getPathName()));
     auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
@@ -39,6 +39,10 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
         bindQueryRel(
             *patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
         leftNode = rightNode;
+    }
+    queryGraph->setQueryGraphType((QueryGraphType) patternElement.getPatternType());
+    if(!patternElement.getPathName().empty()) {
+        variablesInScope.insert({patternElement.getPathName(), queryGraph});
     }
     return queryGraph;
 }
