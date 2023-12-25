@@ -229,12 +229,28 @@ vector<unique_ptr<PatternElement>> Transformer::transformPattern(
 
 unique_ptr<PatternElement> Transformer::transformPatternPart(
     CypherParser::OC_PatternPartContext& ctx) {
-    return transformAnonymousPatternPart(*ctx.oC_AnonymousPatternPart());
+    auto patternElement = transformAnonymousPatternPart(*ctx.oC_AnonymousPatternPart());
+    if (ctx.oC_Variable()) {
+        auto variable = transformVariable(*ctx.oC_Variable());
+        patternElement->setPathName(variable);
+    }
+    return patternElement;
 }
 
 unique_ptr<PatternElement> Transformer::transformAnonymousPatternPart(
     CypherParser::OC_AnonymousPatternPartContext& ctx) {
-    return transformPatternElement(*ctx.oC_PatternElement());
+    if (ctx.oC_ShortestPathPattern()) {
+        auto pattern = transformPatternElement(*(ctx.oC_ShortestPathPattern()->oC_PatternElement()));
+        if (ctx.oC_ShortestPathPattern()->SHORTESTPATH()) {
+            pattern->setPatternType(PatternType::SHORTEST);
+        } else {
+            pattern->setPatternType(PatternType::ALL_SHORTEST);
+        }
+        return pattern;
+    }
+    else {
+        return transformPatternElement(*ctx.oC_PatternElement());
+    }
 }
 
 unique_ptr<PatternElement> Transformer::transformPatternElement(

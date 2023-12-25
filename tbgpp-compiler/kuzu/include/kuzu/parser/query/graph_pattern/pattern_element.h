@@ -7,6 +7,8 @@
 namespace kuzu {
 namespace parser {
 
+enum PatternType : uint8_t { NONE = 0, SHORTEST = 1, ALL_SHORTEST = 2 };
+
 /**
  * PatternElement represents "NodePattern - PatternElementChain - ..."
  */
@@ -23,6 +25,10 @@ public:
         patternElementChains.push_back(move(patternElementChain));
     }
 
+    inline void setPathName(string name) { pathName = move(name); }
+
+    inline void setPatternType(PatternType type) { patternType = type; }
+
     inline uint32_t getNumPatternElementChains() const { return patternElementChains.size(); }
 
     inline PatternElementChain* getPatternElementChain(uint32_t idx) const {
@@ -30,6 +36,8 @@ public:
     }
 
 private:
+    string pathName;
+    PatternType patternType;
     unique_ptr<NodePattern> nodePattern;
     vector<unique_ptr<PatternElementChain>> patternElementChains;
 };
