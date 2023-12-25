@@ -7,6 +7,7 @@
 #include "common/types/data_chunk.hpp"
 
 #include <boost/array.hpp>
+#include <numeric>
 
 
 using namespace boost::accumulators;
@@ -56,36 +57,54 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     vector<LogicalType> universal_schema = std::move(partition_cat->GetTypes());
 
     // Initialize accumulators for histogram
-    boost::array<double, 3> probs = {{0.25, 0.5, 0.75}}; // TODO need to define bin size
+    boost::array<double, 5> probs = {{0, 0.25, 0.5, 0.75, 1.00}}; // TODO need to define bin size
+    // boost::array<double, 10> probs = { 0.990, 0.991, 0.992, 0.993, 0.994,
+    //                            0.995, 0.996, 0.997, 0.998, 0.999 };
     _init_accumulators(universal_schema);
     
     // Get PropertySchema IDs
     PropertySchemaID_vector *ps_oids = partition_cat->GetPropertySchemaIDs();
+    PropertyToIdxUnorderedMap *property_to_idx_map = partition_cat->GetPropertyToIdxMap();
 
-    // Initialize ExtentIterators // TODO read only necessary columns
-    vector<vector<idx_t>> scan_projection_mapping;
-    vector<vector<LogicalType>> scan_types;
-
+    // For each property schema, read data & accumulate histogram
     for (auto i = 0; i < ps_oids->size(); i++) {
+        vector<idx_t> oids;
+        vector<vector<LogicalType>> scan_types;
+        vector<vector<idx_t>> scan_projection_mapping;
+        vector<idx_t> target_cols_in_univ_schema;
+
         PropertySchemaCatalogEntry *ps_cat =
             (PropertySchemaCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, ps_oids->at(i));
+        
+        auto *prop_key_ids = ps_cat->GetPropKeyIDs();
+        for (auto j = 0; j < prop_key_ids->size(); j++) {
+            target_cols_in_univ_schema.push_back(property_to_idx_map->at(prop_key_ids->at(j)));
+        }
+        
+        oids.push_back(ps_oids->at(i));
         scan_types.push_back(std::move(ps_cat->GetTypesWithCopy()));
-    }
+        scan_projection_mapping.push_back(vector<idx_t>(scan_types[0].size()));
+        std::iota(std::begin(scan_projection_mapping[0]), std::end(scan_projection_mapping[0]), 1);
 
-    auto initializeAPIResult =
-		client->graph_store->InitializeScan(ext_its, ps_oids, scan_projection_mapping, scan_types);
-    
-    // Initialize DataChunk where data will be read
-    DataChunk chunk;
-    chunk.Initialize(universal_schema);
-    
-    StoreAPIResult res;
+        // Initialize ExtentIterators // TODO read only necessary columns
+        auto initializeAPIResult =
+		    client->graph_store->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
+        // Initialize DataChunk where data will be read
+        DataChunk chunk;
+        chunk.Initialize(scan_types[0]);
+        
+        StoreAPIResult res;
 
-    while(true) {
-        res = client->graph_store->doScan(ext_its, chunk, universal_schema);
-        if (res == StoreAPIResult::DONE) { break; }
+        while(true) {
+            res = client->graph_store->doScan(ext_its, chunk, scan_types[0]);
+            if (res == StoreAPIResult::DONE) { break; }
 
-        _accumulate_data(chunk, universal_schema);
+            icecream::ic.enable();
+            IC(chunk.ToString(10));
+            icecream::ic.disable();
+
+            _accumulate_data(chunk, universal_schema, target_cols_in_univ_schema);
+        }
     }
 
     // store histogram info in the partition catalog
@@ -95,18 +114,21 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     for (auto i = 0; i < universal_schema.size(); i++) {
         offset_infos->push_back(probs.size());
         for (auto j = 0; j < probs.size(); j++) {
-            boundary_values.push_back(extended_p_square(accms[i][j]));
+            std::cout << j << ": " << quantile(*accms[i], quantile_probability = probs[j]) << std::endl;
+            // boundary_values.push_back(extended_p_square(accms[i][j]));
         }
     }
 }
 
 void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema) {
-    boost::array<double, 3> probs = {{0.25, 0.5, 0.75}}; // TODO need to define bin size
+    boost::array<double, 5> probs = {{0, 0.25, 0.5, 0.75, 1.00}}; // TODO need to define bin size
+    // boost::array<double, 10> probs = { 0.990, 0.991, 0.992, 0.993, 0.994,
+    //                            0.995, 0.996, 0.997, 0.998, 0.999 };
 
     for (auto i = 0; i < universal_schema.size(); i++) {
         if (universal_schema[i].IsNumeric()) {
-            accumulator_set<double, stats<tag::extended_p_square_quantile>> *acc =
-                new accumulator_set<double, stats<tag::extended_p_square_quantile>>(
+            accumulator_set<int64_t, stats<tag::extended_p_square_quantile>> *acc =
+                new accumulator_set<int64_t, stats<tag::extended_p_square_quantile>>(
                     extended_p_square_probabilities = probs // Quantiles for bin boundaries
                 );
             accms.push_back(acc);
@@ -119,12 +141,12 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
     }
 }
 
-void HistogramGenerator::_accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema) {
-    for (auto i = 0; i < target_cols.size(); i++) {
-        auto &target_accm = *(accms[target_cols[i]]);
-        auto &target_vec = chunk.data[target_cols[i]];
+void HistogramGenerator::_accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema) {
+    for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
+        auto &target_accm = *(accms[target_cols_in_univ_schema[i]]);
+        auto &target_vec = chunk.data[i];
 
-        switch(universal_schema[target_cols[i]].id()) {
+        switch(universal_schema[target_cols_in_univ_schema[i]].id()) {
             case LogicalTypeId::INTEGER: {
                 int32_t *target_vec_data = (int32_t *)target_vec.GetData();
                 for (auto j = 0; j < chunk.size(); j++) {

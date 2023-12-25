@@ -16,6 +16,7 @@
 //#include "parser/constraint.hpp"
 //#include "planner/bound_constraint.hpp"
 //#include "planner/expression.hpp"
+#include "common/boost_typedefs.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "catalog/inverted_index.hpp"
 
@@ -35,10 +36,6 @@ struct AlterForeignKeyInfo;
 
 //! A partition catalog entry
 class PartitionCatalogEntry : public StandardEntry {
-	typedef boost::unordered_map< PropertyKeyID, PropertySchemaID_vector
-       	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
-		, property_to_propertyschemavec_map_value_type_allocator>
-	PropertyToPropertySchemaVecUnorderedMap;
 public:
 	//! Create a real PartitionCatalogEntry
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
@@ -62,6 +59,9 @@ public:
 
 	//! OIDs of the property indexes
 	idx_t_vector property_indexes;
+
+	//! Universal schema property Key IDs -> location map
+	PropertyToIdxUnorderedMap global_property_key_to_location;
 
 	//! Universal schema logical type IDs
 	LogicalTypeId_vector global_property_typesid;
@@ -90,6 +90,9 @@ public:
 	void SetPhysicalIDIndex(idx_t index_oid);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
+
+	//! Set Universal Schema Info
+	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &univ_prop_key_ids);
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
 	void SetPartitionID(PartitionID pid);
@@ -114,6 +117,9 @@ public:
 
 	//! Returns a list of types of the table
 	vector<LogicalType> GetTypes();
+
+	//! Returns a key id -> location map
+	PropertyToIdxUnorderedMap *GetPropertyToIdxMap();
 
 	//! Get offset infos member variable
 	idx_t_vector *GetOffsetInfos();

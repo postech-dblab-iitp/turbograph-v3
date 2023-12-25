@@ -35,22 +35,6 @@ void PropertySchemaCatalogEntry::AddExtent(ExtentID eid, size_t num_tuples_in_ex
 	last_extent_num_tuples = num_tuples_in_extent;
 }
 
-LogicalTypeId_vector *PropertySchemaCatalogEntry::GetTypes() {
-	return &this->property_typesid;
-}
-
-uint16_t_vector *PropertySchemaCatalogEntry::GetExtraTypeInfos() {
-	return &this->extra_typeinfo_vec;
-}
-
-LogicalTypeId PropertySchemaCatalogEntry::GetType(idx_t i) {
-	return property_typesid[i];
-}
-
-uint16_t PropertySchemaCatalogEntry::GetExtraTypeInfo(idx_t i) {
-	return extra_typeinfo_vec[i];
-}
-
 vector<LogicalType> PropertySchemaCatalogEntry::GetTypesWithCopy() {
 	vector<LogicalType> types;
 	for (auto &it : this->property_typesid) {
@@ -68,6 +52,34 @@ vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property
 		column_idxs.push_back(idx - this->property_key_names.begin());
 	}
 	return column_idxs;
+}
+
+void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids) {
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	D_ASSERT(property_typesid.empty());
+	D_ASSERT(property_key_names.empty());
+
+	for (auto &it : types) {
+		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
+		property_typesid.push_back(it.id());
+		if (it.id() == LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = DecimalType::GetWidth(it);
+			width_scale = width_scale << 8 | DecimalType::GetScale(it);
+			extra_typeinfo_vec.push_back(width_scale);
+		} else {
+			extra_typeinfo_vec.push_back(0);
+		}
+	}
+	
+	for (auto &it : key_names) {
+		char_string key_(temp_charallocator);
+		key_ = it.c_str();
+		property_key_names.push_back(move(key_));
+	}
+
+	for (auto i = 0; i < prop_key_ids.size(); i++) {
+		property_keys.push_back(prop_key_ids[i]);
+	}
 }
 
 void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {

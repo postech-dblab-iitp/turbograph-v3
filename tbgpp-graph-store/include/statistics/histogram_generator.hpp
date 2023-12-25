@@ -14,12 +14,13 @@ class ClientContext;
 class ExtentIterator;
 class LogicalType;
 class DataChunk;
+class PartitionCatalogEntry;
 
 //! Class for creating histogram
 class HistogramGenerator {
 private:
     std::queue<ExtentIterator *> ext_its;
-    std::vector<boost::accumulators::accumulator_set<double, boost::accumulators::stats<boost::accumulators::tag::extended_p_square_quantile>> *> accms;
+    std::vector<boost::accumulators::accumulator_set<int64_t, boost::accumulators::stats<boost::accumulators::tag::extended_p_square_quantile>> *> accms;
     std::vector<idx_t> target_cols;
 
 public:
@@ -46,7 +47,7 @@ private:
     void _init_accumulators(vector<LogicalType> &universal_schema);
 
     //! Iterate data chunk & accumulate values
-    void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema);
+    void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
 };
 
 } // namespace duckdb
