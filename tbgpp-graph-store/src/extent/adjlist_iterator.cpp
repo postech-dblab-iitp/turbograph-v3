@@ -166,4 +166,59 @@ void DFSIterator::initializeDSForNewLv(int new_lv) {
     }
 }
 
+BFSIterator::BFSIterator() {
+    adjlist_iterator = std::make_shared<AdjacencyListIterator>();
+    eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, int>>();
+}
+
+BFSIterator::~BFSIterator() {}
+
+void BFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx) {
+    adjColIdx = adj_col_idx;
+    enqueueNeighbors(context, src_id);
+}
+
+bool BFSIterator::getNextEdge(ClientContext &context, uint64_t &tgt, uint64_t &edge) {
+    if (frontier.empty()) {
+        return false;
+    }
+
+    uint64_t src_id = frontier.front();
+    frontier.pop();
+
+    uint64_t *start_ptr, *end_ptr;
+    ExtentID target_eid = src_id >> 32;
+    bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+    adjlist_iterator->getAdjListPtr(src_id, target_eid, start_ptr, end_ptr, is_initialized);
+
+    for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
+        tgt = *ptr;
+        edge = *(ptr + 1);
+        enqueueNeighbors(context, tgt);
+    }
+    return true;
+}
+
+void BFSIterator::expandLevel(ClientContext &context) {
+    std::queue<uint64_t> next_frontier;
+    while (!frontier.empty()) {
+        uint64_t src_id = frontier.front();
+        frontier.pop();
+        enqueueNeighbors(context, src_id);
+    }
+    std::swap(frontier, next_frontier);
+}
+
+void BFSIterator::enqueueNeighbors(ClientContext &context, uint64_t src_id) {
+    uint64_t *start_ptr, *end_ptr;
+    ExtentID target_eid = src_id >> 32;
+    bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+    adjlist_iterator->getAdjListPtr(src_id, target_eid, start_ptr, end_ptr, is_initialized);
+
+    for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
+        uint64_t neighbor = *ptr;
+        frontier.push(neighbor);
+    }
+}
+
 }
