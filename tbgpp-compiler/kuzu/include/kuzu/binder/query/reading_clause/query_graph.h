@@ -152,6 +152,8 @@ public:
         return result;
     }
 
+    inline QueryGraphType getQueryGraphType() const { return queryGraphType; }
+
     void setQueryGraphType(QueryGraphType queryGraphType) {
         assert(this->queryGraphType == QueryGraphType::NONE);
         this->queryGraphType = queryGraphType;
