@@ -69,7 +69,8 @@ RUN apt-get install -y \
 		flex \
 		libfmt-dev \
   		libprotobuf-dev \
-		ccache
+		ccache \
+        libreadline-dev
 
 RUN apt-get install -y \
 		libgoogle-glog-dev \

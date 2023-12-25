@@ -5,9 +5,9 @@
 # Parse user input
 
 # Target image
-IMAGE_NAME="tbgpp-v3-u20.04"
-IMAGE_TAG="sys"
-CONTAINER_NAME="tbgppv3-docker-tslee"
+IMAGE_NAME="turbograph-s62-0727"
+IMAGE_TAG="latest"
+CONTAINER_NAME="turbograph-s62-new"
 
 # TODO override from user input
 SHARED_MEM_SIZE="100g"
