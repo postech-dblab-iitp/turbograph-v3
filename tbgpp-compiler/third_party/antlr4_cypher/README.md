@@ -14,7 +14,7 @@ Refer https://github.com/antlr/antlr4/tree/master/docker
 ```
 git clone https://github.com/antlr/antlr4.git
 cd antlr4
-git checkout 4.9
+git checkout v4.11.0
 cd docker
 
 docker build -t antlr/antlr4 --platform linux/amd64 .
