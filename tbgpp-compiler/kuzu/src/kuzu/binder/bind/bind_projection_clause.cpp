@@ -35,7 +35,7 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
             statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
         } 
         else if (dataType.typeID == common::PATH ) {
-            throw BinderException("Cannot return path.");
+            statementResult->addColumn(expression, rewriteQueryGraph(*expression));
         }
         else {
             statementResult->addColumn(expression, expression_vector{expression});
@@ -75,6 +75,26 @@ expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expressio
     auto& nodeOrRel = (NodeOrRelExpression&)expression;
     for (auto& property : nodeOrRel.getPropertyExpressions()) {
         result.push_back(property->copy());
+    }
+    return result;
+}
+
+expression_vector Binder::rewriteQueryGraph(const Expression& expression) {
+    expression_vector result;
+    auto& queryGraph = (QueryGraph&)expression;
+    // Node
+    for (auto& nodeExpr: queryGraph.getQueryNodes()) {
+        auto nodeOrRel = (NodeOrRelExpression*)nodeExpr.get();
+        for (auto& property : nodeOrRel->getPropertyExpressions()) {
+            result.push_back(property->copy());
+        }
+    }
+    // Edge
+    for (auto& relExpr: queryGraph.getQueryRels()) {
+        auto nodeOrRel = (NodeOrRelExpression*)relExpr.get();
+        for (auto& property : nodeOrRel->getPropertyExpressions()) {
+            result.push_back(property->copy());
+        }
     }
     return result;
 }
