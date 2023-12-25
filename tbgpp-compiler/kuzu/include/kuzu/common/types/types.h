@@ -43,6 +43,7 @@ enum DataTypeID : uint8_t {
     ANY = 3,
     NODE = 201, // NON-existent in DuckDB
     REL = 202,  // NON-existent in DuckDB
+    PATH = 203, // NON-existent in DuckDB
 
     // physical fixed size types
     NODE_ID = 108,

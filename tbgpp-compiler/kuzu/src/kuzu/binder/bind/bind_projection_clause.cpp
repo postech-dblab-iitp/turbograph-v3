@@ -33,7 +33,11 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
         auto dataType = expression->getDataType();
         if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
             statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
-        } else {
+        } 
+        else if (dataType.typeID == common::PATH ) {
+            throw BinderException("Cannot return path.");
+        }
+        else {
             statementResult->addColumn(expression, expression_vector{expression});
         }
     }
