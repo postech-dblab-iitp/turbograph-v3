@@ -60,6 +60,9 @@ public:
 	
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+
+	//! Set Schema Info
+	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids);
 	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	string_vector *GetKeys();
 	vector<string> GetKeysWithCopy();
@@ -68,11 +71,32 @@ public:
 	idx_t AppendKey(ClientContext &context, string key_name);
 	void AppendAdjListType(LogicalType type);
 	idx_t AppendAdjListKey(ClientContext &context, string key_name);
+
 	//! Returns a list of types of the table
-	LogicalTypeId_vector *GetTypes();
-	uint16_t_vector *GetExtraTypeInfos();
-	LogicalTypeId GetType(idx_t i);
-	uint16_t GetExtraTypeInfo(idx_t i);
+	LogicalTypeId_vector *GetTypes() {
+		return &this->property_typesid;
+	}
+
+	//! Get Extra type info vector
+	uint16_t_vector *GetExtraTypeInfos() {
+		return &this->extra_typeinfo_vec;
+	}
+
+	//! Get i-th type id
+	LogicalTypeId GetType(idx_t i) {
+		return property_typesid[i];
+	}
+
+	//! Get i-th extra type info
+	uint16_t GetExtraTypeInfo(idx_t i) {
+		return extra_typeinfo_vec[i];
+	}
+
+	//! Get PropKeyID vector
+	PropertyKeyID_vector *GetPropKeyIDs() {
+		return &property_keys;
+	}
+
 	vector<LogicalType> GetTypesWithCopy();
 	uint64_t GetTypeSize(idx_t i);
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);

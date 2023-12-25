@@ -198,6 +198,7 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 			property_key_ids.push_back(property_key_id->second);
 		} else {
 			PropertyKeyID new_pkid = GetPropertyKeyID();
+			propertykey_map.insert({property_schema_, new_pkid});
 			property_key_ids.push_back(new_pkid);
 		}
 	}
