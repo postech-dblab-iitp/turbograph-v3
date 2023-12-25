@@ -5,9 +5,7 @@
 
 namespace duckdb {
 
-PhysicalShortestPath::PhysicalShortestPath() {
-    std::cout << "???" << std::endl;
-    
-}
+// PhysicalShortestPath::PhysicalShortestPath() {
+// }
 
 }

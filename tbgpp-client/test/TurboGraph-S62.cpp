@@ -453,27 +453,34 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 */
 
 	if (!run_plan_wo_compile) {
+		std::cout << "1" << std::endl;
 		auto inputStream = ANTLRInputStream(query_str);
 
 		// Lexer		
+		std::cout << "2" << std::endl;
 		auto cypherLexer = CypherLexer(&inputStream);
 		//cypherLexer.removeErrorListeners();
 		//cypherLexer.addErrorListener(&parserErrorListener);
+		std::cout << "3" << std::endl;
 		auto tokens = CommonTokenStream(&cypherLexer);
 		tokens.fill();
 
 		// Parser
+		std::cout << "4" << std::endl;
 		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
 		// Sematic parsing
 		// Transformer
+		std::cout << "5" << std::endl;
 		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
 		auto statement = transformer.transform();
 		
 		// Binder
+		std::cout << "6" << std::endl;
 		auto binder = kuzu::binder::Binder(client.get());
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement * bst = boundStatement.get();
+		std::cout << "7" << std::endl;
 
 		if (planner_config.DEBUG_PRINT) {
 			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
