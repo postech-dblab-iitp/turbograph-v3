@@ -16,6 +16,7 @@
 //#include "parser/constraint.hpp"
 //#include "planner/bound_constraint.hpp"
 //#include "planner/expression.hpp"
+#include "common/boost_typedefs.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "catalog/inverted_index.hpp"
 
@@ -35,29 +36,62 @@ struct AlterForeignKeyInfo;
 
 //! A partition catalog entry
 class PartitionCatalogEntry : public StandardEntry {
-	typedef boost::unordered_map< PropertyKeyID, PropertySchemaID_vector
-       	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
-		, property_to_propertyschemavec_map_value_type_allocator>
-	PropertyToPropertySchemaVecUnorderedMap;
 public:
 	//! Create a real PartitionCatalogEntry
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
+	//! PropertyKeyID -> Property schema catalog entries those contains the property
 	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
+
+	//! OIDs of property schema catalog entries
 	PropertySchemaID_vector property_schema_array;
+
 	//vector<Constraints> constraints;
+	
+	//! Logical partition ID
 	PartitionID pid;
+
+	//! OID of the physical ID index (_id)
 	idx_t physical_id_index;
+
+	//! OID of the src partition
 	idx_t src_part_oid;
+
+	//! OID of the dst partition
 	idx_t dst_part_oid;
+
+	//! OID of the universal property schema // TODO useless?
 	idx_t univ_ps_oid;
+
+	//! OIDs of the adjacency list indexes
 	idx_t_vector adjlist_indexes;
+
+	//! OIDs of the property indexes
 	idx_t_vector property_indexes;
+
+	//! Universal schema property Key IDs -> location map
+	PropertyToIdxUnorderedMap global_property_key_to_location;
+
+	//! Universal schema logical type IDs
 	LogicalTypeId_vector global_property_typesid;
+
+	//! Extra info vector of universal schema
 	uint16_t_vector extra_typeinfo_vec;
+
+	//! Universal schema names
 	string_vector global_property_key_names;
+
+	//! # of columns in universal schema
 	idx_t num_columns;
+
+	//! Variable for the local extent ID generator
 	atomic<ExtentID> local_extent_id_version;
+
+	//! Offset infos
+	idx_t_vector offset_infos;
+
+	//! Boundary values of the histogram
+	idx_t_vector boundary_values;
 
 public:
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
@@ -67,19 +101,47 @@ public:
 	void SetPhysicalIDIndex(idx_t index_oid);
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
+
+	//! Set Universal Schema Info
+	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &univ_prop_key_ids);
+
+	void SetPartitionID(PartitionID pid);
 	void SetSrcDstPartOid(idx_t src_part_oid, idx_t dst_part_oid);
 
-	void GetPropertySchemaIDs(vector<idx_t> &psids);
-	uint64_t GetNumberOfColumns() const;
 	idx_t GetUnivPSOid();
-	idx_t GetPhysicalIDIndexOid();
 	idx_t GetSrcPartOid();
-	idx_t GetDstPartOid();
+	idx_t GetDstPartOid();	
+
+	//! Get Property Schema IDs
+	void GetPropertySchemaIDs(vector<idx_t> &psids);
+
+	//! Get Property Schema IDs w/o copy
+	PropertySchemaID_vector *GetPropertySchemaIDs();
+	
+	//! Get Catalog OID of Physical ID Index
+	idx_t GetPhysicalIDIndexOid();
+
+	//! Get Catalog OIDs of Adjacency Index
 	idx_t_vector *GetAdjIndexOidVec();
+
+	//! Get Catalog OIDs of Property Index
 	idx_t_vector *GetPropertyIndexOidVec();
 
+	//! Get Number of columns in the universal schema
+	uint64_t GetNumberOfColumns() const;
+
 	//! Returns a list of types of the table
-	void SetPartitionID(PartitionID pid);
+	vector<LogicalType> GetTypes();
+
+	//! Returns a key id -> location map
+	PropertyToIdxUnorderedMap *GetPropertyToIdxMap();
+
+	//! Get offset infos member variable
+	idx_t_vector *GetOffsetInfos();
+
+	//! Get boundary values member variable
+	idx_t_vector *GetBoundaryValues();
+	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
 

@@ -40,6 +40,25 @@ iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<i
 }
 
 StoreAPIResult
+iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids, vector<vector<uint64_t>> &projection_mapping,
+	vector<vector<duckdb::LogicalType>> &scanSchemas) {
+	Catalog &cat_instance = client.db->GetCatalog();
+	D_ASSERT(oids->size() == projection_mapping.size());
+	
+	vector<vector<idx_t>> column_idxs;
+	for (idx_t i = 0; i < oids->size(); i++) {
+		PropertySchemaCatalogEntry *ps_cat_entry = // TODO get this in compilation process?
+      		(PropertySchemaCatalogEntry *)cat_instance.GetEntry(client, DEFAULT_SCHEMA, oids->at(i));
+		
+		auto ext_it = new ExtentIterator();
+		ext_it->Initialize(client, ps_cat_entry, scanSchemas[i], projection_mapping[i]);
+		ext_its.push(ext_it);
+	}
+	
+	return StoreAPIResult::OK;
+}
+
+StoreAPIResult
 iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, std::vector<duckdb::LogicalType> &scanSchema) {
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();

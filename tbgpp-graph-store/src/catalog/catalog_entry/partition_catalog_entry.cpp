@@ -14,7 +14,8 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntr
     : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc),
 	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc),
 	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc),
-	  extra_typeinfo_vec(void_alloc) {
+	  extra_typeinfo_vec(void_alloc), offset_infos(void_alloc), boundary_values(void_alloc),
+	  global_property_key_to_location(void_alloc) {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->num_columns = 0;
@@ -86,6 +87,10 @@ void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 	property_indexes.push_back(index_oid);
 }
 
+PropertySchemaID_vector *PartitionCatalogEntry::GetPropertySchemaIDs() {
+	return &property_schema_array;
+}
+
 idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
 	D_ASSERT(physical_id_index != INVALID_OID);
 	return physical_id_index;
@@ -111,6 +116,49 @@ idx_t_vector *PartitionCatalogEntry::GetPropertyIndexOidVec() {
 	return &property_indexes;
 }
 
+PropertyToIdxUnorderedMap *PartitionCatalogEntry::GetPropertyToIdxMap() {
+	return &global_property_key_to_location;
+}
+
+idx_t_vector *PartitionCatalogEntry::GetOffsetInfos() {
+	return &offset_infos;
+}
+
+idx_t_vector *PartitionCatalogEntry::GetBoundaryValues() {
+	return &boundary_values;
+}
+
+void PartitionCatalogEntry::SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &univ_prop_key_ids) {
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	D_ASSERT(global_property_typesid.empty());
+	D_ASSERT(global_property_key_names.empty());
+
+	// Set type info
+	for (auto &it : types) {
+		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
+		global_property_typesid.push_back(it.id());
+		if (it.id() == LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = DecimalType::GetWidth(it);
+			width_scale = width_scale << 8 | DecimalType::GetScale(it);
+			extra_typeinfo_vec.push_back(width_scale);
+		} else {
+			extra_typeinfo_vec.push_back(0);
+		}
+	}
+	
+	// Set key names
+	for (auto &it : key_names) {
+		char_string key_(temp_charallocator);
+		key_ = it.c_str();
+		global_property_key_names.push_back(move(key_));
+	}
+
+	// Set key id -> location info
+	for (auto i = 0; i < univ_prop_key_ids.size(); i++) {
+		global_property_key_to_location.insert({univ_prop_key_ids[i], i});
+	}
+}
+
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(global_property_typesid.empty());
 	for (auto &it : types) {
@@ -124,6 +172,24 @@ void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
 			extra_typeinfo_vec.push_back(0);
 		}
 	}
+}
+
+// TODO we need to create universal schema in memory only once & reuse
+// avoid serialize in-memory DS
+vector<LogicalType> PartitionCatalogEntry::GetTypes() {
+	vector<LogicalType> universal_schema;
+	for (auto i = 0; i < global_property_typesid.size(); i++) {
+		if (extra_typeinfo_vec[i] == 0) {
+			universal_schema.push_back(LogicalType(global_property_typesid[i]));
+		} else {
+			// decimal type case
+			uint8_t width = (uint8_t)((extra_typeinfo_vec[i] | 0xFF00) >> 8);
+			uint8_t scale = (uint8_t)(extra_typeinfo_vec[i] | 0xFF);
+			universal_schema.push_back(LogicalType::DECIMAL(width, scale));
+		}
+	}
+
+	return universal_schema;
 }
 
 void PartitionCatalogEntry::SetKeys(ClientContext &context, vector<string> &key_names) {

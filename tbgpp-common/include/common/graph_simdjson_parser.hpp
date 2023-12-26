@@ -556,15 +556,15 @@ public:
 
         vector<string> key_names;
         vector<LogicalType> types;
+        vector<PropertyKeyID> universal_property_key_ids;
         for (auto i = 0; i < order.size(); i++) {
             auto original_idx = order[i];
             get_key_and_type(id_to_property_vec[original_idx], key_names, types);
-            printf("%d - %s(%s), ", i, key_names.back().c_str(), types.back().ToString().c_str());
+            // printf("%d - %s(%s), ", i, key_names.back().c_str(), types.back().ToString().c_str());
         }
-        printf("\n");
-
-        partition_cat->SetKeys(*client.get(), key_names);
-        partition_cat->SetTypes(types);
+        // printf("\n");
+        graph_cat->GetPropertyKeyIDs(*client.get(), key_names, universal_property_key_ids);
+        partition_cat->SetSchema(*client.get(), key_names, types, universal_property_key_ids);
 
         // Create property schema catalog for each cluster
         property_schema_cats.resize(num_clusters);
@@ -600,9 +600,7 @@ public:
             // Set catalog informations
             graph_cat->GetPropertyKeyIDs(*client.get(), cur_cluster_schema_names, cur_cluster_schema_types, property_key_ids);
             partition_cat->AddPropertySchema(*client.get(), property_schema_cats[i]->GetOid(), property_key_ids);
-            property_schema_cats[i]->SetTypes(cur_cluster_schema_types);
-            property_schema_cats[i]->SetKeys(*client.get(), cur_cluster_schema_names);
-            property_schema_cats[i]->SetKeyIDs(*client.get(), property_key_ids);
+            property_schema_cats[i]->SetSchema(*client.get(), cur_cluster_schema_names,cur_cluster_schema_types, property_key_ids);
             property_schema_cats[i]->SetKeyColumnIdxs(per_cluster_key_column_idxs[i]);
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);

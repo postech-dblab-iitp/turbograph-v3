@@ -678,8 +678,8 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 		// TODO implement
 		// get key sets
-		BOOL should_add_default_keys =
-			RelHasSystemColumns('temporary'); // TODO
+		BOOL should_add_default_keys = true;
+			// RelHasSystemColumns(''); // TODO
 		keyset_array = RetrieveRelKeysets(mp, oid, should_add_default_keys,
 										  is_partitioned, attno_mapping);
 
@@ -2640,8 +2640,8 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	CDouble distinct_remaining(0.0);
 	CDouble freq_remaining(0.0);
 
-	// // transform all the bits and pieces from pg_statistic
-	// // to a single bucket structure
+	// transform all the bits and pieces from pg_statistic
+	// to a single bucket structure
 	// CDXLBucketArray *dxl_stats_bucket_array_transformed =
 	// 	TransformStatsToDXLBucketArray(
 	// 		mp, att_type, num_distinct, null_freq, mcv_slot.values,
@@ -2946,14 +2946,14 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, scalar_cmp_oid));
 }
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray
-// //
-// //	@doc:
-// //		transform stats from pg_stats form to optimizer's preferred form
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray
+//
+//	@doc:
+//		transform stats from pg_stats form to optimizer's preferred form
+//
+//---------------------------------------------------------------------------
 // CDXLBucketArray *
 // CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
 // 	CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
@@ -2965,8 +2965,9 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 // 	IMDType *md_type = RetrieveType(mp, mdid_atttype);
 
 // 	// translate MCVs to Orca histogram. Create an empty histogram if there are no MCVs.
-// 	CHistogram *gpdb_mcv_hist = TransformMcvToOrcaHistogram(
-// 		mp, md_type, mcv_values, mcv_frequencies, num_mcv_values);
+// 	CHistogram *gpdb_mcv_hist;
+// 	// CHistogram *gpdb_mcv_hist = TransformMcvToOrcaHistogram(
+// 	// 	mp, md_type, mcv_values, mcv_frequencies, num_mcv_values);
 
 // 	GPOS_ASSERT(gpdb_mcv_hist->IsValid());
 
@@ -3084,14 +3085,14 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 // 	return hist;
 // }
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram
-// //
-// //	@doc:
-// //		Transform GPDB's hist info to optimizer's histogram
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram
+//
+//	@doc:
+//		Transform GPDB's hist info to optimizer's histogram
+//
+//---------------------------------------------------------------------------
 // CHistogram *
 // CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
 // 	CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
@@ -3108,10 +3109,12 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 // 	CBucketArray *buckets = GPOS_NEW(mp) CBucketArray(mp);
 // 	for (ULONG ul = 0; ul < num_buckets; ul++)
 // 	{
-// 		IDatum *min_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
-// 			mp, md_type, false /* is_null */, hist_values[ul]);
-// 		IDatum *max_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
-// 			mp, md_type, false /* is_null */, hist_values[ul + 1]);
+// 		IDatum *min_datum;
+// 		IDatum *max_datum;
+// 		// IDatum *min_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
+// 		// 	mp, md_type, false /* is_null */, hist_values[ul]);
+// 		// IDatum *max_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
+// 		// 	mp, md_type, false /* is_null */, hist_values[ul + 1]);
 // 		BOOL is_lower_closed, is_upper_closed;
 
 // 		if (min_datum->StatsAreEqual(max_datum))
@@ -3168,14 +3171,14 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 // }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray
-// //
-// //	@doc:
-// //		Histogram to array of dxl buckets
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray
+//
+//	@doc:
+//		Histogram to array of dxl buckets
+//
+//---------------------------------------------------------------------------
 // CDXLBucketArray *
 // CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray(
 // 	CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist)

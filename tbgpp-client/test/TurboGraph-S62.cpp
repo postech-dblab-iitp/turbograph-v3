@@ -52,6 +52,7 @@ using namespace tblr;
 #include "extent/extent_iterator.hpp"
 #include "index/index.hpp"
 #include "index/art/art.hpp"
+#include "statistics/histogram_generator.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -690,19 +691,23 @@ int main(int argc, char** argv) {
 			// check termination
 			if (query_str.compare(":exit") == 0) {
 				break;
-			}
+			} else if (query_str.compare("analyze") == 0) {
+				HistogramGenerator hist_gen;
+				string part_name = "vpart_Person";
+				hist_gen.CreateHistogram(client, part_name);
+			} else {
+				if (query_str != prev_query_str) {
+					add_history(query_str.c_str());
+					write_history((DiskAioParameters::WORKSPACE + "/.history").c_str());
+					prev_query_str = query_str;
+				}
 
-			if (query_str != prev_query_str) {
-				add_history(query_str.c_str());
-				write_history((DiskAioParameters::WORKSPACE + "/.history").c_str());
-				prev_query_str = query_str;
-			}
-
-			try {
-				// protected code
-				CompileAndRun(query_str, client, planner);
-			} catch( std::exception e1 ) {
-				std::cerr << e1.what() << std::endl;
+				try {
+					// protected code
+					CompileAndRun(query_str, client, planner);
+				} catch( std::exception e1 ) {
+					std::cerr << e1.what() << std::endl;
+				}
 			}
 		}
 	}
