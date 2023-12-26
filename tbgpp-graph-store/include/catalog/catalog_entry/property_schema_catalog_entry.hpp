@@ -42,18 +42,43 @@ public:
 	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
+	//! Logical partition ID of parent partition
 	PartitionID pid;
-	idx_t partition_oid; // oid of parent partition
+
+	//! OID of parent partition
+	idx_t partition_oid;
+
+	//! Property Key ID array
 	PropertyKeyID_vector property_keys;
+
+	//! Extent (vertex/edgelet) IDs
 	idx_t_vector extent_ids;
+
 	idx_t_vector key_column_idxs;
+
+	//! Logical type id array of properties
 	LogicalTypeId_vector property_typesid;
+
+	//! Extra info vector
 	uint16_t_vector extra_typeinfo_vec;
+
+	//! Property key names // TODO useless?
 	string_vector property_key_names;
+
 	LogicalTypeId_vector adjlist_typesid;
 	string_vector adjlist_names;
+
+	//! # of columns
 	idx_t num_columns;
+
+	//! # of tuples in the last extent
 	idx_t last_extent_num_tuples;
+
+	//! Offset infos for frequency values
+	idx_t_vector offset_infos;
+
+	//! Frequency values of the histogram corresponding to each bucket
+	idx_t_vector frequency_values;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -95,6 +120,16 @@ public:
 	//! Get PropKeyID vector
 	PropertyKeyID_vector *GetPropKeyIDs() {
 		return &property_keys;
+	}
+
+	//! Get frequency offset infos member variable
+	idx_t_vector *GetOffsetInfos() {
+		return &offset_infos;
+	}
+
+	//! Get histogram frequency values member variable
+	idx_t_vector *GetFrequencyValues() {
+		return &frequency_values;
 	}
 
 	vector<LogicalType> GetTypesWithCopy();

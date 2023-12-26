@@ -13,7 +13,8 @@ PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaC
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
 	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc), property_typesid(void_alloc),
 	property_key_names(void_alloc), adjlist_typesid(void_alloc), adjlist_names(void_alloc), num_columns(0),
-	extra_typeinfo_vec(void_alloc) {
+	extra_typeinfo_vec(void_alloc), offset_infos(void_alloc), frequency_values(void_alloc)
+{
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->partition_oid = info->partition_oid;
