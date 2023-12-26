@@ -51,7 +51,8 @@ CTableDescriptor::CTableDescriptor(
 	  m_pdrgpbsKeys(NULL),
 	  m_num_of_partitions(0),
 	  m_execute_as_user_id(ulExecuteAsUser),
-	  m_fHasPartialIndexes(FDescriptorWithPartialIndexes())
+	  m_fHasPartialIndexes(FDescriptorWithPartialIndexes()),
+	  m_table_ids_in_group(NULL)
 {
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(mdid->IsValid());
@@ -64,6 +65,7 @@ CTableDescriptor::CTableDescriptor(
 	{
 		m_distr_opfamilies = GPOS_NEW(m_mp) IMdIdArray(m_mp);
 	}
+	m_table_ids_in_group = GPOS_NEW(m_mp) IMdIdArray(m_mp);
 }
 
 
@@ -84,6 +86,7 @@ CTableDescriptor::~CTableDescriptor()
 	m_pdrgpulPart->Release();
 	m_pdrgpbsKeys->Release();
 	CRefCount::SafeRelease(m_distr_opfamilies);
+	CRefCount::SafeRelease(m_table_ids_in_group);
 }
 
 
@@ -354,6 +357,14 @@ CTableDescriptor::FDescriptorWithPartialIndexes()
 	}
 
 	return false;
+}
+
+void
+CTableDescriptor::AddTableInTheGroup(IMDId *table_mdid)
+{
+	GPOS_ASSERT(NULL != table_mdid && table_mdid->IsValid());
+	table_mdid->AddRef();
+	m_table_ids_in_group->Append(table_mdid);
 }
 
 // EOF

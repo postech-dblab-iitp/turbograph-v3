@@ -101,6 +101,9 @@ private:
 	// S62 added
 	BOOL m_instance_descriptor;
 
+	// table ids in the group
+	IMdIdArray *m_table_ids_in_group;
+
 public:
 	// ctor
 	CTableDescriptor(CMemoryPool *, IMDId *mdid, const CName &,
@@ -254,6 +257,8 @@ public:
 	{
 		return m_instance_descriptor;
 	}
+
+	void AddTableInTheGroup(IMDId *table_mdid);
 
 };	// class CTableDescriptor
 

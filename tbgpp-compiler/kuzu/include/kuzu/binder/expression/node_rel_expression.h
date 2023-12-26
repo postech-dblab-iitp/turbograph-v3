@@ -67,7 +67,7 @@ protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
     table_id_t univTableID;
-    unordered_map<std::string, size_t> propertyNameToIdx;
+    unordered_map<std::string, size_t> propertyNameToIdx; // TODO map using id -> size_t / not string -> size_t
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
     bool schema_info_bound = false;
