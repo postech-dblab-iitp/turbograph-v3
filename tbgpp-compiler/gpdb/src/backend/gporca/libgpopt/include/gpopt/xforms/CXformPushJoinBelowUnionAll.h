@@ -55,7 +55,8 @@ public:
 	virtual EXformId
 	Exfid() const
 	{
-		return ExfPushJoinBelowUnionAll;
+		// return ExfPushJoinBelowUnionAll;
+		return ExfPushGbBelowUnionAll; // TODO temporary
 	}
 
 	virtual const CHAR *
