@@ -3,6 +3,8 @@
 #include "common/common.hpp"
 #include "common/vector.hpp"
 
+#include "common/boost_typedefs.hpp"
+#include "boost/histogram.hpp"
 #include "boost/accumulators/accumulators.hpp"
 #include "boost/accumulators/statistics/stats.hpp"
 #include "boost/accumulators/statistics/extended_p_square_quantile.hpp"
@@ -43,11 +45,17 @@ private:
     //! Create histogram internal function
     void _create_histogram(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat);
 
+    //! Create histogram internal function
+    void _create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat);
+
     //! Initialize accumulator for target types
     void _init_accumulators(vector<LogicalType> &universal_schema);
 
     //! Iterate data chunk & accumulate values
     void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
+
+    void _create_bucket(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema,
+        vector<boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<>>>> &histograms);
 };
 
 } // namespace duckdb
