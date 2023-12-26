@@ -74,7 +74,6 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
         }
     }
 
-
 	/* Aggregate - generate LogicalGbAgg series */
 	if (agg_required) {
 		plan = lPlanGroupBy(proj_body->getProjectionExpressions(), plan);	// TODO what if agg + projection
@@ -996,7 +995,11 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
 	std::pair<CExpression *, CColRefArray *> get_output;
 	if (table_oids.size() > 1) { // do dynamic schema instantiation
-		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, univ_table_oid, &schema_proj_mapping, false));
+		// convert table_oids --> grouping similar tables
+		std::vector<uint64_t> representative_table_oids;
+		std::vector<std::vector<uint64_t>> table_oids_in_groups;
+		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
+		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
 	} else {
 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false));
 	}
@@ -1139,6 +1142,113 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	return make_pair(union_plan, idx0_output_array);
 }
 
+std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> &relation_oids,
+	vector<vector<uint64_t>> &table_oids_in_groups, map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection)
+{
+	CMemoryPool *mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	CExpression *union_plan = nullptr;
+	const bool do_schema_mapping = insert_projection;
+	GPOS_ASSERT(relation_oids.size() > 0);
+
+	// generate type infos to the projected schema
+	uint64_t num_proj_cols;								// size of the union schema
+	vector<pair<gpmd::IMDId*, gpos::INT>> union_schema_types;	// mdid type and type modifier for both types
+	vector<CColRef *> union_schema_colrefs;
+	CColRefArray *union_output_array = GPOS_NEW(mp) CColRefArray(mp);
+	num_proj_cols =
+		(*schema_proj_mapping)[relation_oids[0]].size() > 0
+			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
+			: 0;
+	// iterate schema_projection mapping
+	for (int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
+		// foreach mappings
+		uint64_t valid_oid;
+		uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
+
+		for (auto& oid: relation_oids) {
+			uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
+			if (idx_to_try != std::numeric_limits<uint64_t>::max()) {
+				valid_oid = oid;
+				valid_cid = idx_to_try;
+				break;
+			}
+		}
+		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+		// extract info and maintain vector of column type infos
+		auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
+		gpmd::IMDId *col_type_imdid = mdcol->MdidType();
+		gpos::INT col_type_modifier = mdcol->TypeModifier();
+		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
+	}
+
+	CColRefArray *idx0_output_array;
+	CColRef2dArray *pdrgdrgpcrInput;
+	CExpressionArray *pdrgpexpr;
+
+	if (relation_oids.size() > 1) {
+		pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+		pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	}
+
+	for (int idx = 0; idx < relation_oids.size(); idx++) {
+		auto& oid = relation_oids[idx];
+
+		CExpression *expr;
+		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
+
+		GPOS_ASSERT(num_cols != 0);
+		expr = lExprLogicalGet(oid, name, true);
+
+		// conform schema if necessary
+		CColRefArray *output_array;
+		vector<uint64_t> project_col_ids;
+		if (do_schema_mapping) {
+			auto& mapping = (*schema_proj_mapping)[oid];
+			assert(num_proj_cols == mapping.size());
+			for(int proj_col_idx = 0; proj_col_idx < num_proj_cols; proj_col_idx++) {
+				project_col_ids.push_back(mapping.find(proj_col_idx)->second);
+			}
+			GPOS_ASSERT(project_col_ids.size() > 0);
+			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_col_ids, &union_schema_types, union_schema_colrefs);
+			expr = proj_result.first;
+			output_array = proj_result.second;
+		} else {
+			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
+			output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+		}
+
+		/* Single table might not have the identical column mapping with original table. Thus projection is required */
+		if (relation_oids.size() == 1) {
+			// REL
+			union_plan = expr;
+			idx0_output_array = output_array;
+		} else {
+			// REL/UNION + REL
+			// As the result of Union ALL keeps the colrefs of LHS, we always set lhs array as idx0_output_array
+			// union_plan = lExprLogicalUnionAllWithMapping(
+			// 	union_plan, idx0_output_array, expr, output_array);
+			if (idx == 0) {
+				idx0_output_array = output_array;
+				pdrgdrgpcrInput->Append(output_array);
+			} else {
+				pdrgdrgpcrInput->Append(output_array);
+			}
+			pdrgpexpr->Append(expr);
+		}
+	}
+	// union_output_array->AddRef();
+
+	if (relation_oids.size() > 1) {
+		union_plan = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, idx0_output_array, pdrgdrgpcrInput),
+			pdrgpexpr);
+	}
+
+	return make_pair(union_plan, idx0_output_array);
+}
+
 std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string name, uint64_t instance_oid,
 	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection) {
 
@@ -1155,13 +1265,20 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	return make_pair(get_plan, output_array);
 }
 
-CExpression *Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance, string alias) {
+CExpression *Planner::lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance, std::vector<uint64_t> *table_oids_in_group, string alias) {
 	CMemoryPool *mp = this->memory_pool;
 
 	if (alias == "") { alias = rel_name; }
 
 	CTableDescriptor *ptabdesc = lCreateTableDescForRel(lGenRelMdid(obj_id), rel_name);
 	ptabdesc->SetInstanceDescriptor(is_instance);
+
+	if (is_instance) {
+		GPOS_ASSERT(table_oids_in_group != nullptr);
+		for (ULONG ul = 0; ul < table_oids_in_group->size(); ul++) {
+			ptabdesc->AddTableInTheGroup(lGenRelMdid(table_oids_in_group->at(ul)));
+		}
+	}
 
 	std::wstring w_alias = L"";
 	w_alias.assign(alias.begin(), alias.end());

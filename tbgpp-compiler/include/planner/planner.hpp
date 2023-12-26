@@ -244,7 +244,6 @@ private:
 	LogicalPlan *lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
 	
-	
 	// scalar expression
 	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type = DataTypeID::INVALID);
 	CExpression *lExprScalarBoolOp(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
@@ -265,13 +264,17 @@ private:
 		string name, vector<uint64_t> &oids,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
-	/* Helper functions for generating orca logical plans */
+	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
+		string name, vector<uint64_t> &oids, vector<vector<uint64_t>> &table_oids_in_groups,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
+	);
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
 		string name, uint64_t partition_oid,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
 
-	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false, string alias = "");
+	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false,
+		std::vector<uint64_t> *table_oids_in_group = nullptr, string alias = "");
 	CExpression * lExprLogicalUnionAllWithMapping(CExpression* lhs, CColRefArray* lhs_mapping, CExpression* rhs, CColRefArray* rhs_mapping);
 
 	std::pair<CExpression*, CColRefArray*> lExprScalarAddSchemaConformProject(
@@ -287,10 +290,10 @@ private:
 		 gpopt::COperator::EOperatorId join_op);
 	CExpression* lExprLogicalCartProd(CExpression* lhs, CExpression* rhs);
 	
-	CTableDescriptor * lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string rel_name="");
-	CTableDescriptor * lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
+	CTableDescriptor *lCreateTableDescForRel(CMDIdGPDB* rel_mdid, std::string rel_name="");
+	CTableDescriptor *lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 						   const CName &nameTable, string rel_name, gpos::BOOL fPartitioned = false);
-	CTableDescriptor * lTabdescPlainWithColNameFormat(
+	CTableDescriptor *lTabdescPlainWithColNameFormat(
 		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
 		const CName &nameTable, string rel_name,
 		gpos::BOOL is_nullable  // define nullable columns

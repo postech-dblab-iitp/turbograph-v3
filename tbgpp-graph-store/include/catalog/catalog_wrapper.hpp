@@ -354,6 +354,22 @@ public:
             + (right_type_physical_id);
     }
 
+    void ConvertTableOidsIntoRepresentativeOids(ClientContext &context, vector<idx_t> &table_oids, 
+        vector<idx_t> &representative_table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+    {
+        D_ASSERT(table_oids.size() > 0);
+
+        // Get first property schema cat entry to find partition catalog
+        auto &catalog = db.GetCatalog();
+        PropertySchemaCatalogEntry *ps_cat = 
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, table_oids[0]);
+        auto part_oid = ps_cat->GetPartitionOID();
+
+        // Get partition catalog
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+    }
+
 private:
     //! Reference to the database
 	DatabaseInstance &db;
