@@ -170,9 +170,7 @@ public:
 		vector<PropertyKeyID> property_key_ids;
 		graph_cat->GetPropertyKeyIDs(*client.get(), most_common_key_paths, most_common_schema, property_key_ids);
 		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
-		property_schema_cat->SetTypes(most_common_schema);
-		property_schema_cat->SetKeys(*client.get(), most_common_key_paths);
-        property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
+        property_schema_cat->SetSchema(*client.get(), most_common_key_paths, most_common_schema, property_key_ids);
 		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
 
         // Initialize LID_TO_PID_MAP
@@ -563,7 +561,7 @@ public:
             // printf("%d - %s(%s), ", i, key_names.back().c_str(), types.back().ToString().c_str());
         }
         // printf("\n");
-        graph_cat->GetPropertyKeyIDs(*client.get(), key_names, universal_property_key_ids);
+        graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, universal_property_key_ids);
         partition_cat->SetSchema(*client.get(), key_names, types, universal_property_key_ids);
 
         // Create property schema catalog for each cluster
@@ -615,9 +613,7 @@ public:
             PropertySchemaCatalogEntry *univ_property_schema_cat = 
                 (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
             graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
-            univ_property_schema_cat->SetTypes(types);
-            univ_property_schema_cat->SetKeys(*client.get(), key_names);
-            univ_property_schema_cat->SetKeyIDs(*client.get(), property_key_ids);
+            univ_property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
             univ_property_schema_cat->SetFake();
             partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
         }
