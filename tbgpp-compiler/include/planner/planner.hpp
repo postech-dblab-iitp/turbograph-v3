@@ -272,6 +272,10 @@ private:
 		string name, uint64_t partition_oid,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
+	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdgeForDSI(
+		string name, vector<uint64_t> &oids,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
+	);
 
 	CExpression * lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false,
 		std::vector<uint64_t> *table_oids_in_group = nullptr, string alias = "");
@@ -304,6 +308,8 @@ private:
 	inline const IMDRelation* lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
+
+	void lRefinePlanForDSI();
 
 	// helper functions
 	bool lIsCastingFunction(std::string& func_name);
@@ -427,6 +433,12 @@ private:
 	vector<vector<duckdb::Schema>> pipeline_schemas;
 	vector<duckdb::Schema> pipeline_union_schema;
 	vector<duckdb::SchemaFlowGraph> sfgs;
+
+	// dynamic schema instantiation
+	vector<CExpression *> output_expressions_to_be_refined;
+	vector<NodeOrRelExpression *> node_or_rel_expressions_to_be_refined;
+	// vector<CColRef *> colrefs_for_dsi; // should include columns used for grouping key / join column
+	CColRefSet *colrefs_for_dsi;
 
 	// logical soptimization context
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan

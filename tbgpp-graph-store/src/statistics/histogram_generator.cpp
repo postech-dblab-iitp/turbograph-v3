@@ -119,6 +119,11 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     boundary_values->clear();
     uint64_t accumulated_offset = 0;
 
+    // initialize variables for histogram data
+    vector<uint64_t> num_buckets_for_each_column;
+    vector<vector<uint64_t>> frequency_values_for_each_column;
+    frequency_values_for_each_column.resize(universal_schema.size());
+
     for (auto i = 0; i < universal_schema.size(); i++) {
         accumulated_offset += probs.size(); // TODO skip if not numeric
         offset_infos->push_back(accumulated_offset);
@@ -126,6 +131,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             auto boundary_value = quantile(*accms[i], quantile_probability = probs[j]);
             boundary_values->push_back(boundary_value);
         }
+        num_buckets_for_each_column.push_back(probs.size() - 1);
     }
 
     // calculate histogram for each property schema // TODO optimize this process
@@ -183,19 +189,43 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             _create_bucket(chunk, universal_schema, target_cols_in_univ_schema, histograms);
         }
 
+        idx_t col_idx = 0;
         for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
             auto &h = histograms[i];
             auto target_col_idx = target_cols_in_univ_schema[i];
             auto begin_offset = target_col_idx == 0 ? 0 : offset_infos->at(target_col_idx - 1);
             auto end_offset = offset_infos->at(target_col_idx);
             auto num_boundaries = target_col_idx == 0 ? offset_infos->at(0) : offset_infos->at(target_col_idx) - offset_infos->at(target_col_idx - 1);
+            while (col_idx < target_col_idx) {
+                for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
+                    frequency_values_for_each_column[col_idx].push_back(0);
+                }
+                col_idx++;
+            }
+            D_ASSERT(num_boundaries - 1 == num_buckets_for_each_column[col_idx]);
             
             freq_offset_infos->push_back(num_boundaries - 1);
             for (auto j = 0; j < num_boundaries - 1; j++) {
                 // std::cout << "[" << boundary_values->at(begin_offset + j) << ", " << boundary_values->at(begin_offset + j + 1) << ") : " << h.at(j) << std::endl;
                 frequency_values->push_back(h.at(j));
+                frequency_values_for_each_column[col_idx].push_back(h.at(j));
             }
+            col_idx++;
         }
+        while (col_idx < universal_schema.size()) {
+            for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
+                frequency_values_for_each_column[col_idx].push_back(0);
+            }
+            col_idx++;
+        }
+    }
+    
+    for (auto i = 0; i < frequency_values_for_each_column.size(); i++) {
+        std::cout << i << "-th column freq values: ";
+        for (auto j = 0; j < frequency_values_for_each_column[i].size(); j++) {
+            std::cout << frequency_values_for_each_column[i][j] << " ";
+        }
+        std::cout << std::endl;
     }
 }
 
@@ -358,6 +388,28 @@ void HistogramGenerator::_create_bucket(DataChunk &chunk, vector<LogicalType> &u
                 }
                 break;
             }
+        }
+    }
+}
+
+void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
+        vector<uint64_t> &num_buckets_for_each_column, vector<vector<uint64_t>> &frequency_values_for_each_column)
+{
+    auto *num_groups = partition_cat->GetNumberOfGroups();
+    auto *group_info = partition_cat->GetGroupInfo();
+
+    num_groups->clear();
+    group_info->clear();
+
+    // TODO how to cluster?
+    for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
+        num_groups->push_back(1);
+    }
+
+    // group by column // group by ps_oid is better?
+    for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
+        for (auto j = 0; j < ps_oids->size(); j++) {
+            group_info->push_back(0);
         }
     }
 }

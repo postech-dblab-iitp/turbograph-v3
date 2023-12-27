@@ -12,10 +12,10 @@ namespace duckdb {
 
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PARTITION_ENTRY, schema, catalog, info->partition, void_alloc),
-	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc),
-	  property_indexes(void_alloc), global_property_typesid(void_alloc), global_property_key_names(void_alloc),
-	  extra_typeinfo_vec(void_alloc), offset_infos(void_alloc), boundary_values(void_alloc),
-	  global_property_key_to_location(void_alloc) {
+	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc), property_indexes(void_alloc),
+	  global_property_typesid(void_alloc), global_property_key_names(void_alloc), extra_typeinfo_vec(void_alloc), offset_infos(void_alloc),
+	  boundary_values(void_alloc), global_property_key_to_location(void_alloc), num_groups_for_each_column(void_alloc), group_info_for_each_table(void_alloc)
+{
 	this->temporary = info->temporary;
 	this->pid = info->pid;
 	this->num_columns = 0;
@@ -87,45 +87,9 @@ void PartitionCatalogEntry::AddPropertyIndex(idx_t index_oid) {
 	property_indexes.push_back(index_oid);
 }
 
-PropertySchemaID_vector *PartitionCatalogEntry::GetPropertySchemaIDs() {
-	return &property_schema_array;
-}
-
 idx_t PartitionCatalogEntry::GetPhysicalIDIndexOid() {
 	D_ASSERT(physical_id_index != INVALID_OID);
 	return physical_id_index;
-}
-
-idx_t PartitionCatalogEntry::GetUnivPSOid() {
-	return univ_ps_oid;
-}
-
-idx_t PartitionCatalogEntry::GetSrcPartOid() {
-	return src_part_oid;
-}
-
-idx_t PartitionCatalogEntry::GetDstPartOid() {
-	return dst_part_oid;
-}
-
-idx_t_vector *PartitionCatalogEntry::GetAdjIndexOidVec() {
-	return &adjlist_indexes;
-}
-
-idx_t_vector *PartitionCatalogEntry::GetPropertyIndexOidVec() {
-	return &property_indexes;
-}
-
-PropertyToIdxUnorderedMap *PartitionCatalogEntry::GetPropertyToIdxMap() {
-	return &global_property_key_to_location;
-}
-
-idx_t_vector *PartitionCatalogEntry::GetOffsetInfos() {
-	return &offset_infos;
-}
-
-idx_t_vector *PartitionCatalogEntry::GetBoundaryValues() {
-	return &boundary_values;
 }
 
 void PartitionCatalogEntry::SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &univ_prop_key_ids) {

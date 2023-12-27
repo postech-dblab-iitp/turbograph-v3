@@ -368,6 +368,16 @@ public:
         // Get partition catalog
         PartitionCatalogEntry *part_cat =
             (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+        // TODO partition catalog should store tables groups for each column. Tables in the same group have similar cardinality for the column
+        
+        // TODO implement grouping similar tables
+
+        // temporary implmentation. set first table as representative table for other tables
+        representative_table_oids.push_back(table_oids[0]);
+        table_oids_in_group.push_back(std::vector<duckdb::idx_t>());
+        for (auto i = 0; i < table_oids.size(); i++) {
+            table_oids_in_group[0].push_back(table_oids[i]);
+        }
     }
 
 private:

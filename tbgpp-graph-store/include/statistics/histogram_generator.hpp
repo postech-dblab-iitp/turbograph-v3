@@ -54,8 +54,13 @@ private:
     //! Iterate data chunk & accumulate values
     void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
 
+    //! create buckets for each column
     void _create_bucket(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema,
         vector<boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<>>>> &histograms);
+    
+    //! generate group info
+    void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
+        vector<uint64_t> &num_buckets_for_each_column, vector<vector<uint64_t>> &frequency_values_for_each_column);
 };
 
 } // namespace duckdb
