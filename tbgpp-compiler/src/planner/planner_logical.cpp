@@ -8,8 +8,8 @@
 
 namespace s62 {
 
-LogicalPlan * Planner::lGetLogicalPlan() {
-
+LogicalPlan * Planner::lGetLogicalPlan()
+{
 	GPOS_ASSERT( this->bound_statement != nullptr );
 	auto& regularQuery = *((BoundRegularQuery*)(this->bound_statement));
 
@@ -22,16 +22,22 @@ LogicalPlan * Planner::lGetLogicalPlan() {
 	return childLogicalPlans[0];
 }
 
-LogicalPlan * Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery) {
-
+LogicalPlan * Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery)
+{
 	// TODO refer kuzu properties to scan
 		// populate properties to scan
     	// propertiesToScan.clear();
 
-	LogicalPlan* cur_plan = nullptr;
+	LogicalPlan *cur_plan = nullptr;
 	for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         cur_plan = lPlanQueryPart(*singleQuery.getQueryPart(i), cur_plan);
     }
+
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+	// refine plans
+	lRefinePlanForDSI();
+#endif
+
 	return cur_plan;
 }
 
@@ -315,9 +321,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 
 }
 
-
-LogicalPlan* Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection& qgc, LogicalPlan* outer_plan) {
-
+LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &qgc, LogicalPlan *outer_plan) 
+{
 	// no optional match
 	LogicalPlan* plan = nullptr;
 	GPOS_ASSERT(outer_plan != nullptr);
@@ -856,9 +861,9 @@ LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions, CColRe
 	return prev_plan;
 }
 
-LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
-
-	CMemoryPool* mp = this->memory_pool;
+LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr)
+{
+	CMemoryPool *mp = this->memory_pool;
 
 	auto table_oids = edge_expr->getTableIDs();
 
@@ -883,12 +888,12 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
 	IMDId *mdid_table = path_table_descs->operator[](0)->MDId(); // TODO need to change for Union All case
 	auto &prop_exprs = edge_expr->getPropertyExpressions();
 	D_ASSERT(pdrgpcoldesc->Size() >= prop_exprs.size());
-	for( int colidx=0; colidx < prop_exprs.size(); colidx++) {
-		auto& _prop_expr = prop_exprs[colidx];
+	for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
+		auto &_prop_expr = prop_exprs[colidx];
 		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());
 
 		// if property name in _id, _sid, _tid		
-		if( expr->getPropertyName() == "_id" || expr->getPropertyName() == "_sid" || expr->getPropertyName() == "_tid") {
+		if (expr->getPropertyName() == "_id" || expr->getPropertyName() == "_sid" || expr->getPropertyName() == "_tid") {
 			gpmd::IMDId* col_type_imdid = lGetRelMd(table_oids[0])->GetMdCol(expr->getPropertyID(table_oids[0]))->MdidType();
 			gpos::INT col_type_modifier = lGetRelMd(table_oids[0])->GetMdCol(expr->getPropertyID(table_oids[0]))->TypeModifier();
 
@@ -926,13 +931,13 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression* edge_expr) {
 
 	path_output_cols->AddRef();
 
-	LogicalPlan* plan = new LogicalPlan(path_get_expr, schema);
-	GPOS_ASSERT( !plan->getSchema()->isEmpty() );
+	LogicalPlan *plan = new LogicalPlan(path_get_expr, schema);
+	GPOS_ASSERT(!plan->getSchema()->isEmpty());
 	return plan;
 }
 
 LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan) {
-	CMemoryPool* mp = this->memory_pool;
+	CMemoryPool *mp = this->memory_pool;
 	COrderSpec *pos = GPOS_NEW(mp) COrderSpec(mp);
 	bool hasCount = proj_body->hasLimit();
 	CLogicalLimit *popLimit = GPOS_NEW(mp)
@@ -992,14 +997,11 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	auto node_name = node_expr->getUniqueName();
 	auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
 
-#ifdef DYNAMIC_SCHEMA_INSTANTIATION
 	std::pair<CExpression *, CColRefArray *> get_output;
-	if (table_oids.size() > 1) { // do dynamic schema instantiation
-		// convert table_oids --> grouping similar tables
-		std::vector<uint64_t> representative_table_oids;
-		std::vector<std::vector<uint64_t>> table_oids_in_groups;
-		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
-		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+	if (table_oids.size() > 1) { // do dynamic schema instantiation // TODO we need DSI trigger logic
+		// get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
+		get_output = std::move(lExprLogicalGetNodeOrEdgeForDSI(node_name_print, table_oids, &schema_proj_mapping, true));
 	} else {
 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false));
 	}
@@ -1142,6 +1144,115 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	return make_pair(union_plan, idx0_output_array);
 }
 
+std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdgeForDSI(string name, vector<uint64_t> &relation_oids,
+	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection)
+{
+	// generate temporal expression	
+	CMemoryPool *mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	CExpression *union_plan = nullptr;
+	const bool do_schema_mapping = insert_projection;
+	GPOS_ASSERT(relation_oids.size() > 0);
+
+	// generate type infos to the projected schema
+	uint64_t num_proj_cols;								// size of the union schema
+	vector<pair<gpmd::IMDId *, gpos::INT>> union_schema_types;	// mdid type and type modifier for both types
+	vector<CColRef *> union_schema_colrefs;
+	CColRefArray *union_output_array = GPOS_NEW(mp) CColRefArray(mp);
+	num_proj_cols =
+		(*schema_proj_mapping)[relation_oids[0]].size() > 0
+			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
+			: 0;
+	// iterate schema_projection mapping
+	for (int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
+		// foreach mappings
+		uint64_t valid_oid;
+		uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
+
+		for (auto& oid: relation_oids) {
+			uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
+			if (idx_to_try != std::numeric_limits<uint64_t>::max()) {
+				valid_oid = oid;
+				valid_cid = idx_to_try;
+				break;
+			}
+		}
+		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+		// extract info and maintain vector of column type infos
+		auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
+		gpmd::IMDId *col_type_imdid = mdcol->MdidType();
+		gpos::INT col_type_modifier = mdcol->TypeModifier();
+		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
+	}
+
+	CColRefArray *idx0_output_array;
+	CColRef2dArray *pdrgdrgpcrInput;
+	CExpressionArray *pdrgpexpr;
+	if (relation_oids.size() > 1) {
+		// pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+		pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+		pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	}
+	for (int idx = 0; idx < relation_oids.size(); idx++) {
+		auto& oid = relation_oids[idx];
+
+		CExpression *expr;
+		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
+
+		GPOS_ASSERT(num_cols != 0);
+		expr = lExprLogicalGet(oid, name);
+
+		// conform schema if necessary
+		CColRefArray *output_array;
+		vector<uint64_t> project_col_ids;
+		if (do_schema_mapping) {
+			auto& mapping = (*schema_proj_mapping)[oid];
+			assert(num_proj_cols == mapping.size());
+			for(int proj_col_idx = 0; proj_col_idx < num_proj_cols; proj_col_idx++) {
+				project_col_ids.push_back(mapping.find(proj_col_idx)->second);
+			}
+			GPOS_ASSERT(project_col_ids.size() > 0);
+			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_col_ids, &union_schema_types, union_schema_colrefs);
+			expr = proj_result.first;
+			output_array = proj_result.second;
+		} else {
+			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
+			output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+		}
+
+		/* Single table might not have the identical column mapping with original table. Thus projection is required */
+		if (relation_oids.size() == 1) {
+			// REL
+			union_plan = expr;
+			idx0_output_array = output_array;
+		} else {
+			// REL/UNION + REL
+			// As the result of Union ALL keeps the colrefs of LHS, we always set lhs array as idx0_output_array
+			// union_plan = lExprLogicalUnionAllWithMapping(
+			// 	union_plan, idx0_output_array, expr, output_array);
+			if (idx == 0) {
+				idx0_output_array = output_array;
+				pdrgdrgpcrInput->Append(output_array);
+			} else {
+				pdrgdrgpcrInput->Append(output_array);
+			}
+			pdrgpexpr->Append(expr);
+		}
+
+		break; // consider only the first oids in this phase
+	}
+
+	if (relation_oids.size() > 1) {
+		union_plan = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, idx0_output_array, pdrgdrgpcrInput),
+			pdrgpexpr);
+	}
+
+	output_expressions_to_be_refined.push_back(union_plan);
+	return make_pair(union_plan, idx0_output_array);
+}
+
 std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> &relation_oids,
 	vector<vector<uint64_t>> &table_oids_in_groups, map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection)
 {
@@ -1199,7 +1310,7 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(stri
 		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
 
 		GPOS_ASSERT(num_cols != 0);
-		expr = lExprLogicalGet(oid, name, true);
+		expr = lExprLogicalGet(oid, name, true, &table_oids_in_groups[idx]);
 
 		// conform schema if necessary
 		CColRefArray *output_array;
@@ -1590,10 +1701,11 @@ CTableDescriptor * Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
 	return ptabdesc;
 }
 
-CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
+CTableDescriptor *Planner::lTabdescPlainWithColNameFormat(
 		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
 		const CName &nameTable, string rel_name, gpos::BOOL is_nullable  // define nullable columns
-	) {
+	)
+{
 
 	CWStringDynamic *str_name = GPOS_NEW(mp) CWStringDynamic(mp);
 	CTableDescriptor *ptabdesc = GPOS_NEW(mp) CTableDescriptor(
@@ -1630,7 +1742,43 @@ CTableDescriptor * Planner::lTabdescPlainWithColNameFormat(
 
 	GPOS_DELETE(str_name);
 	return ptabdesc;
+}
 
+void Planner::lRefinePlanForDSI()
+{
+	CMemoryPool* mp = this->memory_pool;
+
+	// check each get node/rel expression has colrefs for DSI
+	for (auto i = 0; i < output_expressions_to_be_refined.size(); i++) {
+		CExpression *cur_expr = output_expressions_to_be_refined[i];
+		CColRefSet *output_colrefs = cur_expr->DeriveOutputColumns();
+
+		NodeOrRelExpression *node_expr = node_or_rel_expressions_to_be_refined[i];
+		auto table_oids = node_expr->getTableIDs();
+		auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
+
+		std::pair<CExpression *, CColRefArray *> get_output;
+
+		// TODO check whether IsDisjoint operation is expensive
+		if (!output_colrefs->IsDisjoint(colrefs_for_dsi)) {
+			// refine node/rel expression for DSI
+
+			// convert table_oids --> grouping similar tables
+			std::vector<uint64_t> representative_table_oids;
+			std::vector<std::vector<uint64_t>> table_oids_in_groups;
+			context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
+
+			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
+		} else {
+			// refine node/rel expression using UnionAll
+			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
+		}
+
+		CExpression *plan_expr = get_output.first;
+
+		// swap plans
+		std::swap(cur_expr, plan_expr);
+	}
 }
 
 

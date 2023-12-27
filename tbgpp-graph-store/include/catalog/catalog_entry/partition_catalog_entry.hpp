@@ -72,26 +72,32 @@ public:
 	//! Universal schema property Key IDs -> location map
 	PropertyToIdxUnorderedMap global_property_key_to_location;
 
-	//! Universal schema logical type IDs
+	//! universal schema logical type IDs
 	LogicalTypeId_vector global_property_typesid;
 
-	//! Extra info vector of universal schema
+	//! extra info vector of universal schema
 	uint16_t_vector extra_typeinfo_vec;
 
-	//! Universal schema names
+	//! universal schema names
 	string_vector global_property_key_names;
 
 	//! # of columns in universal schema
 	idx_t num_columns;
 
-	//! Variable for the local extent ID generator
+	//! variable for the local extent ID generator
 	atomic<ExtentID> local_extent_id_version;
 
-	//! Offset infos
+	//! offset infos
 	idx_t_vector offset_infos;
 
-	//! Boundary values of the histogram
+	//! boundary values of the histogram
 	idx_t_vector boundary_values;
+
+	//! number of groups for each column
+	idx_t_vector num_groups_for_each_column;
+
+	//! which group each table belongs to by column // TODO optimal format? currently do not consider update
+	idx_t_vector group_info_for_each_table;
 
 public:
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
@@ -108,24 +114,44 @@ public:
 	void SetPartitionID(PartitionID pid);
 	void SetSrcDstPartOid(idx_t src_part_oid, idx_t dst_part_oid);
 
-	idx_t GetUnivPSOid();
-	idx_t GetSrcPartOid();
-	idx_t GetDstPartOid();	
+	idx_t GetUnivPSOid()
+	{
+		return univ_ps_oid;
+	}
+
+	idx_t GetSrcPartOid()
+	{
+		return src_part_oid;
+	}
+
+	idx_t GetDstPartOid()
+	{
+		return dst_part_oid;
+	}
 
 	//! Get Property Schema IDs
 	void GetPropertySchemaIDs(vector<idx_t> &psids);
 
 	//! Get Property Schema IDs w/o copy
-	PropertySchemaID_vector *GetPropertySchemaIDs();
+	PropertySchemaID_vector *GetPropertySchemaIDs()
+	{
+		return &property_schema_array;
+	}
 	
 	//! Get Catalog OID of Physical ID Index
 	idx_t GetPhysicalIDIndexOid();
 
 	//! Get Catalog OIDs of Adjacency Index
-	idx_t_vector *GetAdjIndexOidVec();
+	idx_t_vector *GetAdjIndexOidVec()
+	{
+		return &adjlist_indexes;
+	}
 
 	//! Get Catalog OIDs of Property Index
-	idx_t_vector *GetPropertyIndexOidVec();
+	idx_t_vector *GetPropertyIndexOidVec()
+	{
+		return &property_indexes;
+	}
 
 	//! Get Number of columns in the universal schema
 	uint64_t GetNumberOfColumns() const;
@@ -134,13 +160,34 @@ public:
 	vector<LogicalType> GetTypes();
 
 	//! Returns a key id -> location map
-	PropertyToIdxUnorderedMap *GetPropertyToIdxMap();
+	PropertyToIdxUnorderedMap *GetPropertyToIdxMap()
+	{
+		return &global_property_key_to_location;
+	}
 
 	//! Get offset infos member variable
-	idx_t_vector *GetOffsetInfos();
+	idx_t_vector *GetOffsetInfos()
+	{
+		return &offset_infos;
+	}
 
 	//! Get boundary values member variable
-	idx_t_vector *GetBoundaryValues();
+	idx_t_vector *GetBoundaryValues()
+	{
+		return &boundary_values;
+	}
+
+	//! Get number of groups
+	idx_t_vector *GetNumberOfGroups()
+	{
+		return &num_groups_for_each_column;
+	}
+
+	//! Get group info
+	idx_t_vector *GetGroupInfo()
+	{
+		return &group_info_for_each_table;
+	}
 	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
