@@ -189,6 +189,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 	GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
 	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++){
 		QueryGraph *qg = qgc.getQueryGraph(idx);
+		auto qg_type = qg->getQueryGraphType();
 
 		for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
 			RelExpression *qedge = qg->getQueryRel(edge_idx).get();
@@ -299,6 +300,12 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			}
 		}
 		GPOS_ASSERT(qg_plan != nullptr);
+
+		if (qg_type == QueryGraphType::SHORTEST) {
+			CMemoryPool* mp = this->memory_pool; 
+			auto shortest_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalShortestPath(mp), qg_plan->getPlanExpr());
+			qg_plan->addUnaryParentOp(shortest_expr);
+		}
 	}
 
 	return qg_plan;

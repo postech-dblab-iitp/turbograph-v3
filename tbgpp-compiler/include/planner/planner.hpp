@@ -76,6 +76,7 @@
 #include "gpopt/operators/CLogicalPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
+#include "gpopt/operators/CLogicalShortestPath.h"
 #include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
