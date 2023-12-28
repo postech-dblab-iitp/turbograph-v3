@@ -5,14 +5,15 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
+#include "planner/expression.hpp"
+#include "planner/expression/bound_conjunction_expression.hpp"
+#include "execution/expression_executor.hpp"
 
 namespace duckdb {
 
 class PhysicalShortestPath: public CypherPhysicalOperator {
 
 public:
-    ~PhysicalShortestPath() {}
-
 	PhysicalShortestPath(
 						/* common params */
 						Schema& sch, vector<uint32_t> &outer_col_map, vector<uint32_t> &inner_col_map,
@@ -61,15 +62,17 @@ public:
 			executor.AddExpression(*expression);
 		}
 	
+    ~PhysicalShortestPath() {}
+	
 public:
-	// SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const override;
-	// unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
-	// void Combine(ExecutionContext& context, LocalSinkState& lstate) const override;
+	SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const override;
+	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
+	void Combine(ExecutionContext& context, LocalSinkState& lstate) const override;
 	bool IsSink() const override { return true; }
 
 public:
-	// void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
-	// unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
+	void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
+	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 	bool IsSource() const override { return true; }
 
 //     // common interface

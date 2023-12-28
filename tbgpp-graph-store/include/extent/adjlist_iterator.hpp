@@ -73,23 +73,23 @@ private:
     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
 };
 
-class BFSIterator {
-public:
-    BFSIterator();
-    ~BFSIterator();
+// class BFSIterator {
+// public:
+//     BFSIterator();
+//     ~BFSIterator();
 
-    void initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx);
-    bool getNextEdge(ClientContext &context, uint64_t &tgt, uint64_t &edge);
-    void expandLevel(ClientContext &context);
+//     void initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx);
+//     bool getNextEdge(ClientContext &context, uint64_t &tgt, uint64_t &edge);
+//     void expandLevel(ClientContext &context);
 
-private:
-    void enqueueNeighbors(ClientContext &context, uint64_t src_id);
+// private:
+//     void enqueueNeighbors(ClientContext &context, uint64_t src_id);
 
-    int adjColIdx;
-    std::queue<uint64_t> frontier;
-    std::shared_ptr<AdjacencyListIterator> adjlist_iterator;
-    std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
-};
+//     int adjColIdx;
+//     std::queue<uint64_t> frontier;
+//     std::shared_ptr<AdjacencyListIterator> adjlist_iterator;
+//     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
+// };
 
 
 } // namespace duckdb
