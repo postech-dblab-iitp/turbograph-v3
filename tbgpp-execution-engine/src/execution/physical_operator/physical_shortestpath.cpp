@@ -5,22 +5,24 @@
 
 namespace duckdb {
 
-class PhysicalShortestPath : public PhysicalOperator {
-public:
-    PhysicalShortestPath(OperatorType type, vector<LogicalType> &types, idx_t sid_col_idx);
 
-    unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
-    OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &output, OperatorState &state) const override;
+std::string PhysicalShortestPath::ParamsToString() const {
+	std::string result = "";
+	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
+	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
+	result += "adjidx_obj_id=" + std::to_string(adjidx_obj_id) + ", ";
+	result += "sid_col_idx=" + std::to_string(sid_col_idx) + ", ";
+	result += "id_col_idx=" + std::to_string(id_col_idx) + ", ";
+    result += "min_length=" + std::to_string(min_length) + ", ";
+    result += "max_length=" + std::to_string(max_length) + ", ";
+	result += "projection_mapping.size()=" + std::to_string(projection_mapping.size()) + ", ";
+	result += "projection_mapping[0].size()=" + std::to_string(projection_mapping[0].size()) + ", ";
+	result += "target_types.size()=" + std::to_string(target_types.size()) + ", ";	
+	return result;	
+}
 
-private:
-    void ProcessBFS(ExecutionContext &context, DataChunk &input, DataChunk &output, OperatorState &state) const;
-    idx_t sid_col_idx; // Source ID column index
-};
-
-class ShortestPathState : public OperatorState {
-public:
-    BFSIterator *bfs_it;
-    // additional state variables as needed
-};
+std::string PhysicalShortestPath::ToString() const {
+	return "ShortestPath";
+}
 
 }
