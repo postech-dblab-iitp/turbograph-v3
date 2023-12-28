@@ -1,10 +1,46 @@
 
 #include "typedef.hpp"
-
 #include "execution/physical_operator/physical_shortestpath.hpp"
 
 namespace duckdb {
 
+
+//===--------------------------------------------------------------------===//
+// Sink
+//===--------------------------------------------------------------------===//
+
+unique_ptr<LocalSinkState> PhysicalShortestPath::GetLocalSinkState(ExecutionContext &context) const {
+	return nullptr;
+}
+
+SinkResultType PhysicalShortestPath::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
+    return SinkResultType::FINISHED;
+}
+
+//===--------------------------------------------------------------------===//
+// Combine
+//===--------------------------------------------------------------------===//
+
+void PhysicalShortestPath::Combine(ExecutionContext &context, LocalSinkState &lstate_p) const {
+	return;
+}
+
+//===--------------------------------------------------------------------===//
+// Source
+//===--------------------------------------------------------------------===//
+
+unique_ptr<LocalSourceState> PhysicalShortestPath::GetLocalSourceState(ExecutionContext &context) const {
+	return nullptr;
+}
+
+void PhysicalShortestPath::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const{
+	return;
+}
+
+
+//===--------------------------------------------------------------------===//
+// ETC
+//===--------------------------------------------------------------------===//
 
 std::string PhysicalShortestPath::ParamsToString() const {
 	std::string result = "";

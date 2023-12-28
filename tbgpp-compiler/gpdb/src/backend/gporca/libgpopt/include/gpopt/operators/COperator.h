@@ -112,6 +112,7 @@ public:
 		EopLogicalRename,
 		EopLogicalInnerApply,
 		EopLogicalPathApply,				// S62VAR added
+		EopLogicalShortestPath,				// S62VAR added
 		EopLogicalInnerCorrelatedApply,
 		EopLogicalIndexApply,
 		EopLogicalIndexPathApply,			// S62VAR added
