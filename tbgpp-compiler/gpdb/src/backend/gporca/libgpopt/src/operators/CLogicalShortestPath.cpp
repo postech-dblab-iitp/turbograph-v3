@@ -31,6 +31,7 @@ CXformSet *
 CLogicalShortestPath::PxfsCandidates(CMemoryPool *mp) const
 {
 	CXformSet *xform_set = GPOS_NEW(mp) CXformSet(mp);
+	(void) xform_set->ExchangeSet(CXform::ExfImplementShortestPath);
 	return xform_set;
 }
 
