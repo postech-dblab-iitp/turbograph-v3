@@ -231,6 +231,7 @@ public:
 		ExfPathJoin2IndexPathApply,
 		ExfImplementIndexPathApply,
 		ExfIndexPathGet2IndexPathScan,
+		ExfImplementShortestPath,
 		// S62 done
 
 		ExfInvalid,

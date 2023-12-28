@@ -250,6 +250,7 @@ public:
 		EopPhysicalLimit,
 		EopPhysicalComputeScalar,					// PSQL operator - Row major
 		EopPhysicalComputeScalarColumnar,			// S62 Added
+		EopPhysicalShortestPath,				// S62 Added
 		EopPhysicalSpool,
 		EopPhysicalPartitionSelector,
 		EopPhysicalPartitionSelectorDML,

@@ -302,6 +302,7 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_mp) CXformPathJoin2IndexPathApply(m_mp));
 	Add(GPOS_NEW(m_mp) CXformImplementIndexPathApply(m_mp));
 	Add(GPOS_NEW(m_mp) CXformIndexPathGet2IndexPathScan(m_mp));
+	Add(GPOS_NEW(m_mp) CXformImplementShortestPath(m_mp));
 	
 
 	GPOS_ASSERT(NULL != m_rgpxf[CXform::ExfSentinel - 1] &&
