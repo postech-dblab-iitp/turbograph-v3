@@ -132,14 +132,14 @@ private:
     void bindQueryRelTmp(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
         const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
-    void bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPattern& relPattern,
+    uint64_t bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPattern& relPattern,
         QueryGraph& queryGraph, PropertyKeyValCollection& collection);
     pair<uint64_t, uint64_t> bindVariableLengthRelBound(const RelPattern& relPattern);
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> bindQueryNodeTmp(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
-    void bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode, const NodePattern& nodePattern,
+    uint64_t bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode, const NodePattern& nodePattern,
         QueryGraph& queryGraph, PropertyKeyValCollection& collection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
     shared_ptr<NodeExpression> createQueryNodeTmp(const NodePattern& nodePattern);

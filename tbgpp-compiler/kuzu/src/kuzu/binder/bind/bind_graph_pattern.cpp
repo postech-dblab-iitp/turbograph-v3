@@ -64,12 +64,23 @@ unique_ptr<QueryGraph> Binder::bindPatternElementTmp(
     // TODO
 
     // bind schema informations
+    uint64_t num_schema_combinations = 1;
     auto firstQueryNode = queryGraph->getQueryNode(0);
-    bindQueryNodeSchema(firstQueryNode, *patternElement.getFirstNodePattern(), *queryGraph, collection);
+    num_schema_combinations *= bindQueryNodeSchema(firstQueryNode, *patternElement.getFirstNodePattern(), *queryGraph, collection);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
-        bindQueryNodeSchema(queryGraph->getQueryNode(i + 1), *patternElementChain->getNodePattern(), *queryGraph, collection);
-        bindQueryRelSchema(queryGraph->getQueryRel(i), *patternElementChain->getRelPattern(), *queryGraph, collection);
+        num_schema_combinations *= bindQueryNodeSchema(queryGraph->getQueryNode(i + 1), *patternElementChain->getNodePattern(), *queryGraph, collection);
+        num_schema_combinations *= bindQueryRelSchema(queryGraph->getQueryRel(i), *patternElementChain->getRelPattern(), *queryGraph, collection);
+    }
+
+    // TODO how to trigger DSI?
+    if (num_schema_combinations >= 2) {
+        auto firstQueryNode = queryGraph->getQueryNode(0);
+        firstQueryNode->setDSITarget();
+        for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
+            queryGraph->getQueryNode(i + 1)->setDSITarget();
+            queryGraph->getQueryRel(i)->setDSITarget();
+        }
     }
 
     return queryGraph;
@@ -283,7 +294,7 @@ void Binder::bindQueryRelTmp(const RelPattern &relPattern, const shared_ptr<Node
     queryGraph.addQueryRel(queryRel);
 }
 
-void Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPattern &relPattern, 
+uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPattern &relPattern, 
     QueryGraph &queryGraph, PropertyKeyValCollection &collection) {
     
     if (!queryRel->isSchemainfoBound()) {
@@ -338,6 +349,8 @@ void Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const RelPat
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
     }
+
+    return queryRel->getTableIDs().size();
 }
 
 pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
@@ -418,7 +431,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNodeTmp(
     return queryNode;
 }
 
-void Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
+uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
     const NodePattern &nodePattern, QueryGraph &queryGraph, PropertyKeyValCollection &collection) {
 
     if (!queryNode->isSchemainfoBound()) {
@@ -471,6 +484,8 @@ void Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
     }
+
+    return queryNode->getTableIDs().size();
 }
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern &nodePattern) {

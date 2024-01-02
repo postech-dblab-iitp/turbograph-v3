@@ -63,6 +63,14 @@ public:
         schema_info_bound = schema_info_bound_;
     }
 
+    bool isDSITarget() {
+        return dsi_target;
+    }
+
+    void setDSITarget() {
+        dsi_target = true;
+    }
+
 protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
@@ -71,6 +79,7 @@ protected:
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
     bool schema_info_bound = false;
+    bool dsi_target = false;
 };
 
 } // namespace binder

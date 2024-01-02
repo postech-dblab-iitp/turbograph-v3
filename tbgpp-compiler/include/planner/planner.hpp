@@ -265,6 +265,10 @@ private:
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
 	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
+		string name, vector<uint64_t> &oids, CColRef2dArray *prev_input_array, CColRefArray *prev_output_array,
+		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
+	);
+	std::pair<CExpression*, CColRefArray*> lExprLogicalGetNodeOrEdge(
 		string name, vector<uint64_t> &oids, vector<vector<uint64_t>> &table_oids_in_groups,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
@@ -309,7 +313,8 @@ private:
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
 
-	void lRefinePlanForDSI();
+	void lRefinePlanForDSI(LogicalPlan *cur_plan);
+	CExpression *lRecurseRefinePlanForDSI(CMemoryPool *mp, CExpression *pexpr);
 
 	// helper functions
 	bool lIsCastingFunction(std::string& func_name);
@@ -438,7 +443,8 @@ private:
 	vector<CExpression *> output_expressions_to_be_refined;
 	vector<NodeOrRelExpression *> node_or_rel_expressions_to_be_refined;
 	// vector<CColRef *> colrefs_for_dsi; // should include columns used for grouping key / join column
-	CColRefSet *colrefs_for_dsi;
+	CColRefSet *colrefs_for_dsi = nullptr;
+	bool analyze_ongoing = false;
 
 	// logical soptimization context
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan

@@ -90,6 +90,10 @@ public:
 
 	//! Set Schema Info
 	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids);
+
+	//! Set Schema Info
+	void SetSchema(ClientContext &context, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids);
+
 	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	void SetFake() {
 		is_fake = true;
