@@ -11,6 +11,12 @@
 
 namespace duckdb {
 
+/**
+ * Important assumptions
+ * MATCH p=shortestPath((n:Person)-[:KNOWS*1..2]->(m:Person)) RETURN p => this prints node/edge/node.
+ * Here, the edge represents the latest edge in the path.
+*/
+
 class PhysicalShortestPath: public CypherPhysicalOperator {
 
 public:

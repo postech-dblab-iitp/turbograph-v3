@@ -21,8 +21,8 @@
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_cross_product.hpp"
 #include "execution/physical_operator/physical_blockwise_nl_join.hpp"
-
 #include "execution/physical_operator/physical_filter.hpp"
+#include "execution/physical_operator/physical_shortestpath.hpp"
 
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
@@ -1530,7 +1530,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExpression* plan_expr) {
 	CMemoryPool* mp = this->memory_pool;
 	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
-
+	CPhysicalShortestPath *shrtst_op = (CPhysicalShortestPath*) plan_expr->Pop();
 	// auto pipeline = new duckdb::CypherPipeline(*result);
 	// pipelines.push_back(pipeline);
 
