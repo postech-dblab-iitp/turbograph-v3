@@ -1,4 +1,6 @@
 #include "statistics/histogram_generator.hpp"
+#include "statistics/clustering/clique.hpp"
+#include "statistics/clustering/dummy.hpp"
 
 #include "main/client_context.hpp"
 #include "main/database.hpp"
@@ -227,6 +229,24 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         }
         std::cout << std::endl;
     }
+
+    // generate group info
+    _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
+
+    // pretty print group numbers and group info. Print for each column, in human readable format
+    _print_group_info(partition_cat, ps_oids->size());
+}
+
+void HistogramGenerator::_print_group_info(PartitionCatalogEntry *partition_cat, size_t num_histograms) {
+    auto *num_groups = partition_cat->GetNumberOfGroups();
+    auto *group_info = partition_cat->GetGroupInfo();
+    for (auto i = 0; i < num_groups->size(); i++) {
+        std::cout << i << "-th column num groups: " << num_groups->at(i) << std::endl;
+        for (auto j = 0; j < num_histograms; j++) {
+            std::cout << "group info: " << group_info->at(i * num_histograms + j) << std::endl;
+        }
+        std::cout << std::endl;
+    }
 }
 
 void HistogramGenerator::_create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat)
@@ -393,7 +413,7 @@ void HistogramGenerator::_create_bucket(DataChunk &chunk, vector<LogicalType> &u
     }
 }
 
-void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
+void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
         vector<uint64_t> &num_buckets_for_each_column, vector<vector<uint64_t>> &frequency_values_for_each_column)
 {
     auto *num_groups = partition_cat->GetNumberOfGroups();
@@ -404,11 +424,6 @@ void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID
     group_info->clear();
     multipliers->clear();
 
-    // TODO how to cluster?
-    for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
-        num_groups->push_back(1);
-    }
-
     uint64_t accmulated_multipliers = 1;
     multipliers->push_back(0);
     for (auto i = 0; i < num_groups->size() - 1; i++) {
@@ -417,9 +432,15 @@ void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID
     }
 
     // group by column // group by ps_oid is better?
-    for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
-        for (auto j = 0; j < ps_oids->size(); j++) {
-            group_info->push_back(0);
+    auto num_cols = num_buckets_for_each_column.size();
+    group_info->resize(num_cols * ps_oids->size());
+    for (auto i = 0; i < num_cols; i++) {
+        uint64_t num_groups_for_this_column;
+        vector<uint64_t> group_info_for_this_column;
+        _cluster_column<CliqueClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
+        num_groups->push_back(num_groups_for_this_column);
+        for (auto j = 0; j < group_info_for_this_column.size(); j++) {
+            group_info->at(num_cols * j + i) = group_info_for_this_column[j];
         }
     }
 }
