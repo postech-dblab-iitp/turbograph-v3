@@ -213,11 +213,17 @@ public:
             (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, idx_t univ_oid, unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema) {
+    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, idx_t univ_oid,
+        unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema,
+        PropertyKeyID_vector *&universal_schema_keyids)
+    {
         auto &catalog = db.GetCatalog();
 
-        PropertySchemaCatalogEntry *univ_ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, univ_oid);
+        // TODO univ_ps_cat will be deprecated ..
+        PropertySchemaCatalogEntry *univ_ps_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, univ_oid);
         string_vector *univ_property_keys = univ_ps_cat->GetKeys();
+        universal_schema_keyids = univ_ps_cat->GetPropKeyIDs();
         for (int i = 0; i < univ_property_keys->size(); i++) {
             string property_key = std::string((*univ_property_keys)[i]);
             universal_schema.push_back(property_key);
@@ -355,19 +361,36 @@ public:
             + (right_type_physical_id);
     }
 
-    void _group_similar_tables(idx_t_vector *num_groups_for_each_column, idx_t_vector *group_info_for_each_table,
-        vector<idx_t> &table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+    void _group_similar_tables(uint64_t num_cols, vector<idx_t> &property_locations, idx_t_vector *num_groups_for_each_column, 
+        idx_t_vector *group_info_for_each_table, idx_t_vector *multipliers, vector<idx_t> &table_oids,
+        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
     {
         // refer to group_info_for_each_table, group similar tables
-        // TODO implement grouping similar tables
-        uint64_t max_num_groups = table_oids.size() / 2;
-        for (auto i = 0; i < max_num_groups; i++) {
-            table_oids_in_group.push_back(std::vector<duckdb::idx_t>());
+        unordered_map<idx_t, vector<idx_t>> unique_key_to_oids_group;
+
+        D_ASSERT(num_cols == num_groups_for_each_column->size());
+        D_ASSERT(group_info_for_each_table->size() == table_oids.size() * num_groups_for_each_column->size());
+        
+        for (auto i = 0; i < table_oids.size(); i++) {
+            uint64_t unique_key = 0;
+            idx_t base_offset = i * num_cols;
+            for (auto j = 0; j < property_locations.size(); j++) {
+                idx_t col_idx = property_locations[j];
+                unique_key += group_info_for_each_table->at(base_offset + col_idx) * multipliers->at(col_idx);
+            }
+            
+            auto it = unique_key_to_oids_group.find(unique_key);
+            if (it == unique_key_to_oids_group.end()) {
+                vector<idx_t> tmp_vec;
+                tmp_vec.push_back(table_oids[i]);
+                unique_key_to_oids_group.insert({unique_key, std::move(tmp_vec)});
+            } else {
+                it->second.push_back(table_oids[i]);
+            }
         }
 
-        for (auto i = 0; i < table_oids.size(); i++) {
-            int group_num = rand() % max_num_groups;
-            table_oids_in_group[group_num].push_back(table_oids[i]);
+        for (auto &it : unique_key_to_oids_group) {
+            table_oids_in_group.push_back(std::move(it.second));
         }
     }
 
@@ -451,9 +474,13 @@ public:
         }
     }
 
-    void ConvertTableOidsIntoRepresentativeOids(ClientContext &context, vector<idx_t> &table_oids, 
+    void ConvertTableOidsIntoRepresentativeOids(ClientContext &context, vector<uint64_t> &property_key_ids, vector<idx_t> &table_oids,
         vector<idx_t> &representative_table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
     {
+        // TODO currently, prop_exprs contains all properties for the specific label
+        // we cannot prune table_oids that contains used_columns only in this phase
+        // we should fix this..
+
         D_ASSERT(table_oids.size() > 0);
 
         // Get first property schema cat entry to find partition catalog
@@ -466,16 +493,26 @@ public:
         // Get partition catalog
         PartitionCatalogEntry *part_cat =
             (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+
+        // Get property locations using property expressions & prop_to_idx map
+        vector<idx_t> property_locations;
+        auto *prop_to_idxmap = part_cat->GetPropertyToIdxMap();
+        for (auto i = 0; i < property_key_ids.size(); i++) {
+            D_ASSERT(prop_to_idxmap->find(property_key_ids[i]) != prop_to_idxmap->end());
+            property_locations.push_back(prop_to_idxmap->at(property_key_ids[i]));
+        }
         
         // TODO partition catalog should store tables groups for each column. Tables in the same group have similar cardinality for the column
         idx_t_vector *num_groups_for_each_column = part_cat->GetNumberOfGroups();
         idx_t_vector *group_info_for_each_table = part_cat->GetGroupInfo();
+        idx_t_vector *multipliers = part_cat->GetMultipliers();
+        uint64_t num_cols = part_cat->GetNumberOfColumns();
         
         // grouping similar (which has similar histogram) tables
-        _group_similar_tables(num_groups_for_each_column, group_info_for_each_table, table_oids,
-            table_oids_in_group);
+        _group_similar_tables(num_cols, property_locations, num_groups_for_each_column, group_info_for_each_table, multipliers,
+            table_oids, table_oids_in_group);
 
-        // create temporal catalog table
+        // create temporal catalog table // TODO check if we already built temporal table for the same groups
         _create_temporal_table_catalog(context, table_oids_in_group, representative_table_oids, part_id, part_oid);
     }
 

@@ -962,6 +962,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	auto univ_table_oid = node_expr->getUnivTableID();
 	GPOS_ASSERT(table_oids.size() >= 1);
 
+	std::vector<uint64_t> prop_key_ids;
 	map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
 	for (auto &t_oid: table_oids) {
 		schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
@@ -973,6 +974,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
 		auto &_prop_expr = prop_exprs[colidx];
 		PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
+		prop_key_ids.push_back(expr->getPropertyID()); // TODO check _id column
 		for (auto &t_oid: table_oids) {
 			if (expr->hasPropertyID(t_oid)) {
 				// table has property
@@ -995,7 +997,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	if (node_expr->isDSITarget()) { // do dynamic schema instantiation // TODO we need DSI trigger logic
 		std::vector<uint64_t> representative_table_oids;
 		std::vector<std::vector<uint64_t>> table_oids_in_groups;
-		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
+		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, prop_key_ids, table_oids, representative_table_oids, table_oids_in_groups);
 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
 		// get_output = std::move(lExprLogicalGetNodeOrEdgeForDSI(node_name_print, table_oids, &schema_proj_mapping, true));
 		// node_or_rel_expressions_to_be_refined.push_back(node_expr);
@@ -1884,77 +1886,78 @@ void Planner::lRefinePlanForDSI(LogicalPlan *cur_plan)
 
 CExpression *Planner::lRecurseRefinePlanForDSI(CMemoryPool *mp, CExpression *pexpr)
 {
-	if (pexpr->GetToBeRefined()) {
-		CColRefSet *output_colrefs = pexpr->DeriveOutputColumns();
-		NodeOrRelExpression *node_expr = nullptr;
-		// TODO use another way
-		for (auto i = 0; i < output_expressions_to_be_refined.size(); i++) {
-			if (pexpr == output_expressions_to_be_refined[i])
-		 		node_expr = node_or_rel_expressions_to_be_refined[i];
-		}
-		D_ASSERT(node_expr != nullptr);
-		auto table_oids = node_expr->getTableIDs();
-		auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
+	D_ASSERT(false); // TODO remove this function
+	// if (pexpr->GetToBeRefined()) {
+	// 	CColRefSet *output_colrefs = pexpr->DeriveOutputColumns();
+	// 	NodeOrRelExpression *node_expr = nullptr;
+	// 	// TODO use another way
+	// 	for (auto i = 0; i < output_expressions_to_be_refined.size(); i++) {
+	// 		if (pexpr == output_expressions_to_be_refined[i])
+	// 	 		node_expr = node_or_rel_expressions_to_be_refined[i];
+	// 	}
+	// 	D_ASSERT(node_expr != nullptr);
+	// 	auto table_oids = node_expr->getTableIDs();
+	// 	auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
 
-		// TODO temporary
-		map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
-		for (auto &t_oid: table_oids) {
-			schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
-		}
-		GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
+	// 	// TODO temporary
+	// 	map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
+	// 	for (auto &t_oid: table_oids) {
+	// 		schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
+	// 	}
+	// 	GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
 
-		// these properties include system columns (e.g. _id)
-		auto &prop_exprs = node_expr->getPropertyExpressions();
-		for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
-			auto &_prop_expr = prop_exprs[colidx];
-			PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
-			for (auto &t_oid: table_oids) {
-				if (expr->hasPropertyID(t_oid)) {
-					// table has property
-					schema_proj_mapping.find(t_oid)->
-						second.insert({(uint64_t)colidx, (uint64_t)(expr->getPropertyID(t_oid))});
-				} else {
-					// need to be projected as null column
-					schema_proj_mapping.find(t_oid)->
-						second.insert({(uint64_t)colidx, std::numeric_limits<uint64_t>::max()});
-				}
-			}
-		}
+	// 	// these properties include system columns (e.g. _id)
+	// 	auto &prop_exprs = node_expr->getPropertyExpressions();
+	// 	for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
+	// 		auto &_prop_expr = prop_exprs[colidx];
+	// 		PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
+	// 		for (auto &t_oid: table_oids) {
+	// 			if (expr->hasPropertyID(t_oid)) {
+	// 				// table has property
+	// 				schema_proj_mapping.find(t_oid)->
+	// 					second.insert({(uint64_t)colidx, (uint64_t)(expr->getPropertyID(t_oid))});
+	// 			} else {
+	// 				// need to be projected as null column
+	// 				schema_proj_mapping.find(t_oid)->
+	// 					second.insert({(uint64_t)colidx, std::numeric_limits<uint64_t>::max()});
+	// 			}
+	// 		}
+	// 	}
 
-		std::pair<CExpression *, CColRefArray *> get_output;
+	// 	std::pair<CExpression *, CColRefArray *> get_output;
 
-		// TODO check whether IsDisjoint operation is expensive
-		if (!output_colrefs->IsDisjoint(colrefs_for_dsi)) {
-			// refine node/rel expression for DSI
+	// 	// TODO check whether IsDisjoint operation is expensive
+	// 	if (!output_colrefs->IsDisjoint(colrefs_for_dsi)) {
+	// 		// refine node/rel expression for DSI
 
-			// convert table_oids --> grouping similar tables
-			std::vector<uint64_t> representative_table_oids;
-			std::vector<std::vector<uint64_t>> table_oids_in_groups;
-			context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
+	// 		// convert table_oids --> grouping similar tables
+	// 		std::vector<uint64_t> representative_table_oids;
+	// 		std::vector<std::vector<uint64_t>> table_oids_in_groups;
+	// 		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
 
-			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
-		} else {
-			// refine node/rel expression using UnionAll
-			// get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
-			CColRef2dArray *input_array = CLogicalUnionAll::PopConvert(pexpr->Pop())->PdrgpdrgpcrInput();
-			CColRefArray *output_array = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
-			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, input_array, output_array, &schema_proj_mapping, true));
-		}
+	// 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
+	// 	} else {
+	// 		// refine node/rel expression using UnionAll
+	// 		// get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
+	// 		CColRef2dArray *input_array = CLogicalUnionAll::PopConvert(pexpr->Pop())->PdrgpdrgpcrInput();
+	// 		CColRefArray *output_array = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+	// 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, input_array, output_array, &schema_proj_mapping, true));
+	// 	}
 		
-		CExpression *plan_expr = get_output.first;
-		return plan_expr;
-	} else {
-		// recurse child
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
-		{
-			pdrgpexprChildren->Append(
-				lRecurseRefinePlanForDSI(mp, (*pexpr)[ul]));
-		}
-		COperator *pop = pexpr->Pop();
-		pop->AddRef();
-		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
-	}
+	// 	CExpression *plan_expr = get_output.first;
+	// 	return plan_expr;
+	// } else {
+	// 	// recurse child
+	// 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+	// 	for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+	// 	{
+	// 		pdrgpexprChildren->Append(
+	// 			lRecurseRefinePlanForDSI(mp, (*pexpr)[ul]));
+	// 	}
+	// 	COperator *pop = pexpr->Pop();
+	// 	pop->AddRef();
+	// 	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+	// }
 }
 
 
