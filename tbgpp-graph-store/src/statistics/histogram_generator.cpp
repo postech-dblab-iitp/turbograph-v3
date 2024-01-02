@@ -271,6 +271,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
 
     for (auto i = 0; i < universal_schema.size(); i++) {
         if (universal_schema[i].IsNumeric()) {
+            // TODO separate implementation for each types
             accumulator_set<int64_t, stats<tag::extended_p_square_quantile>> *acc =
                 new accumulator_set<int64_t, stats<tag::extended_p_square_quantile>>(
                     extended_p_square_probabilities = probs // Quantiles for bin boundaries
@@ -397,13 +398,22 @@ void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID
 {
     auto *num_groups = partition_cat->GetNumberOfGroups();
     auto *group_info = partition_cat->GetGroupInfo();
+    auto *multipliers = partition_cat->GetMultipliers();
 
     num_groups->clear();
     group_info->clear();
+    multipliers->clear();
 
     // TODO how to cluster?
     for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
         num_groups->push_back(1);
+    }
+
+    uint64_t accmulated_multipliers = 1;
+    multipliers->push_back(0);
+    for (auto i = 0; i < num_groups->size() - 1; i++) {
+        accmulated_multipliers *= num_groups->at(i);
+        multipliers->push_back(accmulated_multipliers);
     }
 
     // group by column // group by ps_oid is better?
