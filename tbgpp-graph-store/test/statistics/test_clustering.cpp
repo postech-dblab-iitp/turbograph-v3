@@ -2,8 +2,7 @@
 
 int main() {
     CliqueClustering clique_clustering;
-    clique_clustering.run();
-
+    
     uint64_t num_histograms = 10;
     uint64_t num_bins = 2;
     vector<uint64_t> histogram = {1,2, 2,2, 3,3, 4,4, 100,222, 6,6, 7,7, 8,8, 9,9, 100,100};
