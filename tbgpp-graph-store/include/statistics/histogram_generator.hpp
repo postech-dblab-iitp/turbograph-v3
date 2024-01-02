@@ -70,6 +70,9 @@ private:
         num_groups = clustering.num_groups;
         group_info = std::move(clustering.group_info);
     }
+
+    //! print group info
+    void _print_group_info(PartitionCatalogEntry *partition_cat, size_t num_histograms);
 };
 
 } // namespace duckdb
