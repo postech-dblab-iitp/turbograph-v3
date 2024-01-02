@@ -232,6 +232,17 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 
     // generate group info
     _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
+
+    // pretty print group numbers and group info. Print for each column, in human readable format
+    auto *num_groups = partition_cat->GetNumberOfGroups();
+    auto *group_info = partition_cat->GetGroupInfo();
+    for (auto i = 0; i < num_groups->size(); i++) {
+        std::cout << i << "-th column num groups: " << num_groups->at(i) << std::endl;
+        for (auto j = 0; j < ps_oids->size(); j++) {
+            std::cout << "group info: " << group_info->at(i * ps_oids->size() + j) << std::endl;
+        }
+        std::cout << std::endl;
+    }
 }
 
 void HistogramGenerator::_create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat)

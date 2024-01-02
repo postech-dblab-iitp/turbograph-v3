@@ -46,41 +46,6 @@ class CliqueClustering: public Clustering {
 public:
     CliqueClustering() {}
 
-    void run() {
-        initialize();
-
-        // Run the CLIQUE clustering algorithm
-        uint64_t xsi = 3; // Set your xsi value
-        double tau = 0.1; // Set your tau value
-
-        // Generate the data
-        vector<vector<uint64_t>> histograms = {{1,2}, {2,2},{3,3},{4,4},{100,222},{6,6},{7,7},{8,8},{9,9},{100,100}};
-    
-        // Convert histograms to double format
-        vector<vector<double>> histogramsDouble(histograms.size(), vector<double>(histograms[0].size()));
-        for (size_t i = 0; i < histograms.size(); ++i) {
-            transform(histograms[i].begin(), histograms[i].end(), histogramsDouble[i].begin(), [](uint64_t val) {
-                return static_cast<double>(val);
-            });
-        }
-
-        // Normalize the data
-        normalizeFeatures(histogramsDouble);
-
-        // Run the CLIQUE clustering algorithm
-        vector<Cluster> clusters;
-        runClique(histogramsDouble, xsi, tau, clusters);
-        
-        vector<Cluster> finalClusters = removeOverlappingClusters(clusters);
-
-        // Output the clusters
-        std::cout << "Number of clusters: " << finalClusters.size() << std::endl;
-        for (size_t i = 0; i < finalClusters.size(); ++i) {
-            cout << "Cluster " << i << ": ";
-            finalClusters[i].printCluster();
-        }
-    }
-
     void run(uint64_t num_histograms, uint64_t num_buckets, const vector<uint64_t>& frequency_values) {
         initialize();
 
@@ -99,7 +64,7 @@ public:
         runClique(histograms, xsi, tau, clusters);
 
         // Remove overlapping clusters
-        vector<Cluster> finalClusters = removeOverlappingClusters(clusters);
+        vector<Cluster> finalClusters = findMinimumCover(clusters);
 
         // Output to num_groups and group_info
         num_groups = finalClusters.size();
@@ -339,49 +304,42 @@ private:
         }
     }
 
-    // Function to check if one cluster is fully contained within another
-    bool isClusterContained(const Cluster& smallCluster, const Cluster& largeCluster) {
-        if (smallCluster.dimensions.size() >= largeCluster.dimensions.size()) {
-            return false; // A smaller cluster cannot contain a larger or equal-sized cluster
-        }
-        
-        for (const auto& dim : smallCluster.dimensions) {
-            if (largeCluster.dimensions.find(dim) == largeCluster.dimensions.end()) {
-                return false; // If a dimension in smallCluster is not found in largeCluster
-            }
+    std::vector<Cluster> findMinimumCover(const std::vector<Cluster>& clusters) {
+        std::set<size_t> allDataPoints;
+        // Gather all unique data points across all clusters
+        for (const auto& cluster : clusters) {
+            allDataPoints.insert(cluster.data_point_ids.begin(), cluster.data_point_ids.end());
         }
 
-        // Check if every data point in smallCluster is also in largeCluster
-        for (const auto& point : smallCluster.data_point_ids) {
-            if (largeCluster.data_point_ids.find(point) == largeCluster.data_point_ids.end()) {
-                return false;
-            }
-        }
+        std::vector<Cluster> minimumCover;
+        std::set<size_t> coveredDataPoints;
 
-        return true;
-    }
+        while (coveredDataPoints.size() < allDataPoints.size()) {
+            const Cluster* bestCluster = nullptr;
+            size_t maxNewCoverage = 0;
 
-    // Function to remove overlapping clusters
-    vector<Cluster> removeOverlappingClusters(vector<Cluster>& clusters) {
-        vector<Cluster> finalClusters;
-        set<size_t> removedIndices;
+            // Find the cluster that covers the most uncovered data points
+            for (const auto& cluster : clusters) {
+                std::set<size_t> newCoverage;
+                std::set_difference(cluster.data_point_ids.begin(), cluster.data_point_ids.end(),
+                                    coveredDataPoints.begin(), coveredDataPoints.end(),
+                                    std::inserter(newCoverage, newCoverage.begin()));
 
-        for (size_t i = 0; i < clusters.size(); ++i) {
-            if (removedIndices.find(i) != removedIndices.end()) continue; // Skip already removed clusters
-
-            bool isContained = false;
-            for (size_t j = 0; j < clusters.size(); ++j) {
-                if (i != j && isClusterContained(clusters[i], clusters[j])) {
-                    isContained = true;
-                    break;
+                if (newCoverage.size() > maxNewCoverage) {
+                    maxNewCoverage = newCoverage.size();
+                    bestCluster = &cluster;
                 }
             }
 
-            if (!isContained) {
-                finalClusters.push_back(clusters[i]); // Keep cluster i if not marked as contained
+            if (bestCluster != nullptr) {
+                // Add the best cluster to the minimum cover
+                minimumCover.push_back(*bestCluster);
+                // Mark its data points as covered
+                coveredDataPoints.insert(bestCluster->data_point_ids.begin(), bestCluster->data_point_ids.end());
             }
         }
-        return finalClusters;
+
+        return minimumCover;
     }
 
     void runClique(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {
