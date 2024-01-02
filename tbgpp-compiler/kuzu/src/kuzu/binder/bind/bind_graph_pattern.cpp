@@ -154,102 +154,104 @@ static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPr
 void Binder::bindQueryRel(const RelPattern &relPattern, const shared_ptr<NodeExpression> &leftNode,
     const shared_ptr<NodeExpression> &rightNode, QueryGraph &queryGraph,
     PropertyKeyValCollection &collection) {
-    auto parsedName = relPattern.getVariableName();
-    if (variablesInScope.find(parsedName) != variablesInScope.end()) {
-        auto prevVariable = variablesInScope.at(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
-        throw BinderException("Bind relationship " + parsedName +
-                              " to relationship with same name is not supported.");
-    }
-
-    // bind node to rel
-    auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
-    auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
-    if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
-        throw BinderException("Self-loop rel " + parsedName + " is not supported.");
-    }
-    vector<uint64_t> partitionIDs, tableIDs;
-    bindRelTableIDs(relPattern.getLabelOrTypeNames(), srcNode, dstNode, partitionIDs, tableIDs);
-
-    // bind variable length
-    auto boundPair = bindVariableLengthRelBound(relPattern);
-    auto& lowerBound = boundPair.first;
-    auto& upperBound = boundPair.second;
-    bool isVariableLength = lowerBound != upperBound ? true : false;
-    auto queryRel = make_shared<RelExpression>(
-        getUniqueExpressionName(parsedName), partitionIDs, tableIDs, srcNode, dstNode, lowerBound, upperBound);
-    queryRel->setAlias(parsedName);
-    if (parsedName == "") {
-        // S62 empty rel cannot have raw name
-        queryRel->setRawName("annon_" + queryRel->getUniqueName());
-    } else {
-        queryRel->setRawName(parsedName);
-    }
-    
-    // we don't support reading property for variable length rel yet.
-    if (client != nullptr) {
-        /* TBGPP MDP */
-        // Get unordered map (property key -> corresponding (sub)table ids)
-        unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
-        vector<string> universal_schema;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, tableIDs[0], pkey_to_ps_map, universal_schema);
-        {
-            string propertyName = "_id";
-            vector<Property> prop_id;
-            for (auto &table_id : tableIDs) {
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
-                // TODO for variable length, id is not nodeid type. it is list!!
-            }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-        }
-
-        // for each property, create property expression
-        // for variable length join, cannot create property
-        for (uint64_t i = 0; i < universal_schema.size(); i++) {
-            auto it = pkey_to_ps_map.find(universal_schema[i]);
-            vector<Property> prop_id;
-            if (isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid")) {
-                // when variable length, only fetch _sid and _tid, propery cannot be fetched
-                continue;
-            }
-            for (auto &tid_and_cid_pair : it->second) {
-                uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
-                DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
-            }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
-        }
-    } else {
-        /* Testing - MemoryMDP */
-        assert(false);
-    }
-
-    // if (!queryRel->isVariableLength()) {
-    //     for (auto& propertyPair:
-    //         getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-    //         auto& propertyName = propertyPair.first;
-    //         auto& propertySchemas = propertyPair.second;
-    //         auto propertyExpression =
-    //             expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
-    //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
-    //     }
+    D_ASSERT(false); // TODO 231120 deprecated
+    // auto parsedName = relPattern.getVariableName();
+    // if (variablesInScope.find(parsedName) != variablesInScope.end()) {
+    //     auto prevVariable = variablesInScope.at(parsedName);
+    //     ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
+    //     throw BinderException("Bind relationship " + parsedName +
+    //                           " to relationship with same name is not supported.");
     // }
 
-    if (!parsedName.empty()) {
-        variablesInScope.insert({parsedName, queryRel});
-    }
-    for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
-        auto propertyName = relPattern.getProperty(i).first;
-        auto rhs = relPattern.getProperty(i).second;
-        auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
-        auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
-    }
-    queryGraph.addQueryRel(queryRel);
+    // // bind node to rel
+    // auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
+    // auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
+    // auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
+    // if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
+    //     throw BinderException("Self-loop rel " + parsedName + " is not supported.");
+    // }
+    // vector<uint64_t> partitionIDs, tableIDs;
+    // bindRelTableIDs(relPattern.getLabelOrTypeNames(), srcNode, dstNode, partitionIDs, tableIDs);
+
+    // // bind variable length
+    // auto boundPair = bindVariableLengthRelBound(relPattern);
+    // auto& lowerBound = boundPair.first;
+    // auto& upperBound = boundPair.second;
+    // bool isVariableLength = lowerBound != upperBound ? true : false;
+    // auto queryRel = make_shared<RelExpression>(
+    //     getUniqueExpressionName(parsedName), partitionIDs, tableIDs, srcNode, dstNode, lowerBound, upperBound);
+    // queryRel->setAlias(parsedName);
+    // if (parsedName == "") {
+    //     // S62 empty rel cannot have raw name
+    //     queryRel->setRawName("annon_" + queryRel->getUniqueName());
+    // } else {
+    //     queryRel->setRawName(parsedName);
+    // }
+    
+    // // we don't support reading property for variable length rel yet.
+    // if (client != nullptr) {
+    //     /* TBGPP MDP */
+    //     // Get unordered map (property key -> corresponding (sub)table ids)
+    //     unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
+    //     vector<string> universal_schema;
+    //     vector<duckdb::PropertyKeyID> universal_schema_keyids;
+    //     client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, tableIDs[0], pkey_to_ps_map, universal_schema, universal_schema_keyids);
+    //     {
+    //         string propertyName = "_id";
+    //         vector<Property> prop_id;
+    //         for (auto &table_id : tableIDs) {
+    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
+    //             // TODO for variable length, id is not nodeid type. it is list!!
+    //         }
+    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+    //         queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
+    //     }
+
+    //     // for each property, create property expression
+    //     // for variable length join, cannot create property
+    //     for (uint64_t i = 0; i < universal_schema.size(); i++) {
+    //         auto it = pkey_to_ps_map.find(universal_schema[i]);
+    //         vector<Property> prop_id;
+    //         if (isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid")) {
+    //             // when variable length, only fetch _sid and _tid, propery cannot be fetched
+    //             continue;
+    //         }
+    //         for (auto &tid_and_cid_pair : it->second) {
+    //             uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
+    //             DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
+    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
+    //         }
+    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+    //         queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
+    //     }
+    // } else {
+    //     /* Testing - MemoryMDP */
+    //     assert(false);
+    // }
+
+    // // if (!queryRel->isVariableLength()) {
+    // //     for (auto& propertyPair:
+    // //         getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
+    // //         auto& propertyName = propertyPair.first;
+    // //         auto& propertySchemas = propertyPair.second;
+    // //         auto propertyExpression =
+    // //             expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
+    // //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
+    // //     }
+    // // }
+
+    // if (!parsedName.empty()) {
+    //     variablesInScope.insert({parsedName, queryRel});
+    // }
+    // for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
+    //     auto propertyName = relPattern.getProperty(i).first;
+    //     auto rhs = relPattern.getProperty(i).second;
+    //     auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
+    //     auto boundRhs = expressionBinder.bindExpression(*rhs);
+    //     boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+    //     collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
+    // }
+    // queryGraph.addQueryRel(queryRel);
 }
 
 void Binder::bindQueryRelTmp(const RelPattern &relPattern, const shared_ptr<NodeExpression> &leftNode,
@@ -309,7 +311,8 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema);
+        duckdb::PropertyKeyID_vector *universal_schema_keyids;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -335,7 +338,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id, universal_schema_keyids->at(i));
             queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
         queryRel->setSchemainfoBound(true);
@@ -448,7 +451,8 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema; // TODO temporary
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema);
+        duckdb::PropertyKeyID_vector *universal_schema_keyids;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -460,6 +464,7 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         }
 
         // for each property, create property expression
+        D_ASSERT(universal_schema.size() == universal_schema_keyids->size());
         for (uint64_t i = 0; i < universal_schema.size(); i++) {
             auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
@@ -468,7 +473,7 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id, universal_schema_keyids->at(i));
             queryNode->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
         queryNode->setSchemainfoBound(true);

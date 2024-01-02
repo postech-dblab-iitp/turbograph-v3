@@ -96,6 +96,9 @@ public:
 	//! number of groups for each column
 	idx_t_vector num_groups_for_each_column;
 
+	//! precomputed base values for each column
+	idx_t_vector multipliers_for_each_column;
+
 	//! which group each table belongs to by column // TODO optimal format? currently do not consider update
 	idx_t_vector group_info_for_each_table;
 
@@ -177,13 +180,19 @@ public:
 		return &boundary_values;
 	}
 
-	//! Get number of groups
+	//! get number of groups
 	idx_t_vector *GetNumberOfGroups()
 	{
 		return &num_groups_for_each_column;
 	}
 
-	//! Get group info
+	//! get number of groups
+	idx_t_vector *GetMultipliers()
+	{
+		return &multipliers_for_each_column;
+	}
+
+	//! get group info
 	idx_t_vector *GetGroupInfo()
 	{
 		return &group_info_for_each_table;

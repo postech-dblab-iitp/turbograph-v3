@@ -230,14 +230,14 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
 }
 
 unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const vector<Property>& properties) {
+    const Expression& nodeOrRel, const vector<Property>& properties, uint64_t prop_key_id) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
 
 // conform data type between multi table access
     validatePropertiesWithSameDataType(
         properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
-    return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,
+    return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, prop_key_id, nodeOrRel,
         populatePropertyIDPerTable(properties));
 }
 
@@ -365,7 +365,7 @@ unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     auto result = make_unique<PropertyExpression>(
-        DataType(NODE_ID), INTERNAL_ID_SUFFIX, node, std::move(propertyIDPerTable));
+        DataType(NODE_ID), INTERNAL_ID_SUFFIX, 0, node, std::move(propertyIDPerTable));
     return result;
 }
 
