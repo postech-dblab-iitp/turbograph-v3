@@ -415,20 +415,6 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
             group_info->push_back(group_info_for_this_column[j]);
         }
     }
-
-    std::cout << "num_groups: ";
-    for (auto i = 0; i < num_groups->size(); i++) {
-        std::cout << num_groups->at(i) << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "group_info: ";
-    for (auto i = 0; i < group_info->size(); i++) {
-        std::cout << group_info->at(i) << " ";
-    }
-    std::cout << std::endl;
 }
-
-
 
 } // namespace duckdb
