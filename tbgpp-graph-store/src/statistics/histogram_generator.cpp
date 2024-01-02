@@ -409,7 +409,7 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
     for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
         uint64_t num_groups_for_this_column;
         vector<uint64_t> group_info_for_this_column;
-        _cluster_column<DummyClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
+        _cluster_column<CliqueClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
         num_groups->push_back(num_groups_for_this_column);
         for (auto j = 0; j < group_info_for_this_column.size(); j++) {
             group_info->push_back(group_info_for_this_column[j]);
