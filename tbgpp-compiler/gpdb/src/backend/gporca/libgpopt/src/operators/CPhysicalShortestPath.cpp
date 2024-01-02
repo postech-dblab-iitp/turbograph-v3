@@ -15,6 +15,7 @@
 
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CExpressionHandle.h"
+#include "gpopt/base/CDistributionSpecAny.h"
 
 
 using namespace gpopt;
@@ -107,16 +108,11 @@ CPhysicalShortestPath::PosRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 }
 
 CDistributionSpec *
-CPhysicalShortestPath::PdsRequired(CMemoryPool *, CExpressionHandle &,
+CPhysicalShortestPath::PdsRequired(CMemoryPool * mp, CExpressionHandle &,
 							CDistributionSpec *, ULONG, CDrvdPropArray *,
 							ULONG) const
 {
-	// FIXME: this method will (and should) _never_ be called
-	// sweep through all 38 overrides of PdsRequired and switch to Ped()
-	GPOS_RAISE(
-		CException::ExmaInvalid, CException::ExmiInvalid,
-		GPOS_WSZ_LIT("PdsRequired should not be called for CPhysicalShortestPath"));
-	return NULL;
+	return GPOS_NEW(mp) CDistributionSpecAny(this->Eopid());
 }
 
 //---------------------------------------------------------------------------
@@ -128,15 +124,18 @@ CPhysicalShortestPath::PdsRequired(CMemoryPool *, CExpressionHandle &,
 //
 //---------------------------------------------------------------------------
 CRewindabilitySpec *
-CPhysicalShortestPath::PrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
-							CRewindabilitySpec *prsRequired, ULONG child_index,
-							CDrvdPropArray *,  // pdrgpdpCtxt
-							ULONG			   // ulOptReq
+CPhysicalShortestPath::PrsRequired(CMemoryPool *mp,
+							 CExpressionHandle &,	// exprhdl
+							 CRewindabilitySpec *,	// prsRequired
+							 ULONG,				// child_index
+							 CDrvdPropArray *,	// pdrgpdpCtxt
+							 ULONG				// ulOptReq
 ) const
 {
-	GPOS_ASSERT(0 == child_index);
+	GPOS_ASSERT(NULL != mp);
 
-	return PrsPassThru(mp, exprhdl, prsRequired, child_index);
+	return GPOS_NEW(mp) CRewindabilitySpec(CRewindabilitySpec::ErtNone,
+										   CRewindabilitySpec::EmhtNoMotion);
 }
 
 //---------------------------------------------------------------------------
