@@ -147,6 +147,7 @@ file(GLOB TILE_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
   "${PROJECT_SOURCE_DIR}/test/schemaless/schemaless_simulation.cpp"
+  "${PROJECT_SOURCE_DIR}/test/statistics/test_clustering.cpp"
 )
 
 # if (FALSE)

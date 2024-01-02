@@ -1,4 +1,6 @@
 #include "statistics/histogram_generator.hpp"
+#include "statistics/clustering/clique.hpp"
+#include "statistics/clustering/dummy.hpp"
 
 #include "main/client_context.hpp"
 #include "main/database.hpp"
@@ -227,6 +229,9 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         }
         std::cout << std::endl;
     }
+
+    // generate group info
+    _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
 }
 
 void HistogramGenerator::_create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat)
@@ -392,7 +397,7 @@ void HistogramGenerator::_create_bucket(DataChunk &chunk, vector<LogicalType> &u
     }
 }
 
-void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
+void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID_vector *ps_oids,
         vector<uint64_t> &num_buckets_for_each_column, vector<vector<uint64_t>> &frequency_values_for_each_column)
 {
     auto *num_groups = partition_cat->GetNumberOfGroups();
@@ -401,17 +406,29 @@ void _generate_group_info(PartitionCatalogEntry *partition_cat, PropertySchemaID
     num_groups->clear();
     group_info->clear();
 
-    // TODO how to cluster?
     for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
-        num_groups->push_back(1);
-    }
-
-    // group by column // group by ps_oid is better?
-    for (auto i = 0; i < num_buckets_for_each_column.size(); i++) {
-        for (auto j = 0; j < ps_oids->size(); j++) {
-            group_info->push_back(0);
+        uint64_t num_groups_for_this_column;
+        vector<uint64_t> group_info_for_this_column;
+        _cluster_column<DummyClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
+        num_groups->push_back(num_groups_for_this_column);
+        for (auto j = 0; j < group_info_for_this_column.size(); j++) {
+            group_info->push_back(group_info_for_this_column[j]);
         }
     }
+
+    std::cout << "num_groups: ";
+    for (auto i = 0; i < num_groups->size(); i++) {
+        std::cout << num_groups->at(i) << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "group_info: ";
+    for (auto i = 0; i < group_info->size(); i++) {
+        std::cout << group_info->at(i) << " ";
+    }
+    std::cout << std::endl;
 }
+
+
 
 } // namespace duckdb
