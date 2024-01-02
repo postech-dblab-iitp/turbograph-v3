@@ -4,6 +4,7 @@
 #include "common/common.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
+#include "parser/parsed_data/create_property_schema_info.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "function/function.hpp"
 
@@ -354,6 +355,102 @@ public:
             + (right_type_physical_id);
     }
 
+    void _group_similar_tables(idx_t_vector *num_groups_for_each_column, idx_t_vector *group_info_for_each_table,
+        vector<idx_t> &table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+    {
+        // refer to group_info_for_each_table, group similar tables
+        // TODO implement grouping similar tables
+        uint64_t max_num_groups = table_oids.size() / 2;
+        for (auto i = 0; i < max_num_groups; i++) {
+            table_oids_in_group.push_back(std::vector<duckdb::idx_t>());
+        }
+
+        for (auto i = 0; i < table_oids.size(); i++) {
+            int group_num = rand() % max_num_groups;
+            table_oids_in_group[group_num].push_back(table_oids[i]);
+        }
+    }
+
+    void _create_temporal_table_catalog(ClientContext &context, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<idx_t> &representative_table_oids, PartitionID part_id, idx_t part_oid)
+    {
+        auto &catalog = db.GetCatalog();
+
+        // create temporal table catalog for each group
+        for (auto i = 0; i < table_oids_in_group.size(); i++) {
+            auto &table_oids_to_be_merged = table_oids_in_group[i];
+            string property_schema_name;
+            vector<LogicalType> merged_types;
+            vector<PropertyKeyID> merged_property_key_ids;
+
+            // Create new Property Schema Catalog Entry
+	        CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(),
+												 part_id, part_oid);
+	        PropertySchemaCatalogEntry *temporal_ps_cat = 
+                (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(context, &propertyschema_info);
+            
+            idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();
+            idx_t_vector *merged_freq_values = temporal_ps_cat->GetFrequencyValues();
+
+            // merge histogram & schema
+            _merge_schemas_and_histograms(context, table_oids_to_be_merged, merged_types, merged_property_key_ids,
+                merged_offset_infos, merged_freq_values);
+
+            temporal_ps_cat->SetFake();
+            temporal_ps_cat->SetSchema(context, merged_types, merged_property_key_ids);
+
+            representative_table_oids.push_back(temporal_ps_cat->GetOid());
+        }
+    }
+
+    void _merge_schemas_and_histograms(ClientContext &context, vector<idx_t> table_oids_to_be_merged,
+        vector<LogicalType> &merged_types, vector<PropertyKeyID> &merged_property_key_ids,
+        idx_t_vector *merged_offset_infos, idx_t_vector *merged_freq_values)
+    {
+        auto &catalog = db.GetCatalog();
+        unordered_set<PropertyKeyID> merged_schema;
+        unordered_map<PropertyKeyID, LogicalTypeId> type_info;
+
+        // merge schemas & histograms
+        for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
+            idx_t table_oid = table_oids_to_be_merged[i];
+
+            PropertySchemaCatalogEntry *ps_cat =
+                (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, table_oid);
+            
+            auto *types = ps_cat->GetTypes();
+            auto *key_ids = ps_cat->GetKeyIDs();
+
+            for (auto j = 0; j < key_ids->size(); j++) {
+                merged_schema.insert(key_ids->at(j));
+                if (type_info.find(key_ids->at(j)) == type_info.end()) {
+                    type_info.insert({key_ids->at(j), types->at(j)});
+                }
+            }
+
+            auto *offset_infos = ps_cat->GetOffsetInfos();
+            auto *freq_values = ps_cat->GetFrequencyValues();
+
+            if (i == 0) {
+                merged_freq_values->resize(freq_values->size(), 0);
+
+                for (auto j = 0; j < merged_offset_infos->size(); j++) {
+                    merged_offset_infos->push_back(offset_infos->at(j));
+                }
+            }
+
+            for (auto j = 0; j < merged_freq_values->size(); j++) {
+                merged_freq_values->at(j) += freq_values->at(j);
+            }
+        }
+
+        merged_property_key_ids.reserve(merged_schema.size());
+        for (auto it = merged_schema.begin(); it != merged_schema.end(); ) {
+            merged_property_key_ids.push_back(std::move(merged_schema.extract(it++).value()));
+            merged_types.push_back(LogicalType(type_info.at(merged_property_key_ids.back())));
+        }
+    }
+
     void ConvertTableOidsIntoRepresentativeOids(ClientContext &context, vector<idx_t> &table_oids, 
         vector<idx_t> &representative_table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
     {
@@ -364,20 +461,22 @@ public:
         PropertySchemaCatalogEntry *ps_cat = 
             (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, table_oids[0]);
         auto part_oid = ps_cat->GetPartitionOID();
+        auto part_id = ps_cat->GetPartitionID();
 
         // Get partition catalog
         PartitionCatalogEntry *part_cat =
             (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
-        // TODO partition catalog should store tables groups for each column. Tables in the same group have similar cardinality for the column
         
-        // TODO implement grouping similar tables
+        // TODO partition catalog should store tables groups for each column. Tables in the same group have similar cardinality for the column
+        idx_t_vector *num_groups_for_each_column = part_cat->GetNumberOfGroups();
+        idx_t_vector *group_info_for_each_table = part_cat->GetGroupInfo();
+        
+        // grouping similar (which has similar histogram) tables
+        _group_similar_tables(num_groups_for_each_column, group_info_for_each_table, table_oids,
+            table_oids_in_group);
 
-        // temporary implmentation. set first table as representative table for other tables
-        representative_table_oids.push_back(table_oids[0]);
-        table_oids_in_group.push_back(std::vector<duckdb::idx_t>());
-        for (auto i = 0; i < table_oids.size(); i++) {
-            table_oids_in_group[0].push_back(table_oids[i]);
-        }
+        // create temporal catalog table
+        _create_temporal_table_catalog(context, table_oids_in_group, representative_table_oids, part_id, part_oid);
     }
 
 private:

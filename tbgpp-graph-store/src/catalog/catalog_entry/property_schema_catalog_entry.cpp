@@ -55,7 +55,8 @@ vector<idx_t> PropertySchemaCatalogEntry::GetColumnIdxs(vector<string> &property
 	return column_idxs;
 }
 
-void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids) {
+void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids)
+{
 	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
 	D_ASSERT(property_typesid.empty());
 	D_ASSERT(property_key_names.empty());
@@ -78,6 +79,28 @@ void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<string
 		property_key_names.push_back(move(key_));
 	}
 
+	for (auto i = 0; i < prop_key_ids.size(); i++) {
+		property_keys.push_back(prop_key_ids[i]);
+	}
+}
+
+void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids)
+{
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
+	D_ASSERT(property_typesid.empty());
+
+	for (auto &it : types) {
+		if (it != LogicalType::FORWARD_ADJLIST && it != LogicalType::BACKWARD_ADJLIST) num_columns++;
+		property_typesid.push_back(it.id());
+		if (it.id() == LogicalTypeId::DECIMAL) {
+			uint16_t width_scale = DecimalType::GetWidth(it);
+			width_scale = width_scale << 8 | DecimalType::GetScale(it);
+			extra_typeinfo_vec.push_back(width_scale);
+		} else {
+			extra_typeinfo_vec.push_back(0);
+		}
+	}
+	
 	for (auto i = 0; i < prop_key_ids.size(); i++) {
 		property_keys.push_back(prop_key_ids[i]);
 	}

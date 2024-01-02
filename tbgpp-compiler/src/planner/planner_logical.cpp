@@ -8,43 +8,38 @@
 
 namespace s62 {
 
-LogicalPlan * Planner::lGetLogicalPlan()
+LogicalPlan *Planner::lGetLogicalPlan()
 {
-	GPOS_ASSERT( this->bound_statement != nullptr );
-	auto& regularQuery = *((BoundRegularQuery*)(this->bound_statement));
+	GPOS_ASSERT(this->bound_statement != nullptr);
+	auto &regularQuery = *((BoundRegularQuery *)(this->bound_statement));
 
 	// TODO need union between single queries
-	GPOS_ASSERT( regularQuery.getNumSingleQueries() == 1);
-	vector<LogicalPlan*> childLogicalPlans(regularQuery.getNumSingleQueries());
+	GPOS_ASSERT(regularQuery.getNumSingleQueries() == 1);
+	vector<LogicalPlan *> childLogicalPlans(regularQuery.getNumSingleQueries());
 	for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
 		childLogicalPlans[i] = lPlanSingleQuery(*regularQuery.getSingleQuery(i));
 	}
 	return childLogicalPlans[0];
 }
 
-LogicalPlan * Planner::lPlanSingleQuery(const NormalizedSingleQuery& singleQuery)
+LogicalPlan *Planner::lPlanSingleQuery(const NormalizedSingleQuery &singleQuery)
 {
+	CMemoryPool *mp = this->memory_pool;
+	LogicalPlan *cur_plan = nullptr;
 	// TODO refer kuzu properties to scan
 		// populate properties to scan
     	// propertiesToScan.clear();
 
-	LogicalPlan *cur_plan = nullptr;
 	for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         cur_plan = lPlanQueryPart(*singleQuery.getQueryPart(i), cur_plan);
     }
 
-#ifdef DYNAMIC_SCHEMA_INSTANTIATION
-	// refine plans
-	lRefinePlanForDSI();
-#endif
-
 	return cur_plan;
 }
 
-LogicalPlan* Planner::lPlanQueryPart(
-	const NormalizedQueryPart& queryPart, LogicalPlan* prev_plan) {
-
-	LogicalPlan* cur_plan = prev_plan;
+LogicalPlan *Planner::lPlanQueryPart(const NormalizedQueryPart &queryPart, LogicalPlan *prev_plan)
+{
+	LogicalPlan *cur_plan = prev_plan;
 	for (auto i = 0u; i < queryPart.getNumReadingClause(); i++) {
 		// There may be no reading clause, WITH ... WITH
         cur_plan = lPlanReadingClause(queryPart.getReadingClause(i), cur_plan);
@@ -66,8 +61,8 @@ LogicalPlan* Planner::lPlanQueryPart(
 	return cur_plan;
 }
 
-LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody* proj_body) {
-
+LogicalPlan *Planner::lPlanProjectionBody(LogicalPlan *plan, BoundProjectionBody *proj_body)
+{
 	CMemoryPool* mp = this->memory_pool;
 
 	// check if agregation necessary
@@ -121,36 +116,34 @@ LogicalPlan* Planner::lPlanProjectionBody(LogicalPlan* plan, BoundProjectionBody
 	return plan;
 }
 
-LogicalPlan* Planner::lPlanReadingClause(
-	BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan) {
-
-	LogicalPlan* plan;
+LogicalPlan *Planner::lPlanReadingClause(BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan)
+{
+	LogicalPlan *plan;
 
 	auto readingClauseType = boundReadingClause->getClauseType();
     switch (readingClauseType) {
-    case ClauseType::MATCH: {
-        plan = lPlanMatchClause(boundReadingClause, prev_plan);
-    } break;
-    case ClauseType::UNWIND: {
-        plan = lPlanUnwindClause(boundReadingClause, prev_plan);
-    } break;
-    default:
-        GPOS_ASSERT(false);
+		case ClauseType::MATCH: {
+			plan = lPlanMatchClause(boundReadingClause, prev_plan);
+		} break;
+		case ClauseType::UNWIND: {
+			plan = lPlanUnwindClause(boundReadingClause, prev_plan);
+		} break;
+		default:
+			GPOS_ASSERT(false);
     }
 
 	return plan;
 }
 
-LogicalPlan* Planner::lPlanMatchClause(
-	BoundReadingClause* boundReadingClause, LogicalPlan* prev_plan) {
-
-	auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
+LogicalPlan *Planner::lPlanMatchClause(BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan)
+{
+	auto boundMatchClause = (BoundMatchClause *)boundReadingClause;
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
     expression_vector predicates = boundMatchClause->hasWhereExpression() ?	
                           boundMatchClause->getWhereExpression()->splitOnAND() :	// CNF form
                           expression_vector{};
 
-	LogicalPlan* plan;
+	LogicalPlan *plan;
 	plan = lPlanRegularMatch(*queryGraphCollection, prev_plan, boundMatchClause->getIsOptional());
 
 	// TODO append edge isomorphism
@@ -161,7 +154,7 @@ LogicalPlan* Planner::lPlanMatchClause(
 
 
 	// plan selection on match clause
-	if( predicates.size() > 0 ) {
+	if (predicates.size() > 0) {
 		plan = lPlanSelection(std::move(predicates), plan);
 	}
 
@@ -174,8 +167,8 @@ LogicalPlan* Planner::lPlanUnwindClause(
 	return nullptr;
 }
 
-LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, LogicalPlan* prev_plan, bool is_optional_match) {
-	
+LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, LogicalPlan *prev_plan, bool is_optional_match)
+{	
 	LogicalPlan *plan = nullptr;
 
 	string ID_COLNAME = "_id";
@@ -222,8 +215,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection& qgc, Logical
 			// case for variable length join
 			bool is_pathjoin = qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
 
-			LogicalPlan* hop_plan;
-			LogicalPlan* lhs_plan;
+			LogicalPlan *hop_plan;
+			LogicalPlan *lhs_plan;
 			// A join R
 			if (!is_lhs_bound) {
 				lhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)lhs, true);
@@ -999,9 +992,13 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 
 	std::pair<CExpression *, CColRefArray *> get_output;
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
-	if (table_oids.size() > 1) { // do dynamic schema instantiation // TODO we need DSI trigger logic
-		// get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
-		get_output = std::move(lExprLogicalGetNodeOrEdgeForDSI(node_name_print, table_oids, &schema_proj_mapping, true));
+	if (node_expr->isDSITarget()) { // do dynamic schema instantiation // TODO we need DSI trigger logic
+		std::vector<uint64_t> representative_table_oids;
+		std::vector<std::vector<uint64_t>> table_oids_in_groups;
+		context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(*context, table_oids, representative_table_oids, table_oids_in_groups);
+		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
+		// get_output = std::move(lExprLogicalGetNodeOrEdgeForDSI(node_name_print, table_oids, &schema_proj_mapping, true));
+		// node_or_rel_expressions_to_be_refined.push_back(node_expr);
 	} else {
 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false));
 	}
@@ -1144,6 +1141,124 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string
 	return make_pair(union_plan, idx0_output_array);
 }
 
+std::pair<CExpression*, CColRefArray*> Planner::lExprLogicalGetNodeOrEdge(string name, vector<uint64_t> &relation_oids, CColRef2dArray *prev_input_array,
+	CColRefArray *prev_output_array, map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection) {
+	
+	CMemoryPool* mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+	CExpression* union_plan = nullptr;
+	const bool do_schema_mapping = insert_projection;
+	GPOS_ASSERT(relation_oids.size() > 0);
+
+	// generate type infos to the projected schema
+	uint64_t num_proj_cols;								// size of the union schema
+	vector<pair<gpmd::IMDId*, gpos::INT>> union_schema_types;	// mdid type and type modifier for both types
+	vector<CColRef *> union_schema_colrefs;
+	CColRefArray *union_output_array = GPOS_NEW(mp) CColRefArray(mp);
+	num_proj_cols =
+		(*schema_proj_mapping)[relation_oids[0]].size() > 0
+			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
+			: 0;
+	// iterate schema_projection mapping
+	for (int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
+		// foreach mappings
+		uint64_t valid_oid;
+		uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
+
+		for (auto& oid: relation_oids) {
+			uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
+			if (idx_to_try != std::numeric_limits<uint64_t>::max()) {
+				valid_oid = oid;
+				valid_cid = idx_to_try;
+				break;
+			}
+		}
+		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+		// extract info and maintain vector of column type infos
+		auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
+		gpmd::IMDId *col_type_imdid = mdcol->MdidType();
+		gpos::INT col_type_modifier = mdcol->TypeModifier();
+		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
+
+		// generate new reference having same name
+		// CName col_name(mdcol->Mdname().GetMDName());
+		// CColRef *new_colref 
+		// 	= col_factory->PcrCreate(lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
+		// union_schema_colrefs.push_back(new_colref);
+		// union_output_array->Append(new_colref);
+	}
+
+	// CColRefArray *pdrgpcrOutput;
+	CColRefArray *idx0_output_array;
+	CColRef2dArray *pdrgdrgpcrInput;
+	CExpressionArray *pdrgpexpr;
+	// idx0_output_array = GPOS_NEW(mp) CColRefArray(mp);
+	// idx0_output_array->AppendArray(prev_output_array);
+	if (relation_oids.size() > 1) {
+		// pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
+		pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+		pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	}
+	// pdrgdrgpcrInput->AppendArray(prev_input_array);
+	for (int idx = 0; idx < relation_oids.size(); idx++) {
+		auto& oid = relation_oids[idx];
+
+		CExpression *expr;
+		const gpos::ULONG num_cols = lGetRelMd(oid)->ColumnCount();
+
+		GPOS_ASSERT(num_cols != 0);
+		expr = lExprLogicalGet(oid, name);
+
+		// conform schema if necessary
+		CColRefArray *output_array;
+		vector<uint64_t> project_col_ids;
+		if (do_schema_mapping) {
+			auto& mapping = (*schema_proj_mapping)[oid];
+			assert(num_proj_cols == mapping.size());
+			for(int proj_col_idx = 0; proj_col_idx < num_proj_cols; proj_col_idx++) {
+				project_col_ids.push_back(mapping.find(proj_col_idx)->second);
+			}
+			GPOS_ASSERT(project_col_ids.size() > 0);
+			auto proj_result = lExprScalarAddSchemaConformProject(expr, project_col_ids, &union_schema_types, union_schema_colrefs);
+			expr = proj_result.first;
+			output_array = proj_result.second;
+		} else {
+			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
+			output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
+		}
+
+		/* Single table might not have the identical column mapping with original table. Thus projection is required */
+		if (relation_oids.size() == 1) {
+			// REL
+			union_plan = expr;
+			idx0_output_array = output_array;
+		} else {
+			// REL/UNION + REL
+			// As the result of Union ALL keeps the colrefs of LHS, we always set lhs array as idx0_output_array
+			// union_plan = lExprLogicalUnionAllWithMapping(
+			// 	union_plan, idx0_output_array, expr, output_array);
+			if (idx == 0) {
+				idx0_output_array = output_array;
+				pdrgdrgpcrInput->Append(output_array);
+				// pdrgdrgpcrInput->Append(prev_output_array);
+			} else {
+				pdrgdrgpcrInput->Append(output_array);
+			}
+			pdrgpexpr->Append(expr);
+		}
+	}
+	// union_output_array->AddRef();
+
+	if (relation_oids.size() > 1) {
+		union_plan = GPOS_NEW(mp) CExpression(
+			mp, GPOS_NEW(mp) CLogicalUnionAll(mp, idx0_output_array, pdrgdrgpcrInput),
+			pdrgpexpr);
+	}
+
+	return make_pair(union_plan, idx0_output_array);
+}
+
 std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdgeForDSI(string name, vector<uint64_t> &relation_oids,
 	map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection)
 {
@@ -1249,7 +1364,8 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdgeForDS
 			pdrgpexpr);
 	}
 
-	output_expressions_to_be_refined.push_back(union_plan);
+	// union_plan->SetToBeRefined();
+	// output_expressions_to_be_refined.push_back(union_plan);
 	return make_pair(union_plan, idx0_output_array);
 }
 
@@ -1273,25 +1389,34 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(stri
 			? (*schema_proj_mapping)[relation_oids[0]].rbegin()->first + 1
 			: 0;
 	// iterate schema_projection mapping
-	for (int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
-		// foreach mappings
-		uint64_t valid_oid;
-		uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
+	if (do_schema_mapping) {
+		for (int col_idx = 0; col_idx < num_proj_cols; col_idx++) {
+			// foreach mappings
+			uint64_t valid_oid;
+			uint64_t valid_cid = std::numeric_limits<uint64_t>::max();
 
-		for (auto& oid: relation_oids) {
-			uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
-			if (idx_to_try != std::numeric_limits<uint64_t>::max()) {
-				valid_oid = oid;
-				valid_cid = idx_to_try;
-				break;
+			for (auto& oid: relation_oids) {
+				uint64_t idx_to_try = (*schema_proj_mapping)[oid].find(col_idx)->second;
+				if (idx_to_try != std::numeric_limits<uint64_t>::max()) {
+					valid_oid = oid;
+					valid_cid = idx_to_try;
+					break;
+				}
+			}
+			// GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
+			// extract info and maintain vector of column type infos
+			if (valid_cid != std::numeric_limits<uint64_t>::max()) {
+				auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
+				gpmd::IMDId *col_type_imdid = mdcol->MdidType();
+				gpos::INT col_type_modifier = mdcol->TypeModifier();
+				union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
+			} else {
+				uint32_t null_type_id = LOGICAL_TYPE_BASE_ID + (OID)duckdb::LogicalTypeId::SQLNULL;
+				CMDIdGPDB *col_type_imdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, null_type_id, 1, 0);
+				gpos::INT col_type_modifier = 0;
+				union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
 			}
 		}
-		GPOS_ASSERT(valid_cid != std::numeric_limits<uint64_t>::max());
-		// extract info and maintain vector of column type infos
-		auto *mdcol = lGetRelMd(valid_oid)->GetMdCol(valid_cid);
-		gpmd::IMDId *col_type_imdid = mdcol->MdidType();
-		gpos::INT col_type_modifier = mdcol->TypeModifier();
-		union_schema_types.push_back(make_pair(col_type_imdid, col_type_modifier));
 	}
 
 	CColRefArray *idx0_output_array;
@@ -1445,13 +1570,13 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 
 	uint64_t target_col_id = 0;
 	for (auto col_id: col_ids_to_project) {
-		CExpression* scalar_proj_elem;
+		CExpression *scalar_proj_elem;
 		if (col_id == std::numeric_limits<uint64_t>::max()) {
 			GPOS_ASSERT(target_schema_types != nullptr);
 			// project null column
-			auto& type_info = (*target_schema_types)[target_col_id];
+			auto &type_info = (*target_schema_types)[target_col_id];
 			// CColRef *new_colref = union_schema_colrefs[target_col_id];
-			CExpression* null_expr =
+			CExpression *null_expr =
 				CUtils::PexprScalarConstNull(mp, lGetMDAccessor()->RetrieveType(type_info.first) , type_info.second);
 			const CWStringConst col_name_str(GPOS_WSZ_LIT("const_null"));
 			CName col_name(&col_name_str);
@@ -1465,7 +1590,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			// project non-null column
 			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
 			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
-			CExpression* ident_expr = GPOS_NEW(mp)
+			CExpression *ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
 				mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
@@ -1602,6 +1727,11 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 
 	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
 	pexprEquality->AddRef();
+
+#ifdef DYNAMIC_SCHEMA_INSTANTIATION
+	colrefs_for_dsi->Include(pcrLeft);
+	colrefs_for_dsi->Include(pcrRight);
+#endif
 	
 	CExpression* join_result;
 	switch(join_op) {
@@ -1744,18 +1874,52 @@ CTableDescriptor *Planner::lTabdescPlainWithColNameFormat(
 	return ptabdesc;
 }
 
-void Planner::lRefinePlanForDSI()
+void Planner::lRefinePlanForDSI(LogicalPlan *cur_plan)
 {
 	CMemoryPool* mp = this->memory_pool;
+	CExpression *pexpr = cur_plan->getPlanExpr();
+	CExpression *refined_pexpr = lRecurseRefinePlanForDSI(mp, pexpr);
+	cur_plan->setTreeRoot(refined_pexpr);
+}
 
-	// check each get node/rel expression has colrefs for DSI
-	for (auto i = 0; i < output_expressions_to_be_refined.size(); i++) {
-		CExpression *cur_expr = output_expressions_to_be_refined[i];
-		CColRefSet *output_colrefs = cur_expr->DeriveOutputColumns();
-
-		NodeOrRelExpression *node_expr = node_or_rel_expressions_to_be_refined[i];
+CExpression *Planner::lRecurseRefinePlanForDSI(CMemoryPool *mp, CExpression *pexpr)
+{
+	if (pexpr->GetToBeRefined()) {
+		CColRefSet *output_colrefs = pexpr->DeriveOutputColumns();
+		NodeOrRelExpression *node_expr = nullptr;
+		// TODO use another way
+		for (auto i = 0; i < output_expressions_to_be_refined.size(); i++) {
+			if (pexpr == output_expressions_to_be_refined[i])
+		 		node_expr = node_or_rel_expressions_to_be_refined[i];
+		}
+		D_ASSERT(node_expr != nullptr);
 		auto table_oids = node_expr->getTableIDs();
 		auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias(): node_expr->getUniqueName();
+
+		// TODO temporary
+		map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;	// maps from new_col_id->old_col_id
+		for (auto &t_oid: table_oids) {
+			schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
+		}
+		GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
+
+		// these properties include system columns (e.g. _id)
+		auto &prop_exprs = node_expr->getPropertyExpressions();
+		for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
+			auto &_prop_expr = prop_exprs[colidx];
+			PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
+			for (auto &t_oid: table_oids) {
+				if (expr->hasPropertyID(t_oid)) {
+					// table has property
+					schema_proj_mapping.find(t_oid)->
+						second.insert({(uint64_t)colidx, (uint64_t)(expr->getPropertyID(t_oid))});
+				} else {
+					// need to be projected as null column
+					schema_proj_mapping.find(t_oid)->
+						second.insert({(uint64_t)colidx, std::numeric_limits<uint64_t>::max()});
+				}
+			}
+		}
 
 		std::pair<CExpression *, CColRefArray *> get_output;
 
@@ -1771,13 +1935,25 @@ void Planner::lRefinePlanForDSI()
 			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, representative_table_oids, table_oids_in_groups, &schema_proj_mapping, true));
 		} else {
 			// refine node/rel expression using UnionAll
-			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
+			// get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
+			CColRef2dArray *input_array = CLogicalUnionAll::PopConvert(pexpr->Pop())->PdrgpdrgpcrInput();
+			CColRefArray *output_array = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+			get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, input_array, output_array, &schema_proj_mapping, true));
 		}
-
+		
 		CExpression *plan_expr = get_output.first;
-
-		// swap plans
-		std::swap(cur_expr, plan_expr);
+		return plan_expr;
+	} else {
+		// recurse child
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+		{
+			pdrgpexprChildren->Append(
+				lRecurseRefinePlanForDSI(mp, (*pexpr)[ul]));
+		}
+		COperator *pop = pexpr->Pop();
+		pop->AddRef();
+		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 	}
 }
 

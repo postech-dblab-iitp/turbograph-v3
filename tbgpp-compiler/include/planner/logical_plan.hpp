@@ -90,6 +90,10 @@ public:
 	}
 	~LogicalPlan() {}
 
+	void setTreeRoot(CExpression *root) {
+		tree_root = root;
+	}
+
 	void addUnaryParentOp(CExpression* parent) {
 		tree_root = parent;
 		// update internal states

@@ -95,6 +95,9 @@ private:
 	// id of origin group expression, used for debugging expressions extracted from memo
 	ULONG m_ulOriginGrpExprId;
 
+	// S62 added; expression to be refined
+	BOOL m_to_be_refined;
+
 	// get expression's derived property given its type
 	CDrvdProp *Pdp(const CDrvdProp::EPropType ept) const;
 
@@ -260,6 +263,16 @@ public:
 
 	// compare entire expression rooted here
 	BOOL Matches(CExpression *pexpr) const;
+
+	void SetToBeRefined() 
+	{
+		m_to_be_refined = true;
+	}
+
+	BOOL GetToBeRefined()
+	{
+		return m_to_be_refined;
+	}
 
 #ifdef GPOS_DEBUG
 	// match against given pattern
