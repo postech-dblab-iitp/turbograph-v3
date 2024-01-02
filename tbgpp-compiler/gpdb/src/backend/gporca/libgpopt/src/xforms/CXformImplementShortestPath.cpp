@@ -44,10 +44,7 @@ CXformImplementShortestPath::Exfp(CExpressionHandle &exprhdl) const
 {
 	// Although it is valid SQL for the limit/offset to be a subquery, Orca does
 	// not support it
-	if (exprhdl.DeriveHasSubquery(1) || exprhdl.DeriveHasSubquery(2))
-	{
-		return CXform::ExfpNone;
-	}
+	(void) exprhdl;
 	return CXform::ExfpHigh;
 }
 
@@ -70,7 +67,7 @@ CXformImplementShortestPath::Transform(CXformContext *pxfctxt, CXformResult *pxf
 	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
-	CLogicalShortestPath *popShortestPath = CLogicalShortestPath::PopConvert(pexpr->Pop());
+	// CLogicalShortestPath *popShortestPath = CLogicalShortestPath::PopConvert(pexpr->Pop());
 	CExpression *pexprRelational = (*pexpr)[0];
 
 	// addref all components
