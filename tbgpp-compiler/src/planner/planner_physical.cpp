@@ -174,6 +174,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 			result = pTransformEopAgg(plan_expr);
 			break;
 		}
+		case COperator::EOperatorId::EopPhysicalShortestPath: {
+			result = pTransformEopShortestPath(plan_expr);
+			break;
+		}
 		default:
 			D_ASSERT(false);
 			break;
@@ -1521,6 +1525,16 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	new_result->push_back(op);
 
 	return new_result;
+}
+
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExpression* plan_expr) {
+	CMemoryPool* mp = this->memory_pool;
+	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+
+	// auto pipeline = new duckdb::CypherPipeline(*result);
+	// pipelines.push_back(pipeline);
+
+	return result;
 }
 
 bool Planner::pIsIndexJoinOnPhysicalID(CExpression* plan_expr) {
