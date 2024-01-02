@@ -72,6 +72,8 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 
 	{COperator::EopPhysicalSort, CostSort},
 
+	{COperator::EopPhysicalShortestPath, CostShortestPath},
+
 	{COperator::EopPhysicalTVF, CostTVF},
 
 	{COperator::EopPhysicalSerialUnionAll, CostUnionAll},
@@ -2112,6 +2114,48 @@ CCostModelGPDB::CostFilter(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CCost costLocal = CCost(dInput * ulFilterCols * dFilterColCostUnit);
 
 	costLocal = CCost(costLocal.Get() * pci->NumRebinds());
+	CCost costChild =
+		CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
+
+	return costLocal + costChild;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCostModelGPDB::CostShortestPath
+//
+//	@doc:
+//		Cost of shortestPath
+//
+//---------------------------------------------------------------------------
+CCost 
+CCostModelGPDB::CostShortestPath(CMemoryPool *mp, CExpressionHandle &exprhdl,
+				const CCostModelGPDB *pcmgpdb,
+				const SCostingInfo *pci) 
+{
+	/***
+	 * This is a dummy implementation of the cost model for ShortestPath operator.
+	 * We used sort costing model, since it requires sorting.
+	 * Change after we have a better cost model for ShortestPath.
+	 */
+
+	GPOS_ASSERT(NULL != pcmgpdb);
+	GPOS_ASSERT(NULL != pci);
+	GPOS_ASSERT(COperator::EopPhysicalShortestPath == exprhdl.Pop()->Eopid());
+
+	// log operation below
+	const CDouble rows = CDouble(std::max(1.0, pci->Rows()));
+	const CDouble num_rebinds = CDouble(pci->NumRebinds());
+	const CDouble width = CDouble(pci->Width());
+
+	const CDouble dSortTupWidthCost =
+		pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpSortTupWidthCostUnit)
+			->Get();
+	GPOS_ASSERT(0 < dSortTupWidthCost);
+
+	CCost costLocal =
+		CCost(num_rebinds * ((rows * 1/100) * (rows * 1/100).Log2() * width * dSortTupWidthCost)); // S62.. temporary code......
 	CCost costChild =
 		CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 
