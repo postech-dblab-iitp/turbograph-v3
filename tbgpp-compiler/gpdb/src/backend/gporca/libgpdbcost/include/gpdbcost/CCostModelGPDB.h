@@ -231,6 +231,11 @@ private:
 								   ICostModelParams *pcp,
 								   const CCostModelGPDB *pcmgpdb);
 
+	// cost of shortestPath
+	static CCost CostShortestPath(CMemoryPool *mp, CExpressionHandle &exprhdl,
+								const CCostModelGPDB *pcmgpdb,
+								const SCostingInfo *pci);
+
 public:
 	// ctor
 	CCostModelGPDB(CMemoryPool *mp, ULONG ulSegments,
