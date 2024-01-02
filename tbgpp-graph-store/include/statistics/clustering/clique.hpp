@@ -46,6 +46,41 @@ class CliqueClustering: public Clustering {
 public:
     CliqueClustering() {}
 
+    void run() {
+        initialize();
+
+        // Run the CLIQUE clustering algorithm
+        uint64_t xsi = 3; // Set your xsi value
+        double tau = 0.1; // Set your tau value
+
+        // Generate the data
+        vector<vector<uint64_t>> histograms = {{1,2}, {2,2},{3,3},{4,4},{100,222},{6,6},{7,7},{8,8},{9,9},{100,100}};
+    
+        // Convert histograms to double format
+        vector<vector<double>> histogramsDouble(histograms.size(), vector<double>(histograms[0].size()));
+        for (size_t i = 0; i < histograms.size(); ++i) {
+            transform(histograms[i].begin(), histograms[i].end(), histogramsDouble[i].begin(), [](uint64_t val) {
+                return static_cast<double>(val);
+            });
+        }
+
+        // Normalize the data
+        normalizeFeatures(histogramsDouble);
+
+        // Run the CLIQUE clustering algorithm
+        vector<Cluster> clusters;
+        runClique(histogramsDouble, xsi, tau, clusters);
+        
+        vector<Cluster> finalClusters = removeOverlappingClusters(clusters);
+
+        // Output the clusters
+        std::cout << "Number of clusters: " << finalClusters.size() << std::endl;
+        for (size_t i = 0; i < finalClusters.size(); ++i) {
+            cout << "Cluster " << i << ": ";
+            finalClusters[i].printCluster();
+        }
+    }
+
     void run(uint64_t num_histograms, uint64_t num_buckets, const vector<uint64_t>& frequency_values) {
         initialize();
 
@@ -53,7 +88,7 @@ public:
         uint64_t xsi = 3; // Set your xsi value
         double tau = 0.1; // Set your tau value
 
-        vector<vector<uint64_t>> histograms;
+        vector<vector<double>> histograms;
         reshapeHistograms(num_histograms, num_buckets, frequency_values, histograms);
 
         // Normalize the data
@@ -63,28 +98,34 @@ public:
         vector<Cluster> clusters;
         runClique(histograms, xsi, tau, clusters);
 
-        // Output the clusters
-        std::cout << "Number of clusters: " << clusters.size() << std::endl;
-        for (size_t i = 0; i < clusters.size(); ++i) {
-            cout << "Cluster " << i << ": ";
-            clusters[i].printCluster();
-        }
+        // Remove overlapping clusters
+        vector<Cluster> finalClusters = removeOverlappingClusters(clusters);
 
-
+        // Output to num_groups and group_info
+        num_groups = finalClusters.size();
+        group_info.resize(num_histograms);
+        for (size_t i = 0; i < finalClusters.size(); ++i) {
+            for (const auto& id : finalClusters[i].data_point_ids) {
+                group_info[id] = i;
+            }
+        } 
     }
 
 private:
-    void reshapeHistograms(uint64_t num_histograms, uint64_t num_buckets, const vector<uint64_t>& frequency_values, vector<vector<uint64_t>>& histograms) {
-        histograms.reserve(num_histograms);
+    void reshapeHistograms(uint64_t num_histograms, uint64_t num_buckets, const vector<uint64_t>& frequency_values, vector<vector<double>>& histograms) {
+        histograms.resize(num_histograms, vector<double>(num_buckets, 0.0));
         for (uint64_t i = 0; i < num_histograms; ++i) {
-            histograms.push_back(vector<uint64_t>(frequency_values.begin() + i * num_buckets, frequency_values.begin() + (i + 1) * num_buckets));
+            for (uint64_t j = 0; j < num_buckets; ++j) {
+                histograms[i][j] = static_cast<double>(frequency_values[i * num_buckets + j]);
+            }
         }
     }
 
     // Helper function to check if a data point is in a projection
-    bool isDataInProjection(const vector<uint64_t>& tuple, const DenseUnit& candidate, uint64_t xsi) {
+    bool isDataInProjection(const vector<double>& tuple, const DenseUnit& candidate, uint64_t xsi) {
         for (const auto& [featureIndex, rangeIndex] : candidate) {
-            if (static_cast<uint64_t>(floor(tuple[featureIndex] * xsi % xsi)) != rangeIndex) {
+            uint64_t bucketIndex = static_cast<uint64_t>(floor(tuple[featureIndex] * xsi));
+            if (bucketIndex % xsi != rangeIndex) {
                 return false;
             }
         }
@@ -92,29 +133,33 @@ private:
     }
 
     // Function to normalize the data
-    void normalizeFeatures(vector<vector<uint64_t>>& data) {
+    void normalizeFeatures(vector<vector<double>>& data) {
         for (size_t f = 0; f < data[0].size(); ++f) {
-            uint64_t minElem = numeric_limits<uint64_t>::max();
-            uint64_t maxElem = numeric_limits<uint64_t>::lowest();
+            double minElem = numeric_limits<double>::max();
+            double maxElem = numeric_limits<double>::lowest();
             for (const auto& row : data) {
                 minElem = min(minElem, row[f]);
                 maxElem = max(maxElem, row[f]);
             }
+            uint64_t range = maxElem - minElem;
             for (auto& row : data) {
-                row[f] = (row[f] - minElem) / (maxElem - minElem);
+                // Normalizing each feature to the range [0, 1) with 1e-5 padding
+                row[f] = (row[f] - minElem) / (range + 1e-5);
             }
         }
     }
 
+
     // Function to get one-dimensional dense units
-    void getOneDimDenseUnits(const vector<vector<uint64_t>>& data, double tau, uint64_t xsi, vector<DenseUnit>& oneDimDenseUnits) {
+    void getOneDimDenseUnits(const vector<vector<double>>& data, double tau, uint64_t xsi, vector<DenseUnit>& oneDimDenseUnits) {
         size_t numDataPoints = data.size();
         size_t numFeatures = data[0].size();
         vector<vector<uint64_t>> projection(xsi, vector<uint64_t>(numFeatures, 0));
 
         for (const auto& row : data) {
             for (size_t f = 0; f < numFeatures; ++f) {
-                projection[static_cast<uint64_t>(floor(row[f] * xsi % xsi))][f]++;
+                uint64_t bucketIndex = static_cast<uint64_t>(floor(row[f] * xsi));
+                projection[bucketIndex % xsi][f]++;
             }
         }
 
@@ -163,7 +208,7 @@ private:
     }
 
     // Function to get dense units for a given dimension
-    vector<DenseUnit> getDenseUnitsForDim(const vector<vector<uint64_t>>& data, const vector<DenseUnit>& prevDimDenseUnits, size_t dim, uint64_t xsi, double tau) {
+    vector<DenseUnit> getDenseUnitsForDim(const vector<vector<double>>& data, const vector<DenseUnit>& prevDimDenseUnits, size_t dim, uint64_t xsi, double tau) {
         vector<DenseUnit> candidates;
         selfJoin(prevDimDenseUnits, dim, candidates);
         prune(candidates, prevDimDenseUnits);
@@ -207,13 +252,14 @@ private:
     }
 
     // Function to get cluster data point IDs
-    set<size_t> getClusterDataPointIds(const vector<vector<uint64_t>>& data, const DenseUnit& cluster_dense_units, double xsi) {
+    set<size_t> getClusterDataPointIds(const vector<vector<double>>& data, const DenseUnit& cluster_dense_units, uint64_t xsi) {
         set<size_t> point_ids;
         size_t numDataPoints = data.size();
         for (size_t i = 0; i < numDataPoints; ++i) {
             bool isInCluster = true;
             for (const auto& [featureIndex, rangeIndex] : cluster_dense_units) {
-                if (static_cast<uint64_t>(floor(data[i][featureIndex] * xsi)) != rangeIndex) {
+                uint64_t bucketIndex = static_cast<uint64_t>(std::floor(data[i][featureIndex] * xsi));
+                if (bucketIndex % xsi != rangeIndex) {
                     isInCluster = false;
                     break;
                 }
@@ -226,7 +272,7 @@ private:
     }
 
     // Function to get clusters from dense units
-    vector<Cluster> getClusters(const vector<DenseUnit>& denseUnits, const vector<vector<uint64_t>>& data, uint64_t xsi) {
+    vector<Cluster> getClusters(const vector<DenseUnit>& denseUnits, const vector<vector<double>>& data, uint64_t xsi) {
         vector<vector<bool>> graph(denseUnits.size(), vector<bool>(denseUnits.size(), false));
         buildGraphFromDenseUnits(denseUnits, graph);
 
@@ -293,25 +339,52 @@ private:
         }
     }
 
-    // Main CLIQUE clustering function
-    void runClique(const vector<vector<uint64_t>>& data, uint64_t xsi, double tau, vector<set<size_t>>& components) {
-        vector<DenseUnit> denseUnits;
-        getOneDimDenseUnits(data, tau, xsi, denseUnits);
-
-        size_t currentDim = 2;
-        size_t numFeatures = data[0].size();
-        while (currentDim <= numFeatures && !denseUnits.empty()) {
-            denseUnits = getDenseUnitsForDim(data, denseUnits, currentDim, xsi, tau);
-            currentDim++;
+    // Function to check if one cluster is fully contained within another
+    bool isClusterContained(const Cluster& smallCluster, const Cluster& largeCluster) {
+        if (smallCluster.dimensions.size() >= largeCluster.dimensions.size()) {
+            return false; // A smaller cluster cannot contain a larger or equal-sized cluster
+        }
+        
+        for (const auto& dim : smallCluster.dimensions) {
+            if (largeCluster.dimensions.find(dim) == largeCluster.dimensions.end()) {
+                return false; // If a dimension in smallCluster is not found in largeCluster
+            }
         }
 
+        // Check if every data point in smallCluster is also in largeCluster
+        for (const auto& point : smallCluster.data_point_ids) {
+            if (largeCluster.data_point_ids.find(point) == largeCluster.data_point_ids.end()) {
+                return false;
+            }
+        }
 
-        vector<vector<bool>> graph(denseUnits.size(), vector<bool>(denseUnits.size(), false));
-        buildGraphFromDenseUnits(denseUnits, graph);
-        findConnectedComponents(graph, components);
+        return true;
     }
 
-    void runClique(const vector<vector<uint64_t>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {
+    // Function to remove overlapping clusters
+    vector<Cluster> removeOverlappingClusters(vector<Cluster>& clusters) {
+        vector<Cluster> finalClusters;
+        set<size_t> removedIndices;
+
+        for (size_t i = 0; i < clusters.size(); ++i) {
+            if (removedIndices.find(i) != removedIndices.end()) continue; // Skip already removed clusters
+
+            bool isContained = false;
+            for (size_t j = 0; j < clusters.size(); ++j) {
+                if (i != j && isClusterContained(clusters[i], clusters[j])) {
+                    isContained = true;
+                    break;
+                }
+            }
+
+            if (!isContained) {
+                finalClusters.push_back(clusters[i]); // Keep cluster i if not marked as contained
+            }
+        }
+        return finalClusters;
+    }
+
+    void runClique(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {
         vector<DenseUnit> denseUnits;
         getOneDimDenseUnits(data, tau, xsi, denseUnits);
 
@@ -328,6 +401,5 @@ private:
             currentDim++;
         }
     }
-
 
 };
