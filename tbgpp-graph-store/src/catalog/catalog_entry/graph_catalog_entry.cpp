@@ -218,6 +218,12 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 	}
 }
 
+void GraphCatalogEntry::GetPropertyNames(ClientContext &context, vector<PropertyKeyID> &property_key_ids,
+	vector<string> &property_names)
+{
+
+}
+
 void GraphCatalogEntry::GetVertexLabels(vector<string> &label_names) {
 	for(auto it = vertexlabel_map.begin(); it != vertexlabel_map.end(); ++it) {
 		label_names.push_back(it->first);

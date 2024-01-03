@@ -83,6 +83,7 @@ public:
 
 	vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 	void GetPropertyKeyIDs(ClientContext &context, vector<string> &property_names, vector<LogicalType> &property_types, vector<PropertyKeyID> &property_key_ids);
+	void GetPropertyNames(ClientContext &context, vector<PropertyKeyID> &property_key_ids, vector<string> &property_names);
 	void GetVertexLabels(vector<string>& label_names);
 	void GetEdgeTypes(vector<string>& type_names);
 	void GetVertexPartitionIndexesInLabel(ClientContext &context, string label, vector<idx_t> &vertex_partition_indexes);

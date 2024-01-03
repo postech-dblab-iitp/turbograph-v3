@@ -107,6 +107,7 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 
 	// Load Other Catalog Entries
 	// Maybe we don't need this..?
+	catalog_version = 10000000; // temporary..
 }
 
 Catalog &Catalog::GetCatalog(ClientContext &context) {

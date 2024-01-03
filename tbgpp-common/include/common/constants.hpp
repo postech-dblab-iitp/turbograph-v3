@@ -54,6 +54,7 @@ using std::make_shared;
 #define DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX "eps_"
 #define DEFAULT_EXTENT_PREFIX "ext_"
 #define DEFAULT_CHUNKDEFINITION_PREFIX "cdf_"
+#define DEFAULT_TEMPORAL_INFIX "_temp_"
 
 #define DYNAMIC_SCHEMA_INSTANTIATION
 

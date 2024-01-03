@@ -30,7 +30,7 @@ public:
     inline bool isVariableLength() const { return !(lowerBound == 1 && upperBound == 1); }
 
     inline bool hasInternalIDProperty() const { return hasPropertyExpression(INTERNAL_ID_SUFFIX); }
-    inline shared_ptr<Expression> getInternalIDProperty() const {
+    inline shared_ptr<Expression> getInternalIDProperty() {
         return getPropertyExpression(INTERNAL_ID_SUFFIX);
     }
 

@@ -394,35 +394,46 @@ public:
         }
     }
 
-    void _create_temporal_table_catalog(ClientContext &context, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group,
-        vector<idx_t> &representative_table_oids, PartitionID part_id, idx_t part_oid)
+    void _create_temporal_table_catalog(ClientContext &context, PartitionCatalogEntry *part_cat,
+        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group, vector<idx_t> &representative_table_oids,
+        PartitionID part_id, idx_t part_oid)
     {
         auto &catalog = db.GetCatalog();
+        string part_name = part_cat->GetName();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
 
         // create temporal table catalog for each group
         for (auto i = 0; i < table_oids_in_group.size(); i++) {
             auto &table_oids_to_be_merged = table_oids_in_group[i];
-            string property_schema_name;
-            vector<LogicalType> merged_types;
-            vector<PropertyKeyID> merged_property_key_ids;
+            if (table_oids_to_be_merged.size() == 1) {
+                representative_table_oids.push_back(table_oids_to_be_merged[0]);
+            } else {
+                string property_schema_name = part_name + DEFAULT_TEMPORAL_INFIX + std::to_string(part_cat->GetNewTemporalID()); // TODO vpart -> vps
+                std::cout << "temp schema: " << property_schema_name << std::endl;
+                vector<LogicalType> merged_types;
+                vector<PropertyKeyID> merged_property_key_ids;
+                vector<string> key_names;
 
-            // Create new Property Schema Catalog Entry
-	        CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(),
-												 part_id, part_oid);
-	        PropertySchemaCatalogEntry *temporal_ps_cat = 
-                (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(context, &propertyschema_info);
-            
-            idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();
-            idx_t_vector *merged_freq_values = temporal_ps_cat->GetFrequencyValues();
+                // Create new Property Schema Catalog Entry
+                CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(),
+                                                    part_id, part_oid);
+                PropertySchemaCatalogEntry *temporal_ps_cat = 
+                    (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(context, &propertyschema_info);
+                
+                idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();
+                idx_t_vector *merged_freq_values = temporal_ps_cat->GetFrequencyValues();
 
-            // merge histogram & schema
-            _merge_schemas_and_histograms(context, table_oids_to_be_merged, merged_types, merged_property_key_ids,
-                merged_offset_infos, merged_freq_values);
+                // merge histogram & schema
+                _merge_schemas_and_histograms(context, table_oids_to_be_merged, merged_types, merged_property_key_ids,
+                    merged_offset_infos, merged_freq_values);
 
-            temporal_ps_cat->SetFake();
-            temporal_ps_cat->SetSchema(context, merged_types, merged_property_key_ids);
+                for (auto j = 0; j < merged_property_key_ids.size(); j++) key_names.push_back("");
+                temporal_ps_cat->SetFake();
+                temporal_ps_cat->SetSchema(context, key_names, merged_types, merged_property_key_ids);
 
-            representative_table_oids.push_back(temporal_ps_cat->GetOid());
+                representative_table_oids.push_back(temporal_ps_cat->GetOid());
+            }
         }
     }
 
@@ -431,8 +442,11 @@ public:
         idx_t_vector *merged_offset_infos, idx_t_vector *merged_freq_values)
     {
         auto &catalog = db.GetCatalog();
+
+        // TODO optimize this function
         unordered_set<PropertyKeyID> merged_schema;
         unordered_map<PropertyKeyID, LogicalTypeId> type_info;
+        unordered_map<PropertyKeyID, vector<idx_t>> intermediate_merged_freq_values;
 
         // merge schemas & histograms
         for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
@@ -454,23 +468,37 @@ public:
             auto *offset_infos = ps_cat->GetOffsetInfos();
             auto *freq_values = ps_cat->GetFrequencyValues();
 
-            if (i == 0) {
-                merged_freq_values->resize(freq_values->size(), 0);
-
-                for (auto j = 0; j < merged_offset_infos->size(); j++) {
-                    merged_offset_infos->push_back(offset_infos->at(j));
+            for (auto j = 0; j < key_ids->size(); j++) {
+                auto it = intermediate_merged_freq_values.find(key_ids->at(j));
+                if (it == intermediate_merged_freq_values.end()) {
+                    vector<idx_t> tmp_vec;
+                    auto begin_offset = j == 0 ? 0 : offset_infos->at(j - 1);
+                    auto end_offset = offset_infos->at(j);
+                    for (auto k = begin_offset; k < end_offset; k++) {
+                        tmp_vec.push_back(freq_values->at(k));
+                    }
+                    intermediate_merged_freq_values.insert({key_ids->at(j), std::move(tmp_vec)});
+                } else {
+                    auto &freq_vec = it->second;
+                    auto begin_offset = j == 0 ? 0 : offset_infos->at(j - 1);
+                    auto end_offset = offset_infos->at(j);
+                    for (auto k = begin_offset; k < end_offset; k++) {
+                        freq_vec[k - begin_offset] += freq_values->at(k);
+                    }
                 }
-            }
-
-            for (auto j = 0; j < merged_freq_values->size(); j++) {
-                merged_freq_values->at(j) += freq_values->at(j);
             }
         }
 
         merged_property_key_ids.reserve(merged_schema.size());
-        for (auto it = merged_schema.begin(); it != merged_schema.end(); ) {
-            merged_property_key_ids.push_back(std::move(merged_schema.extract(it++).value()));
+        for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
+            // merged_property_key_ids.push_back(std::move(merged_schema.extract(it).value()));
+            merged_property_key_ids.push_back(*it);
             merged_types.push_back(LogicalType(type_info.at(merged_property_key_ids.back())));
+            auto &freq_vec = intermediate_merged_freq_values.at(*it);
+            merged_offset_infos->push_back(freq_vec.size());
+            for (auto j = 0; j < freq_vec.size(); j++) {
+                merged_freq_values->push_back(freq_vec[j]);
+            }
         }
     }
 
@@ -513,7 +541,7 @@ public:
             table_oids, table_oids_in_group);
 
         // create temporal catalog table // TODO check if we already built temporal table for the same groups
-        _create_temporal_table_catalog(context, table_oids_in_group, representative_table_oids, part_id, part_oid);
+        _create_temporal_table_catalog(context, part_cat, table_oids_in_group, representative_table_oids, part_id, part_oid);
     }
 
 private:
