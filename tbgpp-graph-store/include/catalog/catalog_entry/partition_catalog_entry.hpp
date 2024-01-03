@@ -87,6 +87,9 @@ public:
 	//! variable for the local extent ID generator
 	atomic<ExtentID> local_extent_id_version;
 
+	//! variable for the local temporal ID generator
+	idx_t local_temporal_id_version; // TODO atomic variable test
+
 	//! offset infos
 	idx_t_vector offset_infos;
 
@@ -200,6 +203,11 @@ public:
 	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
+
+	idx_t GetNewTemporalID()
+	{
+		return local_temporal_id_version++;
+	}
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 };

@@ -43,14 +43,19 @@ public:
         assert(!(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end()));
         propertyNameToIdx.insert({propertyName, properties.size()});
         properties.push_back(std::move(property));
+        used_columns.push_back(false);
     }
+
     inline bool hasPropertyExpression(const string& propertyName) const {
         return propertyNameToIdx.find(propertyName) != propertyNameToIdx.end();
     }
-    inline shared_ptr<Expression> getPropertyExpression(const string& propertyName) const {
+
+    inline shared_ptr<Expression> getPropertyExpression(const string& propertyName) {
         assert(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end());
+        used_columns[propertyNameToIdx.at(propertyName)] = true;
         return properties[propertyNameToIdx.at(propertyName)]->copy();
     }
+
     inline const vector<unique_ptr<Expression>>& getPropertyExpressions() const {
         return properties;
     }
@@ -71,6 +76,11 @@ public:
         dsi_target = true;
     }
 
+    bool isUsedColumn(uint64_t col_idx) {
+        assert(used_columns.size() > col_idx);
+        return used_columns[col_idx];
+    }
+
 protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
@@ -78,6 +88,7 @@ protected:
     unordered_map<std::string, size_t> propertyNameToIdx; // TODO map using id -> size_t / not string -> size_t
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     vector<unique_ptr<Expression>> properties;
+    vector<bool> used_columns;
     bool schema_info_bound = false;
     bool dsi_target = false;
 };

@@ -192,6 +192,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         }
 
         idx_t col_idx = 0;
+        accumulated_offset = 0;
         for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
             auto &h = histograms[i];
             auto target_col_idx = target_cols_in_univ_schema[i];
@@ -206,7 +207,8 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             }
             D_ASSERT(num_boundaries - 1 == num_buckets_for_each_column[col_idx]);
             
-            freq_offset_infos->push_back(num_boundaries - 1);
+            accumulated_offset += (num_boundaries - 1);
+            freq_offset_infos->push_back(accumulated_offset);
             for (auto j = 0; j < num_boundaries - 1; j++) {
                 // std::cout << "[" << boundary_values->at(begin_offset + j) << ", " << boundary_values->at(begin_offset + j + 1) << ") : " << h.at(j) << std::endl;
                 frequency_values->push_back(h.at(j));
@@ -424,13 +426,6 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
     group_info->clear();
     multipliers->clear();
 
-    uint64_t accmulated_multipliers = 1;
-    multipliers->push_back(0);
-    for (auto i = 0; i < num_groups->size() - 1; i++) {
-        accmulated_multipliers *= num_groups->at(i);
-        multipliers->push_back(accmulated_multipliers);
-    }
-
     // group by column // group by ps_oid is better?
     auto num_cols = num_buckets_for_each_column.size();
     group_info->resize(num_cols * ps_oids->size());
@@ -442,6 +437,13 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
         for (auto j = 0; j < group_info_for_this_column.size(); j++) {
             group_info->at(num_cols * j + i) = group_info_for_this_column[j];
         }
+    }
+
+    uint64_t accmulated_multipliers = 1;
+    multipliers->push_back(0);
+    for (auto i = 0; i < num_groups->size() - 1; i++) {
+        accmulated_multipliers *= num_groups->at(i);
+        multipliers->push_back(accmulated_multipliers);
     }
 }
 
