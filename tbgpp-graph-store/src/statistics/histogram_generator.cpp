@@ -44,7 +44,6 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_name);
     
     _create_histogram(client, partition_cat);
-    // _create_histogram_test(client, partition_cat);
 }
 
 void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, idx_t partition_oid)
@@ -56,7 +55,6 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, partition_oid);
     
     _create_histogram(client, partition_cat);
-    // _create_histogram_test(client, partition_cat);
 }
 
 void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat)
@@ -67,10 +65,18 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     vector<LogicalType> universal_schema = std::move(partition_cat->GetTypes());
 
     // Initialize accumulators for histogram
-    boost::array<double, 5> probs = {{0, 0.25, 0.5, 0.75, 1.00}}; // TODO need to define bin size
-    // boost::array<double, 10> probs = { 0.990, 0.991, 0.992, 0.993, 0.994,
-    //                            0.995, 0.996, 0.997, 0.998, 0.999 };
-    _init_accumulators(universal_schema);
+    std::vector<uint64_t> bin_sizes;
+    std::vector<std::vector<double>> probs_per_column;
+    _calculate_bin_sizes(client, partition_cat, bin_sizes);
+    _calculate_bin_boundaries(probs_per_column, bin_sizes);
+    _init_accumulators(universal_schema, probs_per_column);
+
+    //print bin_sizes
+    std::cout << "bin_sizes: ";
+    for (auto i = 0; i < bin_sizes.size(); i++) {
+        std::cout << bin_sizes[i] << " ";
+    }
+    std::cout << std::endl;
     
     // Get PropertySchema IDs
     PropertySchemaID_vector *ps_oids = partition_cat->GetPropertySchemaIDs();
@@ -127,6 +133,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     frequency_values_for_each_column.resize(universal_schema.size());
 
     for (auto i = 0; i < universal_schema.size(); i++) {
+        auto& probs = probs_per_column[i];
         accumulated_offset += probs.size(); // TODO skip if not numeric
         offset_infos->push_back(accumulated_offset);
         for (auto j = 0; j < probs.size(); j++) {
@@ -227,6 +234,10 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     for (auto i = 0; i < frequency_values_for_each_column.size(); i++) {
         std::cout << i << "-th column freq values: ";
         for (auto j = 0; j < frequency_values_for_each_column[i].size(); j++) {
+            if (j % num_buckets_for_each_column[i] == 0) {
+                std::cout << std::endl;
+            }
+
             std::cout << frequency_values_for_each_column[i][j] << " ";
         }
         std::cout << std::endl;
@@ -251,52 +262,13 @@ void HistogramGenerator::_print_group_info(PartitionCatalogEntry *partition_cat,
     }
 }
 
-void HistogramGenerator::_create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat)
-{
-    Catalog &cat_instance = client->db->GetCatalog();
-
-    // Get universal schema
-    vector<LogicalType> universal_schema = std::move(partition_cat->GetTypes());
-
-    // Initialize accumulators for histogram
-    boost::array<double, 5> probs = {{0, 0.25, 0.5, 0.75, 1.00}}; // TODO need to define bin size
-    // boost::array<double, 10> probs = { 0.990, 0.991, 0.992, 0.993, 0.994,
-    //                            0.995, 0.996, 0.997, 0.998, 0.999 };
-    accumulator_set<int64_t, stats<tag::extended_p_square_quantile>> acc(extended_p_square_probabilities = probs);
-    
-    // std::mt19937 mt(std::time(nullptr));
-
-    // for (auto i = 0; i < 1000000; i++) {
-    //     acc(mt() % 1000);
-    // }
-
-    std::random_device rd{};
-    std::mt19937 gen{rd()};
-    std::normal_distribution d{100.0, 5.0};
-    auto random_int = [&d, &gen] { return std::round(d(gen)); };
-
-    for (auto i = 0; i < 1000000; i++) {
-        acc(random_int());
-    }
-
-    for (auto j = 0; j < probs.size(); j++) {
-        std::cout << j << ": " << quantile(acc, quantile_probability = probs[j]) << std::endl;
-        // boundary_values.push_back(extended_p_square(accms[i][j]));
-    }
-}
-
-void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema)
-{
-    boost::array<double, 5> probs = {{0, 0.25, 0.5, 0.75, 1.00}}; // TODO need to define bin size
-    // boost::array<double, 10> probs = { 0.990, 0.991, 0.992, 0.993, 0.994,
-    //                            0.995, 0.996, 0.997, 0.998, 0.999 };
-
+void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column) {
     for (auto i = 0; i < universal_schema.size(); i++) {
         if (universal_schema[i].IsNumeric()) {
-            // TODO separate implementation for each types
+            // Use the dynamic probs array
             accumulator_set<int64_t, stats<tag::extended_p_square_quantile>> *acc =
                 new accumulator_set<int64_t, stats<tag::extended_p_square_quantile>>(
-                    extended_p_square_probabilities = probs // Quantiles for bin boundaries
+                    extended_p_square_probabilities = probs_per_column[i]
                 );
             accms.push_back(acc);
             target_cols.push_back(i);
@@ -307,6 +279,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
         }
     }
 }
+
 
 void HistogramGenerator::_accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema)
 {
@@ -444,6 +417,61 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
     for (auto i = 0; i < num_groups->size() - 1; i++) {
         accmulated_multipliers *= num_groups->at(i);
         multipliers->push_back(accmulated_multipliers);
+    }
+}
+
+void HistogramGenerator::_calculate_bin_boundaries(std::vector<std::vector<double>>& probs_per_column, vector<uint64_t>& bin_sizes) {
+    probs_per_column.resize(bin_sizes.size());
+    for (int i = 0; i < bin_sizes.size(); ++i) {
+        probs_per_column[i].resize(bin_sizes[i] + 1);
+        for (int j = 0; j <= bin_sizes[i]; ++j) {
+            probs_per_column[i][j] = static_cast<double>(j) / bin_sizes[i];
+        }
+    }
+}
+
+void HistogramGenerator::_calculate_bin_sizes(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat, vector<uint64_t>& bin_sizes) {
+    Catalog &cat_instance = client->db->GetCatalog();
+    auto num_properties = partition_cat->GetTypes().size();
+    PropertySchemaID_vector *ps_oids = partition_cat->GetPropertySchemaIDs();
+    PropertyToIdxUnorderedMap *property_to_idx_map = partition_cat->GetPropertyToIdxMap();
+
+    // calculate accumulated number of rows for each column
+    vector<uint64_t> acc_num_rows(num_properties, 0);
+    bin_sizes.resize(num_properties);
+    for (auto i = 0; i < ps_oids->size(); i++) {
+        PropertySchemaCatalogEntry *ps_cat =
+            (PropertySchemaCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, ps_oids->at(i));
+        
+        auto ps_size = ps_cat->GetNumberOfRowsApproximately();
+        auto *prop_key_ids = ps_cat->GetPropKeyIDs();
+        for (auto j = 0; j < prop_key_ids->size(); j++) {
+            auto target_col_idx = property_to_idx_map->at(prop_key_ids->at(j));
+            acc_num_rows[target_col_idx] += ps_size;
+        }
+    }
+
+    // calculate bin size for each column
+    for (auto i = 0; i < num_properties; i++) {
+        bin_sizes[i] = _calculate_bin_size(acc_num_rows[i]);
+    }
+}
+
+
+uint64_t HistogramGenerator::_calculate_bin_size(uint64_t num_rows, BinningMethod method) {
+    // see https://glamp.github.io/blog/posts/histograms-in-postgres/
+    // see How many bins should be put in a regular histogram
+    // see https://en.wikipedia.org/wiki/Histogram#Number_of_bins_and_width
+    // We only support methods without data scanning. Other methods requires standard deviation, which requires data scanning.
+    switch (method) {
+        case BinningMethod::SQRT:
+            return static_cast<uint64_t>(std::sqrt(num_rows));
+        case BinningMethod::STURGES: //log-2 of n + 1
+            return static_cast<uint64_t>(std::log2(num_rows) + 1);
+        case BinningMethod::RICE:
+            return static_cast<uint64_t>(2 * std::pow(num_rows, 1.0 / 3.0));
+        default:
+            throw std::runtime_error("Unknown binning method");
     }
 }
 

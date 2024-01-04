@@ -150,15 +150,6 @@ private:
             }
         }
 
-        // print projection
-        cout << "Projection: " << endl;
-        for (size_t i = 0; i < projection.size(); ++i) {
-            for (size_t j = 0; j < projection[i].size(); ++j) {
-                cout << projection[i][j] << " ";
-            }
-            cout << endl;
-        }
-
         for (size_t f = 0; f < numFeatures; ++f) {
             for (size_t unit = 0; unit < xsi; ++unit) {
                 if (projection[unit][f] > tau * numDataPoints) {
