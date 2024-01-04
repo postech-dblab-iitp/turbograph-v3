@@ -72,8 +72,8 @@ public:
         initialize();
 
         // Run the CLIQUE clustering algorithm
-        uint64_t xsi = 3; // Set your xsi value
         double tau = 0.1; // Set your tau value
+        uint64_t xsi = 3; // Set your xsi value
 
         vector<vector<double>> histograms;
         reshapeHistograms(num_histograms, num_buckets, frequency_values, histograms);
@@ -85,8 +85,10 @@ public:
         vector<Cluster> clusters;
         runClique(histograms, xsi, tau, clusters);
 
-        // Remove overlapping clusters
-        vector<Cluster> finalClusters = findMinimumCover(clusters);
+        // Filter clusters with final dimension
+        vector<Cluster> finalClusters;
+        filterFinalDimClusters(clusters, num_buckets, finalClusters);
+        createUnclusteredDataPointsClusters(finalClusters, num_histograms);
 
         // Output to num_groups and group_info
         num_groups = finalClusters.size();
@@ -329,42 +331,31 @@ private:
         }
     }
 
-    std::vector<Cluster> findMinimumCover(const std::vector<Cluster>& clusters) {
-        std::set<size_t> allDataPoints;
-        // Gather all unique data points across all clusters
+    void filterFinalDimClusters(const vector<Cluster>& clusters, size_t finalDim,  vector<Cluster>& finalClusters) {
         for (const auto& cluster : clusters) {
-            allDataPoints.insert(cluster.data_point_ids.begin(), cluster.data_point_ids.end());
-        }
-
-        std::vector<Cluster> minimumCover;
-        std::set<size_t> coveredDataPoints;
-
-        while (coveredDataPoints.size() < allDataPoints.size()) {
-            const Cluster* bestCluster = nullptr;
-            size_t maxNewCoverage = 0;
-
-            // Find the cluster that covers the most uncovered data points
-            for (const auto& cluster : clusters) {
-                std::set<size_t> newCoverage;
-                std::set_difference(cluster.data_point_ids.begin(), cluster.data_point_ids.end(),
-                                    coveredDataPoints.begin(), coveredDataPoints.end(),
-                                    std::inserter(newCoverage, newCoverage.begin()));
-
-                if (newCoverage.size() > maxNewCoverage) {
-                    maxNewCoverage = newCoverage.size();
-                    bestCluster = &cluster;
-                }
+            if (cluster.dimensions.size() == finalDim) {
+                finalClusters.push_back(cluster);
             }
+        }
+    }
 
-            if (bestCluster != nullptr) {
-                // Add the best cluster to the minimum cover
-                minimumCover.push_back(*bestCluster);
-                // Mark its data points as covered
-                coveredDataPoints.insert(bestCluster->data_point_ids.begin(), bestCluster->data_point_ids.end());
+    void createUnclusteredDataPointsClusters(vector<Cluster>& finalClusters, size_t totalDataPoints) {
+        vector<bool> isClustered(totalDataPoints, false);
+
+        // Mark clustered data points
+        for (const auto& cluster : finalClusters) {
+            for (const auto id : cluster.data_point_ids) {
+                isClustered[id] = true;
             }
         }
 
-        return minimumCover;
+        // Create a cluster for each unclustered data point
+        for (size_t i = 0; i < totalDataPoints; ++i) {
+            if (!isClustered[i]) {
+                set<size_t> dataPointId = {i};
+                finalClusters.emplace_back(DenseUnit(), set<uint64_t>(), dataPointId);
+            }
+        }
     }
 
     void runClique(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {

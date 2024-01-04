@@ -245,21 +245,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 
     // generate group info
     _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
-
-    // pretty print group numbers and group info. Print for each column, in human readable format
-    _print_group_info(partition_cat, ps_oids->size());
-}
-
-void HistogramGenerator::_print_group_info(PartitionCatalogEntry *partition_cat, size_t num_histograms) {
-    auto *num_groups = partition_cat->GetNumberOfGroups();
-    auto *group_info = partition_cat->GetGroupInfo();
-    for (auto i = 0; i < num_groups->size(); i++) {
-        std::cout << i << "-th column num groups: " << num_groups->at(i) << std::endl;
-        for (auto j = 0; j < num_histograms; j++) {
-            std::cout << "group info: " << group_info->at(i * num_histograms + j) << std::endl;
-        }
-        std::cout << std::endl;
-    }
 }
 
 void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column) {
@@ -406,6 +391,15 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
         uint64_t num_groups_for_this_column;
         vector<uint64_t> group_info_for_this_column;
         _cluster_column<CliqueClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
+        
+        // print num_groups_for_this_column and group_info_for_this_column
+        std::cout << i << "-th column num_groups: " << num_groups_for_this_column << std::endl;
+        std::cout << i << "-th column group_info: ";
+        for (auto j = 0; j < group_info_for_this_column.size(); j++) {
+            std::cout << group_info_for_this_column[j] << " ";
+        }
+        std::cout << std::endl;
+
         num_groups->push_back(num_groups_for_this_column);
         for (auto j = 0; j < group_info_for_this_column.size(); j++) {
             group_info->at(num_cols * j + i) = group_info_for_this_column[j];

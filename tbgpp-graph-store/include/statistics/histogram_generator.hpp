@@ -71,9 +71,6 @@ private:
         group_info = std::move(clustering.group_info);
     }
 
-    //! print group info
-    void _print_group_info(PartitionCatalogEntry *partition_cat, size_t num_histograms);
-
     //! calcualte bin boundaries
     void _calculate_bin_boundaries(std::vector<std::vector<double>>& probs_per_column, vector<uint64_t>& bin_sizes);
 
