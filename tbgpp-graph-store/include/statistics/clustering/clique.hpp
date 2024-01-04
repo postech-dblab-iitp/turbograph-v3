@@ -18,28 +18,50 @@ using DenseUnit = map<uint64_t, uint64_t>;
 class Cluster {
 public:
     size_t id;
-    DenseUnit dense_units;
+    vector<DenseUnit> dense_units;
     set<uint64_t> dimensions;
     set<size_t> data_point_ids;
 
     Cluster(const DenseUnit& units, const set<uint64_t>& dims, const set<size_t>& ids)
+        : dense_units({units}), dimensions(dims), data_point_ids(ids) {}
+
+    Cluster(const vector<DenseUnit>& units, const set<uint64_t>& dims, const set<size_t>& ids)
         : dense_units(units), dimensions(dims), data_point_ids(ids) {}
 
     void printCluster() {
         cout << "Dense units: ";
-        for (const auto& unit : dense_units) {
-            cout << "[" << unit.first << ": " << unit.second << "] ";
+        cout << "[";
+        for (auto unit_it = dense_units.begin(); unit_it != dense_units.end(); ++unit_it) {
+            if (unit_it != dense_units.begin()) {
+                cout << " ";
+            }
+            cout << "{";
+            for (auto pair_it = unit_it->begin(); pair_it != unit_it->end(); ++pair_it) {
+                if (pair_it != unit_it->begin()) {
+                    cout << " ";
+                }
+                cout << "(" << pair_it->first << ", " << pair_it->second << ")";
+            }
+            cout << "}";
         }
+        cout << "]";
         cout << "\nDimensions: ";
-        for (const auto& dim : dimensions) {
-            cout << dim << " ";
+        for (auto dim_it = dimensions.begin(); dim_it != dimensions.end(); ++dim_it) {
+            if (dim_it != dimensions.begin()) {
+                cout << " ";
+            }
+            cout << *dim_it;
         }
         cout << "\nCluster size: " << data_point_ids.size() << "\nData points: ";
-        for (const auto& id : data_point_ids) {
-            cout << id << " ";
+        for (auto id_it = data_point_ids.begin(); id_it != data_point_ids.end(); ++id_it) {
+            if (id_it != data_point_ids.begin()) {
+                cout << " ";
+            }
+            cout << *id_it;
         }
         cout << "\n";
     }
+
 };
 
 class CliqueClustering: public Clustering {
@@ -126,6 +148,15 @@ private:
                 uint64_t bucketIndex = static_cast<uint64_t>(floor(row[f] * xsi));
                 projection[bucketIndex % xsi][f]++;
             }
+        }
+
+        // print projection
+        cout << "Projection: " << endl;
+        for (size_t i = 0; i < projection.size(); ++i) {
+            for (size_t j = 0; j < projection[i].size(); ++j) {
+                cout << projection[i][j] << " ";
+            }
+            cout << endl;
         }
 
         for (size_t f = 0; f < numFeatures; ++f) {
@@ -217,20 +248,23 @@ private:
     }
 
     // Function to get cluster data point IDs
-    set<size_t> getClusterDataPointIds(const vector<vector<double>>& data, const DenseUnit& cluster_dense_units, uint64_t xsi) {
+    set<size_t> getClusterDataPointIds(const vector<vector<double>>& data, const vector<DenseUnit>& cluster_dense_units, uint64_t xsi) {
         set<size_t> point_ids;
         size_t numDataPoints = data.size();
         for (size_t i = 0; i < numDataPoints; ++i) {
-            bool isInCluster = true;
-            for (const auto& [featureIndex, rangeIndex] : cluster_dense_units) {
-                uint64_t bucketIndex = static_cast<uint64_t>(std::floor(data[i][featureIndex] * xsi));
-                if (bucketIndex % xsi != rangeIndex) {
-                    isInCluster = false;
+            for (const auto& unit: cluster_dense_units) {
+                bool isInCluster = true;
+                for (const auto& [featureIndex, rangeIndex] : unit) {
+                    uint64_t bucketIndex = static_cast<uint64_t>(std::floor(data[i][featureIndex] * xsi));
+                    if (bucketIndex % xsi != rangeIndex) {
+                        isInCluster = false;
+                        break;
+                    }
+                }
+                if (isInCluster) {
+                    point_ids.insert(i);
                     break;
                 }
-            }
-            if (isInCluster) {
-                point_ids.insert(i);
             }
         }
         return point_ids;
@@ -246,14 +280,14 @@ private:
 
         vector<Cluster> clusters;
         for (const auto& component : components) {
-            DenseUnit cluster_dense_units;
+            vector<DenseUnit> cluster_dense_units;
             set<uint64_t> dimensions;
             set<size_t> cluster_data_point_ids;
 
             for (const auto index : component) {
-                for (const auto& unit : denseUnits[index]) {
-                    cluster_dense_units.insert(unit);
-                    dimensions.insert(unit.first);
+                cluster_dense_units.push_back(denseUnits[index]);
+                for (const auto& [featureIndex, _] : denseUnits[index]) {
+                    dimensions.insert(featureIndex);
                 }
             }
 
