@@ -32,6 +32,7 @@ ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionC
     // Append Chunk
     //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
+    _UpdatePartitionMinMaxArray(context, cat_instance, part_cat, ps_cat, *extent_cat_entry);
     return new_eid;
 }
 
@@ -52,6 +53,7 @@ ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionC
     // Append Chunk
     //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
+    _UpdatePartitionMinMaxArray(context, cat_instance, part_cat, ps_cat, *extent_cat_entry);
 }
 
 void ExtentManager::AppendChunkToExistingExtent(ClientContext &context, DataChunk &input, ExtentID eid) {
@@ -244,6 +246,24 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
         // fprintf(stdout, "\t\tAppendChunk %ld -> %p size %ld, Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, buf_ptr, input.size(), chunk_duration.count(), chunk_compression_duration.count());
+    }
+}
+
+void ExtentManager::_UpdatePartitionMinMaxArray(ClientContext &context, Catalog& cat_instance, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat, ExtentCatalogEntry &extent_cat_entry){
+    auto& property_keys = *ps_cat.GetPropKeyIDs();
+    auto& chunkdef_ids = extent_cat_entry.chunks;
+    for (int i = 0; i < property_keys.size(); i++) {
+        auto property_key_id = property_keys[i];
+        auto chunkdef_id = chunkdef_ids[i];
+        auto chunkdef_cat_entry = (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, 
+                                                                DEFAULT_SCHEMA, DEFAULT_CHUNKDEFINITION_PREFIX + std::to_string(chunkdef_id));
+        
+        if (chunkdef_cat_entry->IsMinMaxArrayExist()) {
+            vector<minmax_t> minmax = move(chunkdef_cat_entry->GetMinMaxArray());
+            for (auto &minmax_pair : minmax) {
+                part_cat.UpdateMinMaxArray(property_key_id, minmax_pair.min, minmax_pair.max);
+            }
+        }
     }
 }
 

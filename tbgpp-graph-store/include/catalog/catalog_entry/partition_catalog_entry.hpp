@@ -212,6 +212,8 @@ public:
 		return local_temporal_id_version++;
 	}
 
+	void UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, idx_t max);
+
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 };
 } // namespace duckdb

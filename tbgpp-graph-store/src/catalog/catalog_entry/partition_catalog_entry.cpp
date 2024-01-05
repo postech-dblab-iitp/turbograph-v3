@@ -123,6 +123,9 @@ void PartitionCatalogEntry::SetSchema(ClientContext &context, vector<string> &ke
 	for (auto i = 0; i < univ_prop_key_ids.size(); i++) {
 		global_property_key_to_location.insert({univ_prop_key_ids[i], i});
 	}
+
+	// Set min_max_array
+	min_max_array.resize(types.size());
 }
 
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
@@ -171,6 +174,17 @@ void PartitionCatalogEntry::SetKeys(ClientContext &context, vector<string> &key_
 
 uint64_t PartitionCatalogEntry::GetNumberOfColumns() const {
 	return num_columns;
+}
+
+void PartitionCatalogEntry::UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, idx_t max) {
+	auto location = global_property_key_to_location.find(key_id);
+	if (location != global_property_key_to_location.end()) {
+		auto idx = location->second;
+		auto minmax = min_max_array[idx];
+		if (minmax.min > min) minmax.min = min;
+		if (minmax.max < max) minmax.max = max;
+		min_max_array[idx] = minmax;
+	}
 }
 
 } // namespace duckdb
