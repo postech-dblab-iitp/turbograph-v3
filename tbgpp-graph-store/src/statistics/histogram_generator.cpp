@@ -447,7 +447,7 @@ void HistogramGenerator::_calculate_bin_sizes(std::shared_ptr<ClientContext> cli
 
     // calculate bin size for each column
     for (auto i = 0; i < num_properties; i++) {
-        bin_sizes[i] = _calculate_bin_size(acc_num_rows[i]);
+        bin_sizes[i] = _calculate_bin_size(acc_num_rows[i], BinningMethod::CONST);
     }
 }
 
@@ -464,6 +464,17 @@ uint64_t HistogramGenerator::_calculate_bin_size(uint64_t num_rows, BinningMetho
             return static_cast<uint64_t>(std::log2(num_rows) + 1);
         case BinningMethod::RICE:
             return static_cast<uint64_t>(2 * std::pow(num_rows, 1.0 / 3.0));
+        case BinningMethod::SCOTT:
+        {
+            auto min = 0.0;
+            auto max = 0.0;
+            auto mean = 0.0;
+            auto std = 0.0;
+            auto range = max - min;
+            return static_cast<uint64_t>(range / (3.5 * std::pow(num_rows, 1.0 / 3.0)));
+        }
+        case BinningMethod::CONST:
+            return 10;
         default:
             throw std::runtime_error("Unknown binning method");
     }

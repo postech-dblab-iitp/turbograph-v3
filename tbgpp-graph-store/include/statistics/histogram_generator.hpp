@@ -19,7 +19,7 @@ class DataChunk;
 class PartitionCatalogEntry;
 
 // Square-root, Sturges, Freedman–Diaconis
-enum class BinningMethod : uint8_t { SQRT, STURGES, RICE };
+enum class BinningMethod : uint8_t { SQRT, STURGES, RICE, SCOTT, CONST };
 
 //! Class for creating histogram
 class HistogramGenerator {

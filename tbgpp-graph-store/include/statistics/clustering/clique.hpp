@@ -72,8 +72,8 @@ public:
         initialize();
 
         // Run the CLIQUE clustering algorithm
-        double tau = 0.1; // Set your tau value
         uint64_t xsi = 3; // Set your xsi value
+        double tau = 0.1; // Set your tau value
 
         vector<vector<double>> histograms;
         reshapeHistograms(num_histograms, num_buckets, frequency_values, histograms);
@@ -140,7 +140,7 @@ private:
 
 
     // Function to get one-dimensional dense units
-    void getOneDimDenseUnits(const vector<vector<double>>& data, double tau, uint64_t xsi, vector<DenseUnit>& oneDimDenseUnits) {
+    void getOneDimDenseUnits(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<DenseUnit>& oneDimDenseUnits) {
         size_t numDataPoints = data.size();
         size_t numFeatures = data[0].size();
         vector<vector<uint64_t>> projection(xsi, vector<uint64_t>(numFeatures, 0));
@@ -360,7 +360,7 @@ private:
 
     void runClique(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {
         vector<DenseUnit> denseUnits;
-        getOneDimDenseUnits(data, tau, xsi, denseUnits);
+        getOneDimDenseUnits(data, xsi, tau, denseUnits);
 
         // Get clusters for 1-dimensional dense units
         vector<Cluster> currentClusters = getClusters(denseUnits, data, xsi);

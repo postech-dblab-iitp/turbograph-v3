@@ -18,6 +18,8 @@ ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, Schem
 
 void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input_size) {
 	// return;
+	D_ASSERT(LogicalType(data_type_id).IsNumeric());
+
 	idx_t num_entries_in_array = (num_entries_in_column + MIN_MAX_ARRAY_SIZE - 1) / MIN_MAX_ARRAY_SIZE;
 	min_max_array.resize(num_entries_in_array);
 
@@ -32,6 +34,7 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 			if (min_val > val) min_val = val;
 			if (max_val < val) max_val = val;
 		}
+		// This does automatic type conversion
 		min_max_array[i].min = min_val.GetValue<idx_t>();
 		min_max_array[i].max = max_val.GetValue<idx_t>();
 	}
