@@ -105,6 +105,9 @@ public:
 	//! which group each table belongs to by column // TODO optimal format? currently do not consider update
 	idx_t_vector group_info_for_each_table;
 
+	//! min max value for each column (assume only numeric)
+	minmax_t_vector min_max_array;
+
 public:
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
 	void SetUnivPropertySchema(idx_t psid);

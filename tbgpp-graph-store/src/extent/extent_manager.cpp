@@ -200,10 +200,22 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr + comp_header_size + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t));
             // icecream::ic.enable(); IC(); IC(comp_header_size + input_size * sizeof(list_entry_t), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t)); icecream::ic.disable();
         } else {
-            // Create MinMaxArray in ChunkDefinitionCatalog
+            // Create MinMaxArray in ChunkDefinitionCatalog. We support only INT types for now.
             size_t input_size = input.size();
-            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+            switch (input.GetTypes()[input_chunk_idx].InternalType())
+            {
+            case PhysicalType::INT8:
+            case PhysicalType::INT16:
+            case PhysicalType::INT32:
+            case PhysicalType::INT64:
+            case PhysicalType::UINT8:
+            case PhysicalType::UINT16:
+            case PhysicalType::UINT32:
+            case PhysicalType::UINT64:
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
+                break;
+            default:
+                break;
             }
 
             // Copy Data Into Cache
