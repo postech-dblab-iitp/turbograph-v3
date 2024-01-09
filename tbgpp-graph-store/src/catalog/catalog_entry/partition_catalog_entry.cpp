@@ -15,7 +15,7 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntr
 	  property_schema_index(void_alloc), property_schema_array(void_alloc), adjlist_indexes(void_alloc), property_indexes(void_alloc),
 	  global_property_typesid(void_alloc), global_property_key_names(void_alloc), extra_typeinfo_vec(void_alloc), offset_infos(void_alloc),
 	  boundary_values(void_alloc), global_property_key_to_location(void_alloc), num_groups_for_each_column(void_alloc), group_info_for_each_table(void_alloc),
-	  multipliers_for_each_column(void_alloc), min_max_array(void_alloc)
+	  multipliers_for_each_column(void_alloc), min_max_array(void_alloc), welford_array(void_alloc)
 {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
@@ -126,6 +126,9 @@ void PartitionCatalogEntry::SetSchema(ClientContext &context, vector<string> &ke
 
 	// Set min_max_array
 	min_max_array.resize(types.size());
+
+	// Set welford_array
+	welford_array.resize(types.size());
 }
 
 void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types) {
@@ -176,6 +179,11 @@ uint64_t PartitionCatalogEntry::GetNumberOfColumns() const {
 	return num_columns;
 }
 
+/**
+ * Note that idx_t is uint64_t, which assumes positive number
+ * If we want to support negative number, we need to change this
+ */
+
 void PartitionCatalogEntry::UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, idx_t max) {
 	auto location = global_property_key_to_location.find(key_id);
 	if (location != global_property_key_to_location.end()) {
@@ -185,6 +193,39 @@ void PartitionCatalogEntry::UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, i
 		if (minmax.max < max) minmax.max = max;
 		min_max_array[idx] = minmax;
 	}
+}
+
+void PartitionCatalogEntry::UpdateWelfordStdDevArray(PropertyKeyID key_id, Vector& data, size_t size) {
+	D_ASSERT(data.GetType().IsNumeric());
+
+	auto location = global_property_key_to_location.find(key_id);
+	if (location != global_property_key_to_location.end()) {
+		for (int i = 0; i < size; i++) {
+			auto original_value = data.GetValue(i);
+			auto value = original_value.GetValue<idx_t>();
+			auto& welford_v = welford_array[location->second];
+			welford_v.n++;
+			auto delta = value - welford_v.mean;
+			welford_v.mean += delta / welford_v.n;
+			auto delta2 = value - welford_v.mean;
+			welford_v.M2 += delta * delta2;
+		}
+	}
+}
+
+StdDev PartitionCatalogEntry::GetStdDev(PropertyKeyID key_id) {
+	StdDev std_dev = 0.0;
+	auto location = global_property_key_to_location.find(key_id);
+	if (location != global_property_key_to_location.end()) {
+		auto welford_v = welford_array[location->second];
+		fprintf(stderr, "welford_v.n: %ld\n", welford_v.n);
+		fprintf(stderr, "welford_v.mean: %ld\n", welford_v.mean);
+		fprintf(stderr, "welford_v.M2: %ld\n", welford_v.M2);
+		if (welford_v.n > 1) {
+			std_dev = sqrt(welford_v.M2 / (welford_v.n));
+		}
+	}
+	return std_dev;
 }
 
 } // namespace duckdb
