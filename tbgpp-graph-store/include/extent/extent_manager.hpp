@@ -12,6 +12,7 @@ class ClientContext;
 class ExtentCatalogEntry;
 class PartitionCatalogEntry;
 class PropertySchemaCatalogEntry;
+class ChunkDefinitionCatalogEntry;
 
 class ExtentManager {
 
@@ -32,6 +33,7 @@ public:
 private:
     void _AppendChunkToExtentWithCompression(ClientContext &context, DataChunk &input, Catalog &cat_instance, ExtentCatalogEntry &extent_cat_entry, PartitionID pid, ExtentID eid);
     void _UpdatePartitionMinMaxArray(ClientContext &context, Catalog& cat_instance, PartitionCatalogEntry &part_cat, PropertySchemaCatalogEntry &ps_cat, ExtentCatalogEntry &extent_cat_entry);
+    void _UpdatePartitionMinMaxArray(PartitionCatalogEntry &part_cat, PropertyKeyID prop_key_id, ChunkDefinitionCatalogEntry& chunkdef_cat_entry);
 /*  
     TileID CreateVertexTile(DBInstance &db, VLabels label_set, Schema &schema, bool is_temporary) ;
     void DestroyVertexTile(DBInstance &db, TileID &tile_id) // tile_id needs to be distinguished from transaction_id

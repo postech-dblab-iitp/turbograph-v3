@@ -8,8 +8,14 @@ namespace duckdb {
     #define MIN_MAX_ARRAY_SIZE 1024
 
     struct minmax_t {
-        idx_t min;
-        idx_t max;
+        idx_t min = 0;
+        idx_t max = 0;
+    };
+
+    struct welford_t {
+        idx_t n = 0;
+        int64_t mean = 0;
+        int64_t M2 = 0;
     };
 
     // typedefs for shared memory object
@@ -73,4 +79,6 @@ namespace duckdb {
 	PropertyToIdxUnorderedMap;
 	typedef boost::interprocess::allocator<minmax_t, segment_manager_t> minmax_allocator;
 	typedef boost::interprocess::vector<minmax_t, minmax_allocator> minmax_t_vector;
+    typedef boost::interprocess::allocator<welford_t, segment_manager_t> welford_allocator;
+    typedef boost::interprocess::vector<welford_t, welford_allocator> welford_t_vector;
 } // namespace duckdb

@@ -34,6 +34,8 @@ struct SetDefaultInfo;
 struct ChangeColumnTypeInfo;
 struct AlterForeignKeyInfo;
 
+typedef float StdDev;
+
 //! A partition catalog entry
 class PartitionCatalogEntry : public StandardEntry {
 public:
@@ -107,6 +109,9 @@ public:
 
 	//! min max value for each column (assume only numeric)
 	minmax_t_vector min_max_array;
+
+	//! std dev value for each column (assume only numeric)
+	welford_t_vector welford_array;
 
 public:
 	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
@@ -212,7 +217,10 @@ public:
 		return local_temporal_id_version++;
 	}
 
+	// Statistics
 	void UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, idx_t max);
+	void UpdateWelfordStdDevArray(PropertyKeyID key_id, Vector& data, size_t size);
+	StdDev GetStdDev(PropertyKeyID key_id);
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 };
