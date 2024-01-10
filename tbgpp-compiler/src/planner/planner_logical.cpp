@@ -1039,6 +1039,28 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 		get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, false));
 	}
 #else
+	for (auto &t_oid: table_oids) {
+		schema_proj_mapping.insert({t_oid, map<uint64_t, uint64_t>()});
+	}
+	GPOS_ASSERT(schema_proj_mapping.size() == table_oids.size());
+
+	// these properties include system columns (e.g. _id)
+	for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+		// if (!node_expr->isUsedColumn(col_idx)) continue;
+		auto &_prop_expr = prop_exprs[col_idx];
+		PropertyExpression *expr = static_cast<PropertyExpression *>(_prop_expr.get());
+		for (auto &t_oid: table_oids) {
+			if (expr->hasPropertyID(t_oid)) {
+				// table has property
+				schema_proj_mapping.find(t_oid)->
+					second.insert({(uint64_t)col_idx, (uint64_t)(expr->getPropertyID(t_oid))});
+			} else {
+				// need to be projected as null column
+				schema_proj_mapping.find(t_oid)->
+					second.insert({(uint64_t)col_idx, std::numeric_limits<uint64_t>::max()});
+			}
+		}
+	}
 	get_output = std::move(lExprLogicalGetNodeOrEdge(node_name_print, table_oids, &schema_proj_mapping, true));
 #endif
 	CExpression *plan_expr = get_output.first;
@@ -1047,7 +1069,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is
 	// insert node schema
 	LogicalSchema schema;
 	for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
-		if (!node_expr->isUsedColumn(col_idx)) continue;
+		// if (!node_expr->isUsedColumn(col_idx)) continue;
 		auto &_prop_expr = prop_exprs[col_idx];
 		PropertyExpression *expr = static_cast<PropertyExpression*>(_prop_expr.get());
 		string expr_name = expr->getUniqueName();

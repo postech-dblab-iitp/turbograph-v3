@@ -440,7 +440,7 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
     }
 
     uint64_t accmulated_multipliers = 1;
-    multipliers->push_back(0);
+    multipliers->push_back(1);
     for (auto i = 0; i < num_groups->size() - 1; i++) {
         accmulated_multipliers *= num_groups->at(i);
         multipliers->push_back(accmulated_multipliers);

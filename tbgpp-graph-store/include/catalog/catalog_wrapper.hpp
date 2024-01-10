@@ -491,6 +491,7 @@ public:
 
         merged_property_key_ids.reserve(merged_schema.size());
         for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
+            // TODO https://stackoverflow.com/questions/42519867/efficiently-moving-contents-of-stdunordered-set-to-stdvector bug occur
             // merged_property_key_ids.push_back(std::move(merged_schema.extract(it).value()));
             merged_property_key_ids.push_back(*it);
             merged_types.push_back(LogicalType(type_info.at(merged_property_key_ids.back())));
