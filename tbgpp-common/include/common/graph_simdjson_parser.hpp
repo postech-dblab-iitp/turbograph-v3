@@ -604,8 +604,8 @@ public:
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
 
-#ifdef DYNAMIC_SCHEMA_INSTANTIATION
-        if (num_clusters > 1) {
+// #ifdef DYNAMIC_SCHEMA_INSTANTIATION
+        if (num_clusters >= 1) {
             // create univ ps cat entry for dynamic schema instantiation
             vector<PropertyKeyID> property_key_ids;
             string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_univ";
@@ -617,7 +617,7 @@ public:
             univ_property_schema_cat->SetFake();
             partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
         }
-#endif
+// #endif
 
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {
