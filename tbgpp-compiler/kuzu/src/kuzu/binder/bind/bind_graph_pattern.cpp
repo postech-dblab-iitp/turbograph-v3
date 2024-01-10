@@ -306,6 +306,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
         uint64_t univTableID;
         bindRelTableIDsFromPartitions(queryRel->getPartitionIDs(), tableIDs, univTableID);
         queryRel->pushBackTableIDs(tableIDs);
+        univTableID = tableIDs[0]; // rel has no univ schema
 
         bool isVariableLength = queryRel->getLowerBound() != queryRel->getUpperBound() ? true : false;
 
