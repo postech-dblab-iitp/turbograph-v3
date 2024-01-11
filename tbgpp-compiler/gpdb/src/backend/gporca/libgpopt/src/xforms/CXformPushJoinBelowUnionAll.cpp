@@ -62,7 +62,7 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 									   CXformResult *pxfres,
 									   CExpression *pexpr) const
 {
-	GPOS_ASSERT(nullptr != pxfctxt);
+	GPOS_ASSERT(NULL != pxfctxt);
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
@@ -73,6 +73,7 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 	CExpression *pexprRight = (*pexpr)[1];
 	CExpression *pexprScalar = (*pexpr)[2];
 
+	// S62 Specific: We don't need, since we should handle left right UNION ALL case.
 	// If both children are union alls, return
 	// // We only perform transform when only one child is union all
 	// if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid() &&
