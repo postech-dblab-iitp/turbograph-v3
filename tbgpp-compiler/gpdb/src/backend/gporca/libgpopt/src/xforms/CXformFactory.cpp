@@ -296,6 +296,8 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_mp) CXformLeftJoin2RightJoin(m_mp));
 	Add(GPOS_NEW(m_mp) CXformRightOuterJoin2HashJoin(m_mp));
 	Add(GPOS_NEW(m_mp) CXformImplementInnerJoin(m_mp));
+	Add(GPOS_NEW(m_mp) CXformPushJoinBelowLeftUnionAll(m_mp));
+	Add(GPOS_NEW(m_mp) CXformPushJoinBelowRightUnionAll(m_mp));
 	// S62 custom added
 	Add(GPOS_NEW(m_mp) CXformProject2ComputeScalarColumnar(m_mp));
 	Add(GPOS_NEW(m_mp) CXformCollapseProjectColumnar(m_mp));
