@@ -134,6 +134,8 @@
 #include "gpopt/xforms/CXformPushGbBelowUnionAll.h"
 #include "gpopt/xforms/CXformPushGbDedupBelowJoin.h"
 #include "gpopt/xforms/CXformPushGbWithHavingBelowJoin.h"
+#include "gpopt/xforms/CXformPushJoinBelowLeftUnionAll.h"
+#include "gpopt/xforms/CXformPushJoinBelowRightUnionAll.h"
 #include "gpopt/xforms/CXformRemoveSubqDistinct.h"
 #include "gpopt/xforms/CXformResult.h"
 #include "gpopt/xforms/CXformRightOuterJoin2HashJoin.h"

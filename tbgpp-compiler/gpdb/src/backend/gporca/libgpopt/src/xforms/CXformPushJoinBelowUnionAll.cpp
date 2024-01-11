@@ -1,102 +1,60 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
+//	Copyright (C) 2023 VMware, Inc. or its affiliates.
 //
 //	@filename:
-//		CXformPushDownLeftOuterJoin.cpp
+//		CXformPushJoinBelowUnionAll.cpp
 //
 //	@doc:
-//		Implementation of left outer join push down transformation
+//		Implementation of pushing join below union all transform
 //---------------------------------------------------------------------------
 
 #include "gpopt/xforms/CXformPushJoinBelowUnionAll.h"
 
 #include "gpos/base.h"
 
-#include "gpopt/base/CUtils.h"
+#include "gpopt/operators/CLogicalInnerJoin.h"
 #include "gpopt/operators/CLogicalLeftOuterJoin.h"
-#include "gpopt/operators/CLogicalNAryJoin.h"
-#include "gpopt/operators/CNormalizer.h"
+#include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/CPatternLeaf.h"
 #include "gpopt/operators/CPatternMultiLeaf.h"
-#include "gpopt/operators/CPatternTree.h"
-#include "gpopt/operators/CPredicateUtils.h"
-
+#include "gpopt/operators/CPatternNode.h"
 
 using namespace gpopt;
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformPushJoinBelowUnionAll::CXformPushJoinBelowUnionAll
-//
-//	@doc:
-//		Ctor
-//
-//---------------------------------------------------------------------------
-CXformPushJoinBelowUnionAll::CXformPushJoinBelowUnionAll(CMemoryPool *mp)
-	: CXformExploration(
-		  // pattern
-		  GPOS_NEW(mp) CExpression(
-			  mp, GPOS_NEW(mp) CLogicalLeftOuterJoin(mp),
-			  GPOS_NEW(mp) CExpression	// outer child is an NAry-Join
-			  (mp, GPOS_NEW(mp) CLogicalNAryJoin(mp),
-			   GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternMultiLeaf(mp)),
-			   GPOS_NEW(mp) CExpression(
-				   mp,
-				   GPOS_NEW(mp) CPatternTree(mp))  // NAry-join predicate tree
-			   ),
-			  GPOS_NEW(mp) CExpression(
-				  mp, GPOS_NEW(mp) CPatternLeaf(mp)),  // inner child is a leaf
-			  GPOS_NEW(mp) CExpression(
-				  mp, GPOS_NEW(mp) CPatternTree(mp))  // LOJ predicate tree
-			  ))
+CXform::EXformPromise
+CXformPushJoinBelowUnionAll::Exfp(CExpressionHandle &exprhdl) const
 {
+	if (exprhdl.DeriveHasSubquery(2) || exprhdl.HasOuterRefs())
+	{
+		return CXform::ExfpNone;
+	}
+
+	return CXform::ExfpHigh;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformPushDownLeftOuterJoin::Exfp
+//		CXformPushJoinBelowUnionAll::Transform
 //
 //	@doc:
-//		Xform promise
+//		Actual transformation
 //
-//---------------------------------------------------------------------------
-// CXform::EXformPromise
-// CXformPushJoinBelowUnionAll::Exfp(CExpressionHandle &exprhdl) const
-// {
-// 	CExpression *pexprScalar = exprhdl.PexprScalarRepChild(2);
-// 	if (COperator::EopScalarConst == pexprScalar->Pop()->Eopid())
-// 	{
-// 		return CXform::ExfpNone;
-// 	}
-// 	return CXform::ExfpHigh;
-// }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformPushDownLeftOuterJoin::Transform
+//  Input:
+//                     _________Join_________
+//                    |                      |
+//         _______Union All_____           other
+//        |      |       |      |
+//     child1  child2  child3  child4
 //
-//	@doc:
-//		Transform LOJ whose outer child is an NAry-join to be a child
-//		of NAry-join
 //
-//		Input:
-//			LOJ (a=d)
-//				|---NAry-Join (a=b) and (b=c)
-//				|     |--A
-//				|     |--B
-//				|     +--C
-//				+--D
 //
-//		Output:
-//			  NAry-Join (a=b) and (b=c)
-//				|--B
-//				|--C
-//				+--LOJ (a=d)
-//					|--A
-//					+--D
+//  Ouptut:
+//         _________________Union All_________________
+//        |              |             |              |
+//     _Join_          _Join_        _Join_         _Join_
+//    |      |        |      |      |      |       |      |
+//  child1 other   child2 other   child3 other   child4 other
 //
 //---------------------------------------------------------------------------
 void
@@ -105,114 +63,147 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 									   CExpression *pexpr) const
 {
 	GPOS_ASSERT(NULL != pxfctxt);
-	GPOS_ASSERT(NULL != pxfres);
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	// CMemoryPool *mp = pxfctxt->Pmp();
+	CMemoryPool *mp = pxfctxt->Pmp();
 
-	// CExpression *pexprNAryJoin = (*pexpr)[0];
-	// CExpression *pexprLOJInnerChild = (*pexpr)[1];
-	// CExpression *pexprLOJScalarChild = (*pexpr)[2];
+	// extract components
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+	CExpression *pexprScalar = (*pexpr)[2];
 
-	// CColRefSet *pcrsLOJUsed = pexprLOJScalarChild->DeriveUsedColumns();
-	// CExpressionArray *pdrgpexprLOJChildren = GPOS_NEW(mp) CExpressionArray(mp);
-	// CExpressionArray *pdrgpexprNAryJoinChildren =
-	// 	GPOS_NEW(mp) CExpressionArray(mp);
-
-	// const ULONG arity = pexprNAryJoin->Arity();
-	// CExpression *pexprNAryJoinScalarChild = (*pexprNAryJoin)[arity - 1];
-	// for (ULONG ul = 0; ul < arity - 1; ul++)
+	// S62 Specific: We don't need, since we should handle left right UNION ALL case.
+	// If both children are union alls, return
+	// // We only perform transform when only one child is union all
+	// if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid() &&
+	// 	COperator::EopLogicalUnionAll == pexprRight->Pop()->Eopid())
 	// {
-	// 	CExpression *pexprChild = (*pexprNAryJoin)[ul];
-	// 	CColRefSet *pcrsOutput = pexprChild->DeriveOutputColumns();
-	// 	pexprChild->AddRef();
-	// 	if (!pcrsOutput->IsDisjoint(pcrsLOJUsed))
-	// 	{
-	// 		pdrgpexprLOJChildren->Append(pexprChild);
-	// 	}
-	// 	else
-	// 	{
-	// 		pdrgpexprNAryJoinChildren->Append(pexprChild);
-	// 	}
-	// }
-
-	// if (pdrgpexprLOJChildren->Size() == 0)
-	// {
-	// 	// cannot create a valid LOJ; bail
-	// 	pdrgpexprLOJChildren->Release();
-	// 	pdrgpexprNAryJoinChildren->Release();
 	// 	return;
 	// }
 
-	// CExpression *pexprLOJOuterChild = (*pdrgpexprLOJChildren)[0];
-	// if (1 < pdrgpexprLOJChildren->Size())
-	// {
-	// 	// collect all relations needed by LOJ outer side into a cross product,
-	// 	// normalization at the end of this function takes care of pushing NAry
-	// 	// join predicates down
-	// 	pdrgpexprLOJChildren->Append(
-	// 		CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
-	// 	pexprLOJOuterChild = GPOS_NEW(mp) CExpression(
-	// 		mp, GPOS_NEW(mp) CLogicalNAryJoin(mp), pdrgpexprLOJChildren);
+	CExpression *pexprUnionAll, *pexprOther;
 
-	// 	// reconstruct LOJ children and add only the created child
-	// 	pdrgpexprLOJChildren = GPOS_NEW(mp) CExpressionArray(mp);
-	// 	pdrgpexprLOJChildren->Append(pexprLOJOuterChild);
-	// }
+	// This is used to preserve the join order, which we leave
+	// for other xforms to optimize
+	BOOL isLeftChildUnion;
 
-	// // continue with rest of LOJ inner and scalar children
-	// pexprLOJInnerChild->AddRef();
-	// pdrgpexprLOJChildren->Append(pexprLOJInnerChild);
-	// pexprLOJScalarChild->AddRef();
-	// pdrgpexprLOJChildren->Append(pexprLOJScalarChild);
+	if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid())
+	{
+		pexprUnionAll = pexprLeft;
+		pexprOther = pexprRight;
+		isLeftChildUnion = true;
+	}
+	else
+	{
+		pexprUnionAll = pexprRight;
+		pexprOther = pexprLeft;
+		isLeftChildUnion = false;
+	}
 
-	// // build new LOJ
-	// CExpression *pexprLOJNew = GPOS_NEW(mp) CExpression(
-	// 	mp, GPOS_NEW(mp) CLogicalLeftOuterJoin(mp), pdrgpexprLOJChildren);
+	CLogicalUnionAll *popUnionAll =
+		CLogicalUnionAll::PopConvert(pexprUnionAll->Pop());
+	CColRef2dArray *union_input_columns = popUnionAll->PdrgpdrgpcrInput();
 
-	// // add new NAry join children
-	// pdrgpexprNAryJoinChildren->Append(pexprLOJNew);
-	// pexprNAryJoinScalarChild->AddRef();
-	// pdrgpexprNAryJoinChildren->Append(pexprNAryJoinScalarChild);
+	// used for alternative union all expression
+	CColRef2dArray *input_columns = GPOS_NEW(mp) CColRef2dArray(mp);
+	CExpressionArray *join_array = GPOS_NEW(mp) CExpressionArray(mp);
 
-	// if (3 > pdrgpexprNAryJoinChildren->Size())
-	// {
-	// 	// xform must generate a valid NAry-join expression
-	// 	// for example, in the following case we end-up with the same input
-	// 	// expression, which should be avoided:
-	// 	//
-	// 	//	Input:
-	// 	//
-	// 	//    LOJ (a=c) and (b=c)
-	// 	//     |--NAry-Join (a=b)
-	// 	//     |   |--A
-	// 	//     |   +--B
-	// 	//     +--C
-	// 	//
-	// 	//	Output:
-	// 	//
-	// 	//	  NAry-Join (true)
-	// 	//      +--LOJ (a=c) and (b=c)
-	// 	//           |--NAry-Join (a=b)
-	// 	//           |    |--A
-	// 	//           |    +--B
-	// 	//           +--C
+	CColRefArray *other_colref_array =
+		pexprOther->DeriveOutputColumns()->Pdrgpcr(mp);
+	CColRefArray *colref_array_from = GPOS_NEW(mp) CColRefArray(mp);
 
-	// 	pdrgpexprNAryJoinChildren->Release();
-	// 	return;
-	// }
+	// Iterate through all union all children
+	const ULONG arity = pexprUnionAll->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CExpression *pexprChild = (*pexprUnionAll)[ul];
+		CColRefArray *child_colref_array = (*union_input_columns)[ul];
 
-	// // create new NAry join
-	// CExpression *pexprNAryJoinNew = GPOS_NEW(mp) CExpression(
-	// 	mp, GPOS_NEW(mp) CLogicalNAryJoin(mp), pdrgpexprNAryJoinChildren);
+		CExpression *pexprLeftChild, *pexprRightChild, *pexprRemappedScalar,
+			*pexprRemappedOther, *join_expr;
 
-	// // normalize resulting expression and add it to xform results
-	// CExpression *pexprResult =
-	// 	CNormalizer::PexprNormalize(mp, pexprNAryJoinNew);
-	// pexprNAryJoinNew->Release();
+		if (0 == ul)
+		{
+			// The 1st child is special
+			// The join table and condition can be readily used
+			// and doesn't require remapping
+			pexprRemappedScalar = pexprScalar;
+			pexprRemappedOther = pexprOther;
+			pexprRemappedScalar->AddRef();
+			pexprRemappedOther->AddRef();
 
-	// pxfres->Add(pexprResult);
+			// We append the output columns from the 1st union all child,
+			// and from the other table, and use them as the source
+			// of column remapping
+			colref_array_from->AppendArray(child_colref_array);
+			colref_array_from->AppendArray(other_colref_array);
+			input_columns->Append(colref_array_from);
+		}
+		else
+		{
+			CColRefArray *colref_array_to = GPOS_NEW(mp) CColRefArray(mp);
+			CColRefArray *other_colref_array_copy =
+				CUtils::PdrgpcrCopy(mp, other_colref_array);
+			// We append the output columns from the 2nd (and onward)
+			// union all child, and a copy of the other table's output
+			// columns, and use them as the destination of column
+			// remapping
+			colref_array_to->AppendArray(child_colref_array);
+			colref_array_to->AppendArray(other_colref_array_copy);
+			input_columns->Append(colref_array_to);
+
+			UlongToColRefMap *colref_mapping =
+				CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
+
+			// Create a copy of the join condition with remapped columns,
+			// and a copy of the other expression with remapped columns
+			pexprRemappedScalar = pexprScalar->PexprCopyWithRemappedColumns(
+				mp, colref_mapping, true /*must_exist*/);
+			pexprRemappedOther = pexprOther->PexprCopyWithRemappedColumns(
+				mp, colref_mapping, true);
+			other_colref_array_copy->Release();
+			colref_mapping->Release();
+		}
+
+		// Preserve the join order
+		if (isLeftChildUnion)
+		{
+			pexprLeftChild = pexprChild;
+			pexprRightChild = pexprRemappedOther;
+			pexprLeftChild->AddRef();
+		}
+		else
+		{
+			pexprLeftChild = pexprRemappedOther;
+			pexprRightChild = pexprChild;
+			pexprRightChild->AddRef();
+		}
+
+
+		BOOL isOuterJoin =
+			pexpr->Pop()->Eopid() == COperator::EopLogicalLeftOuterJoin;
+		if (isOuterJoin)
+		{
+			join_expr = CUtils::PexprLogicalJoin<CLogicalLeftOuterJoin>(
+				mp, pexprLeftChild, pexprRightChild, pexprRemappedScalar);
+		}
+		else
+		{
+			join_expr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
+				mp, pexprLeftChild, pexprRightChild, pexprRemappedScalar);
+		}
+		join_array->Append(join_expr);
+	}
+	other_colref_array->Release();
+
+	CColRefArray *output_columns = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, output_columns, input_columns),
+		join_array);
+
+	// add alternative to transformation result
+	pxfres->Add(pexprAlt);
 }
 
 // EOF

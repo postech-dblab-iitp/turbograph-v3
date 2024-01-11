@@ -225,6 +225,8 @@ public:
 		ExfLeftJoin2RightJoin,
 		ExfRightOuterJoin2HashJoin,
 		ExfImplementInnerJoin,
+		ExfPushJoinBelowLeftUnionAll,
+		ExfPushJoinBelowRightUnionAll,
 
 		// S62 custom added
 		ExfProject2ComputeScalarColumnar,
