@@ -477,6 +477,98 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	return result;
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression* plan_expr) {
+
+	auto* mp = this->memory_pool;
+	/* UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan*/
+	D_ASSERT(plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalSerialUnionAll);
+
+	// leaf node
+	auto result = new vector<duckdb::CypherPhysicalOperator*>();
+	vector<uint64_t> oids;
+	vector<vector<uint64_t>> projection_mapping;
+	vector<vector<uint64_t>> scan_projection_mapping;
+	
+	CExpressionArray *projections = plan_expr->PdrgPexpr();
+	const ULONG projections_size = projections->Size();
+
+	duckdb::Schema global_schema;
+	vector<duckdb::Schema> local_schemas;
+	vector<duckdb::LogicalType> global_types;
+
+	local_schemas.resize(projections_size);
+	for (int i = 0; i < projections_size; i++) {
+		CExpression* projection = projections->operator[](i);
+		CExpression* scan_expr = projection->PdrgPexpr()->operator[](0);
+		CPhysicalScan* scan_op = (CPhysicalScan*) scan_expr->Pop();
+		CExpression* proj_list_expr = projection->PdrgPexpr()->operator[](1);
+		const ULONG proj_list_expr_size = proj_list_expr->PdrgPexpr()->Size();
+		
+		// TODO for index scan?
+		CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(scan_op->Ptabdesc()->MDId());
+		OID table_obj_id = table_mdid->Oid();
+
+		// collect object ids
+		oids.push_back(table_obj_id);
+		vector<duckdb::LogicalType> local_types;
+		
+		// for each object id, generate projection mapping. (if null projection required, ulong::max)
+		projection_mapping.push_back(vector<uint64_t>());
+		scan_projection_mapping.push_back(vector<uint64_t>());
+		for (int j = 0; j < proj_list_expr_size; j++) {
+			CExpression* proj_elem = proj_list_expr->PdrgPexpr()->operator[](j);
+			auto scalarident_pattern = vector<COperator::EOperatorId>({
+				COperator::EOperatorId::EopScalarProjectElement,
+				COperator::EOperatorId::EopScalarIdent });
+
+			CExpression *proj_item;
+			if (pMatchExprPattern(proj_elem, scalarident_pattern)) {
+				/* CScalarProjectList - CScalarIdent */
+				CScalarIdent *ident_op = (CScalarIdent *)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				auto col_idx = pGetColIdxFromTable(table_obj_id, ident_op->Pcr());
+
+				projection_mapping[i].push_back(j);
+				scan_projection_mapping[i].push_back(col_idx);
+				// add local types
+				CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
+				OID type_oid = type_mdid->Oid();
+				local_types.push_back(pConvertTypeOidToLogicalType(type_oid));	
+			} else {
+				/* CScalarProjectList - CScalarConst (null) */
+				scan_projection_mapping[i].push_back(std::numeric_limits<uint64_t>::max());
+				local_types.push_back(duckdb::LogicalTypeId::SQLNULL);
+				// CScalarConst *const_null_op = (CScalarConst*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
+				// // add local types
+				// CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_null_op->MdidType());
+				// OID type_oid = type_mdid->Oid();
+				// local_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+			}
+		}
+		// aggregate local types to global types
+		if (i == 0) {
+			for (auto &t: local_types) {
+				global_types.push_back(t);
+			}
+		}
+		local_schemas[i].setStoredTypes(local_types);
+		// TODO else check if type conforms
+	}
+	// TODO assert oids size = mapping size
+
+	global_schema.setStoredTypes(global_types);
+
+	pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+	num_schemas_of_childs.push_back({local_schemas.size()});
+	pipeline_schemas.push_back(local_schemas);
+	pipeline_union_schema.push_back(global_schema);
+
+	duckdb::CypherPhysicalOperator* op =
+		new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping);
+	result->push_back(op);
+
+	return result;
+}
+
 vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression* plan_expr, bool is_left_outer) {
 
 	CMemoryPool* mp = this->memory_pool;
