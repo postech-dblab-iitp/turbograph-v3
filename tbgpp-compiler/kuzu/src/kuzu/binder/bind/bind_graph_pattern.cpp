@@ -444,6 +444,7 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         vector<uint64_t> tableIDs;
         uint64_t univTableID;
         bindNodeTableIDsFromPartitions(queryNode->getPartitionIDs(), tableIDs, univTableID);
+        if (tableIDs.size() == 1) univTableID = tableIDs[0];
         queryNode->pushBackTableIDs(tableIDs);
         queryNode->setUnivTableID(univTableID);
 
