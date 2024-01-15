@@ -13,6 +13,8 @@
 #include <functional>
 #include <map>
 
+#define DEBUG_PRINT_OP_INPUT_OUTPUT
+
 namespace duckdb {
 
 struct LogicalType;
