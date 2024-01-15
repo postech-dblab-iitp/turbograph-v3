@@ -48,6 +48,9 @@ public:
 	//! OID of parent partition
 	idx_t partition_oid;
 
+	//! OID of the physical ID index (_id)
+	idx_t physical_id_index;
+
 	//! Property Key ID array
 	PropertyKeyID_vector property_keys;
 
@@ -99,6 +102,11 @@ public:
 		is_fake = true;
 	}
 
+	//! Set physical ID index
+	void SetPhysicalIDIndex(idx_t index_oid) {
+		physical_id_index = index_oid;
+	}
+
 	string_vector *GetKeys();
 	PropertyKeyID_vector *GetKeyIDs();
 	vector<string> GetKeysWithCopy();
@@ -141,6 +149,11 @@ public:
 	//! Get histogram frequency values member variable
 	idx_t_vector *GetFrequencyValues() {
 		return &frequency_values;
+	}
+
+	//! Get OID of physical id index
+	idx_t GetPhysicalIDIndex(){
+		return physical_id_index;
 	}
 
 	vector<LogicalType> GetTypesWithCopy();

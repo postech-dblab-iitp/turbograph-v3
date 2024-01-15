@@ -194,31 +194,31 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	{
 		switch (pexprCurrInnerChild->Pop()->Eopid())
 		{
-			case COperator::EopLogicalUnionAll:
-				// S62 handle this case totally specially, using different set of internal functions
-				//return TransformOnUnionAllInner(pxfctxt, pxfres, pexpr);
-			{
-				if (((*pexprCurrInnerChild)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) &&
-					((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
-					pexprUnionAll = pexprCurrInnerChild;
-					pexprGet = (*(*pexprCurrInnerChild)[0])[0]; // TODO S62 currently consider only first Get
-					CLogicalGet *popGet =
-						CLogicalGet::PopConvert(pexprGet->Pop());
+			// case COperator::EopLogicalUnionAll:
+			// 	// S62 handle this case totally specially, using different set of internal functions
+			// 	//return TransformOnUnionAllInner(pxfctxt, pxfres, pexpr);
+			// {
+			// 	if (((*pexprCurrInnerChild)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) &&
+			// 		((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
+			// 		pexprUnionAll = pexprCurrInnerChild;
+			// 		pexprGet = (*(*pexprCurrInnerChild)[0])[0]; // TODO S62 currently consider only first Get
+			// 		CLogicalGet *popGet =
+			// 			CLogicalGet::PopConvert(pexprGet->Pop());
 
-					ptabdescInner = popGet->Ptabdesc();
-					distributionCols = popGet->PcrsDist();
+			// 		ptabdescInner = popGet->Ptabdesc();
+			// 		distributionCols = popGet->PcrsDist();
 
-					if (NULL != groupingColsToCheck.Value() &&
-						!groupingColsToCheck->ContainsAll(distributionCols))
-					{
-						// the grouping columns are not a superset of the distribution columns
-						return;
-					}
+			// 		if (NULL != groupingColsToCheck.Value() &&
+			// 			!groupingColsToCheck->ContainsAll(distributionCols))
+			// 		{
+			// 			// the grouping columns are not a superset of the distribution columns
+			// 			return;
+			// 		}
 					
-					hasUnionAllOverLogicalGet = true;
-				}
-			}
-			break;
+			// 		hasUnionAllOverLogicalGet = true;
+			// 	}
+			// }
+			// break;
 			case COperator::EopLogicalSelect:
 				// if the select pred has a subquery, don't generate alternatives
 				if ((*pexprCurrInnerChild)[1]->DeriveHasSubquery())

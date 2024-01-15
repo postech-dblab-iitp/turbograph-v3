@@ -165,6 +165,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 	partition_cat->SetPartitionID(new_pid);
 
 	property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+	property_schema_cat->SetPhysicalIDIndex(index_cat->GetOid());
 }
 
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
@@ -204,6 +205,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		partition_cat->SetPartitionID(new_pid);
 
 		property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+		property_schema_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 	} else if (edge_direction_type == LogicalType::BACKWARD_ADJLIST) {
 		partition_cat = 
 			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, partition_name);
