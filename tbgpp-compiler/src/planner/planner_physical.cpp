@@ -1372,18 +1372,20 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 
 	CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
-	CPhysicalComputeScalarColumnar* proj_op = (CPhysicalComputeScalarColumnar*) plan_expr->Pop();
+	CPhysicalComputeScalarColumnar *proj_op = (CPhysicalComputeScalarColumnar *)plan_expr->Pop();
 	CExpression *pexprProjRelational = (*plan_expr)[0];	// Prev op
 	CColRefArray *child_cols = pexprProjRelational->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprProjList = (*plan_expr)[1];		// Projection list
 
 	// decide which proj elems to project - keep colref orders
 	vector<ULONG> indices_to_project;
-	for (ULONG ocol=0; ocol < output_cols->Size(); ocol++) {
+	indices_to_project.resize(output_cols->Size());
+	for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
 		for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
 			if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
 				// matching ColRef found
-				indices_to_project.push_back(elem_idx);
+				// indices_to_project.push_back(elem_idx);
+				indices_to_project[ocol] = elem_idx;
 				goto OUTER_LOOP;
 			}
 		}
@@ -1391,8 +1393,20 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		OUTER_LOOP:;
 	}
 
-	for (auto& elem_idx: indices_to_project) {
-		CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);	// CScalarProjectElement
+	// for (auto& elem_idx: indices_to_project) {
+	// 	CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);	// CScalarProjectElement
+	// 	CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
+		
+	// 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId());
+		
+	// 	// types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
+	// 	output_column_names.push_back(pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()));
+	// 	proj_exprs.push_back(std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
+	// 	types.push_back(proj_exprs.back()->return_type);
+	// }
+
+	for (auto i = 0; i < indices_to_project.size(); i++) {
+		CExpression *pexprProjElem = pexprProjList->operator[](indices_to_project[i]);	// CScalarProjectElement
 		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
 		
 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()->RetrieveType()->MDId());
@@ -1403,7 +1417,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		types.push_back(proj_exprs.back()->return_type);
 	}
 
-	D_ASSERT( pexprProjList->Arity() >= proj_exprs.size() );	// may be less, since we project duplicate projetions only once
+	D_ASSERT(pexprProjList->Arity() >= proj_exprs.size());	// may be less, since we project duplicate projetions only once
 
 	/* Generate operator and push */
 	duckdb::Schema tmp_schema;
@@ -1419,7 +1433,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		pipeline_union_schema.push_back(tmp_schema);
 	}
 
-	duckdb::CypherPhysicalOperator* op =
+	duckdb::CypherPhysicalOperator *op =
 		new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
 	result->push_back(op);
 

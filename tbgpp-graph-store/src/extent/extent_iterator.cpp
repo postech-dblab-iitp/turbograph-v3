@@ -530,7 +530,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < ext_property_type.size(); i++) {
         if ((ext_property_type[i] != LogicalType::ID) && (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max())) {
             FlatVector::Validity(output.data[output_column_idxs[j]]).SetAllInvalid(output.size());
-            // FlatVector::Validity(output.data[i]).SetAllInvalid(output.size());
+            j++; // TODO if we do not want to map output to universal schema, remove this code
             continue;
         }
         if (ext_property_type[i] != LogicalType::ID) {
