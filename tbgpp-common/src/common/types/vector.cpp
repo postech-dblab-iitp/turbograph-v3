@@ -625,6 +625,9 @@ Value Vector::GetValue(idx_t index) const {
 		}
 		return Value::LIST(LogicalType::UBIGINT, move(children));
 	}
+	case LogicalTypeId::SQLNULL: { // S62 added
+		return Value("NULL");
+	}
 	default:
 		throw InternalException("Unimplemented type for value access");
 	}
