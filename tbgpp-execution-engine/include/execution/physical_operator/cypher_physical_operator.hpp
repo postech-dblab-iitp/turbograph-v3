@@ -12,6 +12,8 @@
 
 #include <boost/timer/timer.hpp>
 
+#define DEBUG_PRINT_OP_INPUT_OUTPUT
+
 namespace duckdb {
 struct LogicalType;
 
@@ -47,6 +49,7 @@ public:
 	// sink-enabled piped operators (e.g. Hash Probe, CartProd)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
+	virtual DataChunk &GetLastSinkedData(LocalSinkState &lstate) const;
 
 	const vector<LogicalType> &GetTypes();
 	idx_t GetSchemaIdx();
@@ -59,7 +62,7 @@ public:
 	mutable Schema schema;				// TODO remove mutable
 	mutable vector<Schema> schemas;				// TODO remove mutable
 	mutable vector<LogicalType> types;			// schema(types) of operator output chunk
-	vector<CypherPhysicalOperator*> children;	// child operators
+	vector<CypherPhysicalOperator *> children;	// child operators
 
 	// operator statistics
 		// TODO make this into timer struct with some functions

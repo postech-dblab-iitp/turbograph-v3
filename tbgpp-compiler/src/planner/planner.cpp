@@ -421,10 +421,14 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 
 	std::vector<duckdb::CypherPipelineExecutor *> executors;
 
-	D_ASSERT(pipelines.size() == sfgs.size());
+	if (generate_sfg) {
+		D_ASSERT(pipelines.size() == sfgs.size());
+	}
+
 	for (auto pipe_idx = 0; pipe_idx < pipelines.size(); pipe_idx++) {
 		auto &pipe = pipelines[pipe_idx];
-		auto &sfg = sfgs[pipe_idx];
+		duckdb::SchemaFlowGraph *sfg = generate_sfg ? &sfgs[pipe_idx] : nullptr;
+
 		// find children and deps - the child/dep ordering matters. 
 		// must run in ascending order of the vector
 		auto *new_ctxt = new duckdb::ExecutionContext(context);
@@ -463,7 +467,12 @@ vector<duckdb::CypherPipelineExecutor*> Planner::genPipelineExecutors() {
 			}
 		}
 		duckdb::CypherPipelineExecutor *pipe_exec;
-		pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, sfg, move(child_executors), move(dep_executors));
+		if (generate_sfg) {
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, *sfg, move(child_executors), move(dep_executors));
+		} else {
+			pipe_exec = new duckdb::CypherPipelineExecutor(new_ctxt, pipe, move(child_executors), move(dep_executors));
+		}
+
 		executors.push_back(pipe_exec);
 	}
 

@@ -39,15 +39,18 @@ public:
 
     void SetFlowGraph(vector<vector<idx_t>> &flow_graph) {
         this->flow_graph = std::move(flow_graph);
+        is_sfg_exists = true;
     }
 
     // Unary operator
     idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx) {
+        if (!is_sfg_exists) return 0;
         return flow_graph[operator_idx][schema_idx];
     }
 
     // Binary operator
     idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2) {
+        if (!is_sfg_exists) return 0;
         D_ASSERT(num_schemas_of_childs[operator_idx].size() == 2);
         idx_t schema_idx = (num_schemas_of_childs[operator_idx][1] * schema_idx_1) + schema_idx_2;
         return flow_graph[operator_idx][schema_idx];
@@ -69,6 +72,38 @@ public:
         return num_schemas_of_childs;
     }
 
+    void printSchemaGraph()
+    {
+        if (flow_graph.size() == 0) std::cout << "SFG is empty" << std::endl;
+        for (auto i = 0; i < flow_graph.size(); i++) {
+            std::cout << "lv " << i << " :";
+            for (auto j = 0; j < flow_graph[i].size(); j++) {
+                std::cout << " " << flow_graph[i][j];
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    bool IsSFGExists()
+    {
+        return is_sfg_exists;
+    }
+
+    bool AdvanceCurSourceIdx()
+    {
+        if (!is_sfg_exists) return false;
+        if (cur_source_idx + 1 == flow_graph[0].size()) return false;
+        
+        cur_source_idx++;
+        return true;
+    }
+
+    idx_t GetCurSourceIdx()
+    {
+        if (!is_sfg_exists) return 0;
+        return cur_source_idx;
+    }
+
 private:
     size_t pipeline_length;
     vector<OperatorType> pipeline_operator_types;
@@ -76,6 +111,8 @@ private:
     vector<vector<idx_t>> flow_graph;
     vector<vector<Schema>> schema_per_operator;
     vector<Schema> union_schema_per_operator;
+    bool is_sfg_exists = false;
+    idx_t cur_source_idx = 0;
 };
 
 } // namespace duckdb

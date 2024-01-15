@@ -68,20 +68,34 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 	for (auto op: pipeline->GetOperators()) {
 		local_operator_states.push_back(op->GetOperatorState(*context));
 	}
+
+#ifdef DEBUG_PRINT_PIPELINE
+	sfg.printSchemaGraph();
+#endif
 }
 
 void CypherPipelineExecutor::ExecutePipeline() {
 	// init source chunk
 	while(true) {
 		auto& source_chunk = *(opOutputChunks[0]);
-		source_chunk.Destroy();
-		source_chunk.Initialize( pipeline->GetSource()->GetTypes());
+		if (sfg.IsSFGExists()) {
+			// source_chunk.Initialize(sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
+		} else {
+			source_chunk.Destroy();
+			source_chunk.Initialize(pipeline->GetSource()->GetTypes());
+		}
 		FetchFromSource(source_chunk);
 
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[FetchFromSource (" << pipeline->GetSource()->ToString() << ")] num_tuples: " << source_chunk.size() << std::endl;
 #endif
-		if( source_chunk.size() == 0 ) { break; }
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
+		PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
+#endif
+		if (source_chunk.size() == 0) { 
+			if (sfg.AdvanceCurSourceIdx()) continue;
+			else break;
+		}
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
 		D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
@@ -109,11 +123,11 @@ void CypherPipelineExecutor::ExecutePipeline() {
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 	StartOperator(pipeline->GetSource());
-	switch( childs.size() ) {
+	switch (childs.size()) {
 		// no child pipeline
-		case 0: { pipeline->GetSource()->GetData( *context, result, *local_source_state ); break;}
+		case 0: { pipeline->GetSource()->GetData(*context, result, *local_source_state); break;}
 		// single child
-		case 1: { pipeline->GetSource()->GetData( *context, result, *local_source_state, *(childs[0]->local_sink_state) ); break; }
+		case 1: { pipeline->GetSource()->GetData(*context, result, *local_source_state, *(childs[0]->local_sink_state)); break; }
 	}
 	EndOperator(pipeline->GetSource(), &result);
 	pipeline->GetSource()->processed_tuples += result.size();	
@@ -121,29 +135,35 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result) {
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
 	auto pipeOutputChunk = std::make_unique<DataChunk>();
-	pipeOutputChunk->Initialize( pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes() );
+	pipeOutputChunk->Initialize(pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes());
 	// handle source until need_more_input;
 	while (true) {
 		auto pipeResult = ExecutePipe(source, *pipeOutputChunk);
 		// shortcut returning execution finished for this pipeline
-		if( pipeResult == OperatorResultType::FINISHED ) {
+		if (pipeResult == OperatorResultType::FINISHED) {
 			return OperatorResultType::FINISHED;
 		}
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[Sink (" << pipeline->GetSink()->ToString() << ")] num_tuples: " << pipeOutputChunk->size() << std::endl;
+#endif
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
+		PrintInputChunk(pipeline->GetSink()->ToString(), *pipeOutputChunk);
 #endif
 		StartOperator(pipeline->GetSink());
 		auto sinkResult = pipeline->GetSink()->Sink(
 			*context, *pipeOutputChunk, *local_sink_state
 		);
 		EndOperator(pipeline->GetSink(), nullptr);
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
+		PrintOutputChunk(pipeline->GetSink()->ToString(), pipeline->GetSink()->GetLastSinkedData(*local_sink_state));
+#endif
 		// count produced tuples only on ProduceResults operator
-		if( pipeline->GetSink()->ToString().find("ProduceResults") != std::string::npos ) {
+		if (pipeline->GetSink()->ToString().find("ProduceResults") != std::string::npos) {
 			pipeline->GetSink()->processed_tuples += pipeOutputChunk->size();
 		}
 
 		// break when pipes for single chunk finishes
-		if( pipeResult == OperatorResultType::NEED_MORE_INPUT ) { 
+		if (pipeResult == OperatorResultType::NEED_MORE_INPUT) { 
 			break;
 		}
 	}
@@ -176,12 +196,16 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		auto &prev_output_chunk = *opOutputChunks[current_idx - 1];
 		current_output_chunk.Reset();
 		auto prev_output_schema_idx = prev_output_chunk.GetSchemaIdx();
-		auto current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+		idx_t current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 		current_output_chunk.SetSchemaIdx(current_output_schema_idx);
-		// current_output_chunk.SetSchemaIdx(0);
+
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk.size()
 			<< ", schema_idx " << prev_output_schema_idx << " -> " << current_output_schema_idx << std::endl;
+#endif
+
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
+		PrintInputChunk(pipeline->GetIdxOperator(current_idx)->ToString(), prev_output_chunk);
 #endif
 
 		duckdb::OperatorResultType opResult;
@@ -199,6 +223,10 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, DataChu
 		EndOperator(pipeline->GetIdxOperator(current_idx), &current_output_chunk);
 
 		pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk.size();
+
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
+		PrintOutputChunk(pipeline->GetIdxOperator(current_idx)->ToString(), current_output_chunk);
+#endif
 	
 		// if result needs more output, push index to stack
 		if (opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
@@ -225,10 +253,16 @@ void CypherPipelineExecutor::StartOperator(CypherPhysicalOperator *op) {
 
 void CypherPipelineExecutor::EndOperator(CypherPhysicalOperator *op, DataChunk *chunk) {
 	context->thread->profiler.EndOperator(chunk);
+}
 
-	// if (chunk) {
-	// 	chunk->Verify();
-	// }
+void CypherPipelineExecutor::PrintInputChunk(std::string opname, DataChunk &input) {
+	fprintf(stdout, "[%s] input schema idx: %ld, # tuples = %ld\n", opname.c_str(), input.GetSchemaIdx(), input.size());
+	OutputUtil::PrintTop10TuplesInDataChunk(input);
+}
+
+void CypherPipelineExecutor::PrintOutputChunk(std::string opname, DataChunk &output) {
+	fprintf(stdout, "[%s] output schema idx: %ld, # tuples = %ld\n", opname.c_str(), output.GetSchemaIdx(), output.size());
+	OutputUtil::PrintTop10TuplesInDataChunk(output);
 }
 
 }

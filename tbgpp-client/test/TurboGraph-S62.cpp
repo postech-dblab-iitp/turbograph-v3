@@ -29,22 +29,16 @@ using json = nlohmann::json;
 
 #include <icecream.hpp>
 
-//#include "livegraph.hpp"
+#include "common/graph_csv_reader.hpp"
+#include "common/graph_simdcsv_parser.hpp"
+#include "common/error_handler.hpp"
+
 #include "plans/query_plan_suite.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
-// #include "storage/livegraph_catalog.hpp"
-
-//#include "common/types/chunk_collection.hpp"
-
-//#include "typedef.hpp"
-
-#include "tblr.h"
-using namespace tblr;
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
-
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
@@ -62,9 +56,6 @@ using namespace tblr;
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
-#include "common/graph_csv_reader.hpp"
-#include "common/graph_simdcsv_parser.hpp"
-#include "common/error_handler.hpp"
 
 // compiler-related
 #include "gpos/_api.h"
@@ -124,15 +115,13 @@ using namespace tblr;
 
 using namespace antlr4;
 using namespace gpopt;
+using namespace duckdb;
 
 CUnittest* m_rgut = NULL;
 ULONG m_ulTests = 0;
 ULONG m_ulNested = 0;
 void (*m_pfConfig)() = NULL;
 void (*m_pfCleanup)() = NULL;
-
-
-using namespace duckdb;
 
 vector<std::pair<string, string>> vertex_files;
 vector<std::pair<string, string>> edge_files;
@@ -305,24 +294,11 @@ class InputParser{
 };
 
 void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema) {
-	int LIMIT = 10;
-	size_t num_total_tuples = 0;
-	size_t num_tuples_printed = 0;
-	for (auto &it : resultChunks) num_total_tuples += it->size();
-	
-	Table t;
-	t.layout(unicode_box_light_headerline());
-
 	PropertyKeys col_names;
 	col_names = planner.getQueryOutputColNames();
 	if (col_names.size() == 0) {
 		col_names = schema.getStoredColumnNames();
 	}
-	
-	for (int i = 0; i < col_names.size(); i++) {
-		t << col_names[i];
-	}
-	t << endr;
 
 	if (dump_output) {
 		std::cout << "Dump Output File. Path: " << dump_file_path << std::endl;
@@ -349,100 +325,7 @@ void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &result
 		std::cout << "Dump Done!" << std::endl << std::endl;;
 	}
 
-	std::cout << "===================================================" << std::endl;
-	std::cout << "[ResultSetSummary] Total " <<  num_total_tuples << " tuples. ";
-	if (LIMIT < num_total_tuples) {
-		std::cout << "Showing top " << LIMIT <<":" << std::endl;
-	} else {
-		std::cout << std::endl;
-	}
-
-	if (num_total_tuples != 0) {
-		int num_tuples_to_print;
-		int cur_offset_in_chunk = 0;
-		int chunk_idx = 0;
-		int num_tuples_to_skip;
-		bool skip_tuples = false;
-		while (chunk_idx < resultChunks.size()) {
-			auto &chunk = resultChunks[chunk_idx];
-			if (skip_tuples) {
-				if ((chunk->size() - cur_offset_in_chunk) < num_tuples_to_skip) {
-					num_tuples_to_skip -= (chunk->size() - cur_offset_in_chunk);
-					cur_offset_in_chunk = 0;
-					chunk_idx++;
-					continue;
-				} else {
-					skip_tuples = false;
-					cur_offset_in_chunk += num_tuples_to_skip;
-				}
-			}
-			num_tuples_to_print = std::min((int)(chunk->size()) - cur_offset_in_chunk, LIMIT);
-			for (int idx = 0 ; idx < num_tuples_to_print ; idx++) {
-				for (int i = 0; i < chunk->ColumnCount(); i++) {
-					t << chunk->GetValue(i, cur_offset_in_chunk + idx).ToString();
-				}
-				t << endr;
-			}
-			LIMIT -= num_tuples_to_print;
-
-			if (LIMIT == 0) {
-				std::cout << "[ " << num_tuples_printed << " / " << num_total_tuples << " ]" << std::endl;
-				std::cout << t << std::endl;
-				LIMIT = 10;
-				num_tuples_printed += 10;
-				cur_offset_in_chunk += 10;
-				if (show_top_10_only) {
-					break;
-				} else {
-					bool continue_print;
-					while (true) {
-						string show_more;
-						printf("Show 10 more tuples [y/n/s]: ");
-						std::getline(std::cin, show_more);
-						std::for_each(show_more.begin(), show_more.end(), [](auto &c){c = std::tolower(c);});
-						if ((show_more == "y") || (show_more == "")) {
-							continue_print = true;
-							break;
-						} else if (show_more == "n") {
-							continue_print = false;
-							break;
-						} else if (show_more == "s") {
-							string to_be_skipped;
-							printf("Num tuples to skip: ");
-							std::getline(std::cin, to_be_skipped);
-							num_tuples_to_skip = std::stoi(to_be_skipped);
-							num_tuples_printed += num_tuples_to_skip;
-							continue_print = true;
-							skip_tuples = true;
-							break;
-						} else {
-							printf("Please Enter Either Y or N\n");
-						}
-					}
-
-					if (continue_print) { 
-						t = Table();
-						t.layout(unicode_box_light_headerline());
-
-						for( int i = 0; i < col_names.size(); i++ ) {
-							t << col_names[i] ;
-						}
-						t << endr;
-						continue;
-					} else { 
-						break;
-					}
-				}
-			} else {
-				chunk_idx++;
-				cur_offset_in_chunk = 0;
-			}
-		}
-	}
-	if (LIMIT != 10) {
-		std::cout << t << std::endl;
-	}
-	std::cout << "===================================================" << std::endl;
+	OutputUtil::PrintQueryOutput(col_names, resultChunks, show_top_10_only);
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {

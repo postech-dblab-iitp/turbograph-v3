@@ -514,7 +514,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
-        output.Reset();
+        output.Destroy();
         output.Initialize(ext_property_type);
     }
     CompressionHeader comp_header;
