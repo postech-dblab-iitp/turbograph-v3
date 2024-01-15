@@ -849,11 +849,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
+    std::cout << "current idx: " << current_idx << std::endl;
+    std::cout << "current_idx_in_this_extent : " << current_idx_in_this_extent << std::endl;
+    std::cout << "max idx: " << max_idx << std::endl;
     if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
-    if (current_idx > max_idx) return false;
+    if (current_idx > max_idx) {
+        std::cout << "asldfjasldj" << std::endl;
+        return false;
+    }
 
     // Request I/O to the next extent if we can support double buffering
     // IC(prev_toggle, toggle, next_toggle, current_idx, current_idx_in_this_extent, max_idx, scan_size);
@@ -909,7 +915,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
         output.Reset();
-        output.Initialize(scanSchema);
+        output.Initialize(ext_property_type);
     }
 
     if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) return false;
@@ -954,6 +960,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         }
         if (!find_block_to_scan) {
             output.SetCardinality(0);
+            current_idx_in_this_extent++;
             return true;
         }
     } else {
@@ -1016,6 +1023,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         output.SetCardinality(matched_row_idxs.size());
     } else {
         output.SetCardinality(0);
+        current_idx_in_this_extent++;
         return true;
     }
     

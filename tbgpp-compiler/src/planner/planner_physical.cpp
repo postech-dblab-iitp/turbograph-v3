@@ -509,9 +509,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 			result->push_back(op);
 		}
 		else {
-			// Generate Schema
-			duckdb::Schema tmp_schema;
-			tmp_schema.setStoredTypes(global_types);
 			// Generate filter exprs
 			vector<unique_ptr<duckdb::Expression>> filter_exprs;
 			CColRefArray* outer_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -520,7 +517,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 			filter_exprs.push_back(std::move(pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr)));
 
 			duckdb::CypherPhysicalOperator *filter_cypher_op =
-				new duckdb::PhysicalFilter(tmp_schema, move(filter_exprs));
+				new duckdb::PhysicalFilter(global_schema, move(filter_exprs));
 			duckdb::CypherPhysicalOperator *scan_cypher_op =
 				new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping);
 			result->push_back(scan_cypher_op);

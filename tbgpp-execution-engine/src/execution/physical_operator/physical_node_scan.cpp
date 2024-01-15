@@ -26,6 +26,7 @@ public:
 	std::queue<ExtentIterator *> ext_its;
 	// TODO use for vectorized processing
 	DataChunk extent_cache;
+	// bool 
 };
 
 PhysicalNodeScan::PhysicalNodeScan(Schema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
@@ -124,7 +125,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	// }
 
 	StoreAPIResult res;
-	if (filter_pushdown_key_idx < 0) {
+	if (filter_pushdown_key_idx < 0 && filter_pushdown_key_idxs.empty()) {
 		// no filter pushdown
 		if (projection_mapping.size() == 1) {
 			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
@@ -133,13 +134,14 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	} else {
 		// filter pushdown applied
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, 
-												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
+		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
+												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx], false);
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!
 	
 	if (res == StoreAPIResult::DONE) {
+		// bool_flag = false;
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		current_schema_idx++;
 		return;
@@ -158,6 +160,8 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		// chunk.Initialize(scan_types[current_schema_idx]);
 		// GetData(context, chunk, lstate);
 		// return;
+	} else {
+
 	}
 
 	chunk.SetSchemaIdx(current_schema_idx);
