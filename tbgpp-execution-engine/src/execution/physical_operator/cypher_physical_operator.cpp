@@ -36,9 +36,13 @@ OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext &context, Da
 	throw InternalException("Calling Execute on a node that is not an operator!");
 }
 
-
-unique_ptr<OperatorState> CypherPhysicalOperator::GetOperatorState(ExecutionContext &context) const{
+unique_ptr<OperatorState> CypherPhysicalOperator::GetOperatorState(ExecutionContext &context) const {
 	return make_unique<OperatorState>();
+}
+
+DataChunk &CypherPhysicalOperator::GetLastSinkedData(LocalSinkState& lstate) const 
+{
+	throw InternalException("Calling GetLastSinkedData on a node that is not a sink!");
 }
 
 const vector<LogicalType>& CypherPhysicalOperator::GetTypes()  {

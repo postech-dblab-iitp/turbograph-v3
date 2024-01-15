@@ -438,6 +438,7 @@ private:
 	vector<vector<duckdb::Schema>> pipeline_schemas;
 	vector<duckdb::Schema> pipeline_union_schema;
 	vector<duckdb::SchemaFlowGraph> sfgs;
+	bool generate_sfg = false;
 
 	// dynamic schema instantiation
 	vector<CExpression *> output_expressions_to_be_refined;

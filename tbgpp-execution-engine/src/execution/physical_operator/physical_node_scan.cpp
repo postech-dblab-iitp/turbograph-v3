@@ -116,7 +116,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		if (projection_mapping.size() == 1) {
 			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
 		} else {
-			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx, false);
 		}
 	} else {
 		// filter pushdown applied
@@ -124,11 +124,12 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!
-	chunk.SetSchemaIdx(current_schema_idx);
-
+	
 	if (res == StoreAPIResult::DONE) {
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
-		if (++current_schema_idx == num_schemas) return;
+		current_schema_idx++;
+		return;
+		// if (++current_schema_idx == num_schemas) return;
 		// idx_t j = 0;
 		// for (auto i = 0; i < chunk.ColumnCount(); i++) {
 		// 	if (projection_mapping[current_schema_idx][j] == i) {
@@ -139,18 +140,15 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
 		// 	}
 		// }
-		GetData(context, chunk, lstate);
+		// chunk.Destroy();
+		// chunk.Initialize(scan_types[current_schema_idx]);
+		// GetData(context, chunk, lstate);
+		// return;
 	}
 
+	chunk.SetSchemaIdx(current_schema_idx);
 	
 	/* GetData() should return empty chunk to indicate scan is finished. */
-	
-	// icecream::ic.enable();
-	// std::cout << "[PhysicalNodeScan] output size: " << chunk.size() << std::endl;
-	// if (chunk.size() > 0) {
-	// 	IC(chunk.ToString(std::min((idx_t)10, chunk.size())));
-	// }
-	// icecream::ic.disable();
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {

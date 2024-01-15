@@ -1,22 +1,17 @@
-#pragma once
+#ifndef CYPHER_PIPELINE_EXECUTOR
+#define CYPHER_PIPELINE_EXECUTOR
 
-
+#include "common/output_util.hpp"
+#include "common/types/data_chunk.hpp"
+#include "common/stack.hpp"
 #include "execution/cypher_pipeline.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-//#include "livegraph.hpp"
 #include "storage/graph_store.hpp"
-
 #include "execution/physical_operator/physical_operator.hpp"
 #include "parallel/thread_context.hpp"
 
-
-#include "common/types/data_chunk.hpp"
-#include "common/stack.hpp"
-
 #include <functional>
 #include <map>
-
-// JHKO Copied directly from duckdb
 
 namespace duckdb {
 
@@ -118,5 +113,10 @@ private:
 
 	static bool CanCacheType(const LogicalType &type);
 	void CacheChunk(DataChunk &input, idx_t operator_idx);
+
+	void PrintInputChunk(std::string opname, DataChunk &input);
+	void PrintOutputChunk(std::string opname, DataChunk &output);
 };
 }
+
+#endif

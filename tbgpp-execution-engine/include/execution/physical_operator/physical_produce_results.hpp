@@ -23,6 +23,7 @@ public:
 	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
 	void Combine(ExecutionContext& context, LocalSinkState& lstate) const override;
 	bool IsSink() const override { return true; }
+	DataChunk &GetLastSinkedData(LocalSinkState &lstate) const override;
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

@@ -28,15 +28,6 @@ unique_ptr<OperatorState> PhysicalFilter::GetOperatorState(ExecutionContext &con
 }
 
 OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-// icecream::ic.enable();
-// std::cout << "Filter" << std::endl;
-// IC(input.size());
-// if (input.size() > 0) {
-// 	IC(input.ToString(input.size()));
-// 	// IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
-
 	auto &state = (FilterState &)lstate;
 	D_ASSERT( input.size() <= STANDARD_VECTOR_SIZE ); // TODO release me
 	
@@ -47,14 +38,6 @@ OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk 
 	} else {
 		chunk.Slice(input, state.sel, result_count);
 	}
-// 	icecream::ic.enable();
-// std::cout << "Filter End" << std::endl;
-// IC(chunk.size());
-// if (chunk.size() > 0) {
-// 	IC(chunk.ToString(chunk.size()));
-// }
-// icecream::ic.disable();
-
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 
