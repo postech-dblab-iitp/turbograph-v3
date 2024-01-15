@@ -1650,23 +1650,18 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			// project non-null column
 			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
 			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
+			// TODO 240115 tslee for projection, create new_colref is appropriate.. it can occur another bug, but I don't know currently
+			// use the original colref breaks column order (i.e. col order == colref id order)
+			CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());
 			CExpression *ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 			scalar_proj_elem = GPOS_NEW(mp) CExpression(
-				mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
+				mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // ident element do not assign new colref id
+				// mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
 
 			proj_array->Append(scalar_proj_elem);	
-			output_col_array->Append(colref);
-			// ######
-			// CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
-			// // CColRef *new_colref = union_schema_colrefs[target_col_id];
-			// CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());	// generate new reference having same name
-			// CExpression* ident_expr = GPOS_NEW(mp)
-			// 		CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
-			// scalar_proj_elem = GPOS_NEW(mp) CExpression(
-			// 	mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // TODO S62 change to colref
-			// proj_array->Append(scalar_proj_elem);
-			// output_col_array->Append(new_colref);
+			// output_col_array->Append(colref);
+			output_col_array->Append(new_colref);
 		}
 		target_col_id++;
 	}
