@@ -79,6 +79,19 @@ PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, ve
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
 
+PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+	vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues) :
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), 
+		filter_pushdown_key_idxs(filterKeyIndexes), filter_pushdown_values(filterValues) 	// without pushdown, two mappings are exactly same
+{
+	num_schemas = sch.size();
+	scan_types.resize(num_schemas);
+	for (auto i = 0; i < num_schemas; i++) {
+		scan_types[i] = std::move(sch[i].getStoredTypes());
+	}
+}
+
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
 //===--------------------------------------------------------------------===//
@@ -120,7 +133,8 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	} else {
 		// filter pushdown applied
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
+		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, 
+												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!
