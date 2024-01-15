@@ -413,6 +413,8 @@ private:
 	static OID pGetTypeIdFromScalarFunc(CExpression *func_expr);
 	static OID pGetTypeIdFromScalarAggFunc(CExpression *agg_expr);
 	static OID pGetTypeIdFromScalarSwitch(CExpression *switch_expr);
+	
+	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
 
 private:
 	// config
