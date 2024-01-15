@@ -1332,20 +1332,20 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 
 	// decide which proj elems to project - keep colref orders
 	// TODO 240115 tslee maybe we don't need this logic.. check
-	// vector<ULONG> indices_to_project;
-	// indices_to_project.resize(output_cols->Size());
-	// for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
-	// 	for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
-	// 		if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
-	// 			// matching ColRef found
-	// 			// indices_to_project.push_back(elem_idx);
-	// 			indices_to_project[ocol] = elem_idx;
-	// 			goto OUTER_LOOP;
-	// 		}
-	// 	}
-	// 	D_ASSERT(false);
-	// 	OUTER_LOOP:;
-	// }
+	vector<ULONG> indices_to_project;
+	indices_to_project.resize(output_cols->Size());
+	for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
+		for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
+			if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
+				// matching ColRef found
+				// indices_to_project.push_back(elem_idx);
+				indices_to_project[ocol] = elem_idx;
+				goto OUTER_LOOP;
+			}
+		}
+		D_ASSERT(false);
+		OUTER_LOOP:;
+	}
 
 	output_column_names.resize(output_cols->Size());
 	proj_exprs.resize(output_cols->Size());
@@ -1354,9 +1354,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 	for (auto i = 0; i < output_cols->Size(); i++) {
 		CExpression *pexprProjElem = pexprProjList->operator[](i);	// CScalarProjectElement
 		CExpression *pexprScalarExpr = pexprProjElem->operator[](0);		// CScalar... - expr tree root
+		D_ASSERT(pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent);
 
 		output_column_names[i] = std::move(pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()));
-		proj_exprs[i] = std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
+		proj_exprs[i] = std::move(pTransformScalarIdent(pexprScalarExpr, child_cols, indices_to_project[i]));
 		types[i] = proj_exprs[i]->return_type;
 	}
 

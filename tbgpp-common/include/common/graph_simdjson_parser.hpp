@@ -579,6 +579,7 @@ public:
                 partition_cat->GetOid(), property_schema_cats[i]->GetOid(), 0, {-1});
             IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
             partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
+            property_schema_cats[i]->SetPhysicalIDIndex(index_cat->GetOid());
             
             // Parse schema informations
             vector<PropertyKeyID> property_key_ids;

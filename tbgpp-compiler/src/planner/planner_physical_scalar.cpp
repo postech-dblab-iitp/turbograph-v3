@@ -79,6 +79,16 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index);
 }
 
+unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, ULONG child_index) {	
+	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
+
+	D_ASSERT(child_index != gpos::ulong_max);
+	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
+	OID type_oid = type_mdid->Oid();
+	
+	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index);
+}
+
 unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarConst* op = (CScalarConst*)scalar_expr->Pop();
