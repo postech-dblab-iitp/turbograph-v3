@@ -137,7 +137,7 @@ CXformExpandNAryJoin::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 	// create a logical select with the join expression and scalar condition child
 	CExpression *pexprSelect =
 		CUtils::PexprLogicalSelect(mp, pexprJoin, pexprScalar);
-
+		
 	// normalize the tree and push down the predicates
 	CExpression *pexprNormalized = CNormalizer::PexprNormalize(mp, pexprSelect);
 	pexprSelect->Release();

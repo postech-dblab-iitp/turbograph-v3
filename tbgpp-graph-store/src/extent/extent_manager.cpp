@@ -94,9 +94,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // Create Compressionheader, based on nullity
         CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
-        if (FlatVector::HasNull(input.data[input_chunk_idx])) {
-            comp_header.SetNullMask(FlatVector::GetNullMask(input.data[input_chunk_idx]));
-        }
         auto comp_header_size = comp_header.GetValidSize();
 
         // Get Buffer from Cache Manager
@@ -104,6 +101,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         uint8_t *buf_ptr;
         size_t buf_size;
         size_t alloc_buf_size;
+        size_t null_mask_size = 0;
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + comp_header_size;
@@ -141,9 +139,14 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             D_ASSERT(TypeIsConstantSize(p_type));
             alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
         }
+        
+        if (FlatVector::HasNull(input.data[input_chunk_idx])) {
+            null_mask_size = ValidityMask::ValidityMaskSize();
+        }
+
         string file_path_prefix = DiskAioParameters::WORKSPACE + "/part_" + std::to_string(pid) + "/ext_"
             + std::to_string(new_eid) + std::string("/chunk_");
-        ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size, false);
+        ChunkCacheManager::ccm->CreateSegment(cdf_id, file_path_prefix, alloc_buf_size + null_mask_size, false);
         ChunkCacheManager::ccm->PinSegment(cdf_id, file_path_prefix, &buf_ptr, &buf_size, false, true);
         std::memset(buf_ptr, 0, buf_size);
 
@@ -221,6 +224,11 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), alloc_buf_size - comp_header_size);
             }
         }
+
+        if (null_mask_size > 0) {
+            memcpy(buf_ptr + alloc_buf_size, FlatVector::GetNullMask(input.data[input_chunk_idx]), null_mask_size);
+        }
+
         auto chunk_compression_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_compression_duration = chunk_compression_end - chunk_compression_start;
 

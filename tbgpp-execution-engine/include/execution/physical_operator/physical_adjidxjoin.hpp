@@ -90,16 +90,7 @@ public:
 			load_eid_temporarily(load_eid_temporarily)
 	{
 		this->outer_col_maps.push_back(std::move(outer_col_map));
-		discard_tgt = discard_edge = false;
-		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
-		} else {
-			D_ASSERT(this->inner_col_map.size() == 1);	// inner = (tid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = true;
-		}
+		setDiscardSrcTgtEdge();
 		if (load_eid_temporarily) { D_ASSERT(load_eid); }
 		
 		setFillFunc();
@@ -111,16 +102,7 @@ public:
 			enumerate(true), remaining_conditions(move(vector<JoinCondition>())), outer_col_maps(move(outer_col_maps)), inner_col_map(move(inner_col_map)),
 			load_eid_temporarily(load_eid_temporarily)
 	{
-		discard_tgt = discard_edge = false;
-		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
-		} else {
-			D_ASSERT(this->inner_col_map.size() == 1);	// inner = (tid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = true;
-		}
+		setDiscardSrcTgtEdge();
 		if (load_eid_temporarily) { D_ASSERT(load_eid); }
 		
 		setFillFunc();
@@ -134,16 +116,7 @@ public:
 			do_filter_pushdown(do_filter_pushdown), outer_pos(outer_pos), inner_pos(inner_pos), load_eid_temporarily(load_eid_temporarily)
 	{
 		this->outer_col_maps.push_back(std::move(outer_col_map));
-		discard_tgt = discard_edge = false;
-		if (load_eid) {
-			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
-		} else {
-			D_ASSERT(this->inner_col_map.size() == 1);	// inner = (tid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = true;
-		}
+		setDiscardSrcTgtEdge();
 		if (load_eid_temporarily) { D_ASSERT(load_eid); }
 
 		setFillFunc();
@@ -183,9 +156,10 @@ public:
 	bool load_eid;
 	bool load_eid_temporarily;
 	bool enumerate;
+	bool discard_src;
 	bool discard_tgt;
 	bool discard_edge;
-	std::function<void(AdjIdxJoinState &, uint64_t *, uint64_t *, uint64_t *, size_t, bool, Vector &)> fillFunc;
+	std::function<void(AdjIdxJoinState &, uint64_t *, uint64_t, uint64_t*, uint64_t *, uint64_t *, size_t, bool, Vector &)> fillFunc;
 
 	// filter predicate pushdown // TODO we currently consider equality predicate with tgt
 	bool do_filter_pushdown = false;
@@ -194,13 +168,39 @@ public:
 	uint64_t *inner_vec;
 
 private:
+	void setDiscardSrcTgtEdge() {
+		discard_tgt = discard_edge = false;
+		if (load_eid) {
+			D_ASSERT(this->inner_col_map.size() >= 2);	// inner = (tid, eid) or (sid, tid, eid)
+			if (this->inner_col_map.size() == 2) {
+				discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+				discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
+			} else {
+				discard_src = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+				discard_tgt = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
+				discard_edge = (this->inner_col_map[2] == std::numeric_limits<uint32_t>::max());
+			}
+		} else {
+			// This occurs error. It could contain (sid, tid) or (tid)
+			D_ASSERT(this->inner_col_map.size() == 1 || this->inner_col_map.size() == 2);	// inner = (tid)
+			if (this->inner_col_map.size() == 1) {
+				discard_src = true;
+				discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+			} else {
+				discard_src = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+				discard_tgt = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
+			}
+			discard_edge = true;
+		}
+	}
+
 	void setFillFuncLoadEID() {
 		// load eid & tgt
 		if (discard_tgt) {
 			if (discard_edge) {
 				// discard_tgt && discard_edge
 				if (do_filter_pushdown) {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						if (fill_null) {
 							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -219,7 +219,7 @@ private:
 						}
 					};
 				} else {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						if (fill_null) {
 							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -239,7 +239,7 @@ private:
 			} else {
 				// discard_tgt
 				if (do_filter_pushdown) {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						D_ASSERT(!load_eid || (eid_adj_column != nullptr));
 						if (fill_null) {
@@ -261,7 +261,7 @@ private:
 						}
 					};
 				} else {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						D_ASSERT(!load_eid || (eid_adj_column != nullptr));
 						if (fill_null) {
@@ -287,7 +287,7 @@ private:
 			if (discard_edge) {
 				// discard_edge
 				if (do_filter_pushdown) {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						if (fill_null) {
 							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -308,7 +308,7 @@ private:
 						}
 					};
 				} else {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						if (fill_null) {
 							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -329,7 +329,7 @@ private:
 				}
 			} else {
 				if (do_filter_pushdown) {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 						D_ASSERT(!load_eid || (eid_adj_column != nullptr));
 						if (fill_null) {
@@ -353,27 +353,54 @@ private:
 						}
 					};
 				} else {
-					fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
-										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
-						D_ASSERT(!load_eid || (eid_adj_column != nullptr));
-						if (fill_null) {
-							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-							for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-								state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
-								tgt_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
-								eid_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
-								state.output_idx++;
+					if (discard_src) {
+						fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
+											uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
+							D_ASSERT(!load_eid || (eid_adj_column != nullptr));
+							if (fill_null) {
+								auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+								for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+									state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
+									tgt_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+									eid_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+									state.output_idx++;
+								}
+							} else {
+								auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+								for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+									state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
+									tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
+									eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
+									state.output_idx++;
+								}
 							}
-						} else {
-							auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-							for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-								state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
-								tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
-								eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
-								state.output_idx++;
+						};
+					}
+					else {
+						fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
+											uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
+							D_ASSERT(!load_eid || (eid_adj_column != nullptr));
+							if (fill_null) {
+								auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+								for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+									state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
+									src_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+									tgt_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+									eid_adj_column[state.output_idx] = std::numeric_limits<uint64_t>::max();
+									state.output_idx++;
+								}
+							} else {
+								auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+								for( ; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+									state.rhs_sel.set_index(state.output_idx, state.lhs_idx);
+									src_adj_column[state.output_idx] = src_vid;
+									tgt_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2];
+									eid_adj_column[state.output_idx] = adj_start[state.rhs_idx * 2 + 1];
+									state.output_idx++;
+								}
 							}
-						}
-					};
+						};
+					}
 				}
 			}
 		}
@@ -383,7 +410,7 @@ private:
 		// load tgt only
 		if (discard_tgt) {
 			if (do_filter_pushdown) {
-				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 					if (fill_null) {
 						auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -403,7 +430,7 @@ private:
 					}
 				};
 			} else {
-				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 					if (fill_null) {
 						auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -422,7 +449,7 @@ private:
 			}
 		} else {
 			if (do_filter_pushdown) {
-				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 					if (fill_null) {
 						auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -444,7 +471,7 @@ private:
 					}
 				};
 			} else {
-				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *tgt_adj_column, 
+				fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start, uint64_t src_vid, uint64_t* src_adj_column, uint64_t *tgt_adj_column, 
 										uint64_t *eid_adj_column, size_t num_rhs_to_try_fetch, bool fill_null, Vector &outer_vec) {
 					if (fill_null) {
 						auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
