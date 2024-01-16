@@ -171,19 +171,6 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 {	
 	LogicalPlan *plan = nullptr;
 
-	string ID_COLNAME = "_id";
-	string SID_COLNAME = "_sid";
-	string TID_COLNAME = "_tid";
-	std::wstring w_id_col_name = L"_id";
-	std::wstring w_sid_col_name = L"_sid";
-	std::wstring w_tid_col_name = L"_tid";
-	const CWStringConst id_col_name_str(w_id_col_name.c_str());
-	const CWStringConst sid_col_name_str(w_sid_col_name.c_str());
-	const CWStringConst tid_col_name_str(w_tid_col_name.c_str());
-	const CName id_col_cname(&id_col_name_str);
-	const CName sid_col_cname(&sid_col_name_str);
-	const CName tid_col_cname(&tid_col_name_str);
-
 	s62::LogicalSchema *prev_plan_schema;	// maintain snapshot of the prev. schema, which is used for optional match
 	if (prev_plan == nullptr) {
 		prev_plan_schema = new s62::LogicalSchema();
@@ -236,7 +223,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
 				// A join R
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					id_col_cname, sid_col_cname,
+					*id_col_cname, *sid_col_cname,
 					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
 					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					ar_join_type);
@@ -276,7 +263,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 					// gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					tid_col_cname, id_col_cname,
+					*tid_col_cname, *id_col_cname,
 					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
 					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					rb_join_type);
@@ -321,20 +308,6 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &
 	GPOS_ASSERT(outer_plan != nullptr);
 
 	CMemoryPool* mp = this->memory_pool;
-
-	string ID_COLNAME = "_id";
-	string SID_COLNAME = "_sid";
-	string TID_COLNAME = "_tid";
-	std::wstring w_id_col_name = L"_id";
-	std::wstring w_sid_col_name = L"_sid";
-	std::wstring w_tid_col_name = L"_tid";
-	const CWStringConst id_col_name_str(w_id_col_name.c_str());
-	const CWStringConst sid_col_name_str(w_sid_col_name.c_str());
-	const CWStringConst tid_col_name_str(w_tid_col_name.c_str());
-	const CName id_col_cname(&id_col_name_str);
-	const CName sid_col_cname(&sid_col_name_str);
-	const CName tid_col_cname(&tid_col_name_str);
-
 
 	LogicalPlan* qg_plan = nullptr; // start from nowhere, global subquery plan
 	GPOS_ASSERT( qgc.getNumQueryGraphs() > 0 );
@@ -387,7 +360,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &
 					lhs_plan = qg_plan; 
 				}
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					id_col_cname, sid_col_cname,
+					*id_col_cname, *sid_col_cname,
 					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
 					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
@@ -426,7 +399,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &
 					rhs_plan = qg_plan;
 				}
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					tid_col_cname, id_col_cname,
+					*tid_col_cname, *id_col_cname,
 					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
 					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
@@ -1650,19 +1623,29 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			// project non-null column
 			// the output of logicalGet is always sorted, thus it is ok to use DeriveOutputColumns() here.
 			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
-			// TODO 240115 tslee for projection, create new_colref is appropriate.. it can occur another bug, but I don't know currently
-			// use the original colref breaks column order (i.e. col order == colref id order)
-			// --> if we create new_colref, index cannot find this column
-			// CColRef *new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());
-			CExpression *ident_expr = GPOS_NEW(mp)
-					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
-			scalar_proj_elem = GPOS_NEW(mp) CExpression(
-				// mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // ident element do not assign new colref id
-				mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
+			CColRef *new_colref;
 
-			proj_array->Append(scalar_proj_elem);	
-			output_col_array->Append(colref);
-			// output_col_array->Append(new_colref);
+			if ((std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._id") != 0) ||
+				(std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._sid") != 0) ||
+				(std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._tid") != 0))
+			{
+				CExpression *ident_expr = GPOS_NEW(mp)
+					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
+				scalar_proj_elem = GPOS_NEW(mp) CExpression(
+					mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
+
+				proj_array->Append(scalar_proj_elem);	
+				output_col_array->Append(colref);
+			} else {
+				new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());
+				CExpression *ident_expr = GPOS_NEW(mp)
+					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
+				scalar_proj_elem = GPOS_NEW(mp) CExpression(
+					mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // ident element do not assign new colref id
+
+				proj_array->Append(scalar_proj_elem);
+				output_col_array->Append(new_colref);
+			}
 		}
 		target_col_id++;
 	}
@@ -1680,7 +1663,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 		const CName &lhs_colname, const CName &rhs_colname, gpopt::COperator::EOperatorId join_op) {
 	
-	CMemoryPool* mp = this->memory_pool;	
+	CMemoryPool* mp = this->memory_pool;
 	// if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
 	// 	rhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
 	// 	// need pushdown & branch elimination
