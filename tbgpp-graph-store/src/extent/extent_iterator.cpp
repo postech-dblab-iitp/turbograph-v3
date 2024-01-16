@@ -849,15 +849,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-    std::cout << "current idx: " << current_idx << std::endl;
-    std::cout << "current_idx_in_this_extent : " << current_idx_in_this_extent << std::endl;
-    std::cout << "max idx: " << max_idx << std::endl;
     if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
     if (current_idx > max_idx) {
-        std::cout << "asldfjasldj" << std::endl;
         return false;
     }
 
@@ -926,23 +922,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
     filter_cdf_id = filter_cdf_id << 32;
     filter_cdf_id = filter_cdf_id + filterKeyColIdx - target_idxs_offset;
-
-    vector<bool> valid_output;
-    valid_output.resize(target_idx.size());
-    idx_t output_idx = 0;
-    for (idx_t i = 0; i < target_idx.size(); i++) {
-        if (output_column_idxs.size() == 0) {
-            valid_output[i] = false;
-            continue;
-        } else {
-            if (output_column_idxs[output_idx] == target_idx[i]) {
-                valid_output[i] = true;
-                output_idx++;
-            } else {
-                valid_output[i] = false;
-            }
-        }
-    }
 
     idx_t scan_start_offset, scan_end_offset, scan_length;
     ChunkDefinitionCatalogEntry* cdf_cat_entry = 
@@ -1027,9 +1006,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         return true;
     }
     
-    output_idx = 0;
+    std::cout << "ext_property_type.size(): " << ext_property_type.size() << std::endl;
+    // print types
     for (size_t i = 0; i < ext_property_type.size(); i++) {
-        if (!valid_output[i]) continue;
+        std::cout << "ext_property_type[" << i << "]: " << ext_property_type[i].ToString() << std::endl;
+    }
+
+    for (size_t i = 0; i < output_column_idxs.size(); i++) {
+        auto output_idx = output_column_idxs[i];
+        std::cout << "output_idx: " << output_idx << std::endl;
+        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) { continue; } 
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
@@ -1050,26 +1036,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
                                        output.data[output_idx], comp_header.data_len);
             } else {
-                // FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[prev_toggle][i] + comp_header_valid_size + sizeof(string_t) * matched_row_idx);
                 auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
-                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet());
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
-                    // uint64_t prev_string_offset = seqno == 0 ? 0 : offset_arr[seqno - 1];
-                    // uint64_t string_offset = offset_arr[seqno];
-                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    // strings[idx] = StringVector::AddString(output.data[output_idx], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
                     strings[idx] = varchar_arr[seqno];
                 }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
             D_ASSERT(false);
-            // size_t type_size = sizeof(list_entry_t);
-            // size_t data_array_offset = comp_header.data_len * type_size;
-
-            // ListVector::SetData(output.data[output_idx], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + toggle * type_size);
-            // ListVector::SetChildData(output.data[output_idx], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + data_array_offset);
         } else if (ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
             D_ASSERT(false);
         } else if (ext_property_type[i].id() == LogicalTypeId::ID) {
@@ -1089,15 +1064,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[output_idx], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
-                // FlatVector::SetData(output.data[output_idx], io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + matched_row_idx * type_size);
-                
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
                     memcpy(output.data[output_idx].GetData() + idx * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
                 }
             }
         }
-        output_idx++;
     }
     
     current_idx_in_this_extent++;

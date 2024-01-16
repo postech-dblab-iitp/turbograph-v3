@@ -92,11 +92,9 @@ void CypherPipelineExecutor::ExecutePipeline() {
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
 		PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
 #endif
-		// if (!pipeline->GetSource()->IsSourceDataRemaining()) {
-		if (source_chunk.size() == 0) { 
+		if (!pipeline->GetSource()->IsSourceDataRemaining(*local_source_state)) {
 			if (sfg.AdvanceCurSourceIdx()) continue;
 			else {
-				std::cout << "BREAK!" << std::endl;
 				break;
 			}
 		}

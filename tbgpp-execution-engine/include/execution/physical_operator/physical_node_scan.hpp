@@ -43,6 +43,8 @@ public:
 	string ParamsToString() const override;
 	string ToString() const override;
 
+	bool IsSourceDataRemaining(LocalSourceState &lstate) const override;
+
 	// scan parameters
 	mutable vector<idx_t> oids;
 	mutable vector<vector<uint64_t>> projection_mapping;	// projection mapping for operator output
