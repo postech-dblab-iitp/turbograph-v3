@@ -22,6 +22,14 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientCo
 	l_registered_outer_plan = nullptr;
 
 	this->orcaInit();
+
+	// initialize system column names
+	id_col_cname = GPOS_NEW(memory_pool)
+		CName(GPOS_NEW(memory_pool) CWStringConst(w_id_col_name), true /*fOwnsMemory*/);
+	sid_col_cname = GPOS_NEW(memory_pool)
+		CName(GPOS_NEW(memory_pool) CWStringConst(w_sid_col_name), true /*fOwnsMemory*/);
+	tid_col_cname = GPOS_NEW(memory_pool)
+		CName(GPOS_NEW(memory_pool) CWStringConst(w_tid_col_name), true /*fOwnsMemory*/);
 }
 
 Planner::~Planner() {

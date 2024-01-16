@@ -334,9 +334,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
 	OID table_obj_id = table_mdid->Oid();
 	
-	CColRefSet* output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
-	CColRefSet* scan_cols = scan_expr->Prpp()->PcrsRequired();		// columns required to be scanned from storage
-	D_ASSERT( scan_cols->ContainsAll(output_cols) ); 				// output_cols is the subset of scan_cols
+	CColRefSet *output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
+	CColRefSet *scan_cols = scan_expr->Prpp()->PcrsRequired();		// columns required to be scanned from storage
+	D_ASSERT(scan_cols->ContainsAll(output_cols)); 				// output_cols is the subset of scan_cols
 	
 	// oids / projection_mapping 
 	vector<vector<uint64_t>> output_projection_mapping;
@@ -415,10 +415,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 	local_schemas.resize(projections_size);
 	for (int i = 0; i < projections_size; i++) {
-		CExpression* projection = projections->operator[](i);
-		CExpression* scan_expr = projection->PdrgPexpr()->operator[](0);
-		CPhysicalScan* scan_op = (CPhysicalScan*) scan_expr->Pop();
-		CExpression* proj_list_expr = projection->PdrgPexpr()->operator[](1);
+		CExpression *projection = projections->operator[](i);
+		CExpression *scan_expr = projection->PdrgPexpr()->operator[](0);
+		CPhysicalScan *scan_op = (CPhysicalScan*) scan_expr->Pop();
+		CExpression *proj_list_expr = projection->PdrgPexpr()->operator[](1);
 		const ULONG proj_list_expr_size = proj_list_expr->PdrgPexpr()->Size();
 		
 		// TODO for index scan?
@@ -1332,20 +1332,20 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 
 	// decide which proj elems to project - keep colref orders
 	// TODO 240115 tslee maybe we don't need this logic.. check
-	vector<ULONG> indices_to_project;
-	indices_to_project.resize(output_cols->Size());
-	for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
-		for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
-			if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
-				// matching ColRef found
-				// indices_to_project.push_back(elem_idx);
-				indices_to_project[ocol] = elem_idx;
-				goto OUTER_LOOP;
-			}
-		}
-		D_ASSERT(false);
-		OUTER_LOOP:;
-	}
+	// vector<ULONG> indices_to_project;
+	// indices_to_project.resize(output_cols->Size());
+	// for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
+	// 	for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
+	// 		if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
+	// 			// matching ColRef found
+	// 			// indices_to_project.push_back(elem_idx);
+	// 			indices_to_project[ocol] = elem_idx;
+	// 			goto OUTER_LOOP;
+	// 		}
+	// 	}
+	// 	D_ASSERT(false);
+	// 	OUTER_LOOP:;
+	// }
 
 	output_column_names.resize(output_cols->Size());
 	proj_exprs.resize(output_cols->Size());
@@ -1357,7 +1357,8 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopProjectionColumna
 		D_ASSERT(pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent);
 
 		output_column_names[i] = std::move(pGetColNameFromColRef(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr()));
-		proj_exprs[i] = std::move(pTransformScalarIdent(pexprScalarExpr, child_cols, indices_to_project[i]));
+		// proj_exprs[i] = std::move(pTransformScalarIdent(pexprScalarExpr, child_cols, indices_to_project[i]));
+		proj_exprs[i] = std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
 		types[i] = proj_exprs[i]->return_type;
 	}
 
