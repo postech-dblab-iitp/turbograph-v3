@@ -23,6 +23,7 @@ public:
 	}
 public:
 	bool iter_inited;
+	bool iter_finished;
 	std::queue<ExtentIterator *> ext_its;
 	// TODO use for vectorized processing
 	DataChunk extent_cache;
@@ -79,6 +80,19 @@ PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, ve
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
 
+PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+	vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues) :
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), 
+		filter_pushdown_key_idxs(filterKeyIndexes), filter_pushdown_values(filterValues) 	// without pushdown, two mappings are exactly same
+{
+	num_schemas = sch.size();
+	scan_types.resize(num_schemas);
+	for (auto i = 0; i < num_schemas; i++) {
+		scan_types[i] = std::move(sch[i].getStoredTypes());
+	}
+}
+
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
 //===--------------------------------------------------------------------===//
@@ -111,7 +125,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	// }
 
 	StoreAPIResult res;
-	if (filter_pushdown_key_idx < 0) {
+	if (filter_pushdown_key_idx < 0 && filter_pushdown_key_idxs.empty()) {
 		// no filter pushdown
 		if (projection_mapping.size() == 1) {
 			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
@@ -120,7 +134,8 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	} else {
 		// filter pushdown applied
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
+		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
+												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!
@@ -128,6 +143,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	if (res == StoreAPIResult::DONE) {
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		current_schema_idx++;
+		state.iter_finished = true;
 		return;
 		// if (++current_schema_idx == num_schemas) return;
 		// idx_t j = 0;
@@ -144,11 +160,18 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		// chunk.Initialize(scan_types[current_schema_idx]);
 		// GetData(context, chunk, lstate);
 		// return;
+	} else {
+		state.iter_finished = false;
 	}
 
 	chunk.SetSchemaIdx(current_schema_idx);
 	
 	/* GetData() should return empty chunk to indicate scan is finished. */
+}
+
+bool PhysicalNodeScan::IsSourceDataRemaining(LocalSourceState &lstate) const {
+	auto &state = (NodeScanState &)lstate;
+	return !state.iter_finished;
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {
