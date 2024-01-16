@@ -338,18 +338,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	CColRefSet* output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
 	CColRefSet* scan_cols = scan_expr->Prpp()->PcrsRequired();		// columns required to be scanned from storage
 	D_ASSERT( scan_cols->ContainsAll(output_cols) ); 				// output_cols is the subset of scan_cols
-	
-	// oids / projection_mapping 
-	vector<vector<uint64_t>> output_projection_mapping;
-	vector<uint64_t> output_ident_mapping;
-	pGenerateScanMappingAndFromTableID(table_obj_id, output_cols->Pdrgpcr(mp), output_ident_mapping);
-	D_ASSERT(output_ident_mapping.size() == output_cols->Size());
-	output_projection_mapping.push_back(output_ident_mapping);
-	vector<duckdb::LogicalType> types;
-	vector<string> out_col_names;
-	pGenerateTypes(output_cols->Pdrgpcr(mp), types);
-	pGenerateColumnNames(output_cols->Pdrgpcr(mp), out_col_names);
-	D_ASSERT(types.size() == output_ident_mapping.size());
 
 	// scan projection mapping - when doing filter pushdown, two mappings MAY BE different.
 	vector<vector<uint64_t>> scan_projection_mapping;
@@ -359,6 +347,27 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	pGenerateTypes(scan_cols->Pdrgpcr(mp), scan_types);
 	D_ASSERT(scan_ident_mapping.size() == scan_cols->Size());
 	scan_projection_mapping.push_back(scan_ident_mapping);
+
+
+	// oids / projection_mapping 
+	vector<vector<uint64_t>> output_projection_mapping;
+	vector<uint64_t> output_to_original_table_mapping;
+	vector<uint64_t> output_to_scanned_table_mapping;
+	pGenerateScanMappingAndFromTableID(table_obj_id, output_cols->Pdrgpcr(mp), output_to_original_table_mapping);
+	D_ASSERT(output_to_original_table_mapping.size() == output_cols->Size());
+
+	for (auto i = 0; i < output_to_original_table_mapping.size(); i++) {
+		auto col_id = output_to_original_table_mapping[i];
+		auto it = std::find(scan_ident_mapping.begin(), scan_ident_mapping.end(), col_id);
+		D_ASSERT(it != scan_ident_mapping.end());
+		output_to_scanned_table_mapping.push_back(std::distance(scan_ident_mapping.begin(), it));
+	}
+
+	output_projection_mapping.push_back(output_to_scanned_table_mapping);
+	vector<duckdb::LogicalType> types;
+	vector<string> out_col_names;
+	pGenerateTypes(output_cols->Pdrgpcr(mp), types);
+	pGenerateColumnNames(output_cols->Pdrgpcr(mp), out_col_names);
 
 	gpos::ULONG pred_attr_pos; duckdb::Value literal_val;
 	if (do_filter_pushdown) {
@@ -513,6 +522,10 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 			vector<unique_ptr<duckdb::Expression>> filter_exprs;
 			CColRefArray* outer_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 			/* Currently, we assume that all filters have Ident+Const. */
+			/**
+			 * This bug is due to finding the wrong column index.
+			 * The column in the UNION ALL is not as same as the column in the scan.
+			*/
 			CExpression *filter_pred_expr = repr_slc_expr->operator[](1);
 			filter_exprs.push_back(std::move(pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr)));
 
@@ -1095,6 +1108,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalInnerInde
 	CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(idxscan_op->Ptabdesc()->MDId());
 	OID table_obj_id = table_mdid->Oid();
 	oids.push_back(table_obj_id);
+
+	/**
+	 * This code may have problem!
+	 * We changed meaning of projection. Therefore, this code should be changed too.
+	 * I did not changed since I did not started implementation of IdSeek.
+	 * Soon I will change this.
+	*/
 
 	// oids / projection_mapping 
 	vector<vector<uint64_t>> output_projection_mapping;

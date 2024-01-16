@@ -23,10 +23,10 @@ public:
 	}
 public:
 	bool iter_inited;
+	bool iter_finished;
 	std::queue<ExtentIterator *> ext_its;
 	// TODO use for vectorized processing
 	DataChunk extent_cache;
-	// bool 
 };
 
 PhysicalNodeScan::PhysicalNodeScan(Schema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
@@ -135,15 +135,15 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	} else {
 		// filter pushdown applied
 		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
-												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx], false);
+												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!
 	
 	if (res == StoreAPIResult::DONE) {
-		// bool_flag = false;
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
 		current_schema_idx++;
+		state.iter_finished = true;
 		return;
 		// if (++current_schema_idx == num_schemas) return;
 		// idx_t j = 0;
@@ -161,12 +161,17 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		// GetData(context, chunk, lstate);
 		// return;
 	} else {
-
+		state.iter_finished = false;
 	}
 
 	chunk.SetSchemaIdx(current_schema_idx);
 	
 	/* GetData() should return empty chunk to indicate scan is finished. */
+}
+
+bool PhysicalNodeScan::IsSourceDataRemaining(LocalSourceState &lstate) const {
+	auto &state = (NodeScanState &)lstate;
+	return !state.iter_finished;
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {
