@@ -360,6 +360,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
+	void pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& table_expr, vector<uint64_t> &scan_projection_mapping);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression* root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
