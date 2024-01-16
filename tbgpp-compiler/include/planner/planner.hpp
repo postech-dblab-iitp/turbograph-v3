@@ -452,7 +452,16 @@ private:
 	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan
 	LogicalPlan *l_registered_outer_plan;	// registered plan
 
-
+	// const string for system columns
+	string ID_COLNAME = "_id";
+	string SID_COLNAME = "_sid";
+	string TID_COLNAME = "_tid";
+	const WCHAR *w_id_col_name = L"_id";
+	const WCHAR *w_sid_col_name = L"_sid";
+	const WCHAR *w_tid_col_name = L"_tid";
+	CName *id_col_cname;
+	CName *sid_col_cname;
+	CName *tid_col_cname;
 };
 
 }
