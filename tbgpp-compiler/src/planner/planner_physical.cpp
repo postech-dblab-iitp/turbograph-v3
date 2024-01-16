@@ -24,11 +24,16 @@
 
 #include "execution/physical_operator/physical_filter.hpp"
 
-#include "planner/expression/bound_reference_expression.hpp"
-#include "planner/expression/bound_constant_expression.hpp"
+#include "planner/expression/bound_between_expression.hpp"
+#include "planner/expression/bound_case_expression.hpp"
+#include "planner/expression/bound_cast_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
-
-
+#include "planner/expression/bound_conjunction_expression.hpp"
+#include "planner/expression/bound_constant_expression.hpp"
+#include "planner/expression/bound_function_expression.hpp"
+#include "planner/expression/bound_operator_expression.hpp"
+#include "planner/expression/bound_parameter_expression.hpp"
+#include "planner/expression/bound_reference_expression.hpp"
 
 namespace s62 {
 
@@ -519,15 +524,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 		}
 		else {
 			// Generate filter exprs
-			vector<unique_ptr<duckdb::Expression>> filter_exprs;
-			CColRefArray* outer_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 			/* Currently, we assume that all filters have Ident+Const. */
-			/**
-			 * This bug is due to finding the wrong column index.
-			 * The column in the UNION ALL is not as same as the column in the scan.
-			*/
+			vector<unique_ptr<duckdb::Expression>> filter_exprs;
+			CColRefArray* outer_cols = repr_slc_expr->PdrgPexpr()->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 			CExpression *filter_pred_expr = repr_slc_expr->operator[](1);
-			filter_exprs.push_back(std::move(pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr)));
+			auto repr_filter_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr);
+			auto repr_scan_projection_mapping = scan_projection_mapping[0];
+			pConvertTableFilterExprToUnionAllTableFilterExpr(repr_filter_expr, repr_scan_projection_mapping);
+			filter_exprs.push_back(std::move(repr_filter_expr));
 
 			duckdb::CypherPhysicalOperator *filter_cypher_op =
 				new duckdb::PhysicalFilter(global_schema, move(filter_exprs));
@@ -2089,6 +2093,84 @@ void Planner::pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULO
 									CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
 									datum->GetByteArrayValue(),
 									(uint64_t) datum->Size());
+}
+
+
+void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& expr, vector<uint64_t> &scan_projection_mapping) {
+	switch (expr->expression_class) {
+		case duckdb::ExpressionClass::BOUND_BETWEEN:
+		{
+			auto between_expr = (duckdb::BoundBetweenExpression *)expr.get();
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->input, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->lower, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->upper, scan_projection_mapping);
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_REF:
+		{
+			auto bound_ref_expr = (duckdb::BoundReferenceExpression *)expr.get();
+			for (uint64_t i = 0; i < scan_projection_mapping.size(); i++) {
+				if (scan_projection_mapping[i] == bound_ref_expr->index) {
+					bound_ref_expr->index = i;
+					break;
+				}
+			}
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_CASE:
+		{
+			auto bound_case_expr = (duckdb::BoundCaseExpression *)expr.get();
+			for (auto &bound_case_check : bound_case_expr->case_checks) {
+				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.when_expr, scan_projection_mapping);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.then_expr, scan_projection_mapping);
+			}
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_expr->else_expr, scan_projection_mapping);
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_CAST:
+		{
+			auto bound_cast_expr = (duckdb::BoundCastExpression *)expr.get();
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_cast_expr->child, scan_projection_mapping);
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_COMPARISON:
+		{
+			auto bound_comparison_expr = (duckdb::BoundComparisonExpression *)expr.get();
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->left, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->right, scan_projection_mapping);	
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_CONJUNCTION:
+		{
+			auto bound_conjunction_expr = (duckdb::BoundConjunctionExpression *)expr.get();
+			for (auto &child : bound_conjunction_expr->children) {
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+			}
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_CONSTANT:
+			break;
+		case duckdb::ExpressionClass::BOUND_FUNCTION:
+		{
+			auto bound_function_expr = (duckdb::BoundFunctionExpression *)expr.get();
+			for (auto &child : bound_function_expr->children) {
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+			}
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_OPERATOR:
+		{
+			auto bound_operator_expr = (duckdb::BoundOperatorExpression *)expr.get();
+			for (auto &child : bound_operator_expr->children) {
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+			}
+			break;
+		}
+		case duckdb::ExpressionClass::BOUND_PARAMETER:
+			break;
+		default:
+			throw InternalException("Attempting to execute expression of unknown type!");
+	}
 }
 
 }

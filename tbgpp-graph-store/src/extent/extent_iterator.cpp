@@ -1005,16 +1005,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         current_idx_in_this_extent++;
         return true;
     }
-    
-    std::cout << "ext_property_type.size(): " << ext_property_type.size() << std::endl;
-    // print types
-    for (size_t i = 0; i < ext_property_type.size(); i++) {
-        std::cout << "ext_property_type[" << i << "]: " << ext_property_type[i].ToString() << std::endl;
-    }
 
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
         auto output_idx = output_column_idxs[i];
-        std::cout << "output_idx: " << output_idx << std::endl;
         if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) { continue; } 
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
