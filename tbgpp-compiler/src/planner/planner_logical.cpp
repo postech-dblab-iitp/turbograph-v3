@@ -1625,6 +1625,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 			CColRef *colref = relation->DeriveOutputColumns()->Pdrgpcr(mp)->operator[](col_id);
 			CColRef *new_colref;
 
+			// TODO 240116 tslee - this logic will not work when we have index for properties
 			if ((std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._id") != 0) ||
 				(std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._sid") != 0) ||
 				(std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._tid") != 0))
@@ -1634,7 +1635,10 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 				scalar_proj_elem = GPOS_NEW(mp) CExpression(
 					mp, GPOS_NEW(mp) CScalarProjectElement(mp, colref), ident_expr); // ident element do not assign new colref id
 
-				proj_array->Append(scalar_proj_elem);	
+				// if we do not mark as used in this step, these columns never be marked as used
+				// -> it makes indexonlyscan possible which will not occur
+				colref->MarkAsUsed();
+				proj_array->Append(scalar_proj_elem);
 				output_col_array->Append(colref);
 			} else {
 				new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());
@@ -1643,6 +1647,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 				scalar_proj_elem = GPOS_NEW(mp) CExpression(
 					mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // ident element do not assign new colref id
 
+				colref->MarkAsUsed();
+				new_colref->MarkAsUsed();
 				proj_array->Append(scalar_proj_elem);
 				output_col_array->Append(new_colref);
 			}
