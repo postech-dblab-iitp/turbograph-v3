@@ -47,7 +47,7 @@ public:
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 	void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const override;
 	bool IsSource() const override { return true; }
-	bool IsSourceDataRemaining(LocalSourceState &lstate) const override;
+	bool IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const override;
 
 	string ParamsToString() const override;
 	std::string ToString() const override;

@@ -1745,6 +1745,23 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	auto pipeline = new duckdb::CypherPipeline(*result);
 	pipelines.push_back(pipeline);
 
+	if (generate_sfg) {
+		// Generate for the previous pipeline
+		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size()});
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(tmp_schema);
+		pGenerateSchemaFlowGraph(*result);
+
+		// Set for the current pipeline. We consider after group by, schema is merged.
+		pClearSchemaFlowGraph();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({1});
+		pipeline_schemas.push_back({tmp_schema});
+		pipeline_union_schema.push_back(tmp_schema);
+	}
+
 	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
 	new_result->push_back(op);
 
