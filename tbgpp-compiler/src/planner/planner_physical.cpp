@@ -38,7 +38,7 @@
 namespace s62 {
 
 void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
-	pResetSchemaFlowGraph();
+	pInitializeSchemaFlowGraph();
 	vector<duckdb::CypherPhysicalOperator *> final_pipeline_ops = *pTraverseTransformPhysicalPlan(orca_plan_root);
 
 	// Append PhysicalProduceResults
@@ -1568,11 +1568,29 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	} else {
 		op = new duckdb::PhysicalHashAggregate(tmp_schema, move(agg_exprs), move(agg_groups));
 	}
-	
+
 	// finish pipeline
 	result->push_back(op);
 	auto pipeline = new duckdb::CypherPipeline(*result);
 	pipelines.push_back(pipeline);
+
+	if (generate_sfg) {
+		// Generate for the previous pipeline
+		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+		vector<duckdb::Schema> temp_prev_local_schemas = pipeline_schemas.back();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size()});
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(tmp_schema);
+		pGenerateSchemaFlowGraph(*result);
+
+		// Set for the current pipeline
+		pClearSchemaFlowGraph();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size()});
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(tmp_schema);
+	}
 
 	// new pipeline
 	auto new_result = new vector<duckdb::CypherPhysicalOperator*>();
@@ -1971,7 +1989,14 @@ void Planner::pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> 
 	sfgs.push_back(std::move(sfg));
 }
 
-void Planner::pResetSchemaFlowGraph() {
+void Planner::pClearSchemaFlowGraph() {
+	pipeline_operator_types.clear();
+	num_schemas_of_childs.clear();
+	pipeline_schemas.clear();
+	pipeline_union_schema.clear();
+}
+
+void Planner::pInitializeSchemaFlowGraph() {
 	pipeline_operator_types.clear();
 	num_schemas_of_childs.clear();
 	pipeline_schemas.clear();

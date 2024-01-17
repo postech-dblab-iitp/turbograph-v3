@@ -93,9 +93,13 @@ void CypherPipelineExecutor::ExecutePipeline() {
 		PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
 #endif
 		if (!pipeline->GetSource()->IsSourceDataRemaining(*local_source_state)) {
-			if (sfg.AdvanceCurSourceIdx()) continue;
-			else {
-				break;
+			if (sfg.AdvanceCurSourceIdx()) {
+				std::cout << "source chunk finished" << std::endl;
+				continue;
+			}
+			else { 
+				std::cout << "source chunk break" << std::endl;
+				break; 
 			}
 		}
 

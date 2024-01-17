@@ -378,7 +378,8 @@ private:
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef *target_col);
 	void pGenerateFilterExprs(CColRefArray *outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
 	void pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops);
-	void pResetSchemaFlowGraph();
+	void pClearSchemaFlowGraph();
+	void pInitializeSchemaFlowGraph();
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
 
