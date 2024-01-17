@@ -288,9 +288,11 @@ void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk,
 	auto &state = (HashAggregateLocalSourceState &)lstate;
 
 	while (state.scan_index < state.radix_states.size()) {
+		auto prev_chunk_card = chunk.size();
 		radix_tables[state.scan_index].GetData(context, chunk, *sstate.global_radix_states[state.scan_index],
 		                                       *state.radix_states[state.scan_index]);
-		if (chunk.size() != 0) {
+		auto new_chunk_card = chunk.size() - prev_chunk_card;
+		if (new_chunk_card != 0) {
 			return;
 		}
 

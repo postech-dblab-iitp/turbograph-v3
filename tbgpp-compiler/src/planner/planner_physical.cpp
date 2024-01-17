@@ -446,6 +446,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 		// collect object ids
 		oids.push_back(table_obj_id);
 		vector<duckdb::LogicalType> local_types;
+
+		// initialize global schema
+		if (i == 0) global_types.resize(proj_list_expr_size, duckdb::LogicalType::SQLNULL);
 		
 		// for each object id, generate projection mapping. (if null projection required, ulong::max)
 		projection_mapping.push_back(vector<uint64_t>());
@@ -461,13 +464,15 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 				/* CScalarProjectList - CScalarIdent */
 				CScalarIdent *ident_op = (CScalarIdent *)proj_elem->PdrgPexpr()->operator[](0)->Pop();
 				auto col_idx = pGetColIdxFromTable(table_obj_id, ident_op->Pcr());
-
 				projection_mapping[i].push_back(j);
 				scan_projection_mapping[i].push_back(col_idx);
 				// add local types
 				CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 				OID type_oid = type_mdid->Oid();
-				local_types.push_back(pConvertTypeOidToLogicalType(type_oid));	
+				auto duckdb_type = pConvertTypeOidToLogicalType(type_oid);
+				local_types.push_back(duckdb_type);	
+				// update global types
+				if (global_types[j] == duckdb::LogicalType::SQLNULL) { global_types[j] = duckdb_type; }
 			} else {
 				/* CScalarProjectList - CScalarConst (null) */
 				projection_mapping[i].push_back(j);
@@ -1577,18 +1582,17 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopAgg(CExpression* 
 	if (generate_sfg) {
 		// Generate for the previous pipeline
 		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-		vector<duckdb::Schema> temp_prev_local_schemas = pipeline_schemas.back();
 		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
 		num_schemas_of_childs.push_back({prev_local_schemas.size()});
 		pipeline_schemas.push_back(prev_local_schemas);
 		pipeline_union_schema.push_back(tmp_schema);
 		pGenerateSchemaFlowGraph(*result);
 
-		// Set for the current pipeline
+		// Set for the current pipeline. We consider after group by, schema is merged.
 		pClearSchemaFlowGraph();
 		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-		num_schemas_of_childs.push_back({prev_local_schemas.size()});
-		pipeline_schemas.push_back(prev_local_schemas);
+		num_schemas_of_childs.push_back({1});
+		pipeline_schemas.push_back({tmp_schema});
 		pipeline_union_schema.push_back(tmp_schema);
 	}
 
