@@ -23,6 +23,7 @@ struct TopNScanState {
 	unique_ptr<PayloadScanner> scanner;
 	idx_t pos;
 	bool exclude_offset;
+	bool is_finished = false;
 };
 
 class TopNSortState {
@@ -46,6 +47,8 @@ public:
 
 	void InitializeScan(TopNScanState &state, bool exclude_offset);
 	void Scan(TopNScanState &state, DataChunk &chunk);
+	
+	bool IsEnd(TopNScanState &state);
 };
 
 class TopNHeap {
@@ -86,6 +89,8 @@ public:
 	void Scan(TopNScanState &state, DataChunk &chunk);
 
 	bool CheckBoundaryValues(DataChunk &sort_chunk, DataChunk &payload);
+
+	bool IsEnd(TopNScanState &state);
 };
 
 

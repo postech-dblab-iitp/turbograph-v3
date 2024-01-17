@@ -301,7 +301,7 @@ void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk,
 
 }
 
-bool PhysicalHashAggregate::IsSourceDataRemaining(LocalSourceState &lstate) const {
+bool PhysicalHashAggregate::IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const {
 	auto &state = (HashAggregateLocalSourceState &)lstate;
 	return state.scan_index < state.radix_states.size();
 }

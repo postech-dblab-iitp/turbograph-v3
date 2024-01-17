@@ -29,6 +29,10 @@ bool CypherPhysicalOperator::IsSourceDataRemaining(LocalSourceState &lstate) con
 	throw InternalException("Calling IsSourceDataRemaining on a node that is not a source!");
 }
 
+bool CypherPhysicalOperator::IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState& sink_state) const {
+	throw InternalException("Calling IsSourceDataRemaining on a node that is not a source!");
+}
+
 void CypherPhysicalOperator::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	// nothing
 }
