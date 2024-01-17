@@ -24,6 +24,11 @@ SinkResultType CypherPhysicalOperator::Sink(ExecutionContext& context, DataChunk
 unique_ptr<LocalSinkState> CypherPhysicalOperator::GetLocalSinkState(ExecutionContext &context) const{
 	return make_unique<LocalSinkState>();
 }
+
+bool CypherPhysicalOperator::IsSourceDataRemaining(LocalSourceState &lstate) const {
+	throw InternalException("Calling IsSourceDataRemaining on a node that is not a source!");
+}
+
 void CypherPhysicalOperator::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	// nothing
 }
