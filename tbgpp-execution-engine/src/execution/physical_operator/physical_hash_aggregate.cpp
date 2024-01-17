@@ -199,6 +199,10 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
+DataChunk &PhysicalHashAggregate::GetLastSinkedData(LocalSinkState &lstate) const {
+	auto &llstate = (HashAggregateLocalSinkState &)lstate;
+	return llstate.aggregate_input_chunk;
+}
 
 class HashAggregateFinalizeEvent : public Event {
 public:
@@ -293,6 +297,11 @@ void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk,
 		state.scan_index++;
 	}
 
+}
+
+bool PhysicalHashAggregate::IsSourceDataRemaining(LocalSourceState &lstate) const {
+	auto &state = (HashAggregateLocalSourceState &)lstate;
+	return state.scan_index < state.radix_states.size();
 }
 
 string PhysicalHashAggregate::ParamsToString() const {
