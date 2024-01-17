@@ -92,9 +92,11 @@ void CypherPipelineExecutor::ExecutePipeline() {
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
 		PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
 #endif
-		if (source_chunk.size() == 0) { 
+		if (!pipeline->GetSource()->IsSourceDataRemaining(*local_source_state)) {
 			if (sfg.AdvanceCurSourceIdx()) continue;
-			else break;
+			else {
+				break;
+			}
 		}
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
@@ -256,13 +258,13 @@ void CypherPipelineExecutor::EndOperator(CypherPhysicalOperator *op, DataChunk *
 }
 
 void CypherPipelineExecutor::PrintInputChunk(std::string opname, DataChunk &input) {
-	fprintf(stdout, "[%s] input schema idx: %ld, # tuples = %ld\n", opname.c_str(), input.GetSchemaIdx(), input.size());
-	OutputUtil::PrintTop10TuplesInDataChunk(input);
+	// fprintf(stdout, "[%s] input schema idx: %ld, # tuples = %ld\n", opname.c_str(), input.GetSchemaIdx(), input.size());
+	// OutputUtil::PrintTop10TuplesInDataChunk(input);
 }
 
 void CypherPipelineExecutor::PrintOutputChunk(std::string opname, DataChunk &output) {
-	fprintf(stdout, "[%s] output schema idx: %ld, # tuples = %ld\n", opname.c_str(), output.GetSchemaIdx(), output.size());
-	OutputUtil::PrintTop10TuplesInDataChunk(output);
+	// fprintf(stdout, "[%s] output schema idx: %ld, # tuples = %ld\n", opname.c_str(), output.GetSchemaIdx(), output.size());
+	// OutputUtil::PrintTop10TuplesInDataChunk(output);
 }
 
 }

@@ -107,6 +107,22 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 	}
 }
 
+StoreAPIResult
+iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
+						std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, filterValue, 
+										projection_mapping[current_schema_idx], scanSchema, EXEC_ENGINE_VECTOR_SIZE); 
+	if (scan_ongoing) {
+		return StoreAPIResult::OK;
+	} else {
+		ext_its.pop();
+		delete ext_it;
+		return StoreAPIResult::DONE;
+	}
+}
+
 StoreAPIResult 
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, DataChunk &input, idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position) {
 	Catalog &cat_instance = client.db->GetCatalog();
