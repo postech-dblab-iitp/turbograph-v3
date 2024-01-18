@@ -409,6 +409,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 	// filter
 	bool is_filter_exist = false;
+	vector<ULONG> proj_col_ids;
 
 	// leaf node
 	auto result = new vector<duckdb::CypherPhysicalOperator*>();
@@ -473,16 +474,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 				local_types.push_back(duckdb_type);	
 				// update global types
 				if (global_types[j] == duckdb::LogicalType::SQLNULL) { global_types[j] = duckdb_type; }
+				/* for filter. Use copy constructor */
+				if (is_filter_exist && i == 0) { proj_col_ids.push_back(ident_op->Pcr()->Id()); }
 			} else {
 				/* CScalarProjectList - CScalarConst (null) */
 				projection_mapping[i].push_back(j);
 				scan_projection_mapping[i].push_back(std::numeric_limits<uint64_t>::max());
 				local_types.push_back(duckdb::LogicalTypeId::SQLNULL);
-				// CScalarConst *const_null_op = (CScalarConst*)proj_elem->PdrgPexpr()->operator[](0)->Pop();
-				// // add local types
-				// CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_null_op->MdidType());
-				// OID type_oid = type_mdid->Oid();
-				// local_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+				if (is_filter_exist && i == 0) { proj_col_ids.push_back(std::numeric_limits<ULONG>::max()); }
 			}
 		}
 		// aggregate local types to global types
@@ -531,11 +530,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 			// Generate filter exprs
 			/* Currently, we assume that all filters have Ident+Const. */
 			vector<unique_ptr<duckdb::Expression>> filter_exprs;
-			CColRefArray* outer_cols = repr_slc_expr->PdrgPexpr()->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 			CExpression *filter_pred_expr = repr_slc_expr->operator[](1);
-			auto repr_filter_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr);
+			CColRefArray* repr_cols = repr_slc_expr->PdrgPexpr()->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+			auto repr_filter_expr = pTransformScalarExpr(filter_pred_expr, repr_cols, nullptr);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(repr_filter_expr, repr_cols, proj_col_ids);
 			auto repr_scan_projection_mapping = scan_projection_mapping[0];
-			pConvertTableFilterExprToUnionAllTableFilterExpr(repr_filter_expr, repr_scan_projection_mapping);
+			auto repr_projection_mapping = projection_mapping[0];
 			filter_exprs.push_back(std::move(repr_filter_expr));
 
 			duckdb::CypherPhysicalOperator *filter_cypher_op =
@@ -544,6 +544,12 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 				new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping);
 			result->push_back(scan_cypher_op);
 			result->push_back(filter_cypher_op);
+
+			// Update schema flow graph for filter
+			pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+			num_schemas_of_childs.push_back({local_schemas.size()});
+			pipeline_schemas.push_back(local_schemas);
+			pipeline_union_schema.push_back(global_schema);
 		}
 	}
 	else {
@@ -2144,21 +2150,22 @@ void Planner::pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULO
 }
 
 
-void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& expr, vector<uint64_t> &scan_projection_mapping) {
+void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& expr, CColRefArray* cols, vector<ULONG> proj_col_ids) {
 	switch (expr->expression_class) {
 		case duckdb::ExpressionClass::BOUND_BETWEEN:
 		{
 			auto between_expr = (duckdb::BoundBetweenExpression *)expr.get();
-			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->input, scan_projection_mapping);
-			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->lower, scan_projection_mapping);
-			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->upper, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->input, cols, proj_col_ids);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->lower, cols, proj_col_ids);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(between_expr->upper, cols, proj_col_ids);
 			break;
 		}
 		case duckdb::ExpressionClass::BOUND_REF:
 		{
 			auto bound_ref_expr = (duckdb::BoundReferenceExpression *)expr.get();
-			for (uint64_t i = 0; i < scan_projection_mapping.size(); i++) {
-				if (scan_projection_mapping[i] == bound_ref_expr->index) {
+			CColRef *col = cols->operator[](bound_ref_expr->index);
+			for (uint64_t i = 0; i < proj_col_ids.size(); i++) {
+				if (proj_col_ids[i] == col->Id()) {
 					bound_ref_expr->index = i;
 					break;
 				}
@@ -2169,30 +2176,30 @@ void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb
 		{
 			auto bound_case_expr = (duckdb::BoundCaseExpression *)expr.get();
 			for (auto &bound_case_check : bound_case_expr->case_checks) {
-				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.when_expr, scan_projection_mapping);
-				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.then_expr, scan_projection_mapping);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.when_expr, cols, proj_col_ids);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_check.then_expr, cols, proj_col_ids);
 			}
-			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_expr->else_expr, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_case_expr->else_expr, cols, proj_col_ids);
 			break;
 		}
 		case duckdb::ExpressionClass::BOUND_CAST:
 		{
 			auto bound_cast_expr = (duckdb::BoundCastExpression *)expr.get();
-			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_cast_expr->child, scan_projection_mapping);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_cast_expr->child, cols, proj_col_ids);
 			break;
 		}
 		case duckdb::ExpressionClass::BOUND_COMPARISON:
 		{
 			auto bound_comparison_expr = (duckdb::BoundComparisonExpression *)expr.get();
-			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->left, scan_projection_mapping);
-			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->right, scan_projection_mapping);	
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->left, cols, proj_col_ids);
+			pConvertTableFilterExprToUnionAllTableFilterExpr(bound_comparison_expr->right, cols, proj_col_ids);	
 			break;
 		}
 		case duckdb::ExpressionClass::BOUND_CONJUNCTION:
 		{
 			auto bound_conjunction_expr = (duckdb::BoundConjunctionExpression *)expr.get();
 			for (auto &child : bound_conjunction_expr->children) {
-				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, cols, proj_col_ids);
 			}
 			break;
 		}
@@ -2202,7 +2209,7 @@ void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb
 		{
 			auto bound_function_expr = (duckdb::BoundFunctionExpression *)expr.get();
 			for (auto &child : bound_function_expr->children) {
-				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, cols, proj_col_ids);
 			}
 			break;
 		}
@@ -2210,7 +2217,7 @@ void Planner::pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb
 		{
 			auto bound_operator_expr = (duckdb::BoundOperatorExpression *)expr.get();
 			for (auto &child : bound_operator_expr->children) {
-				pConvertTableFilterExprToUnionAllTableFilterExpr(child, scan_projection_mapping);
+				pConvertTableFilterExprToUnionAllTableFilterExpr(child, cols, proj_col_ids);
 			}
 			break;
 		}

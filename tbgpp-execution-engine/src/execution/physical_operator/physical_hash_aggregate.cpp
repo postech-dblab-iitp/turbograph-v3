@@ -283,10 +283,11 @@ unique_ptr<LocalSourceState> PhysicalHashAggregate::GetLocalSourceState(Executio
 }
 
 void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const {
-	
 	auto &sstate = (HashAggregateLocalSinkState &)sink_state;
 	auto &state = (HashAggregateLocalSourceState &)lstate;
 
+	/* We assume after aggregation, schema is unified */
+	chunk.SetSchemaIdx(0);
 	while (state.scan_index < state.radix_states.size()) {
 		auto prev_chunk_card = chunk.size();
 		radix_tables[state.scan_index].GetData(context, chunk, *sstate.global_radix_states[state.scan_index],

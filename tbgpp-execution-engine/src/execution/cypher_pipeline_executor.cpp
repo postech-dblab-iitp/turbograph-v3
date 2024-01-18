@@ -79,6 +79,10 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	while(true) {
 		auto& source_chunk = *(opOutputChunks[0]);
 		if (sfg.IsSFGExists()) {
+			/**
+			 * This is temporal code.
+			 * TODO: need to be refactored.
+			*/
 			source_chunk.Destroy();
 			source_chunk.Initialize(sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 		} else {
