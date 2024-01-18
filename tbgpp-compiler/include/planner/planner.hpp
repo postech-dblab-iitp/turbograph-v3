@@ -337,6 +337,7 @@ private:
 	// joins
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression *plan_expr, bool is_left_outer);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
