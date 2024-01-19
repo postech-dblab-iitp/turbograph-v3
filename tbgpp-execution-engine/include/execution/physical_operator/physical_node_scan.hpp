@@ -11,6 +11,11 @@
 
 namespace duckdb {
 
+enum class FilterPushdownType: uint8_t {
+	FP_EQ,
+	FP_RANGE
+};
+
 class PhysicalNodeScan: public CypherPhysicalOperator {
 
 public:
@@ -23,6 +28,9 @@ public:
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
 		int64_t filterKeyIndex, duckdb::Value filterValue);
+	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
+		int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive);
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 
 	// Schemaless APIs
@@ -53,8 +61,10 @@ public:
 	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
 
 	// filter pushdown
+	mutable FilterPushdownType filter_pushdown_type;
 	mutable int64_t filter_pushdown_key_idx;	// when negative, no filter pushdown	
 	mutable Value filter_pushdown_value;		// do not use when filter_pushdown_key_idx < 0
+	mutable RangeFilterValue range_filter_pushdown_value;
 
 	mutable int64_t current_schema_idx;
 	mutable int64_t num_schemas;

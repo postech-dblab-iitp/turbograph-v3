@@ -135,6 +135,7 @@
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
+#include "kuzu/binder/expression/parameter_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -204,6 +205,7 @@ public:
 	void execute(BoundStatement *bound_statement);
 	vector<duckdb::CypherPipelineExecutor *> genPipelineExecutors();
 	vector<string> getQueryOutputColNames();
+	vector<OID> getQueryOutputOIDs();
 
 private:
 	// planner.cpp
@@ -258,6 +260,7 @@ private:
 	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
@@ -435,8 +438,9 @@ private:
 	vector<duckdb::CypherPipeline *> pipelines;									// output plan pipelines
 	std::map<CColRef *, std::string> property_col_to_output_col_names_mapping; 	// actual output col names for property columns
 	vector<std::string> logical_plan_output_col_names;							// output col names
-	std::vector<CColRef *> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
-	std::vector<CColRef *> physical_plan_output_colrefs;							// final output colrefs of the physical plan
+	vector<OID> logical_plan_output_col_oids;									// output col oids			
+	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
+	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
 
 	// schema flow graph
 	vector<duckdb::OperatorType> pipeline_operator_types;

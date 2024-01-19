@@ -361,6 +361,7 @@ void * Planner::_orcaExec(void* planner_ptr) {
 		std::vector<CColRef*> output_columns;
 		std::vector<std::string> output_names;
 		logical_plan->getSchema()->getOutputColumns(output_columns);
+
 		for(auto& col: output_columns) {
 			// check if alternative column name exists on property_col_to_output_col_names_mapping
 			if(planner->property_col_to_output_col_names_mapping.find(col) != planner->property_col_to_output_col_names_mapping.end()) {
@@ -369,6 +370,13 @@ void * Planner::_orcaExec(void* planner_ptr) {
 			}
 			wstring col_name_ws = col->Name().Pstr()->GetBuffer();
 			output_names.push_back(std::string(col_name_ws.begin(), col_name_ws.end()));
+
+			// Create OIDS and push
+			if (col->GetMdidTable() == NULL) {
+				planner->logical_plan_output_col_oids.push_back(GPDB_UNKNOWN);
+			} else {
+				planner->logical_plan_output_col_oids.push_back(CMDIdGPDB::CastMdid(((CColRefTable*) col)->GetMdidTable())->Oid());
+			}
 		}
 		D_ASSERT(output_columns.size() == output_names.size());
 		planner->logical_plan_output_colrefs = output_columns;
@@ -493,5 +501,8 @@ vector<string> Planner::getQueryOutputColNames(){
 	return logical_plan_output_col_names;
 }
 
+std::vector<OID> Planner::getQueryOutputOIDs(){
+	return logical_plan_output_col_oids;
+}
 
 } // s62
