@@ -81,4 +81,5 @@ public:
 	std::vector<duckdb::LogicalType> stored_types;
 	std::vector<std::string> stored_column_names;
 };
+
 }
