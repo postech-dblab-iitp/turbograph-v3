@@ -62,7 +62,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-graph-store-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_compile_definitions(tbgpp-graph-store-lib PUBLIC ENABLE_VELOX_FILTERING)
+# target_compile_definitions(tbgpp-graph-store-lib PUBLIC ENABLE_VELOX_FILTERING)
 target_include_directories( tbgpp-graph-store-lib PUBLIC 
   # include  
   "${PROJECT_SOURCE_DIR}/include"
@@ -147,8 +147,8 @@ file(GLOB TILE_TEST_SRC
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_json_reader.cc"
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_csv_reader.cc"
   #"${PROJECT_SOURCE_DIR}/test/extent/extent_test_ldbc.cc"
-  "${PROJECT_SOURCE_DIR}/test/schemaless/schemaless_simulation.cpp"
-  "${PROJECT_SOURCE_DIR}/test/statistics/test_clustering.cpp"
+  # "${PROJECT_SOURCE_DIR}/test/schemaless/schemaless_simulation.cpp"
+  # "${PROJECT_SOURCE_DIR}/test/statistics/test_clustering.cpp"
 )
 
 # if (FALSE)
