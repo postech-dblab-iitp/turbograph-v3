@@ -55,7 +55,6 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 			}
 		} else if (projection_mappings.size() != 0) {
 			idx_t schema_idx = input.GetSchemaIdx();
-			std::cout << "schema_idx: " << schema_idx << std::endl;
 			for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
 				if (projection_mappings[schema_idx][idx] == std::numeric_limits<uint8_t>::max()) {
 					FlatVector::Validity(copyChunk->data[idx]).SetAllInvalid(input.size());
@@ -63,6 +62,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 				}
 				VectorOperations::Copy(input.data[idx], copyChunk->data[idx], input.size(), 0, 0);
 			}
+			copyChunk->SetSchemaIdx(schema_idx);
 		} else {
 			D_ASSERT(false);
 		}

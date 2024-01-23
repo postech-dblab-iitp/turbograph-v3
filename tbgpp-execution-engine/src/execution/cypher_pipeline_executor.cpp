@@ -11,8 +11,6 @@
 
 #include <cassert>
 
-#define DEBUG_PRINT_PIPELINE
-
 namespace duckdb {
 
 CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext* context, CypherPipeline* pipeline)

@@ -549,7 +549,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
-        if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
+        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) {
+            output.data[i].GetValidity().SetAllInvalid(output.size());
+            continue; 
+        } else if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = ext_property_type[i].InternalType();
@@ -1008,7 +1011,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
         auto output_idx = output_column_idxs[i];
-        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) { continue; } 
+        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) {
+            output.data[i].GetValidity().SetAllInvalid(output.size());
+            continue; 
+        } 
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
