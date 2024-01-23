@@ -1052,16 +1052,16 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
     auto value_type = l_filterValue.type();
 
     if (column_type == LogicalType::BIGINT) {
-        auto l_bigint_value = duckdb::BigIntValue::Get(l_filterValue);
-        auto r_bigint_value = duckdb::BigIntValue::Get(r_filterValue);
+        auto l_bigint_value = l_filterValue.GetValue<int64_t>();
+        auto r_bigint_value = r_filterValue.GetValue<int64_t>();
         if (!l_inclusive) l_bigint_value = l_bigint_value + 1;
         if (!r_inclusive) r_bigint_value = r_bigint_value - 1;
         auto filter = std::make_unique<common::BigintRange>(l_bigint_value, r_bigint_value, false);
         evalEQPredicateSIMD<int64_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
     else if (column_type == LogicalType::INTEGER) {
-        auto l_int_value = duckdb::IntegerValue::Get(l_filterValue);
-        auto r_int_value = duckdb::IntegerValue::Get(r_filterValue);
+        auto l_int_value = l_filterValue.GetValue<int32_t>();
+        auto r_int_value = r_filterValue.GetValue<int32_t>();
         if (!l_inclusive) l_int_value = l_int_value + 1;
         if (!r_inclusive) r_int_value = r_int_value - 1;
         auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(l_int_value), static_cast<int64_t>(r_int_value), false);
@@ -1074,8 +1074,8 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         switch(column_type.InternalType()) {
         case PhysicalType::INT16:
         {
-            auto l_int16_value = duckdb::SmallIntValue::Get(l_filterValue);
-            auto r_int16_value = duckdb::SmallIntValue::Get(r_filterValue);
+            auto l_int16_value = l_filterValue.GetValue<int16_t>();
+            auto r_int16_value = r_filterValue.GetValue<int16_t>();
             if (!l_inclusive) l_int16_value = l_int16_value + 1;
             if (!r_inclusive) r_int16_value = r_int16_value - 1;
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(l_int16_value), static_cast<int64_t>(r_int16_value), false);
@@ -1084,8 +1084,8 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         }
         case PhysicalType::INT32:
         {
-            auto l_int32_value = duckdb::IntegerValue::Get(l_filterValue);
-            auto r_int32_value = duckdb::IntegerValue::Get(r_filterValue);
+            auto l_int32_value = l_filterValue.GetValue<int32_t>();
+            auto r_int32_value = r_filterValue.GetValue<int32_t>();
             if (!l_inclusive) l_int32_value = l_int32_value + 1;
             if (!r_inclusive) r_int32_value = r_int32_value - 1;
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(l_int32_value), static_cast<int64_t>(r_int32_value), false);
@@ -1094,8 +1094,8 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         }
         case PhysicalType::INT64:
         {
-            auto l_int64_value = duckdb::BigIntValue::Get(l_filterValue);
-            auto r_int64_value = duckdb::BigIntValue::Get(l_filterValue);
+            auto l_int64_value = l_filterValue.GetValue<int64_t>();
+            auto r_int64_value = r_filterValue.GetValue<int64_t>();
             if (!l_inclusive) l_int64_value = l_int64_value + 1;
             if (!r_inclusive) r_int64_value = r_int64_value - 1;
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(l_int64_value), static_cast<int64_t>(r_int64_value), false);
@@ -1107,9 +1107,9 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         }
     }
     else if (column_type == LogicalType::DATE) {
-        auto l_date_value = duckdb::DateValue::Get(l_filterValue);
+        auto l_date_value = l_filterValue.GetValue<date_t>();
         auto l_days = l_date_value.days;
-        auto r_date_value = duckdb::DateValue::Get(r_filterValue);
+        auto r_date_value = r_filterValue.GetValue<date_t>();
         auto r_days = r_date_value.days;
         if (!l_inclusive) l_days = l_days + 1;
         if (!r_inclusive) r_days = r_days - 1;
