@@ -1268,7 +1268,7 @@ CypherPipelineExecutor* sch7_pipe1(QueryPlanSuite& suite) {
 	// ops.push_back(new PhysicalFilter(schema2, std::move(predicates)));
 	// ops.push_back(new PhysicalProjection(schema2, std::move(proj_exprs)));
 	ops.push_back(new PhysicalAdjIdxJoin(schema2, 523, JoinType::INNER, 0, false, outer_col_maps2, inner_col_map2)); // post_has_creator
-	ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
+	// ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
 	// sink
 	ops.push_back(new PhysicalProduceResults(final_schema, projection_mapping2));
 	
@@ -1635,7 +1635,7 @@ CypherPipelineExecutor* sch8_pipe1(QueryPlanSuite& suite) {
 	// ops.push_back(new PhysicalFilter(schema2, std::move(predicates)));
 	// ops.push_back(new PhysicalProjection(schema2, std::move(proj_exprs)));
 	ops.push_back(new PhysicalAdjIdxJoin(schema2, 523, JoinType::INNER, 0, false, outer_col_maps2, inner_col_map2)); // post_has_creator
-	ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
+	// ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
 	ops.push_back(new PhysicalTop(final_schema, 10, 0));
 	// sink
 	ops.push_back(new PhysicalProduceResults(final_schema, projection_mapping2));
@@ -2017,7 +2017,7 @@ CypherPipelineExecutor* sch9_pipe1(QueryPlanSuite& suite) {
 	ops.push_back(new PhysicalNodeScan(post_schemas, post_union_schema, move(oids1), move(projection_mapping1), move(scan_projection_mapping1)));
 	// intermediate ops
 	ops.push_back(new PhysicalAdjIdxJoin(schema2, 523, JoinType::INNER, 0, false, outer_col_maps2, inner_col_map2)); // post_has_creator
-	ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
+	// ops.push_back(new PhysicalIdSeek(schema3, 8, oids3, projection_mapping3, outer_col_maps3, inner_col_map3, scan_projection_mapping3)); // fetch person
 	// sink
 	ops.push_back(new PhysicalTopNSort(final_schema, move(orders), 10, 0));
 	
