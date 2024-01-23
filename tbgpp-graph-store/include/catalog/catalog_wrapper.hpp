@@ -45,7 +45,6 @@ public:
     void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, idx_t &univTableID, GraphComponentType g_type) {
         auto &catalog = db.GetCatalog();
 
-        D_ASSERT(partitionIDs.size() == 1); // TODO
         for (auto &pid : partitionIDs) {
             PartitionCatalogEntry *p_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
