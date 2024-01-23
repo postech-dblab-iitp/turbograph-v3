@@ -350,7 +350,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	// }
 	// chunk determined. now fill in lhs using slice operation
 	idx_t schema_idx = input.GetSchemaIdx();
-	// std::cout << "Input schema idx: " << schema_idx << ", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
+	schema_idx = 0; // TODO 240117 tslee maybe we don't need
 	D_ASSERT(schema_idx < state.outer_col_maps.size());
 	D_ASSERT(input.ColumnCount() == state.outer_col_maps[schema_idx].size());
 	for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {
@@ -362,13 +362,6 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &i
 	}
 	D_ASSERT( state.output_idx <= STANDARD_VECTOR_SIZE );
 	chunk.SetCardinality(state.output_idx);
-
-// icecream::ic.enable();
-// std::cout << "[PhysicalAdjIdxJoin] output" << std::endl;
-// IC(chunk.size());
-// if (chunk.size() != 0)
-// 	IC(chunk.ToString(std::min(20, (int)chunk.size())));
-// icecream::ic.disable();
 }
 
 void PhysicalAdjIdxJoin::ProcessLeftJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {

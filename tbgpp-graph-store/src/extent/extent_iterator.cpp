@@ -1164,14 +1164,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
+            fprintf(stdout, "[Seek-Bulk1] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) ext_property_type[i].id(), comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
+            fprintf(stdout, "[Seek-Bulk1] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
@@ -1357,14 +1357,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, target_seqnos.size() = %ld, %p -> %p\n", 
+            fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, target_seqnos.size() = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) cur_ext_property_type[i].id(), comp_header.data_len,
                             target_seqnos.size(), io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
+            fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
@@ -1694,14 +1694,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
+            fprintf(stdout, "[Seek-Bulk3] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, %p -> %p\n", 
                             i, output_column_idxs[j], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) cur_ext_property_type[i].id(), comp_header.data_len,
                             io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
 #ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk] Load Column %ld\n", i);
+            fprintf(stdout, "[Seek-Bulk3] Load Column %ld -> %ld\n", i, output_column_idxs[j]);
 #endif
         }
         auto comp_header_valid_size = comp_header.GetValidSize();
