@@ -373,7 +373,7 @@ private:
 	bool pIsCartesianProduct(CExpression *expr);
 	
 	// helper functions
-	void pGenerateScanMappingAndFromTableID(OID table_oid, CColRefArray *columns, vector<uint64_t>& out_mapping);
+	void pGenerateScanMapping(OID table_oid, CColRefArray *columns, vector<uint64_t>& out_mapping);
 	void pGenerateTypes(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
 	void pGenerateColumnNames(CColRefArray *columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef *target_col);

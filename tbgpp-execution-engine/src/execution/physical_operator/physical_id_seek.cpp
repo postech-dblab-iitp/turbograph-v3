@@ -48,17 +48,19 @@ PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema& sch, uint64_t id_col_idx, vector<uint64_t> oids, vector<vector<uint64_t>> projection_mapping,
-				   vector<vector<uint32_t>> &outer_col_maps, vector<vector<uint32_t>> &inner_col_maps, vector<vector<uint64_t>> scan_projection_mapping)
+				   vector<vector<uint32_t>> &outer_col_maps, vector<vector<uint32_t>> &inner_col_maps, vector<vector<uint64_t>> scan_projection_mapping,
+				   vector<vector<duckdb::LogicalType>> scan_types)
 		: CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch), id_col_idx(id_col_idx), oids(oids), projection_mapping(projection_mapping),
 		  outer_col_maps(move(outer_col_maps)), inner_col_maps(move(inner_col_maps)), scan_projection_mapping(scan_projection_mapping),
-		  filter_pushdown_key_idx(-1) {
-	scan_types.resize(this->inner_col_maps.size());
-	for (auto i = 0; i < this->inner_col_maps.size(); i++) {
-		for (int col_idx = 0; col_idx < this->inner_col_maps[i].size(); col_idx++) {
-			// target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
-			scan_types[i].push_back(sch.getStoredTypes()[this->inner_col_maps[i][col_idx]]);
-		}
-	}
+		  filter_pushdown_key_idx(-1), scan_types(scan_types)
+{
+	// scan_types.resize(this->inner_col_maps.size());
+	// for (auto i = 0; i < this->inner_col_maps.size(); i++) {
+	// 	for (int col_idx = 0; col_idx < this->inner_col_maps[i].size(); col_idx++) {
+	// 		// target_types.push_back(sch.getStoredTypes()[this->inner_col_map[col_idx]]);
+	// 		scan_types[i].push_back(sch.getStoredTypes()[this->inner_col_maps[i][col_idx]]);
+	// 	}
+	// }
 
 	D_ASSERT(oids.size() == projection_mapping.size());
 	for (auto i = 0; i < oids.size(); i++) {
@@ -187,16 +189,6 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 
-// icecream::ic.enable();
-// std::cout << "[PhysicalIdSeek] input schema idx: " << input.GetSchemaIdx() << 
-// 		", output schema idx: " << chunk.GetSchemaIdx() << std::endl;
-// IC(input.size(), id_col_idx, do_filter_pushdown, has_expression);
-// IC(inner_col_map);
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
-
 	idx_t nodeColIdx = id_col_idx;
 	D_ASSERT(nodeColIdx < input.ColumnCount());
 	idx_t output_idx = 0;
@@ -259,6 +251,9 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 				vector<idx_t> output_col_idx;
 				for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
 					output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+					// TODO we should change this into result sets
+					auto &validity = FlatVector::Validity(chunk.data[inner_col_maps[mapping_idxs[extentIdx]][i]]);
+					validity.SetAllInvalid(input.size());
 				}
 				context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
 					target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);
@@ -317,13 +312,6 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 	} else {
 		D_ASSERT(false);
 	}
-
-// icecream::ic.enable();
-// std::cout << "[PhysicalIdSeek] output" << std::endl;
-// IC(chunk.size());
-// if (chunk.size() != 0)
-// 	IC(chunk.ToString(std::min(10, (int)chunk.size())));
-// icecream::ic.disable();
 
 	return OperatorResultType::NEED_MORE_INPUT;
 }

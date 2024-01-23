@@ -1641,7 +1641,11 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 				proj_array->Append(scalar_proj_elem);
 				output_col_array->Append(colref);
 			} else {
-				new_colref = col_factory->PcrCreate(colref->RetrieveType(), colref->TypeModifier(), colref->Name());
+				new_colref = col_factory->PcrCopy(colref);
+				// CColRefTable *colref_table = (CColRefTable *)colref;
+				// new_colref = col_factory->PcrCreate(colref_table->RetrieveType(), colref_table->TypeModifier(),
+				// 	colref_table->GetMdidTable(), colref_table->AttrNum(), colref_table->IsNullable(),
+				// 	colref->Name());
 				CExpression *ident_expr = GPOS_NEW(mp)
 					CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
 				scalar_proj_elem = GPOS_NEW(mp) CExpression(

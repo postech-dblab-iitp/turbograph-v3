@@ -75,7 +75,8 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*" 
 	# for debugging purpose, temporary
 	"${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.c*"
-	"${PROJECT_SOURCE_DIR}/test/plans/*.c*")
+	"${PROJECT_SOURCE_DIR}/test/plans/*.c*"
+)
 target_include_directories( tbgpp-execution-engine-lib PUBLIC "${PROJECT_SOURCE_DIR}/include" )
 target_include_directories( tbgpp-execution-engine-lib PUBLIC
 	# tbgpp-common
