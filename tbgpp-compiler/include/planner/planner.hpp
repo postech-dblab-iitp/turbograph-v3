@@ -362,7 +362,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
-	void pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& table_expr, vector<uint64_t> &scan_projection_mapping);
+	void pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& table_expr, CColRefArray* cols, vector<ULONG> proj_col_ids);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -379,7 +379,8 @@ private:
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef *target_col);
 	void pGenerateFilterExprs(CColRefArray *outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
 	void pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops);
-	void pResetSchemaFlowGraph();
+	void pClearSchemaFlowGraph();
+	void pInitializeSchemaFlowGraph();
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
 

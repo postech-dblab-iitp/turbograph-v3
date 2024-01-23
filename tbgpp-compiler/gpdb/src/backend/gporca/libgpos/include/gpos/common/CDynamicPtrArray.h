@@ -285,6 +285,10 @@ public:
 
 		for (ULONG ul = 0; ul < m_size; ul++)
 		{
+			if (m_elems[ul] == NULL) 
+			{
+				continue;
+			}
 			if (*m_elems[ul] == *elem)
 			{
 				return ul;

@@ -45,6 +45,11 @@ SinkResultType PhysicalTopNSort::Sink(ExecutionContext &context, DataChunk &inpu
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
+DataChunk &PhysicalTopNSort::GetLastSinkedData(LocalSinkState &lstate) const {
+	auto &sink_state = (TopNSortSinkState &)lstate;
+	return sink_state.heap.sort_chunk;
+}
+
 //===--------------------------------------------------------------------===//
 // Combine
 //===--------------------------------------------------------------------===//
@@ -82,6 +87,14 @@ void PhysicalTopNSort::GetData(ExecutionContext &context, DataChunk &chunk, Loca
 	gstate.heap.Scan(state.state, chunk);
 	chunk.SetSchemaIdx(0); // TODO always 0? after sort, schemas are unified
 }
+
+
+bool PhysicalTopNSort::IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const {
+	auto &state = (TopNSortSourceState &)lstate;
+	auto &gstate = (TopNSortSinkState &)sink_state;
+	return !gstate.heap.IsEnd(state.state);
+}
+
 
 std::string PhysicalTopNSort::ParamsToString() const {
 	return "topnsort-param";

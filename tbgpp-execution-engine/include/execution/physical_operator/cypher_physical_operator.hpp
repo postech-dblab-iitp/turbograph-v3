@@ -35,6 +35,7 @@ public:
 	virtual bool IsSourceDataRemaining(LocalSourceState &lstate) const;
 	// non-leaf sources (e.g. HashAgg, Sort source)
 	virtual void GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const;
+	virtual bool IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const;
 	virtual unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const;
 	virtual bool IsSource() const { return false; }	// must be overrided for true for source operators
 
