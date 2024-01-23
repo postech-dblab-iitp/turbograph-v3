@@ -775,46 +775,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // }
 
 // Get Next Extent with filterKey
-// bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
-//                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
-//                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-//     if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
-//         current_idx++;
-//         current_idx_in_this_extent = 0;
-//     }
-//     if (current_idx > max_idx) {
-//         return false;
-//     }
-
-//     requestIOForDoubleBuffering(context);
-//     requestFinalizeIO();
-    
-//     CompressionHeader comp_header;
-//     vector<idx_t> matched_row_idxs;
-//     vector<bool> valid_output_mask;
-//     idx_t scan_start_offset, scan_end_offset;
-//     output_eid = ext_ids_to_iterate[current_idx];
-
-//     if (!is_output_chunk_initialized) {
-//         output.Reset();
-//         output.Initialize(scanSchema);
-//     }
-//     if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
-//         return false;
-//     }
-//     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-//     if(!getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset)) {
-//         output.SetCardinality(0);
-//     }
-//     else {
-//         getValidOutputMask(output_column_idxs, valid_output_mask);
-//         findMatchedRowsEQFilter(comp_header, findColumnIdx(filter_cdf_id), scan_start_offset, scan_end_offset, filterValue, matched_row_idxs);
-//         copyMatchedRows(comp_header, matched_row_idxs, valid_output_mask, output_eid, output); 
-//         if (matched_row_idxs.size() != 0) { current_idx_in_this_extent++; }
-//     }
-//     return true;
-// }
-
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
@@ -822,224 +782,37 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         current_idx++;
         current_idx_in_this_extent = 0;
     }
-    if (current_idx > max_idx) {
-        return false;
-    }
+    if (current_idx > max_idx) return false;
 
-    // Request I/O to the next extent if we can support double buffering
-    // IC(prev_toggle, toggle, next_toggle, current_idx, current_idx_in_this_extent, max_idx, scan_size);
-    Catalog& cat_instance = context.db->GetCatalog();
-    if (support_double_buffering && current_idx < max_idx && current_idx_in_this_extent == 0) {
-        if (current_idx != 0) toggle = (toggle + 1) % num_data_chunks;
-        int next_toggle = (toggle + 1) % num_data_chunks;
-        if (current_idx < max_idx - 1) {
-            ExtentCatalogEntry* extent_cat_entry = 
-                (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx + 1]));
-            
-            // Unpin previous chunks
-            for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
-                if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-                ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);
-            }
+    requestIOForDoubleBuffering(context);
+    requestFinalizeIO();
+    
+    CompressionHeader comp_header;
+    vector<idx_t> matched_row_idxs;
+    idx_t scan_start_offset, scan_end_offset;
+    output_eid = ext_ids_to_iterate[current_idx];
 
-            size_t chunk_size = ext_property_type.empty() ? extent_cat_entry->chunks.size() : ext_property_type.size();
-            io_requested_cdf_ids[next_toggle].resize(chunk_size);
-            io_requested_buf_ptrs[next_toggle].resize(chunk_size);
-            io_requested_buf_sizes[next_toggle].resize(chunk_size);
-            
-            int j = 0;
-            for (int i = 0; i < chunk_size; i++) {
-                if (!ext_property_type.empty() && ext_property_type[i] == LogicalType::ID) {
-                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                    j++;
-                    continue;
-                }
-                if (!target_idx.empty() && (target_idx[j] == std::numeric_limits<uint64_t>::max())) {
-                    io_requested_cdf_ids[next_toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
-                    j++;
-                    continue;
-                }
-                ChunkDefinitionID cdf_id = target_idx.empty() ? 
-                    extent_cat_entry->chunks[i] : extent_cat_entry->chunks[target_idx[j++] - target_idxs_offset];
-                io_requested_cdf_ids[next_toggle][i] = cdf_id;
-                string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
-                ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[next_toggle][i], &io_requested_buf_sizes[next_toggle][i], true);
-            }
-            num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
-        }
-    }
-
-    // Request chunk cache manager to finalize I/O
-    if (current_idx_in_this_extent == 0) {
-        for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
-            if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-            ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
-        }
-    }
-
-    // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
         output.Reset();
         output.Initialize(ext_property_type);
     }
-
-    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) return false;
-    size_t remain_data_size = num_tuples_in_current_extent[toggle] - (current_idx_in_this_extent * scan_size);
-    size_t output_cardinality = std::min((size_t) scan_size, remain_data_size);
-
-    output_eid = ext_ids_to_iterate[current_idx];
-    ChunkDefinitionID filter_cdf_id = (ChunkDefinitionID) output_eid;
-    filter_cdf_id = filter_cdf_id << 32;
-    filter_cdf_id = filter_cdf_id + filterKeyColIdx - target_idxs_offset;
-
-    idx_t scan_start_offset, scan_end_offset, scan_length;
-    ChunkDefinitionCatalogEntry* cdf_cat_entry = 
-            (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, DEFAULT_SCHEMA, "cdf_" + std::to_string(filter_cdf_id));
-
-    // TODO move this logic to InitializeScan (We don't need to do I/O in this case)
-    if (cdf_cat_entry->IsMinMaxArrayExist()) {
-        vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
-        bool find_block_to_scan = false;
-        if (minmax[current_idx_in_this_extent].min <= filterValue.GetValue<idx_t>() 
-            && minmax[current_idx_in_this_extent].max >= filterValue.GetValue<idx_t>()) {
-            scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
-            scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
-            find_block_to_scan = true;
-        }
-        if (!find_block_to_scan) {
-            output.SetCardinality(0);
-            current_idx_in_this_extent++;
-            return true;
-        }
-    } else {
-        scan_start_offset = current_idx_in_this_extent * scan_size;
-        scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
+    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
+        return false;
     }
-    
-    scan_length = scan_end_offset - scan_start_offset;
-
-    // Find the column index
-    auto col_idx_find_result = std::find(io_requested_cdf_ids[toggle].begin(), io_requested_cdf_ids[toggle].end(), filter_cdf_id);
-    if (col_idx_find_result == io_requested_cdf_ids[toggle].end()) throw InvalidInputException("I/O Error");
-    idx_t col_idx = col_idx_find_result - io_requested_cdf_ids[toggle].begin();
-
-    // Get Compression Header
-    CompressionHeader comp_header;
-
-    // Find the index of a row that matches a predicate
-    vector<idx_t> matched_row_idxs;
-    if (ext_property_type[col_idx] == LogicalType::VARCHAR) {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
-        if (comp_header.comp_type == DICTIONARY) {
-            throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
-        } else {
-            size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t);
-            // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
-            string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
-            uint64_t string_offset, prev_string_offset;
-            for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                // prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                // string_offset = offset_arr[input_idx];
-                // string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                std::string string_val = std::string(varchar_arr[input_idx].GetDataUnsafe(), varchar_arr[input_idx].GetSize());
-                Value str_val(string_val);
-                if (str_val == filterValue) {
-                    matched_row_idxs.push_back(input_idx);
-                }
-            }
-        }
-    } else if (ext_property_type[col_idx] == LogicalType::FORWARD_ADJLIST || ext_property_type[col_idx] == LogicalType::BACKWARD_ADJLIST) {
-        throw InvalidInputException("Filter predicate on ADJLIST column");
-    } else if (ext_property_type[col_idx] == LogicalType::ID) {
-        throw InvalidInputException("Filter predicate on PID column");
-    } else {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
-        if (comp_header.comp_type == BITPACKING) {
-            throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
-        } else {
-            LogicalType column_type = ext_property_type[col_idx];
-            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
-            for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                if (column_vec.GetValue(input_idx) == filterValue) {
-                    matched_row_idxs.push_back(input_idx);
-                }
-            }
-        }
-    }
-
-    if (matched_row_idxs.size() > 0) {
-        output.SetCardinality(matched_row_idxs.size());
-    } else {
+    auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
+    if(!getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset)) {
         output.SetCardinality(0);
-        current_idx_in_this_extent++;
-        return true;
     }
-
-    for (size_t i = 0; i < output_column_idxs.size(); i++) {
-        auto output_idx = output_column_idxs[i];
-        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) { continue; } 
-        if (ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
-#ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Scan With Filter] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req_buf_size = %ld comp_type = %d, data_len = %ld, %p\n", 
-                            i, output_idx, io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, comp_header.data_len, io_requested_buf_ptrs[toggle][i]);
-#endif
-        } else {
-#ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Scan With Filter] Load Column %ld\n", i);
-#endif
-        }
-        auto comp_header_valid_size = comp_header.GetValidSize();
-        if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
-            if (comp_header.comp_type == DICTIONARY) {
-                PhysicalType p_type = ext_property_type[i].InternalType();
-                DeCompressionFunction decomp_func(DICTIONARY, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[output_idx], comp_header.data_len);
-            } else {
-                auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
-                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
-                for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                    idx_t seqno = matched_row_idxs[idx];
-                    strings[idx] = varchar_arr[seqno];
-                }
-            }
-        } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
-            D_ASSERT(false);
-        } else if (ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
-            D_ASSERT(false);
-        } else if (ext_property_type[i].id() == LogicalTypeId::ID) {
-            idx_t physical_id_base = (idx_t)output_eid;
-            physical_id_base = physical_id_base << 32;
-            idx_t *id_column = (idx_t *)output.data[output_idx].GetData();
-            for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                idx_t seqno = matched_row_idxs[idx];
-                id_column[idx] = physical_id_base + seqno;
-            }
-        } else {
-            if (comp_header.comp_type == BITPACKING) {
-                D_ASSERT(false);
-                PhysicalType p_type = ext_property_type[i].InternalType();
-                DeCompressionFunction decomp_func(BITPACKING, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[output_idx], comp_header.data_len);
-            } else {
-                size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
-                for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                    idx_t seqno = matched_row_idxs[idx];
-                    memcpy(output.data[output_idx].GetData() + idx * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
-                }
-            }
-        }
+    else {
+        findMatchedRowsEQFilter(comp_header, findColumnIdx(filter_cdf_id), scan_start_offset, scan_end_offset, filterValue, matched_row_idxs);
+        copyMatchedRows(comp_header, matched_row_idxs, output_column_idxs, output_eid, output);
     }
-    
     current_idx_in_this_extent++;
     return true;
 }
 
-
 // Get Next Extent with range filterKey
+// TODO: compact parameter list
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
                                    bool l_inclusive, bool r_inclusive, vector<idx_t> &output_column_idxs, 
@@ -1055,7 +828,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     CompressionHeader comp_header;
     vector<idx_t> matched_row_idxs;
-    vector<bool> valid_output_mask;
     idx_t scan_start_offset, scan_end_offset;
     output_eid = ext_ids_to_iterate[current_idx];
     
@@ -1071,12 +843,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         output.SetCardinality(0);
     }
     else {
-        getValidOutputMask(output_column_idxs, valid_output_mask);
         findMatchedRowsRangeFilter(comp_header, findColumnIdx(filter_cdf_id), scan_start_offset, scan_end_offset, 
                                 l_filterValue, r_filterValue, l_inclusive, r_inclusive, matched_row_idxs);
-        copyMatchedRows(comp_header, matched_row_idxs, valid_output_mask, output_eid, output);
-        if (matched_row_idxs.size() != 0) { current_idx_in_this_extent++; }
+        copyMatchedRows(comp_header, matched_row_idxs, output_column_idxs, output_eid, output);
     }
+    current_idx_in_this_extent++;
     return true;
 }
 
@@ -1202,40 +973,17 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
     } 
-#ifndef ENABLE_VELOX_FILTERING
-    else if (column_type == LogicalType::VARCHAR) {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
-        if (comp_header.comp_type == DICTIONARY) {
-            throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
-        } else {
-            size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t);
-            // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
-            string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
-            uint64_t string_offset, prev_string_offset;
-            for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                // prev_string_offset = input_idx == 0 ? 0 : offset_arr[input_idx - 1];
-                // string_offset = offset_arr[input_idx];
-                // string string_val((char*)(io_requested_buf_ptrs[toggle][col_idx] + string_data_offset + prev_string_offset), string_offset - prev_string_offset);
-                std::string string_val = std::string(varchar_arr[input_idx].GetDataUnsafe(), varchar_arr[input_idx].GetSize());
-                Value str_val(string_val);
-                if (str_val == filterValue) {
-                    matched_row_idxs.push_back(input_idx);
-                }
-            }
-        }
-    }
-#else
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
     auto value_type = filterValue.type();
 
     if (column_type == LogicalType::BIGINT) {
-        auto bigint_value = duckdb::BigIntValue::Get(filterValue);
+        auto bigint_value = filterValue.GetValue<int64_t>();
         auto filter = std::make_unique<common::BigintRange>(bigint_value, bigint_value, false);
         evalEQPredicateSIMD<int64_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
     else if (column_type == LogicalType::INTEGER) {
-        auto int_value = duckdb::IntegerValue::Get(filterValue);
+        auto int_value = filterValue.GetValue<int32_t>();
         auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int_value), static_cast<int64_t>(int_value), false);
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     } 
@@ -1246,21 +994,21 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
         switch(column_type.InternalType()) {
         case PhysicalType::INT16:
         {
-            auto int16_value = duckdb::SmallIntValue::Get(filterValue);
+            auto int16_value = filterValue.GetValue<int16_t>();
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int16_value), static_cast<int64_t>(int16_value), false);
             evalEQPredicateSIMD<int16_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
             break;
         }
         case PhysicalType::INT32:
         {
-            auto int32_value = duckdb::IntegerValue::Get(filterValue);
+            auto int32_value = filterValue.GetValue<int32_t>();
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int32_value), static_cast<int64_t>(int32_value), false);
             evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
             break;
         }
         case PhysicalType::INT64:
         {
-            auto int64_value = duckdb::BigIntValue::Get(filterValue);
+            auto int64_value = filterValue.GetValue<int64_t>();
             auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int64_value), static_cast<int64_t>(int64_value), false);
             evalEQPredicateSIMD<int64_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
             break;
@@ -1270,12 +1018,11 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
         }
     }
     else if (column_type == LogicalType::DATE) {
-        auto date_value = duckdb::DateValue::Get(filterValue);
+        auto date_value = filterValue.GetValue<date_t>();
         auto days = date_value.days;
         auto filter = std::make_unique<common::BigintRange>(days, days, false);
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
-#endif
     else {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
@@ -1300,24 +1047,6 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Range filter predicate on PID column");
     }
-#ifndef ENABLE_VELOX_FILTERING
-    else if (column_type == LogicalType::VARCHAR) {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
-        if (comp_header.comp_type == DICTIONARY) {
-            throw NotImplementedException("Range filter predicate on DICTIONARY compression is not implemented yet");
-        } else {
-            size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t);
-            string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet());
-            uint64_t string_offset, prev_string_offset;
-            for (size_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                std::string string_val = std::string(varchar_arr[input_idx].GetDataUnsafe(), varchar_arr[input_idx].GetSize());
-                Value str_val(string_val);
-                if (inclusiveAwareRangePredicateCheck(l_filterValue, r_filterValue, l_inclusive, r_inclusive, str_val))
-                    matched_row_idxs.push_back(input_idx);
-            }
-        }
-    }
-#else
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
     auto value_type = l_filterValue.type();
@@ -1387,7 +1116,6 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         auto filter = std::make_unique<common::BigintRange>(l_days, r_days, false);
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
-#endif
     else {
         memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
@@ -1432,15 +1160,10 @@ bool ExtentIterator::inclusiveAwareRangePredicateCheck(Value &l_filterValue, Val
     return false;
 }
 
-void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<bool>& valid_output, 
-                                    ExtentID &output_eid, DataChunk &output) {
-    if (matched_row_idxs.size() > 0) {
-        output.SetCardinality(matched_row_idxs.size());
-    } else {
-        output.SetCardinality(0);
-        current_idx_in_this_extent++;
-        return true;
-    }
+void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs,
+                                    vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output) {
+    output.SetCardinality(matched_row_idxs.size());
+    if(matched_row_idxs.size() == 0) return;
 
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
         auto output_idx = output_column_idxs[i];
@@ -1470,7 +1193,7 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
             idx_t *id_column = (idx_t *)output.data[output_idx].GetData();
             for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                 idx_t seqno = matched_row_idxs[idx];
-                id_column[idx] = physical_id_base +  matched_row_idxs[idx];
+                id_column[idx] = physical_id_base + seqno;
             }
         } else {
             if (comp_header.comp_type == BITPACKING) {

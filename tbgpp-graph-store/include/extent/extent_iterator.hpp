@@ -51,10 +51,14 @@ public:
                     vector<idx_t> &target_idx_per_eid_, vector<ExtentID> target_eids);
     int RequestNewIO(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_,
                      ExtentID target_eid, ExtentID &evicted_eid);
+
+    /* no filter pushdown */
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
+
+    /* filter pushdown */
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
                        vector<duckdb::LogicalType> &scanSchema, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE,
@@ -64,6 +68,7 @@ public:
                        vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
 
+    /* IdSeek */
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
@@ -145,11 +150,9 @@ private:
         }
     }
 
-#ifndef ENABLE_VELOX_FILTERING
     template <typename T, typename TFilter>
     void evalEQPredicateSIMD(Vector& column_vec, size_t data_len, std::unique_ptr<TFilter>& filter, 
                             idx_t scan_start_offset, idx_t scan_end_offset, vector<idx_t>& matched_row_idxs);
-#endif
 
     idx_t findColumnIdx(ChunkDefinitionID filter_cdf_id);
     ChunkDefinitionID getFilterCDFID(ExtentID output_eid, int64_t filterKeyColIdx);
@@ -163,8 +166,7 @@ private:
                                 Value &filterValue, vector<idx_t>& matched_row_idxs);
     void findMatchedRowsRangeFilter(CompressionHeader& comp_header, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                 Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, vector<idx_t>& matched_row_idxs);
-    void copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<bool>& valid_output, 
-                        vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output);
+    void copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output);
     bool inclusiveAwareRangePredicateCheck(Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, Value &filterValue);
 
 private:
