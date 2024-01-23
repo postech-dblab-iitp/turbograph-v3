@@ -22,7 +22,7 @@ public:
 	
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
 
-	// TODO s62 change filterKeyIndex to vector
+	// Nonschemaless APIs (TODO: Remove tihs)
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping);
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
@@ -36,9 +36,10 @@ public:
 	// Schemaless APIs
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping);
-
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues);
+	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<RangeFilterValue>& rangeFilterValues);
 
 	~PhysicalNodeScan();
 
@@ -72,6 +73,7 @@ public:
 	// Schemaless Members
 	mutable vector<int64_t> filter_pushdown_key_idxs;	// when negative, no filter pushdown
 	mutable vector<Value> filter_pushdown_values;		// do not use when filter_pushdown_key_idx < 0
+	mutable vector<RangeFilterValue> range_filter_pushdown_values;
 };	
 
 }

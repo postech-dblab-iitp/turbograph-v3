@@ -77,7 +77,6 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 }
 
 	
-// TODO delete me!
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue)
 	: PhysicalNodeScan(sch, oids, projection_mapping, sch.getStoredTypes(), projection_mapping, filterKeyIndex, filterValue) { }
 
@@ -94,11 +93,26 @@ PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, ve
 	D_ASSERT(filter_pushdown_key_idx < 0);
 }
 
+/* Schemaless Equality Filter Pushdown */
 PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 	vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues) :
 		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
-		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), 
-		filter_pushdown_key_idxs(filterKeyIndexes), filter_pushdown_values(filterValues) 	// without pushdown, two mappings are exactly same
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_type(FilterPushdownType::FP_EQ),
+		filter_pushdown_key_idxs(filterKeyIndexes), filter_pushdown_values(filterValues) 
+{
+	num_schemas = sch.size();
+	scan_types.resize(num_schemas);
+	for (auto i = 0; i < num_schemas; i++) {
+		scan_types[i] = std::move(sch[i].getStoredTypes());
+	}
+}
+
+/* Schemaless Range Filter Pushdown */
+PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+	vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<RangeFilterValue>& rangeFilterValues) :
+	CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
+	scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_type(FilterPushdownType::FP_RANGE),
+	filter_pushdown_key_idxs(filterKeyIndexes), range_filter_pushdown_values(rangeFilterValues)
 {
 	num_schemas = sch.size();
 	scan_types.resize(num_schemas);
@@ -128,15 +142,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	}
 	D_ASSERT(state.ext_its.size() > 0);
 	idx_t j = 0;
-	// for (auto i = 0; i < chunk.ColumnCount(); i++) { // TODO
-	// 	if (projection_mapping[current_schema_idx][j] == i) {
-	// 		j++;
-	// 	} else {
-	// 		auto &validity = FlatVector::Validity(chunk.data[i]);
-	// 		validity.EnsureWritable(STANDARD_VECTOR_SIZE);
-	// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
-	// 	}
-	// }
 
 	StoreAPIResult res;
 	if (filter_pushdown_key_idx < 0 && filter_pushdown_key_idxs.empty()) {
@@ -148,14 +153,13 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	} else {
 		// filter pushdown applied
-		res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
-												filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
-
-		// if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {
-		// 	res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, range_filter_pushdown_value);
-		// } else {
-		// 	res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, filter_pushdown_key_idx, filter_pushdown_value);
-		// }
+		if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
+													filter_pushdown_key_idxs[current_schema_idx], range_filter_pushdown_values[current_schema_idx]);
+		} else {
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx,
+													filter_pushdown_key_idxs[current_schema_idx], filter_pushdown_values[current_schema_idx]);
+		}
 	}
 	
 	// current_schema_idx = 0; // TODO temporary logic!

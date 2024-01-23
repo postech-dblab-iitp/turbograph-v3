@@ -517,21 +517,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 				if (is_filter_exist && i == 0) { proj_col_ids.push_back(std::numeric_limits<ULONG>::max()); }
 			}
 		}
-		// aggregate local types to global types
-		if (i == 0) {
-			for (auto &t: local_types) {
-				global_types.push_back(t);
-			}
-		}
 		local_schemas[i].setStoredTypes(local_types);
 		// TODO else check if type conforms
 	}
 	// TODO assert oids size = mapping size
-
 	global_schema.setStoredTypes(global_types);
 	
 	generate_sfg = true;
-
 	pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
 	num_schemas_of_childs.push_back({local_schemas.size()});
 	pipeline_schemas.push_back(local_schemas);
@@ -540,6 +532,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 	if (is_filter_exist) {
 		auto repr_slc_expr = plan_expr->PdrgPexpr()->operator[](0)->operator[](0);
 		CPhysicalFilter *filter_op = (CPhysicalFilter *)repr_slc_expr->Pop();
+		CExpression *repr_filter_pred_expr = repr_slc_expr->operator[](1);
 		if (pIsFilterPushdownAbleIntoScan(repr_slc_expr)) {
 			vector<int64_t> pred_attr_poss;
 			vector<duckdb::Value> literal_vals;
@@ -555,17 +548,49 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 				literal_vals.push_back(move(literal_val));
 			}
 
-			duckdb::CypherPhysicalOperator *op = 
-				new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, pred_attr_poss, literal_vals);
+			/* add expression type for pushdown */
+			// Note: this will not work on VARCHAR Type, only in numerics. If bug occurs, check here.
+			duckdb::CypherPhysicalOperator *op = nullptr;
+			vector<duckdb::RangeFilterValue> range_filter_values;
+			auto cmp_type = ((CScalarCmp*)(repr_filter_pred_expr->Pop()))->ParseCmpType();
+			auto num_vals = literal_vals.size();
+			switch (cmp_type) {
+				case IMDType::ECmpType::EcmptEq:
+					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
+													pred_attr_poss, literal_vals);
+					break;
+				case IMDType::ECmpType::EcmptL:
+					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({duckdb::Value::MinimumValue(literal_vals[i].type()), literal_vals[i], true, false});
+					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
+													pred_attr_poss, range_filter_values);
+					break;
+				case IMDType::ECmpType::EcmptLEq:
+					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({duckdb::Value::MinimumValue(literal_vals[i].type()), literal_vals[i], true, true});
+					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
+													pred_attr_poss, range_filter_values);
+					break;
+				case IMDType::ECmpType::EcmptG:
+					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({literal_vals[i], duckdb::Value::MaximumValue(literal_vals[i].type()), false, true});
+					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
+													pred_attr_poss, range_filter_values);
+					break;
+				case IMDType::ECmpType::EcmptGEq:
+					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({literal_vals[i], duckdb::Value::MaximumValue(literal_vals[i].type()), true, true});
+					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
+													pred_attr_poss, range_filter_values);
+					break;
+				default:
+					D_ASSERT(false);
+					break;
+			}
 			result->push_back(op);
 		}
 		else {
 			// Generate filter exprs
 			/* Currently, we assume that all filters have Ident+Const. */
 			vector<unique_ptr<duckdb::Expression>> filter_exprs;
-			CExpression *filter_pred_expr = repr_slc_expr->operator[](1);
 			CColRefArray* repr_cols = repr_slc_expr->PdrgPexpr()->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-			auto repr_filter_expr = pTransformScalarExpr(filter_pred_expr, repr_cols, nullptr);
+			auto repr_filter_expr = pTransformScalarExpr(repr_filter_pred_expr, repr_cols, nullptr);
 			pConvertTableFilterExprToUnionAllTableFilterExpr(repr_filter_expr, repr_cols, proj_col_ids);
 			auto repr_scan_projection_mapping = scan_projection_mapping[0];
 			auto repr_projection_mapping = projection_mapping[0];
