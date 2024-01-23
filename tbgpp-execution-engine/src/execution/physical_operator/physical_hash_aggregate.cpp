@@ -199,6 +199,10 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
+DataChunk &PhysicalHashAggregate::GetLastSinkedData(LocalSinkState &lstate) const {
+	auto &llstate = (HashAggregateLocalSinkState &)lstate;
+	return llstate.aggregate_input_chunk;
+}
 
 class HashAggregateFinalizeEvent : public Event {
 public:
@@ -279,20 +283,28 @@ unique_ptr<LocalSourceState> PhysicalHashAggregate::GetLocalSourceState(Executio
 }
 
 void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk, LocalSourceState &lstate, LocalSinkState &sink_state) const {
-	
 	auto &sstate = (HashAggregateLocalSinkState &)sink_state;
 	auto &state = (HashAggregateLocalSourceState &)lstate;
 
+	/* We assume after aggregation, schema is unified */
+	chunk.SetSchemaIdx(0);
 	while (state.scan_index < state.radix_states.size()) {
+		auto prev_chunk_card = chunk.size();
 		radix_tables[state.scan_index].GetData(context, chunk, *sstate.global_radix_states[state.scan_index],
 		                                       *state.radix_states[state.scan_index]);
-		if (chunk.size() != 0) {
+		auto new_chunk_card = chunk.size() - prev_chunk_card;
+		if (new_chunk_card != 0) {
 			return;
 		}
 
 		state.scan_index++;
 	}
 
+}
+
+bool PhysicalHashAggregate::IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const {
+	auto &state = (HashAggregateLocalSourceState &)lstate;
+	return state.scan_index < state.radix_states.size();
 }
 
 string PhysicalHashAggregate::ParamsToString() const {

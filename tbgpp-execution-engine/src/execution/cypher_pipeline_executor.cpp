@@ -79,7 +79,12 @@ void CypherPipelineExecutor::ExecutePipeline() {
 	while(true) {
 		auto& source_chunk = *(opOutputChunks[0]);
 		if (sfg.IsSFGExists()) {
-			// source_chunk.Initialize(sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
+			/**
+			 * This is temporal code.
+			 * TODO: need to be refactored.
+			*/
+			source_chunk.Destroy();
+			source_chunk.Initialize(sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 		} else {
 			source_chunk.Destroy();
 			source_chunk.Initialize(pipeline->GetSource()->GetTypes());
@@ -92,11 +97,14 @@ void CypherPipelineExecutor::ExecutePipeline() {
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
 		PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
 #endif
-		if (!pipeline->GetSource()->IsSourceDataRemaining(*local_source_state)) {
+		bool isSourceDataFinished = false;
+		switch (childs.size()) {
+			case 0: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state); break; }
+			case 1: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state, *(childs[0]->local_sink_state)); break; }
+		}
+		if (isSourceDataFinished) {
 			if (sfg.AdvanceCurSourceIdx()) continue;
-			else {
-				break;
-			}
+			else break;
 		}
 
 		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);

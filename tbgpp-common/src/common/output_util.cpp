@@ -35,6 +35,7 @@ void OutputUtil::PrintQueryOutput(PropertyKeys &col_names, std::vector<DataChunk
 		bool skip_tuples = false;
 		while (chunk_idx < resultChunks.size()) {
 			auto &chunk = resultChunks[chunk_idx];
+
 			if (skip_tuples) {
 				if ((chunk->size() - cur_offset_in_chunk) < num_tuples_to_skip) {
 					num_tuples_to_skip -= (chunk->size() - cur_offset_in_chunk);
