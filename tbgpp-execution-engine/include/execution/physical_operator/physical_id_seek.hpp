@@ -30,6 +30,7 @@ public:
 
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	OperatorResultType Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
+	OperatorResultType Execute(ExecutionContext &context, DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, OperatorState &state, idx_t &output_chunk_idx) const override;
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

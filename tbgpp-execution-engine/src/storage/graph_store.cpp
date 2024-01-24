@@ -172,12 +172,13 @@ StoreAPIResult
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
 											DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											vector<vector<idx_t>> &target_seqnos_per_extent, unordered_map<idx_t, idx_t> &ps_oid_to_projection_mapping,
-											vector<idx_t> &mapping_idxs) {
+											vector<idx_t> &mapping_idxs)
+{
 	Catalog &cat_instance = client.db->GetCatalog();
 	vector<idx_t> boundary_position;
 	unordered_map<ExtentID, vector<idx_t>> target_seqnos_per_extent_map;
 	ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
-	Vector& src_vid_column_vector = input.data[nodeColIdx];
+	Vector &src_vid_column_vector = input.data[nodeColIdx];
 	target_eids.push_back(prev_eid);
 	switch (src_vid_column_vector.GetVectorType()) {
 		case VectorType::DICTIONARY_VECTOR: {
