@@ -206,6 +206,22 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 
 		property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
 		property_schema_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
+
+		// Get Src Vertex PS Catalog Entry
+		vector<idx_t> src_vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		if (src_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input src key corresponds to multiple vertex partitions.");
+		PartitionCatalogEntry *src_vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
+
+		vector<idx_t> dst_vertex_part_cat_oids = 
+			graph_cat->LookupPartition(*client.get(), { dst_column_name }, GraphComponentType::VERTEX);
+		if (dst_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input dst key corresponds to multiple vertex partitions.");
+		PartitionCatalogEntry *dst_vertex_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
+		src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
+		graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
+		partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	} else if (edge_direction_type == LogicalType::BACKWARD_ADJLIST) {
 		partition_cat = 
 			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, partition_name);
@@ -214,22 +230,6 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	} else {
 		D_ASSERT(false);
 	}
-	
-	// Get Src Vertex PS Catalog Entry
-	vector<idx_t> src_vertex_part_cat_oids = 
-			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
-	if (src_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input src key corresponds to multiple vertex partitions.");
-	PartitionCatalogEntry *src_vertex_part_cat_entry = 
-		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
-
-	vector<idx_t> dst_vertex_part_cat_oids = 
-			graph_cat->LookupPartition(*client.get(), { dst_column_name }, GraphComponentType::VERTEX);
-	if (dst_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input dst key corresponds to multiple vertex partitions.");
-	PartitionCatalogEntry *dst_vertex_part_cat_entry = 
-		(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
-	src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
-	graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
-	partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	
 	idx_t adj_col_idx; // TODO bug fix
 	for (auto i = 0; i < vertex_ps_cat_oids.size(); i++) {

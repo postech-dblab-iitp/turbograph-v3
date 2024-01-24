@@ -41,6 +41,10 @@ OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext& context, Da
 	throw InternalException("Calling Execute on a node that is not an operator!");
 }
 
+OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext& context, DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, OperatorState &state, idx_t &output_chunk_idx) const {
+	throw InternalException("Calling Execute on a node that is not an operator!");
+}
+
 OperatorResultType CypherPhysicalOperator::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const {
 	throw InternalException("Calling Execute on a node that is not an operator!");
 }

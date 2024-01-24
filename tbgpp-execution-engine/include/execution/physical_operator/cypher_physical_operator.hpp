@@ -46,6 +46,7 @@ public:
 
 	// standalone piped operators (e.g. Scan)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
+	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, OperatorState &state, idx_t &output_chunk_idx) const;
 	// sink-enabled piped operators (e.g. Hash Probe, CartProd)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;
