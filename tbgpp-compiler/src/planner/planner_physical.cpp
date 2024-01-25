@@ -516,6 +516,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopUnionAllForNodeOr
 
 	if (is_filter_exist) {
 		auto repr_slc_expr = plan_expr->PdrgPexpr()->operator[](0)->operator[](0);
+		CColRefSet* output_cols = repr_slc_expr->Prpp()->PcrsRequired();
 		CPhysicalFilter *filter_op = (CPhysicalFilter *)repr_slc_expr->Pop();
 		if (pIsFilterPushdownAbleIntoScan(repr_slc_expr)) {
 			vector<int64_t> pred_attr_poss;
@@ -1633,6 +1634,14 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression
 		new duckdb::PhysicalTop(tmp_schema, limit, offset);
 	result->push_back(op);
 
+	if (generate_sfg) {
+		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size()});
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(tmp_schema);
+	}
+
 	return result;
 }
 
@@ -1965,6 +1974,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	auto &last_op_result_types = last_op->GetTypes();
 
 	vector<duckdb::BoundOrderByNode> orders;
+	// TODO outer_cols column order (colrefset) problem
 	for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
 		const CColRef *col = pos->Pcr(ul);
 		ULONG idx = outer_cols->IndexOf(col);
@@ -2333,7 +2343,7 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
 		&& filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent
 		&& filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst;
 	
-	return ok;
+	return false;
 }
 
 bool Planner::pIsCartesianProduct(CExpression* expr) {

@@ -97,7 +97,12 @@ bool PhysicalTopNSort::IsSourceDataRemaining(LocalSourceState &lstate, LocalSink
 
 
 std::string PhysicalTopNSort::ParamsToString() const {
-	return "topnsort-param";
+	string params = "topnsort-param: ";
+	for (auto & order : orders) {
+		params += order.ToString();
+		params += " / ";
+	}
+	return params;
 }
 
 std::string PhysicalTopNSort::ToString() const {
