@@ -341,6 +341,8 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);

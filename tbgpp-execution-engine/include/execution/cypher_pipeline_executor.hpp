@@ -66,7 +66,8 @@ public:
 
 
 	//! Intermediate chunks for the operators
-	vector<unique_ptr<DataChunk>> opOutputChunks;
+	// vector<unique_ptr<DataChunk>> opOutputChunks;
+	vector<vector<unique_ptr<DataChunk>>> opOutputChunks;
 
 	// in duckdb, each stated is stored in:
 		// .            local        |  global
@@ -112,7 +113,8 @@ private:
 	OperatorResultType ProcessSingleSourceChunk(DataChunk &input, idx_t initial_idx = 0);
 	//! Pushes a chunk through the pipeline and returns a single result chunk
 	//! Returns whether or not a new input chunk is needed, or whether or not we are finished
-	OperatorResultType ExecutePipe(DataChunk &input, DataChunk &result);
+	// OperatorResultType ExecutePipe(DataChunk &input, DataChunk &result);
+	OperatorResultType ExecutePipe(DataChunk &input, idx_t &output_schema_idx);
 
 	static bool CanCacheType(const LogicalType &type);
 	void CacheChunk(DataChunk &input, idx_t operator_idx);

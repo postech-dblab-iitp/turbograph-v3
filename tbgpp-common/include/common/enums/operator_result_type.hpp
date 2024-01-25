@@ -21,7 +21,8 @@ namespace duckdb {
 //! The operator will be called again with the same input.
 //! FINISHED means the operator has finished the entire pipeline and no more processing is necessary.
 //! The operator will not be called again, and neither will any other operators in this pipeline.
-enum class OperatorResultType : uint8_t { NEED_MORE_INPUT, HAVE_MORE_OUTPUT, FINISHED };
+//! POSTPONE_OUTPUT means ..
+enum class OperatorResultType : uint8_t { NEED_MORE_INPUT, HAVE_MORE_OUTPUT, FINISHED, POSTPONE_OUTPUT };
 
 //! The SinkResultType is used to indicate the result of data flowing into a sink
 //! There are two possible results:
