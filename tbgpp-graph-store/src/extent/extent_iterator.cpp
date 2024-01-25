@@ -267,14 +267,15 @@ ExtentIterator::Initialize(ClientContext &context, vector<vector<LogicalType>> &
         ExtentCatalogEntry* extent_cat_entry = 
             (ExtentCatalogEntry*) cat_instance.GetEntry(context, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, DEFAULT_EXTENT_PREFIX + std::to_string(ext_ids_to_iterate[current_idx]));
         
-        size_t chunk_size = ext_property_types[current_idx].size();
+        // size_t chunk_size = ext_property_types[current_idx].size();
+        size_t chunk_size = ext_property_types[target_idx_per_eid[current_idx]].size();
         io_requested_cdf_ids[toggle].resize(chunk_size);
         io_requested_buf_ptrs[toggle].resize(chunk_size);
         io_requested_buf_sizes[toggle].resize(chunk_size);
 
         int j = 0;
         for (int i = 0; i < chunk_size; i++) {
-            if (ext_property_types[current_idx][i] == LogicalType::ID) {
+            if (ext_property_types[target_idx_per_eid[current_idx]][i] == LogicalType::ID) {
                 io_requested_cdf_ids[toggle][i] = std::numeric_limits<ChunkDefinitionID>::max();
                 j++;
                 continue;

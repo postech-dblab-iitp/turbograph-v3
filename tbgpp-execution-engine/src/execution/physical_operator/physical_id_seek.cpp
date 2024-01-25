@@ -248,12 +248,16 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext& context, DataChunk 
 			output_idx = executor.SelectExpression(tmp_chunk, state.sel);
 		} else {
 			for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
+				for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+					auto &validity = FlatVector::Validity(chunk.data[inner_col_maps[mapping_idxs[extentIdx]][i]]);
+					validity.SetAllInvalid(input.size()); // todo optimize this process; if already allinvalid then skip?
+				}
+			}
+			for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
 				vector<idx_t> output_col_idx;
 				for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
 					output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
 					// TODO we should change this into result sets
-					auto &validity = FlatVector::Validity(chunk.data[inner_col_maps[mapping_idxs[extentIdx]][i]]);
-					validity.SetAllInvalid(input.size());
 				}
 				context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types, 
 					target_eids, target_seqnos_per_extent, extentIdx, output_col_idx);

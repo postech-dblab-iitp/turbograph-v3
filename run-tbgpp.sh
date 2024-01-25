@@ -73,15 +73,24 @@ run_ldbc_s() {
 			   ORDER BY messageCreationDate DESC, messageId ASC"
 	
 	# LDBC IS3 Friends of a Person
+	# run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
+	# 	RETURN
+	# 		friend.id AS personId,
+	# 		friend.firstName AS firstName,
+	# 		friend.lastName AS lastName,
+	# 		r.creationDate AS friendshipCreationDate
+	# 	ORDER BY
+	# 		friendshipCreationDate DESC,
+	# 		personId ASC"
 	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
 		RETURN
-			friend.id AS personId,
-			friend.firstName AS firstName,
+			n.id AS nId,
 			friend.lastName AS lastName,
-			r.creationDate AS friendshipCreationDate
+			friend.firstName AS firstName,
+			friend.id AS personId
 		ORDER BY
-			friendshipCreationDate DESC,
 			personId ASC"
+	
 	
 	# LDBC IS4 Content of a message
 	run_query "MATCH (m:Comment {id: 557})
@@ -92,9 +101,36 @@ run_ldbc_s() {
 	# LDBC IS5 Creator of a message
 	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
 		RETURN
+			m.id AS messageId,
 			p.id AS personId,
 			p.firstName AS firstName,
 			p.lastName AS lastName"
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			m.id AS messageId,
+			p.id AS personId,
+			p.firstName AS firstName,
+			p.lastName AS lastName"
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			p.id AS personId,
+			count(m.id) AS count"
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			count(m.id) AS count
+		ORDER BY 
+			lastName DESC
+		LIMIT 1"
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)-[t:LIKES_POST]->(k:Post)
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			k.id AS postId"
+	# Fails in release mode
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
