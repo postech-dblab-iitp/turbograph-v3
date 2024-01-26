@@ -5,18 +5,33 @@ on: push
 jobs:
   build:
     runs-on: self-hosted
-    container:
-        image: turbograph-s62-0727:latest
-        options: --shm-size=256g
-        volumes:
-          - /mnt/sde/jhha_ldbc/tbgppv3-data:/data
-          - /mnt/sde/source-data:/source-data
+
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+      with:
+        path: source-code
 
-    - name: Print git log
-      run: git log
+    - name: Create build dir
+      run: |
+        mkdir -p source-code/build
+
+    - name: Cache Build Artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          source-code/build
+        key: ${{ runner.os }}-build-${{ github.run_id }}-${{ github.run_number }}-${{ github.sha }}-$(date +%Y-%m-%d)
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+    - name: Print current working dir
+      run: |
+        ls -la $PWD
+        ls -la $GITHUB_WORKSPACE
+
+    - name: Print the repository
+      run: ls -R
 
     - name: Get commit branch and commit message
       if: github.event_name == 'push'
@@ -26,9 +41,44 @@ jobs:
         echo "$(git log --format=%B -n 1 HEAD)" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
     
-    - name: Build the project
+    - name: Check and Remove Existing Docker Container
       run: |
-        mkdir build
-        cd build
-        cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
-        ninja
+        if [ $(docker ps -aq -f name=turbograph-container) ]; then
+          echo "Removing existing turbograph-container..."
+          docker rm -f turbograph-container
+        else
+          echo "No existing container to remove."
+        fi
+
+    - name: Start docker container
+      run: |
+        docker run -itd --name turbograph-container --shm-size=256g \
+        -v $GITHUB_WORKSPACE:/workspace \
+        -v /mnt/sde/$USER_ldbc/tbgppv3-data:/data \
+        -v /mnt/sde/source-data:/source-data \
+        turbograph-s62-0129:latest
+
+    - name: Print docker container list
+      run: docker ps -a
+    
+    - name: Print docker container logs
+      run: docker logs turbograph-container
+
+    - name: Add user to docker and set permissions
+      run: |
+        docker exec -i turbograph-container /bin/bash -c \
+        "groupadd -g $(id -g) $USER || true && \
+        useradd -m -u $(id -u) -g $(id -g) -s /bin/bash $USER || true && \
+        mkdir -p /home/$USER/.ccache/tmp && \
+        chown -R $USER:$USER /home/$USER/.ccache && \
+        echo '$USER:$USER' | chpasswd && \
+        adduser $USER sudo"
+        
+    - name: Execute build 
+      run: |
+        docker exec -u $USER -i turbograph-container /bin/bash -c \
+        "cd /workspace/source-code && mkdir -p build && cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Debug .. && ninja"
+    
+    - name: Start Test
+      run: |
+        echo "Start Test"
