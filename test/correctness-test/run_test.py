@@ -1,232 +1,119 @@
 import os
 import argparse
-from tabulate import tabulate
-import re
-
-import time
 import logging
 import sys
 import subprocess
+import shlex
 from datetime import datetime
 from colorama import init, Fore, Back, Style
+from tabulate import tabulate
 
-init()	# for colorama
+init()  # for colorama
 
-BENCHMARKS = ['func', 'ldbc', 'ldbc-simplified']
+# Setup workspace and logging
 WORKSPACE = f'logs/{datetime.now().strftime("%Y%m%d-%H%M%S")}'
-os.system(f"mkdir -p {WORKSPACE}")
-
-# add logging
+os.makedirs(WORKSPACE, exist_ok=True)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 output_file_handler = logging.FileHandler(f"{WORKSPACE}/output.log")
 stdout_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(output_file_handler)
 logger.addHandler(stdout_handler)
-logger.debug(f'benchmark results are stored in: {WORKSPACE}')
 
-# TODO Fixme for hard coding
-DB_LOCATION = "/data/ldbc/sf1_test/"
-ENGINE_BIN_LOCATION='../build-debug/tbgpp-client'
-#ENGINE_BIN_LOCATION='../build-release/tbgpp-client'
-NUM_ITERS = 1
-ENGINE_COMMAND_BASE = ENGINE_BIN_LOCATION + f'/TurboGraph-S62 --workspace:{DB_LOCATION} --index-join-only --num-iterations:{NUM_ITERS}' # need to add --query when querying
-PARAM_SIZE = 5
+# COMMANDS
+ENGINE_COMMAND_BASE = '../../tbgpp-client/TurboGraph-S62 --index-join-only --join-order-optimizer:query ' # need to add --query when querying
 
-def atoi(text):
-    return int(text) if text.isdigit() else text
-	
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    '''
-    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
+def load_files_from_directory(directory):
+    """ Load files from a given directory """
+    file_contents = {}
+    for filename in os.listdir(directory):
+        if filename.endswith('.txt'):  # Assuming query and answer files are .txt files
+            with open(os.path.join(directory, filename), 'r') as file:
+                file_contents[filename] = file.read().strip()
+    return file_contents
 
-def prepare_ldbc_queries(benchmark, SF):
-	query_dir = f"queries/{benchmark}/"
-	query_files = [query_dir + f for f in os.listdir(query_dir) if os.path.isfile(os.path.join(query_dir, f)) and f.endswith('.cypher')]
+def simulate_query_execution(db, query_name, query):
+	""" Simulate the execution of a query and handle errors """
+	try:
+		# Setup logging
+		logger.debug(f'\n\n====== CORRECTNESS TESTING ======')
+		headers = ["QUERY", "SUCCESS", "RES_CARD", "TIME_MS"]
+		header_widths = [30, 10, 15, 10]
+		padded_headers = [ it.rjust(header_widths[idx]) for idx, it in enumerate(headers)]
+		header_str = ""
+		for h in padded_headers:
+			header_str += h
+		logger.debug(header_str+'\n')
 
-	sub_dir_base = "substitution_parameters/ldbc_hadoop_substitution_parameters/"
-	complex_substitution_dir = sub_dir_base + f'interactive-complex/sf{SF}/substitution_parameters/'
-	short_substitution_dir = sub_dir_base + f'interactive-short/sf{SF}/'
+		# Run actual query
+		rows = []
+		cmd = ENGINE_COMMAND_BASE + f'--workspace:{db} --query:"{query}"'
+		proc = subprocess.Popen(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		output, error = proc.communicate()
+		output = output.decode('utf-8')
+		error = error.decode('utf-8')
+		rc = proc.returncode
 
-	prepared_queries = {}
-	for query_file in sorted(query_files, key=natural_keys):
-		# pass updates
-		if 'update' in query_file:
-			continue
-		
-		with open(query_file, 'r') as q:
-			lines = q.readlines()
-		# delete comments
-		for idx, line in enumerate(lines):
-			if line.startswith('//'):
-				del lines[idx]
-		# delete parameters
-		st, en = 0,0
-		for idx, line in enumerate(lines):
-			if '/*' in line:
-				st = idx
-			if '*/' in line:
-				en = idx
-		if st != 0 or en != 0: # comment detected
-			del lines[st:en+1]
-		
-		query_str = ''.join(lines)
-		filename = os.path.split(query_file)[-1]
-		query_name = filename.replace('.cypher', '')
-		# substitute
-		if 'short' in query_file:
-			qid = int(filename.replace('interactive-short-', '').replace('.cypher', ''))
-			subfile = short_substitution_dir + '/short_'+str(qid)+'_param.txt'
-			with open(subfile, 'r', encoding="utf-8") as f:
-				lines = f.readlines()
-			prepared_queries[query_name] = []
-			keys = lines[0].strip('\n').split('|')
-			for line in lines[1:PARAM_SIZE+1]:
-				prepared_query_str = query_str
-				# replace personId or messageId
-				values = line.strip('\n').split('|')
-				for idx, key in enumerate(keys):
-					prepared_query_str = prepared_query_str.replace('$'+key, values[idx])
-				prepared_queries[query_name].append(prepared_query_str)
+		if rc == 0 and '[ResultSetSummary]' in output:
+			num_card = 0
+			avg_exec_time = 0.0
+			s = output.split('\n')
+			for ss in s:
+				if "[ResultSetSummary]" in ss:
+					num_card = int(ss.split(' ')[2])
+				if "Average Query Execution Time" in ss:
+					avg_exec_time = float(ss.split(' ')[-2])
+					
+			rows.append([query_name, Fore.GREEN + "SUCCESS" + Fore.RESET, str(num_card), str(avg_exec_time)])
+		else:
+			row = [query_name, Fore.RED + "FAILED" + Fore.RESET, "", ""]
+			rows.append(row)
+			# flush error cases to file.
+			with open(WORKSPACE+'/'+query_name+'.stderr', 'w') as f:
+				f.write(error)
+			with open(WORKSPACE+'/'+query_name+'.stdout', 'w') as f:
+				f.write(output)
+     
+		padded_rows = []
+		for row in rows:
+			padded_rows.append([ it.rjust(header_widths[idx]) for idx, it in enumerate(row)])
+		logger.debug(tabulate(padded_rows, tablefmt="plain"))
 
-		elif 'complex' in query_file:
-			qid = int(filename.replace('interactive-complex-', '').replace('.cypher', ''))
-			subfile = complex_substitution_dir + '/interactive_'+str(qid)+'_param.txt'
-			with open(subfile, 'r', encoding="utf-8") as f:
-				lines = f.readlines()
-			prepared_queries[query_name] = []
-			keys = lines[0].strip('\n').split('|')
-			for line in lines[1:PARAM_SIZE+1]:
-				prepared_query_str = query_str
-				values = line.strip('\n').split('|')
-				for idx, key in enumerate(keys):
-					if 'Name' in key:
-						# string value
-						prepared_query_str = prepared_query_str.replace('$'+key, f'"{values[idx]}"')
-					else:
-						# others
-						prepared_query_str = prepared_query_str.replace('$'+key, values[idx])
-				# haneld endDate
-				startDateIdx = 0
-				durationDaysIdx = 0
-				for idx, key in enumerate(keys):
-					if key == 'startDate':
-						startDateIdx = idx
-					if key == 'durationDays':
-						durationDaysIdx = idx
-				if startDateIdx != durationDaysIdx: # found
-					endDate = str( int(values[startDateIdx]) + int(values[durationDaysIdx] ) )
-					prepared_query_str = prepared_query_str.replace('$endDate', endDate)
-				
-				prepared_queries[query_name].append(prepared_query_str)
-	return prepared_queries
+	except Exception as e:
+		logger.error(f"Error executing query: {query}. Error: {str(e)}")
+		return "INVALID_RESULT"
 
-def prepare_normal_queries(benchmark):
-	query_dir = f"queries/{benchmark}/"
-	query_files = [query_dir + f for f in os.listdir(query_dir) if os.path.isfile(os.path.join(query_dir, f))]
+def compare_results(query_results, answer_results):
+    """ Compare query results with answer results """
+    headers = ["QUERY", "STATUS", "RESULT"]
+    data = []
 
-	prepared_queries = {}
-	for query_file in sorted(query_files, key=natural_keys):
-		passed_lines = []
-		with open(query_file, 'r') as q:
-			lines = q.readlines()
-		for idx, line in enumerate(lines):
-			if '//' in line or line == '\n':
-				continue
-			passed_lines.append(line)
-		
-		query_strs_whole = ''.join(passed_lines).replace('\n', '')
-		filename = os.path.split(query_file)[-1]
-		query_strs = query_strs_whole.split(';')
-		for idx, st in enumerate(query_strs):
-			if st == '' or st == '\n':
-				del query_strs[idx]
-		for idx, q in enumerate(query_strs):
-			prepared_queries[filename+'#'+str(idx)] = [q,]	# only one parameter!
-		
-	return prepared_queries
+    for query_name, query_result in query_results.items():
+        answer_result = answer_results.get(query_name, None)
+        status = Fore.GREEN + "SUCCESS" + Fore.RESET if query_result == answer_result else Fore.RED + "FAILED" + Fore.RESET
+        data.append([query_name, status, query_result])
 
-def run_benchmark(benchmark, SF):
-	if benchmark == 'ldbc' or benchmark == 'ldbc_simplified':
-		queries = prepare_ldbc_queries(benchmark, SF)
-	else:
-		queries = prepare_normal_queries(benchmark)
-	
-	# queries = dict(query_name, list of queries with different params)
-	BM_WORKSPACE = WORKSPACE+'/'+benchmark+'/'
-	os.system(f"mkdir -p {BM_WORKSPACE}")
-
-	logger.debug(f'\n\n====== BENCHMARK : {benchmark} ======')
-	headers = ["QUERY", "PARIDX", "SUCCESS", "RES_CARD", "TIME_MS"]
-	header_widths = [30, 10, 10, 15, 10]
-	headers2 = [ it.rjust(header_widths[idx]) for idx, it in enumerate(headers)]
-	headerstr = ""
-	for h in headers2:
-		headerstr += h
-	logger.debug(headerstr+'\n')
-
-	rows = []
-	for query_name in queries.keys():
-		querysets  = queries[query_name]
-		for query_idx, query in enumerate(querysets):
-			rows = []
-
-			cmd = ENGINE_COMMAND_BASE+f' --query:"{query}"'
-			proc = subprocess.Popen(cmd, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			output, error = proc.communicate()
-			output = output.decode('utf-8')
-			error = error.decode('utf-8')
-			rc = proc.returncode
-
-			# check
-			if rc == 0 and '[ResultSetSummary]' in output:
-				num_card = 0
-				avg_exec_time = 0.0
-				s = output.split('\n')
-				for ss in s:
-					if "[ResultSetSummary]" in ss:
-						num_card = int(ss.split(' ')[2])
-					if "Average Query Execution Time" in ss:
-						avg_exec_time = float(ss.split(' ')[-2])
-						
-				rows.append([query_name, str(query_idx), Fore.GREEN + "SUCCESS" + Fore.RESET, str(num_card), str(avg_exec_time)])
-			else:
-				row = [query_name, str(query_idx), Fore.RED + "FAILED" + Fore.RESET, "", ""]
-				rows.append(row)
-				# flush error cases to file.
-				filename_base = query_name + "_" + str(query_idx)
-				with open(BM_WORKSPACE+filename_base+'.stderr', 'w') as f:
-					f.write(error)
-				with open(BM_WORKSPACE+filename_base+'.stdout', 'w') as f:
-					f.write(output)
-
-			# print bench result
-			rows2 = []
-			for row in rows:
-				rows2.append([ it.rjust(header_widths[idx]) for idx, it in enumerate(row)])
-			logger.debug(tabulate(rows2, tablefmt="plain"))
-
+    logger.debug(tabulate(data, headers, tablefmt="plain"))
+    
+def run_background_process(path):
+    return subprocess.Popen([path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description='Run S62 benchmark')
-	parser.add_argument('benchmarks', metavar='BM', type=str, nargs='+',
-                    help='benchmarks to run')
-	parser.add_argument('--SF', dest='SF', type=int, help='scale factor (default=1), used when selecting substitution params for LDBC', default=1)
-
+	# Setup argument parser
+	parser = argparse.ArgumentParser(description='Run S62 Correctness Test')
+	parser.add_argument('--database', dest='database', type=str, help='database to run', default='/data/ldbc/sf1_test/')
 	args = parser.parse_args()
-	
-	#check valid
-	selected_benchmarks = []
-	for bm in args.benchmarks:
-		if bm == "all":
-			selected_benchmarks = BENCHMARKS
-			break
-		assert bm in BENCHMARKS, f"Provided benchmark '{bm}' is not in supported benchmarks"
-		selected_benchmarks.append(bm)
-	SF = args.SF
-
-	for bm in selected_benchmarks:
-		run_benchmark(bm, SF)
+ 
+	# Run storage and catalog
+	storage_process = run_background_process('../../build/tbgpp-store/store')
+	catalog_process = run_background_process('../../build/tbgpp-store/catalog_test_catalog_server ' + args.database)
+ 
+	# Run test
+	queries = load_files_from_directory('./queries')
+	answers = load_files_from_directory('./answers')
+	query_results = {name: simulate_query_execution(args.database, name, query) for name, query in queries.items()}
+	compare_results(query_results, answers)
+  
+	# wait
+	storage_process.wait()
+	catalog_process.wait()
