@@ -66,11 +66,15 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 		for (auto i = 0; i < prev_local_schemas.size(); i++) {
 			auto local_schema = std::move(prev_local_schemas[i].getStoredTypes());
 			projection_mappings.push_back(std::vector<uint8_t>());
-			for (auto j = 0; j < local_schema.size(); j++) {
-				if (local_schema[j] == duckdb::LogicalType::SQLNULL) {
-					projection_mappings[i].push_back(std::numeric_limits<uint8_t>::max());
-				} else {
-					projection_mappings[i].push_back(j);
+			for (uint8_t log_idx = 0; log_idx < logical_plan_output_colrefs.size(); log_idx++) {
+				for (uint8_t phy_idx = 0; phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
+					if (logical_plan_output_colrefs[log_idx]->Id() == physical_plan_output_colrefs[phy_idx]->Id()) {				
+						if (local_schema[phy_idx] == duckdb::LogicalType::SQLNULL) {
+							projection_mappings[i].push_back(std::numeric_limits<uint8_t>::max());
+						} else {
+							projection_mappings[i].push_back(phy_idx);
+						}
+					}
 				}
 			}
 		}

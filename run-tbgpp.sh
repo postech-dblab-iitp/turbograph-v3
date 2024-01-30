@@ -115,15 +115,14 @@ run_ldbc_s() {
 		RETURN
 			p.id AS personId,
 			count(m.id) AS count"
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+	run_query "MATCH (p:Person)<-[r:HAS_CREATOR]-(m:Comment)
 		RETURN
 			m.id AS messageId,
-			p.lastName AS lastName,
 			p.firstName AS firstName,
+			p.lastName AS lastName,
 			count(m.id) AS count
 		ORDER BY 
-			lastName DESC
-		LIMIT 1"
+			lastName DESC"
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)-[t:LIKES_POST]->(k:Post)
 		RETURN
 			m.id AS messageId,
