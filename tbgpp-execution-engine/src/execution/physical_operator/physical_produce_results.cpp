@@ -60,7 +60,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext& context, DataChunk
 					FlatVector::Validity(copyChunk->data[idx]).SetAllInvalid(input.size());
 					continue;
 				}
-				VectorOperations::Copy(input.data[idx], copyChunk->data[idx], input.size(), 0, 0);
+				VectorOperations::Copy(input.data[projection_mappings[schema_idx][idx]], copyChunk->data[idx], input.size(), 0, 0);
 			}
 			copyChunk->SetSchemaIdx(schema_idx);
 		} else {
