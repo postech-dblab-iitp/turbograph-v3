@@ -131,6 +131,14 @@ run_ldbc_s() {
 			k.id AS postId"
 	# Fails in release mode
 
+	# HASH JOIN TEST
+	run_query "MATCH (m:Comment), (p:Person)
+		WHERE
+			m._id = p._id
+		RETURN
+			m._id,
+			p._id"
+
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
 			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)

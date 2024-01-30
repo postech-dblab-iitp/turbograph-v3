@@ -156,6 +156,11 @@ using namespace gpopt;
 
 namespace s62 {
 
+typedef vector<duckdb::OperatorType> PipelineOperatorTypes;
+typedef vector<vector<uint64_t>> PipelineNumSchemas;
+typedef vector<vector<duckdb::Schema>> PipelineSchemas;
+typedef vector<duckdb::Schema> PipelineUnionSchema;
+
 enum class MDProviderType {
 	MEMORY,
 	TBGPP
@@ -443,10 +448,10 @@ private:
 	std::vector<CColRef *> physical_plan_output_colrefs;							// final output colrefs of the physical plan
 
 	// schema flow graph
-	vector<duckdb::OperatorType> pipeline_operator_types;
-	vector<vector<uint64_t>> num_schemas_of_childs;
-	vector<vector<duckdb::Schema>> pipeline_schemas;
-	vector<duckdb::Schema> pipeline_union_schema;
+	PipelineOperatorTypes pipeline_operator_types;
+	PipelineNumSchemas num_schemas_of_childs;
+	PipelineSchemas pipeline_schemas;
+	PipelineUnionSchema pipeline_union_schema;
 	vector<duckdb::SchemaFlowGraph> sfgs;
 	bool generate_sfg = false;
 
