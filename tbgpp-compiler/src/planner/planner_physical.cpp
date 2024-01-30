@@ -21,6 +21,7 @@
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_cross_product.hpp"
 #include "execution/physical_operator/physical_blockwise_nl_join.hpp"
+#include "execution/physical_operator/physical_hash_join.hpp"
 
 #include "execution/physical_operator/physical_filter.hpp"
 
@@ -155,6 +156,13 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTraverseTransformPhysicalPlan
 		case COperator::EOperatorId::EopPhysicalCorrelatedLeftSemiNLJoin:
 		case COperator::EOperatorId::EopPhysicalCorrelatedLeftAntiSemiNLJoin: {
 			result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr, true);
+			break;
+		}
+		case COperator::EOperatorId::EopPhysicalInnerHashJoin:
+		case COperator::EOperatorId::EopPhysicalLeftOuterHashJoin:
+		case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
+		case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin: {
+			result = pTransformEopPhysicalHashJoinToHashJoin(plan_expr);
 			break;
 		}
 		case COperator::EOperatorId::EopPhysicalLeftOuterNLJoin:		// LEFT
@@ -1610,6 +1618,92 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalNLJoinToB
 	}
 }
 
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr) {
+
+	CMemoryPool* mp = this->memory_pool;
+	D_ASSERT(plan_expr->Arity() == 3);
+
+	/* Non-root - call left child */
+	vector<duckdb::CypherPhysicalOperator*> *lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
+
+	CPhysicalInnerHashJoin* expr_op = (CPhysicalInnerHashJoin*) plan_expr->Pop();
+	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprLeft = (*plan_expr)[0];
+	CColRefArray* left_cols = pexprLeft->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CExpression *pexprRight = (*plan_expr)[1];
+	CColRefArray* right_cols = pexprRight->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+	vector<duckdb::LogicalType> types;
+	vector<uint32_t> left_col_map;
+	vector<uint32_t> right_col_map;
+
+	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+		CColRef *col = output_cols->operator[](col_idx);
+		OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
+		duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
+		types.push_back(col_type);
+	}
+	for (ULONG col_idx = 0; col_idx < left_cols->Size(); col_idx++){
+		auto idx = output_cols->IndexOf(left_cols->operator[](col_idx));
+		if(idx == gpos::ulong_max) {
+			left_col_map.push_back(std::numeric_limits<uint32_t>::max());
+		} else { 
+			left_col_map.push_back(idx);
+		}
+	}
+	for (ULONG col_idx = 0; col_idx < right_cols->Size(); col_idx++){
+		auto idx = output_cols->IndexOf(right_cols->operator[](col_idx));
+		if(idx == gpos::ulong_max) {
+			right_col_map.push_back(std::numeric_limits<uint32_t>::max());
+		} else { 
+			right_col_map.push_back(idx);
+		}
+	}
+
+	duckdb::JoinType join_type = pTranslateJoinType(expr_op);
+	D_ASSERT(join_type != duckdb::JoinType::RIGHT);
+	
+	vector<duckdb::LogicalType> right_build_types;
+	vector<uint64_t> right_build_map;
+	if (join_type != duckdb::JoinType::ANTI && join_type != duckdb::JoinType::SEMI && join_type != duckdb::JoinType::MARK) {
+		// hash build type (output_cols - left_cols; where values are required)
+		CColRefSet* cols_to_build = GPOS_NEW(mp) CColRefSet(mp);
+		cols_to_build->Include(plan_expr->Prpp()->PcrsRequired());
+		cols_to_build->Difference(pexprLeft->Prpp()->PcrsRequired());
+		CColRefArray* cols_build_list = cols_to_build->Pdrgpcr(mp);
+		// right_build_types, right_build_map
+		for(ULONG col_idx = 0; col_idx < cols_build_list->Size(); col_idx++) {
+			auto idx = right_cols->IndexOf(cols_build_list->operator[](col_idx));
+			right_build_map.push_back(idx);
+			OID type_oid = CMDIdGPDB::CastMdid(cols_build_list->operator[](col_idx)->RetrieveType()->MDId())->Oid();
+			duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
+			right_build_types.push_back(col_type);
+		}
+	}
+	D_ASSERT(right_build_map.size() == right_build_types.size());
+	
+	// define op
+	duckdb::Schema schema;
+	schema.setStoredTypes(types);
+
+	// generate conditions
+	vector<duckdb::JoinCondition> join_conds;
+	pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds, left_cols, right_cols);
+
+	duckdb::CypherPhysicalOperator *op = 
+		new duckdb::PhysicalHashJoin(schema, move(join_conds), join_type, left_col_map, right_col_map, right_build_types, right_build_map);
+
+	// finish rhs pipeline
+	rhs_result->push_back(op);
+	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+	pipelines.push_back(pipeline);
+
+	// return lhs pipeline
+	lhs_result->push_back(op);
+	return lhs_result;
+}
+
 
 vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopLimit(CExpression* plan_expr) {
 
@@ -2356,6 +2450,61 @@ bool Planner::pIsCartesianProduct(CExpression* expr) {
 		&& expr->operator[](2)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst
 		&& CUtils::FScalarConstTrue(expr->operator[](2));
 }
+
+void Planner::pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols) {
+
+	// split AND predicates into each JoinCondition
+	// TODO what about OR condition in duckdb ?? -> IDK
+	auto* op = pred->Pop();
+	if(op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
+		CScalarBoolOp* boolop = (CScalarBoolOp*)op;
+		if(boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
+			// Split predicates
+			pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds, lhs_cols, rhs_cols);
+			pTranslatePredicateToJoinCondition(pred->operator[](1), out_conds, lhs_cols, rhs_cols);
+		} else if(boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopNot) {
+			// NOT + EQUALS
+			D_ASSERT(
+				pred->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp
+				&& ((CScalarCmp*)(pred->operator[](0)->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptEq
+			);
+			duckdb::JoinCondition cond;
+			unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(pred->operator[](0)->operator[](0), lhs_cols, rhs_cols);
+			unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(pred->operator[](0)->operator[](1), lhs_cols, rhs_cols);
+			if(lhs->return_type != rhs->return_type) {
+				rhs = pGenScalarCast(move(rhs), lhs->return_type);
+			}
+			cond.left = move(lhs);
+			cond.right = move(rhs);
+			cond.comparison = duckdb::ExpressionType::COMPARE_NOTEQUAL;
+			out_conds.push_back(move(cond));
+		} else {
+			D_ASSERT(false);
+		}
+	} else if(op->Eopid() == COperator::EOperatorId::EopScalarCmp){
+		CScalarCmp* cmpop = (CScalarCmp*)op;
+		duckdb::JoinCondition cond;
+		unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(pred->operator[](0), lhs_cols, rhs_cols);
+		unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(pred->operator[](1), lhs_cols, rhs_cols);
+		if(lhs->return_type != rhs->return_type) {
+			rhs = pGenScalarCast(move(rhs), lhs->return_type);
+		}
+		cond.left = move(lhs);
+		cond.right = move(rhs);
+		if(cmpop->ParseCmpType() == IMDType::ECmpType::EcmptEq) {
+			// EQUALS
+			cond.comparison = duckdb::ExpressionType::COMPARE_EQUAL;
+		} else if(cmpop->ParseCmpType() == IMDType::ECmpType::EcmptNEq) {
+			// NOT EQUALS
+			cond.comparison = duckdb::ExpressionType::COMPARE_NOTEQUAL;
+		}
+		out_conds.push_back(move(cond));
+	} else {
+		D_ASSERT(false);
+	}
+	return;
+}
+
 
 duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment ent) {
 	switch (ent) {

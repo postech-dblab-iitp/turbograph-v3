@@ -302,7 +302,7 @@ void Vector::SetValue(idx_t index, const Value &val) {
 		return;
 	}
 
-	validity.EnsureWritable(this->capacity);
+	validity.EnsureWritable();
 	validity.Set(index, !val.IsNull());
 	if (val.IsNull() && GetType().InternalType() != PhysicalType::STRUCT) {
 		// for structs we still need to set the child-entries to NULL
