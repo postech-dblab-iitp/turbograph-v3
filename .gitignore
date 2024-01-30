@@ -40,3 +40,6 @@ test*.cmake
 # vscode directory
 .vscode/
 *.code-workspace
+
+# test
+test/correctness-test/logs/*
