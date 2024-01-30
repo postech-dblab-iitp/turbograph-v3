@@ -1623,10 +1623,6 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	CMemoryPool* mp = this->memory_pool;
 	D_ASSERT(plan_expr->Arity() == 3);
 
-	/* Non-root - call left child */
-	vector<duckdb::CypherPhysicalOperator*> *lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
-	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
-
 	CPhysicalInnerHashJoin* expr_op = (CPhysicalInnerHashJoin*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprLeft = (*plan_expr)[0];
@@ -1694,12 +1690,42 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	duckdb::CypherPhysicalOperator *op = 
 		new duckdb::PhysicalHashJoin(schema, move(join_conds), join_type, left_col_map, right_col_map, right_build_types, right_build_map);
 
-	// finish rhs pipeline
+	/**
+	 * Hash join is a binary operator, which needs two pipelines.
+	 * If we need to generate schema flow graph, we need to create pipeline one-by-one.
+	 * We first generate rhs pipeline and schema flow graph.
+	 * We then clear the schema flow graph data structures.
+	 * We finally generate lhs pipeline
+	*/
+	// Step 1
+	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
 	rhs_result->push_back(op);
 	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
 	pipelines.push_back(pipeline);
+	auto rhs_num_schemas = 0;
+	auto rhs_schemas = 0; // We need to change this.
+	if (generate_sfg) {
+		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+		duckdb::Schema prev_union_schema = pipeline_union_schema.back();
+		rhs_num_schemas = prev_local_schemas.size();
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size()});
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(prev_union_schema);
+		pGenerateSchemaFlowGraph(*rhs_result);
+		pClearSchemaFlowGraph(); // Step 2
+	}
 
-	// return lhs pipeline
+	// Step 3
+	vector<duckdb::CypherPhysicalOperator*> *lhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+	if (generate_sfg) { // binary case
+		vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+		pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
+		num_schemas_of_childs.push_back({prev_local_schemas.size(), rhs_num_schemas});
+		// This is wrong. We have generate cartesian product of schemas
+		pipeline_schemas.push_back(prev_local_schemas);
+		pipeline_union_schema.push_back(schema);
+	}
 	lhs_result->push_back(op);
 	return lhs_result;
 }
