@@ -11,6 +11,11 @@
 
 namespace duckdb {
 
+/**
+ * Build executor should have right expressions on join condition
+ * In schemaless situation, right expressions can have different BoundReferenceExpression (Note that they have different schema)
+ * Therefore, according to their schema, build_executor should have initialized differently, which is crazy.
+*/
 PhysicalHashJoin::PhysicalHashJoin(Schema sch, 
 									vector<JoinCondition> cond,
 									JoinType join_type,
@@ -49,11 +54,8 @@ public:
 	DataChunk join_keys;
 	ExpressionExecutor build_executor;
 
-	// globals
 	//! The HT used by the join
 	unique_ptr<JoinHashTable> hash_table;
-	//! The perfect hash join executor (if any)
-	//unique_ptr<PerfectHashJoinExecutor> perfect_join_executor;
 	//! Whether or not the hash table has been finalized
 	bool finalized = false;
 };
@@ -97,7 +99,7 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &inpu
 	lstate.build_executor.Execute(input, lstate.join_keys);
 	// TODO: add statement to check for possible per
 	// build the HT
-	if (!right_projection_map.empty()) {
+ 	if (!right_projection_map.empty()) {
 		// there is a projection map: fill the build chunk with the projected columns
 		lstate.build_chunk.Reset();
 		lstate.build_chunk.SetCardinality(input);

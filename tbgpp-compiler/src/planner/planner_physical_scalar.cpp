@@ -68,9 +68,14 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	// try finding from RHS; refer duckdb's mechanism on ColumnBindingResolver
 	if (child_index == gpos::ulong_max && (rhs_child_cols != nullptr)) {
 		child_index = rhs_child_cols->IndexOf(ident_op->Pcr());
-		if (child_index != gpos::ulong_max) {	// index rules; LHS first, and then RHS next
-			child_index += child_cols->Size();
-		}
+		/**
+		 * 2024.1.31
+		 * Why this increments index??
+		 * Makes no sence. It occurs error in hash join
+		*/
+		// if (child_index != gpos::ulong_max) {	// index rules; LHS first, and then RHS next
+		// 	child_index += child_cols->Size();
+		// }
 	}
 	D_ASSERT(child_index != gpos::ulong_max);
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());

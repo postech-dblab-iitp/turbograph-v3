@@ -51,6 +51,12 @@ void Schema::setStoredTypes(std::vector<duckdb::LogicalType> types) {
 	}
 }
 
+void Schema::appendStoredTypes(std::vector<duckdb::LogicalType> types) {
+	for( auto& t: types) {
+		stored_types.push_back(t);
+	}
+}
+
 void Schema::setStoredColumnNames(std::vector<std::string> &names) {
 	for( auto& t: names) {
 		stored_column_names.push_back(t);

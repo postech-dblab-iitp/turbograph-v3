@@ -29,9 +29,10 @@ public:
 	DataChunk extent_cache;
 };
 
-PhysicalNodeScan::PhysicalNodeScan(Schema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping) :
+PhysicalNodeScan::PhysicalNodeScan(Schema& sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+								vector<vector<uint64_t>> scan_projection_mapping) :
 		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, sch), oids(oids), projection_mapping(projection_mapping),
-		scan_projection_mapping(projection_mapping), current_schema_idx(0), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
+		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
 {
 	num_schemas = 1;
 	scan_types.resize(num_schemas);
