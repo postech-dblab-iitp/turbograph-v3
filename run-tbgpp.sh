@@ -111,8 +111,17 @@ run_ldbc_s() {
 			p.id AS personId,
 			p.firstName AS firstName,
 			p.lastName AS lastName"
+	# If we don't have p._id, hash join fails.
+	# I don't know why, but the right_cols does not contains p._id, which is needed for the join.
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
+			p._id AS personInternalId,
+			p.id AS personId,
+			m._id AS messageInternalId,
+			m.id AS messageId"
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			p._id AS personInternalId,
 			p.id AS personId,
 			count(m.id) AS count"
 	run_query "MATCH (p:Person)<-[r:HAS_CREATOR]-(m:Comment)
@@ -138,6 +147,14 @@ run_ldbc_s() {
 		RETURN
 			m._id,
 			p._id"
+
+	# UNION ALL FILTER PUSHDOWN CASE
+	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person {id: 44})
+	RETURN
+		m.id AS messageId,
+		p.id AS personId,
+		p.firstName AS firstName,
+		p.lastName AS lastName"
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH

@@ -1135,8 +1135,8 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 		}
 	}
 
-	return CCost(0);
 	// return costChild + CCost(costLocal.Get() * skew_ratio);
+	return CCost(0);
 }
 
 //---------------------------------------------------------------------------

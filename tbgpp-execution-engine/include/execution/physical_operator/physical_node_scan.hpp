@@ -15,7 +15,7 @@ class PhysicalNodeScan: public CypherPhysicalOperator {
 
 public:
 	
-	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping);
+	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, vector<vector<uint64_t>> scan_projection_mapping);
 
 	// TODO s62 change filterKeyIndex to vector
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
