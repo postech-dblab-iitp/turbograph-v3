@@ -95,7 +95,7 @@ public:
 	vector<unique_ptr<DataChunk>> cached_chunks;
 
 	//! Child executors - to access sink information of the source 			// child : pipe's sink == op's source
-	vector<CypherPipelineExecutor*> childs;
+	vector<CypherPipelineExecutor *> childs;
 	//! Dependent executors - to access sink information of the operator	// dep   : pipe's sink == op's operator
 	std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> deps;
 

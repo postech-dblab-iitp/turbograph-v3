@@ -63,18 +63,22 @@ void Planner::pGenPhysicalPlan(CExpression* orca_plan_root) {
 	}
 	else {
 		prev_local_schemas = pipeline_schemas.back();
-		for (auto i = 0; i < prev_local_schemas.size(); i++) {
-			auto local_schema = std::move(prev_local_schemas[i].getStoredTypes());
-			projection_mappings.push_back(std::vector<uint8_t>());
-			for (auto j = 0; j < local_schema.size(); j++) {
-				if (local_schema[j] == duckdb::LogicalType::SQLNULL) {
-					projection_mappings[i].push_back(std::numeric_limits<uint8_t>::max());
-				} else {
-					projection_mappings[i].push_back(j);
-				}
-			}
-		}
-		op = new duckdb::PhysicalProduceResults(final_output_schema, projection_mappings);
+        for (auto i = 0; i < prev_local_schemas.size(); i++) {
+            auto local_schema = std::move(prev_local_schemas[i].getStoredTypes());
+            projection_mappings.push_back(std::vector<uint8_t>());
+            for (uint8_t log_idx = 0; log_idx < logical_plan_output_colrefs.size(); log_idx++) {
+                for (uint8_t phy_idx = 0; phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
+                    if (logical_plan_output_colrefs[log_idx]->Id() == physical_plan_output_colrefs[phy_idx]->Id()) {
+                        if (local_schema[phy_idx] == duckdb::LogicalType::SQLNULL) {
+                            projection_mappings[i].push_back(std::numeric_limits<uint8_t>::max());
+                        } else {
+                            projection_mappings[i].push_back(phy_idx);
+                        }
+                    }
+                }
+            }
+        }
+        op = new duckdb::PhysicalProduceResults(final_output_schema, projection_mappings);
 	}
 
 	final_pipeline_ops.push_back(op);
@@ -350,9 +354,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 	CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid( scan_op->Ptabdesc()->MDId() );
 	OID table_obj_id = table_mdid->Oid();
 	
-	CColRefSet* output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
-	CColRefSet* scan_cols = scan_expr->Prpp()->PcrsRequired();		// columns required to be scanned from storage
-	D_ASSERT( scan_cols->ContainsAll(output_cols) ); 				// output_cols is the subset of scan_cols
+	CColRefSet *output_cols = plan_expr->Prpp()->PcrsRequired();	// columns required for the output of NodeScan
+	CColRefSet *scan_cols = scan_expr->Prpp()->PcrsRequired();		// columns required to be scanned from storage
+	D_ASSERT(scan_cols->ContainsAll(output_cols)); 				// output_cols is the subset of scan_cols
 
 	// scan projection mapping - when doing filter pushdown, two mappings MAY BE different.
 	vector<vector<uint64_t>> scan_projection_mapping;
@@ -2217,7 +2221,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopSort(CExpression*
 	duckdb::Schema tmp_schema;
 	tmp_schema.setStoredTypes(last_op->GetTypes());
 	duckdb::CypherPhysicalOperator *op =
-		new duckdb::PhysicalTopNSort(tmp_schema, move(orders), 10000, 0); // TODO we have topn sort only..
+		new duckdb::PhysicalSort(tmp_schema, move(orders)); // TODO we have topn sort only..
 	result->push_back(op);
 
 	// break pipeline
