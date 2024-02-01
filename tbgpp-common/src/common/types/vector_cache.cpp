@@ -42,7 +42,9 @@ public:
 			break;
 		}
 		default:
-			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+			if (GetTypeIdSize(internal_type) > 0) {
+				owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+			}
 			break;
 		}
 	}

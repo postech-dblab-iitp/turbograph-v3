@@ -59,6 +59,7 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::USMALLINT:
 		return PhysicalType::UINT16;
 	case LogicalTypeId::SQLNULL:
+		return PhysicalType::NA;
 	case LogicalTypeId::DATE:
 	case LogicalTypeId::INTEGER:
 		return PhysicalType::INT32;
@@ -325,6 +326,8 @@ string TypeIdToString(PhysicalType type) {
 
 idx_t GetTypeIdSize(PhysicalType type) {
 	switch (type) {
+	case PhysicalType::NA:
+		return 0;
 	case PhysicalType::BIT:
 	case PhysicalType::BOOL:
 		return sizeof(bool);
