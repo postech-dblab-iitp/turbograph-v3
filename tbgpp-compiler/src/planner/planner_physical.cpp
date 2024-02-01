@@ -1671,6 +1671,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	vector<uint64_t> right_build_map;
 	if (join_type != duckdb::JoinType::ANTI && join_type != duckdb::JoinType::SEMI && join_type != duckdb::JoinType::MARK) {
 		// hash build type (output_cols - left_cols; where values are required)
+		// non-key columns, which means columns to be outputted after probing
 		CColRefSet* cols_to_build = GPOS_NEW(mp) CColRefSet(mp);
 		cols_to_build->Include(plan_expr->Prpp()->PcrsRequired());
 		cols_to_build->Difference(pexprLeft->Prpp()->PcrsRequired());
@@ -1683,8 +1684,11 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 			duckdb::LogicalType col_type = pConvertTypeOidToLogicalType(type_oid);
 			right_build_types.push_back(col_type);
 		}
+		D_ASSERT(right_build_map.size() == right_build_types.size());
 	}
-	D_ASSERT(right_build_map.size() == right_build_types.size());
+	else {
+		D_ASSERT(false);
+	}
 	
 	// define op
 	duckdb::Schema schema;
