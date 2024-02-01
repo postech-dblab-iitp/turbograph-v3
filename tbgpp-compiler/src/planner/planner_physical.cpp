@@ -539,9 +539,10 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
         vector<duckdb::LogicalType> local_types;
 
         // initialize global schema
-        if (i == 0)
+        if (i == 0) {
             global_types.resize(proj_list_expr_size,
                                 duckdb::LogicalType::SQLNULL);
+		}
 
         // for each object id, generate projection mapping. (if null projection required, ulong::max)
         projection_mapping.push_back(vector<uint64_t>());
@@ -2333,16 +2334,13 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
 
         output_column_names[i] = std::move(pGetColNameFromColRef(
             ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
-        // proj_exprs[i] = std::move(pTransformScalarIdent(pexprScalarExpr, child_cols, indices_to_project[i]));
         proj_exprs[i] =
             std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
         types[i] = proj_exprs[i]->return_type;
     }
 
-    D_ASSERT(
-        pexprProjList->Arity() >=
-        proj_exprs
-            .size());  // may be less, since we project duplicate projetions only once
+    // may be less, since we project duplicate projetions only once
+    D_ASSERT(pexprProjList->Arity() >= proj_exprs.size());
 
     /* Generate operator and push */
     duckdb::Schema tmp_schema;
@@ -3102,7 +3100,6 @@ void Planner::pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id,
 
 bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
 {
-
     // check if all projetion expressions are CscalarIdent
     D_ASSERT(proj_expr->Pop()->Eopid() ==
              COperator::EOperatorId::EopPhysicalComputeScalarColumnar);
@@ -3126,7 +3123,6 @@ bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
 
 bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
 {
-
     D_ASSERT(selection_expr->Pop()->Eopid() ==
              COperator::EOperatorId::EopPhysicalFilter);
     CExpression *filter_expr = NULL;
@@ -3148,7 +3144,6 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
 
 bool Planner::pIsCartesianProduct(CExpression *expr)
 {
-
     return expr->Pop()->Eopid() ==
                COperator::EOperatorId::EopPhysicalInnerNLJoin &&
            expr->operator[](2)->Pop()->Eopid() ==

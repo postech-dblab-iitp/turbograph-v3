@@ -115,6 +115,7 @@ void Vector::Reinterpret(Vector &other) {
 	data = other.data;
 	validity = other.validity;
 	capacity = other.capacity;
+	is_valid = other.is_valid;
 }
 
 void Vector::ResetFromCache(const VectorCache &cache) {
@@ -492,6 +493,10 @@ Value Vector::GetValue(idx_t index) const {
 		throw InternalException("Unimplemented vector type for Vector::GetValue");
 	}
 
+	if (!is_valid) {
+		return Value(GetType());
+	}
+
 	if (!validity.RowIsValid(index)) {
 		return Value(GetType());
 	}
@@ -854,6 +859,7 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 			data.sel = &sel;
 			data.data = FlatVector::GetData(child);
 			data.validity = FlatVector::Validity(child);
+			data.is_valid = child.is_valid;
 		} else {
 			// dictionary with non-flat child: create a new reference to the child and normalify it
 			Vector child_vector(child);
@@ -871,12 +877,14 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 		data.sel = ConstantVector::ZeroSelectionVector(count, data.owned_sel);
 		data.data = ConstantVector::GetData(*this);
 		data.validity = ConstantVector::Validity(*this);
+		data.is_valid = this->is_valid;
 		break;
 	default:
 		Normalify(count);
 		data.sel = FlatVector::IncrementalSelectionVector(count, data.owned_sel);
 		data.data = FlatVector::GetData(*this);
 		data.validity = FlatVector::Validity(*this);
+		data.is_valid = this->is_valid;
 		break;
 	}
 }

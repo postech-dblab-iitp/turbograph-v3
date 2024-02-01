@@ -10,43 +10,54 @@ void TemplatedRadixScatter(VectorData &vdata, const SelectionVector &sel, idx_t 
                            const bool desc, const bool has_null, const bool nulls_first, const bool is_little_endian,
                            const idx_t offset) {
 	auto source = (T *)vdata.data;
-	if (has_null) {
-		auto &validity = vdata.validity;
+	if (vdata.is_valid) {
+		if (has_null) {
+			auto &validity = vdata.validity;
+			const data_t valid = nulls_first ? 1 : 0;
+			const data_t invalid = 1 - valid;
+
+			for (idx_t i = 0; i < add_count; i++) {
+				auto idx = sel.get_index(i);
+				auto source_idx = vdata.sel->get_index(idx) + offset;
+				// write validity and according value
+				if (validity.RowIsValid(source_idx)) {
+					key_locations[i][0] = valid;
+					EncodeData<T>(key_locations[i] + 1, source[source_idx], is_little_endian);
+					// invert bits if desc
+					if (desc) {
+						for (idx_t s = 1; s < sizeof(T) + 1; s++) {
+							*(key_locations[i] + s) = ~*(key_locations[i] + s);
+						}
+					}
+				} else {
+					key_locations[i][0] = invalid;
+					memset(key_locations[i] + 1, '\0', sizeof(T));
+				}
+				key_locations[i] += sizeof(T) + 1;
+			}
+		} else {
+			for (idx_t i = 0; i < add_count; i++) {
+				auto idx = sel.get_index(i);
+				auto source_idx = vdata.sel->get_index(idx) + offset;
+				// write value
+				EncodeData<T>(key_locations[i], source[source_idx], is_little_endian);
+				// invert bits if desc
+				if (desc) {
+					for (idx_t s = 0; s < sizeof(T); s++) {
+						*(key_locations[i] + s) = ~*(key_locations[i] + s);
+					}
+				}
+				key_locations[i] += sizeof(T);
+			}
+		}
+	} else {
 		const data_t valid = nulls_first ? 1 : 0;
 		const data_t invalid = 1 - valid;
 
 		for (idx_t i = 0; i < add_count; i++) {
-			auto idx = sel.get_index(i);
-			auto source_idx = vdata.sel->get_index(idx) + offset;
-			// write validity and according value
-			if (validity.RowIsValid(source_idx)) {
-				key_locations[i][0] = valid;
-				EncodeData<T>(key_locations[i] + 1, source[source_idx], is_little_endian);
-				// invert bits if desc
-				if (desc) {
-					for (idx_t s = 1; s < sizeof(T) + 1; s++) {
-						*(key_locations[i] + s) = ~*(key_locations[i] + s);
-					}
-				}
-			} else {
-				key_locations[i][0] = invalid;
-				memset(key_locations[i] + 1, '\0', sizeof(T));
-			}
+			key_locations[i][0] = invalid;
+			memset(key_locations[i] + 1, '\0', sizeof(T));
 			key_locations[i] += sizeof(T) + 1;
-		}
-	} else {
-		for (idx_t i = 0; i < add_count; i++) {
-			auto idx = sel.get_index(i);
-			auto source_idx = vdata.sel->get_index(idx) + offset;
-			// write value
-			EncodeData<T>(key_locations[i], source[source_idx], is_little_endian);
-			// invert bits if desc
-			if (desc) {
-				for (idx_t s = 0; s < sizeof(T); s++) {
-					*(key_locations[i] + s) = ~*(key_locations[i] + s);
-				}
-			}
-			key_locations[i] += sizeof(T);
 		}
 	}
 }
