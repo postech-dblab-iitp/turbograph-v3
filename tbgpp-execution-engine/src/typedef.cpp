@@ -79,9 +79,9 @@ std::vector<string> Schema::getStoredColumnNames()
 std::string Schema::printStoredTypes()
 {
     std::string result = "(";
-    for (duckdb::LogicalType &type : stored_types) {
-        result += type.ToString();
-        result += ", ";
+    for (auto i = 0; i < stored_types.size(); i++) {
+        if (i != 0) result += ", ";
+        result += stored_types[i].ToString();
     }
     result += ")";
     return result;
@@ -94,10 +94,10 @@ std::string Schema::printStoredColumnAndTypes()
     }
     std::string result = "(";
     for (int idx = 0; idx < stored_types.size(); idx++) {
+        if (idx != 0) result += ", ";
         result += stored_column_names[idx];
         result += ":";
         result += stored_types[idx].ToString();
-        result += ", ";
     }
     result += ")";
     return result;

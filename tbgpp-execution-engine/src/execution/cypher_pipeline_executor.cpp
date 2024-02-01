@@ -179,7 +179,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			pipeResult == OperatorResultType::POSTPONE_OUTPUT) {
 			return pipeResult;
 		}
-		pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 1][output_schema_idx].get();
+		pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[Sink (" << pipeline->GetSink()->ToString() << ")] num_tuples: " << pipeOutputChunk->size() << std::endl;
 #endif
