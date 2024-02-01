@@ -65,6 +65,9 @@ public:
 	idx_t GetSchemaIdx() {
 		return this->schema_idx;
 	}
+	inline void SetHasRowChunk(bool has_row_chunk) {
+		this->has_row_chunk = has_row_chunk;
+	}
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);

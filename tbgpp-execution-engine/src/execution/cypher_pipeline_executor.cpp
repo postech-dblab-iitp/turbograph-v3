@@ -26,7 +26,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 	context->thread = &thread;
 
 	// initialize interm chunks
-	for (int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink.
+	for (int i = 0; i < pipeline->pipelineLength - 1; i++) {	// from source to operators ; not sink. // TODO pipelinelength - 1 -> pipelinelength
 		auto opOutputChunk = std::make_unique<DataChunk>();
 		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
@@ -58,7 +58,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 
 	// initialize interm chunks
 	auto &flow_graph = this->sfg.GetFlowGraph();
-	for (int i = 0; i < pipeline->pipelineLength - 1; i++) { // from source to operators ; not sink.
+	for (int i = 0; i < pipeline->pipelineLength; i++) { // from source to operators ; not sink.
 		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		size_t num_datachunks = i == 0 ? 1 : flow_graph[i].size(); // we maintain only one chunk for source node (union schema)
@@ -68,7 +68,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 			opOutputChunks[i].push_back(std::move(opOutputChunk));
 		}
 	}
-	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
+	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength));
 	local_source_state = pipeline->source->GetLocalSourceState(*context);
 	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
 	for (auto op: pipeline->GetOperators()) {

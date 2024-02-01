@@ -9,6 +9,7 @@
 #include "common/types/decimal.hpp"
 #include "common/types/hash.hpp"
 #include "common/types/string_type.hpp"
+#include "common/types/rowcol_type.hpp"
 #include "common/types/value.hpp"
 //#include "common/types/vector.hpp"
 #include "common/unordered_map.hpp"
@@ -146,6 +147,8 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::ADJLISTCOLUMN:
 	case LogicalTypeId::ID:
 		return PhysicalType::UINT64;
+	case LogicalTypeId::ROWCOL:
+		return PhysicalType::ROWCOL;
 	default:
 		throw InternalException("Invalid LogicalType %s", ToString());
 	}
@@ -196,6 +199,7 @@ constexpr const LogicalTypeId LogicalType::FORWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
 constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
+constexpr const LogicalTypeId LogicalType::ROWCOL;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -357,6 +361,8 @@ idx_t GetTypeIdSize(PhysicalType type) {
 		return sizeof(list_entry_t); // offset + len
 	case PhysicalType::ADJLIST:
 		return sizeof(uint64_t);
+	case PhysicalType::ROWCOL:
+		return sizeof(rowcol_t);
 	default:
 		throw InternalException("Invalid PhysicalType for GetTypeIdSize");
 	}
@@ -471,6 +477,8 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 		return "BACKWARD_ADJLIST";
 	case LogicalTypeId::ADJLISTCOLUMN:
 		return "ADJLISTCOLUMN";
+	case LogicalTypeId::ROWCOL:
+		return "ROWCOL";
 	}
 	return "UNDEFINED";
 }

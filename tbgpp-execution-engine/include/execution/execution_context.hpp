@@ -31,6 +31,8 @@ public:
 	ThreadContext *thread;
 	//! The schema flow graph for this execution
 	SchemaFlowGraph *sfg;
+	//! The intermediate schema infos for this execution
+	vector<Schema> *schema_infos;
 	
 	//! if this is the last pipeline, store pointer to query results here
 	vector<DataChunk*> *query_results;

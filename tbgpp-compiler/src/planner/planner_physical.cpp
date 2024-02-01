@@ -1270,9 +1270,8 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalInnerInd
 	/* Non-root - call single child */
 	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
-	// TODO required or derived, which is appropriate?
-	CReqdPropPlan *reqd_prop_plan = plan_expr->Prpp();
-	if (reqd_prop_plan->Peo() != nullptr) {
+	CDrvdPropPlan *drvd_prop_plan = plan_expr->GetDrvdPropPlan();
+	if (drvd_prop_plan->Pos()->UlSortColumns() > 0) {
 		pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(plan_expr, result);
 	} else {
 		pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(plan_expr, result);
@@ -1306,7 +1305,7 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithS
 		ULONG col_id = col->Id();
 		id_map.insert(std::make_pair(col_id, col_idx));
 
-		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
+		CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
 		OID type_oid = type_mdid->Oid();
 		types.push_back(pConvertTypeOidToLogicalType(type_oid));
 	}
@@ -1384,7 +1383,7 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithS
 					}
 				}
 
-				// Construct innter mapping, scan projection mapping, scan type infos
+				// Construct inner mapping, scan projection mapping, scan type infos
 				for (uint32_t j = 0; j < projectlist_expr->Arity(); j++) {
 					D_ASSERT(projectlist_expr->operator[](j)->Pop()->Eopid() == COperator::EOperatorId::EopScalarProjectElement);
 					CScalarProjectElement *proj_elem = (CScalarProjectElement *)(projectlist_expr->operator[](j)->Pop());
