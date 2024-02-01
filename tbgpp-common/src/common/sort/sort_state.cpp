@@ -165,7 +165,6 @@ void LocalSortState::Initialize(GlobalSortState &global_sort_state, BufferManage
 }
 
 void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
-// IC();
 	// sort : expression-applied columns for sort
 	// payload : actual data
 	D_ASSERT(sort.size() == payload.size());
@@ -195,9 +194,6 @@ void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
 		RowOperations::Scatter(blob_chunk, blob_data.get(), sort_layout->blob_layout, addresses, *blob_sorting_heap,
 		                       sel_ptr, blob_chunk.size());
 	}
-
-// IC(payload_layout->AllConstant());
-// IC(payload_layout->GetRowWidth());
 
 	// Finally, serialize payload data ( = serialize rest of the input based on radix sort result )
 	handles = payload_data->Build(payload.size(), data_pointers, nullptr);

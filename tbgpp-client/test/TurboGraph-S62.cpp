@@ -427,31 +427,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		/*
 			DUMP RESULT
 		*/
-			
-			// if (enable_profile) {
-			// 	Table profile_info;
-			// 	idx_t root_depth = profiler.GetTreeMap().size();
-			// 	std::vector<std::vector<string>> profile_print_output;
-			// 	profile_print_output.resize(root_depth);
-			// 	profile_info.layout(unicode_box_light_headerline())
-			// 				.aligns({Right, Right, Right, Right});
-			// 	std::cout << std::endl << "[Profile Info]" << std::endl;
-			// 	profile_info << "#" << "Operator Name" << "Elapsed Time(ms)" << "# Processed Tuples" << endr;
-			// 	for (const auto& mapping: profiler.GetTreeMap()) {
-			// 		std::cout << "Root: " << root_depth << ", mapping.depth: " << mapping.second->depth << std::endl;
-			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(mapping.second->name);
-			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.time * 1000.0));
-			// 		profile_print_output[root_depth - mapping.second->depth - 1].push_back(std::to_string(mapping.second->info.elements));
-			// 	}
-			// 	for (int depth = profile_print_output.size() - 1; depth >= 0; depth--) {
-			// 		profile_info << depth;
-			// 		profile_info << profile_print_output[depth][0];
-			// 		profile_info << profile_print_output[depth][1];
-			// 		profile_info << profile_print_output[depth][2];
-			// 		profile_info << endr;
-			// 	}
-			// 	std::cout << profile_info << std::endl;
-			// }
 
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
@@ -588,7 +563,9 @@ int main(int argc, char** argv) {
 				try {
 					// protected code
 					CompileAndRun(query_str, client, planner);
-				} catch( std::exception e1 ) {
+				} catch (duckdb::Exception e) {
+					std::cerr << e.what() << std::endl;
+				} catch (std::exception e1) {
 					std::cerr << e1.what() << std::endl;
 				}
 			}
