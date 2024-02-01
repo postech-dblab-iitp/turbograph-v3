@@ -43,9 +43,9 @@ public:
 		vector<idx_t> &right_build_map	// duckdb style build map - what build types
 	);
 
+	//! S62 style projection map. Indexes into the output.
 	vector<uint32_t> output_left_projection_map;
 	vector<uint32_t> output_right_projection_map;
-
 	//! build side projection map
 	vector<idx_t> right_projection_map;
 	//! The types of the keys
@@ -54,36 +54,12 @@ public:
 	vector<LogicalType> build_types;
 	//! Duplicate eliminated types; only used for delim_joins (i.e. correlated subqueries)
 	vector<LogicalType> delim_types;
-	// used in perfect hash join
-	//PerfectHashJoinStats perfect_join_statistics;
 
 public:
 	// Operator Interface
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
 								OperatorState &state_p, LocalSinkState &sink_state) const override;
-
-	// bool ParallelOperator() const override {
-	// 	return true;
-	// }
-
-	// bool RequiresCache() const override {
-	// 	return true;
-	// }
-
-// Source necessary for Right/Full Outer Join - currently disable
-// public:
-// 	// Source interface
-// 	unique_ptr<GlobalSourceState> GetGlobalSourceState(ClientContext &context) const override;
-// 	void GetData(ExecutionContext &context, DataChunk &chunk, GlobalSourceState &gstate,
-// 	             LocalSourceState &lstate) const override;
-
-// 	bool IsSource() const override {
-// 		return IsRightOuterJoin(join_type);
-// 	}
-// 	bool ParallelSource() const override {
-// 		return true;
-// 	}
 
 public:
 	// Sink Interface
@@ -98,10 +74,6 @@ public:
 	bool IsSink() const override {
 		return true;
 	}
-	// bool ParallelSink() const override {
-	// 	return true;
-	// }
-
 
 	std::string ParamsToString() const override;
 	std::string ToString() const override;

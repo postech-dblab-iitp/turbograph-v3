@@ -12,6 +12,7 @@
 namespace duckdb {
 
 /**
+ * TODO:
  * Build executor should have right expressions on join condition
  * In schemaless situation, right expressions can have different BoundReferenceExpression (Note that they have different schema)
  * Therefore, according to their schema, build_executor should have initialized differently, which is crazy.
@@ -20,9 +21,9 @@ PhysicalHashJoin::PhysicalHashJoin(Schema sch,
 									vector<JoinCondition> cond,
 									JoinType join_type,
                                    vector<uint32_t> &output_left_projection_map,	// s62 style projection map
-                                   vector<uint32_t> &output_right_projection_map,	// s62 style projection map
+                                   vector<uint32_t> &output_right_projection_map,	// s62 style projection map (not used due to right_build_map)
 								   vector<LogicalType> &right_build_types,
-								   vector<idx_t> &right_build_map	// duckdb style build map - what build types
+								   vector<idx_t> &right_build_map	// right column indexes to build (they should be in the output)
 								   )
     : PhysicalComparisonJoin(sch, PhysicalOperatorType::HASH_JOIN, move(cond), join_type),
 		build_types(right_build_types), right_projection_map(right_build_map),
@@ -39,9 +40,6 @@ PhysicalHashJoin::PhysicalHashJoin(Schema sch,
 	}
 
 	D_ASSERT(delim_types.size() == 0);
-
-	// TODO build inverse projection map
-	
 }
 
 
@@ -60,19 +58,12 @@ public:
 	bool finalized = false;
 };
 
-
-// unique_ptr<GlobalSinkState> PhysicalHashJoin::GetGlobalSinkState(ClientContext &context) const {
-	
-// }
-
 unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext &context) const {
 	auto state = make_unique<HashJoinLocalState>();
 	if (!right_projection_map.empty()) {
 		state->build_chunk.Initialize(build_types);
 	}
 	for (auto &cond : conditions) {
-		std::cout << "left :" << cond.left->ToString() << std::endl;
-		std::cout << "right :" << cond.right->ToString() << std::endl;
 		state->build_executor.AddExpression(*cond.right);
 	}
 	state->join_keys.Initialize(condition_types);
@@ -80,13 +71,6 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext 
 	// globals
 	state->hash_table =
 	    make_unique<JoinHashTable>(BufferManager::GetBufferManager(*(context.client->db.get())), conditions, build_types, join_type);
-	// if (!delim_types.empty() && join_type == JoinType::MARK) {
-	// 	// correlated MARK join
-	//	// DELTED
-	// }
-	// for perfect hash join
-	// state->perfect_join_executor =
-	//     make_unique<PerfectHashJoinExecutor>(*this, *state->hash_table, perfect_join_statistics);
 
 	return move(state);
 }
@@ -146,37 +130,15 @@ void PhysicalHashJoin::Combine(ExecutionContext& context, LocalSinkState& lstate
 }
 
 //===--------------------------------------------------------------------===//
-// Finalize
-//===--------------------------------------------------------------------===//
-// SinkFinalizeType PhysicalHashJoin::Finalize(Pipeline &pipeline, Event &event, ClientContext &context,
-//                                             GlobalSinkState &gstate) const {
-// 	auto &sink = (HashJoinGlobalState &)gstate;	
-// 	// check for possible perfect hash table
-// 	// auto use_perfect_hash = sink.perfect_join_executor->CanDoPerfectHashJoin();
-// 	// if (use_perfect_hash) {
-// 	// 	D_ASSERT(sink.hash_table->equality_types.size() == 1);
-// 	// 	auto key_type = sink.hash_table->equality_types[0];
-// 	// 	use_perfect_hash = sink.perfect_join_executor->BuildPerfectHashTable(key_type);
-// 	// }
-// 	// In case of a large build side or duplicates, use regular hash join
-// 	//if (!use_perfect_hash) {
-// 		//sink.perfect_join_executor.reset();
-// 		sink.hash_table->Finalize();
-// 	//}
-// 	sink.finalized = true;
-// 	if (sink.hash_table->Count() == 0 && EmptyResultIfRHSIsEmpty()) {
-// 		return SinkFinalizeType::NO_OUTPUT_POSSIBLE;
-// 	}
-// 	return SinkFinalizeType::READY;
-// }
-
-//===--------------------------------------------------------------------===//
 // Operator
 //===--------------------------------------------------------------------===//
 class PhysicalHashJoinState : public OperatorState {
 public:
+	//! The join keys used to probe the HT
 	DataChunk join_keys;
+	//! expression executor that extracts left side of the join keys in the input
 	ExpressionExecutor probe_executor;
+	//! The scan structure used to scan the HT after probing
 	unique_ptr<JoinHashTable::ScanStructure> scan_structure;
 	unique_ptr<OperatorState> perfect_hash_join_state;
 
@@ -209,14 +171,37 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 	if (sink.hash_table->Count() == 0 && EmptyResultIfRHSIsEmpty()) {
 		return OperatorResultType::FINISHED;
 	}
-	// if (sink.perfect_join_executor) {
-	// 	return sink.perfect_join_executor->ProbePerfectHashTable(context, input, chunk, *state.perfect_hash_join_state);
-	// }
+
+	/**
+	 * NOTE
+	 * See assertion in ScanStructure::NextInnerJoin (D_ASSERT(result.ColumnCount() == left.ColumnCount() + ht.build_types.size()))
+	 * In the code, it slides left and concat to result. And then it concats the build chunk to the result.
+	 * This means that DuckDB does not consider the case where the some columns in the lhs are not used in the output.
+	 * For example, if the join key is not included in the final output, since it only used in the join, DuckDB outputs error.
+	*/
+
+	DataChunk preprocessed_input;
+	// Get types. See output_left_projection_map. if std::numeric_limits<uint32_t>::max(), then it is not used in the output
+	vector<LogicalType> input_types = input.GetTypes();
+	vector<LogicalType> prep_input_types;
+	for (auto &idx : output_left_projection_map) {
+		if (idx != std::numeric_limits<uint32_t>::max()) {
+			prep_input_types.push_back(input_types[idx]);
+		}
+	}
+	// Initialize and fill preprocessed_input
+	preprocessed_input.Initialize(prep_input_types);
+	idx_t prep_idx = 0;
+	for (idx_t input_idx = 0; input_idx < output_left_projection_map.size(); input_idx++) {
+		if (output_left_projection_map[input_idx] != std::numeric_limits<uint32_t>::max()) {
+			preprocessed_input.data[prep_idx++].Reference(input.data[input_idx]);
+		}
+	}
 
 	if (state.scan_structure) {
 		// still have elements remaining from the previous probe (i.e. we got
 		// >1024 elements in the previous probe)
-		state.scan_structure->Next(state.join_keys, input, chunk);
+		state.scan_structure->Next(state.join_keys, preprocessed_input, chunk);
 		if (chunk.size() > 0) {
 			return OperatorResultType::HAVE_MORE_OUTPUT;
 		}
@@ -225,8 +210,8 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 	}
 
 	// probe the HT
-	if (sink.hash_table->Count() == 0) {
-		ConstructEmptyJoinResult(sink.hash_table->join_type, sink.hash_table->has_null, input, chunk);
+	if (sink.hash_table->Count() == 0) { // number of tuples in a rhs
+		ConstructEmptyJoinResult(sink.hash_table->join_type, sink.hash_table->has_null, preprocessed_input, chunk);
 		return OperatorResultType::NEED_MORE_INPUT;
 	}
 	// resolve the join keys for the left chunk
@@ -235,7 +220,7 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 
 	// perform the actual probe
 	state.scan_structure = sink.hash_table->Probe(state.join_keys);
-	state.scan_structure->Next(state.join_keys, input, chunk);
+	state.scan_structure->Next(state.join_keys, preprocessed_input, chunk);
 	return OperatorResultType::HAVE_MORE_OUTPUT;
 }
 
