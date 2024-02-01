@@ -24,6 +24,7 @@ struct VectorData {
 	data_ptr_t data;
 	ValidityMask validity;
 	SelectionVector owned_sel;
+	bool is_valid;
 };
 
 class VectorCache;
@@ -188,6 +189,7 @@ protected:
 	//! e.g. a string vector uses this to store strings
 	buffer_ptr<VectorBuffer> auxiliary;
 	idx_t capacity;
+	bool is_valid = true;
 };
 
 class VectorWithValidBitmap : public Vector {
