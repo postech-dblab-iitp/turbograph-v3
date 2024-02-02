@@ -5,8 +5,7 @@
 #include <limits>
 #include <set>
 #include <string>
-
-// orca operators
+#include <numeric>
 
 // locally used duckdb operators
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
@@ -246,8 +245,16 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
             break;
         }
         case COperator::EOperatorId::EopPhysicalLimit: {
-            // TODO we need to optimize Limit + Sort
-            result = pTransformEopLimit(plan_expr);
+            auto topnsort_p = vector<COperator::EOperatorId>(
+                {COperator::EOperatorId::EopPhysicalLimit,
+                 COperator::EOperatorId::EopPhysicalLimit,
+                 COperator::EOperatorId::EopPhysicalSort});
+            if (pMatchExprPattern(plan_expr, topnsort_p, 0, true)) {
+                result = pTransformEopTopNSort(plan_expr);
+            }
+            else {
+                result = pTransformEopLimit(plan_expr);
+            }
             break;
         }
         case COperator::EOperatorId::EopPhysicalSort: {
@@ -599,7 +606,6 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
         local_schemas[i].setStoredTypes(local_types);
         // TODO else check if type conforms
     }
-    // TODO assert oids size = mapping size
 
     global_schema.setStoredTypes(global_types);
 
@@ -2235,7 +2241,6 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
 vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopLimit(
     CExpression *plan_expr)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
@@ -2305,38 +2310,55 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
     CExpression *pexprProjList = (*plan_expr)[1];  // Projection list
 
     // decide which proj elems to project - keep colref orders
-    // TODO 240115 tslee maybe we don't need this logic.. check
-    // vector<ULONG> indices_to_project;
-    // indices_to_project.resize(output_cols->Size());
-    // for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
-    // 	for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
-    // 		if (((CScalarProjectElement*)(pexprProjList->operator[](elem_idx)->Pop()))->Pcr()->Id() == output_cols->operator[](ocol)->Id()) {
-    // 			// matching ColRef found
-    // 			// indices_to_project.push_back(elem_idx);
-    // 			indices_to_project[ocol] = elem_idx;
-    // 			goto OUTER_LOOP;
-    // 		}
-    // 	}
-    // 	D_ASSERT(false);
-    // 	OUTER_LOOP:;
+    vector<ULONG> indices_to_project;
+    for (ULONG ocol = 0; ocol < output_cols->Size(); ocol++) {
+        bool found = false;
+        for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity();
+             elem_idx++) {
+            if (((CScalarProjectElement *)(pexprProjList->operator[](elem_idx)
+                                               ->Pop()))
+                    ->Pcr()
+                    ->Id() == output_cols->operator[](ocol)->Id()) {
+                // matching ColRef found
+                indices_to_project.push_back(elem_idx);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            throw duckdb::InvalidInputException("Projection column not found");
+        }
+    }
+
+    // output_column_names.resize(output_cols->Size());
+    // proj_exprs.resize(output_cols->Size());
+    // types.resize(output_cols->Size());
+
+    // for (auto i = 0; i < output_cols->Size(); i++) {
+    //     CExpression *pexprProjElem =
+    //         pexprProjList->operator[](i);  // CScalarProjectElement
+    //     CExpression *pexprScalarExpr =
+    //         pexprProjElem->operator[](0);  // CScalar... - expr tree root
+    //     D_ASSERT(pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent);
+
+    //     output_column_names[i] = std::move(pGetColNameFromColRef(
+    //         ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
+    //     proj_exprs[i] =
+    //         std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
+    //     types[i] = proj_exprs[i]->return_type;
     // }
 
-    output_column_names.resize(output_cols->Size());
-    proj_exprs.resize(output_cols->Size());
-    types.resize(output_cols->Size());
-
-    for (auto i = 0; i < output_cols->Size(); i++) {
+    for (auto &elem_idx : indices_to_project) {
         CExpression *pexprProjElem =
-            pexprProjList->operator[](i);  // CScalarProjectElement
+            pexprProjList->operator[](elem_idx);  // CScalarProjectElement
         CExpression *pexprScalarExpr =
             pexprProjElem->operator[](0);  // CScalar... - expr tree root
-        D_ASSERT(pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent);
 
-        output_column_names[i] = std::move(pGetColNameFromColRef(
+        output_column_names.push_back(pGetColNameFromColRef(
             ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
-        proj_exprs[i] =
-            std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
-        types[i] = proj_exprs[i]->return_type;
+        proj_exprs.push_back(
+            std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
+        types.push_back(proj_exprs.back()->return_type);
     }
 
     // may be less, since we project duplicate projetions only once
@@ -2643,7 +2665,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
 vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     CExpression *plan_expr)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
@@ -2662,15 +2683,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     auto &last_op_result_types = last_op->GetTypes();
 
     vector<duckdb::BoundOrderByNode> orders;
-    // TODO outer_cols column order (colrefset) problem
     for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
         const CColRef *col = pos->Pcr(ul);
         ULONG idx = outer_cols->IndexOf(col);
-        // ULONG col_id= col->Id();
-        // CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
-        // OID type_oid = type_mdid->Oid();
-        // ULONG ref_col_idx = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col);
-        // std::cout << "col_id: " << col_id << ", ref_col_idx: " << ref_col_idx << std::endl;
 
         unique_ptr<duckdb::Expression> order_expr =
             make_unique<duckdb::BoundReferenceExpression>(
@@ -2678,12 +2693,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
                 plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col));
 
         duckdb::OrderType order_type =
-            IMDId::MDIdCompare(
-                pos->GetMdIdSortOp(ul),
-                col->RetrieveType()->GetMdidForCmpType(
-                    IMDType::
-                        EcmptG))  // EcmptG => ">" => desc?? // TODO not sure...
-                    == false
+            IMDId::MDIdCompare(pos->GetMdIdSortOp(ul),
+                               col->RetrieveType()->GetMdidForCmpType(
+                                   IMDType::EcmptG)) == false
                 ? duckdb::OrderType::ASCENDING
                 : duckdb::OrderType::DESCENDING;
 
@@ -2696,6 +2708,124 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     tmp_schema.setStoredTypes(last_op->GetTypes());
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalSort(
         tmp_schema, move(orders));  // TODO we have topn sort only..
+    result->push_back(op);
+
+    // break pipeline
+    auto pipeline = new duckdb::CypherPipeline(*result);
+    pipelines.push_back(pipeline);
+
+    if (generate_sfg) {
+        // Generate for the previous pipeline
+        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
+        pipeline_schemas.push_back(prev_local_schemas);
+        pipeline_union_schema.push_back(tmp_schema);
+        pGenerateSchemaFlowGraph(*result);
+
+        // Set for the current pipeline. We consider after group by, schema is merged.
+        pClearSchemaFlowGraph();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({1});
+        pipeline_schemas.push_back({tmp_schema});
+        pipeline_union_schema.push_back(tmp_schema);
+    }
+
+    auto new_result = new vector<duckdb::CypherPhysicalOperator *>();
+    new_result->push_back(op);
+
+    return new_result;
+}
+
+vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
+    CExpression *plan_expr)
+{
+    CMemoryPool *mp = this->memory_pool;
+
+    /* Non-root - call single child */
+    D_ASSERT(plan_expr->Pop()->Eopid() ==
+             COperator::EOperatorId::EopPhysicalLimit);
+    D_ASSERT(plan_expr->operator[](0)->Pop()->Eopid() ==
+             COperator::EOperatorId::EopPhysicalLimit);
+    D_ASSERT(plan_expr->operator[](0)->operator[](0)->Pop()->Eopid() ==
+             COperator::EOperatorId::EopPhysicalSort);
+    vector<duckdb::CypherPhysicalOperator *> *result =
+        pTraverseTransformPhysicalPlan(plan_expr->operator[](0)->operator[](0)->PdrgPexpr()->operator[](0));
+    
+
+    // get limit info
+    bool has_limit = false;
+    CExpression *limit_expr = plan_expr;
+    CPhysicalLimit *limit_op = (CPhysicalLimit *)limit_expr->Pop();
+    D_ASSERT(limit_expr->operator[](1)->Pop()->Eopid() ==
+             COperator::EOperatorId::EopScalarConst);
+    D_ASSERT(limit_expr->operator[](2)->Pop()->Eopid() ==
+             COperator::EOperatorId::EopScalarConst);
+
+    int64_t offset, limit;
+    if (!limit_op->FHasCount()) {
+        has_limit = false;
+    } else {
+        has_limit = true;
+        CDatumInt8GPDB *offset_datum =
+            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](1)->Pop())
+                                ->GetDatum());
+        CDatumInt8GPDB *limit_datum =
+            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](2)->Pop())
+                                ->GetDatum());
+        offset = offset_datum->Value();
+        limit = limit_datum->Value();
+    }
+
+    // currently, second limit has no count info
+    D_ASSERT(!((CPhysicalLimit *)plan_expr->operator[](0)->Pop())->FHasCount());
+
+    // get sort info
+    CExpression *sort_expr = plan_expr->operator[](0)->operator[](0);
+    CPhysicalSort *proj_op = (CPhysicalSort *)sort_expr->Pop();
+
+    const COrderSpec *pos = proj_op->Pos();
+
+    CColRefArray *output_cols = sort_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CExpression *pexprOuter = (*sort_expr)[0];
+    CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+    duckdb::CypherPhysicalOperator *last_op = result->back();
+    auto &last_op_result_types = last_op->GetTypes();
+
+    vector<duckdb::BoundOrderByNode> orders;
+    for (ULONG ul = 0; ul < pos->UlSortColumns(); ul++) {
+        const CColRef *col = pos->Pcr(ul);
+        ULONG idx = outer_cols->IndexOf(col);
+
+        unique_ptr<duckdb::Expression> order_expr =
+            make_unique<duckdb::BoundReferenceExpression>(
+                last_op_result_types[idx],
+                plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)->IndexOf(col));
+
+        duckdb::OrderType order_type =
+            IMDId::MDIdCompare(pos->GetMdIdSortOp(ul),
+                               col->RetrieveType()->GetMdidForCmpType(
+                                   IMDType::EcmptG)) == false
+                ? duckdb::OrderType::ASCENDING
+                : duckdb::OrderType::DESCENDING;
+
+        duckdb::BoundOrderByNode order(
+            order_type, pTranslateNullType(pos->Ent(ul)), move(order_expr));
+        orders.push_back(move(order));
+    }
+
+    duckdb::Schema tmp_schema;
+    tmp_schema.setStoredTypes(last_op->GetTypes());
+    duckdb::CypherPhysicalOperator *op;
+    if (has_limit) {
+        op = new duckdb::PhysicalTopNSort(tmp_schema, move(orders), limit,
+                                          offset);
+    }
+    else {
+        op = new duckdb::PhysicalSort(tmp_schema, move(orders));
+    }
+
     result->push_back(op);
 
     // break pipeline
