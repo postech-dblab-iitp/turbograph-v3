@@ -347,6 +347,7 @@ private:
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopSort(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopTopNSort(CExpression *plan_expr);
 
 	// aggregations
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopAgg(CExpression *plan_expr);
