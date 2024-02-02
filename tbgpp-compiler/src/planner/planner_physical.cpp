@@ -1633,9 +1633,23 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	CPhysicalInnerHashJoin* expr_op = (CPhysicalInnerHashJoin*) plan_expr->Pop();
 	CColRefArray* output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 	CExpression *pexprLeft = (*plan_expr)[0];
-	CColRefArray* left_cols = pexprLeft->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CColRefArray* left_cols;
+	if (pexprLeft->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalSerialUnionAll) {
+		CPhysicalSerialUnionAll* unionall_op = (CPhysicalSerialUnionAll*) pexprLeft->Pop();
+		left_cols = unionall_op->PdrgpcrOutput();
+	}
+	else {
+		left_cols = pexprLeft->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	}
 	CExpression *pexprRight = (*plan_expr)[1];
-	CColRefArray* right_cols = pexprRight->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	CColRefArray* right_cols;
+	if (pexprRight->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalSerialUnionAll) {
+		CPhysicalSerialUnionAll* unionall_op = (CPhysicalSerialUnionAll*) pexprRight->Pop();
+		right_cols = unionall_op->PdrgpcrOutput();
+	}
+	else {
+		right_cols = pexprRight->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+	}
 
 	vector<duckdb::LogicalType> types;
 	vector<uint32_t> left_col_map;
@@ -1755,6 +1769,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 		pipeline_schemas.push_back(lhs_schemas);
 		pipeline_union_schema.push_back(schema);
 	}
+
 	return lhs_result;
 }
 

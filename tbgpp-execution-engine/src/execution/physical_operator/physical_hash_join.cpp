@@ -104,29 +104,10 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &inpu
 
 void PhysicalHashJoin::Combine(ExecutionContext& context, LocalSinkState& lstate) const {
 	auto &state = (HashJoinLocalState &)lstate;
-	// auto &client_profiler = QueryProfiler::Get(context.client);
-	// context.thread.profiler.Flush(this, &state.build_executor, "build_executor", 1);
-	// client_profiler.Flush(context.thread.profiler);
-
 	// finalize contexts
 	auto &sink = (HashJoinLocalState &)lstate;	
-	// check for possible perfect hash table
-	// auto use_perfect_hash = sink.perfect_join_executor->CanDoPerfectHashJoin();
-	// if (use_perfect_hash) {
-	// 	D_ASSERT(sink.hash_table->equality_types.size() == 1);
-	// 	auto key_type = sink.hash_table->equality_types[0];
-	// 	use_perfect_hash = sink.perfect_join_executor->BuildPerfectHashTable(key_type);
-	// }
-	// In case of a large build side or duplicates, use regular hash join
-	//if (!use_perfect_hash) {
-		//sink.perfect_join_executor.reset();
 		sink.hash_table->Finalize();
-	//}
 	sink.finalized = true;
-	// if (sink.hash_table->Count() == 0 && EmptyResultIfRHSIsEmpty()) {
-	// 	return SinkFinalizeType::NO_OUTPUT_POSSIBLE;
-	// }
-	// return SinkFinalizeType::READY;
 }
 
 //===--------------------------------------------------------------------===//
@@ -184,9 +165,9 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 	// Get types. See output_left_projection_map. if std::numeric_limits<uint32_t>::max(), then it is not used in the output
 	vector<LogicalType> input_types = input.GetTypes();
 	vector<LogicalType> prep_input_types;
-	for (auto &idx : output_left_projection_map) {
-		if (idx != std::numeric_limits<uint32_t>::max()) {
-			prep_input_types.push_back(input_types[idx]);
+	for (auto i = 0; i < output_left_projection_map.size(); i++) {
+		if (output_left_projection_map[i] != std::numeric_limits<uint32_t>::max()) {
+			prep_input_types.push_back(input_types[i]);
 		}
 	}
 	// Initialize and fill preprocessed_input
@@ -223,37 +204,6 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context, DataChun
 	state.scan_structure->Next(state.join_keys, preprocessed_input, chunk);
 	return OperatorResultType::HAVE_MORE_OUTPUT;
 }
-
-//===--------------------------------------------------------------------===//
-// Source
-//===--------------------------------------------------------------------===//
-// class HashJoinScanState : public GlobalSourceState {
-// public:
-// 	explicit HashJoinScanState(const PhysicalHashJoin &op) : op(op) {
-// 	}
-
-// 	const PhysicalHashJoin &op;
-// 	//! Only used for FULL OUTER JOIN: scan state of the final scan to find unmatched tuples in the build-side
-// 	JoinHTScanState ht_scan_state;
-
-// 	idx_t MaxThreads() override {
-// 		auto &sink = (HashJoinGlobalState &)*op.sink_state;
-// 		return sink.hash_table->Count() / (STANDARD_VECTOR_SIZE * 10);
-// 	}
-// };
-
-// unique_ptr<GlobalSourceState> PhysicalHashJoin::GetGlobalSourceState(ClientContext &context) const {
-// 	return make_unique<HashJoinScanState>(*this);
-// }
-
-// void PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk &chunk, GlobalSourceState &gstate,
-//                                LocalSourceState &lstate) const {
-// 	D_ASSERT(IsRightOuterJoin(join_type));
-// 	// check if we need to scan any unmatched tuples from the RHS for the full/right outer join
-// 	auto &sink = (HashJoinGlobalState &)*sink_state;
-// 	auto &state = (HashJoinScanState &)gstate;
-// 	sink.hash_table->ScanFullOuter(chunk, state.ht_scan_state);
-// }
 
 std::string PhysicalHashJoin::ParamsToString() const {
 	std::string result = "";
