@@ -64,6 +64,9 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext 
 		state->build_chunk.Initialize(build_types);
 	}
 	for (auto &cond : conditions) {
+		// Print the left and right expressions
+		std::cout << "Left: " << cond.left->ToString() << std::endl;
+		std::cout << "Right: " << cond.right->ToString() << std::endl;
 		state->build_executor.AddExpression(*cond.right);
 	}
 	state->join_keys.Initialize(condition_types);
