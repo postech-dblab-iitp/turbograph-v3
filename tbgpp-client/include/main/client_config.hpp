@@ -50,8 +50,8 @@ struct ClientConfig {
 	// bool verify_parallelism = false;
 	// //! Force index join independent of table cardinality, used for testing
 	// bool force_index_join = false;
-	// //! Force out-of-core computation for operators that support it, used for testing
-	// bool force_external = false;
+	//! Force out-of-core computation for operators that support it, used for testing
+	bool force_external = false;
 	// //! Maximum bits allowed for using a perfect hash table (i.e. the perfect HT can hold up to 2^perfect_ht_threshold
 	// //! elements)
 	// idx_t perfect_ht_threshold = 12;

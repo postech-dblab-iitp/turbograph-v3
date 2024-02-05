@@ -22,6 +22,7 @@
 #include "execution/physical_operator/physical_cross_product.hpp"
 #include "execution/physical_operator/physical_blockwise_nl_join.hpp"
 #include "execution/physical_operator/physical_hash_join.hpp"
+#include "execution/physical_operator/physical_piecewise_merge_join.hpp"
 
 #include "execution/physical_operator/physical_filter.hpp"
 
@@ -1712,8 +1713,23 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	vector<duckdb::JoinCondition> join_conds;
 	pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds, left_cols, right_cols);
 
-	duckdb::CypherPhysicalOperator *op = 
-		new duckdb::PhysicalHashJoin(schema, move(join_conds), join_type, left_col_map, right_col_map, right_build_types, right_build_map);
+	// duckdb::CypherPhysicalOperator *op = 
+	// 	new duckdb::PhysicalHashJoin(schema, move(join_conds), join_type, left_col_map, right_col_map, right_build_types, right_build_map);
+
+	// Calculate lhs and rhs types
+	vector<duckdb::LogicalType> lhs_types;
+	vector<duckdb::LogicalType> rhs_types;
+	for (ULONG col_idx = 0; col_idx < left_cols->Size(); col_idx++) {
+		OID type_oid = CMDIdGPDB::CastMdid(left_cols->operator[](col_idx)->RetrieveType()->MDId())->Oid();
+		lhs_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	}
+	for (ULONG col_idx = 0; col_idx < right_cols->Size(); col_idx++) {
+		OID type_oid = CMDIdGPDB::CastMdid(right_cols->operator[](col_idx)->RetrieveType()->MDId())->Oid();
+		rhs_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+	}
+
+	duckdb::CypherPhysicalOperator *op =
+		new duckdb::PhysicalPiecewiseMergeJoin(schema, move(join_conds), join_type, lhs_types, rhs_types);
 
 	/**
 	 * Hash join is a binary operator, which needs two pipelines.

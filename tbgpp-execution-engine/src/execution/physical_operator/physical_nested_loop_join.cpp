@@ -36,76 +36,76 @@ namespace duckdb {
 // 	return false;
 // }
 
-// template <bool MATCH>
-// static void ConstructSemiOrAntiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
-// 	D_ASSERT(left.ColumnCount() == result.ColumnCount());
-// 	// create the selection vector from the matches that were found
-// 	idx_t result_count = 0;
-// 	SelectionVector sel(STANDARD_VECTOR_SIZE);
-// 	for (idx_t i = 0; i < left.size(); i++) {
-// 		if (found_match[i] == MATCH) {
-// 			sel.set_index(result_count++, i);
-// 		}
-// 	}
-// 	// construct the final result
-// 	if (result_count > 0) {
-// 		// we only return the columns on the left side
-// 		// project them using the result selection vector
-// 		// reference the columns of the left side from the result
-// 		result.Slice(left, sel, result_count);
-// 	} else {
-// 		result.SetCardinality(0);
-// 	}
-// }
+template <bool MATCH>
+static void ConstructSemiOrAntiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
+	D_ASSERT(left.ColumnCount() == result.ColumnCount());
+	// create the selection vector from the matches that were found
+	idx_t result_count = 0;
+	SelectionVector sel(STANDARD_VECTOR_SIZE);
+	for (idx_t i = 0; i < left.size(); i++) {
+		if (found_match[i] == MATCH) {
+			sel.set_index(result_count++, i);
+		}
+	}
+	// construct the final result
+	if (result_count > 0) {
+		// we only return the columns on the left side
+		// project them using the result selection vector
+		// reference the columns of the left side from the result
+		result.Slice(left, sel, result_count);
+	} else {
+		result.SetCardinality(0);
+	}
+}
 
-// void PhysicalJoin::ConstructSemiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
-// 	ConstructSemiOrAntiJoinResult<true>(left, result, found_match);
-// }
+void PhysicalJoin::ConstructSemiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
+	ConstructSemiOrAntiJoinResult<true>(left, result, found_match);
+}
 
-// void PhysicalJoin::ConstructAntiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
-// 	ConstructSemiOrAntiJoinResult<false>(left, result, found_match);
-// }
+void PhysicalJoin::ConstructAntiJoinResult(DataChunk &left, DataChunk &result, bool found_match[]) {
+	ConstructSemiOrAntiJoinResult<false>(left, result, found_match);
+}
 
-// void PhysicalJoin::ConstructMarkJoinResult(DataChunk &join_keys, DataChunk &left, DataChunk &result, bool found_match[],
-//                                            bool has_null) {
-// 	// for the initial set of columns we just reference the left side
-// 	result.SetCardinality(left);
-// 	for (idx_t i = 0; i < left.ColumnCount(); i++) {
-// 		result.data[i].Reference(left.data[i]);
-// 	}
-// 	auto &mark_vector = result.data.back();
-// 	mark_vector.SetVectorType(VectorType::FLAT_VECTOR);
-// 	// first we set the NULL values from the join keys
-// 	// if there is any NULL in the keys, the result is NULL
-// 	auto bool_result = FlatVector::GetData<bool>(mark_vector);
-// 	auto &mask = FlatVector::Validity(mark_vector);
-// 	for (idx_t col_idx = 0; col_idx < join_keys.ColumnCount(); col_idx++) {
-// 		VectorData jdata;
-// 		join_keys.data[col_idx].Orrify(join_keys.size(), jdata);
-// 		if (!jdata.validity.AllValid()) {
-// 			for (idx_t i = 0; i < join_keys.size(); i++) {
-// 				auto jidx = jdata.sel->get_index(i);
-// 				mask.Set(i, jdata.validity.RowIsValid(jidx));
-// 			}
-// 		}
-// 	}
-// 	// now set the remaining entries to either true or false based on whether a match was found
-// 	if (found_match) {
-// 		for (idx_t i = 0; i < left.size(); i++) {
-// 			bool_result[i] = found_match[i];
-// 		}
-// 	} else {
-// 		memset(bool_result, 0, sizeof(bool) * left.size());
-// 	}
-// 	// if the right side contains NULL values, the result of any FALSE becomes NULL
-// 	if (has_null) {
-// 		for (idx_t i = 0; i < left.size(); i++) {
-// 			if (!bool_result[i]) {
-// 				mask.SetInvalid(i);
-// 			}
-// 		}
-// 	}
-// }
+void PhysicalJoin::ConstructMarkJoinResult(DataChunk &join_keys, DataChunk &left, DataChunk &result, bool found_match[],
+                                           bool has_null) {
+	// for the initial set of columns we just reference the left side
+	result.SetCardinality(left);
+	for (idx_t i = 0; i < left.ColumnCount(); i++) {
+		result.data[i].Reference(left.data[i]);
+	}
+	auto &mark_vector = result.data.back();
+	mark_vector.SetVectorType(VectorType::FLAT_VECTOR);
+	// first we set the NULL values from the join keys
+	// if there is any NULL in the keys, the result is NULL
+	auto bool_result = FlatVector::GetData<bool>(mark_vector);
+	auto &mask = FlatVector::Validity(mark_vector);
+	for (idx_t col_idx = 0; col_idx < join_keys.ColumnCount(); col_idx++) {
+		VectorData jdata;
+		join_keys.data[col_idx].Orrify(join_keys.size(), jdata);
+		if (!jdata.validity.AllValid()) {
+			for (idx_t i = 0; i < join_keys.size(); i++) {
+				auto jidx = jdata.sel->get_index(i);
+				mask.Set(i, jdata.validity.RowIsValid(jidx));
+			}
+		}
+	}
+	// now set the remaining entries to either true or false based on whether a match was found
+	if (found_match) {
+		for (idx_t i = 0; i < left.size(); i++) {
+			bool_result[i] = found_match[i];
+		}
+	} else {
+		memset(bool_result, 0, sizeof(bool) * left.size());
+	}
+	// if the right side contains NULL values, the result of any FALSE becomes NULL
+	if (has_null) {
+		for (idx_t i = 0; i < left.size(); i++) {
+			if (!bool_result[i]) {
+				mask.SetInvalid(i);
+			}
+		}
+	}
+}
 
 // //===--------------------------------------------------------------------===//
 // // Sink
