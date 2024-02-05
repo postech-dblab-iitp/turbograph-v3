@@ -201,12 +201,16 @@ CXform::PbsHeterogeneousIndexXforms(CMemoryPool *mp)
 //	returns a set containing all xforms that generate a plan with hash join
 //	Caller takes ownership of the returned set
 CBitSet *
-CXform::PbsHashJoinXforms(CMemoryPool *mp)
+CXform::PbsHashMergeJoinXforms(CMemoryPool *mp)
 {
 	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
 
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2HashJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2MergeJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2NLJoin));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftOuterJoin2HashJoin));
 	(void) pbs->ExchangeSet(
@@ -222,6 +226,53 @@ CXform::PbsHashJoinXforms(CMemoryPool *mp)
 			ExfLeftJoin2RightJoin));  // Right joins are only used with hash joins, so disable this too
 	return pbs;
 }
+
+CBitSet *
+CXform::PbsHashIndexJoinXforms(CMemoryPool *mp) 
+{
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoin2BitmapIndexGetApply));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoin2IndexGetApply));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2HashJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2NLJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftOuterJoin2HashJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftSemiJoin2HashJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftAntiSemiJoin2HashJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftAntiSemiJoinNotIn2HashJoinNotIn));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfRightOuterJoin2HashJoin));
+	(void) pbs->ExchangeSet(GPOPT_DISABLE_XFORM_TF(
+		CXform::
+			ExfLeftJoin2RightJoin));  // Right joins are only used with hash joins, so disable this too
+	return pbs;
+}
+
+
+CBitSet *
+CXform::PbsMergeIndexJoinXforms(CMemoryPool *mp) 
+{
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoin2BitmapIndexGetApply));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoin2IndexGetApply));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2MergeJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2NLJoin));
+	return pbs;
+}
+
 
 CBitSet *
 CXform::PbsJoinOrderInQueryXforms(CMemoryPool *mp)

@@ -257,6 +257,10 @@ class InputParser{
 			enable_profile = true;
 		} else if (std::strncmp(current_str.c_str(), "--index-join-only", 17) == 0) {
 			planner_config.INDEX_JOIN_ONLY = true;
+		} else if (std::strncmp(current_str.c_str(), "--hash-join-only", 16) == 0) {
+			planner_config.HASH_JOIN_ONLY = true;
+		} else if (std::strncmp(current_str.c_str(), "--merge-join-only", 17) == 0) {
+			planner_config.MERGE_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
 			run_plan_wo_compile = true;
 		} else if (std::strncmp(current_str.c_str(), "--show-top", 10) == 0) {
@@ -486,6 +490,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 int main(int argc, char** argv) {
 	// Init planner config
 	planner_config = s62::PlannerConfig();
+
+	// Check validity
+	if (planner_config.INDEX_JOIN_ONLY + planner_config.HASH_JOIN_ONLY + planner_config.MERGE_JOIN_ONLY > 1) {
+		std::cout << "Error: Only one of INDEX_JOIN_ONLY, HASH_JOIN_ONLY, MERGE_JOIN_ONLY can be true" << std::endl;
+		return 1;
+	}
 
 	// Initialize System
 	InputParser input(argc, argv);
