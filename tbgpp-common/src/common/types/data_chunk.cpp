@@ -180,6 +180,27 @@ void DataChunk::Fuse(DataChunk &other) {
 	other.Destroy();
 }
 
+void DataChunk::MappedFuse(DataChunk &other, const vector<uint32_t>& projection_map) {
+	D_ASSERT(other.size() == size());
+	const idx_t num_cols = other.data.size();
+
+	vector<int> inverse_projection_map(other.size(), std::numeric_limits<uint32_t>::max());
+	for (idx_t i = 0; i < projection_map.size(); ++i) {
+		if (projection_map[i] != std::numeric_limits<uint32_t>::max()) {
+			inverse_projection_map[projection_map[i]] = i;
+		}
+	}
+
+	for (idx_t col_idx = 0; col_idx < num_cols; ++col_idx) {
+		if (inverse_projection_map[col_idx] != std::numeric_limits<uint32_t>::max()) {
+			data.emplace_back(move(other.data[inverse_projection_map[col_idx]]));
+			vector_caches.emplace_back(move(other.vector_caches[inverse_projection_map[col_idx]]));
+		}
+	}
+
+	other.Destroy();
+}
+
 void DataChunk::Append(const DataChunk &other, bool resize, SelectionVector *sel, idx_t sel_count) {
 	idx_t new_size = sel ? size() + sel_count : size() + other.size();
 	if (other.size() == 0) {

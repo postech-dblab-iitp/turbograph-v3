@@ -15,8 +15,13 @@ namespace duckdb {
 
 PhysicalPiecewiseMergeJoin::PhysicalPiecewiseMergeJoin(Schema sch, 
                                                     vector<JoinCondition> cond, 
-                                                    JoinType join_type, vector<LogicalType> &lhs_types, vector<LogicalType> &rhs_types) 
-        : PhysicalComparisonJoin(sch, PhysicalOperatorType::PIECEWISE_MERGE_JOIN, move(cond), join_type), lhs_types(lhs_types), rhs_types(rhs_types) {
+                                                    JoinType join_type, 
+													vector<LogicalType> &lhs_types, 
+													vector<LogicalType> &rhs_types,
+													vector<uint32_t> &output_left_projection_map,
+													vector<uint32_t> &output_right_projection_map) 
+        : PhysicalComparisonJoin(sch, PhysicalOperatorType::PIECEWISE_MERGE_JOIN, move(cond), join_type), lhs_types(lhs_types), rhs_types(rhs_types),
+				  output_left_projection_map(output_left_projection_map), output_right_projection_map(output_right_projection_map) {
     
 	// Reorder the conditions so that ranges are at the front.
 	// TODO: use stats to improve the choice?
@@ -65,9 +70,13 @@ PhysicalPiecewiseMergeJoin::PhysicalPiecewiseMergeJoin(Schema sch,
 			lhs_orders.emplace_back(BoundOrderByNode(OrderType::INVALID, OrderByNullType::NULLS_LAST, move(left)));
 			rhs_orders.emplace_back(BoundOrderByNode(OrderType::INVALID, OrderByNullType::NULLS_LAST, move(right)));
 			break;
-
+		// Extent equality in S62
+		case ExpressionType::COMPARE_EQUAL:
+			lhs_orders.emplace_back(BoundOrderByNode(OrderType::ASCENDING, OrderByNullType::NULLS_LAST, move(left)));
+			rhs_orders.emplace_back(BoundOrderByNode(OrderType::ASCENDING, OrderByNullType::NULLS_LAST, move(right)));
+			break;
 		default:
-			// COMPARE EQUAL not supported with merge join
+			// COMPARE EQUAL not supported with merge join -> disabled. EQUAL now supported
 			throw NotImplementedException("Unimplemented join type for merge join");
 		}
 	}
@@ -408,6 +417,7 @@ static int MergeJoinComparisonValue(ExpressionType comparison) {
 		return -1;
 	case ExpressionType::COMPARE_LESSTHANOREQUALTO:
 	case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
+	case ExpressionType::COMPARE_EQUAL: // Support for equality predicate in S62
 		return 0;
 	default:
 		throw InternalException("Unimplemented comparison type for merge join!");
@@ -664,6 +674,12 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 	while (true) {
 		if (l.entry_idx < l.not_null) {
 			int comp_res;
+
+			/**
+			 * If l_ptr > r_ptr, then comp_res > 0
+			 * Else if l_ptr < r_ptr, then comp_res < 0
+			 * Else if l_ptr == r_ptr, then comp_res == 0
+			*/
 			if (all_constant) {
 				comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
 			} else {
@@ -717,8 +733,10 @@ static idx_t SelectJoinTail(const ExpressionType &condition, Vector &left, Vecto
 		return VectorOperations::GreaterThanEquals(left, right, sel, count, true_sel, nullptr);
 	case ExpressionType::COMPARE_DISTINCT_FROM:
 		return VectorOperations::DistinctFrom(left, right, sel, count, true_sel, nullptr);
-	case ExpressionType::COMPARE_NOT_DISTINCT_FROM:
+	// Extent equality in S62
 	case ExpressionType::COMPARE_EQUAL:
+		return VectorOperations::Equals(left, right, sel, count, true_sel, nullptr);
+	case ExpressionType::COMPARE_NOT_DISTINCT_FROM:
 	default:
 		throw InternalException("Unsupported comparison type for PhysicalPiecewiseMergeJoin");
 	}
@@ -779,8 +797,16 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 		} else {
 			// found matches: extract them
 			chunk.Reset();
+
+			/**
+			 * As explained in hash join, lhs_payload contains all key columns and non-key columns.
+			 * DuckDB does not consider the case where the some columns in lhs_payload are not used in the output.
+			 * Therefore, we have to slice the lhs_payload to get the result.
+			*/
 			for (idx_t c = 0; c < state.lhs_payload.ColumnCount(); ++c) {
-				chunk.data[c].Slice(state.lhs_payload.data[c], left_info.result, result_count);
+				if (output_left_projection_map[c] != std::numeric_limits<uint32_t>::max()) {
+					chunk.data[output_left_projection_map[c]].Slice(state.lhs_payload.data[c], left_info.result, result_count);
+				}
 			}
 			const auto first_idx = SliceSortedPayload(chunk, right_info, result_count, left_cols);
 			chunk.SetCardinality(result_count);
@@ -810,7 +836,7 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 					    SelectJoinTail(conditions[cmp_idx].comparison, left, right, sel, tail_count, &state.sel);
 					sel = &state.sel;
 				}
-				chunk.Fuse(state.rhs_input);
+				chunk.MappedFuse(state.rhs_input, output_right_projection_map);
 
 				if (tail_count < result_count) {
 					result_count = tail_count;

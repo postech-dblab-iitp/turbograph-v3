@@ -25,13 +25,18 @@ class PhysicalPiecewiseMergeJoin : public PhysicalComparisonJoin {
     PhysicalPiecewiseMergeJoin(Schema sch, vector<JoinCondition> cond,
                                JoinType join_type,
                                vector<LogicalType> &lhs_types,
-                               vector<LogicalType> &rhs_types);
+                               vector<LogicalType> &rhs_types,
+                               /* s62 style projection map */
+                               vector<uint32_t> &output_left_projection_map,
+                               vector<uint32_t> &output_right_projection_map);
 
     vector<LogicalType> join_key_types;
     vector<LogicalType> lhs_types;
     vector<LogicalType> rhs_types;
     vector<BoundOrderByNode> lhs_orders;
     vector<BoundOrderByNode> rhs_orders;
+	vector<uint32_t> output_left_projection_map;
+	vector<uint32_t> output_right_projection_map;
 
    public:
     // Operator Interface
