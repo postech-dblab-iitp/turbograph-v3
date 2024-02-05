@@ -20,12 +20,16 @@ class CypherPhysicalOperator {
 public:
 
 
-	CypherPhysicalOperator(PhysicalOperatorType type, Schema &sch):
-		type(type), schema(sch), types(schema.getStoredTypes()), processed_tuples(0) {	
+	CypherPhysicalOperator(PhysicalOperatorType type, Schema &schema):
+		type(type), schema(schema), types(schema.getStoredTypes()), processed_tuples(0) {	
 		timer_started = false;
 	}
-	CypherPhysicalOperator(PhysicalOperatorType type, vector<Schema> &sch):
-		type(type), schemas(sch), types(schemas[0].getStoredTypes()), processed_tuples(0) {	 // TODO
+	CypherPhysicalOperator(PhysicalOperatorType type, vector<Schema> &schemas):
+		type(type), schemas(schemas), types(schemas[0].getStoredTypes()), processed_tuples(0) {	 // TODO
+		timer_started = false;
+	}
+	CypherPhysicalOperator(PhysicalOperatorType type, Schema &union_schema, vector<Schema> &schemas):
+		type(type), schema(union_schema), schemas(schemas), types(union_schema.getStoredTypes()), processed_tuples(0) {	 // TODO
 		timer_started = false;
 	}
 	virtual ~CypherPhysicalOperator() { }
@@ -46,6 +50,7 @@ public:
 
 	// standalone piped operators (e.g. Scan)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state) const;
+	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, OperatorState &state, idx_t &output_chunk_idx) const;
 	// sink-enabled piped operators (e.g. Hash Probe, CartProd)
 	virtual OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &state, LocalSinkState &sink_state) const;
 	virtual unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const;

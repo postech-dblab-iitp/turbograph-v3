@@ -319,6 +319,7 @@ enum class PhysicalType : uint8_t {
 
 	/// iTurboGraph Extensions
 	ADJLIST = 207,
+	ROWCOL = 208,
 
 	INVALID = 255
 };
@@ -379,6 +380,7 @@ enum class LogicalTypeId : uint8_t {
 	BACKWARD_ADJLIST = 107,
 	ID = 108,
 	ADJLISTCOLUMN = 109,
+	ROWCOL = 110,
 };
 
 struct ExtraTypeInfo;
@@ -489,6 +491,7 @@ public:
 	static constexpr const LogicalTypeId BACKWARD_ADJLIST = LogicalTypeId::BACKWARD_ADJLIST;
 	static constexpr const LogicalTypeId ID = LogicalTypeId::ID;
 	static constexpr const LogicalTypeId ADJLISTCOLUMN = LogicalTypeId::ADJLISTCOLUMN;
+	static constexpr const LogicalTypeId ROWCOL = LogicalTypeId::ROWCOL;
 
 	// explicitly allowing these functions to be capitalized to be in-line with the remaining functions
 	DUCKDB_API static LogicalType DECIMAL(int width, int scale);                 // NOLINT

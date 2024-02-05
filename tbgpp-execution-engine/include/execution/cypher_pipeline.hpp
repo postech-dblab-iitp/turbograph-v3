@@ -1,15 +1,7 @@
 #pragma once
 
 #include <cassert>
-// #include <vector>
 #include <string>
-
-// #include "common/unordered_set.hpp"
-// #include "execution/physical_operator.hpp"
-// #include "function/table_function.hpp"
-// #include "parallel/task_scheduler.hpp"
-// #include "common/atomic.hpp"
-
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
 namespace duckdb {
@@ -71,13 +63,26 @@ public:
 		// operators - reversed
 		for (auto op = operators.rbegin(); op != operators.rend(); ++op) {
 			result += "\t|\n";
-			result += "    " + (*op)->schema.printStoredColumnAndTypes() + "\n";
+			if ((*op)->schemas.size() > 0) {
+				for (auto i = 0; i < (*op)->schemas.size(); i++) {
+					result += "    schema " + std::to_string(i + 1) + ": " + (*op)->schemas[i].printStoredColumnAndTypes() + "\n";
+				}
+			} else {
+				result += "    " + (*op)->schema.printStoredColumnAndTypes() + "\n";
+			}
 			result += "\t|\n";
 			result += (*op)->ToString() + "(" + (*op)->ParamsToString() + ")\n";
 		}
 		// source
 		result += "\t|\n";
-		result += "    " + source->schema.printStoredColumnAndTypes() + "\n";
+		if (source->schemas.size() > 0) {
+			result += "    union all schema : " + source->schema.printStoredColumnAndTypes() + "\n";
+			for (auto i = 0; i < source->schemas.size(); i++) {
+				result += "    schema " + std::to_string(i + 1) + " : " + source->schemas[i].printStoredColumnAndTypes() + "\n";
+			}
+		} else {
+			result += "    " + source->schema.printStoredColumnAndTypes() + "\n";
+		}
 		result += "\t|\n";
 		result += source->ToString() + "(" + source->ParamsToString() + ")\n";
 

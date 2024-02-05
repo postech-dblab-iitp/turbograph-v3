@@ -25,27 +25,39 @@ static void TemplatedScatter(VectorData &col, Vector &rows, const SelectionVecto
 	auto data = (T *)col.data;
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 
-	if (!col.validity.AllValid()) {
+	if (!col.is_valid) {
 		for (idx_t i = 0; i < count; i++) {
 			auto idx = sel.get_index(i);
-			auto col_idx = col.sel->get_index(idx);
 			auto row = ptrs[idx];
 
-			auto isnull = !col.validity.RowIsValid(col_idx);
-			T store_value = isnull ? NullValue<T>() : data[col_idx];
+			T store_value = NullValue<T>();
 			Store<T>(store_value, row + col_offset);
-			if (isnull) {
-				ValidityBytes col_mask(ptrs[idx]);
-				col_mask.SetInvalidUnsafe(col_no);
-			}
+			ValidityBytes col_mask(ptrs[idx]);
+			col_mask.SetInvalidUnsafe(col_no);
 		}
 	} else {
-		for (idx_t i = 0; i < count; i++) {
-			auto idx = sel.get_index(i);
-			auto col_idx = col.sel->get_index(idx);
-			auto row = ptrs[idx];
+		if (!col.validity.AllValid()) {
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto col_idx = col.sel->get_index(idx);
+				auto row = ptrs[idx];
 
-			Store<T>(data[col_idx], row + col_offset);
+				auto isnull = !col.validity.RowIsValid(col_idx);
+				T store_value = isnull ? NullValue<T>() : data[col_idx];
+				Store<T>(store_value, row + col_offset);
+				if (isnull) {
+					ValidityBytes col_mask(ptrs[idx]);
+					col_mask.SetInvalidUnsafe(col_no);
+				}
+			}
+		} else {
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto col_idx = col.sel->get_index(idx);
+				auto row = ptrs[idx];
+
+				Store<T>(data[col_idx], row + col_offset);
+			}
 		}
 	}
 }

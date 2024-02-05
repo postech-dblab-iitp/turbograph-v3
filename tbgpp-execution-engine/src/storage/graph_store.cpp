@@ -15,6 +15,7 @@
 #include "extent/adjlist_iterator.hpp"
 
 #include "icecream.hpp"
+#include "range/v3/all.hpp"
 
 namespace duckdb {
 
@@ -125,29 +126,7 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 
 StoreAPIResult 
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, DataChunk &input, idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position) {
-	Catalog &cat_instance = client.db->GetCatalog();
-	
-	vector<vector<idx_t>> column_idxs;
-	for (idx_t i = 0; i < oids.size(); i++) {
-		ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
-		for (size_t i = 0; i < input.size(); i++) {
-			uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, i));
-			ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
-			target_eids.push_back(target_eid);
-			if (prev_eid != target_eid) boundary_position.push_back(i - 1);
-			prev_eid = target_eid;
-		}
-		boundary_position.push_back(input.size() - 1);
-		target_eids.erase( std::unique( target_eids.begin(), target_eids.end() ), target_eids.end() );
-
-		if (target_eids.size() == 0) return StoreAPIResult::DONE;
-
-		auto ext_it = new ExtentIterator();
-		// ext_it->Initialize(client, scanSchema, projection_mapping[i], target_eids);
-		ext_its.push(ext_it);
-	}
-
-	return StoreAPIResult::OK;
+	D_ASSERT(false); // deprecated
 }
 
 void
@@ -172,12 +151,13 @@ StoreAPIResult
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
 											DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											vector<vector<idx_t>> &target_seqnos_per_extent, unordered_map<idx_t, idx_t> &ps_oid_to_projection_mapping,
-											vector<idx_t> &mapping_idxs) {
+											vector<idx_t> &mapping_idxs)
+{
 	Catalog &cat_instance = client.db->GetCatalog();
 	vector<idx_t> boundary_position;
 	unordered_map<ExtentID, vector<idx_t>> target_seqnos_per_extent_map;
 	ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
-	Vector& src_vid_column_vector = input.data[nodeColIdx];
+	Vector &src_vid_column_vector = input.data[nodeColIdx];
 	target_eids.push_back(prev_eid);
 	switch (src_vid_column_vector.GetVectorType()) {
 		case VectorType::DICTIONARY_VECTOR: {
@@ -240,6 +220,13 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 		target_seqnos_per_extent.push_back(std::move(target_seqnos_per_extent_map.at(target_eids[i])));
 	}
 
+	// TODO maybe we don't need this..
+	ranges::sort(
+		ranges::views::zip(mapping_idxs, target_eids, target_seqnos_per_extent), 
+		std::less{}, 
+		[](auto && p){ return std::get<0>(p); }
+	);
+
 	auto ext_it = new ExtentIterator();
 	ext_it->Initialize(client, scanSchemas, projection_mapping, mapping_idxs, target_eids);
 	ext_its.push(ext_it);
@@ -248,55 +235,11 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 }
 
 StoreAPIResult
-iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input, idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position, idx_t current_pos, vector<idx_t> output_col_idx) {
-	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
-	ExtentID target_eid = target_eids[current_pos]; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
-	ExtentID current_eid;
-	if (current_pos >= boundary_position.size()) throw InvalidInputException("??");
-	idx_t start_seqno, end_seqno; // [start_seqno, end_seqno]
-	start_seqno = current_pos == 0 ? 0 : boundary_position[current_pos - 1] + 1;
-	end_seqno = boundary_position[current_pos];
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, output_col_idx, start_seqno, end_seqno);
-
-	// // IC(vid, target_eid, target_seqno, current_eid);
-	if (scan_ongoing) assert(current_eid == target_eid);
-	
-	return StoreAPIResult::OK;
-}
-
-StoreAPIResult
 iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									vector<idx_t> &boundary_position, idx_t current_pos, vector<idx_t> output_col_idx) {
-	ExtentID target_eid = target_eids[current_pos]; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
-	ExtentID current_eid;
-	auto ext_it = ext_its.front();
-	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
-	if (current_pos >= boundary_position.size()) throw InvalidInputException("??");
-	idx_t start_seqno, end_seqno; // [start_seqno, end_seqno]
-	start_seqno = current_pos == 0 ? 0 : boundary_position[current_pos - 1] + 1;
-	end_seqno = boundary_position[current_pos];
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, output_col_idx, start_seqno, end_seqno);
-
-	if (scan_ongoing) {
-		//output.Reference(*output_);
-		D_ASSERT(current_eid == target_eid);
-		return StoreAPIResult::OK;
-	} else {
-		ext_its.pop();
-		delete ext_it;
-		if (ext_its.size() > 0)
-			return StoreAPIResult::OK;
-		else
-			return StoreAPIResult::DONE;
-	}
-}
-
-StoreAPIResult
-iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
-									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx) {
-	ExtentID target_eid = target_eids[current_pos]; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx)
+{
+	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
@@ -321,9 +264,65 @@ iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataC
 StoreAPIResult
 iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
+									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,
+									char *row_major_store)
+{
+	ExtentID target_eid = target_eids[current_pos];
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
+	D_ASSERT(current_pos < target_seqnos_per_extent.size());
+	bool scan_ongoing = ext_it->GetNextExtentInRowFormat(client, output, current_eid, target_eid, input, nodeColIdx, 
+		rowcol_vec, row_major_store, target_seqnos_per_extent[current_pos]);
+
+	if (scan_ongoing) {
+		//output.Reference(*output_);
+		D_ASSERT(current_eid == target_eid);
+		return StoreAPIResult::OK;
+	} else {
+		ext_its.pop();
+		delete ext_it;
+		if (ext_its.size() > 0)
+			return StoreAPIResult::OK;
+		else
+			return StoreAPIResult::DONE;
+	}
+}
+
+StoreAPIResult
+iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
+									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
+									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
+									idx_t &num_tuples_per_chunk)
+{
+	ExtentID target_eid = target_eids[current_pos];
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
+	D_ASSERT(current_pos < target_seqnos_per_extent.size());
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, 
+		output_col_idx, target_seqnos_per_extent[current_pos], num_tuples_per_chunk);
+
+	if (scan_ongoing) {
+		//output.Reference(*output_);
+		D_ASSERT(current_eid == target_eid);
+		return StoreAPIResult::OK;
+	} else {
+		ext_its.pop();
+		delete ext_it;
+		if (ext_its.size() > 0)
+			return StoreAPIResult::OK;
+		else
+			return StoreAPIResult::DONE;
+	}
+}
+
+StoreAPIResult
+iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
+									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
 									idx_t &output_idx, SelectionVector &sel, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
-	ExtentID target_eid = target_eids[current_pos]; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
