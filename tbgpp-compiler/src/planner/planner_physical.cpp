@@ -1729,7 +1729,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopPhysicalHashJoinT
 	}
 
 	duckdb::CypherPhysicalOperator *op =
-		new duckdb::PhysicalPiecewiseMergeJoin(schema, move(join_conds), join_type, lhs_types, rhs_types);
+		new duckdb::PhysicalPiecewiseMergeJoin(schema, move(join_conds), join_type, lhs_types, rhs_types, left_col_map, right_col_map);
 
 	/**
 	 * Hash join is a binary operator, which needs two pipelines.

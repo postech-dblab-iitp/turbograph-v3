@@ -13,8 +13,8 @@ namespace duckdb {
 
 /**
  * TODO:
- * Build executor should have right expressions in join conditions
- * In schemaless situation, right expressions can have different BoundReferenceExpression (Note that they have different schema)
+ * Build executor havs right expressions in join conditions
+ * In schemaless execution, right expressions can have different BoundReferenceExpression (Note that they have different schema)
  * Therefore, according to their schema, build_executor should have initialized differently, which is crazy.
 */
 PhysicalHashJoin::PhysicalHashJoin(
@@ -158,6 +158,10 @@ unique_ptr<OperatorState> PhysicalHashJoin::GetOperatorState(
     return move(state);
 }
 
+/**
+ * TODO:
+ * Where is output mapping code? It should be here.
+*/
 OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
                                              DataChunk &input, DataChunk &chunk,
                                              OperatorState &state_p,

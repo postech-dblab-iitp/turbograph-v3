@@ -104,6 +104,9 @@ public:
 	//! Fuses a DataChunk onto the right of this one, and destroys the other. Inverse of Split.
 	DUCKDB_API void Fuse(DataChunk &other);
 
+	//! MappedFuse a DataChunk onto the right of this one, and destroys the other. Inverse of Split.
+	DUCKDB_API void MappedFuse(DataChunk &other, const vector<uint32_t>& projection_map);
+
 	//! Turn all the vectors from the chunk into flat vectors
 	DUCKDB_API void Normalify();
 
