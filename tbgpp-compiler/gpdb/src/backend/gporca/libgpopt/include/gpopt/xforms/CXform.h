@@ -94,6 +94,7 @@ public:
 		ExfInnerJoin2NLJoin,
 		ExfImplementIndexApply,
 		ExfInnerJoin2HashJoin,
+		ExfInnerJoin2MergeJoin,
 		ExfInnerApply2InnerJoin,
 		ExfInnerApply2InnerJoinNoCorrelations,
 		ExfImplementInnerCorrelatedApply,

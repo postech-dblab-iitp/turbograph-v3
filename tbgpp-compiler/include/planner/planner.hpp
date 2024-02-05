@@ -349,6 +349,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
@@ -412,6 +413,7 @@ private:
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 	}
+	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
 
 	// scalar helper functions
 	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
