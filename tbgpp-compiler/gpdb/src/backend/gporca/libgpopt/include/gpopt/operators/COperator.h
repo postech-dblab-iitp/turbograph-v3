@@ -214,6 +214,7 @@ public:
 		EopPhysicalCorrelatedLeftAntiSemiNLJoin,
 		EopPhysicalLeftAntiSemiNLJoinNotIn,
 		EopPhysicalCorrelatedNotInLeftAntiSemiNLJoin,
+		EopPhysicalInnerMergeJoin,					// S62 added for inner merge join
 		EopPhysicalFullMergeJoin,
 		EopPhysicalDynamicTableScan,
 		EopPhysicalSequence,

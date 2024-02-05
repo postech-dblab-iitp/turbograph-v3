@@ -108,6 +108,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 	
 
 	{COperator::EopPhysicalFullMergeJoin, CostMergeJoin},
+	{COperator::EopPhysicalInnerMergeJoin, CostMergeJoin},
 };
 
 //---------------------------------------------------------------------------
@@ -1135,8 +1136,7 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 		}
 	}
 
-	// return costChild + CCost(costLocal.Get() * skew_ratio);
-	return CCost(0);
+	return costChild + CCost(costLocal.Get() * skew_ratio);
 }
 
 //---------------------------------------------------------------------------
@@ -1156,8 +1156,12 @@ CCostModelGPDB::CostMergeJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	GPOS_ASSERT(NULL != pci);
 #ifdef GPOS_DEBUG
 	COperator::EOperatorId op_id = exprhdl.Pop()->Eopid();
-	GPOS_ASSERT(COperator::EopPhysicalFullMergeJoin == op_id);
+	GPOS_ASSERT(COperator::EopPhysicalFullMergeJoin == op_id || COperator::EopPhysicalInnerMergeJoin == op_id);
 #endif	// GPOS_DEBUG
+
+	/**
+	 * TODO: we need check whether this is appropriate for inner join
+	*/
 
 	const DOUBLE num_rows_outer = pci->PdRows()[0];
 	const DOUBLE dWidthOuter = pci->GetWidth()[0];
