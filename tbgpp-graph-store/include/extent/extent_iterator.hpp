@@ -52,6 +52,7 @@ public:
                     vector<idx_t> &target_idx_per_eid_, vector<ExtentID> target_eids);
     int RequestNewIO(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_,
                      ExtentID target_eid, ExtentID &evicted_eid);
+    bool RequestNextIO(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, vector<idx_t> &output_column_idxs,
@@ -68,6 +69,12 @@ public:
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
                        vector<idx_t> &target_seqnos, bool is_output_chunk_initialized=true);
+    bool GetNextExtentInRowFormat(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+                       ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, Vector &rowcol_vec,
+                       char *row_major_store, vector<idx_t> &target_seqnos, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+                       ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
+                       vector<idx_t> &target_seqnos, idx_t &output_seqno, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, ExtentID target_eid, DataChunk &input,
                        idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,

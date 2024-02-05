@@ -42,33 +42,44 @@ public:
         is_sfg_exists = true;
     }
 
+    vector<vector<idx_t>> &GetFlowGraph()
+    {
+        return flow_graph;
+    }
+
     // Unary operator
-    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx) {
+    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx)
+    {
         if (!is_sfg_exists) return 0;
         return flow_graph[operator_idx][schema_idx];
     }
 
     // Binary operator
-    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2) {
+    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2)
+    {
         if (!is_sfg_exists) return 0;
         D_ASSERT(num_schemas_of_childs[operator_idx].size() == 2);
         idx_t schema_idx = (num_schemas_of_childs[operator_idx][1] * schema_idx_1) + schema_idx_2;
         return flow_graph[operator_idx][schema_idx];
     }
 
-    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx) {
+    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx)
+    {
         return schema_per_operator[operator_idx][GetNextSchemaIdx(operator_idx, schema_idx)];
     }
 
-    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2) {
+    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2)
+    {
         return schema_per_operator[operator_idx][GetNextSchemaIdx(operator_idx, schema_idx_1, schema_idx_2)];
     }
 
-    Schema &GetUnionOutputSchema(idx_t operator_idx) {
+    Schema &GetUnionOutputSchema(idx_t operator_idx)
+    {
         return union_schema_per_operator[operator_idx];
     }
 
-    vector<vector<uint64_t>> &GetNumSchemasOfChilds() {
+    vector<vector<uint64_t>> &GetNumSchemasOfChilds()
+    {
         return num_schemas_of_childs;
     }
 
@@ -102,6 +113,11 @@ public:
     {
         if (!is_sfg_exists) return 0;
         return cur_source_idx;
+    }
+
+    OperatorType GetOperatorType(idx_t operator_idx)
+    {
+        return pipeline_operator_types[operator_idx];
     }
 
 private:

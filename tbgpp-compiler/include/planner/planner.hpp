@@ -350,10 +350,13 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopSort(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopTopNSort(CExpression *plan_expr);
 
 	// aggregations
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopAgg(CExpression *plan_expr);

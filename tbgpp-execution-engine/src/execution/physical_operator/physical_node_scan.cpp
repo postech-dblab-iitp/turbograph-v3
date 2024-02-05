@@ -70,7 +70,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 
 PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 	vector<vector<uint64_t>> scan_projection_mapping) :
-		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema, sch), oids(oids), projection_mapping(projection_mapping),
 		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), filter_pushdown_key_idx(-1)	// without pushdown, two mappings are exactly same
 {
 	num_schemas = sch.size();
@@ -83,7 +83,7 @@ PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, ve
 
 PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 	vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues) :
-		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema), oids(oids), projection_mapping(projection_mapping),
+		CypherPhysicalOperator(PhysicalOperatorType::NODE_SCAN, union_schema, sch), oids(oids), projection_mapping(projection_mapping),
 		scan_projection_mapping(scan_projection_mapping), current_schema_idx(0), 
 		filter_pushdown_key_idxs(filterKeyIndexes), filter_pushdown_values(filterValues) 	// without pushdown, two mappings are exactly same
 {
