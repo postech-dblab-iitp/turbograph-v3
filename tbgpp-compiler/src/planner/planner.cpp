@@ -245,11 +245,21 @@ void Planner::_orcaSetTraceFlags() {
 	
 	if(config.INDEX_JOIN_ONLY) {
 		// disable hash join
-		CBitSet *hash_join_bitste = CXform::PbsHashJoinXforms(mp);
-		traceflag_bitset->Union(hash_join_bitste);
-		hash_join_bitste->Release();	
+		CBitSet *hash_merge_join_bitset = CXform::PbsHashMergeJoinXforms(mp);
+		traceflag_bitset->Union(hash_merge_join_bitset);
+		hash_merge_join_bitset->Release();	
 		// disable nl join - need nlj for cartesian product
 		//GPOPT_DISABLE_XFORM(CXform::ExfInnerJoin2NLJoin);
+	}
+	else if(config.HASH_JOIN_ONLY) {
+		CBitSet *merge_index_join_bitset = CXform::PbsMergeIndexJoinXforms(mp);
+		traceflag_bitset->Union(merge_index_join_bitset);
+		merge_index_join_bitset->Release();	
+	}
+	else if(config.MERGE_JOIN_ONLY) {
+		CBitSet *hash_index_join_bitste = CXform::PbsHashIndexJoinXforms(mp);
+		traceflag_bitset->Union(hash_index_join_bitste);
+		hash_index_join_bitste->Release();	
 	}
 
 	traceflag_bitset->Union(join_heuristic_bitset);

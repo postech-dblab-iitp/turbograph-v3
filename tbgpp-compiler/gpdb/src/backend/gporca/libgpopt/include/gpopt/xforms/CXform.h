@@ -338,7 +338,15 @@ public:
 
 	// returns a set containing all xforms that generate a plan with a hash join
 	// caller takes ownership of the returned set
-	static CBitSet *PbsHashJoinXforms(CMemoryPool *mp);
+	static CBitSet *PbsHashMergeJoinXforms(CMemoryPool *mp);
+
+	// returns a set containing all xforms that generate a plan with a hash join
+	// caller takes ownership of the returned set
+	static CBitSet *PbsHashIndexJoinXforms(CMemoryPool *mp);
+
+	// returns a set containing all xforms that generate a plan with a merge join
+	// caller takes ownership of the returned set
+	static CBitSet *PbsMergeIndexJoinXforms(CMemoryPool *mp);
 
 	// returns a set containing xforms to use only the join order as available
 	// in the query

@@ -464,14 +464,21 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(
     duckdb::CypherPhysicalOperator *op = nullptr;
 
     if (!do_filter_pushdown) {
-        op = new duckdb::PhysicalNodeScan(tmp_schema, oids,
-                                          output_projection_mapping);
+		op = new duckdb::PhysicalNodeScan(tmp_schema, oids, 
+            output_projection_mapping, scan_projection_mapping);
     }
     else {
         op = new duckdb::PhysicalNodeScan(
             tmp_schema, oids, output_projection_mapping, scan_types,
             scan_projection_mapping, pred_attr_pos, literal_val);
     }
+
+	if (generate_sfg) {
+		pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+		num_schemas_of_childs.push_back({1});
+		pipeline_schemas.push_back({tmp_schema});
+		pipeline_union_schema.push_back(tmp_schema);
+	}
 
     D_ASSERT(op != nullptr);
     result->push_back(op);
