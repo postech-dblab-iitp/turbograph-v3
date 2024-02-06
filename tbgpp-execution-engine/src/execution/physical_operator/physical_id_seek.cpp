@@ -420,7 +420,6 @@ OperatorResultType PhysicalIdSeek::Execute(
                 state.has_remaining_output = true;
                 for (auto i = 0; i < chunks.size(); i++) {
                     chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
-                    chunks[i]->SetSchemaIdx(i);
                 }
             }
         }

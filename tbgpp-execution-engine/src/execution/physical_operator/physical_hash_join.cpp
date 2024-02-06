@@ -79,6 +79,19 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(
     return move(state);
 }
 
+/**
+ * TODO:
+ * Bug in schemaless execution: NULL type data is not handled properly.
+ * If I execute MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId
+    It occurs error in hash_table->Build(). It is because of NULL type data. 
+    The type is VARCHAR, but there is NULL data in the column.
+    However, null is not setted.
+*/
 SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context,
                                       DataChunk &input,
                                       LocalSinkState &state) const
@@ -94,6 +107,7 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context,
         // there is a projection map: fill the build chunk with the projected columns
         lstate.build_chunk.Reset();
         lstate.build_chunk.SetCardinality(input);
+        auto input_types = input.GetTypes();
         for (idx_t i = 0; i < right_projection_map.size(); i++) {
             lstate.build_chunk.data[i].Reference(
                 input.data[right_projection_map[i]]);
@@ -120,6 +134,12 @@ void PhysicalHashJoin::Combine(ExecutionContext &context,
     auto &sink = (HashJoinLocalState &)lstate;
     sink.hash_table->Finalize();
     sink.finalized = true;
+}
+
+DataChunk &PhysicalHashJoin::GetLastSinkedData(LocalSinkState &lstate) const
+{
+    auto &state = (HashJoinLocalState &)lstate;
+    return state.build_chunk;
 }
 
 //===--------------------------------------------------------------------===//
@@ -204,6 +224,9 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
                 input.data[input_idx]);
         }
     }
+
+    // TODO: currently, for debug purpose, we assume the chunk is UNION schema.
+    chunk.SetSchemaIdx(0);
 
     if (state.scan_structure) {
         // still have elements remaining from the previous probe (i.e. we got

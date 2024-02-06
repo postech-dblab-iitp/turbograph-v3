@@ -105,8 +105,6 @@ run_ldbc_s() {
 			p.id AS personId,
 			p.firstName AS firstName,
 			p.lastName AS lastName"
-	# TODO: Currently, the return columns order have problems. 
-	# The order should follow the order in the storage! If not, it output error, due to ColRefSet error in Projection
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			m.id AS messageId,
