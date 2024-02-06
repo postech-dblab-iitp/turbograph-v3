@@ -31,6 +31,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		opOutputChunks[i].push_back(std::move(opOutputChunk));
+		opOutputSchemaIdx.push_back(0);
 	}
 	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
 	local_source_state = pipeline->source->GetLocalSourceState(*context);
@@ -67,6 +68,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context_p, Cyph
 			opOutputChunk->Initialize(output_schema.getStoredTypes()); // TODO union schema but null columns?
 			opOutputChunks[i].push_back(std::move(opOutputChunk));
 		}
+		opOutputSchemaIdx.push_back(0);
 	}
 	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength));
 	local_source_state = pipeline->source->GetLocalSourceState(*context);
@@ -172,6 +174,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			D_ASSERT(in_process_operators.empty()); // TODO: In this case it should definitely be like this... but check plz
 		} else {
 			pipeResult = ExecutePipe(source, output_schema_idx);
+			pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 		}
 		
 		// shortcut returning execution finished/postponed for this pipeline
@@ -179,7 +182,6 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			pipeResult == OperatorResultType::POSTPONE_OUTPUT) {
 			return pipeResult;
 		}
-		pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 #ifdef DEBUG_PRINT_PIPELINE
 		std::cout << "[Sink (" << pipeline->GetSink()->ToString() << ")] num_tuples: " << pipeOutputChunk->size() << std::endl;
 #endif
@@ -228,20 +230,75 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		OperatorType cur_op_type = sfg.GetOperatorType(current_idx);
 		idx_t current_output_schema_idx;
 
+		/**
+		 * Unary operator does uni-schema processing.
+		 * Binary operator does multi-schema processing,
+		 * which means a single execution can generate multiple schemas.
+		*/	
 		if (cur_op_type == OperatorType::UNARY) {
+			/**
+			 * Q. (tslee) Why we need reset?
+			 * A. (jhha) Since we are reusing the chunk, we need to reset the chunk. 
+			 * The Execute() function assumes that the chunk is empty.
+			 * Based on the assumption, it determines return value after the execution.
+			 * If empty, NEED_MORE_INPUT. Else, HAVE_MORE_OUTPUT.
+			 * See HashJoin for the example. 
+			 * 
+			 * Suppose this pipeline. OP1 -> OP2 -> OP3 (all are unary operators).
+			 * Assume after an execution, OP2 and OP3 outputs HAVE_MORE_OUTPUT.
+			 * Due to in_process_operators logic, OP3 will be executed first, until it returns NEED_MORE_INPUT.
+			 * Then, OP2 will be executed. In this time, the output of OP2, which is the input of OP3, is resetted.
+			 * If not, OP3 can have invalid input.
+			*/
+			D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx]);
 			current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 			current_output_chunk = opOutputChunks[current_idx][current_output_schema_idx].get();
-			current_output_chunk->Reset(); // TODO why reset?
+			current_output_chunk->Reset(); 
 			current_output_chunk->SetSchemaIdx(current_output_schema_idx);
 			output_schema_idx = current_output_schema_idx;
 		} else if (cur_op_type == OperatorType::BINARY) {
+			/**
+			 * How binary operator executes.
+			 * For example, consider ProduceResults-Join-NodeScan
+			 * Assume that schema graph is as follows:
+			 *       
+			 * SCH1 | SCH2 | SCH3
+			 *  	    |
+			 *          |
+			 * SCH1 | SCH2 | SCH3
+			 *          | 
+			 *          |
+			 *        SCH1
+			 * 
+			 * On each execuion of Join, it generates chunk for SCH1, SCH2, SCH3.
+			 * Join keeps track of the number of remaining tuples for each schema.
+			 * Join processes each schema completely and then moves to the next schema.
+			 * See IdSeekState.has_remaining_output
+			*/
+
+			/**
+			 * Regarding reset of binary operators.
+			 * Unlike unary operators, binary operators have multiple of chunks.
+			 * Among them, we have to reset the chunk that is processed.
+			 * Unfortunatelly, we don't have a way to know which chunk is processed, currently.
+			 * Therefore, we have to maintain those information in PipelineExecutor.
+			*/
+
 			current_output_chunks = &opOutputChunks[current_idx];
+			for (auto i = 0; i < current_output_chunks->size(); i++) {
+				current_output_chunks->at(i)->SetSchemaIdx(i);
+			}
+			current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
 		}
 
 #ifdef DEBUG_PRINT_PIPELINE
 		if (cur_op_type == OperatorType::UNARY) {
 			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
 				<< ", schema_idx " << prev_output_schema_idx << " -> " << current_output_schema_idx << std::endl;
+		}
+		else if (cur_op_type == OperatorType::BINARY) {
+			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
+				<< std::endl;
 		}
 #endif
 
@@ -256,6 +313,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 				*context, *prev_output_chunk, *current_output_chunk, *local_operator_states[current_idx-1]);
 
+			// register output schema index
+			opOutputSchemaIdx[current_idx] = current_output_schema_idx;
+
 			// record statistics
 			EndOperator(pipeline->GetIdxOperator(current_idx), current_output_chunk);
 			pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk->size();
@@ -266,8 +326,22 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			prev_output_chunk = current_output_chunk;
 		} else if (cur_op_type == OperatorType::BINARY) {
 			// execute operator
-			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-				*context, *prev_output_chunk, *current_output_chunks, *local_operator_states[current_idx-1], output_schema_idx);
+			if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
+				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+					*context, *prev_output_chunk, *current_output_chunks, *local_operator_states[current_idx-1], output_schema_idx);
+			}
+			else {
+				/**
+				 * TODO: Implement multi-schema handling (currently, this assumes UNION schema)
+				*/
+				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+					*context, *prev_output_chunk, *((*current_output_chunks)[0]), *local_operator_states[current_idx-1],
+					*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
+				output_schema_idx = 0;
+			}
+
+			// register output schema index
+			opOutputSchemaIdx[current_idx] = output_schema_idx;
 
 			// record statistics
 			if (opResult == OperatorResultType::POSTPONE_OUTPUT) {
@@ -282,15 +356,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 #endif
 				prev_output_chunk = current_output_chunks->at(output_schema_idx).get();
 			}
-		}
-		if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
-			// standalone operators e.g. filter, projection, adjidxjoin
-		} else {
-			D_ASSERT(false); // TODO 240123 tslee maybe we will not reach here
-			// operator with related sink e.g. hashjoin, ..
-			// opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-			//  	*context, *prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1],
-			// 	*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
 		}
 	
 		// if result needs more output, push index to stack

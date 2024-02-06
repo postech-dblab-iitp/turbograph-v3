@@ -69,7 +69,7 @@ static void ComputeStringEntrySizes(const VectorData &col, idx_t entry_sizes[], 
 		auto idx = sel.get_index(i);
 		auto col_idx = col.sel->get_index(idx) + offset;
 		const auto &str = data[col_idx];
-		if (col.validity.RowIsValid(col_idx) && !str.IsInlined()) {
+		if (col.validity.RowIsValid(col_idx) && col.is_valid && !str.IsInlined()) {
 			entry_sizes[i] += str.GetSize();
 		}
 	}
@@ -84,7 +84,7 @@ static void ScatterStringVector(VectorData &col, Vector &rows, data_ptr_t str_lo
 		auto idx = sel.get_index(i);
 		auto col_idx = col.sel->get_index(idx);
 		auto row = ptrs[idx];
-		if (!col.validity.RowIsValid(col_idx)) {
+		if (!col.validity.RowIsValid(col_idx) || !col.is_valid) {
 			ValidityBytes col_mask(row);
 			col_mask.SetInvalidUnsafe(col_no);
 			Store<string_t>(NullValue<string_t>(), row + col_offset);
