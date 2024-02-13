@@ -417,8 +417,9 @@ static int MergeJoinComparisonValue(ExpressionType comparison) {
 		return -1;
 	case ExpressionType::COMPARE_LESSTHANOREQUALTO:
 	case ExpressionType::COMPARE_GREATERTHANOREQUALTO:
-	case ExpressionType::COMPARE_EQUAL: // Support for equality predicate in S62
 		return 0;
+	case ExpressionType::COMPARE_EQUAL: // Support for equality predicate in S62
+		return 1;
 	default:
 		throw InternalException("Unimplemented comparison type for merge join!");
 	}
@@ -443,7 +444,7 @@ struct BlockMergeInfo {
 };
 
 static idx_t SliceSortedPayload(DataChunk &payload, BlockMergeInfo &info, const idx_t result_count,
-                                const idx_t left_cols = 0) {
+                                const vector<uint32_t> &output_left_projection_map) {
 	// There should only be one sorted block if they have been sorted
 	D_ASSERT(info.state.sorted_blocks.size() == 1);
 	SBScanState read_state(info.state.buffer_manager, info.state);
@@ -489,10 +490,12 @@ static idx_t SliceSortedPayload(DataChunk &payload, BlockMergeInfo &info, const 
 	// Deserialize the payload data
 	auto sel = FlatVector::IncrementalSelectionVector();
 	for (idx_t col_idx = 0; col_idx < sorted_data.layout.ColumnCount(); col_idx++) {
-		const auto col_offset = sorted_data.layout.GetOffsets()[col_idx];
-		auto &col = payload.data[left_cols + col_idx];
-		RowOperations::Gather(addresses, *sel, col, *sel, addr_count, col_offset, col_idx);
-		col.Slice(info.result, result_count);
+		if (output_left_projection_map[col_idx] != std::numeric_limits<uint32_t>::max()) {
+			const auto col_offset = sorted_data.layout.GetOffsets()[col_idx];
+			auto &col = payload.data[output_left_projection_map[col_idx]];
+			RowOperations::Gather(addresses, *sel, col, *sel, addr_count, col_offset, col_idx);
+			col.Slice(info.result, result_count);
+		}
 	}
 
 	return first_idx;
@@ -670,16 +673,14 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 	const auto cmp_size = l.state.sort_layout.comparison_size;
 	const auto entry_size = l.state.sort_layout.entry_size;
 
-	idx_t result_count = 0;
-	while (true) {
-		if (l.entry_idx < l.not_null) {
-			int comp_res;
+    // Adjusted to support equality comparisons
+    bool support_equality = (cmp == 1); // Assuming cmp == 1 indicates equality comparison
 
-			/**
-			 * If l_ptr > r_ptr, then comp_res > 0
-			 * Else if l_ptr < r_ptr, then comp_res < 0
-			 * Else if l_ptr == r_ptr, then comp_res == 0
-			*/
+	idx_t result_count = 0;
+    while (true) {
+        if (l.entry_idx < l.not_null && r.entry_idx < r.not_null) {
+            int comp_res;
+
 			if (all_constant) {
 				comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
 			} else {
@@ -688,34 +689,55 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 				comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
 			}
 
-			if (comp_res <= cmp) {
-				// left side smaller: found match
-				l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
-				r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
-				result_count++;
-				// move left side forward
-				l.entry_idx++;
-				l_ptr += entry_size;
-				if (result_count == STANDARD_VECTOR_SIZE) {
-					// out of space!
-					break;
-				}
-				continue;
-			}
-		}
-		// right side smaller or equal, or left side exhausted: move
-		// right pointer forward reset left side to start
-		r.entry_idx++;
-		if (r.entry_idx >= r.not_null) {
-			break;
-		}
-		r_ptr += entry_size;
+            if (comp_res < cmp || (support_equality && comp_res == 0)) {
+                // When keys are equal and we support equality, process all matching keys
+                if (support_equality && comp_res == 0) {
+                    // Handle all matches for the current left key
+                    do {
+                        l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
+                        r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
+                        result_count++;
+                        if (result_count == STANDARD_VECTOR_SIZE) break; // Check for space
+                        r.entry_idx++;
+                        r_ptr += entry_size;
+                        if (r.entry_idx >= r.not_null) break; // Check for end
+                        // Re-compare after moving right pointer
+                        comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
+                    } while (comp_res == 0);
 
-		l_ptr = l_start;
-		l.entry_idx = 0;
-	}
+                    // Reset right pointer to the start of matching keys and advance left pointer
+                    r.entry_idx -= (result_count % (STANDARD_VECTOR_SIZE + 1)); // Adjust based on matches found
+                    r_ptr = MergeJoinRadixPtr(rread, r.entry_idx);
+                    l.entry_idx++;
+                    l_ptr += entry_size;
+                    if (result_count == STANDARD_VECTOR_SIZE) break; // Check for space
+                } else {
+                    // Existing logic for non-equality cases...
+                    l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
+                    r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
+                    result_count++;
+                    l.entry_idx++;
+                    l_ptr += entry_size;
+                    if (result_count == STANDARD_VECTOR_SIZE) break; // out of space!
+                }
+            } else {
+                // Right side smaller or no match, advance right pointer
+                r.entry_idx++;
+                r_ptr += entry_size;
+                if (r.entry_idx >= r.not_null) {
+                    // If no matches found for the current left key, advance left pointer and reset right
+                    l.entry_idx++;
+                    l_ptr += entry_size;
+                    r.entry_idx = 0;
+                    r_ptr = MergeJoinRadixPtr(rread, r.entry_idx);
+                }
+            }
+        } else {
+            break; // Exit condition when either side is exhausted
+        }
+    }
 
-	return result_count;
+    return result_count;
 }
 
 static idx_t SelectJoinTail(const ExpressionType &condition, Vector &left, Vector &right, const SelectionVector *sel,
@@ -808,7 +830,7 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 					chunk.data[output_left_projection_map[c]].Slice(state.lhs_payload.data[c], left_info.result, result_count);
 				}
 			}
-			const auto first_idx = SliceSortedPayload(chunk, right_info, result_count, left_cols);
+			const auto first_idx = SliceSortedPayload(chunk, right_info, result_count, output_left_projection_map);
 			chunk.SetCardinality(result_count);
 
 			auto sel = FlatVector::IncrementalSelectionVector();

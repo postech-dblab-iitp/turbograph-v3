@@ -1092,12 +1092,13 @@ CPredicateUtils::FEqIdentsOfSameType(CExpression *pexpr)
 		return false;
 	}
 
-	CScalarIdent *left_ident = CScalarIdent::PopConvert(pexprLeft->Pop());
-	CScalarIdent *right_ident = CScalarIdent::PopConvert(pexprRight->Pop());
-	if (!left_ident->MdidType()->Equals(right_ident->MdidType()))
-	{
-		return false;
-	}
+	// In S62, we disable this to support NODE-EDGE join
+	// CScalarIdent *left_ident = CScalarIdent::PopConvert(pexprLeft->Pop());
+	// CScalarIdent *right_ident = CScalarIdent::PopConvert(pexprRight->Pop());
+	// if (!left_ident->MdidType()->Equals(right_ident->MdidType()))
+	// {
+	// 	return false;
+	// }
 
 	return true;
 }
