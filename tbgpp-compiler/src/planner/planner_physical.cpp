@@ -1906,18 +1906,6 @@ void Planner::
                     CMDIdGPDB::CastMdid(idxscan_op->Ptabdesc()->MDId())->Oid();
                 oids.push_back(table_obj_id);
 
-                // oids / projection_mapping
-                vector<uint64_t> output_ident_mapping;
-                pGenerateScanMapping(table_obj_id,
-                                     inner_output_cols->Pdrgpcr(mp),
-                                     output_ident_mapping);
-                D_ASSERT(output_ident_mapping.size() ==
-                         inner_output_cols->Size());
-                output_projection_mapping.push_back(output_ident_mapping);
-                vector<duckdb::LogicalType> output_types;
-                pGenerateTypes(inner_output_cols->Pdrgpcr(mp), output_types);
-                D_ASSERT(output_types.size() == output_ident_mapping.size());
-
                 // scan projection mapping - when doing filter pushdown, two mappings MAY BE different.
                 vector<uint64_t> scan_ident_mapping;
                 vector<duckdb::LogicalType> scan_type;
@@ -1927,6 +1915,9 @@ void Planner::
 
                 outer_col_maps.push_back(std::vector<uint32_t>());
                 inner_col_maps.push_back(std::vector<uint32_t>());
+
+                // projection mapping (output to scan table mapping)
+                vector<uint64_t> output_ident_mapping;
 
                 if (i == 0) {
                     for (uint32_t j = 0; j < projectlist_expr->Arity(); j++) {
@@ -1975,11 +1966,13 @@ void Planner::
                         if ((attr_no == (INT)-1)) {
                             if (load_system_col) {
                                 scan_ident_mapping.push_back(0);
+                                output_ident_mapping.push_back(j);
                                 scan_type.push_back(duckdb::LogicalType::ID);
                             }
                         }
                         else {
                             scan_ident_mapping.push_back(attr_no);
+                            output_ident_mapping.push_back(j);
                             CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(
                                 proj_col->RetrieveType()->MDId());
                             OID type_oid = type_mdid->Oid();
@@ -1993,7 +1986,11 @@ void Planner::
                                  ->Pop()
                                  ->Eopid() ==
                              COperator::EOperatorId::EopScalarConst) {
-                        // null column
+                        /**
+                         * (jhha) added null column handling
+                         * This column will be filled with NULLs in extent iterator
+                        */
+                        output_ident_mapping.push_back(j);
                     }
                     else {
                         throw duckdb::InvalidInputException(
@@ -2004,6 +2001,8 @@ void Planner::
 
                 scan_projection_mapping.push_back(scan_ident_mapping);
                 scan_types.push_back(std::move(scan_type));
+
+                output_projection_mapping.push_back(output_ident_mapping);
 
                 // Construct outer mapping info
                 for (ULONG col_idx = 0; col_idx < outer_cols->Size();
@@ -2070,6 +2069,13 @@ void Planner::
     else {
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
+
+    /**
+     * TODO: this code is currently wrong. It should be fixed.
+     * IdSeek should generate multiple schemas.
+     * However, this code now only generates one schema (union schema).
+     * Instead, it uses tmp_schema given to the PhysicalIdSeek to initialize.
+    */
 
     if (generate_sfg) {
         vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();

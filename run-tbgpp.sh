@@ -111,6 +111,15 @@ run_ldbc_s() {
 			p.lastName AS lastName,
 			p.firstName AS firstName,
 			p.id AS personId"
+
+	# No schemaless in Person
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		RETURN
+			m.id AS messageId,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			p.id AS personId,

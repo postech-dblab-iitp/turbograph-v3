@@ -93,6 +93,7 @@ void CypherPipelineExecutor::ExecutePipeline() {
 			*/
 			source_chunk.Destroy();
 			source_chunk.Initialize(sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
+			opOutputSchemaIdx[0] = sfg.GetCurSourceIdx();
 		} else {
 			source_chunk.Destroy();
 			source_chunk.Initialize(pipeline->GetSource()->GetTypes());
@@ -250,7 +251,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			 * Then, OP2 will be executed. In this time, the output of OP2, which is the input of OP3, is resetted.
 			 * If not, OP3 can have invalid input.
 			*/
-			D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx]);
+			D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
 			current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 			current_output_chunk = opOutputChunks[current_idx][current_output_schema_idx].get();
 			current_output_chunk->Reset(); 

@@ -393,6 +393,11 @@ OperatorResultType PhysicalIdSeek::Execute(
                 // 	}
                 // }
 
+                /**
+                 * In InitializeVertexIndexSeek, we sort src vids by target extent id.
+                 * So, we can access the same extent id in a row.
+                */
+
                 for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                      extentIdx++) {
                     vector<idx_t> output_col_idx;
@@ -408,6 +413,12 @@ OperatorResultType PhysicalIdSeek::Execute(
                         input, nodeColIdx, target_types, target_eids,
                         target_seqnos_per_extent, extentIdx, output_col_idx,
                         num_tuples_per_chunk[mapping_idxs[extentIdx]]);
+
+                    /**
+                     * Currently, we cannot handle rhs multi-schema case!
+                     * I mean, if there is a null column in a schema, we cannot handle
+                     * this. We need to fix this, but currently, we just skip this case.
+                    */
 
                     for (auto i = 0;
                          i < target_seqnos_per_extent[extentIdx].size(); i++) {
@@ -450,6 +461,7 @@ OperatorResultType PhysicalIdSeek::Execute(
             return OperatorResultType::HAVE_MORE_OUTPUT;
         }
         state.has_remaining_output = false;
+        state.need_initialize_extit = true;
         return OperatorResultType::NEED_MORE_INPUT;
     }
 
