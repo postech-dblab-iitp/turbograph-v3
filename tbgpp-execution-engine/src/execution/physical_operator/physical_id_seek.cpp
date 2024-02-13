@@ -482,9 +482,11 @@ OperatorResultType PhysicalIdSeek::Execute(
                 }
             }
         }
+#ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         for (auto i = 0; i < chunks.size(); i++) {
             OutputUtil::PrintTop10TuplesInDataChunk(*(chunks[i].get()));
         }
+#endif
         for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
             if (num_tuples_per_chunk[chunk_idx] == 0)
                 continue;
