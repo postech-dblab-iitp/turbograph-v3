@@ -1370,6 +1370,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     idx_t begin_seqno = output_seqno;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         output_seqno = begin_seqno;
+        /**
+         * (jhha) This is a temporary fix for the case where the column is SQLNULL
+         * We need to find a better way to handle this case
+        */
+        if (cur_ext_property_type[i].id() == LogicalTypeId::SQLNULL) {
+            output.data[output_column_idxs[i]].GetValidity().SetAllInvalid(target_seqnos.size());
+            continue;
+        }
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN

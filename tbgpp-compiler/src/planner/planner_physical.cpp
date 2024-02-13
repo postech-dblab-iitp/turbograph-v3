@@ -1986,11 +1986,17 @@ void Planner::
                                  ->Pop()
                                  ->Eopid() ==
                              COperator::EOperatorId::EopScalarConst) {
+                        // null column
                         /**
                          * (jhha) added null column handling
                          * This column will be filled with NULLs in extent iterator
+                         * SQLNULL is specially handed in the extent iterator.
+                         * inner_col_map will be place NULL vector in to the right place.
+                         * scan_ident_mapping will be used to not to initialize iterator.
                         */
-                        output_ident_mapping.push_back(j);
+                        scan_type.push_back(duckdb::LogicalType::SQLNULL);
+                        inner_col_maps[i].push_back(j);
+                        scan_ident_mapping.push_back(std::numeric_limits<uint64_t>::max());
                     }
                     else {
                         throw duckdb::InvalidInputException(
@@ -2001,7 +2007,6 @@ void Planner::
 
                 scan_projection_mapping.push_back(scan_ident_mapping);
                 scan_types.push_back(std::move(scan_type));
-
                 output_projection_mapping.push_back(output_ident_mapping);
 
                 // Construct outer mapping info
