@@ -105,6 +105,8 @@ run_ldbc_s() {
 			p.id AS personId,
 			p.firstName AS firstName,
 			p.lastName AS lastName"
+
+	
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			m.id AS messageId,
