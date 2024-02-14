@@ -222,7 +222,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 	assert(current_idx > 0 && "cannot designate a source operator (idx=0)");
 
 	// start pipe from current_idx;
-	DataChunk *prev_output_chunk = opOutputChunks[current_idx - 1][0].get();
+	// DataChunk *prev_output_chunk = opOutputChunks[current_idx - 1][0].get();
+	idx_t prev_output_schema_idx = current_idx == 1 ? 0 : opOutputSchemaIdx[current_idx - 1];
+	DataChunk *prev_output_chunk = opOutputChunks[current_idx - 1][prev_output_schema_idx].get();
 	DataChunk *current_output_chunk;
 	vector<unique_ptr<DataChunk>> *current_output_chunks;
 	for (;pipeline->GetIdxOperator(current_idx) != pipeline->GetSink(); current_idx++) {
@@ -251,7 +253,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			 * Then, OP2 will be executed. In this time, the output of OP2, which is the input of OP3, is resetted.
 			 * If not, OP3 can have invalid input.
 			*/
-			D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
+			// D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
 			current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 			current_output_chunk = opOutputChunks[current_idx][current_output_schema_idx].get();
 			current_output_chunk->Reset(); 
