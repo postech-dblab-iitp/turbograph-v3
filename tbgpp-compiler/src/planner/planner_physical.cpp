@@ -3,14 +3,15 @@
 #include <wchar.h>
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <set>
 #include <string>
-#include <numeric>
 
 // locally used duckdb operators
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_blockwise_nl_join.hpp"
 #include "execution/physical_operator/physical_cross_product.hpp"
+#include "execution/physical_operator/physical_filter.hpp"
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 #include "execution/physical_operator/physical_id_seek.hpp"
 #include "execution/physical_operator/physical_node_scan.hpp"
@@ -20,7 +21,6 @@
 #include "execution/physical_operator/physical_top.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
-#include "execution/physical_operator/physical_filter.hpp"
 
 #include "planner/expression/bound_between_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
@@ -79,14 +79,14 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
                      phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
                     if (logical_plan_output_colrefs[log_idx]->Id() ==
                         physical_plan_output_colrefs[phy_idx]->Id()) {
-                        if (local_schema[phy_idx] ==
-                            duckdb::LogicalType::SQLNULL) {
-                            projection_mappings[i].push_back(
-                                std::numeric_limits<uint8_t>::max());
-                        }
-                        else {
-                            projection_mappings[i].push_back(phy_idx);
-                        }
+                        // if (local_schema[phy_idx] ==
+                        //     duckdb::LogicalType::SQLNULL) {
+                        //     projection_mappings[i].push_back(
+                        //         std::numeric_limits<uint8_t>::max());
+                        // }
+                        // else {
+                        projection_mappings[i].push_back(phy_idx);
+                        // }
                     }
                 }
             }
@@ -549,7 +549,7 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
         if (i == 0) {
             global_types.resize(proj_list_expr_size,
                                 duckdb::LogicalType::SQLNULL);
-		}
+        }
 
         // for each object id, generate projection mapping. (if null projection required, ulong::max)
         projection_mapping.push_back(vector<uint64_t>());
@@ -1564,6 +1564,7 @@ void Planner::
     unordered_map<ULONG, uint64_t> id_map;
     vector<vector<uint32_t>> outer_col_maps;
     vector<vector<uint32_t>> inner_col_maps;
+    vector<uint32_t> union_inner_col_map;
     vector<vector<uint64_t>> output_projection_mapping;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<duckdb::LogicalType>> scan_types;
@@ -1593,7 +1594,6 @@ void Planner::
     while (true) {
         if (inner_root->Pop()->Eopid() ==
             COperator::EOperatorId::EopPhysicalSerialUnionAll) {
-            std::vector<uint32_t> inner_col_map;
             for (uint32_t i = 0; i < inner_root->Arity();
                  i++) {  // for each idx(only)scan expression
                 // TODO currently support this pattern type only
@@ -1673,7 +1673,7 @@ void Planner::
                             (CColRefTable *)proj_elem->Pcr();
                         auto it = id_map.find(proj_col->ColId());
                         if (it != id_map.end()) {
-                            inner_col_map.push_back(it->second);
+                            union_inner_col_map.push_back(it->second);
                             if (proj_col->AttrNum() == INT(-1))
                                 load_system_col = true;
                         }
@@ -1698,10 +1698,10 @@ void Planner::
                         // non-null column
                         // This logic is built on the assumption that all columns except the system column will be included in the seek output
                         if (load_system_col) {
-                            inner_col_maps[i].push_back(inner_col_map[j]);
+                            inner_col_maps[i].push_back(union_inner_col_map[j]);
                         }
                         else if (!load_system_col && (j != 0)) {
-                            inner_col_maps[i].push_back(inner_col_map[j - 1]);
+                            inner_col_maps[i].push_back(union_inner_col_map[j - 1]);
                         }
 
                         INT attr_no = proj_col->AttrNum();
@@ -1795,8 +1795,8 @@ void Planner::
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, scan_projection_mapping,
-                scan_types);
+                outer_col_maps, inner_col_maps, union_inner_col_map,
+                scan_projection_mapping, scan_types, true);
             result->push_back(op);
         }
     }
@@ -1838,6 +1838,7 @@ void Planner::
     unordered_map<ULONG, uint64_t> id_map;
     vector<vector<uint32_t>> outer_col_maps;
     vector<vector<uint32_t>> inner_col_maps;
+    vector<uint32_t> union_inner_col_map;
     vector<vector<uint64_t>> output_projection_mapping;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<duckdb::LogicalType>> scan_types;
@@ -1867,7 +1868,6 @@ void Planner::
     while (true) {
         if (inner_root->Pop()->Eopid() ==
             COperator::EOperatorId::EopPhysicalSerialUnionAll) {
-            std::vector<uint32_t> inner_col_map;
             for (uint32_t i = 0; i < inner_root->Arity();
                  i++) {  // for each idx(only)scan expression
                 // TODO currently support this pattern type only
@@ -1947,7 +1947,7 @@ void Planner::
                             (CColRefTable *)proj_elem->Pcr();
                         auto it = id_map.find(proj_col->ColId());
                         if (it != id_map.end()) {
-                            inner_col_map.push_back(it->second);
+                            union_inner_col_map.push_back(it->second);
                             if (proj_col->AttrNum() == INT(-1))
                                 load_system_col = true;
                         }
@@ -1972,10 +1972,10 @@ void Planner::
                         // non-null column
                         // This logic is built on the assumption that all columns except the system column will be included in the seek output
                         if (load_system_col) {
-                            inner_col_maps[i].push_back(inner_col_map[j]);
+                            inner_col_maps[i].push_back(union_inner_col_map[j]);
                         }
                         else if (!load_system_col && (j != 0)) {
-                            inner_col_maps[i].push_back(inner_col_map[j - 1]);
+                            inner_col_maps[i].push_back(union_inner_col_map[j - 1]);
                         }
 
                         INT attr_no = proj_col->AttrNum();
@@ -2069,8 +2069,8 @@ void Planner::
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, scan_projection_mapping,
-                scan_types);
+                outer_col_maps, inner_col_maps, union_inner_col_map,
+                scan_projection_mapping, scan_types, false);
             result->push_back(op);
         }
     }
@@ -2081,7 +2081,8 @@ void Planner::
     if (generate_sfg) {
         vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
         pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
-        num_schemas_of_childs.push_back({prev_local_schemas.size()});  // TODO
+        // num_schemas_of_childs.push_back({prev_local_schemas.size(), inner_col_maps.size() + 1});
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
         pipeline_schemas.push_back(prev_local_schemas);
         pipeline_union_schema.push_back(tmp_schema);
     }
@@ -2750,8 +2751,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
     D_ASSERT(plan_expr->operator[](0)->operator[](0)->Pop()->Eopid() ==
              COperator::EOperatorId::EopPhysicalSort);
     vector<duckdb::CypherPhysicalOperator *> *result =
-        pTraverseTransformPhysicalPlan(plan_expr->operator[](0)->operator[](0)->PdrgPexpr()->operator[](0));
-    
+        pTraverseTransformPhysicalPlan(
+            plan_expr->operator[](0)->operator[](0)->PdrgPexpr()->operator[](
+                0));
 
     // get limit info
     bool has_limit = false;
@@ -2765,14 +2767,17 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
     int64_t offset, limit;
     if (!limit_op->FHasCount()) {
         has_limit = false;
-    } else {
+    }
+    else {
         has_limit = true;
         CDatumInt8GPDB *offset_datum =
-            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](1)->Pop())
-                                ->GetDatum());
+            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](1)
+                                    ->Pop())
+                                   ->GetDatum());
         CDatumInt8GPDB *limit_datum =
-            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](2)->Pop())
-                                ->GetDatum());
+            (CDatumInt8GPDB *)(((CScalarConst *)limit_expr->operator[](2)
+                                    ->Pop())
+                                   ->GetDatum());
         offset = offset_datum->Value();
         limit = limit_datum->Value();
     }

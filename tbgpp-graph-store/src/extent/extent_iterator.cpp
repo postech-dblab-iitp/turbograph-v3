@@ -1337,13 +1337,15 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
                 id_col_value = physical_id_base + target_seqno;
                 memcpy(row_major_store + rowcol_arr[i].offset + accumulated_bytes,
                     &id_col_value, 8);
+                accumulated_bytes += 8;
                 break;
             }
             default:
             {
                 memcpy(row_major_store + rowcol_arr[i].offset + accumulated_bytes,
-                    io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_sizes[j],
+                    io_requested_buf_ptrs[toggle][j] + comp_header_valid_size + target_seqno * type_sizes[j],
                     type_sizes[j]);
+                accumulated_bytes += type_sizes[j];
                 break;
             }
             }

@@ -22,6 +22,7 @@ struct LogicalType;
 class Executor;
 class ClientContext;
 class SchemaFlowGraph;
+// class SchemalessDataChunk;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
@@ -68,6 +69,7 @@ public:
 	//! Intermediate chunks for the operators
 	// vector<unique_ptr<DataChunk>> opOutputChunks;
 	vector<vector<unique_ptr<DataChunk>>> opOutputChunks;
+	// vector<vector<unique_ptr<SchemalessDataChunk>>> opOutputChunks;
 
 	// in duckdb, each stated is stored in:
 		// .            local        |  global

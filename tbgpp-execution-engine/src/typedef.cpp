@@ -71,6 +71,11 @@ std::vector<duckdb::LogicalType> Schema::getStoredTypes()
     return stored_types;
 }
 
+std::vector<duckdb::LogicalType> &Schema::getStoredTypesRef()
+{
+    return stored_types;
+}
+
 std::vector<string> Schema::getStoredColumnNames()
 {
     return stored_column_names;
