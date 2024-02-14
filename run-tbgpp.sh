@@ -93,20 +93,95 @@ run_ldbc_s() {
 	
 	
 	# LDBC IS4 Content of a message
-	run_query "MATCH (m:Comment {id: 557})
+	run_query "MATCH (m:Comment)
+		WHERE
+			m.id < 1000
 		RETURN
 			m.creationDate as messageCreationDate,
 			m.content as messageContent"
 	
 	# LDBC IS5 Creator of a message
-	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			m.id AS messageId,
-			p.id AS personId,
+			p.lastName AS lastName,
 			p.firstName AS firstName,
-			p.lastName AS lastName"
+			p.id AS personId"
 
-	
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 549756747752
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 1374394313369
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 1786706787893
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 1924147979119
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 2061587091334
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 2061590860741
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 2199029811324
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
+	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+		WHERE
+			m.id > 2199029884029
+		RETURN
+			m.id AS messageId,
+			p.lastName AS lastName,
+			p.firstName AS firstName,
+			p.id AS personId"
+
 	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			m.id AS messageId,
@@ -141,6 +216,67 @@ run_ldbc_s() {
 			p.firstName AS firstName,
 			k.id AS postId"
 	# Fails in release mode
+
+# MATCH (f:Forum)-[co:CONTAINER_OF]->(k:Post)
+# RETURN 
+# 	f.id AS forumId,
+# 	# k.creationDate, 
+# 	k.id as postId;
+
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 412316900629
+RETURN f.id AS forumId, p.creationDate AS creationDate, p.id AS personId;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 1649267463442
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 1924145435972
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 2061584358984
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 2061585358815
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
+WHERE f.id > 2199024310184
+RETURN f.id, p.creationDate, p.id;
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 6597069777354
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 21990232562085
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 28587302329875
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 32985348837442
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 32985348843573
+RETURN n.id, p.id
+
+MATCH (n:Person)-[r:KNOWS]->(p:Person)
+WHERE n.id > 35184372096070
+RETURN n.id, p.id
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH

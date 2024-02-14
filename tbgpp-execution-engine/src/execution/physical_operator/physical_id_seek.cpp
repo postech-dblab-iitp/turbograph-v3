@@ -306,7 +306,11 @@ OperatorResultType PhysicalIdSeek::Execute(
 {
     auto &state = (IdSeekState &)lstate;
     if (input.size() == 0) {
-        D_ASSERT(false);  // not implemented yet
+        // D_ASSERT(false);  // not implemented yet
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(0);
+        }
+        return OperatorResultType::NEED_MORE_INPUT;
                           // chunk.SetCardinality(0);
                           // return OperatorResultType::NEED_MORE_INPUT;
     }
