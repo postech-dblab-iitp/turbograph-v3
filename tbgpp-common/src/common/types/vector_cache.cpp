@@ -43,7 +43,7 @@ public:
 		}
 		default:
 			if (GetTypeIdSize(internal_type) > 0) {
-				owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+				owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);	
 			}
 			break;
 		}

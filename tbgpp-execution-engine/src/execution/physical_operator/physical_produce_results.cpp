@@ -31,7 +31,8 @@ class ProduceResultsState : public LocalSinkState {
     }
 
    public:
-    vector<DataChunk *> resultChunks;
+    // vector<DataChunk *> resultChunks;
+    vector<unique_ptr<DataChunk>> resultChunks;
 
     bool isResultTypeDetermined;
     std::vector<uint8_t> projection_mapping;
@@ -54,7 +55,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
         state.DetermineResultTypes(input.GetTypes());
     }
 
-    auto copyChunk = new DataChunk();
+    auto copyChunk = make_unique<DataChunk>();
     copyChunk->Initialize(state.result_types);
     if (projection_mapping.size() == 0 &&
         projection_mappings.size() == 0) {  // projection mapping not provided
@@ -88,7 +89,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
         }
         copyChunk->SetCardinality(input.size());
     }
-    state.resultChunks.push_back(copyChunk);
+    state.resultChunks.push_back(move(copyChunk));
 
     return SinkResultType::NEED_MORE_INPUT;
 }
