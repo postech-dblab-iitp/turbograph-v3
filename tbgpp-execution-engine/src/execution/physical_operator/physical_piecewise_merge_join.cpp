@@ -3,6 +3,7 @@
 #include "common/fast_mem.hpp"
 #include "common/sort/sort.hpp"
 #include "common/sort/comparators.hpp"
+#include "common/output_util.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "parallel/thread_context.hpp"
 #include "storage/buffer_manager.hpp"
@@ -673,71 +674,66 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 	const auto cmp_size = l.state.sort_layout.comparison_size;
 	const auto entry_size = l.state.sort_layout.entry_size;
 
-    // Adjusted to support equality comparisons
-    bool support_equality = (cmp == 1); // Assuming cmp == 1 indicates equality comparison
-
-	idx_t result_count = 0;
+    idx_t result_count = 0;
     while (true) {
-        if (l.entry_idx < l.not_null && r.entry_idx < r.not_null) {
-            int comp_res;
-
-			if (all_constant) {
-				comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
-			} else {
-				lread.entry_idx = l.entry_idx;
-				rread.entry_idx = r.entry_idx;
-				comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
-			}
-
-            if (comp_res < cmp || (support_equality && comp_res == 0)) {
-                // When keys are equal and we support equality, process all matching keys
-                if (support_equality && comp_res == 0) {
-                    // Handle all matches for the current left key
-                    do {
-                        l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
-                        r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
-                        result_count++;
-                        if (result_count == STANDARD_VECTOR_SIZE) break; // Check for space
-                        r.entry_idx++;
-                        r_ptr += entry_size;
-                        if (r.entry_idx >= r.not_null) break; // Check for end
-                        // Re-compare after moving right pointer
-                        comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
-                    } while (comp_res == 0);
-
-                    // Reset right pointer to the start of matching keys and advance left pointer
-                    r.entry_idx -= (result_count % (STANDARD_VECTOR_SIZE + 1)); // Adjust based on matches found
-                    r_ptr = MergeJoinRadixPtr(rread, r.entry_idx);
-                    l.entry_idx++;
-                    l_ptr += entry_size;
-                    if (result_count == STANDARD_VECTOR_SIZE) break; // Check for space
-                } else {
-                    // Existing logic for non-equality cases...
-                    l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
-                    r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
-                    result_count++;
-                    l.entry_idx++;
-                    l_ptr += entry_size;
-                    if (result_count == STANDARD_VECTOR_SIZE) break; // out of space!
-                }
-            } else {
-                // Right side smaller or no match, advance right pointer
-                r.entry_idx++;
-                r_ptr += entry_size;
-                if (r.entry_idx >= r.not_null) {
-                    // If no matches found for the current left key, advance left pointer and reset right
-                    l.entry_idx++;
-                    l_ptr += entry_size;
-                    r.entry_idx = 0;
-                    r_ptr = MergeJoinRadixPtr(rread, r.entry_idx);
-                }
-            }
-        } else {
-            break; // Exit condition when either side is exhausted
+        if (l.entry_idx >= l.not_null || r.entry_idx >= r.not_null) {
+            // If either side is exhausted, break out of the loop
+            break;
         }
-    }
 
-    return result_count;
+		int comp_res;
+		if (all_constant) {
+			comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
+		} else {
+			lread.entry_idx = l.entry_idx;
+			rread.entry_idx = r.entry_idx;
+			comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
+		}
+
+		if (cmp == 1) { // Equality predicate
+			if (comp_res == 0) { // Exact match found
+				l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
+				r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
+				result_count++;
+				if (result_count == STANDARD_VECTOR_SIZE) {
+					// out of space!
+					break;
+				}
+
+				// Advance both pointers for equality to find next potential match
+				r.entry_idx++; r_ptr += entry_size;
+			} else if (comp_res < 0) {
+				// Left is smaller, move left pointer forward to find a match
+				l.entry_idx++; l_ptr += entry_size;
+			} else {
+				// Right is smaller, move right pointer forward to find a match
+				r.entry_idx++; r_ptr += entry_size;
+			}
+		} else { // Other predicates
+			if (comp_res <= cmp) {
+				// left side smaller: found match
+				l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
+				r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
+				result_count++;
+				// move left side forward
+				l.entry_idx++;
+				l_ptr += entry_size;
+				if (result_count == STANDARD_VECTOR_SIZE) {
+					// out of space!
+					break;
+				}
+				continue;
+			} else {
+				// For less than or greater than cases where there's no match,
+				// move the right pointer forward and reset the left pointer.
+				r.entry_idx++; 
+				r_ptr += entry_size;
+				l_ptr = l_start; 
+				l.entry_idx = 0;
+			}
+		}
+    }
+	return result_count;
 }
 
 static idx_t SelectJoinTail(const ExpressionType &condition, Vector &left, Vector &right, const SelectionVector *sel,

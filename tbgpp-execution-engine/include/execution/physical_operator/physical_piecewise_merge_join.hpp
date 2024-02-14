@@ -37,6 +37,7 @@ class PhysicalPiecewiseMergeJoin : public PhysicalComparisonJoin {
     vector<BoundOrderByNode> rhs_orders;
 	vector<uint32_t> output_left_projection_map;
 	vector<uint32_t> output_right_projection_map;
+    vector<unique_ptr<Expression>> lhs_expressions;
 
    public:
     // Operator Interface
