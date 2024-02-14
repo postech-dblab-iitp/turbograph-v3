@@ -68,6 +68,9 @@ public:
 	inline void SetHasRowChunk(bool has_row_chunk) {
 		this->has_row_chunk = has_row_chunk;
 	}
+	bool HasRowChunk() {
+		return this->has_row_chunk;
+	}
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);
@@ -82,11 +85,16 @@ public:
 	//! This will create one vector of the specified type for each LogicalType in the
 	//! types list. The vector will be referencing vector to the data owned by
 	//! the DataChunk.
-	DUCKDB_API void Initialize(const vector<LogicalType> &types, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
-	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	//! Initializes an empty DataChunk with the given types. The vectors will *not* have any data allocated for them.
-	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types, idx_t capactiy_ = STANDARD_VECTOR_SIZE);
-	DUCKDB_API void InitializeAdjListColumn(idx_t adj_list_column_idx, size_t adj_list_size);
+	DUCKDB_API void InitializeEmpty(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	//! Initializes row columns
+	DUCKDB_API void InitializeRowColumn(const vector<uint32_t> &columns_to_be_grouped, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	//! Initializes row major store
+	DUCKDB_API void CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size);
+	//! Get row major store
+	DUCKDB_API char *GetRowMajorStore(idx_t col_idx);
 	//! Append the other DataChunk to this one. The column count and types of
 	//! the two DataChunks have to match exactly. Throws an exception if there
 	//! is not enough space in the chunk and resize is not allowed.
@@ -153,7 +161,7 @@ private:
 	idx_t capacity;
 	//! Vector caches, used to store data when ::Initialize is called
 	vector<VectorCache> vector_caches;
-	bool has_row_chunk;
+	bool has_row_chunk = false;
 	idx_t schema_idx;
 };
 } // namespace duckdb

@@ -10,7 +10,9 @@
 #include "common/types/null_value.hpp"
 #include "common/types/sel_cache.hpp"
 #include "common/types/vector_cache.hpp"
+#include "common/types/rowcol_type.hpp"
 #include "common/vector_operations/vector_operations.hpp"
+#include "typedef.hpp"
 //#include "storage/buffer/buffer_handle.hpp"
 
 #include <cstring> // strlen() on Solaris
@@ -116,6 +118,7 @@ void Vector::Reinterpret(Vector &other) {
 	validity = other.validity;
 	capacity = other.capacity;
 	is_valid = other.is_valid;
+	rowcol_idx = other.rowcol_idx;
 }
 
 void Vector::ResetFromCache(const VectorCache &cache) {
@@ -173,9 +176,13 @@ void Vector::Slice(const SelectionVector &sel, idx_t count) {
 	Vector child_vector(*this);
 	auto child_ref = make_buffer<VectorChildBuffer>(move(child_vector));
 	auto dict_buffer = make_buffer<DictionaryBuffer>(sel);
+	child_ref->data.is_valid = this->is_valid;
+	child_ref->data.rowcol_idx = this->rowcol_idx; // TODO right?
 	vector_type = VectorType::DICTIONARY_VECTOR;
 	buffer = move(dict_buffer);
 	auxiliary = move(child_ref);
+	child_vector.is_valid = this->is_valid;
+	child_vector.rowcol_idx = this->rowcol_idx; // TODO right?
 }
 
 void Vector::Slice(const SelectionVector &sel, idx_t count, SelCache &cache) {
@@ -219,6 +226,25 @@ void Vector::Initialize(bool zero_data, idx_t capacity) {
 			memset(data, 0, capacity * type_size);
 		}
 	}
+}
+
+void Vector::CreateRowColumn(const VectorCache &cache, idx_t capacity)
+{
+	this->capacity = capacity;
+	this->is_rowcol = true;
+	cache.ResetFromCacheForRowCol(*this);
+}
+
+void Vector::AssignRowMajorStore(buffer_ptr<VectorBuffer> buffer)
+{
+	AssignSharedPointer(auxiliary, buffer);
+}
+
+char *Vector::GetRowMajorStore()
+{
+	D_ASSERT(auxiliary->GetBufferType() == VectorBufferType::ROWSTORE_BUFFER);
+	auto &rowstore_buffer = (VectorRowStoreBuffer &)*auxiliary;
+	return rowstore_buffer.GetRowData();
 }
 
 struct DataArrays {
@@ -472,6 +498,10 @@ void Vector::SimpleSetValue(idx_t index, const Value &val) {
 }
 
 Value Vector::GetValue(idx_t index) const {
+	if (!is_valid) {
+		return Value(GetType());
+	}
+
 	switch (GetVectorType()) {
 	case VectorType::CONSTANT_VECTOR:
 		index = 0;
@@ -489,12 +519,11 @@ Value Vector::GetValue(idx_t index) const {
 		SequenceVector::GetSequence(*this, start, increment);
 		return Value::Numeric(GetType(), start + increment * index);
 	}
+	case VectorType::ROW_VECTOR: {
+		return GetRowColValue(index);
+	}
 	default:
 		throw InternalException("Unimplemented vector type for Vector::GetValue");
-	}
-
-	if (!is_valid) {
-		return Value(GetType());
 	}
 
 	if (!validity.RowIsValid(index)) {
@@ -638,6 +667,46 @@ Value Vector::GetValue(idx_t index) const {
 	}
 }
 
+Value Vector::GetRowColValue(idx_t index) const {
+	D_ASSERT(auxiliary->GetBufferType() == VectorBufferType::ROWSTORE_BUFFER);
+	D_ASSERT(rowcol_idx >= 0);
+	auto &row_buffer = (VectorRowStoreBuffer &)*auxiliary;
+	char *row_data = row_buffer.GetRowData();
+	rowcol_t *rowcol = (rowcol_t *)data;
+	auto base_offset = rowcol[index].offset;
+	PartialSchema *schema_ptr = (PartialSchema *)rowcol[index].schema_ptr;
+	LogicalType type = GetType();
+
+	if (schema_ptr->hasIthCol(rowcol_idx)) {
+		auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+		// LogicalType col_type = sch_chunk.GetTypes()[rowcol_idx];
+		// LogicalType col_type;
+		switch(type.id()) {
+			case LogicalTypeId::BOOLEAN:
+				return Value::BOOLEAN(*(bool *)(row_data + base_offset + offset));
+			case LogicalTypeId::TINYINT:
+				return Value::TINYINT(*(int8_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::SMALLINT:
+				return Value::SMALLINT(*(int16_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::INTEGER:
+				return Value::INTEGER(*(int32_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::BIGINT:
+				return Value::BIGINT(*(int64_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::FLOAT:
+				return Value::FLOAT(*(float *)(row_data + base_offset + offset));
+			case LogicalTypeId::DOUBLE:
+				return Value::DOUBLE(*(double *)(row_data + base_offset + offset));
+			// case LogicalTypeId::VARCHAR:
+			//     t << std::string(row_major_data + base_offset + offset);
+			//     break;
+			default:
+				throw NotImplementedException("GetRowColValue - Unimplemented type for value access");
+		}
+	} else {
+		return Value(type);
+	}
+}
+
 // LCOV_EXCL_START
 string VectorTypeToString(VectorType type) {
 	switch (type) {
@@ -649,6 +718,8 @@ string VectorTypeToString(VectorType type) {
 		return "DICTIONARY";
 	case VectorType::CONSTANT_VECTOR:
 		return "CONSTANT";
+	case VectorType::ROW_VECTOR:
+		return "ROW";
 	default:
 		return "UNKNOWN";
 	}
@@ -869,6 +940,7 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 			data.sel = &sel;
 			data.data = FlatVector::GetData(new_aux->data);
 			data.validity = FlatVector::Validity(new_aux->data);
+			data.is_valid = new_aux->data.is_valid;
 			this->auxiliary = move(new_aux);
 		}
 		break;

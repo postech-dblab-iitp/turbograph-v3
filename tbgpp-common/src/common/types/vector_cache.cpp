@@ -50,11 +50,6 @@ public:
 	}
 
 	void ResetFromCache(Vector &result, const buffer_ptr<VectorBuffer> &buffer) {
-// icecream::ic.enable();
-// if( type != result.GetType()){
-// 	IC(type.ToString(), result.GetType().ToString() );
-// }
-// icecream::ic.disable();
 		D_ASSERT(type == result.GetType());
 		auto internal_type = type.InternalType();
 		result.vector_type = VectorType::FLAT_VECTOR;
@@ -111,6 +106,27 @@ public:
 		}
 	}
 
+	void ResetFromCacheForRowCol(Vector &result, const buffer_ptr<VectorBuffer> &buffer) {
+		D_ASSERT(type == LogicalType::ROWCOL);
+		auto internal_type = type.InternalType();
+		result.vector_type = VectorType::FLAT_VECTOR;
+		AssignSharedPointer(result.buffer, buffer);
+		result.validity.Reset();
+		switch (internal_type) {
+		case PhysicalType::ROWCOL: {
+			// TODO
+			result.data = owned_data.get();
+			break;
+		}
+		default:
+			D_ASSERT(false);
+			// regular type: no aux data and reset data to cached data
+			// result.data = owned_data.get();
+			// result.auxiliary.reset();
+			break;
+		}
+	}
+
 	const LogicalType &GetType() {
 		return type;
 	}
@@ -138,6 +154,12 @@ void VectorCache::ResetFromCache(Vector &result) const {
 	D_ASSERT(buffer);
 	auto &vcache = (VectorCacheBuffer &)*buffer;
 	vcache.ResetFromCache(result, buffer);
+}
+
+void VectorCache::ResetFromCacheForRowCol(Vector &result) const {
+	D_ASSERT(buffer);
+	auto &vcache = (VectorCacheBuffer &)*buffer;
+	vcache.ResetFromCacheForRowCol(result, buffer);
 }
 
 void VectorCache::AllocateBuffer(const LogicalType &type, size_t size) {

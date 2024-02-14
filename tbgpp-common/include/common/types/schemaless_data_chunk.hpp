@@ -22,13 +22,14 @@ class SchemalessDataChunk : public DataChunk {
     void CreateRowCol(const vector<uint32_t> &columns_to_be_grouped,
                       idx_t capacity);
     Vector &GetRowCol(idx_t column_idx);
+    Vector &GetIthCol(idx_t column_idx);
+    bool isIthColStoredInRowStore(idx_t column_idx);
 
     void CreateRowMajorStore(size_t size);
     char *GetRowMajorStore(idx_t column_idx);
 
    private:
     vector<int32_t> indirection_idx;
-    vector<bool> valid_column;  // TODO bitmap?
 
     //! Vector caches, used to store data when ::CreateRowCol is called
     vector<VectorCache> schemaless_vector_caches;

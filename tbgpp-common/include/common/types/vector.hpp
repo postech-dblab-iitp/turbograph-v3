@@ -34,7 +34,7 @@ class ChunkCollection;
 
 struct SelCache;
 
-//!  Vector of values of a specified PhysicalType.
+//! Vector of values of a specified PhysicalType.
 class Vector {
 	friend struct ConstantVector;
 	friend struct DictionaryVector;
@@ -43,6 +43,7 @@ class Vector {
 	friend struct StringVector;
 	friend struct StructVector;
 	friend struct SequenceVector;
+	friend struct RowColVector;
 
 	friend class DataChunk;
 	friend class VectorCacheBuffer;
@@ -106,6 +107,13 @@ public:
 	//! is currently in the vector is destroyed.
 	DUCKDB_API void Initialize(bool zero_data = false, idx_t capacity = STANDARD_VECTOR_SIZE);
 
+	//! Create the row column
+	DUCKDB_API void CreateRowColumn(const VectorCache &cache, idx_t capacity = STANDARD_VECTOR_SIZE);
+	//! Assign row major store
+	DUCKDB_API void AssignRowMajorStore(buffer_ptr<VectorBuffer> buffer);
+	//! Get row major store
+	DUCKDB_API char *GetRowMajorStore();
+
 	//! Converts this Vector to a printable string representation
 	DUCKDB_API string ToString(idx_t count) const;
 	DUCKDB_API void Print(idx_t count);
@@ -134,6 +142,7 @@ public:
 	//! Sets the [index] element of the Vector to the specified Value.
 	DUCKDB_API void SetValue(idx_t index, const Value &val);
 	DUCKDB_API void SimpleSetValue(idx_t index, const Value &val);
+	DUCKDB_API Value GetRowColValue(idx_t index) const;
 
 	inline void SetAuxiliary(buffer_ptr<VectorBuffer> new_buffer) {
 		auxiliary = std::move(new_buffer);
@@ -162,12 +171,32 @@ public:
 		return auxiliary;
 	}
 
+	inline buffer_ptr<VectorBuffer> GetAuxiliary() const {
+		return auxiliary;
+	}
+
 	inline buffer_ptr<VectorBuffer> GetBuffer() {
 		return buffer;
 	}
 
 	inline ValidityMask &GetValidity() {
 		return validity;
+	}
+
+	void SetIsValid(bool is_valid) {
+		this->is_valid = is_valid;
+	}
+
+	inline bool GetIsValid() const {
+		return is_valid;
+	}
+
+	void SetRowColIdx(int rowcol_idx) {
+		this->rowcol_idx = rowcol_idx;
+	}
+
+	inline int GetRowColIdx() const {
+		return rowcol_idx;
 	}
 
 	// Setters
@@ -190,6 +219,8 @@ protected:
 	buffer_ptr<VectorBuffer> auxiliary;
 	idx_t capacity;
 	bool is_valid = true;
+	bool is_rowcol = false; // TODO maybe useless
+	int rowcol_idx = -1;
 };
 
 class VectorWithValidBitmap : public Vector {
@@ -210,12 +241,14 @@ public:
 struct ConstantVector {
 	static inline const_data_ptr_t GetData(const Vector &vector) {
 		D_ASSERT(vector.GetVectorType() == VectorType::CONSTANT_VECTOR ||
-		         vector.GetVectorType() == VectorType::FLAT_VECTOR);
+		         vector.GetVectorType() == VectorType::FLAT_VECTOR ||
+				 vector.GetVectorType() == VectorType::ROW_VECTOR);
 		return vector.data;
 	}
 	static inline data_ptr_t GetData(Vector &vector) {
 		D_ASSERT(vector.GetVectorType() == VectorType::CONSTANT_VECTOR ||
-		         vector.GetVectorType() == VectorType::FLAT_VECTOR);
+		         vector.GetVectorType() == VectorType::FLAT_VECTOR ||
+				 vector.GetVectorType() == VectorType::ROW_VECTOR);
 		return vector.data;
 	}
 	template <class T>
@@ -284,7 +317,8 @@ struct FlatVector {
 		return FlatVector::GetData<T>(vector)[idx];
 	}
 	static inline const ValidityMask &Validity(const Vector &vector) {
-		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR);
+		D_ASSERT(vector.GetVectorType() == VectorType::FLAT_VECTOR ||
+			vector.GetVectorType() == VectorType::ROW_VECTOR);
 		return vector.validity;
 	}
 	static inline ValidityMask &Validity(Vector &vector) {
@@ -387,6 +421,11 @@ struct SequenceVector {
 		start = data[0];
 		increment = data[1];
 	}
+};
+
+// TODO renaming
+struct RowColVector {
+	
 };
 
 } // namespace duckdb

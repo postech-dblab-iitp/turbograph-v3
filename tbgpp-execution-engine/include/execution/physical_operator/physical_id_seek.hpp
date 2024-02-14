@@ -8,6 +8,7 @@
 
 namespace duckdb {
 
+class PartialSchema;
 class PhysicalIdSeek : public CypherPhysicalOperator {
 
    public:
@@ -19,8 +20,10 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
                    vector<vector<uint32_t>> &inner_col_maps,
+                   vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
-                   vector<vector<duckdb::LogicalType>> scan_types);
+                   vector<vector<duckdb::LogicalType>> scan_types,
+                   bool is_output_union_schema);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<uint32_t> &outer_col_map,
@@ -52,9 +55,13 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                                vector<unique_ptr<DataChunk>> &chunks,
                                OperatorState &state,
                                idx_t &output_chunk_idx) const override;
+    virtual void InitializeOutputChunks(
+        std::vector<unique_ptr<DataChunk>> &output_chunks,
+        Schema &output_schema, idx_t idx) override;
 
     std::string ParamsToString() const override;
     std::string ToString() const override;
+
 
     // internal functions
     void doSeekUnionAll(ExecutionContext &context, DataChunk &input,
@@ -69,6 +76,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                           vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
     void referInputChunk(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
+    void generatePartialSchemaInfos();
 
     // parameters
     uint64_t id_col_idx;
@@ -99,6 +107,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<vector<uint32_t>> outer_col_maps;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
+    vector<PartialSchema> partial_schemas;
+    bool is_output_union_schema = true;
 
     unique_ptr<Expression> expression;
     mutable DataChunk tmp_chunk;
