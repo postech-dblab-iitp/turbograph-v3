@@ -4,7 +4,7 @@
 
 namespace duckdb {
     
-void OutputUtil::PrintQueryOutput(PropertyKeys &col_names, std::vector<DataChunk *> &resultChunks, bool show_top_10_only)
+void OutputUtil::PrintQueryOutput(PropertyKeys &col_names, std::vector<unique_ptr<DataChunk>> &resultChunks, bool show_top_10_only)
 {
     int LIMIT = 10;
 	size_t num_total_tuples = 0;

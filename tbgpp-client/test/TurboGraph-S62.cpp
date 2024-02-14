@@ -297,7 +297,7 @@ class InputParser{
     std::vector <std::string> tokens;
 };
 
-void printOutput(s62::Planner& planner, std::vector<duckdb::DataChunk *> &resultChunks, duckdb::Schema &schema) {
+void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk>> &resultChunks, duckdb::Schema &schema) {
 	PropertyKeys col_names;
 	col_names = planner.getQueryOutputColNames();
 	if (col_names.size() == 0) {
