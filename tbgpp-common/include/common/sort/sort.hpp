@@ -100,7 +100,7 @@ public:
 	//! Initialize the layouts and RowDataCollections
 	void Initialize(GlobalSortState &global_sort_state, BufferManager &buffer_manager_p);
 	//! Sink one DataChunk into the local sort state
-	void SinkChunk(DataChunk &sort, DataChunk &payload);
+	void SinkChunk(DataChunk &sort, DataChunk &payload, bool wo_sort = false);
 	//! Size of accumulated data in bytes
 	idx_t SizeInBytes() const;
 	//! Sort the data accumulated so far

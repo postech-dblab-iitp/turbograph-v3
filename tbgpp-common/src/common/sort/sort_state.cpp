@@ -164,20 +164,22 @@ void LocalSortState::Initialize(GlobalSortState &global_sort_state, BufferManage
 	initialized = true;
 }
 
-void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
+void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload, bool wo_sort) {
 	// sort : expression-applied columns for sort
 	// payload : actual data
 	D_ASSERT(sort.size() == payload.size());
-	// Build and serialize sorting data to radix sortable rows
+	// Build and serialize sorting data to radix sortable 
 	auto data_pointers = FlatVector::GetData<data_ptr_t>(addresses);
 	auto handles = radix_sorting_data->Build(sort.size(), data_pointers, nullptr);
-	for (idx_t sort_col = 0; sort_col < sort.ColumnCount(); sort_col++) {
-		bool has_null = sort_layout->has_null[sort_col];
-		bool nulls_first = sort_layout->order_by_null_types[sort_col] == OrderByNullType::NULLS_FIRST;
-		bool desc = sort_layout->order_types[sort_col] == OrderType::DESCENDING;
-		RowOperations::RadixScatter(sort.data[sort_col], sort.size(), sel_ptr, sort.size(), data_pointers, desc,
-		                            has_null, nulls_first, sort_layout->prefix_lengths[sort_col],
-		                            sort_layout->column_sizes[sort_col]);
+	if (!wo_sort) {
+		for (idx_t sort_col = 0; sort_col < sort.ColumnCount(); sort_col++) {
+			bool has_null = sort_layout->has_null[sort_col];
+			bool nulls_first = sort_layout->order_by_null_types[sort_col] == OrderByNullType::NULLS_FIRST;
+			bool desc = sort_layout->order_types[sort_col] == OrderType::DESCENDING;
+			RowOperations::RadixScatter(sort.data[sort_col], sort.size(), sel_ptr, sort.size(), data_pointers, desc,
+										has_null, nulls_first, sort_layout->prefix_lengths[sort_col],
+										sort_layout->column_sizes[sort_col]);
+		}
 	}
 
 	// Also fully serialize blob sorting columns (to be able to break ties

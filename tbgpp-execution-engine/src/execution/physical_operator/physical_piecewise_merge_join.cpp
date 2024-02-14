@@ -252,7 +252,7 @@ static inline void SinkPiecewiseMergeChunk(LocalSortState &sort_state, DataChunk
 
 		sort_state.SinkChunk(join_head, input);
 	} else {
-		sort_state.SinkChunk(join_keys, input);
+		sort_state.SinkChunk(join_keys, input, true);
 	}
 }
 
