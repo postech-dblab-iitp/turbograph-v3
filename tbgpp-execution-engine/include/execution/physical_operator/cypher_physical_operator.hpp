@@ -88,12 +88,6 @@ class CypherPhysicalOperator {
                                        DataChunk &input, DataChunk &chunk,
                                        OperatorState &state,
                                        LocalSinkState &sink_state) const;
-    virtual OperatorResultType Execute(ExecutionContext &context,
-                                       DataChunk &input,
-                                       vector<unique_ptr<DataChunk>> &chunks,
-                                       OperatorState &state,
-                                       LocalSinkState &sink_state,
-                                       idx_t &output_chunk_idx) const;
     virtual unique_ptr<OperatorState> GetOperatorState(
         ExecutionContext &context) const;
     virtual DataChunk &GetLastSinkedData(LocalSinkState &lstate) const;
