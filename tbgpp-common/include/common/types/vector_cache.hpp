@@ -27,6 +27,7 @@ public:
 
 public:
 	void ResetFromCache(Vector &result) const;
+	void ResetFromCacheForRowCol(Vector &result) const;
 	void AllocateBuffer(const LogicalType &type, size_t size = STANDARD_VECTOR_SIZE);
 	const LogicalType &GetType() const;
 };

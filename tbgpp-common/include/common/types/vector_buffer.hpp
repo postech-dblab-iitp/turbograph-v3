@@ -28,7 +28,8 @@ enum class VectorBufferType : uint8_t {
 	STRUCT_BUFFER,       // struct buffer, holds a ordered mapping from name to child vector
 	LIST_BUFFER,         // list buffer, holds a single flatvector child
 	MANAGED_BUFFER,      // managed buffer, holds a buffer managed by the buffermanager
-	OPAQUE_BUFFER        // opaque buffer, can be created for example by the parquet reader
+	OPAQUE_BUFFER,       // opaque buffer, can be created for example by the parquet reader
+	ROWSTORE_BUFFER      // s62 row-major buffer, holds a row-major store
 };
 
 enum class VectorAuxiliaryDataType : uint8_t {
@@ -200,6 +201,18 @@ public:
 private:
 	//! child vectors used for nested data
 	unique_ptr<Vector> child;
+};
+
+class VectorRowStoreBuffer : public VectorBuffer {
+public:
+	VectorRowStoreBuffer();
+
+public:
+	void Reserve(idx_t to_reserve);
+	char *GetRowData();
+
+private:
+	unique_ptr<data_t[]> row_data;
 };
 
 //! The ManagedVectorBuffer holds a buffer handle

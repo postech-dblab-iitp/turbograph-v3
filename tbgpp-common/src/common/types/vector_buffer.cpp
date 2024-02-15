@@ -89,6 +89,17 @@ void VectorListBuffer::PushBack(const Value &insert) {
 VectorListBuffer::~VectorListBuffer() {
 }
 
+VectorRowStoreBuffer::VectorRowStoreBuffer() : VectorBuffer(VectorBufferType::ROWSTORE_BUFFER) {
+}
+
+void VectorRowStoreBuffer::Reserve(idx_t to_reserve) {
+	row_data = make_unique<data_t[]>(to_reserve);
+}
+
+char *VectorRowStoreBuffer::GetRowData() {
+	return (char *)row_data.get();
+}
+
 /*ManagedVectorBuffer::ManagedVectorBuffer(unique_ptr<BufferHandle> handle)
     : VectorBuffer(VectorBufferType::MANAGED_BUFFER), handle(move(handle)) {
 }

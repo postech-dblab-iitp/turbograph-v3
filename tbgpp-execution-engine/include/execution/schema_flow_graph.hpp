@@ -1,76 +1,72 @@
 #ifndef SCHEMA_FLOW_GRAPH_H
 #define SCHEMA_FLOW_GRAPH_H
 
-#include "common/common.hpp"
 #include "common/assert.hpp"
-#include "common/vector.hpp"
+#include "common/common.hpp"
 #include "common/enums/physical_operator_type.hpp"
+#include "common/vector.hpp"
 
 #include "typedef.hpp"
 
 namespace duckdb {
 
-class SchemaFlowGraph { // for each pipeline
-public:
+class SchemaFlowGraph {  // for each pipeline
+   public:
     SchemaFlowGraph() {}
 
-    SchemaFlowGraph(size_t pipeline_length, vector<OperatorType> &pipeline_operator_types, vector<vector<uint64_t>> &num_schemas_of_childs,
-        vector<vector<Schema>> &pipeline_schemas, vector<Schema> &pipeline_union_schemas)
-        : pipeline_length(pipeline_length), pipeline_operator_types(std::move(pipeline_operator_types)), num_schemas_of_childs(std::move(num_schemas_of_childs)),
-        schema_per_operator(std::move(pipeline_schemas)), union_schema_per_operator(std::move(pipeline_union_schemas)) {
-
-        // flow_graph.resize(pipeline_operator_types.size());
-        // D_ASSERT(pipeline_operator_types.size() == num_schemas_of_childs.size());
-
-        // for (auto i = 0; i < num_schemas_of_childs.size(); i++) {
-        //     if (pipeline_operator_types[i] == OperatorType::UNARY) {
-        //         D_ASSERT(num_schemas_of_childs[i].size() == 1);
-        //     } else if (pipeline_operator_types[i] == OperatorType::BINARY) {
-        //         D_ASSERT(num_schemas_of_childs[i].size() == 2);
-        //     }
-        //     size_t num_max_possible_output_schemas = 1;
-        //     for (auto j = 0; j < num_schemas_of_childs[i].size(); j++) {
-        //         num_max_possible_output_schemas *= num_schemas_of_childs[i][j];
-        //     }
-        //     flow_graph[i].resize(num_max_possible_output_schemas);
-        // }
-    }
+    SchemaFlowGraph(size_t pipeline_length,
+                    vector<OperatorType> &pipeline_operator_types,
+                    vector<vector<uint64_t>> &num_schemas_of_childs,
+                    vector<vector<Schema>> &pipeline_schemas,
+                    vector<Schema> &pipeline_union_schemas)
+        : pipeline_length(pipeline_length),
+          pipeline_operator_types(std::move(pipeline_operator_types)),
+          num_schemas_of_childs(std::move(num_schemas_of_childs)),
+          schema_per_operator(std::move(pipeline_schemas)),
+          union_schema_per_operator(std::move(pipeline_union_schemas))
+    {}
     ~SchemaFlowGraph() {}
 
-    void SetFlowGraph(vector<vector<idx_t>> &flow_graph) {
+    void SetFlowGraph(vector<vector<idx_t>> &flow_graph)
+    {
         this->flow_graph = std::move(flow_graph);
         is_sfg_exists = true;
     }
 
-    vector<vector<idx_t>> &GetFlowGraph()
-    {
-        return flow_graph;
-    }
+    vector<vector<idx_t>> &GetFlowGraph() { return flow_graph; }
 
     // Unary operator
     idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx)
     {
-        if (!is_sfg_exists) return 0;
+        if (!is_sfg_exists)
+            return 0;
         return flow_graph[operator_idx][schema_idx];
     }
 
     // Binary operator
-    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2)
+    idx_t GetNextSchemaIdx(idx_t operator_idx, idx_t schema_idx_1,
+                           idx_t schema_idx_2)
     {
-        if (!is_sfg_exists) return 0;
+        if (!is_sfg_exists)
+            return 0;
         D_ASSERT(num_schemas_of_childs[operator_idx].size() == 2);
-        idx_t schema_idx = (num_schemas_of_childs[operator_idx][1] * schema_idx_1) + schema_idx_2;
+        idx_t schema_idx =
+            (num_schemas_of_childs[operator_idx][1] * schema_idx_1) +
+            schema_idx_2;
         return flow_graph[operator_idx][schema_idx];
     }
 
     Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx)
     {
-        return schema_per_operator[operator_idx][GetNextSchemaIdx(operator_idx, schema_idx)];
+        return schema_per_operator[operator_idx]
+                                  [GetNextSchemaIdx(operator_idx, schema_idx)];
     }
 
-    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx_1, idx_t schema_idx_2)
+    Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx_1,
+                            idx_t schema_idx_2)
     {
-        return schema_per_operator[operator_idx][GetNextSchemaIdx(operator_idx, schema_idx_1, schema_idx_2)];
+        return schema_per_operator[operator_idx][GetNextSchemaIdx(
+            operator_idx, schema_idx_1, schema_idx_2)];
     }
 
     Schema &GetUnionOutputSchema(idx_t operator_idx)
@@ -85,7 +81,8 @@ public:
 
     void printSchemaGraph()
     {
-        if (flow_graph.size() == 0) std::cout << "SFG is empty" << std::endl;
+        if (flow_graph.size() == 0)
+            std::cout << "SFG is empty" << std::endl;
         for (auto i = 0; i < flow_graph.size(); i++) {
             std::cout << "lv " << i << " :";
             for (auto j = 0; j < flow_graph[i].size(); j++) {
@@ -95,23 +92,23 @@ public:
         }
     }
 
-    bool IsSFGExists()
-    {
-        return is_sfg_exists;
-    }
+    bool IsSFGExists() { return is_sfg_exists; }
 
     bool AdvanceCurSourceIdx()
     {
-        if (!is_sfg_exists) return false;
-        if (cur_source_idx + 1 == flow_graph[0].size()) return false;
-        
+        if (!is_sfg_exists)
+            return false;
+        if (cur_source_idx + 1 == flow_graph[0].size())
+            return false;
+
         cur_source_idx++;
         return true;
     }
 
     idx_t GetCurSourceIdx()
     {
-        if (!is_sfg_exists) return 0;
+        if (!is_sfg_exists)
+            return 0;
         return cur_source_idx;
     }
 
@@ -120,7 +117,7 @@ public:
         return pipeline_operator_types[operator_idx];
     }
 
-private:
+   private:
     size_t pipeline_length;
     vector<OperatorType> pipeline_operator_types;
     vector<vector<uint64_t>> num_schemas_of_childs;
@@ -131,6 +128,6 @@ private:
     idx_t cur_source_idx = 0;
 };
 
-} // namespace duckdb
+}  // namespace duckdb
 
-#endif // SCHEMA_FLOW_GRAPH_H
+#endif  // SCHEMA_FLOW_GRAPH_H
