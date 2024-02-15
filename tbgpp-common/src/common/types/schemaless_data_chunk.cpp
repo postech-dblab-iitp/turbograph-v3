@@ -1,3 +1,4 @@
+#include <numeric>
 #include "common/types/schemaless_data_chunk.hpp"
 #include "common/types/vector_cache.hpp"
 
@@ -12,8 +13,12 @@ SchemalessDataChunk::~SchemalessDataChunk() {}
 void SchemalessDataChunk::CreateRowCol(
     const vector<uint32_t> &columns_to_be_grouped, idx_t capacity)
 {
+    if (indirection_idx.size() == 0) {
+        indirection_idx.resize(this->ColumnCount());
+        std::iota(indirection_idx.begin(), indirection_idx.end(), 0);
+    }
     for (auto i = 0; i < columns_to_be_grouped.size(); i++) {
-        indirection_idx[i] = -((int32_t)schemaless_data.size()) - 1;
+        indirection_idx[columns_to_be_grouped[i]] = -((int32_t)schemaless_data.size()) - 1;
     }
 
     VectorCache cache(LogicalType::ROWCOL, capacity);
@@ -28,6 +33,23 @@ Vector &SchemalessDataChunk::GetRowCol(idx_t column_idx)
 
     auto &rowcol = schemaless_data[-1 - rowcol_idx];
     return rowcol;
+}
+
+Vector &SchemalessDataChunk::GetIthCol(idx_t column_idx)
+{
+    int32_t rowcol_idx = indirection_idx[column_idx];
+    if (rowcol_idx >= 0) {
+        return this->data[column_idx];
+    } else {
+        auto &rowcol = schemaless_data[-1 - rowcol_idx];
+        return rowcol;
+    }
+}
+
+bool SchemalessDataChunk::isIthColStoredInRowStore(idx_t column_idx)
+{
+    int32_t rowcol_idx = indirection_idx[column_idx];
+    return rowcol_idx < 0;
 }
 
 void SchemalessDataChunk::CreateRowMajorStore(size_t size)
