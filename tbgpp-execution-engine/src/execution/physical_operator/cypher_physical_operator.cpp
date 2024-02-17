@@ -6,7 +6,7 @@
 #include "common/enums/operator_result_type.hpp"
 
 namespace duckdb {
-
+idx_t CypherPhysicalOperator::operator_version = 0;
 void CypherPhysicalOperator::GetData(ExecutionContext &context,
                                      DataChunk &chunk,
                                      LocalSourceState &lstate) const

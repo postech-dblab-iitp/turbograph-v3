@@ -39,6 +39,7 @@ namespace s62 {
 
 void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
 {
+    duckdb::CypherPhysicalOperator::operator_version = 0;
     pInitializeSchemaFlowGraph();
     vector<duckdb::CypherPhysicalOperator *> final_pipeline_ops =
         *pTraverseTransformPhysicalPlan(orca_plan_root);
@@ -109,7 +110,7 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
         pGenerateSchemaFlowGraph(final_pipeline_ops);
     }
 
-    auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops);
+    auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops, pipelines.size());
 
     pipelines.push_back(final_pipeline);
 
@@ -2322,7 +2323,7 @@ Planner::pTransformEopPhysicalInnerNLJoinToCartesianProduct(
 
     // finish rhs pipeline
     rhs_result->push_back(op);
-    auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+    auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
     pipelines.push_back(pipeline);
 
     // return lhs pipeline
@@ -2398,7 +2399,7 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     if (is_correlated) {
         // finish lhs pipeline
         lhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*lhs_result);
+        auto pipeline = new duckdb::CypherPipeline(*lhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return rhs pipeline
@@ -2408,7 +2409,7 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     else {
         // finish rhs pipeline
         rhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+        auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return lhs pipeline
@@ -2719,7 +2720,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
 
     // finish pipeline
     result->push_back(op);
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -2890,7 +2891,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     result->push_back(op);
 
     // break pipeline
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -3008,7 +3009,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
     result->push_back(op);
 
     // break pipeline
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -3684,7 +3685,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pBuildSchemaflowGraphForBinar
 	// Step 1. rhs pipline
 	vector<duckdb::CypherPhysicalOperator*> *rhs_result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
 	rhs_result->push_back(op);
-	auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+	auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
 	pipelines.push_back(pipeline);
 
 	// Step 1. schema flow graph

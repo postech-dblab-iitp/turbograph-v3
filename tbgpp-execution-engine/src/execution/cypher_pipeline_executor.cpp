@@ -111,6 +111,15 @@ void CypherPipelineExecutor::ExecutePipeline() {
 			case 0: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state); break; }
 			case 1: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state, *(childs[0]->local_sink_state)); break; }
 		}
+
+		if (source_chunk.size() > 0) {
+			auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
+			D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
+					sourceProcessResult == OperatorResultType::FINISHED ||
+					sourceProcessResult == OperatorResultType::POSTPONE_OUTPUT);
+			if (sourceProcessResult == OperatorResultType::FINISHED) { break; }
+		}
+
 		if (isSourceDataFinished) {
 			if (sfg.AdvanceCurSourceIdx()) continue;
 			else {
@@ -118,12 +127,6 @@ void CypherPipelineExecutor::ExecutePipeline() {
 				break;
 			}
 		}
-
-		auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
-		D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
-				 sourceProcessResult == OperatorResultType::FINISHED ||
-				 sourceProcessResult == OperatorResultType::POSTPONE_OUTPUT);
-		if (sourceProcessResult == OperatorResultType::FINISHED) { break; }
 		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
 	}
 	// do we need pushfinalize?
