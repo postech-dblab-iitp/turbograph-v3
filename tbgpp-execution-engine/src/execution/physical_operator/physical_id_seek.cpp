@@ -363,7 +363,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         state.cur_schema_idx = 0;
         num_tuples_per_chunk.resize(mapping_idxs.size(), 0);
         state.sels.clear();
-        state.sels.resize(mapping_idxs.size());
+        state.sels.resize(chunks.size());
         for (auto i = 0; i < state.sels.size(); i++) {
             state.sels[i].Initialize();
         }

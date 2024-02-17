@@ -52,6 +52,13 @@ run_ldbc_s() {
 			n.gender AS gender,
 			n.creationDate AS creationDate"
 	
+	# Simplified LDBC IS1 Query
+	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
+		   RETURN
+			n.lastName AS lastName,
+			p.id AS cityId,
+			n.creationDate AS creationDate"
+
 	# LDBC IS2 Recent messages of a person
 	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH
@@ -73,29 +80,18 @@ run_ldbc_s() {
 			   ORDER BY messageCreationDate DESC, messageId ASC"
 	
 	# LDBC IS3 Friends of a Person
-	# run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
-	# 	RETURN
-	# 		friend.id AS personId,
-	# 		friend.firstName AS firstName,
-	# 		friend.lastName AS lastName,
-	# 		r.creationDate AS friendshipCreationDate
-	# 	ORDER BY
-	# 		friendshipCreationDate DESC,
-	# 		personId ASC"
 	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
 		RETURN
-			n.id AS nId,
-			friend.lastName AS lastName,
+			friend.id AS personId,
 			friend.firstName AS firstName,
-			friend.id AS personId
+			friend.lastName AS lastName,
+			r.creationDate AS friendshipCreationDate
 		ORDER BY
+			friendshipCreationDate DESC,
 			personId ASC"
-	
-	
+
 	# LDBC IS4 Content of a message
-	run_query "MATCH (m:Comment)
-		WHERE
-			m.id < 1000
+	run_query "MATCH (m:Comment {id: 557})
 		RETURN
 			m.creationDate as messageCreationDate,
 			m.content as messageContent"
@@ -107,176 +103,6 @@ run_ldbc_s() {
 			p.lastName AS lastName,
 			p.firstName AS firstName,
 			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 549756747752
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 1374394313369
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 1786706787893
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 1924147979119
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 2061587091334
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 2061590860741
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 2199029811324
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		WHERE
-			m.id > 2199029884029
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-	# No schemaless in Person
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		RETURN
-			m.id AS messageId,
-			p.firstName AS firstName,
-			p.id AS personId"
-
-
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
-		RETURN
-			p.id AS personId,
-			count(m.id) AS count"
-	run_query "MATCH (p:Person)<-[r:HAS_CREATOR]-(m:Comment)
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			count(m.id) AS count
-		ORDER BY 
-			lastName DESC"
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)-[t:LIKES_POST]->(k:Post)
-		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
-			p.firstName AS firstName,
-			k.id AS postId"
-	# Fails in release mode
-
-# MATCH (f:Forum)-[co:CONTAINER_OF]->(k:Post)
-# RETURN 
-# 	f.id AS forumId,
-# 	# k.creationDate, 
-# 	k.id as postId;
-
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 412316900629
-RETURN f.id AS forumId, p.creationDate AS creationDate, p.id AS personId;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 1649267463442
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 1924145435972
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 2061584358984
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 2061585358815
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (f:Forum)-[r:CONTAINER_OF]->(p:Post)
-WHERE f.id > 2199024310184
-RETURN f.id, p.creationDate, p.id;
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 6597069777354
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 21990232562085
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 28587302329875
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 32985348837442
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 32985348843573
-RETURN n.id, p.id
-
-MATCH (n:Person)-[r:KNOWS]->(p:Person)
-WHERE n.id > 35184372096070
-RETURN n.id, p.id
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
