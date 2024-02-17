@@ -100,6 +100,7 @@ public:
                 case API_ID::PrepareStatement:  // PrepareStatement
                     {
                         Query query(buffer + API_ID_SIZE, bytes_read - API_ID_SIZE);
+                        std::cout << query << std::endl;
                         std::unique_ptr<CypherPreparedStatement> prep_stmt = connection.PrepareStatement(query);
                         RegisterPreparedStatement(response, prep_stmt);
                     }

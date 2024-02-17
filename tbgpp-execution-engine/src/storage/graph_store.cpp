@@ -59,6 +59,9 @@ iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, Property
 	return StoreAPIResult::OK;
 }
 
+/**
+ * Scan without filter pushdown
+*/
 StoreAPIResult
 iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, std::vector<duckdb::LogicalType> &scanSchema) {
 	ExtentID current_eid;
@@ -80,7 +83,6 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 	auto ext_it = ext_its.front();
 	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, projection_mapping[current_schema_idx],
 		EXEC_ENGINE_VECTOR_SIZE, is_output_initialized);
-	// printf("scan_ongoing ? %s, output.size = %ld, current_schema_idx = %ld\n", scan_ongoing ? "True" : "False", output.size(), current_schema_idx);
 	if (scan_ongoing) {
 		return StoreAPIResult::OK;
 	} else {
@@ -90,24 +92,9 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 	}
 }
 
-StoreAPIResult
-iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, std::vector<duckdb::LogicalType> &scanSchema, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
-	ExtentID current_eid;
-	auto ext_it = ext_its.front();
-	vector<idx_t> output_column_idxs; // TODO this should be generated in physical planning step // TODO s62 change me
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, filterValue, projection_mapping[0], scanSchema); 
-	if (scan_ongoing) {
-		return StoreAPIResult::OK;
-	} else {
-		ext_its.pop();
-		delete ext_it;
-		if (ext_its.size() > 0)
-			return StoreAPIResult::OK;
-		else
-			return StoreAPIResult::DONE;
-	}
-}
-
+/**
+ * Scan with filter pushdown
+*/
 StoreAPIResult
 iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
 						std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::Value &filterValue) {
@@ -118,6 +105,24 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 	if (scan_ongoing) {
 		return StoreAPIResult::OK;
 	} else {
+		ext_its.pop();
+		delete ext_it;
+		return StoreAPIResult::DONE;
+	}
+}
+
+StoreAPIResult
+iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
+					std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue) {
+	ExtentID current_eid;
+	auto ext_it = ext_its.front();
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filterKeyColIdx, rangeFilterValue.l_value, rangeFilterValue.r_value, 
+											rangeFilterValue.l_inclusive, rangeFilterValue.r_inclusive, projection_mapping[current_schema_idx], 
+											scanSchema, EXEC_ENGINE_VECTOR_SIZE); 
+	if (scan_ongoing) {
+		return StoreAPIResult::OK;
+	} else {
+		/* Move to next ExtentIterator means the scan for the schema has finished */
 		ext_its.pop();
 		delete ext_it;
 		return StoreAPIResult::DONE;
