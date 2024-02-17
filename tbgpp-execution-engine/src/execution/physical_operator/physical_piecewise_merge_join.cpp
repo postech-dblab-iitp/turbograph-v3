@@ -252,7 +252,8 @@ static inline void SinkPiecewiseMergeChunk(LocalSortState &sort_state, DataChunk
 
 		sort_state.SinkChunk(join_head, input);
 	} else {
-		sort_state.SinkChunk(join_keys, input, true);
+		// sort_state.SinkChunk(join_keys, input, true); // bug...
+		sort_state.SinkChunk(join_keys, input);
 	}
 }
 
@@ -355,6 +356,8 @@ public:
 	idx_t right_position;
 	idx_t right_chunk_index;
 	idx_t right_base;
+	idx_t left_begin_position;
+	idx_t right_begin_position;
 
 	// Secondary predicate shared data
 	SelectionVector sel;
@@ -366,7 +369,7 @@ public:
 	void ResolveJoinKeys(DataChunk &input) {
 		// resolve the join keys for the input
 		lhs_keys.Reset();
-		lhs_executor.Execute(input, lhs_keys);
+		lhs_executor.Execute(input, lhs_keys); // TODO necessary?
 
 		// Count the NULLs so we can exclude them later
 		lhs_count = lhs_keys.size();
@@ -437,9 +440,10 @@ struct BlockMergeInfo {
 	//! The current offset in the block
 	idx_t &entry_idx;
 	SelectionVector result;
+	idx_t &begin_entry_idx;
 
-	BlockMergeInfo(GlobalSortState &state, idx_t block_idx, idx_t base_idx, idx_t &entry_idx, idx_t not_null)
-	    : state(state), block_idx(block_idx), base_idx(base_idx), not_null(not_null), entry_idx(entry_idx),
+	BlockMergeInfo(GlobalSortState &state, idx_t block_idx, idx_t base_idx, idx_t &entry_idx, idx_t &begin_entry_idx, idx_t not_null)
+	    : state(state), block_idx(block_idx), base_idx(base_idx), not_null(not_null), entry_idx(entry_idx), begin_entry_idx(begin_entry_idx),
 	      result(STANDARD_VECTOR_SIZE) {
 	}
 };
@@ -674,6 +678,10 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 	const auto cmp_size = l.state.sort_layout.comparison_size;
 	const auto entry_size = l.state.sort_layout.entry_size;
 
+	int64_t left_id_value;
+	int64_t right_id_value;
+	char *lid_ptr, *rid_ptr;
+
     idx_t result_count = 0;
     while (true) {
         if (l.entry_idx >= l.not_null || r.entry_idx >= r.not_null) {
@@ -683,8 +691,16 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 
 		int comp_res;
 		if (all_constant) {
+			// lid_ptr = (char *)&left_id_value;
+			// rid_ptr = (char *)&right_id_value;
+			// for (auto i = 0; i < sizeof(int64_t); ++i) {
+			// 	lid_ptr[sizeof(int64_t)-1-i] = l_ptr[i+1];
+			// 	rid_ptr[sizeof(int64_t)-1-i] = r_ptr[i+1];
+			// }
 			comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
+			// std::cout << "left(" << l.entry_idx << "): " << left_id_value << ", right(" << r.entry_idx << "): " << right_id_value << std::endl;
 		} else {
+			D_ASSERT(false); // TODO not consider this case yet
 			lread.entry_idx = l.entry_idx;
 			rread.entry_idx = r.entry_idx;
 			comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);
@@ -692,22 +708,39 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 
 		if (cmp == 1) { // Equality predicate
 			if (comp_res == 0) { // Exact match found
-				l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
-				r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
-				result_count++;
-				if (result_count == STANDARD_VECTOR_SIZE) {
-					// out of space!
-					break;
-				}
+				// handle duplicates
+				auto l_begin_idx = l.begin_entry_idx;
+				auto r_begin_idx = r.begin_entry_idx;
+				auto l_begin = MergeJoinRadixPtr(lread, l.begin_entry_idx);
+				auto r_begin = MergeJoinRadixPtr(rread, r.begin_entry_idx);
 
-				// Advance both pointers for equality to find next potential match
-				r.entry_idx++; r_ptr += entry_size;
+				while (l.entry_idx < l.not_null && FastMemcmp(l_ptr, l_begin, cmp_size) == 0) {
+					while (r.entry_idx < r.not_null && FastMemcmp(r_ptr, r_begin, cmp_size) == 0) {
+						if (result_count == STANDARD_VECTOR_SIZE) {
+							// out of space!
+							goto MJ_OUTER_LOOP;
+						}
+						l.result.set_index(result_count, sel_t(l.entry_idx - l.base_idx));
+						r.result.set_index(result_count, sel_t(r.entry_idx - r.base_idx));
+						result_count++;
+						r.entry_idx++; r_ptr += entry_size;
+					}
+					l.entry_idx++; l_ptr += entry_size;
+					r_ptr = r_begin;
+					r.entry_idx = r_begin_idx;
+				}
+				l.begin_entry_idx = l.entry_idx;
+				r.begin_entry_idx = r.entry_idx;
 			} else if (comp_res < 0) {
 				// Left is smaller, move left pointer forward to find a match
 				l.entry_idx++; l_ptr += entry_size;
+				l.begin_entry_idx = l.entry_idx;
+				r.begin_entry_idx = r.entry_idx;
 			} else {
 				// Right is smaller, move right pointer forward to find a match
 				r.entry_idx++; r_ptr += entry_size;
+				l.begin_entry_idx = l.entry_idx;
+				r.begin_entry_idx = r.entry_idx;
 			}
 		} else { // Other predicates
 			if (comp_res <= cmp) {
@@ -728,11 +761,12 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 				// move the right pointer forward and reset the left pointer.
 				r.entry_idx++; 
 				r_ptr += entry_size;
-				l_ptr = l_start; 
+				l_ptr = l_start;
 				l.entry_idx = 0;
 			}
 		}
     }
+MJ_OUTER_LOOP:
 	return result_count;
 }
 
@@ -777,6 +811,8 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 			state.right_base = 0;
 			state.left_position = 0;
 			state.right_position = 0;
+			state.left_begin_position = 0;
+			state.right_begin_position = 0;
 			state.first_fetch = false;
 			state.finished = false;
 		}
@@ -793,13 +829,13 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 		}
 
 		const auto lhs_not_null = state.lhs_count - state.lhs_has_null;
-		BlockMergeInfo left_info(*state.lhs_global_state, 0, 0, state.left_position, lhs_not_null);
+		BlockMergeInfo left_info(*state.lhs_global_state, 0, 0, state.left_position, state.left_begin_position, lhs_not_null);
 
 		const auto &rblock = rsorted.radix_sorting_data[state.right_chunk_index];
 		const auto rhs_not_null =
 		    SortedBlockNotNull(state.right_base, rblock.count, gstate.g_rhs_count - gstate.g_rhs_has_null);
-		BlockMergeInfo right_info(gstate.rhs_global_sort_state, state.right_chunk_index, state.right_position,
-		                          state.right_position, rhs_not_null);
+		BlockMergeInfo right_info(gstate.rhs_global_sort_state, state.right_chunk_index, state.right_begin_position,
+		                          state.right_position, state.right_begin_position, rhs_not_null);
 
 		idx_t result_count = MergeJoinComplexBlocks(left_info, right_info, conditions[0].comparison);
 		if (result_count == 0) {
@@ -826,7 +862,7 @@ OperatorResultType PhysicalPiecewiseMergeJoin::ResolveComplexJoin(ExecutionConte
 					chunk.data[output_left_projection_map[c]].Slice(state.lhs_payload.data[c], left_info.result, result_count);
 				}
 			}
-			const auto first_idx = SliceSortedPayload(chunk, right_info, result_count, output_left_projection_map);
+			const auto first_idx = SliceSortedPayload(chunk, right_info, result_count, output_right_projection_map);
 			chunk.SetCardinality(result_count);
 
 			auto sel = FlatVector::IncrementalSelectionVector();

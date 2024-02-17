@@ -25,6 +25,7 @@ class CypherPhysicalOperator {
           processed_tuples(0)
     {
         timer_started = false;
+        operator_id = operator_version++;
     }
     CypherPhysicalOperator(PhysicalOperatorType type, vector<Schema> &schemas)
         : type(type),
@@ -33,6 +34,7 @@ class CypherPhysicalOperator {
           processed_tuples(0)
     {  // TODO
         timer_started = false;
+        operator_id = operator_version++;
     }
     CypherPhysicalOperator(PhysicalOperatorType type, Schema &union_schema,
                            vector<Schema> &schemas)
@@ -43,6 +45,7 @@ class CypherPhysicalOperator {
           processed_tuples(0)
     {  // TODO
         timer_started = false;
+        operator_id = operator_version++;
     }
     virtual ~CypherPhysicalOperator() {}
 
@@ -104,6 +107,8 @@ class CypherPhysicalOperator {
     virtual std::string ParamsToString() const { return ""; }
     virtual std::string ToString() const { return ""; }
 
+    idx_t GetOperatorId() const { return operator_id; }
+
     // operator metadata
     const PhysicalOperatorType type;
     mutable Schema schema;           // TODO remove mutable
@@ -119,5 +124,8 @@ class CypherPhysicalOperator {
     int64_t exec_time;
 
     int64_t processed_tuples;
+    idx_t operator_id;
+    static idx_t operator_version;
 };
+
 }  // namespace duckdb
