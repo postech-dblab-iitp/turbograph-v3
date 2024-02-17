@@ -421,6 +421,9 @@ private:
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 	}
 	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
+	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
+	void pGetProjectionExprs(vector<duckdb::LogicalType> output_types, vector<duckdb::idx_t>& ref_idxs, vector<unique_ptr<duckdb::Expression>>& out_exprs);
+	void pRemoveColumnsFromSchemas(vector<duckdb::Schema>& in_schemas, vector<duckdb::idx_t>& ref_idxs, vector<duckdb::Schema>& out_schemas);
 
 	// scalar helper functions
 	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
