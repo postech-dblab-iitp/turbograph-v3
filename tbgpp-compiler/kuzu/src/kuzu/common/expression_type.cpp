@@ -50,6 +50,10 @@ bool isExpressionFunction(ExpressionType type) {
     return FUNCTION == type;
 }
 
+bool isExpressionParameter(ExpressionType type) {
+    return PARAMETER == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:

@@ -167,6 +167,10 @@ public:
 		return result;
 	}
 
+	CColRef* getColRefofIndex(int i) {
+		return std::get<2>(schema[i]);
+	}
+
 	string getPropertyNameOfColRef(string k1, const CColRef* colref) {
 		for(int idx = 0; idx < schema.size(); idx++) {
 			auto& col = schema[idx];
