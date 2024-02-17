@@ -6,16 +6,15 @@
 #include "main/client_context.hpp"
 #include "catalog/catalog.hpp"
 #include "common/types/rowcol_type.hpp"
-
 #include "icecream.hpp"
 
+/* velox related headers */
 #include "velox/type/Filter.h"
 #include "velox/common/base/Nulls.h"
 #include "velox/dwio/common/DecoderUtil.h"
 #include "common/types/validity_mask.hpp"
 #include "common/types/value.hpp"
 #include "velox/vector/tests/utils/VectorTestBase.h"
-
 
 using namespace facebook::velox;
 
@@ -1011,9 +1010,6 @@ bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filt
             scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
             find_block_to_scan = true;
         }
-        if (!find_block_to_scan) {
-            find_block_to_scan = false;
-        }
     } else {
         find_block_to_scan = true;
         scan_start_offset = current_idx_in_this_extent * scan_size;
@@ -1213,7 +1209,6 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         }
     }
 }
-
 
 bool ExtentIterator::inclusiveAwareRangePredicateCheck(Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, Value &filterValue) {
     if (l_inclusive) {
