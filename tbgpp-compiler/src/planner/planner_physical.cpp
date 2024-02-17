@@ -895,6 +895,21 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CExpression *idxscan_expr = NULL;
     CColRefArray *idxscan_output;
 
+    /**
+     * The pattern like
+     * --CPhysicalComputeScalarC
+     * ----CPhysicalIndexScan
+     * is not handled properly.
+     * 
+     * I cannot fully understand this jhko's code (too complex for me).
+     * I specially handle this case, but I think this is not the clean way.
+     * I think I need to understand jhko's code and fix the bug with refactoring.
+     * 
+     * See code related to is_proj_exist and proj_expr.
+    */
+    bool is_proj_exist = false;
+    CExpression *proj_expr = NULL;
+
     while (true) {
         if (inner_root->Pop()->Eopid() ==
                 COperator::EOperatorId::EopPhysicalIndexScan ||
@@ -947,6 +962,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
             do_filter_pushdown = true;
         }
+        else if (inner_root->Pop()->Eopid() ==
+                 COperator::EOperatorId::EopPhysicalComputeScalarColumnar) {
+            // ComputeScalar
+            is_proj_exist = true;
+            proj_expr = inner_root;
+        }
+
         // reached to the bottom
         if (inner_root->Arity() == 0) {
             break;
@@ -990,7 +1012,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     bool load_edge_property = false, load_eid = false;
     // construct inner col map
     CColRefArray *inner_cols =
-        idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+        is_proj_exist ?
+            proj_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp) :
+            idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
         CColRef *col = inner_cols->operator[](col_idx);
         CColRefTable *colref_table = (CColRefTable *)col;
@@ -1002,7 +1026,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             auto id_idx = it_->second;
-            if (colref_table->AttrNum() >= 3) {
+            if (colref_table->AttrNum() >= 3) { // i.e., there is edge property except _sid and _tid
                 const CName &col_name = colref_table->Name();
                 wchar_t *col_name_str, *second_token, *pt;
                 col_name_str =
@@ -1153,6 +1177,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 sid_col_idx, true, outer_col_map, inner_col_map,
                 load_eid_temporarily);
         }
+
+
+        /**
+         * Bugs
+         * 1. No schema flow graph for seek operation
+         * 2. No schema flow graph for adjidxjoin operation
+         * 3. Wrong use of IdSeek operator
+        */
 
         // TODO filter + seek
         duckdb::CypherPhysicalOperator *op_seek = new duckdb::PhysicalIdSeek(
