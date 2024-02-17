@@ -62,7 +62,6 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-graph-store-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-# target_compile_definitions(tbgpp-graph-store-lib PUBLIC ENABLE_VELOX_FILTERING)
 target_include_directories( tbgpp-graph-store-lib PUBLIC 
   # include  
   "${PROJECT_SOURCE_DIR}/include"

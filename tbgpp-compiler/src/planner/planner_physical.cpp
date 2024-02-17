@@ -673,6 +673,7 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
         auto repr_slc_expr =
             plan_expr->PdrgPexpr()->operator[](0)->operator[](0);
         CColRefSet *output_cols = repr_slc_expr->Prpp()->PcrsRequired();
+		CExpression *repr_filter_pred_expr = repr_slc_expr->operator[](1);
         CPhysicalFilter *filter_op = (CPhysicalFilter *)repr_slc_expr->Pop();
         /**
          * Strong assumption: filter predicates are only on non-schemaless columns
@@ -3608,27 +3609,6 @@ bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
     return result;
 }
 
-bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
-{
-    D_ASSERT(selection_expr->Pop()->Eopid() ==
-             COperator::EOperatorId::EopPhysicalFilter);
-    CExpression *filter_expr = NULL;
-    CExpression *filter_pred_expr = NULL;
-    filter_expr = selection_expr;
-    filter_pred_expr = filter_expr->operator[](1);
-
-    auto ok = filter_pred_expr->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarCmp &&
-              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                  IMDType::ECmpType::EcmptEq &&
-              filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarIdent &&
-              filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarConst;
-
-    return ok;  // temp code
-}
-
 void Planner::pTranslatePredicateToJoinCondition(
     CExpression *pred, vector<duckdb::JoinCondition> &out_conds,
     CColRefArray *lhs_cols, CColRefArray *rhs_cols)
@@ -3729,6 +3709,20 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
 		&& filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst;
 	
 	return ok;
+}
+
+duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment ent) {
+	switch (ent) {
+	case COrderSpec::ENullTreatment::EntAuto:
+		return duckdb::OrderByNullType::ORDER_DEFAULT;
+	case COrderSpec::ENullTreatment::EntFirst:
+		return duckdb::OrderByNullType::NULLS_FIRST;
+	case COrderSpec::ENullTreatment::EntLast:
+		return duckdb::OrderByNullType::NULLS_LAST;
+	case COrderSpec::ENullTreatment::EntSentinel:
+		D_ASSERT(false);
+	}
+	return duckdb::OrderByNullType::ORDER_DEFAULT;
 }
 
 duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
