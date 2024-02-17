@@ -106,6 +106,7 @@ class PhysicalSortOperatorState : public LocalSourceState {
    public:
     //! Payload scanner
     unique_ptr<PayloadScanner> scanner;
+    bool is_finished = false;
 };
 
 unique_ptr<LocalSourceState> PhysicalSort::GetLocalSourceState(
@@ -132,18 +133,24 @@ void PhysicalSort::GetData(ExecutionContext &context, DataChunk &chunk,
             global_sort_state);
     }
 
-    // Scan the next data chunk
-    state.scanner->Scan(chunk);
-
     // Sort always union all schema
     chunk.SetSchemaIdx(0);
+
+    // If the scanner is finished, we are done
+    if (state.scanner->Remaining() == 0) {
+        state.is_finished = true;
+    }
+    else {
+        state.is_finished = false;  
+        state.scanner->Scan(chunk);
+    }
 }
 
 bool PhysicalSort::IsSourceDataRemaining(LocalSourceState &lstate,
                                          LocalSinkState &sink_state) const
 {
     auto &state = (PhysicalSortOperatorState &)lstate;
-    return state.scanner->Remaining() > 0;
+    return !state.is_finished;
 }
 
 std::string PhysicalSort::ParamsToString() const

@@ -221,9 +221,6 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result)
 }
 
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
-	// auto pipeOutputChunk = std::make_unique<DataChunk>();
-	// pipeOutputChunk->Initialize(pipeline->GetIdxOperator(pipeline->pipelineLength - 2)->GetTypes());
-	// auto pipeOutputChunk = opOutputChunks
 	DataChunk *pipeOutputChunk = nullptr;
 	idx_t output_schema_idx;
 	
