@@ -10,6 +10,7 @@
 
 #include "common/common.hpp"
 #include "common/types/data_chunk.hpp"
+#include "common/types/schemaless_data_chunk.hpp"
 #include "common/cycle_counter.hpp"
 #include "function/function.hpp"
 

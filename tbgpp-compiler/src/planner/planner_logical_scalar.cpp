@@ -34,7 +34,9 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 		return lExprScalarExistentialSubqueryExpr(expression, prev_plan, required_type);
 	} else if (isExpressionFunction(expr_type)) {
 		return lExprScalarFuncExpr(expression, prev_plan, required_type);
-	} 
+	} else if (isExpressionParameter(expr_type)) {
+		return lExprScalarParamExpr(expression, prev_plan, required_type);
+	}
 	else {
 		D_ASSERT(false);	// TODO Not yet
 	}
@@ -506,6 +508,14 @@ CExpression *Planner::lExprScalarCastExpr(kuzu::binder::Expression *expression, 
 		mp, GPOS_NEW(mp) CScalarCast(mp, (IMDId*) return_type_mdid, cast_func_mdid, false), child_expr);
 
 	return result_expr;
+}
+
+CExpression *Planner::lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
+	ParameterExpression *param_expr = (ParameterExpression *)expression;
+	auto param_data_type = param_expr->getLiteral()->dataType;
+	auto param_data_type_id = param_data_type.typeID;
+	auto default_literal_exp = make_shared<LiteralExpression>(param_data_type, make_unique<Literal>(0));
+	return lExprScalarLiteralExpr(default_literal_exp.get(), prev_plan, required_type);
 }
 
 bool Planner::lIsCastingFunction(std::string& func_name) {

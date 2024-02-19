@@ -11,20 +11,31 @@ namespace duckdb {
 
 class ProduceResultsState : public LocalSinkState {
    public:
-    explicit ProduceResultsState(std::vector<uint8_t> projection_mapping)
-        : projection_mapping(projection_mapping)
+    explicit ProduceResultsState(std::vector<uint8_t> projection_mapping, std::vector<std::vector<uint8_t>> projection_mappings)
+        : projection_mapping(projection_mapping), projection_mappings(projection_mappings)
     {
         isResultTypeDetermined = false;
     }
 
     void DetermineResultTypes(const std::vector<LogicalType> input_types)
     {
-        if (projection_mapping.size() == 0) {
+        if (projection_mapping.size() == 0 && projection_mappings.size() == 0) {
             result_types = input_types;
         }
         else {
-            for (auto &target : projection_mapping) {
-                result_types.push_back(input_types[target]);
+            if (projection_mapping.size() != 0) {
+                for (auto &target : projection_mapping) {
+                    result_types.push_back(input_types[target]);
+                }
+            }
+            else if (projection_mappings.size() != 0) {
+                idx_t schema_idx = 0;
+                for (auto &target : projection_mappings[schema_idx]) {
+                    result_types.push_back(input_types[target]);
+                }
+            }
+            else {
+                D_ASSERT(false);
             }
         }
         isResultTypeDetermined = true;
@@ -36,13 +47,14 @@ class ProduceResultsState : public LocalSinkState {
 
     bool isResultTypeDetermined;
     std::vector<uint8_t> projection_mapping;
+    std::vector<std::vector<uint8_t>> projection_mappings;
     std::vector<duckdb::LogicalType> result_types;
 };
 
 unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(
     ExecutionContext &context) const
 {
-    return make_unique<ProduceResultsState>(projection_mapping);
+    return make_unique<ProduceResultsState>(projection_mapping, projection_mappings);
 }
 
 SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,

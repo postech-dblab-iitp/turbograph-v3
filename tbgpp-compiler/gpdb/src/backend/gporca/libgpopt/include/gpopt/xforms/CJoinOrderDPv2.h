@@ -571,6 +571,10 @@ public:
 		return CXform::ExfExpandNAryJoinDPv2;
 	}
 
+	size_t CountTotalGroups() const;
+
+	size_t CountTotalExpressions() const;
+
 };	// class CJoinOrderDPv2
 
 }  // namespace gpopt
