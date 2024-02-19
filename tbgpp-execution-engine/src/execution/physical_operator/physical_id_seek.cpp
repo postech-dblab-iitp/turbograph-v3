@@ -788,6 +788,11 @@ void PhysicalIdSeek::referInputChunk(DataChunk &input, DataChunk &chunk,
 void PhysicalIdSeek::generatePartialSchemaInfos()
 {
     auto &union_types = this->schema.getStoredTypesRef();
+    if (union_inner_col_map.size() == 0) {
+        for (auto i = 0; i < inner_col_maps[0].size(); i++) {
+            union_inner_col_map.push_back(inner_col_maps[0][i]);
+        }
+    }
     for (auto i = 0; i < inner_col_maps.size(); i++) {
         uint64_t accumulated_offset = 0;
         partial_schemas.push_back(PartialSchema());
