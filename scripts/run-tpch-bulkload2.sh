@@ -4,7 +4,7 @@ SUFFIX=""
 SF=1
 
 ./tbgpp-execution-engine/bulkload_using_map \
-	--output_dir:"/data/tpch/sf${SF}_swizzling2/" \
+	--output_dir:"/data/tpch/sf${SF}/" \
 	--nodes:LINEITEM /source-data/tpch/sf${SF}/lineitem.tbl.woadj${SUFFIX} \
 	--nodes:ORDERS /source-data/tpch/sf${SF}/orders.tbl.woadj${SUFFIX} \
 	--nodes:CUSTOMER /source-data/tpch/sf${SF}/customer.tbl.woadj${SUFFIX} \

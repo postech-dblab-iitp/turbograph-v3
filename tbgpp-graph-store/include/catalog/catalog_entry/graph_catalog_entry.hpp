@@ -90,6 +90,8 @@ public:
 	void GetEdgePartitionIndexesInType(ClientContext &context, string type, vector<idx_t> &edge_partition_indexes);
 	void GetConnectedEdgeOids(ClientContext &context, idx_t src_part_oid, vector<idx_t> &edge_part_oids);
 	LogicalTypeId GetTypeIdFromPropertyKeyID(const PropertyKeyID pkid);
+	string GetLabelFromVertexPartitionIndex(ClientContext &context, idx_t index);
+	string GetTypeFromEdgePartitionIndex(ClientContext &context, idx_t index);
 
 	vector<idx_t> Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();

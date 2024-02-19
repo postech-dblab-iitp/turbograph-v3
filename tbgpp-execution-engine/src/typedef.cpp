@@ -78,6 +78,11 @@ std::vector<duckdb::LogicalType> Schema::getStoredTypes()
     return stored_types;
 }
 
+std::vector<duckdb::LogicalType> &Schema::getStoredTypesRef()
+{
+    return stored_types;
+}
+
 std::vector<string> Schema::getStoredColumnNames()
 {
     return stored_column_names;
@@ -110,6 +115,21 @@ std::string Schema::printStoredColumnAndTypes()
     }
     result += ")";
     return result;
+}
+
+
+void Schema::removeColumn(uint64_t col_idx) 
+{
+    if (stored_types.size() > col_idx) {
+        stored_types.erase(stored_types.begin() + col_idx);
+    }
+    if (stored_column_names.size() > col_idx) {
+        stored_column_names.erase(stored_column_names.begin() + col_idx);
+    }
+    stored_types_size = 0;
+    for (auto &t : stored_types) {
+        stored_types_size += GetTypeIdSize(t.InternalType());
+    }
 }
 
 }  // namespace duckdb

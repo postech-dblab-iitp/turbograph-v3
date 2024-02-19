@@ -251,6 +251,52 @@ void GraphCatalogEntry::GetVertexPartitionIndexesInLabel(ClientContext &context,
 	}
 }
 
+string GraphCatalogEntry::GetLabelFromVertexPartitionIndex(ClientContext &context, idx_t index) {
+    char_allocator temp_charallocator(context.db->GetCatalog().catalog_segment->get_segment_manager());
+    char_string label_found(temp_charallocator);
+
+    bool found = false;
+    for (auto& vertex_label_pair : vertexlabel_map) {
+        auto& current_label = vertex_label_pair.first;
+        auto& partition_indices = label_to_partition_index.find(vertex_label_pair.second)->second;
+
+        if (std::find(partition_indices.begin(), partition_indices.end(), index) != partition_indices.end()) {
+            label_found = current_label;
+            found = true;
+            break;
+        }
+    }
+
+    if (found) {
+        return label_found.c_str();
+    } else {
+       	return string();
+    }
+}
+
+string GraphCatalogEntry::GetTypeFromEdgePartitionIndex(ClientContext &context, idx_t index) {
+    char_allocator temp_charallocator(context.db->GetCatalog().catalog_segment->get_segment_manager());
+    char_string type_found(temp_charallocator);
+
+    bool found = false;
+    for (auto& edge_type_pair : edgetype_map) {
+        auto& current_type = edge_type_pair.first;
+        auto& partition_index = type_to_partition_index.find(edge_type_pair.second)->second;
+
+		if (partition_index == index) {
+			type_found = current_type;
+			found = true;
+			break;
+		}
+    }
+
+    if (found) {
+        return type_found.c_str();
+    } else {
+       	return string();
+    }
+}
+
 void GraphCatalogEntry::GetEdgePartitionIndexesInType(ClientContext &context, string type, vector<idx_t> &partition_indexes) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string type_temp(temp_charallocator);

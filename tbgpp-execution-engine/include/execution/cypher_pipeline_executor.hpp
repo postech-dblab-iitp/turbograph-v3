@@ -13,8 +13,8 @@
 #include <functional>
 #include <map>
 
-// #define DEBUG_PRINT_OP_INPUT_OUTPUT
-// #define DEBUG_PRINT_PIPELINE
+#define DEBUG_PRINT_OP_INPUT_OUTPUT
+#define DEBUG_PRINT_PIPELINE
 
 namespace duckdb {
 
@@ -22,6 +22,7 @@ struct LogicalType;
 class Executor;
 class ClientContext;
 class SchemaFlowGraph;
+// class SchemalessDataChunk;
 
 //! The Pipeline class represents an execution pipeline
 class CypherPipelineExecutor {
@@ -67,6 +68,7 @@ public:
 
 	//! Intermediate chunks for the operators
 	vector<vector<unique_ptr<DataChunk>>> opOutputChunks;
+	// vector<vector<unique_ptr<SchemalessDataChunk>>> opOutputChunks;
 
 	//! Selected output schema indexes for the operators
 	vector<idx_t> opOutputSchemaIdx;

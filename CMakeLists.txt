@@ -23,6 +23,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
 endif()
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 ##########################
 ### Add subdirectories ###
@@ -32,6 +33,7 @@ add_subdirectory(tbgpp-graph-store)
 add_subdirectory(tbgpp-execution-engine)
 add_subdirectory(tbgpp-compiler)
 add_subdirectory(tbgpp-client)
+add_subdirectory(tbgpp-api-server)
 
 ####################
 ### Set compiler ###

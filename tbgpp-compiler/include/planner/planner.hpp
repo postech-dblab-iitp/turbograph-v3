@@ -136,6 +136,7 @@
 #include "kuzu/binder/expression/node_rel_expression.h"
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
+#include "kuzu/binder/expression/parameter_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -215,6 +216,7 @@ public:
 	void execute(BoundStatement *bound_statement);
 	vector<duckdb::CypherPipelineExecutor *> genPipelineExecutors();
 	vector<string> getQueryOutputColNames();
+	vector<OID> getQueryOutputOIDs();
 
 private:
 	// planner.cpp
@@ -269,6 +271,7 @@ private:
 	CExpression *lExprScalarCaseElseExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
+	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
@@ -378,7 +381,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
-	void pConvertTableFilterExprToUnionAllTableFilterExpr(unique_ptr<duckdb::Expression>& table_expr, CColRefArray* cols, vector<ULONG> proj_col_ids);
+	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression>& table_expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -421,6 +424,9 @@ private:
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 	}
 	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
+	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
+	void pGetProjectionExprs(vector<duckdb::LogicalType> output_types, vector<duckdb::idx_t>& ref_idxs, vector<unique_ptr<duckdb::Expression>>& out_exprs);
+	void pRemoveColumnsFromSchemas(vector<duckdb::Schema>& in_schemas, vector<duckdb::idx_t>& ref_idxs, vector<duckdb::Schema>& out_schemas);
 
 	// scalar helper functions
 	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
@@ -453,8 +459,9 @@ private:
 	vector<duckdb::CypherPipeline *> pipelines;									// output plan pipelines
 	std::map<CColRef *, std::string> property_col_to_output_col_names_mapping; 	// actual output col names for property columns
 	vector<std::string> logical_plan_output_col_names;							// output col names
-	std::vector<CColRef *> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
-	std::vector<CColRef *> physical_plan_output_colrefs;							// final output colrefs of the physical plan
+	vector<OID> logical_plan_output_col_oids;									// output col oids			
+	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
+	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
 
 	// schema flow graph
 	PipelineOperatorTypes pipeline_operator_types;
