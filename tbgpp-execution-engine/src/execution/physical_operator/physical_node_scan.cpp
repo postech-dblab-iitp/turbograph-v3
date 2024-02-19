@@ -166,7 +166,9 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	// current_schema_idx = 0; // TODO temporary logic!
 	
 	if (res == StoreAPIResult::DONE) {
+#ifdef DEBUG_PRINT_PIPELINE
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
+#endif
 		current_schema_idx++;
 		state.iter_finished = true;
 		return;
@@ -200,7 +202,15 @@ bool PhysicalNodeScan::IsSourceDataRemaining(LocalSourceState &lstate) const {
 }
 
 std::string PhysicalNodeScan::ParamsToString() const {
-	return "nodescan-params";
+	string params = "nodescan-params: oids {";
+	for (auto i = 0; i < oids.size(); i++) {
+		params += std::to_string(oids[i]);
+		if (i < oids.size() - 1) {
+			params += ", ";
+		}
+	}
+	params += "}";
+	return params;
 }
 
 std::string PhysicalNodeScan::ToString() const {
