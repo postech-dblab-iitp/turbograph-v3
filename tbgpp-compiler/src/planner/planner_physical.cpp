@@ -837,7 +837,6 @@ vector<duckdb::CypherPhysicalOperator *> *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CExpression *plan_expr, bool is_left_outer)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     // actuall since this adjidxjoin there is second child, we integrate as single child
@@ -1314,6 +1313,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
         inner_col_map);
 
     result->push_back(op);
+
+    if (generate_sfg) {  // TODO wrong code.. but
+        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
+        pipeline_schemas.push_back(prev_local_schemas);
+        pipeline_union_schema.push_back(tmp_schema);
+    }
 
     output_cols->Release();
     outer_cols->Release();

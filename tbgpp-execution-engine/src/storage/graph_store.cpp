@@ -219,7 +219,11 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 		ExtentCatalogEntry *ext_cat =
 			(ExtentCatalogEntry *)cat_instance.GetEntry(client, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, ext_name);
 		idx_t psid = ext_cat->ps_oid;
-		auto mapping_idx = ps_oid_to_projection_mapping.at(psid);
+		auto it = ps_oid_to_projection_mapping.find(psid);
+		if (it == ps_oid_to_projection_mapping.end()) {
+			throw InvalidInputException("Projection mapping not found for ps_oid: " + std::to_string(psid));
+		}
+		auto mapping_idx = it->second;
 		
 		mapping_idxs.push_back(mapping_idx);
 		target_seqnos_per_extent.push_back(std::move(target_seqnos_per_extent_map.at(target_eids[i])));
