@@ -59,6 +59,7 @@ SortLayout::SortLayout(const vector<BoundOrderByNode> &orders)
 		// 	has_null.push_back(stats.back()->CanHaveNull());
 		// } else {
 		// 	stats.push_back(nullptr);
+		// TODO check correctness
 		has_null.push_back(true);
 		// }
 
@@ -120,10 +121,8 @@ SortLayout::SortLayout(const vector<BoundOrderByNode> &orders)
 		}
 		entry_size = AlignValue(entry_size);
 	}
-// IC();
 
 	for (idx_t col_idx = 0; col_idx < column_count; col_idx++) {
-		// IC(constant_size[col_idx]);
 		all_constant = all_constant && constant_size[col_idx];
 		if (!constant_size[col_idx]) {
 			sorting_to_blob_col[col_idx] = blob_layout_types.size();
