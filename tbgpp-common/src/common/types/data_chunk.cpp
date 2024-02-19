@@ -206,7 +206,7 @@ void DataChunk::Fuse(DataChunk &other) {
 	other.Destroy();
 }
 
-void DataChunk::MappedFuse(DataChunk &other, const vector<uint32_t>& projection_map) {
+void DataChunk::MappedFuse(DataChunk &other, const vector<uint32_t> &projection_map) {
 	D_ASSERT(other.size() == size());
 	const idx_t num_cols = other.data.size();
 

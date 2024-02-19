@@ -9,10 +9,15 @@ namespace duckdb {
 class DataChunk;
 
 class OutputUtil {
-public:
-    static void PrintQueryOutput(PropertyKeys &col_names, std::vector<std::unique_ptr<DataChunk>> &resultChunks, bool show_top_10_only);
+   public:
+    static void PrintQueryOutput(
+        PropertyKeys &col_names,
+        std::vector<std::unique_ptr<DataChunk>> &resultChunks,
+        bool show_top_10_only);
+    static void PrintAllTuplesInDataChunk(DataChunk &chunk);
     static void PrintTop10TuplesInDataChunk(DataChunk &chunk);
+    static void PrintLast10TuplesInDataChunk(DataChunk &chunk);
 };
-}
+}  // namespace duckdb
 
 #endif
