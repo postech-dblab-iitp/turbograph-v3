@@ -9,7 +9,7 @@ namespace duckdb {
 class CypherPipeline {
 
 public:
-	CypherPipeline(vector<CypherPhysicalOperator *> ops) {
+	CypherPipeline(vector<CypherPhysicalOperator *> ops, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
 		assert( ops.size() >= 2 && "too few operators");
 
 		source = ops.front();
@@ -59,7 +59,7 @@ public:
 	std::string toString() {
 		std::string result;
 		// sink
-		result += sink->ToString() + "(" + sink->ParamsToString() + ")\n";
+		result += "#" + std::to_string(sink->GetOperatorId()) + " " + sink->ToString() + "(" + sink->ParamsToString() + ")\n";
 		// operators - reversed
 		for (auto op = operators.rbegin(); op != operators.rend(); ++op) {
 			result += "\t|\n";
@@ -71,7 +71,7 @@ public:
 				result += "    " + (*op)->schema.printStoredColumnAndTypes() + "\n";
 			}
 			result += "\t|\n";
-			result += (*op)->ToString() + "(" + (*op)->ParamsToString() + ")\n";
+			result += "#" + std::to_string((*op)->GetOperatorId()) + " " + (*op)->ToString() + "(" + (*op)->ParamsToString() + ")\n";
 		}
 		// source
 		result += "\t|\n";
@@ -84,14 +84,20 @@ public:
 			result += "    " + source->schema.printStoredColumnAndTypes() + "\n";
 		}
 		result += "\t|\n";
-		result += source->ToString() + "(" + source->ParamsToString() + ")\n";
+		result += "#" + std::to_string(source->GetOperatorId()) + " " + source->ToString() + "(" + source->ParamsToString() + ")\n";
 
 		return result;
+	}
+
+	idx_t GetPipelineId() {
+		return pipeline_id;
 	}
 
 	// members
 	int pipelineLength;
 
+	//! The unique pipeline id
+	idx_t pipeline_id;
 	//! The source of this pipeline
 	CypherPhysicalOperator *source;
 	//! The chain of intermediate operators

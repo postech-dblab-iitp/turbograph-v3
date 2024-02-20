@@ -82,23 +82,34 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_Person", "vpart_Comment:Message", "vpart_Post:Message", "epart_POST_HAS_CREATOR"};
 	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
 	// 	"vpart_REGION", "vpart_SUPPLIER"};
-	// vector<string> part_cat_list = {"vpart_Pathway"};
-	// for (auto &part_cat_name : part_cat_list) {
-	// 	PartitionCatalogEntry *part_cat =
-	// 		(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
-	// 	vector<idx_t> psids;
-	// 	part_cat->GetPropertySchemaIDs(psids);
-	// 	for (size_t i = 0; i < psids.size(); i++) {
-	// 		fprintf(stdout, "Part %s oid[%ld] %ld\n", part_cat_name.c_str(), i, psids[i]);
-	// 	}
-	// }
-	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
-	vector<string> ps_cat_list = {"vps_Person_0", "vps_Person_1"};
-	for (auto &ps_cat_name : ps_cat_list) {
-		PropertySchemaCatalogEntry *ps_cat =
-			(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
-		fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person"};
+	vector<string> part_cat_list = {"epart_CONTAINER_OF"};
+	for (auto &part_cat_name : part_cat_list) {
+		PartitionCatalogEntry *part_cat =
+			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
+		vector<idx_t> psids;
+		part_cat->GetPropertySchemaIDs(psids);
+		for (size_t i = 0; i < psids.size(); i++) {
+			PropertySchemaCatalogEntry *ps_cat =
+				(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), DEFAULT_SCHEMA, psids[i]);
+			auto physical_id_index_oid = ps_cat->GetPhysicalIDIndex();
+			fprintf(stdout, "Part %s oid[%ld] %ld, pid_oid %ld\n", part_cat_name.c_str(), i, psids[i], physical_id_index_oid);
+		}
+		auto *adjidx_oids = part_cat->GetAdjIndexOidVec();
+		fprintf(stdout, "Part %s #adjlists = %ld\n", part_cat_name.c_str(), adjidx_oids->size());
+		for (size_t i = 0; i < adjidx_oids->size(); i++) {
+			IndexCatalogEntry *index_cat =
+				(IndexCatalogEntry *)cat.GetEntry(*client.get(), DEFAULT_SCHEMA, adjidx_oids->at(i));
+			fprintf(stdout, "Part %s adjidx oid[%ld] %ld: %s\n", part_cat_name.c_str(), i, adjidx_oids->at(i), index_cat->GetName().c_str());
+		}
 	}
+	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
+	// vector<string> ps_cat_list = {"vps_Person_0", "vps_Person_1"};
+	// for (auto &ps_cat_name : ps_cat_list) {
+	// 	PropertySchemaCatalogEntry *ps_cat =
+	// 		(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, ps_cat_name);
+	// 	fprintf(stdout, "%s oid %ld\n", ps_cat_name.c_str(), ps_cat->GetOid());
+	// }
 	
 	// vector<string> index_cat_list = {"REPLY_OF_COMMENT_fwd", "REPLY_OF_fwd", "HAS_MODERATOR_fwd", "POST_HAS_CREATOR_fwd", "HAS_CREATOR_fwd"};
 	// for (auto &index_cat_name : index_cat_list) {
@@ -172,8 +183,8 @@ void* mda_print(void* args) {
 	
 	*/
 	vector<uint32_t> rel_ids_to_inspect;
-	rel_ids_to_inspect.push_back(447);
-	rel_ids_to_inspect.push_back(451);
+	// rel_ids_to_inspect.push_back(447);
+	// rel_ids_to_inspect.push_back(451);
 	// rel_ids_to_inspect.push_back(305); // 305 = vps_Person	
 	// rel_ids_to_inspect.push_back(505);	// eps_IS_LOCATED_IN : 505
 	// rel_ids_to_inspect.push_back(521);	// vps_KNOWS : 521
@@ -253,7 +264,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless_2-2/";
+	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless_240219/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;

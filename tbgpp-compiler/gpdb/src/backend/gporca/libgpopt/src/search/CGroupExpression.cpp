@@ -823,6 +823,7 @@ CGroupExpression::Transform(
 	{
 		++(*pulNumberOfBindings);
 		ULONG ulNumResults = pxfres->Pdrgpexpr()->Size();
+		PrintXformInput(mp, pxform, pexpr); // S62 added for debugging
 		pxform->Transform(pxfctxt, pxfres, pexpr);
 		ulNumResults = pxfres->Pdrgpexpr()->Size() - ulNumResults;
 		PrintXform(mp, pxform, pexpr, pxfres, ulNumResults);
@@ -1050,6 +1051,30 @@ CGroupExpression::PrintXform(CMemoryPool *mp, CXform *pxform,
 			os << i - ulStart << ": " << std::endl;
 			(*pdrgpexpr)[i]->OsPrint(os);
 		}
+	}
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CGroupExpression::PrintXform
+//
+//	@doc:
+//		Print transformation
+//
+//---------------------------------------------------------------------------
+void
+CGroupExpression::PrintXformInput(CMemoryPool *mp, CXform *pxform,
+							 CExpression *pexpr)
+{
+	if (NULL != pexpr && GPOS_FTRACE(EopttracePrintXform) &&
+		GPOS_FTRACE(EopttracePrintXformResults))
+	{
+		CAutoTrace at(mp);
+		IOstream &os(at.Os());
+
+		os << *pxform << std::endl
+		   << "Input:" << std::endl
+		   << *pexpr << std::endl;
 	}
 }
 

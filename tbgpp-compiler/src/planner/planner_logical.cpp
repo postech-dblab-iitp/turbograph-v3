@@ -223,9 +223,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
 				// A join R
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					*id_col_cname, *sid_col_cname,
-					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
+					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					ar_join_type);
 			} else {
 				edge_plan = lPlanPathGet((RelExpression*)qedge);
@@ -263,9 +262,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 					// gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					*tid_col_cname, *id_col_cname,
-					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
-					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					rb_join_type);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
@@ -360,9 +358,8 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &
 					lhs_plan = qg_plan; 
 				}
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-					*id_col_cname, *sid_col_cname,
-					// lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					// edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
+					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
 				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
 				lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
@@ -399,9 +396,8 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &
 					rhs_plan = qg_plan;
 				}
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					*tid_col_cname, *id_col_cname,
-					// lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
-					// rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
 				lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
@@ -1671,105 +1667,12 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 }
 
 CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		const CName &lhs_colname, const CName &rhs_colname, gpopt::COperator::EOperatorId join_op) {
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op) {
 	
 	CMemoryPool* mp = this->memory_pool;
-	// if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
-	// 	rhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
-	// 	// need pushdown & branch elimination
-	// 	CExpression *join_result;
-	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
-	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	// 	bool is_output_initialized = false;
 
-	// 	for (auto i = 0; i < lhs->Arity(); i++) {
-	// 		for (auto j = 0; j < rhs->Arity(); j++) {
-	// 			CExpression *expr = lExprLogicalJoin((*lhs)[i], (*rhs)[j],
-	// 				lhs_colname, rhs_colname, join_op);
-	// 			expr->AddRef();
-	// 			CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
-	// 			pdrgpexpr->Append(expr);
-	// 			pdrgdrgpcrInput->Append(output_array);
-	// 			if (!is_output_initialized) {
-	// 				pdrgpcrOutput->AppendArray(output_array);
-	// 				is_output_initialized = true;
-	// 			}
-	// 		}
-	// 	}
-
-	// 	join_result =  GPOS_NEW(mp) CExpression(
-	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-	// 		pdrgpexpr);
-	// 	return join_result;
-	// } else if (lhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
-	// 	rhs->Pop()->Eopid() != gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
-	// 	// need pushdown & branch elimination
-	// 	CExpression *join_result;
-	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
-	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	// 	bool is_output_initialized = false;
-
-	// 	for (auto i = 0; i < lhs->Arity(); i++) {
-	// 		CExpression *expr = lExprLogicalJoin((*lhs)[i], rhs,
-	// 			lhs_colname, rhs_colname, join_op);
-	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
-	// 		pdrgpexpr->Append(expr);
-	// 		pdrgdrgpcrInput->Append(output_array);
-	// 		if (!is_output_initialized) {
-	// 			pdrgpcrOutput->AppendArray(output_array);
-	// 			is_output_initialized = true;
-	// 		}
-	// 	}
-
-	// 	join_result =  GPOS_NEW(mp) CExpression(
-	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-	// 		pdrgpexpr);
-	// 	return join_result;
-	// } else if (lhs->Pop()->Eopid() != gpopt::COperator::EOperatorId::EopLogicalUnionAll &&
-	// 	rhs->Pop()->Eopid() == gpopt::COperator::EOperatorId::EopLogicalUnionAll) {
-	// 	// need pushdown & branch elimination
-	// 	CExpression *join_result;
-	// 	CColRefArray *pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-	// 	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
-	// 	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
-	// 	bool is_output_initialized = false;
-
-	// 	for (auto j = 0; j < rhs->Arity(); j++) {
-	// 		CExpression *expr = lExprLogicalJoin(lhs, (*rhs)[j],
-	// 			lhs_colname, rhs_colname, join_op);
-	// 		CColRefArray *output_array = expr->DeriveOutputColumns()->Pdrgpcr(mp);
-	// 		pdrgpexpr->Append(expr);
-	// 		pdrgdrgpcrInput->Append(output_array);
-	// 		if (!is_output_initialized) {
-	// 			pdrgpcrOutput->AppendArray(output_array);
-	// 			is_output_initialized = true;
-	// 		}
-	// 	}
-
-	// 	join_result =  GPOS_NEW(mp) CExpression(
-	// 		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, pdrgpcrOutput, pdrgdrgpcrInput),
-	// 		pdrgpexpr);
-	// 	return join_result;
-	// }
-
-	// TODO efficiency problem?
-	CColRefSet *pcrsLhs = lhs->DeriveOutputColumns();
-	CColRefSet *pcrsRhs = rhs->DeriveOutputColumns();
-	CColRef *pcrLeft, *pcrRight;
-	for (auto i = 0; i < pcrsLhs->Size(); i++) {
-		pcrLeft = pcrsLhs->PcrIth(i);
-		if (wcsstr(pcrLeft->Name().Pstr()->GetBuffer(), lhs_colname.Pstr()->GetBuffer()) != 0) {
-			break;
-		}
-	}
-	for (auto i = 0; i < pcrsRhs->Size(); i++) {
-		pcrRight = pcrsRhs->PcrIth(i);
-		if (wcsstr(pcrRight->Name().Pstr()->GetBuffer(), rhs_colname.Pstr()->GetBuffer()) != 0) {
-			break;
-		}
-	}
+	CColRef *pcrLeft = lhs_colref;
+	CColRef *pcrRight = rhs_colref;
 
 	lhs->AddRef();
 	rhs->AddRef();
@@ -1805,8 +1708,8 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	return join_result;
 }
 
-CExpression* Planner::lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
-		CColRef* lhs_colref, CColRef* rhs_colref, int32_t lower_bound, int32_t upper_bound, gpopt::COperator::EOperatorId join_op) {
+CExpression *Planner::lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
+		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound, gpopt::COperator::EOperatorId join_op) {
 
 	CMemoryPool* mp = this->memory_pool;
 
@@ -1814,6 +1717,7 @@ CExpression* Planner::lExprLogicalPathJoin(CExpression* lhs, CExpression* rhs,
 
 	CColRef *pcrLeft = lhs_colref;
 	CColRef *pcrRight = rhs_colref;
+	
 	lhs->AddRef();
 	rhs->AddRef();
 

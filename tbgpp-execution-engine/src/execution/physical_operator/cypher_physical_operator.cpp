@@ -5,7 +5,7 @@
 #include "execution/execution_context.hpp"
 
 namespace duckdb {
-
+idx_t CypherPhysicalOperator::operator_version = 0;
 void CypherPhysicalOperator::GetData(ExecutionContext &context,
                                      DataChunk &chunk,
                                      LocalSourceState &lstate) const

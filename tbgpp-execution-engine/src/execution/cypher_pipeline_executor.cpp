@@ -146,43 +146,33 @@ void CypherPipelineExecutor::ExecutePipeline()
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         PrintOutputChunk(pipeline->GetSource()->ToString(), source_chunk);
 #endif
-        bool isSourceDataFinished = false;
-        switch (childs.size()) {
-            case 0: {
-                isSourceDataFinished =
-                    !pipeline->GetSource()->IsSourceDataRemaining(
-                        *local_source_state);
-                break;
-            }
-            case 1: {
-                isSourceDataFinished =
-                    !pipeline->GetSource()->IsSourceDataRemaining(
-                        *local_source_state, *(childs[0]->local_sink_state));
-                break;
-            }
-        }
-        if (isSourceDataFinished) {
-            if (sfg.AdvanceCurSourceIdx())
-                continue;
-            else {
-                // TODO process remaining postponed outputs
-                break;
-            }
-        }
+		bool isSourceDataFinished = false;
+		switch (childs.size()) {
+			case 0: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state); break; }
+			case 1: { isSourceDataFinished = !pipeline->GetSource()->IsSourceDataRemaining(*local_source_state, *(childs[0]->local_sink_state)); break; }
+		}
 
-        auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
-        D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
-                 sourceProcessResult == OperatorResultType::FINISHED ||
-                 sourceProcessResult == OperatorResultType::POSTPONE_OUTPUT);
-        if (sourceProcessResult == OperatorResultType::FINISHED) {
-            break;
-        }
-        // if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
-    }
-    // do we need pushfinalize?
-    // when limit operator reports early finish, the caches must be finished after all.
-    // we need these anyways, but i believe this can be embedded in to the regular logic.
-    // this is an invariant to the main logic when the pipeline is terminated early
+		if (source_chunk.size() > 0) {
+			auto sourceProcessResult = ProcessSingleSourceChunk(source_chunk);
+			D_ASSERT(sourceProcessResult == OperatorResultType::NEED_MORE_INPUT ||
+					sourceProcessResult == OperatorResultType::FINISHED ||
+					sourceProcessResult == OperatorResultType::POSTPONE_OUTPUT);
+			if (sourceProcessResult == OperatorResultType::FINISHED) { break; }
+		}
+
+		if (isSourceDataFinished) {
+			if (sfg.AdvanceCurSourceIdx()) continue;
+			else {
+				// TODO process remaining postponed outputs
+				break;
+			}
+		}
+		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
+	}
+	// do we need pushfinalize?
+		// when limit operator reports early finish, the caches must be finished after all.
+		// we need these anyways, but i believe this can be embedded in to the regular logic.
+			// this is an invariant to the main logic when the pipeline is terminated early
 
 #ifdef DEBUG_PRINT_PIPELINE
     std::cout << "[Sink-Combine (" << pipeline->GetSink()->ToString() << ")]"
@@ -360,14 +350,23 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		}
 
 #ifdef DEBUG_PRINT_PIPELINE
-		if (cur_op_type == OperatorType::UNARY) {
-			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
-				<< ", schema_idx " << prev_output_schema_idx << " -> " << current_output_schema_idx << std::endl;
-		}
-		else if (cur_op_type == OperatorType::BINARY) {
-			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
-				<< std::endl;
-		}
+        if (cur_op_type == OperatorType::UNARY) {
+            std::cout << "[ExecutePipe - " << current_idx << "(#"
+                      << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
+                      << " "
+                      << pipeline->GetIdxOperator(current_idx)->ToString()
+                      << ")] prev num_tuples: " << prev_output_chunk->size()
+                      << ", schema_idx " << prev_output_schema_idx << " -> "
+                      << current_output_schema_idx << std::endl;
+        }
+        else if (cur_op_type == OperatorType::BINARY) {
+            std::cout << "[ExecutePipe - " << current_idx << "(#"
+                      << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
+                      << " "
+                      << pipeline->GetIdxOperator(current_idx)->ToString()
+                      << ")] prev num_tuples: " << prev_output_chunk->size()
+                      << std::endl;
+        }
 #endif
 
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT

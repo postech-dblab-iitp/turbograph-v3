@@ -216,10 +216,10 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately() {
 	// # of extents * # rows per extent
 	// D_ASSERT(extent_ids.size() >= 1); // TODO 
-	// uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
+	uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
 
-	// return num_tuples_except_last_extent + last_extent_num_tuples;
-	return 1; // TODO extend for fake
+	return num_tuples_except_last_extent + last_extent_num_tuples;
+	// return 1; // TODO extend for fake
 }
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
