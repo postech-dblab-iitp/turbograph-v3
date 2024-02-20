@@ -108,7 +108,6 @@ run_ldbc_s() {
 			mod.lastName AS moderatorLastName"
 
 	# LDBC IS6 Simplified
-
 	run_query "MATCH
 			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)
 		RETURN
