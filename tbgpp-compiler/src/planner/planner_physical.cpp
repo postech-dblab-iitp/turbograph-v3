@@ -488,28 +488,45 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(
                                           scan_projection_mapping);
     }
     else {
-		if (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptEq) {
-			op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, literal_val);
-		}
-		else if (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptL) {
-			op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, 
-			duckdb::Value::MinimumValue(literal_val.type()), literal_val, true, false);
-		}
-		else if (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptLEq) {
-			op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, 
-			duckdb::Value::MinimumValue(literal_val.type()), literal_val, true, true);
-		}
-		else if (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptG) {
-			op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, 
-			literal_val, duckdb::Value::MaximumValue(literal_val.type()), false, true);
-		}
-		else if (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptGEq) {
-			op = new duckdb::PhysicalNodeScan(tmp_schema, oids, output_projection_mapping, scan_types, scan_projection_mapping, pred_attr_pos, 
-			literal_val, duckdb::Value::MaximumValue(literal_val.type()), true, true);
-		}
-		else {
-			D_ASSERT(false);
-		}
+        if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+            IMDType::ECmpType::EcmptEq) {
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, pred_attr_pos, literal_val);
+        }
+        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                 IMDType::ECmpType::EcmptL) {
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, pred_attr_pos,
+                duckdb::Value::MinimumValue(literal_val.type()), literal_val,
+                true, false);
+        }
+        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                 IMDType::ECmpType::EcmptLEq) {
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, pred_attr_pos,
+                duckdb::Value::MinimumValue(literal_val.type()), literal_val,
+                true, true);
+        }
+        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                 IMDType::ECmpType::EcmptG) {
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, pred_attr_pos, literal_val,
+                duckdb::Value::MaximumValue(literal_val.type()), false, true);
+        }
+        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                 IMDType::ECmpType::EcmptGEq) {
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, pred_attr_pos, literal_val,
+                duckdb::Value::MaximumValue(literal_val.type()), true, true);
+        }
+        else {
+            D_ASSERT(false);
+        }
     }
 
     if (generate_sfg) {
@@ -673,7 +690,7 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
         auto repr_slc_expr =
             plan_expr->PdrgPexpr()->operator[](0)->operator[](0);
         CColRefSet *output_cols = repr_slc_expr->Prpp()->PcrsRequired();
-		CExpression *repr_filter_pred_expr = repr_slc_expr->operator[](1);
+        CExpression *repr_filter_pred_expr = repr_slc_expr->operator[](1);
         CPhysicalFilter *filter_op = (CPhysicalFilter *)repr_slc_expr->Pop();
         /**
          * Strong assumption: filter predicates are only on non-schemaless columns
@@ -697,42 +714,70 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
                 pred_attr_poss.push_back(pred_attr_pos);
                 literal_vals.push_back(move(literal_val));
             }
-            
-			/* add expression type for pushdown */
-			/* Note: this will not work on VARCHAR Type, only in numerics. If bug occurs, check here. */
-			duckdb::CypherPhysicalOperator *op = nullptr;
-			vector<duckdb::RangeFilterValue> range_filter_values;
-			auto cmp_type = ((CScalarCmp*)(repr_filter_pred_expr->Pop()))->ParseCmpType();
-			auto num_vals = literal_vals.size();
-			switch (cmp_type) {
-				case IMDType::ECmpType::EcmptEq:
-					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
-													pred_attr_poss, literal_vals);
-					break;
-				case IMDType::ECmpType::EcmptL:
-					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({duckdb::Value::MinimumValue(literal_vals[i].type()), literal_vals[i], true, false});
-					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
-													pred_attr_poss, range_filter_values);
-					break;
-				case IMDType::ECmpType::EcmptLEq:
-					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({duckdb::Value::MinimumValue(literal_vals[i].type()), literal_vals[i], true, true});
-					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
-													pred_attr_poss, range_filter_values);
-					break;
-				case IMDType::ECmpType::EcmptG:
-					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({literal_vals[i], duckdb::Value::MaximumValue(literal_vals[i].type()), false, true});
-					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
-													pred_attr_poss, range_filter_values);
-					break;
-				case IMDType::ECmpType::EcmptGEq:
-					for (int i = 0; i < num_vals; i++) range_filter_values.push_back({literal_vals[i], duckdb::Value::MaximumValue(literal_vals[i].type()), true, true});
-					op = new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids, projection_mapping, scan_projection_mapping, 
-													pred_attr_poss, range_filter_values);
-					break;
-				default:
-					D_ASSERT(false);
-					break;
-			}
+
+            /* add expression type for pushdown */
+            /* Note: this will not work on VARCHAR Type, only in numerics. If bug occurs, check here. */
+            duckdb::CypherPhysicalOperator *op = nullptr;
+            vector<duckdb::RangeFilterValue> range_filter_values;
+            auto cmp_type =
+                ((CScalarCmp *)(repr_filter_pred_expr->Pop()))->ParseCmpType();
+            auto num_vals = literal_vals.size();
+            switch (cmp_type) {
+                case IMDType::ECmpType::EcmptEq:
+                    op = new duckdb::PhysicalNodeScan(
+                        local_schemas, global_schema, oids, projection_mapping,
+                        scan_projection_mapping, pred_attr_poss, literal_vals);
+                    break;
+                case IMDType::ECmpType::EcmptL:
+                    for (int i = 0; i < num_vals; i++)
+                        range_filter_values.push_back(
+                            {duckdb::Value::MinimumValue(
+                                 literal_vals[i].type()),
+                             literal_vals[i], true, false});
+                    op = new duckdb::PhysicalNodeScan(
+                        local_schemas, global_schema, oids, projection_mapping,
+                        scan_projection_mapping, pred_attr_poss,
+                        range_filter_values);
+                    break;
+                case IMDType::ECmpType::EcmptLEq:
+                    for (int i = 0; i < num_vals; i++)
+                        range_filter_values.push_back(
+                            {duckdb::Value::MinimumValue(
+                                 literal_vals[i].type()),
+                             literal_vals[i], true, true});
+                    op = new duckdb::PhysicalNodeScan(
+                        local_schemas, global_schema, oids, projection_mapping,
+                        scan_projection_mapping, pred_attr_poss,
+                        range_filter_values);
+                    break;
+                case IMDType::ECmpType::EcmptG:
+                    for (int i = 0; i < num_vals; i++)
+                        range_filter_values.push_back(
+                            {literal_vals[i],
+                             duckdb::Value::MaximumValue(
+                                 literal_vals[i].type()),
+                             false, true});
+                    op = new duckdb::PhysicalNodeScan(
+                        local_schemas, global_schema, oids, projection_mapping,
+                        scan_projection_mapping, pred_attr_poss,
+                        range_filter_values);
+                    break;
+                case IMDType::ECmpType::EcmptGEq:
+                    for (int i = 0; i < num_vals; i++)
+                        range_filter_values.push_back(
+                            {literal_vals[i],
+                             duckdb::Value::MaximumValue(
+                                 literal_vals[i].type()),
+                             true, true});
+                    op = new duckdb::PhysicalNodeScan(
+                        local_schemas, global_schema, oids, projection_mapping,
+                        scan_projection_mapping, pred_attr_poss,
+                        range_filter_values);
+                    break;
+                default:
+                    D_ASSERT(false);
+                    break;
+            }
             result->push_back(op);
         }
         else {
@@ -793,15 +838,13 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
             // Obtain union schema
             duckdb::Schema proj_op_output_union_schema;
             vector<duckdb::LogicalType> proj_op_output_types;
-            pGetColumnsDuckDBType(unionall_output_cols,
-                                    proj_op_output_types);
-            proj_op_output_union_schema.setStoredTypes(
-                proj_op_output_types);
+            pGetColumnsDuckDBType(unionall_output_cols, proj_op_output_types);
+            proj_op_output_union_schema.setStoredTypes(proj_op_output_types);
 
             // Obtain local schemas
             vector<duckdb::Schema> proj_op_output_local_schemas;
             pRemoveColumnsFromSchemas(local_schemas, bound_ref_idxs,
-                                        proj_op_output_local_schemas);
+                                      proj_op_output_local_schemas);
 
             // Create projection exprs
             vector<unique_ptr<duckdb::Expression>> proj_exprs;
@@ -813,7 +856,7 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
             D_ASSERT(proj_exprs.size() == unionall_output_cols->Size());
             duckdb::CypherPhysicalOperator *proj_op =
                 new duckdb::PhysicalProjection(proj_op_output_union_schema,
-                                                std::move(proj_exprs));
+                                               std::move(proj_exprs));
             result->push_back(proj_op);
 
             // Update schema flow graph for projection
@@ -848,7 +891,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<duckdb::CypherPhysicalOperator *> *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
-    vector<duckdb::LogicalType> types;
+    vector<duckdb::LogicalType> output_types;
+    vector<duckdb::LogicalType> output_types_wo_edge_properties;
 
     CPhysicalInnerIndexNLJoin *proj_op =
         (CPhysicalInnerIndexNLJoin *)plan_expr->Pop();
@@ -875,12 +919,16 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
         CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
         OID type_oid = type_mdid->Oid();
-        types.push_back(pConvertTypeOidToLogicalType(type_oid));
+        auto logical_type = pConvertTypeOidToLogicalType(type_oid);
+        output_types.push_back(logical_type);
+        if (!pIsColEdgeProperty(col)) {
+            output_types_wo_edge_properties.push_back(logical_type);
+        }
     }
 
     // 230303 srcidxcol = 0 (_id)
     uint64_t sid_col_idx = 0;
-    uint64_t seek_sid_col_idx = 0;
+    uint64_t edge_id_col_idx = 0;
 
     // TODO load only adjidx id => hardcode load sid only (we use backward idx)
 
@@ -896,6 +944,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CColRefArray *idxscan_output;
 
     /**
+     * ISSUE (2024.2.17)
+     * 
      * The pattern like
      * --CPhysicalComputeScalarC
      * ----CPhysicalIndexScan
@@ -1009,12 +1059,11 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     }
     D_ASSERT(sid_col_idx_found);
 
-    bool load_edge_property = false, load_eid = false;
+    bool is_edge_property_in_output = false, is_eid_in_output = false;
     // construct inner col map
     CColRefArray *inner_cols =
-        is_proj_exist ?
-            proj_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp) :
-            idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+        is_proj_exist ? proj_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp)
+                      : idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
         CColRef *col = inner_cols->operator[](col_idx);
         CColRefTable *colref_table = (CColRefTable *)col;
@@ -1026,26 +1075,19 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             auto id_idx = it_->second;
-            if (colref_table->AttrNum() >= 3) { // i.e., there is edge property except _sid and _tid
-                const CName &col_name = colref_table->Name();
-                wchar_t *col_name_str, *second_token, *pt;
-                col_name_str =
-                    new wchar_t[std::wcslen(col_name.Pstr()->GetBuffer()) + 1];
-                std::wcscpy(col_name_str, col_name.Pstr()->GetBuffer());
-                second_token = std::wcstok(col_name_str, L".", &pt);
-                second_token = std::wcstok(NULL, L".", &pt);
-                if ((std::wcsncmp(second_token, L"_sid", 4) == 0) ||
-                    (std::wcsncmp(second_token, L"_tid", 4) == 0)) {
+            if (colref_table->AttrNum() >=
+                3) {  // i.e., there is edge property except _sid and _tid
+                if (!pIsColEdgeProperty(col)) {
                     inner_col_map.push_back(id_idx);
                 }
                 else {
-                    load_edge_property = true;
+                    is_edge_property_in_output = true;
                     inner_col_map_seek.push_back(id_idx);
                 }
             }
             else {
                 if (colref_table->AttrNum() == -1)
-                    load_eid = true;
+                    is_eid_in_output = true;
                 inner_col_map.push_back(id_idx);
             }
         }
@@ -1083,10 +1125,10 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         D_ASSERT(outer_pos != gpos::ulong_max);
     }
 
-    if (!load_edge_property) {
+    if (!is_edge_property_in_output) {
         /* Generate operator and push */
         duckdb::Schema tmp_schema;
-        tmp_schema.setStoredTypes(types);
+        tmp_schema.setStoredTypes(output_types);
 
         duckdb::CypherPhysicalOperator *op;
         if (do_filter_pushdown) {
@@ -1094,18 +1136,27 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 tmp_schema, adjidx_obj_id,
                 is_left_outer ? duckdb::JoinType::LEFT
                               : duckdb::JoinType::INNER,
-                sid_col_idx, load_eid, outer_col_map, inner_col_map, true,
-                outer_pos, inner_pos);
+                sid_col_idx, is_eid_in_output, outer_col_map, inner_col_map,
+                true, outer_pos, inner_pos);
         }
         else {
             op = new duckdb::PhysicalAdjIdxJoin(
                 tmp_schema, adjidx_obj_id,
                 is_left_outer ? duckdb::JoinType::LEFT
                               : duckdb::JoinType::INNER,
-                sid_col_idx, load_eid, outer_col_map, inner_col_map);
+                sid_col_idx, is_eid_in_output, outer_col_map, inner_col_map);
         }
 
-        if (generate_sfg) {  // TODO wrong code.. but
+        /**
+         * TOOD: this code assumes that the edge table is single schema.
+         * Extend this code to handle multiple schemas.
+         * 
+         * TODO: is pipeline_schemas necessary?
+         * In the current logic, we intialize the chunk with UNION schema
+         * and use col map to invalid each vector.
+         * Therefore, pipeline schema is not actually used.
+        */
+        if (generate_sfg) {
             vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
             pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
             num_schemas_of_childs.push_back({prev_local_schemas.size()});
@@ -1117,16 +1168,16 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     }
     else {
         // AdjIdxJoin -> Edge Id Seek
-        bool load_eid_temporarily = !load_eid;
+        bool load_eid_temporarily = !is_eid_in_output;
         duckdb::Schema tmp_schema_seek, tmp_schema_adjidxjoin;
-        tmp_schema_seek.setStoredTypes(types);
+        tmp_schema_seek.setStoredTypes(output_types);
 
-        if (load_eid) {
-            // if we already load eid, use it for id seek operation
-            seek_sid_col_idx = inner_col_map[0];
-            tmp_schema_adjidxjoin.setStoredTypes(types);
+        if (!load_eid_temporarily) {
+            edge_id_col_idx = inner_col_map[0];
+            tmp_schema_adjidxjoin.setStoredTypes(
+                output_types_wo_edge_properties);
 
-            outer_col_map_seek.resize(types.size());
+            outer_col_map_seek.resize(output_types.size());
             for (int i = 0; i < outer_col_map_seek.size(); i++) {
                 auto it = std::find(inner_col_map_seek.begin(),
                                     inner_col_map_seek.end(), i);
@@ -1139,14 +1190,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             // if we do not load eid, we need to load eid temporarily for id seek operation
-
             // append id type & adjust tmp_schema, inner_col_map
-            types.push_back(duckdb::LogicalType::ID);
-            seek_sid_col_idx = types.size() - 1;
-            tmp_schema_adjidxjoin.setStoredTypes(types);
-            inner_col_map.push_back(seek_sid_col_idx);
+            output_types_wo_edge_properties.push_back(duckdb::LogicalType::ID);
+            edge_id_col_idx = output_types_wo_edge_properties.size() - 1;
+            tmp_schema_adjidxjoin.setStoredTypes(
+                output_types_wo_edge_properties);
+            inner_col_map.push_back(edge_id_col_idx);
 
-            outer_col_map_seek.resize(types.size() - 1);
+            outer_col_map_seek.resize(output_types.size() - 1);
             for (int i = 0; i < outer_col_map_seek.size(); i++) {
                 auto it = std::find(inner_col_map_seek.begin(),
                                     inner_col_map_seek.end(), i);
@@ -1178,18 +1229,86 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 load_eid_temporarily);
         }
 
+        /* Generate schema flow graph for adjidxjoin */
+        /* Note: see the code above for TODOs (single schema assumption and etc) */
+        if (generate_sfg) {
+            vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+            pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+            num_schemas_of_childs.push_back({prev_local_schemas.size()});
+            pipeline_schemas.push_back(prev_local_schemas);
+            pipeline_union_schema.push_back(tmp_schema_adjidxjoin);
+        }
 
         /**
          * Bugs
          * 1. No schema flow graph for seek operation
-         * 2. No schema flow graph for adjidxjoin operation
          * 3. Wrong use of IdSeek operator
         */
 
         // TODO filter + seek
-        duckdb::CypherPhysicalOperator *op_seek = new duckdb::PhysicalIdSeek(
-            tmp_schema_seek, seek_sid_col_idx, oids, projection_mapping,
-            outer_col_map_seek, inner_col_map_seek);
+        duckdb::CypherPhysicalOperator *op_seek;
+        if (!generate_sfg) {
+            op_seek = new duckdb::PhysicalIdSeek(
+                tmp_schema_seek, edge_id_col_idx, oids, projection_mapping,
+                outer_col_map_seek, inner_col_map_seek);
+        }
+        else {
+            /**
+             * TODO: remove single schema assumption.
+             * Currenlty, this code assumes that the edge table is single schema.
+             * 
+             * TODO: Consider filter pushdown for seek operation.
+            */
+            vector<vector<uint32_t>> outer_col_maps_seek;
+            vector<vector<uint32_t>> inner_col_maps_seek;
+            vector<uint32_t> union_inner_col_map_seek = inner_col_map_seek;
+            vector<vector<uint64_t>> output_projection_mappings(1);
+            vector<vector<uint64_t>> scan_projection_mappings(1);
+            vector<vector<duckdb::LogicalType>> scan_types(1);
+            duckdb::Schema rhs_schema;
+
+            // Generate parameters for IdSeek.
+            CExpression *proj_list_expr = proj_expr->operator[](1);
+            uint32_t i = 0;
+            for (uint32_t j = 0; j < proj_list_expr->Arity(); j++) {
+                CExpression *proj_elem_expr = proj_list_expr->operator[](j);
+                CScalarIdent *ident_op =
+                    (CScalarIdent *)proj_elem_expr->PdrgPexpr()
+                        ->
+                        operator[](0)
+                        ->Pop();
+                const CColRef *colref = ident_op->Pcr();
+                const CColRefTable *colref_table = (const CColRefTable *)colref;
+                if (pIsColEdgeProperty(colref)) {
+                    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(
+                        colref_table->RetrieveType()->MDId());
+                    scan_types[0].push_back(
+                        pConvertTypeOidToLogicalType(type_mdid->Oid()));
+                    output_projection_mappings[0].push_back(i++);
+                    scan_projection_mappings[0].push_back(
+                        colref_table->AttrNum());
+                }
+            }
+            outer_col_maps_seek.push_back(outer_col_map_seek);
+            inner_col_maps_seek.push_back(inner_col_map_seek);
+            rhs_schema.setStoredTypes(scan_types[0]);
+
+            op_seek = new duckdb::PhysicalIdSeek(
+                tmp_schema_seek, edge_id_col_idx, oids,
+                output_projection_mappings, outer_col_maps_seek,
+                inner_col_maps_seek, union_inner_col_map_seek,
+                scan_projection_mappings, scan_types, true);
+
+            vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+            pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
+            num_schemas_of_childs.push_back({prev_local_schemas.size(), 1});
+            vector<duckdb::Schema> out_schemas;
+            vector<duckdb::Schema> rhs_schemas = {rhs_schema};
+            pGenerateCartesianProductSchema(prev_local_schemas, rhs_schemas,
+                                            out_schemas);
+            pipeline_schemas.push_back(out_schemas);
+            pipeline_union_schema.push_back(tmp_schema_seek);
+        }
 
         result->push_back(op_adjidxjoin);
         result->push_back(op_seek);
@@ -3720,41 +3839,52 @@ bool Planner::pIsCartesianProduct(CExpression *expr)
            CUtils::FScalarConstTrue(expr->operator[](2));
 }
 
-bool Planner::pIsFilterPushdownAbleIntoScan(CExpression* selection_expr) {
-	
-	D_ASSERT( selection_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalFilter );
-	CExpression* filter_expr = NULL;
-	CExpression* filter_pred_expr = NULL;
-	filter_expr = selection_expr;
-	filter_pred_expr = filter_expr->operator[](1);
+bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
+{
 
-	auto ok = 
-		filter_pred_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp
-		&& (((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptEq ||
-			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptNEq ||
-			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptL ||
-			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptLEq ||
-			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptG ||
-			((CScalarCmp*)(filter_pred_expr->Pop()))->ParseCmpType() == IMDType::ECmpType::EcmptGEq
-		)
-		&& filter_pred_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent
-		&& filter_pred_expr->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarConst;
-	
-	return ok;
+    D_ASSERT(selection_expr->Pop()->Eopid() ==
+             COperator::EOperatorId::EopPhysicalFilter);
+    CExpression *filter_expr = NULL;
+    CExpression *filter_pred_expr = NULL;
+    filter_expr = selection_expr;
+    filter_pred_expr = filter_expr->operator[](1);
+
+    auto ok = filter_pred_expr->Pop()->Eopid() ==
+                  COperator::EOperatorId::EopScalarCmp &&
+              (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptEq ||
+               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptNEq ||
+               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptL ||
+               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptLEq ||
+               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptG ||
+               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                   IMDType::ECmpType::EcmptGEq) &&
+              filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+                  COperator::EOperatorId::EopScalarIdent &&
+              filter_pred_expr->operator[](1)->Pop()->Eopid() ==
+                  COperator::EOperatorId::EopScalarConst;
+
+    return ok;
 }
 
-duckdb::OrderByNullType Planner::pTranslateNullType(COrderSpec::ENullTreatment ent) {
-	switch (ent) {
-	case COrderSpec::ENullTreatment::EntAuto:
-		return duckdb::OrderByNullType::ORDER_DEFAULT;
-	case COrderSpec::ENullTreatment::EntFirst:
-		return duckdb::OrderByNullType::NULLS_FIRST;
-	case COrderSpec::ENullTreatment::EntLast:
-		return duckdb::OrderByNullType::NULLS_LAST;
-	case COrderSpec::ENullTreatment::EntSentinel:
-		D_ASSERT(false);
-	}
-	return duckdb::OrderByNullType::ORDER_DEFAULT;
+duckdb::OrderByNullType Planner::pTranslateNullType(
+    COrderSpec::ENullTreatment ent)
+{
+    switch (ent) {
+        case COrderSpec::ENullTreatment::EntAuto:
+            return duckdb::OrderByNullType::ORDER_DEFAULT;
+        case COrderSpec::ENullTreatment::EntFirst:
+            return duckdb::OrderByNullType::NULLS_FIRST;
+        case COrderSpec::ENullTreatment::EntLast:
+            return duckdb::OrderByNullType::NULLS_LAST;
+        case COrderSpec::ENullTreatment::EntSentinel:
+            D_ASSERT(false);
+    }
+    return duckdb::OrderByNullType::ORDER_DEFAULT;
 }
 
 duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
@@ -3955,17 +4085,10 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
         pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
         num_schemas_of_childs.push_back(
             {prev_local_schemas.size(), rhs_num_schemas});
-        // Generate cartensian prouct of schemas (prev_local_schema x rhs_schemas)
-        vector<duckdb::Schema> lhs_schemas;
-        for (auto &prev_local_schema : prev_local_schemas) {
-            for (auto &rhs_schema : rhs_schemas) {
-                duckdb::Schema tmp_schema;
-                tmp_schema.setStoredTypes(prev_local_schema.getStoredTypes());
-                tmp_schema.appendStoredTypes(rhs_schema.getStoredTypes());
-                lhs_schemas.push_back(tmp_schema);
-            }
-        }
-        pipeline_schemas.push_back(lhs_schemas);
+        vector<duckdb::Schema> out_schemas;
+        pGenerateCartesianProductSchema(prev_local_schemas, rhs_schemas,
+                                        out_schemas);
+        pipeline_schemas.push_back(out_schemas);
         pipeline_union_schema.push_back(output_schema);
     }
 
@@ -4005,6 +4128,33 @@ void Planner::pRemoveColumnsFromSchemas(vector<duckdb::Schema> &in_schemas,
             new_schema.appendStoredTypes({stored_types[idx]});
         }
         out_schemas.push_back(new_schema);
+    }
+}
+
+bool Planner::pIsColEdgeProperty(const CColRef *colref)
+{
+    const CColRefTable *colref_table = (const CColRefTable *)colref;
+    const CName &col_name = colref_table->Name();
+    wchar_t *full_col_name, *col_only_name, *pt;
+    full_col_name = new wchar_t[std::wcslen(col_name.Pstr()->GetBuffer()) + 1];
+    std::wcscpy(full_col_name, col_name.Pstr()->GetBuffer());
+    col_only_name = std::wcstok(full_col_name, L".", &pt);
+    col_only_name = std::wcstok(NULL, L".", &pt);
+    return (std::wcsncmp(col_only_name, L"_sid", 4) != 0) &&
+           (std::wcsncmp(col_only_name, L"_tid", 4) != 0);
+}
+
+void Planner::pGenerateCartesianProductSchema(
+    vector<duckdb::Schema> &lhs_schemas, vector<duckdb::Schema> &rhs_schemas,
+    vector<duckdb::Schema> &out_schemas)
+{
+    for (auto &lhs_schema : lhs_schemas) {
+        for (auto &rhs_schema : rhs_schemas) {
+            duckdb::Schema tmp_schema;
+            tmp_schema.setStoredTypes(lhs_schema.getStoredTypes());
+            tmp_schema.appendStoredTypes(rhs_schema.getStoredTypes());
+            out_schemas.push_back(tmp_schema);
+        }
     }
 }
 
