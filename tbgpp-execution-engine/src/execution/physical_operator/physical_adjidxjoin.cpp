@@ -131,6 +131,9 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext &context,
     if (state.adj_col_idxs.size() == 0) {
         context.client->graph_store->getAdjColIdxs(
             (idx_t)adjidx_obj_id, state.adj_col_idxs, state.adj_col_types);
+        for (auto i = 0; i < state.adj_col_idxs.size(); i++) {
+            D_ASSERT(state.adj_col_idxs[i] >= 0);
+        }
         // 230303 changed api
         //context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);
     }
