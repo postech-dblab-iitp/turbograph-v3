@@ -1814,14 +1814,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(
         pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
             plan_expr, result);
     }
-
-    if (drvd_prop_plan->Pos()->UlSortColumns() > 0) {
-        pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(
-            plan_expr, result);
-    }
     else {
-        pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(
-            plan_expr, result);
+        if (drvd_prop_plan->Pos()->UlSortColumns() > 0) {
+            pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(
+                plan_expr, result);
+        }
+        else {
+            pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(
+                plan_expr, result);
+        }
     }
 
     return result;
@@ -2395,25 +2396,53 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
     CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-    D_ASSERT(inner_cols->Size() == 1);
 
     // ID column only (n._id)
-    // vector<duckdb::LogicalType> types;
-    // CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(inner_cols[0]->RetrieveType()->MDId());
-    // types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
+    vector<duckdb::LogicalType> proj_output_types;
+    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+        CColRef *col = (*output_cols)[col_idx];
+        CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
+        OID type_oid = type_mdid->Oid();
+        proj_output_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+    }
 
-    // // generate operator and push
-    // duckdb::Schema proj_schema;
-    // proj_schema.setStoredTypes(types);
-    // vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    // duckdb::idx_t tid_idx = 0;
-    // proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-    //                     types[0], (int)idx));
+    // generate projection expressions (I don't assume the _tid is always the last)
+    vector<unique_ptr<duckdb::Expression>> proj_exprs;
+    vector<bool> is_id_col(outer_cols->Size(), true);
+    // projection expressions for non _id columns
+    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+        auto idx = outer_cols->IndexOf(output_cols->operator[](col_idx));
+        if (idx != gpos::ulong_max) { // non _id column
+            proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+                proj_output_types[col_idx], (int)idx));
+            is_id_col[idx] = false;
+        }
+    }
+    // projection expressions for _id column
+    for (size_t i = 0; i < is_id_col.size(); i++) {
+        if (is_id_col[i]) {
+            proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+                proj_output_types[proj_exprs.size()], (int)i));
+        }
+    }
 
-    // // generate schema flow graph
-    // if (generate_sfg) {
+    // generate schema
+    duckdb::Schema proj_schema;
+    proj_schema.setStoredTypes(proj_output_types);
 
-    // }
+    // define op
+    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalProjection(
+        proj_schema, move(proj_exprs));
+    result->push_back(op);
+
+    // generate schema flow graph
+    if (generate_sfg) {
+        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
+        pipeline_schemas.push_back(prev_local_schemas);
+        pipeline_union_schema.push_back(proj_schema);
+    }
 }
 
 vector<duckdb::CypherPhysicalOperator *> *
@@ -4196,31 +4225,30 @@ bool Planner::pIsJoinRhsOutputPhysicalIdOnly(CExpression *plan_expr)
      * The pattern:
      * CPhysicalInnerIndexNLJoin (plan_expr)
      * |--(some pattern)
-     * |--CPhysicalSerialUnionAll
+     * |--CPhysicalSerialUnionAll (optional)
      * |  |--CPhysicalComputeScalarColumnar
      * |  |  |--CPhysicalIndexScan
      * |  |  |  |--CScalarCmp
      * |  |  |  |  |--CScalarIdent "n._id"
      * |  |  |  |  |--CScalarIdent "_tid"
-     * |  |  |  |--CScalarProjectList
-     * |  |  |  |  |--CScalarProjectElement "n._id"
-     * |  |  |  |  |  |--CScalarIdent "n._id"
+     * |  |  |--CScalarProjectList
+     * |  |  |  |--CScalarProjectElement "n._id"
+     * |  |  |  |  |--CScalarIdent "n._id"
     */
 
-    /* With UNION ALL */
-    auto p1 = vector<COperator::EOperatorId>({
-        COperator::EOperatorId::EopPhysicalInnerNLJoin,
+    /* UNION ALL Case */
+    vector<COperator::EOperatorId> p1 = vector<COperator::EOperatorId>({
         COperator::EOperatorId::EopPhysicalSerialUnionAll,
         COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
-        COperator::EOperatorId::EopPhysicalIndexScan,
+        COperator::EOperatorId::EopPhysicalIndexScan
     });
 
-    if (pMatchExprPattern(plan_expr, p1, 0, true)) {
+    if (pMatchExprPattern(plan_expr->operator[](1), p1, 0, true)) {
         CExpression *compute_scalar_expr =
             plan_expr->operator[](1)->operator[](0);
         CExpression *index_scan_expr = compute_scalar_expr->operator[](0);
         CExpression *cmp_expr = index_scan_expr->operator[](0);
-        CExpression *project_list_expr = index_scan_expr->operator[](1);
+        CExpression *project_list_expr = compute_scalar_expr->operator[](1);
 
         // Check if two ident's name contains w_id_col_name and w_tid_col_name
         if (cmp_expr->operator[](0)->Pop()->Eopid() ==
@@ -4256,15 +4284,14 @@ bool Planner::pIsJoinRhsOutputPhysicalIdOnly(CExpression *plan_expr)
         return false;
     }
 
-    /* Without UNION ALL */
-    auto p2 = vector<COperator::EOperatorId>({
-        COperator::EOperatorId::EopPhysicalInnerNLJoin,
+
+    /* No UNION ALL Case */
+    vector<COperator::EOperatorId> p2 = vector<COperator::EOperatorId>({
         COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
-        COperator::EOperatorId::EopPhysicalIndexScan,
-        COperator::EOperatorId::EopScalarCmp,
+        COperator::EOperatorId::EopPhysicalIndexScan
     });
 
-    if (pMatchExprPattern(plan_expr, p2, 0, true)) {
+    if (pMatchExprPattern(plan_expr->operator[](1), p2, 0, true)) {
         D_ASSERT(false);
     }
 
