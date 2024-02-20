@@ -83,7 +83,7 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
 	// 	"vpart_REGION", "vpart_SUPPLIER"};
 	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person"};
-	vector<string> part_cat_list = {"epart_CONTAINER_OF"};
+	vector<string> part_cat_list = {"epart_HAS_CREATOR"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);

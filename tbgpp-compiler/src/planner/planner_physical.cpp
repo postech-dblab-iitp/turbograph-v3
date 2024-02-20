@@ -260,8 +260,16 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
             break;
         }
         case COperator::EOperatorId::EopPhysicalLimit: {
-            // TODO we need to optimize Limit + Sort
-            result = pTransformEopLimit(plan_expr);
+            auto topnsort_p = vector<COperator::EOperatorId>(
+                {COperator::EOperatorId::EopPhysicalLimit,
+                 COperator::EOperatorId::EopPhysicalLimit,
+                 COperator::EOperatorId::EopPhysicalSort});
+            if (pMatchExprPattern(plan_expr, topnsort_p, 0, true)) {
+                result = pTransformEopTopNSort(plan_expr);
+            }
+            else {
+                result = pTransformEopLimit(plan_expr);
+            }
             break;
         }
         case COperator::EOperatorId::EopPhysicalSort: {
@@ -3260,7 +3268,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     duckdb::Schema tmp_schema;
     tmp_schema.setStoredTypes(last_op->GetTypes());
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalSort(
-        tmp_schema, move(orders));  // TODO we have topn sort only..
+        tmp_schema, move(orders));
     result->push_back(op);
 
     // break pipeline
