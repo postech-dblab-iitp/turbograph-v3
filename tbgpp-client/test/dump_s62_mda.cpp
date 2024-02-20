@@ -83,7 +83,7 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
 	// 	"vpart_REGION", "vpart_SUPPLIER"};
 	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person"};
-	vector<string> part_cat_list = {"epart_HAS_CREATOR"};
+	vector<string> part_cat_list = {"epart_CONTAINER_OF", "epart_HAS_CREATOR", "epart_HAS_MODERATOR", "epart_REPLY_OF", "epart_REPLY_OF_COMMENT"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -100,7 +100,7 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 		for (size_t i = 0; i < adjidx_oids->size(); i++) {
 			IndexCatalogEntry *index_cat =
 				(IndexCatalogEntry *)cat.GetEntry(*client.get(), DEFAULT_SCHEMA, adjidx_oids->at(i));
-			fprintf(stdout, "Part %s adjidx oid[%ld] %ld: %s\n", part_cat_name.c_str(), i, adjidx_oids->at(i), index_cat->GetName().c_str());
+			fprintf(stdout, "Part %s adjidx oid[%ld] %ld: %s, adjColIdx: %ld\n", part_cat_name.c_str(), i, adjidx_oids->at(i), index_cat->GetName().c_str(), index_cat->GetAdjColIdx());
 		}
 	}
 	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless_240219/";
+	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
