@@ -290,29 +290,11 @@ OperatorResultType PhysicalVarlenAdjIdxJoin::ExecuteRangedInput(ExecutionContext
 }
 
 OperatorResultType PhysicalVarlenAdjIdxJoin::Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-
 	// 230303 
 	return ExecuteNaiveInput(context, input, chunk, lstate);
-
-
-// icecream::ic.enable();
-// 	if( schema.getCypherType(srcName) == CypherValueType::RANGE ) {
-// 		D_ASSERT( false && "currently not supporting when range is given as input");
-// 		return ExecuteRangedInput(context, input, chunk, lstate);
-// 	} else {
-// 		return ExecuteNaiveInput(context, input, chunk, lstate);
-// 	}
-// icecream::ic.disable();
 }
 
 void PhysicalVarlenAdjIdxJoin::ProcessVarlenEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
-// icecream::ic.enable();
-// IC(input.size());
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
-
 	auto &state = (VarlenAdjIdxJoinState &)lstate;
 	Vector& src_vid_column_vector = input.data[state.srcColIdx];	// can be dictionaryvector
 	uint64_t num_found_paths;
@@ -457,7 +439,12 @@ bool PhysicalVarlenAdjIdxJoin::falsePositiveCheck(vector<uint64_t> &current_path
 }
 
 std::string PhysicalVarlenAdjIdxJoin::ParamsToString() const {
-	return "VarlenAdjIdxJoin-params-TODO";
+	std::string result = "";
+	result += "adjidx_obj_id=" + std::to_string(adjidx_obj_id) + ", ";
+	result += "sid_col_idx=" + std::to_string(sid_col_idx) + ", ";
+	result += "min_hop=" + std::to_string(min_length) + ",";
+	result += "max_hop=" + std::to_string(max_length);
+	return result;
 }
 
 std::string PhysicalVarlenAdjIdxJoin::ToString() const {

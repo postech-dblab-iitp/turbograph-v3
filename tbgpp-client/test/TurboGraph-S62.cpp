@@ -575,8 +575,10 @@ int main(int argc, char** argv) {
 					CompileAndRun(query_str, client, planner);
 				} catch (duckdb::Exception e) {
 					std::cerr << e.what() << std::endl;
-				} catch (std::exception e1) {
-					std::cerr << e1.what() << std::endl;
+				} catch (std::exception &e1) {
+					std::cerr << "Unexpected Exception" << std::endl;
+					std::cerr << "Caught: " << e1.what() << std::endl;
+					std::cerr << "Type: " << typeid(e1).name() << std::endl;
 				}
 			}
 		}

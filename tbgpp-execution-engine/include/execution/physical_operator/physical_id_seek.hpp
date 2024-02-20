@@ -109,6 +109,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<uint32_t> union_inner_col_map;
     vector<PartialSchema> partial_schemas;
     bool is_output_union_schema = true;
+    idx_t num_total_schemas = 1;
 
     unique_ptr<Expression> expression;
     mutable DataChunk tmp_chunk;
