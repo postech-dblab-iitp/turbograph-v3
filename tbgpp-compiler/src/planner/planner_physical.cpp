@@ -110,7 +110,8 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
         pGenerateSchemaFlowGraph(final_pipeline_ops);
     }
 
-    auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops, pipelines.size());
+    auto final_pipeline =
+        new duckdb::CypherPipeline(final_pipeline_ops, pipelines.size());
 
     pipelines.push_back(final_pipeline);
 
@@ -1075,7 +1076,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             auto id_idx = it_->second;
-            if (colref_table->AttrNum() >= 3) {  // i.e., there is edge property except _sid and _tid
+            if (colref_table->AttrNum() >=
+                3) {  // i.e., there is edge property except _sid and _tid
                 if (!pIsColEdgeProperty(col)) {
                     inner_col_map.push_back(id_idx);
                 }
@@ -1837,6 +1839,12 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     CDrvdPropPlan *drvd_prop_plan = plan_expr->GetDrvdPropPlan();
+
+    if (pIsJoinRhsOutputPhysicalIdOnly(plan_expr)) {
+        pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
+            plan_expr, result);
+    }
+
     if (drvd_prop_plan->Pos()->UlSortColumns() > 0) {
         pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(
             plan_expr, result);
@@ -2400,6 +2408,35 @@ void Planner::
     outer_inner_cols->Release();
 }
 
+void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
+    CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result)
+{
+    CMemoryPool *mp = this->memory_pool;
+
+    CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    D_ASSERT(output_cols->Size() == 1);
+
+    // ID column only (n._id)
+    vector<duckdb::LogicalType> types;
+    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(output_cols[0]->RetrieveType()->MDId());
+    types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
+
+    // generate operator and push
+    duckdb::Schema proj_schema;
+    proj_schema.setStoredTypes(types);
+    vector<unique_ptr<duckdb::Expression>> proj_exprs;
+    duckdb::idx_t tid_idx = 0;
+    
+
+    proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+                        types[0], (int)idx));
+
+    // generate schema flow graph
+    if (generate_sfg) {
+
+    }
+}
+
 vector<duckdb::CypherPhysicalOperator *> *
 Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 {
@@ -2737,7 +2774,8 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     if (is_correlated) {
         // finish lhs pipeline
         lhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*lhs_result, pipelines.size());
+        auto pipeline =
+            new duckdb::CypherPipeline(*lhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return rhs pipeline
@@ -2747,7 +2785,8 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     else {
         // finish rhs pipeline
         rhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
+        auto pipeline =
+            new duckdb::CypherPipeline(*rhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return lhs pipeline
@@ -4170,6 +4209,101 @@ void Planner::pGenerateCartesianProductSchema(
             out_schemas.push_back(tmp_schema);
         }
     }
+}
+
+bool Planner::pIsJoinRhsOutputPhysicalIdOnly(CExpression *plan_expr)
+{
+    /* 
+     * Example query: 
+     * MATCH (m:Comment)-[roc:REPLY_OF_COMMENT]->(n:Comment) RETURN m.id AS messageId
+     * 
+     * The pattern:
+     * CPhysicalInnerIndexNLJoin (plan_expr)
+     * |--(some pattern)
+     * |--CPhysicalSerialUnionAll
+     * |  |--CPhysicalComputeScalarColumnar
+     * |  |  |--CPhysicalIndexScan
+     * |  |  |  |--CScalarCmp
+     * |  |  |  |  |--CScalarIdent "n._id"
+     * |  |  |  |  |--CScalarIdent "_tid"
+     * |  |  |  |--CScalarProjectList
+     * |  |  |  |  |--CScalarProjectElement "n._id"
+     * |  |  |  |  |  |--CScalarIdent "n._id"
+    */
+
+    /* With UNION ALL */
+    auto p1 = vector<COperator::EOperatorId>({
+        COperator::EOperatorId::EopPhysicalInnerNLJoin,
+        COperator::EOperatorId::EopPhysicalSerialUnionAll,
+        COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
+        COperator::EOperatorId::EopPhysicalIndexScan,
+    });
+
+    if (pMatchExprPattern(plan_expr, p1, 0, true)) {
+        CExpression *compute_scalar_expr =
+            plan_expr->operator[](1)->operator[](0);
+        CExpression *index_scan_expr = compute_scalar_expr->operator[](0);
+        CExpression *cmp_expr = index_scan_expr->operator[](0);
+        CExpression *project_list_expr = index_scan_expr->operator[](1);
+
+        // Check if two ident's name contains w_id_col_name and w_tid_col_name
+        if (cmp_expr->operator[](0)->Pop()->Eopid() ==
+                COperator::EOperatorId::EopScalarIdent &&
+            cmp_expr->operator[](1)->Pop()->Eopid() ==
+                COperator::EOperatorId::EopScalarIdent) {
+            CScalarIdent *lhs_ident =
+                (CScalarIdent *)cmp_expr->operator[](0)->Pop();
+            CScalarIdent *rhs_ident =
+                (CScalarIdent *)cmp_expr->operator[](1)->Pop();
+
+            if (pCmpColName(lhs_ident->Pcr(), w_id_col_name) &&
+                pCmpColName(rhs_ident->Pcr(), w_tid_col_name))
+                || (pCmpColName(lhs_ident->Pcr(), w_tid_col_name) &&
+                    pCmpColName(rhs_ident->Pcr(), w_id_col_name))
+                {
+                    // Check project element is one, and is ._id
+                    if (project_list_expr->Arity() == 1 &&
+                        project_list_expr->operator[](0)->Pop()->Eopid() ==
+                            COperator::EOperatorId::EopScalarProjectElement) {
+                        CScalarProjectElement *project_element =
+                            (CScalarProjectElement *)project_list_expr
+                                ->
+                                operator[](0)
+                                ->Pop();
+                        if (pCmpColName(project_element->Pcr(),
+                                        w_id_col_name)) {
+                            return true;
+                        }
+                    }
+                }
+        }
+        return false;
+    }
+
+    /* Without UNION ALL */
+    auto p2 = vector<COperator::EOperatorId>({
+        COperator::EOperatorId::EopPhysicalInnerNLJoin,
+        COperator::EOperatorId::EopPhysicalComputeScalarColumnar,
+        COperator::EOperatorId::EopPhysicalIndexScan,
+        COperator::EOperatorId::EopScalarCmp,
+    });
+
+    if (pMatchExprPattern(plan_expr, p2, 0, true)) {
+        D_ASSERT(false);
+    }
+
+    return false;
+}
+
+bool Planner::pCmpColName(const CColRef *colref, const WCHAR *col_name)
+{
+    if (colref->Name().Pstr()->GetLength() < std::wcslen(col_name)) {
+        return false;
+    }
+    return std::wcsncmp(colref->Name().Pstr()->GetBuffer() +
+                            colref->Name().Pstr()->GetLength() -
+                            std::wcslen(col_name),
+                        col_name, std::wcslen(col_name)) == 0;
 }
 
 }  // namespace s62

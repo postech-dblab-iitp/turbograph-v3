@@ -429,16 +429,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
                     current_output_chunks->at(output_schema_idx).get();
             }
         }
-        if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
-            // standalone operators e.g. filter, projection, adjidxjoin
-        }
-        else {
-            D_ASSERT(false);  // TODO 240123 tslee maybe we will not reach here
-                              // operator with related sink e.g. hashjoin, ..
-            // opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-            //  	*context, *prev_output_chunk, current_output_chunk, *local_operator_states[current_idx-1],
-            // 	*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
-        }
 
         // if result needs more output, push index to stack
         if (opResult == OperatorResultType::HAVE_MORE_OUTPUT) {
