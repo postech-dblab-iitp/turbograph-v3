@@ -128,6 +128,23 @@ run_ldbc_s() {
 		END AS replyAuthorKnowsOriginalMessageAuthor
 	    ORDER BY commentCreationDate DESC, replyAuthorId"
 
+	# Simplified
+	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+		RETURN c.id AS commentId,
+			c.content AS commentContent,
+			c.creationDate AS commentCreationDate,
+			p.id AS replyAuthorId,
+			p.firstName AS replyAuthorFirstName,
+			p.lastName AS replyAuthorLastName
+	"
+
+	# More simplified
+	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+		RETURN c.id AS commentId,
+			c.content AS commentContent,
+			c.creationDate AS commentCreationDate
+			"
+
 }
 
 run_ldbc_c1() {

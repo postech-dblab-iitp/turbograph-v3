@@ -152,7 +152,6 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 
     switch (plan_expr->Pop()->Eopid()) {
         case COperator::EOperatorId::EopPhysicalSerialUnionAll: {
-            // Currently not working
             if (pIsUnionAllOpAccessExpression(plan_expr)) {
                 result = pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
             }
@@ -2438,22 +2437,30 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
     }
 
     // generate projection expressions (I don't assume the _tid is always the last)
-    vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    vector<bool> is_id_col(outer_cols->Size(), true);
+    vector<unique_ptr<duckdb::Expression>> proj_exprs(output_cols->Size());
+    vector<bool> outer_cols_is_id_col(outer_cols->Size(), true);
+    duckdb::idx_t output_id_col_idx = gpos::ulong_max;
+
     // projection expressions for non _id columns
-    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-        auto idx = outer_cols->IndexOf(output_cols->operator[](col_idx));
-        if (idx != gpos::ulong_max) { // non _id column
-            proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-                proj_output_types[col_idx], (int)idx));
-            is_id_col[idx] = false;
+    for (ULONG output_col_idx = 0; output_col_idx < output_cols->Size(); output_col_idx++) {
+        auto outer_col_idx = outer_cols->IndexOf(output_cols->operator[](output_col_idx));
+        if (outer_col_idx != gpos::ulong_max) { // non _id column
+            proj_exprs[output_col_idx] = make_unique<duckdb::BoundReferenceExpression>(
+                proj_output_types[output_col_idx], (int)outer_col_idx);
+            outer_cols_is_id_col[outer_col_idx] = false;
+        }
+        else { // _id column
+            output_id_col_idx = output_col_idx;
         }
     }
+
     // projection expressions for _id column
-    for (size_t i = 0; i < is_id_col.size(); i++) {
-        if (is_id_col[i]) {
-            proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-                proj_output_types[proj_exprs.size()], (int)i));
+    if (output_id_col_idx != gpos::ulong_max) {
+        for (size_t outer_col_idx = 0; outer_col_idx < outer_cols_is_id_col.size(); outer_col_idx++) {
+            if (outer_cols_is_id_col[outer_col_idx]) {
+                proj_exprs[output_id_col_idx] = (make_unique<duckdb::BoundReferenceExpression>(
+                    duckdb::LogicalType(duckdb::LogicalTypeId::ID), (int)outer_col_idx));
+            }
         }
     }
 
@@ -3229,6 +3236,15 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
         new duckdb::PhysicalFilter(tmp_schema, move(filter_exprs));
     result->push_back(op);
 
+    // generate schema flow graph for the filter
+    if (generate_sfg) {
+        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
+        pipeline_schemas.push_back(prev_local_schemas);
+        pipeline_union_schema.push_back(tmp_schema);
+    }
+
     // we need further projection if we don't need filter column anymore
     if (output_cols->Size() != outer_cols->Size()) {
         duckdb::Schema output_schema;
@@ -3246,6 +3262,14 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalProjection(
                 output_schema, std::move(proj_exprs));
             result->push_back(op);
+
+            if (generate_sfg) {
+                vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+                pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+                num_schemas_of_childs.push_back({prev_local_schemas.size()});
+                pipeline_schemas.push_back(prev_local_schemas);
+                pipeline_union_schema.push_back(output_schema);
+            }
         }
     }
 
@@ -4240,6 +4264,10 @@ void Planner::pGenerateCartesianProductSchema(
     vector<duckdb::Schema> &lhs_schemas, vector<duckdb::Schema> &rhs_schemas,
     vector<duckdb::Schema> &out_schemas)
 {
+   /**
+    * TODO: This code assumes that the rhs is simply appended to the lhs.
+    * If the output columns are shuffled, this code will not work. 
+    */ 
     for (auto &lhs_schema : lhs_schemas) {
         for (auto &rhs_schema : rhs_schemas) {
             duckdb::Schema tmp_schema;
