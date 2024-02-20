@@ -2437,30 +2437,31 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
         proj_output_types.push_back(pConvertTypeOidToLogicalType(type_oid));
     }
 
-    /**
-     * This code assumes that the _tid is at the end of the outer_cols.
-     * 
+    // generate projection expressions (I don't assume the _tid is always the last)
     vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-        proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-            proj_output_types[col_idx], (int)col_idx));
-    }
-    */
-
-    // generate operator and push
-    duckdb::Schema proj_schema;
-    proj_schema.setStoredTypes(proj_output_types);
-    vector<unique_ptr<duckdb::Expression>> proj_exprs;
+    vector<bool> is_id_col(outer_cols->Size(), true);
+    // projection expressions for non _id columns
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         auto idx = outer_cols->IndexOf(output_cols->operator[](col_idx));
-        if (idx == gpos::ulong_max) {
-            D_ASSERT(false);
-        }
-        else {
+        if (idx != gpos::ulong_max) { // non _id column
             proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
                 proj_output_types[col_idx], (int)idx));
+            is_id_col[idx] = false;
         }
     }
+    // projection expressions for _id column
+    for (size_t i = 0; i < is_id_col.size(); i++) {
+        if (is_id_col[i]) {
+            proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+                proj_output_types[proj_exprs.size()], (int)i));
+        }
+    }
+
+    // generate schema
+    duckdb::Schema proj_schema;
+    proj_schema.setStoredTypes(proj_output_types);
+
+    // define op
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalProjection(
         proj_schema, move(proj_exprs));
     result->push_back(op);
