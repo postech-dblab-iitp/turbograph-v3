@@ -1504,9 +1504,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
     CompressionHeader comp_header;
-    idx_t begin_seqno = output_seqno;
+    output_seqno = 0;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
-        output_seqno = begin_seqno;
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
