@@ -359,6 +359,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
 	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 
 	// limit, sort
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
@@ -429,6 +430,8 @@ private:
 	void pRemoveColumnsFromSchemas(vector<duckdb::Schema>& in_schemas, vector<duckdb::idx_t>& ref_idxs, vector<duckdb::Schema>& out_schemas);
 	bool pIsColEdgeProperty(const CColRef* colref);
 	void pGenerateCartesianProductSchema(vector<duckdb::Schema>& lhs_schemas, vector<duckdb::Schema>& rhs_schemas, vector<duckdb::Schema>& out_schemas);
+	bool pIsJoinRhsOutputPhysicalIdOnly(CExpression *expr);
+	bool pCmpColName(const CColRef *colref, const WCHAR *col_name);
 
 	// scalar helper functions
 	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);

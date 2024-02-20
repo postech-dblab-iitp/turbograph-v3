@@ -105,7 +105,14 @@ run_ldbc_s() {
 			f.title AS forumTitle,
 			mod.id AS moderatorId,
 			mod.firstName AS moderatorFirstName,
-			mod.lastName AS moderatorLastName;"
+			mod.lastName AS moderatorLastName"
+
+	# LDBC IS6 Simplified
+
+	run_query "MATCH
+			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)
+		RETURN
+			m.id AS messageId"
 
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
