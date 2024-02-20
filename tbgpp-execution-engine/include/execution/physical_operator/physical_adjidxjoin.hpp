@@ -96,9 +96,13 @@ public:
 			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
 			discard_edge = (this->inner_col_map[1] == std::numeric_limits<uint32_t>::max());
 		} else {
-			D_ASSERT(this->inner_col_map.size() == 1);	// inner = (tid)
-			discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
-			discard_edge = true;
+			if (this->inner_col_map.size() == 0) {
+				discard_tgt = true;
+			} else if (this->inner_col_map.size() == 1) {
+				discard_tgt = (this->inner_col_map[0] == std::numeric_limits<uint32_t>::max());
+			} else {
+				throw NotImplementedException("Invalid inner_col_map size");
+			}
 		}
 		if (load_eid_temporarily) { D_ASSERT(load_eid); }
 		

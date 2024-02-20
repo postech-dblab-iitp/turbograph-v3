@@ -112,7 +112,7 @@ run_ldbc_s() {
 			f.title AS forumTitle,
 			mod.id AS moderatorId,
 			mod.firstName AS moderatorFirstName,
-			mod.lastName AS moderatorLastName"
+			mod.lastName AS moderatorLastName;"
 
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)

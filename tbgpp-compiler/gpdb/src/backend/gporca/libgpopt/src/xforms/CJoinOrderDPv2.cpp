@@ -37,8 +37,8 @@ using namespace gpopt;
 
 // how many expressions will we return at the end of the DP phase?
 // Note that this includes query, mincard and greedy solutions.
-// #define GPOPT_DPV2_JOIN_ORDERING_TOPK 10
-#define GPOPT_DPV2_JOIN_ORDERING_TOPK 50 // S62 we want more join orders now..
+#define GPOPT_DPV2_JOIN_ORDERING_TOPK 10
+// #define GPOPT_DPV2_JOIN_ORDERING_TOPK 50 // S62 we want more join orders now..
 // cost penalty (a factor) for cross product for enumeration algorithms other than GreedyAvoidXProd
 // (value determined by simple experiments on TPC-DS queries)
 // This is the default value for optimizer_nestloop_factor

@@ -39,6 +39,7 @@ namespace s62 {
 
 void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
 {
+    duckdb::CypherPhysicalOperator::operator_version = 0;
     pInitializeSchemaFlowGraph();
     vector<duckdb::CypherPhysicalOperator *> final_pipeline_ops =
         *pTraverseTransformPhysicalPlan(orca_plan_root);
@@ -109,7 +110,7 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
         pGenerateSchemaFlowGraph(final_pipeline_ops);
     }
 
-    auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops);
+    auto final_pipeline = new duckdb::CypherPipeline(final_pipeline_ops, pipelines.size());
 
     pipelines.push_back(final_pipeline);
 
@@ -880,7 +881,6 @@ vector<duckdb::CypherPhysicalOperator *> *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CExpression *plan_expr, bool is_left_outer)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     // actuall since this adjidxjoin there is second child, we integrate as single child
@@ -1433,6 +1433,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
         inner_col_map);
 
     result->push_back(op);
+
+    if (generate_sfg) {  // TODO wrong code.. but
+        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({prev_local_schemas.size()});
+        pipeline_schemas.push_back(prev_local_schemas);
+        pipeline_union_schema.push_back(tmp_schema);
+    }
 
     output_cols->Release();
     outer_cols->Release();
@@ -2654,7 +2662,7 @@ Planner::pTransformEopPhysicalInnerNLJoinToCartesianProduct(
 
     // finish rhs pipeline
     rhs_result->push_back(op);
-    auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+    auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
     pipelines.push_back(pipeline);
 
     // return lhs pipeline
@@ -2730,7 +2738,7 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     if (is_correlated) {
         // finish lhs pipeline
         lhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*lhs_result);
+        auto pipeline = new duckdb::CypherPipeline(*lhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return rhs pipeline
@@ -2740,7 +2748,7 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     else {
         // finish rhs pipeline
         rhs_result->push_back(op);
-        auto pipeline = new duckdb::CypherPipeline(*rhs_result);
+        auto pipeline = new duckdb::CypherPipeline(*rhs_result, pipelines.size());
         pipelines.push_back(pipeline);
 
         // return lhs pipeline
@@ -3051,7 +3059,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
 
     // finish pipeline
     result->push_back(op);
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -3216,7 +3224,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     result->push_back(op);
 
     // break pipeline
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -3338,7 +3346,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
     result->push_back(op);
 
     // break pipeline
-    auto pipeline = new duckdb::CypherPipeline(*result);
+    auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
     if (generate_sfg) {
@@ -4048,6 +4056,7 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
 	 * We then clear the schema flow graph data structures.
 	 * We finally generate lhs pipeline
 	*/
+
     // Step 1. rhs pipline
     vector<duckdb::CypherPhysicalOperator *> *rhs_result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));

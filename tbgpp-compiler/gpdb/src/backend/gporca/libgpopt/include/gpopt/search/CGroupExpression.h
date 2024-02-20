@@ -147,6 +147,9 @@ private:
 	// print transformation
 	void PrintXform(CMemoryPool *mp, CXform *pxform, CExpression *pexpr,
 					CXformResult *pxfres, ULONG ulNumResults);
+	
+	// print transformation input
+	void PrintXformInput(CMemoryPool *mp, CXform *pxform, CExpression *pexpr);
 
 	// preprocessing before applying transformation
 	void PreprocessTransform(CMemoryPool *pmpLocal, CMemoryPool *pmpGlobal,

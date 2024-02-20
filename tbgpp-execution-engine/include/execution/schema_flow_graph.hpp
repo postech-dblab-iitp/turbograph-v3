@@ -40,6 +40,8 @@ class SchemaFlowGraph {  // for each pipeline
     {
         if (!is_sfg_exists)
             return 0;
+        D_ASSERT(operator_idx < flow_graph.size());
+        D_ASSERT(schema_idx < flow_graph[operator_idx].size());
         return flow_graph[operator_idx][schema_idx];
     }
 
@@ -53,11 +55,15 @@ class SchemaFlowGraph {  // for each pipeline
         idx_t schema_idx =
             (num_schemas_of_childs[operator_idx][1] * schema_idx_1) +
             schema_idx_2;
+        D_ASSERT(operator_idx < flow_graph.size());
+        D_ASSERT(schema_idx < flow_graph[operator_idx].size());
         return flow_graph[operator_idx][schema_idx];
     }
 
     Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx)
     {
+        D_ASSERT(operator_idx < schema_per_operator.size());
+        D_ASSERT(schema_idx < schema_per_operator[operator_idx].size());
         return schema_per_operator[operator_idx]
                                   [GetNextSchemaIdx(operator_idx, schema_idx)];
     }
@@ -65,12 +71,16 @@ class SchemaFlowGraph {  // for each pipeline
     Schema &GetOutputSchema(idx_t operator_idx, idx_t schema_idx_1,
                             idx_t schema_idx_2)
     {
+        D_ASSERT(operator_idx < schema_per_operator.size());
+        D_ASSERT(GetNextSchemaIdx(operator_idx, schema_idx_1, schema_idx_2) <
+                 num_schemas_of_childs[operator_idx].size());
         return schema_per_operator[operator_idx][GetNextSchemaIdx(
             operator_idx, schema_idx_1, schema_idx_2)];
     }
 
     Schema &GetUnionOutputSchema(idx_t operator_idx)
     {
+        D_ASSERT(operator_idx < union_schema_per_operator.size());
         return union_schema_per_operator[operator_idx];
     }
 
