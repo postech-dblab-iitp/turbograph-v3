@@ -52,6 +52,13 @@ run_ldbc_s() {
 			n.gender AS gender,
 			n.creationDate AS creationDate"
 
+	# LDBC IS1 Simplified
+	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
+		   RETURN
+		   	n.firstName AS firstName,
+			p.id AS cityId,
+			n.gender AS gender"
+
 	# LDBC IS2 Recent messages of a person
 	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH
@@ -90,12 +97,11 @@ run_ldbc_s() {
 			m.content as messageContent"
 	
 	# LDBC IS5 Creator of a message
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
 		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
+			p.id AS personId,
 			p.firstName AS firstName,
-			p.id AS personId"
+			p.lastName AS lastName"
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
