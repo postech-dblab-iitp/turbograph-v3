@@ -103,6 +103,11 @@ private:
 									   ULONG ulCTEId, CExpression *pexprUnion,
 									   CExpression *pexprScalar,
 									   CXformResult *pxfres) const;
+	
+	CExpression *ExChangeColRefRecursively(CMemoryPool *mp,
+										   CExpression *pexprScalar,
+										   CColRef *first_target_col,
+										   CColRef *target_col) const;
 
 protected:
 	// is the logical join that is being transformed an outer join?
