@@ -52,13 +52,6 @@ run_ldbc_s() {
 			n.gender AS gender,
 			n.creationDate AS creationDate"
 
-	# LDBC IS1 Simplified
-	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
-		   RETURN
-		   	n.firstName AS firstName,
-			p.id AS cityId,
-			n.gender AS gender"
-
 	# LDBC IS2 Recent messages of a person
 	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
 			   WITH

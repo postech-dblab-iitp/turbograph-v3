@@ -266,20 +266,20 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 					}
 
 					// Logic for columnar project - projecting ident column is allowed for index join
-					if (pexprCurrInnerChild->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {
+					if( pexprCurrInnerChild->Pop()->Eopid() == COperator::EopLogicalProjectColumnar ) {
 						// even for outer columns, 
 						CExpression *pexprProjList = pexprCurrInnerChild->operator[](1);
 						pexprProjList->AddRef();
-						for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++){
+						for(ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx ++ ){
 							CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
 							CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
-							if (pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent) {
+							if( pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent ) {
 								// when lower expr is Ident, exclude colref of ProjElement
-								joinPredUsedCols->Exclude(((CScalarProjectElement*)pexprProjElem->Pop())->Pcr());
+								joinPredUsedCols->Exclude( ((CScalarProjectElement*)pexprProjElem->Pop())->Pcr() );
 							}
 						}
 						BOOL joinPredUsesProjectedColumnsColumnar = (0 < joinPredUsedCols->Size());
-						if (joinPredUsesProjectedColumnsColumnar) {
+						if( joinPredUsesProjectedColumnsColumnar ) {
 							return;
 						}
 					}

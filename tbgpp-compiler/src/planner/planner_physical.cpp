@@ -1075,8 +1075,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             auto id_idx = it_->second;
-            if (colref_table->AttrNum() >=
-                3) {  // i.e., there is edge property except _sid and _tid
+            if (colref_table->AttrNum() >= 3) {  // i.e., there is edge property except _sid and _tid
                 if (!pIsColEdgeProperty(col)) {
                     inner_col_map.push_back(id_idx);
                 }
@@ -4149,8 +4148,14 @@ bool Planner::pIsColEdgeProperty(const CColRef *colref)
     std::wcscpy(full_col_name, col_name.Pstr()->GetBuffer());
     col_only_name = std::wcstok(full_col_name, L".", &pt);
     col_only_name = std::wcstok(NULL, L".", &pt);
-    return (std::wcsncmp(col_only_name, L"_sid", 4) != 0) &&
-           (std::wcsncmp(col_only_name, L"_tid", 4) != 0);
+
+    if (col_only_name == NULL) {
+        return true;
+    }
+    else {
+        return (std::wcsncmp(col_only_name, L"_sid", 4) != 0) &&
+               (std::wcsncmp(col_only_name, L"_tid", 4) != 0);
+    }
 }
 
 void Planner::pGenerateCartesianProductSchema(
