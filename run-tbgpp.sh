@@ -90,12 +90,11 @@ run_ldbc_s() {
 			m.content as messageContent"
 	
 	# LDBC IS5 Creator of a message
-	run_query "MATCH (m:Comment)-[r:HAS_CREATOR]->(p:Person)
+	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
 		RETURN
-			m.id AS messageId,
-			p.lastName AS lastName,
+			p.id AS personId,
 			p.firstName AS firstName,
-			p.id AS personId"
+			p.lastName AS lastName"
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
@@ -106,7 +105,7 @@ run_ldbc_s() {
 			f.title AS forumTitle,
 			mod.id AS moderatorId,
 			mod.firstName AS moderatorFirstName,
-			mod.lastName AS moderatorLastName"
+			mod.lastName AS moderatorLastName;"
 
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)

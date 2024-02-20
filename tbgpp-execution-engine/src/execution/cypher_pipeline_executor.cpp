@@ -350,14 +350,23 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		}
 
 #ifdef DEBUG_PRINT_PIPELINE
-		if (cur_op_type == OperatorType::UNARY) {
-			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
-				<< ", schema_idx " << prev_output_schema_idx << " -> " << current_output_schema_idx << std::endl;
-		}
-		else if (cur_op_type == OperatorType::BINARY) {
-			std::cout << "[ExecutePipe - " << current_idx << "(" << pipeline->GetIdxOperator(current_idx)->ToString() << ")] prev num_tuples: " << prev_output_chunk->size()
-				<< std::endl;
-		}
+        if (cur_op_type == OperatorType::UNARY) {
+            std::cout << "[ExecutePipe - " << current_idx << "(#"
+                      << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
+                      << " "
+                      << pipeline->GetIdxOperator(current_idx)->ToString()
+                      << ")] prev num_tuples: " << prev_output_chunk->size()
+                      << ", schema_idx " << prev_output_schema_idx << " -> "
+                      << current_output_schema_idx << std::endl;
+        }
+        else if (cur_op_type == OperatorType::BINARY) {
+            std::cout << "[ExecutePipe - " << current_idx << "(#"
+                      << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
+                      << " "
+                      << pipeline->GetIdxOperator(current_idx)->ToString()
+                      << ")] prev num_tuples: " << prev_output_chunk->size()
+                      << std::endl;
+        }
 #endif
 
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT

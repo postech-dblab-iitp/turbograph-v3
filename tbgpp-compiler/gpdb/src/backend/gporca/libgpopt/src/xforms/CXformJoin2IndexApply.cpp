@@ -212,12 +212,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 			CLogicalGet::PopConvert(pexprGet->Pop());
 		CColRef *target_col = pexprGet->DeriveOutputColumns()->PcrIth(targetcol_idx);
 
-		CExpression *curexprScalar = GPOS_NEW(mp) CExpression(
-			mp, 
-			pexprScalar->Pop(),
-			(*pexprScalar)[0],
-			GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_col))
-		);
+		CExpression *curexprScalar(pexprScalar);
+		curexprScalar = ExChangeColRefRecursively(mp, curexprScalar, first_target_col, target_col);
 		curexprScalar->AddRef();
 		CTableDescriptor *curtabdescInner = popGet->Ptabdesc();
 		const ULONG ulIndices = curtabdescInner->IndexCount();
@@ -233,12 +229,13 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 		CColRefSet *pcrsReqd = NULL;
 		ComputeColumnSets(mp, pexprGet, pexprScalar, &pcrsScalarExpr, &outer_refs,
 						&pcrsReqd);
+		CColRefSet *pcrsScalarExprCpy = GPOS_NEW(mp) CColRefSet(mp, *pcrsScalarExpr);
 		if (first_target_col != NULL) {
-			pcrsScalarExpr->Exclude(first_target_col);
+			pcrsScalarExprCpy->Exclude(first_target_col);
 			outer_refs->Exclude(first_target_col);
 		}
 		if (target_col != NULL) {
-			pcrsScalarExpr->Include(target_col);
+			pcrsScalarExprCpy->Include(target_col);
 		}
 		
 		// outer_refs->Include(target_col);
@@ -277,7 +274,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 				}
 				CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet(
 					mp, md_accessor, pexprGet, joinOp->UlOpId(), pdrgpexpr,
-					pcrsReqd, pcrsScalarExpr, outer_refs, pmdindex, pmdrel,
+					pcrsReqd, pcrsScalarExprCpy, outer_refs, pmdindex, pmdrel,
 					false /*fAllowPartialIndex*/, ppartcnstrIndex);
 				if (NULL != pexprLogicalIndexGet)
 				{
@@ -304,7 +301,6 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 					CExpression *rightChild = GPOS_NEW(mp) CExpression(mp,
 						pexprProjectColumnar->Pop(), rightChildOfApply, (*pexprProjectColumnar)[1]);
 
-					pexprOuter->AddRef();
 					pexprProjectColumnar->Pop()->AddRef();
 					(*pexprProjectColumnar)[1]->AddRef();
 					rightChildsOfApply->Append(rightChild);
@@ -334,6 +330,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 		pcrsReqd->Release();
 		outer_refs->Release();
 		curexprScalar->Release();
+		pcrsScalarExprCpy->Release();
 	}
 	// CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
 	// 	mp,
@@ -342,6 +339,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 	COperator *new_union_all = pexprInner->Pop();
 	CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
 		mp, new_union_all, rightChildsOfApply);
+	pexprOuter->AddRef();
 	new_union_all->AddRef();
 	pexprUnionAll->AddRef();
 	CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
@@ -1020,6 +1018,37 @@ CXformJoin2IndexApply::AddUnionPlanForPartialIndexes(
 	CExpression *pexprAnchor = GPOS_NEW(mp) CExpression(
 		mp, GPOS_NEW(mp) CLogicalCTEAnchor(mp, ulCTEId), pexprUnion);
 	pxfres->Add(pexprAnchor);
+}
+
+CExpression *
+CXformJoin2IndexApply::ExChangeColRefRecursively(
+	CMemoryPool *mp, CExpression *pexprScalar, CColRef *first_target_col, CColRef *target_col) const
+{
+	CExpressionArray *child_array = GPOS_NEW(mp) CExpressionArray(mp);
+	for (ULONG i = 0; i < pexprScalar->Arity(); i++)
+	{
+		CExpression *pexprChild = (*pexprScalar)[i];
+		if (pexprChild->Pop()->Eopid() == COperator::EopScalarIdent)
+		{
+			CScalarIdent *pexprIdent = CScalarIdent::PopConvert(pexprChild->Pop());
+			if (pexprIdent->Pcr() == first_target_col)
+			{
+				CExpression *new_colref_expr =
+					GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_col));
+				child_array->Append(new_colref_expr);
+			}
+			else
+			{
+				child_array->Append(pexprChild);
+			}
+		}
+		else
+		{
+			child_array->Append(ExChangeColRefRecursively(mp, pexprChild, first_target_col, target_col));
+		}
+	}
+	CExpression *new_expr = GPOS_NEW(mp) CExpression(mp, pexprScalar->Pop(), child_array);
+	return new_expr;
 }
 
 // EOF
