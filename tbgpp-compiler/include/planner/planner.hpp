@@ -403,6 +403,7 @@ private:
 	void pInitializeSchemaFlowGraph();
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
+	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
 
 	inline string pGetColNameFromColRef(const CColRef *column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
