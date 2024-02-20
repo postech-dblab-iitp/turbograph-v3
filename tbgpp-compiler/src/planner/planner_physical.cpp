@@ -2414,27 +2414,29 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
     CMemoryPool *mp = this->memory_pool;
 
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-    D_ASSERT(output_cols->Size() == 1);
+    CExpression *pexprOuter = (*plan_expr)[0];
+    CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CExpression *pexprInner = (*plan_expr)[1];
+    CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    D_ASSERT(inner_cols->Size() == 1);
 
     // ID column only (n._id)
-    vector<duckdb::LogicalType> types;
-    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(output_cols[0]->RetrieveType()->MDId());
-    types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
+    // vector<duckdb::LogicalType> types;
+    // CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(inner_cols[0]->RetrieveType()->MDId());
+    // types.push_back(pConvertTypeOidToLogicalType(type_mdid->Oid()));
 
-    // generate operator and push
-    duckdb::Schema proj_schema;
-    proj_schema.setStoredTypes(types);
-    vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    duckdb::idx_t tid_idx = 0;
-    
+    // // generate operator and push
+    // duckdb::Schema proj_schema;
+    // proj_schema.setStoredTypes(types);
+    // vector<unique_ptr<duckdb::Expression>> proj_exprs;
+    // duckdb::idx_t tid_idx = 0;
+    // proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+    //                     types[0], (int)idx));
 
-    proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-                        types[0], (int)idx));
+    // // generate schema flow graph
+    // if (generate_sfg) {
 
-    // generate schema flow graph
-    if (generate_sfg) {
-
-    }
+    // }
 }
 
 vector<duckdb::CypherPhysicalOperator *> *
@@ -4256,10 +4258,10 @@ bool Planner::pIsJoinRhsOutputPhysicalIdOnly(CExpression *plan_expr)
             CScalarIdent *rhs_ident =
                 (CScalarIdent *)cmp_expr->operator[](1)->Pop();
 
-            if (pCmpColName(lhs_ident->Pcr(), w_id_col_name) &&
+            if ((pCmpColName(lhs_ident->Pcr(), w_id_col_name) &&
                 pCmpColName(rhs_ident->Pcr(), w_tid_col_name))
                 || (pCmpColName(lhs_ident->Pcr(), w_tid_col_name) &&
-                    pCmpColName(rhs_ident->Pcr(), w_id_col_name))
+                    pCmpColName(rhs_ident->Pcr(), w_id_col_name)))
                 {
                     // Check project element is one, and is ._id
                     if (project_list_expr->Arity() == 1 &&
@@ -4297,11 +4299,11 @@ bool Planner::pIsJoinRhsOutputPhysicalIdOnly(CExpression *plan_expr)
 
 bool Planner::pCmpColName(const CColRef *colref, const WCHAR *col_name)
 {
-    if (colref->Name().Pstr()->GetLength() < std::wcslen(col_name)) {
+    if (std::wcslen(colref->Name().Pstr()->GetBuffer()) < std::wcslen(col_name)) {
         return false;
     }
     return std::wcsncmp(colref->Name().Pstr()->GetBuffer() +
-                            colref->Name().Pstr()->GetLength() -
+                            std::wcslen(colref->Name().Pstr()->GetBuffer()) -
                             std::wcslen(col_name),
                         col_name, std::wcslen(col_name)) == 0;
 }
