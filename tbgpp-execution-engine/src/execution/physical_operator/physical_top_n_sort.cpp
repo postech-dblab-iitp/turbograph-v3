@@ -67,6 +67,7 @@ class TopNSortSourceState : public LocalSourceState {
 public:
 	TopNScanState state;
 	bool initialized = false;
+	bool is_finished = false;
 };
 
 unique_ptr<LocalSourceState> PhysicalTopNSort::GetLocalSourceState(ExecutionContext &context) const {
@@ -85,14 +86,19 @@ void PhysicalTopNSort::GetData(ExecutionContext &context, DataChunk &chunk, Loca
 		state.initialized = true;
 	}
 	gstate.heap.Scan(state.state, chunk);
+
+	if (chunk.size() == 0) {
+		state.is_finished = true;
+		return;
+	}
+
 	chunk.SetSchemaIdx(0); // TODO always 0? after sort, schemas are unified
 }
 
 
 bool PhysicalTopNSort::IsSourceDataRemaining(LocalSourceState &lstate, LocalSinkState &sink_state) const {
 	auto &state = (TopNSortSourceState &)lstate;
-	auto &gstate = (TopNSortSinkState &)sink_state;
-	return !gstate.heap.IsEnd(state.state);
+	return !state.is_finished;
 }
 
 

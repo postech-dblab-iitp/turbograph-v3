@@ -213,7 +213,6 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result)
 OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &source, idx_t initial_idx) {
 	DataChunk *pipeOutputChunk = nullptr;
 	idx_t output_schema_idx;
-	
 	// handle source until need_more_input;
 	while (true) {
 		OperatorResultType pipeResult;
@@ -301,6 +300,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		 * Binary operator does multi-schema processing,
 		 * which means a single execution can generate multiple schemas.
 		*/	
+
 		if (cur_op_type == OperatorType::UNARY) {
 			/**
 			 * Q. (tslee) Why we need reset?
@@ -358,7 +358,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			// D_ASSERT(opOutputSchemaIdx[current_idx] < current_output_chunks->size());
 			// current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
 		}
-
 #ifdef DEBUG_PRINT_PIPELINE
         if (cur_op_type == OperatorType::UNARY) {
             std::cout << "[ExecutePipe(" << pipeline->GetPipelineId() << ") - "
