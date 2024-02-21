@@ -21,7 +21,6 @@ void TopNSortState::Initialize() {
 
 void TopNSortState::Append(DataChunk &sort_chunk, DataChunk &payload) {
 	D_ASSERT(!is_sorted);
-// IC();
 	if (heap.has_boundary_values) {
 		if (!heap.CheckBoundaryValues(sort_chunk, payload)) {
 			return;
@@ -198,7 +197,7 @@ void TopNHeap::Reduce() {
 	DataChunk *current_chunk = &new_chunk;
 	DataChunk *prev_chunk = &payload_chunk;
 	has_boundary_values = false;
-// IC();
+
 	while (true) {
 		current_chunk->Reset();
 		Scan(state, *current_chunk);
@@ -206,12 +205,10 @@ void TopNHeap::Reduce() {
 			ExtractBoundaryValues(*current_chunk, *prev_chunk);
 			break;
 		}
-// IC();
 		new_state.Sink(*current_chunk);
-// IC();
 		std::swap(current_chunk, prev_chunk);
 	}
-// IC();
+
 	sort_state.Move(new_state);
 }
 
@@ -222,7 +219,7 @@ void TopNHeap::ExtractBoundaryValues(DataChunk &current_chunk, DataChunk &prev_c
 		ConstantVector::Reference(current_chunk.data[col_idx], prev_chunk.data[col_idx], prev_chunk.size() - 1,
 		                          prev_chunk.size());
 	}
-// IC();
+
 	current_chunk.SetCardinality(1);
 	sort_chunk.Reset();
 	executor.Execute(&current_chunk, sort_chunk);

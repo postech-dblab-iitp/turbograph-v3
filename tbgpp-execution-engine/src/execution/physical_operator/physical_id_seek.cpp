@@ -47,6 +47,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     // 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
     this->inner_col_maps.push_back(std::move(inner_col_map));
     this->outer_col_maps.push_back(std::move(outer_col_map));
+    num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     scan_types.resize(1);
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
@@ -90,6 +91,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     for (auto i = 0; i < oids.size(); i++) {
         ps_oid_to_projection_mapping.insert({oids[i], i});
     }
+    num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     do_filter_pushdown = false;
 
@@ -112,6 +114,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     this->inner_col_maps.push_back(std::move(inner_col_map));
     this->outer_col_maps.push_back(std::move(outer_col_map));
+    num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     scan_types.resize(1);
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
@@ -173,6 +176,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
         target_types.push_back(
             sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
     }
+    num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     D_ASSERT(oids.size() == projection_mapping.size());
     for (auto i = 0; i < oids.size(); i++) {
@@ -207,7 +211,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
         target_types.push_back(
             sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
     }
-    // tmp_chunk.InitializeEmpty(scan_types[0]);
+    num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     D_ASSERT(predicates.size() > 0);
     if (predicates.size() > 1) {
@@ -262,7 +266,7 @@ void PhysicalIdSeek::InitializeOutputChunks(
     std::vector<unique_ptr<DataChunk>> &output_chunks, Schema &output_schema,
     idx_t idx)
 {
-    idx_t inner_idx = idx % outer_col_maps.size();
+    idx_t inner_idx = idx % inner_col_maps.size();
     D_ASSERT(inner_idx < inner_col_maps.size());
 
     // auto opOutputChunk = std::make_unique<SchemalessDataChunk>();
@@ -333,13 +337,10 @@ OperatorResultType PhysicalIdSeek::Execute(
 {
     auto &state = (IdSeekState &)lstate;
     if (input.size() == 0) {
-        // D_ASSERT(false);  // not implemented yet
         for (auto i = 0; i < chunks.size(); i++) {
             chunks[i]->SetCardinality(0);
         }
-        return OperatorResultType::NEED_MORE_INPUT;
-                          // chunk.SetCardinality(0);
-                          // return OperatorResultType::NEED_MORE_INPUT;
+        return OperatorResultType::OUTPUT_EMPTY;
     }
 
     idx_t nodeColIdx = id_col_idx;
@@ -361,11 +362,15 @@ OperatorResultType PhysicalIdSeek::Execute(
         state.need_initialize_extit = false;
         state.has_remaining_output = false;
         state.cur_schema_idx = 0;
-        num_tuples_per_chunk.resize(mapping_idxs.size(), 0);
+        num_tuples_per_chunk.resize(num_total_schemas, 0);
         state.sels.clear();
         state.sels.resize(chunks.size());
         for (auto i = 0; i < state.sels.size(); i++) {
             state.sels[i].Initialize();
+        }
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetSchemaIdx(i);
+            chunks[i]->Reset();
         }
     }
 
@@ -439,11 +444,14 @@ OperatorResultType PhysicalIdSeek::Execute(
                             inner_col_maps[mapping_idxs[extentIdx]][i]);
                         // TODO we should change this into result sets
                     }
+                    idx_t chunk_idx =
+                        input.GetSchemaIdx() * this->inner_col_maps.size() +
+                        mapping_idxs[extentIdx];
                     context.client->graph_store->doVertexIndexSeek(
-                        state.ext_its, *(chunks[mapping_idxs[extentIdx]].get()),
+                        state.ext_its, *(chunks[chunk_idx].get()),
                         input, nodeColIdx, target_types, target_eids,
                         target_seqnos_per_extent, extentIdx, output_col_idx,
-                        num_tuples_per_chunk[mapping_idxs[extentIdx]]);
+                        num_tuples_per_chunk[chunk_idx]);
 
                     /**
                      * Currently, we cannot handle rhs multi-schema case!
@@ -453,8 +461,8 @@ OperatorResultType PhysicalIdSeek::Execute(
 
                     for (auto i = 0;
                          i < target_seqnos_per_extent[extentIdx].size(); i++) {
-                        state.sels[mapping_idxs[extentIdx]].set_index(
-                            num_tuples_per_chunk[mapping_idxs[extentIdx]] -
+                        state.sels[chunk_idx].set_index(
+                            num_tuples_per_chunk[chunk_idx] -
                                 target_seqnos_per_extent[extentIdx].size() + i,
                             target_seqnos_per_extent[extentIdx][i]);
                     }
@@ -493,21 +501,22 @@ OperatorResultType PhysicalIdSeek::Execute(
         }
         state.has_remaining_output = false;
         state.need_initialize_extit = true;
-        return OperatorResultType::NEED_MORE_INPUT;
+        return OperatorResultType::OUTPUT_EMPTY;
     }
 
     // for original ones reference existing columns
     if (!do_filter_pushdown && !has_expression) {
         idx_t schema_idx = input.GetSchemaIdx();
         for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
+            auto outer_col_maps_idx = chunk_idx / inner_col_maps.size();
             if (num_tuples_per_chunk[chunk_idx] == 0)
                 continue;
             for (int i = 0; i < input.ColumnCount(); i++) {
-                if (outer_col_maps[chunk_idx][i] !=
+                if (outer_col_maps[outer_col_maps_idx][i] !=
                     std::numeric_limits<uint32_t>::max()) {
-                    D_ASSERT(outer_col_maps[chunk_idx][i] <
+                    D_ASSERT(outer_col_maps[outer_col_maps_idx][i] <
                              chunks[chunk_idx]->ColumnCount());
-                    chunks[chunk_idx]->data[outer_col_maps[chunk_idx][i]].Slice(
+                    chunks[chunk_idx]->data[outer_col_maps[outer_col_maps_idx][i]].Slice(
                         input.data[i], state.sels[chunk_idx],
                         num_tuples_per_chunk[chunk_idx]);
                 }

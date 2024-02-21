@@ -126,6 +126,7 @@ void PhysicalSort::GetData(ExecutionContext &context, DataChunk &chunk,
         auto &sstate = (SortSinkState &)sink_state;
         auto &global_sort_state = sstate.global_sort_state;
         if (global_sort_state.sorted_blocks.empty()) {
+            state.is_finished = true;
             return;
         }
         state.scanner = make_unique<PayloadScanner>(
