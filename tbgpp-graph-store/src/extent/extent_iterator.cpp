@@ -995,6 +995,28 @@ ChunkDefinitionID ExtentIterator::getFilterCDFID(ExtentID output_eid, int64_t fi
     return filter_cdf_id;
 }
 
+//     // TODO move this logic to InitializeScan (We don't need to do I/O in this case)
+//     if (cdf_cat_entry->IsMinMaxArrayExist()) {
+//         vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
+//         bool find_block_to_scan = false;
+//         for (size_t i = 0; i < minmax.size(); i++) {
+//             if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
+//                 scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
+//                 scan_end_offset = MIN((i + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+//                 find_block_to_scan = true;
+//                 break;
+//             }
+//         }
+//         if (!find_block_to_scan) {
+//             output.SetCardinality(0);
+//             return true;
+//         }
+//     } else {
+//         scan_start_offset = 0;
+//         scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
+//     }
+    
+
 bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
                                 size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset) {
     Catalog& cat_instance = context.db->GetCatalog();
@@ -1004,11 +1026,14 @@ bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filt
     bool find_block_to_scan = false;
     if (cdf_cat_entry->IsMinMaxArrayExist()) {
         vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
-        if (minmax[current_idx_in_this_extent].min <= filterValue.GetValue<idx_t>() 
-            && minmax[current_idx_in_this_extent].max >= filterValue.GetValue<idx_t>()) {
-            scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
-            scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
-            find_block_to_scan = true;
+        for (; current_idx_in_this_extent < minmax.size(); current_idx_in_this_extent++) {
+            if (minmax[current_idx_in_this_extent].min <= filterValue.GetValue<idx_t>() 
+                && minmax[current_idx_in_this_extent].max >= filterValue.GetValue<idx_t>()) {
+                scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
+                scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                find_block_to_scan = true;
+                break;
+            }
         }
     } else {
         find_block_to_scan = true;
@@ -1245,7 +1270,6 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
         auto output_idx = output_column_idxs[i];
         if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) {
-            output.data[i].GetValidity().SetAllInvalid(output.size());
             continue; 
         } 
         if (ext_property_type[i] != LogicalType::ID) {
