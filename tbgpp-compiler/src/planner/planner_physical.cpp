@@ -71,10 +71,16 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
                                                 projection_mapping);
     }
     else {
-        prev_local_schemas = pipeline_schemas.back();
-        for (auto i = 0; i < prev_local_schemas.size(); i++) {
-            auto local_schema =
-                std::move(prev_local_schemas[i].getStoredTypes());
+        // TODO do we need multiple projection mappings?
+        // prev_local_schemas = pipeline_schemas.back();
+        auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+        duckdb::idx_t num_total_schemas_prev = 1;
+        for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+            num_total_schemas_prev *= num_schemas_of_childs_prev[i];
+        }
+        for (auto i = 0; i < num_total_schemas_prev; i++) {
+            // auto local_schema =
+            //     std::move(prev_local_schemas[i].getStoredTypes());
             projection_mappings.push_back(std::vector<uint8_t>());
             for (uint8_t log_idx = 0;
                  log_idx < logical_plan_output_colrefs.size(); log_idx++) {
@@ -1291,8 +1297,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
             // adjidx join is binary operator, but its rhs schema is always one.
             vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
+            auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+            duckdb::idx_t num_total_schemas_prev = 1;
+            for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+                num_total_schemas_prev *= num_schemas_of_childs_prev[i];
+            }
             pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
-            num_schemas_of_childs.push_back({prev_local_schemas.size(), 1});
+            num_schemas_of_childs.push_back({num_total_schemas_prev, 1});
             vector<duckdb::Schema> out_schemas;
             vector<duckdb::Schema> rhs_schemas = {rhs_schema};
             pGenerateCartesianProductSchema(prev_local_schemas, rhs_schemas,
@@ -2443,13 +2454,7 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
     result->push_back(op);
 
     // generate schema flow graph
-    if (generate_sfg) {
-        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-        num_schemas_of_childs.push_back({prev_local_schemas.size()});
-        pipeline_schemas.push_back(prev_local_schemas);
-        pipeline_union_schema.push_back(proj_schema);
-    }
+    pBuildSchemaFlowGraphForUnaryOperator(proj_schema);
 }
 
 vector<duckdb::CypherPhysicalOperator *> *
@@ -3192,13 +3197,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
     result->push_back(op);
 
     // generate schema flow graph for the filter
-    if (generate_sfg) {
-        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-        num_schemas_of_childs.push_back({prev_local_schemas.size()});
-        pipeline_schemas.push_back(prev_local_schemas);
-        pipeline_union_schema.push_back(tmp_schema);
-    }
+    pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
 
     // we need further projection if we don't need filter column anymore
     if (output_cols->Size() != outer_cols->Size()) {
@@ -3218,13 +3217,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
                 output_schema, std::move(proj_exprs));
             result->push_back(op);
 
-            if (generate_sfg) {
-                vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-                pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-                num_schemas_of_childs.push_back({prev_local_schemas.size()});
-                pipeline_schemas.push_back(prev_local_schemas);
-                pipeline_union_schema.push_back(output_schema);
-            }
+            pBuildSchemaFlowGraphForUnaryOperator(output_schema);
         }
     }
 
