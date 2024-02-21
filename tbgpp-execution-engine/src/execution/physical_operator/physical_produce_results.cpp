@@ -82,19 +82,20 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
             }
         }
         else if (projection_mappings.size() != 0) {
-            idx_t schema_idx = input.GetSchemaIdx();
+            // idx_t schema_idx = input.GetSchemaIdx();
             for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
-                if (projection_mappings[schema_idx][idx] ==
+                if (projection_mappings[0][idx] ==
                     std::numeric_limits<uint8_t>::max()) {
+                    // TODO use is_valid flag
                     FlatVector::Validity(copyChunk->data[idx])
                         .SetAllInvalid(input.size());
                     continue;
                 }
                 VectorOperations::Copy(
-                    input.data[projection_mappings[schema_idx][idx]],
+                    input.data[projection_mappings[0][idx]],
                     copyChunk->data[idx], input.size(), 0, 0);
             }
-            copyChunk->SetSchemaIdx(schema_idx);
+            copyChunk->SetSchemaIdx(0);
         }
         else {
             D_ASSERT(false);

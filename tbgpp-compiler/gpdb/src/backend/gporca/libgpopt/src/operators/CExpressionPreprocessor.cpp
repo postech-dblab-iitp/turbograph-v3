@@ -3008,7 +3008,8 @@ CExpressionPreprocessor::PexprTransposeSelectAndProject(CMemoryPool *mp,
 }
 
 // S62 implementation added
-CExpression *CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
+CExpression *
+CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 													   			CExpression *pexpr) {
 
 	GPOS_ASSERT(NULL != mp);
@@ -3126,6 +3127,94 @@ CExpression *CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMe
 	}
 }
 
+// S62 implementation added
+CExpression *
+CExpressionPreprocessor::PexprPruneUnnecessaryTables(CMemoryPool *mp, CExpression *pexpr)
+{
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (((pexpr->Arity() > 0 && (*pexpr)[0]->Arity() > 0) && ((*(*pexpr)[0])[0]->Arity() > 0)) &&
+		(pexpr->Pop()->Eopid() == COperator::EopLogicalUnionAll &&
+		 (*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar &&
+		 (*(*pexpr)[0])[0]->Pop()->Eopid() == COperator::EopLogicalSelect &&
+		 (*(*(*pexpr)[0])[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet))
+	{
+		CExpression *union_all_expr = pexpr;
+		CLogicalUnionAll *union_all = CLogicalUnionAll::PopConvert(union_all_expr->Pop());
+		CColRefArray *output_array = union_all->PdrgpcrOutput();
+		CColRef2dArray *input_array = union_all->PdrgpdrgpcrInput();
+		CColRef2dArray *pdrgpdrgpcrInput = GPOS_NEW(mp) CColRef2dArray(mp);
+		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		
+		// check null
+		BOOL has_null = false;
+		for (ULONG ul = 0; ul < union_all_expr->Arity(); ul++)
+		{
+			BOOL null_exist = false;
+			CExpression *pScalarExpr = (*(*(*pexpr)[ul])[0])[1];
+			GPOS_ASSERT(pScalarExpr->Pop()->FScalar());
+			
+			// TODO recursively check
+			if (pScalarExpr->Pop()->Eopid() == COperator::EopScalarCmp) {
+				CScalarCmp *popScalarCmp = CScalarCmp::PopConvert(pScalarExpr->Pop());
+				GPOS_ASSERT(popScalarCmp->ParseCmpType() != IMDType::EcmptIDF);
+				CExpression *pexprLeft = (*pScalarExpr)[0];
+				CExpression *pexprRight = (*pScalarExpr)[1];
+				if (pexprLeft->Pop()->Eopid() == COperator::EopScalarConst) {
+					CScalarConst *popScalarConst = CScalarConst::PopConvert(pexprLeft->Pop());
+					if (popScalarConst->GetDatum()->IsNull()) {
+						has_null = true;
+						null_exist = true;
+					}
+				}
+				if (pexprRight->Pop()->Eopid() == COperator::EopScalarConst) {
+					CScalarConst *popScalarConst = CScalarConst::PopConvert(pexprRight->Pop());
+					if (popScalarConst->GetDatum()->IsNull()) {
+						has_null = true;
+						null_exist = true;
+					}
+				}
+			}
+
+			if (!null_exist)
+			{
+				(*input_array)[ul]->AddRef();
+				(*union_all_expr)[ul]->AddRef();
+				pdrgpdrgpcrInput->Append((*input_array)[ul]);
+				pdrgpexpr->Append((*union_all_expr)[ul]);
+			}
+		}
+
+		if (has_null)
+		{
+			output_array->AddRef();
+			return GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CLogicalUnionAll(mp, output_array, pdrgpdrgpcrInput),
+				pdrgpexpr);
+		}
+		else 
+		{
+			pdrgpdrgpcrInput->Release();
+			pdrgpexpr->Release();
+			pexpr->AddRef();
+			return pexpr;
+		}
+	} else {
+		// recurse child
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+		{
+			CExpression *pexprChild = PexprPruneUnnecessaryTables(mp, (*pexpr)[ul]);
+			if (pexprChild != NULL) {
+				pdrgpexprChildren->Append(pexprChild);
+			}
+		}
+		COperator *pop = pexpr->Pop();
+		pop->AddRef();
+		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+	}
+}
 
 
 // main driver, pre-processing of input logical expression
@@ -3319,11 +3408,13 @@ CExpressionPreprocessor::PexprPreprocess(
 	// (27) swap logical select over logical project
 	CExpression *pexprTransposeSelectAndProject =
 		PexprTransposeSelectAndProject(mp, pexprExistWithPredFromINSubq);
+	GPOS_CHECK_ABORT;
 	pexprExistWithPredFromINSubq->Release();
 
 	// S62 swap logical select over logical project columnar
 	CExpression *pexprTransposeSelectAndProjectColumnar = 
 		PexprTransposeSelectAndProjectColumnar(mp, pexprTransposeSelectAndProject);
+	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProject->Release();
 
 	// (28) normalize expression again
@@ -3332,7 +3423,13 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProjectColumnar->Release();
 
-	return pexprNormalized2;
+	// S62 prune tables with no results
+	CExpression *pexprFinal =
+		PexprPruneUnnecessaryTables(mp, pexprNormalized2);
+	GPOS_CHECK_ABORT;
+	pexprNormalized2->Release();
+
+	return pexprFinal;
 }
 
 // EOF
