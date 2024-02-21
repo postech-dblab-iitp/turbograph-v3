@@ -71,32 +71,14 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
                                                 projection_mapping);
     }
     else {
-        // TODO do we need multiple projection mappings?
-        // prev_local_schemas = pipeline_schemas.back();
-        auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-        duckdb::idx_t num_total_schemas_prev = 1;
-        for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-            num_total_schemas_prev *= num_schemas_of_childs_prev[i];
-        }
-        for (auto i = 0; i < num_total_schemas_prev; i++) {
-            // auto local_schema =
-            //     std::move(prev_local_schemas[i].getStoredTypes());
-            projection_mappings.push_back(std::vector<uint8_t>());
-            for (uint8_t log_idx = 0;
-                 log_idx < logical_plan_output_colrefs.size(); log_idx++) {
-                for (uint8_t phy_idx = 0;
-                     phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
-                    if (logical_plan_output_colrefs[log_idx]->Id() ==
-                        physical_plan_output_colrefs[phy_idx]->Id()) {
-                        // if (local_schema[phy_idx] ==
-                        //     duckdb::LogicalType::SQLNULL) {
-                        //     projection_mappings[i].push_back(
-                        //         std::numeric_limits<uint8_t>::max());
-                        // }
-                        // else {
-                        projection_mappings[i].push_back(phy_idx);
-                        // }
-                    }
+        projection_mappings.push_back(std::vector<uint8_t>());
+        for (uint8_t log_idx = 0;
+                log_idx < logical_plan_output_colrefs.size(); log_idx++) {
+            for (uint8_t phy_idx = 0;
+                    phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
+                if (logical_plan_output_colrefs[log_idx]->Id() ==
+                    physical_plan_output_colrefs[phy_idx]->Id()) {
+                    projection_mappings[0].push_back(phy_idx);
                 }
             }
         }

@@ -213,6 +213,9 @@ private:
 													   CColRef *pcolref,
 													   CExpression *pprojExpr);
 
+	static CExpression *PexprPruneUnnecessaryTables(CMemoryPool *mp,
+													CExpression *pexpr);
+
 	// private ctor
 	CExpressionPreprocessor();
 
