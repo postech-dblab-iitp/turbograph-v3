@@ -80,7 +80,6 @@ void TopNSortState::Scan(TopNScanState &state, DataChunk &chunk) {
 	while (chunk.size() == 0) {
 		state.scanner->Scan(chunk);
 		if (chunk.size() == 0) {
-			state.is_finished = true;
 			break;
 		}
 		idx_t start = state.pos;
@@ -124,10 +123,6 @@ void TopNSortState::Scan(TopNScanState &state, DataChunk &chunk) {
 			chunk.SetCardinality(chunk_end);
 		}
 	}
-}
-
-bool TopNSortState::IsEnd(TopNScanState &state) {
-	return state.is_finished;
 }
 
 //===--------------------------------------------------------------------===//
@@ -306,10 +301,6 @@ void TopNHeap::InitializeScan(TopNScanState &state, bool exclude_offset) {
 
 void TopNHeap::Scan(TopNScanState &state, DataChunk &chunk) {
 	sort_state.Scan(state, chunk);
-}
-
-bool TopNHeap::IsEnd(TopNScanState &state) {
-	sort_state.IsEnd(state);
 }
 
 }
