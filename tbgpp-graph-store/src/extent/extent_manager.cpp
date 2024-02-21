@@ -202,7 +202,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog
             size_t input_size = input.size();
-            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT) {
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT ||
+                input.GetTypes()[input_chunk_idx] == LogicalType::ID ||
+                input.GetTypes()[input_chunk_idx] == LogicalType::BIGINT) {
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
             }
 

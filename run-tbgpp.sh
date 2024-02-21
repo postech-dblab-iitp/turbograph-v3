@@ -29,9 +29,9 @@ run_query() {
 	fi
 
 	echo "$query_str"
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain --debug-orca
+	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain --debug-orca
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:greedy --profile --explain
-	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive --profile --explain
+	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive --profile --explain
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --profile --explain
 }
 
@@ -71,6 +71,25 @@ run_ldbc_s() {
 				person.firstName AS personFirstName,
 				person.lastName AS personLastName
 			   ORDER BY messageCreationDate DESC, messageId ASC"
+
+	# LDBC IS2 Other
+	run_query "MATCH (:Person {id: 143})<-[:HAS_CREATOR]-(message:Comment)
+				WITH
+				message
+				ORDER BY message.creationDate DESC, message.id ASC
+				LIMIT 10
+				MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
+				(post)-[:POST_HAS_CREATOR]->(person:Person)
+				RETURN
+				message.id AS messageId,
+				message.content AS messageContent,
+				message.creationDate AS messageCreationDate,
+				post.id AS postId,
+				person.id AS personId,
+				person.firstName AS personFirstName,
+				person.lastName AS personLastName
+				ORDER BY messageCreationDate DESC, messageId ASC;"
+	
 	
 	# LDBC IS3 Friends of a Person
 	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
@@ -107,12 +126,6 @@ run_ldbc_s() {
 			mod.firstName AS moderatorFirstName,
 			mod.lastName AS moderatorLastName"
 
-	# LDBC IS6 Simplified
-	run_query "MATCH
-			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)
-		RETURN
-			m.id AS messageId"
-
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
 	    OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
@@ -127,23 +140,6 @@ run_ldbc_s() {
 		    ELSE true
 		END AS replyAuthorKnowsOriginalMessageAuthor
 	    ORDER BY commentCreationDate DESC, replyAuthorId"
-
-	# Simplified
-	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-		RETURN c.id AS commentId,
-			c.content AS commentContent,
-			c.creationDate AS commentCreationDate,
-			p.id AS replyAuthorId,
-			p.firstName AS replyAuthorFirstName,
-			p.lastName AS replyAuthorLastName
-	"
-
-	# More simplified
-	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-		RETURN c.id AS commentId,
-			c.content AS commentContent,
-			c.creationDate AS commentCreationDate
-			"
 
 }
 
