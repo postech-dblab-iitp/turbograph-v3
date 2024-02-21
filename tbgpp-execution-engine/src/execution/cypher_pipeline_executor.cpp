@@ -226,6 +226,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 			D_ASSERT(in_process_operators.empty()); // TODO: In this case it should definitely be like this... but check plz
 		} else {
 			pipeResult = ExecutePipe(source, output_schema_idx);
+			D_ASSERT(output_schema_idx < opOutputChunks[pipeline->pipelineLength - 2].size());
 			pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 		}
 		
@@ -233,6 +234,13 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		if (pipeResult == OperatorResultType::FINISHED || 
 			pipeResult == OperatorResultType::POSTPONE_OUTPUT) {
 			return pipeResult;
+		} else if (pipeResult == OperatorResultType::OUTPUT_EMPTY) {
+			// no data to sink
+			if (in_process_operators.empty()) { // NEED_MORE_INPUT
+				break;
+			} else { // HAVE_MORE_OUTPUT
+				continue;
+			}
 		}
         
 #ifdef DEBUG_PRINT_PIPELINE
@@ -343,15 +351,18 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			*/
 
 			current_output_chunks = &opOutputChunks[current_idx];
-			for (auto i = 0; i < current_output_chunks->size(); i++) {
-				current_output_chunks->at(i)->SetSchemaIdx(i);
-			}
-			current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
+			// move this logic into operator implementation
+			// for (auto i = 0; i < current_output_chunks->size(); i++) {
+			// 	current_output_chunks->at(i)->SetSchemaIdx(i);
+			// }
+			// D_ASSERT(opOutputSchemaIdx[current_idx] < current_output_chunks->size());
+			// current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
 		}
 
 #ifdef DEBUG_PRINT_PIPELINE
         if (cur_op_type == OperatorType::UNARY) {
-            std::cout << "[ExecutePipe - " << current_idx << "(#"
+            std::cout << "[ExecutePipe(" << pipeline->GetPipelineId() << ") - "
+                      << current_idx << "(#"
                       << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
                       << " "
                       << pipeline->GetIdxOperator(current_idx)->ToString()
@@ -360,7 +371,8 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
                       << current_output_schema_idx << std::endl;
         }
         else if (cur_op_type == OperatorType::BINARY) {
-            std::cout << "[ExecutePipe - " << current_idx << "(#"
+            std::cout << "[ExecutePipe(" << pipeline->GetPipelineId() << ") - "
+                      << current_idx << "(#"
                       << pipeline->GetIdxOperator(current_idx)->GetOperatorId()
                       << " "
                       << pipeline->GetIdxOperator(current_idx)->ToString()
@@ -377,6 +389,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		duckdb::OperatorResultType opResult;
 		StartOperator(pipeline->GetIdxOperator(current_idx));
 		if (cur_op_type == OperatorType::UNARY) {
+			D_ASSERT(!pipeline->GetIdxOperator(current_idx)->IsSink());
 			// execute operator
 			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 				*context, *prev_output_chunk, *current_output_chunk, *local_operator_states[current_idx-1]);
@@ -413,10 +426,12 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			opOutputSchemaIdx[current_idx] = output_schema_idx;
 
 			// record statistics
-			if (opResult == OperatorResultType::POSTPONE_OUTPUT) {
+			if (opResult == OperatorResultType::POSTPONE_OUTPUT ||
+				opResult == OperatorResultType::OUTPUT_EMPTY) {
 				EndOperator(pipeline->GetIdxOperator(current_idx), nullptr);
 				prev_output_chunk = nullptr;
 			} else {
+				D_ASSERT(output_schema_idx < current_output_chunks->size());
 				EndOperator(pipeline->GetIdxOperator(current_idx), current_output_chunks->at(output_schema_idx).get());
 				pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunks->at(output_schema_idx)->size();
 
@@ -441,6 +456,9 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
             // TODO handle remaining outputs
             return OperatorResultType::POSTPONE_OUTPUT;
         }
+		else if (opResult == OperatorResultType::OUTPUT_EMPTY) {
+			return OperatorResultType::OUTPUT_EMPTY;
+		}
     }
     // pipe done as we reached the sink
     // TODO need to add one more case : terminate pipe for e.g. for LIMIT query.

@@ -1506,6 +1506,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     output_seqno = 0;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
+        D_ASSERT(cur_ext_property_type[i] == output.data[output_column_idxs[i]].GetType());
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
@@ -1523,10 +1524,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         if (cur_ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
-                PhysicalType p_type = cur_ext_property_type[i].InternalType();
-                DeCompressionFunction decomp_func(DICTIONARY, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
+                // PhysicalType p_type = cur_ext_property_type[i].InternalType();
+                // DeCompressionFunction decomp_func(DICTIONARY, p_type);
+                // decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
+                //                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
                 // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
@@ -1583,7 +1584,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
-            idx_t output_seqno = 0;
             for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                 idx_t seqno = target_seqnos[seqno_idx];
                 idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
@@ -1594,10 +1594,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         } else {
             if (comp_header.comp_type == BITPACKING) {
                 D_ASSERT(false);
-                PhysicalType p_type = cur_ext_property_type[i].InternalType();
-                DeCompressionFunction decomp_func(BITPACKING, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
+                // PhysicalType p_type = cur_ext_property_type[i].InternalType();
+                // DeCompressionFunction decomp_func(BITPACKING, p_type);
+                // decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
+                //                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];

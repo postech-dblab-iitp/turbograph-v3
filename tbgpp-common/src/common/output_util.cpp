@@ -163,6 +163,9 @@ void OutputUtil::PrintTop10TuplesInDataChunk(DataChunk &chunk)
     }
     t << tblr::endr;
 
+    // std::cout << "Schema Info (Type / VectorType / IsValid)" << std::endl;
+    // std::cout << t << std::endl;
+
     // print tuples
     idx_t num_tuples_to_print = std::min(10UL, chunk.size());
     for (int idx = 0; idx < num_tuples_to_print; idx++) {
@@ -171,6 +174,7 @@ void OutputUtil::PrintTop10TuplesInDataChunk(DataChunk &chunk)
         }
         t << tblr::endr;
     }
+    std::cout << "Top 10 Tuples" << std::endl;
     std::cout << t << std::endl;
 }
 
