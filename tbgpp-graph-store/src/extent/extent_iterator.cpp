@@ -1504,8 +1504,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
     CompressionHeader comp_header;
-    output_seqno = 0;
+    idx_t begin_seqno = output_seqno;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
+        output_seqno = begin_seqno;
         D_ASSERT(cur_ext_property_type[i] == output.data[output_column_idxs[i]].GetType());
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
