@@ -140,7 +140,8 @@ protected:
 		CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 		CExpression *endOfNodesToInsertAboveIndexGet,
 		CTableDescriptor *PtabdescInner, CLogicalDynamicGet *popDynamicGet,
-		CXformResult *pxfres, gpmd::IMDIndex::EmdindexType emdtype) const;
+		CXformResult *pxfres, gpmd::IMDIndex::EmdindexType emdtype,
+		BOOL hasSelectAboveGet) const;
 
 	// helper to add IndexApply expression to given xform results container
 	// for partial indexes

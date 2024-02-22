@@ -156,7 +156,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 	CExpression *origJoinPred, CExpression *nodesToInsertAboveIndexGet,
 	CExpression *endOfNodesToInsertAboveIndexGet,
 	CTableDescriptor *ptabdescInner, CLogicalDynamicGet *popDynamicGet,
-	CXformResult *pxfres, IMDIndex::EmdindexType emdtype) const
+	CXformResult *pxfres, IMDIndex::EmdindexType emdtype,
+	BOOL hasSelectAboveGet) const
 {
 	GPOS_ASSERT(NULL != pexprOuter);
 	GPOS_ASSERT(NULL != pexprInner);
@@ -201,13 +202,22 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 			}
 		}
 	}
-	CColRef *first_target_col = 
-		(*(*pexprInner)[0])[0]->DeriveOutputColumns()->PcrIth(targetcol_idx);
+	CColRef *first_target_col;
+	if (hasSelectAboveGet) { 
+		first_target_col = (*(*(*pexprInner)[0])[0])[0]->DeriveOutputColumns()->PcrIth(targetcol_idx);
+	} else {
+		first_target_col = (*(*pexprInner)[0])[0]->DeriveOutputColumns()->PcrIth(targetcol_idx);
+	}
 
 	const ULONG arity = pexprInner->Arity();
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
-		CExpression *pexprGet = (*(*pexprInner)[ul])[0];
+		CExpression *pexprGet;
+		if (hasSelectAboveGet) {
+			pexprGet = (*(*(*pexprInner)[ul])[0])[0];
+		} else {
+			pexprGet = (*(*pexprInner)[ul])[0];
+		}
 		CLogicalGet *popGet =
 			CLogicalGet::PopConvert(pexprGet->Pop());
 		CColRef *target_col = pexprGet->DeriveOutputColumns()->PcrIth(targetcol_idx);
@@ -283,20 +293,17 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 					// CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
 					CExpression *indexGetWithOptionalSelect = pexprLogicalIndexGet;
 
-					// S62 currently do not consider dynamicget
-					// if (COperator::EopLogicalDynamicGet == pexprInner->Pop()->Eopid())
-					// {
-					// 	indexGetWithOptionalSelect =
-					// 		CXformUtils::PexprRedundantSelectForDynamicIndex(
-					// 			mp, pexprLogicalIndexGet);
-					// 	pexprLogicalIndexGet->Release();
-					// }
-
-					CExpression *rightChildOfApply =
-						CXformUtils::AddALinearStackOfUnaryExpressions(
+					CExpression *rightChildOfApply;
+					if (hasSelectAboveGet) {
+						nodesToInsertAboveIndexGet = (*(*pexprInner)[ul])[0];
+						endOfNodesToInsertAboveIndexGet = pexprGet;
+						rightChildOfApply = CXformUtils::AddALinearStackOfUnaryExpressions(
 							mp, indexGetWithOptionalSelect, nodesToInsertAboveIndexGet,
 							endOfNodesToInsertAboveIndexGet);
-					// CExpression *rightChild = 
+					} else {
+						rightChildOfApply = indexGetWithOptionalSelect;
+					}
+
 					CExpression *pexprProjectColumnar = (*pexprInner)[ul];
 					CExpression *rightChild = GPOS_NEW(mp) CExpression(mp,
 						pexprProjectColumnar->Pop(), rightChildOfApply, (*pexprProjectColumnar)[1]);
