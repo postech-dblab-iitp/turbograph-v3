@@ -1611,42 +1611,46 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(
                     mp);  // idxscan
 
-            if (filter_pred_expr->Pop()->Eopid() == COperator::EopScalarCmp &&
-                ((CScalarCmp *)filter_pred_expr->Pop())->ParseCmpType() ==
-                    IMDType::ECmpType::EcmptEq) {
-                do_filter_pushdown = true;
-                D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                             COperator::EOperatorId::EopScalarIdent ||
-                         filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                             COperator::EOperatorId::EopScalarConst);
-                D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                             COperator::EOperatorId::EopScalarIdent ||
-                         filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                             COperator::EOperatorId::EopScalarConst);
+            /**
+             * TODO: revive filter pushdown
+            */
 
-                CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
-                if (filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                    COperator::EOperatorId::EopScalarIdent) {
-                    CColRef *colref = (col_factory->LookupColRef(
-                        ((CScalarIdent *)filter_pred_expr->operator[](0)->Pop())
-                            ->Pcr()
-                            ->Id()));
-                    filter_pred_cols->Append(colref);
-                }
-                if (filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                    COperator::EOperatorId::EopScalarIdent) {
-                    CColRef *colref = (col_factory->LookupColRef(
-                        ((CScalarIdent *)filter_pred_expr->operator[](1)->Pop())
-                            ->Pcr()
-                            ->Id()));
-                    filter_pred_cols->Append(colref);
-                }
-            }
-            else {
+            // if (filter_pred_expr->Pop()->Eopid() == COperator::EopScalarCmp &&
+            //     ((CScalarCmp *)filter_pred_expr->Pop())->ParseCmpType() ==
+            //         IMDType::ECmpType::EcmptEq) {
+            //     do_filter_pushdown = true;
+            //     D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+            //                  COperator::EOperatorId::EopScalarIdent ||
+            //              filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+            //                  COperator::EOperatorId::EopScalarConst);
+            //     D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() ==
+            //                  COperator::EOperatorId::EopScalarIdent ||
+            //              filter_pred_expr->operator[](1)->Pop()->Eopid() ==
+            //                  COperator::EOperatorId::EopScalarConst);
+
+            //     CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+            //     if (filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+            //         COperator::EOperatorId::EopScalarIdent) {
+            //         CColRef *colref = (col_factory->LookupColRef(
+            //             ((CScalarIdent *)filter_pred_expr->operator[](0)->Pop())
+            //                 ->Pcr()
+            //                 ->Id()));
+            //         filter_pred_cols->Append(colref);
+            //     }
+            //     if (filter_pred_expr->operator[](1)->Pop()->Eopid() ==
+            //         COperator::EOperatorId::EopScalarIdent) {
+            //         CColRef *colref = (col_factory->LookupColRef(
+            //             ((CScalarIdent *)filter_pred_expr->operator[](1)->Pop())
+            //                 ->Pcr()
+            //                 ->Id()));
+            //         filter_pred_cols->Append(colref);
+            //     }
+            // }
+            // else {
                 do_filter_pushdown = false;
                 filter_exprs.push_back(std::move(pTransformScalarExpr(
                     filter_pred_expr, outer_cols, filter_inner_cols)));
-            }
+            // }
             filter_inner_cols->Release();
         }
         // reached to the bottom
@@ -1778,14 +1782,17 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 
     if (!do_filter_pushdown) {
         if (has_filter) {
-            // D_ASSERT(scan_projection_mapping == output_projection_mapping); // TODO we currently support scan = output
-            // duckdb::CypherPhysicalOperator *op =
-            // 	new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, scan_projection_mapping, outer_col_map, inner_col_map, move(filter_exprs));
-            duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
-                tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, scan_types,
-                scan_projection_mapping, move(filter_exprs));
-            result->push_back(op);
+            /**
+             * This code is wrong. We don't have union_inner_col_map in this case.
+             * We have to fix this.
+            */
+
+            D_ASSERT(false);
+            // duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
+            //     tmp_schema, sid_col_idx, oids, output_projection_mapping,
+            //     outer_col_maps, inner_col_maps, inner_col_maps[0], scan_projection_mapping,
+            //     scan_types, move(filter_exprs), false);
+            // result->push_back(op);
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
@@ -2155,6 +2162,12 @@ void Planner::
     bool do_filter_pushdown = false;
     bool has_filter = false;
 
+    CExpression *filter_expr = NULL;
+    CExpression *filter_pred_expr = NULL;
+    CExpression *idxscan_expr = NULL;
+    vector<unique_ptr<duckdb::Expression>> filter_pred_duckdb_exprs;
+    vector<ULONG> unionall_output_original_col_ids;
+
     while (true) {
         if (inner_root->Pop()->Eopid() ==
             COperator::EOperatorId::EopPhysicalSerialUnionAll) {
@@ -2167,14 +2180,22 @@ void Planner::
                     COperator::EOperatorId::EopPhysicalComputeScalarColumnar);
                 D_ASSERT(
                     inner_root->operator[](i)->operator[](0)->Pop()->Eopid() ==
-                    COperator::EOperatorId::EopPhysicalIndexScan);
+                    COperator::EOperatorId::EopPhysicalIndexScan ||
+                    inner_root->operator[](i)->operator[](0)->Pop()->Eopid() ==
+                    COperator::EOperatorId::EopPhysicalFilter);
                 D_ASSERT(
                     inner_root->operator[](i)->operator[](1)->Pop()->Eopid() ==
                     COperator::EOperatorId::EopScalarProjectList);
 
+                if (inner_root->operator[](i)->operator[](0)->Pop()->Eopid() ==
+                    COperator::EOperatorId::EopPhysicalFilter) {
+                    has_filter = true;
+                }
+
                 CExpression *unionall_expr = inner_root;
                 CExpression *inner_idxscan_expr =
-                    inner_root->operator[](i)->operator[](0);
+                    !has_filter ? inner_root->operator[](i)->operator[](0)
+                               : inner_root->operator[](i)->operator[](0)->operator[](0);
                 CExpression *projectlist_expr =
                     inner_root->operator[](i)->operator[](1);
 
@@ -2216,13 +2237,22 @@ void Planner::
                 vector<uint64_t> output_ident_mapping;
 
                 if (i == 0) {
+                    auto scalarident_pattern = vector<COperator::EOperatorId>(
+                        {COperator::EOperatorId::EopScalarProjectElement,
+                        COperator::EOperatorId::EopScalarIdent});
                     for (uint32_t j = 0; j < projectlist_expr->Arity(); j++) {
                         D_ASSERT(
                             projectlist_expr->operator[](j)->Pop()->Eopid() ==
                             COperator::EOperatorId::EopScalarProjectElement);
+                        CExpression *proj_elem_expr =
+                            projectlist_expr->operator[](j);
                         CScalarProjectElement *proj_elem =
                             (CScalarProjectElement
                                  *)(projectlist_expr->operator[](j)->Pop());
+                        CScalarIdent *ident_op = (CScalarIdent *)proj_elem_expr->PdrgPexpr()
+                                             ->
+                                             operator[](0)
+                                             ->Pop();
                         CColRefTable *proj_col =
                             (CColRefTable *)proj_elem->Pcr();
                         auto it = id_map.find(proj_col->ColId());
@@ -2230,6 +2260,12 @@ void Planner::
                             union_inner_col_map.push_back(it->second);
                             if (proj_col->AttrNum() == INT(-1))
                                 load_system_col = true;
+                        }
+                        if (pMatchExprPattern(proj_elem_expr, scalarident_pattern)) {
+                            unionall_output_original_col_ids.push_back(ident_op->Pcr()->Id());
+                        }
+                        else {
+                            unionall_output_original_col_ids.push_back(std::numeric_limits<ULONG>::max());
                         }
                     }
                 }
@@ -2296,6 +2332,22 @@ void Planner::
                 scan_types.push_back(std::move(scan_type));
                 output_projection_mapping.push_back(output_ident_mapping);
             }
+        }
+        else if (inner_root->Pop()->Eopid() ==
+                 COperator::EOperatorId::EopPhysicalFilter) {
+            /**
+             * TODO: can handle case where there is no filter-only column.
+            */
+            has_filter = true;
+            filter_expr = inner_root;
+            filter_pred_expr = filter_expr->operator[](1);
+            CColRefArray *idxscan_cols = filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+            do_filter_pushdown = false;
+            auto filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, idxscan_cols, nullptr);
+            pConvertLocalFilterExprToUnionAllFilterExpr
+                (filter_duckdb_expr, idxscan_cols, unionall_output_original_col_ids);
+            filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
+            idxscan_cols->Release();
         }
 
         // reached to the bottom
@@ -2378,7 +2430,11 @@ void Planner::
 
     if (!do_filter_pushdown) {
         if (has_filter) {
-            throw NotImplementedException("InnerIdxNLJoin for Filter case");
+            duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
+                tmp_schema, sid_col_idx, oids, output_projection_mapping,
+                outer_col_maps, inner_col_maps, union_inner_col_map,
+                scan_projection_mapping, scan_types, filter_pred_duckdb_exprs, false);
+            result->push_back(op);
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
