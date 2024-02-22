@@ -209,6 +209,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 		first_target_col = (*(*pexprInner)[0])[0]->DeriveOutputColumns()->PcrIth(targetcol_idx);
 	}
 
+	BOOL hasResult = false;
 	const ULONG arity = pexprInner->Arity();
 	for (ULONG ul = 0; ul < arity; ul++)
 	{
@@ -288,6 +289,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 					false /*fAllowPartialIndex*/, ppartcnstrIndex);
 				if (NULL != pexprLogicalIndexGet)
 				{
+					hasResult = true;
 					// second child has residual predicates, create an apply of outer and inner
 					// and add it to xform results
 					// CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);
@@ -339,23 +341,22 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 		curexprScalar->Release();
 		pcrsScalarExprCpy->Release();
 	}
-	// CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
-	// 	mp,
-	// 	GPOS_NEW(mp) CLogicalUnionAll(mp), rightChildsOfApply
-	// );
-	COperator *new_union_all = pexprInner->Pop();
-	CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
-		mp, new_union_all, rightChildsOfApply);
-	pexprOuter->AddRef();
-	new_union_all->AddRef();
-	pexprUnionAll->AddRef();
-	CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
-		mp,
-		GPOS_NEW(mp)
-			CLogicalIndexApply(mp, colref_array, isOuterJoin, origJoinPred),
-		pexprOuter, pexprUnionAll,
-		CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
-	pxfres->Add(pexprIndexApply);
+
+	if (hasResult) {
+		COperator *new_union_all = pexprInner->Pop();
+		CExpression *pexprUnionAll = GPOS_NEW(mp) CExpression(
+			mp, new_union_all, rightChildsOfApply);
+		pexprOuter->AddRef();
+		new_union_all->AddRef();
+		pexprUnionAll->AddRef();
+		CExpression *pexprIndexApply = GPOS_NEW(mp) CExpression(
+			mp,
+			GPOS_NEW(mp)
+				CLogicalIndexApply(mp, colref_array, isOuterJoin, origJoinPred),
+			pexprOuter, pexprUnionAll,
+			CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/));
+		pxfres->Add(pexprIndexApply);
+	}
 }
 
 //---------------------------------------------------------------------------

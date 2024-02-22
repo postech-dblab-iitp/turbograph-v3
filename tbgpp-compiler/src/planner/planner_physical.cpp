@@ -1278,7 +1278,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                         colref_table->AttrNum());
                 }
             }
-            outer_col_maps_seek.push_back(outer_col_map_seek);
+            auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+            duckdb::idx_t num_outer_schemas = 1;
+            for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+                num_outer_schemas *= num_schemas_of_childs_prev[i];
+            }
+            for (auto i = 0; i < num_outer_schemas; i++) {
+                outer_col_maps_seek.push_back(outer_col_map_seek);
+            }
+            // outer_col_maps_seek.push_back(outer_col_map_seek);
             inner_col_maps_seek.push_back(inner_col_map_seek);
             rhs_schema.setStoredTypes(scan_types[0]);
 
@@ -1290,13 +1298,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
             // adjidx join is binary operator, but its rhs schema is always one.
             vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-            auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-            duckdb::idx_t num_total_schemas_prev = 1;
-            for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-                num_total_schemas_prev *= num_schemas_of_childs_prev[i];
-            }
             pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
-            num_schemas_of_childs.push_back({num_total_schemas_prev, 1});
+            num_schemas_of_childs.push_back({num_outer_schemas, 1});
             vector<duckdb::Schema> out_schemas;
             vector<duckdb::Schema> rhs_schemas = {rhs_schema};
             pGenerateCartesianProductSchema(prev_local_schemas, rhs_schemas,

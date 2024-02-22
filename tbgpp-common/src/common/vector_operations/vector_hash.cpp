@@ -52,6 +52,8 @@ static inline void TemplatedLoopHash(Vector &input, Vector &result, const Select
 		*result_data = HashOp::Operation(*ldata, ConstantVector::IsNull(input));
 	} else {
 		result.SetVectorType(VectorType::FLAT_VECTOR);
+		
+		if (!input.GetIsValid()) return;
 
 		VectorData idata;
 		input.Orrify(count, idata);
