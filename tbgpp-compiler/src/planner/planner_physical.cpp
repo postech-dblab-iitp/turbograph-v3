@@ -888,6 +888,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         (CPhysicalInnerIndexNLJoin *)plan_expr->Pop();
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprOuter = (*plan_expr)[0];
+    CColRefSet *outer_cols_set = pexprOuter->Prpp()->PcrsRequired();
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
     // CColRefArray* inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -913,7 +914,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         OID type_oid = type_mdid->Oid();
         auto logical_type = pConvertTypeOidToLogicalType(type_oid);
         output_types.push_back(logical_type);
-        if (!pIsColEdgeProperty(col)) {
+        if (!outer_cols_set->FMember(col)) {
+            // col from inner - can be edge property
+            if (!pIsColEdgeProperty(col)) {
+                output_types_wo_edge_properties.push_back(logical_type);
+            }
+        } else {
+            // col from outer
             output_types_wo_edge_properties.push_back(logical_type);
         }
     }

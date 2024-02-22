@@ -185,6 +185,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 	CLogicalDynamicGet *popDynamicGet = NULL;
 	CAutoRef<CColRefSet> groupingColsToCheck;
 	BOOL hasUnionAllOverLogicalGet = false;
+	BOOL hasSelectAboveGet = false;
 
 	// walk down the right child tree, accepting some unary operators
 	// like project and GbAgg and select, until we find a logical get
@@ -216,6 +217,26 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 					}
 					
 					hasUnionAllOverLogicalGet = true;
+				} else if (((*pexprCurrInnerChild)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) &&
+					((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalSelect) &&
+					((*(*(*pexprCurrInnerChild)[0])[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
+					pexprUnionAll = pexprCurrInnerChild;
+					pexprGet = (*(*(*pexprCurrInnerChild)[0])[0])[0]; // TODO S62 currently consider only first Get
+					CLogicalGet *popGet =
+						CLogicalGet::PopConvert(pexprGet->Pop());
+
+					ptabdescInner = popGet->Ptabdesc();
+					distributionCols = popGet->PcrsDist();
+
+					if (NULL != groupingColsToCheck.Value() &&
+						!groupingColsToCheck->ContainsAll(distributionCols))
+					{
+						// the grouping columns are not a superset of the distribution columns
+						return;
+					}
+					
+					hasUnionAllOverLogicalGet = true;
+					hasSelectAboveGet = true;
 				}
 			}
 			break;
@@ -411,11 +432,12 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 
 	if (hasUnionAllOverLogicalGet) {
 		CreateHomogeneousIndexApplyAlternativesUnionAll(
-			mp, pexpr->Pop(), pexprOuter, pexprUnionAll, pexprAllPredicates, pexprScalar,
-			nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
+			mp, pexpr->Pop(), pexprOuter, pexprUnionAll, pexprAllPredicates,
+			pexprScalar, nodesToInsertAboveIndexGet, endOfNodesToInsertAboveIndexGet,
 			ptabdescInner, popDynamicGet, pxfres,
 			(m_generateBitmapPlans ? IMDIndex::EmdindBitmap
-								: IMDIndex::EmdindBtree));
+								: IMDIndex::EmdindBtree),
+			hasSelectAboveGet);
 	} else {
 		// insert the btree or bitmap alternatives
 		CreateHomogeneousIndexApplyAlternatives(
