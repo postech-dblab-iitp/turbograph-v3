@@ -532,6 +532,15 @@ run_ldbc_c11() {
 				personId ASC,
 				organizationName DESC
 		LIMIT 10" 0
+
+	# Simplified IdSeek + Filter
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
+		WHERE friend.id > 1000
+		RETURN 
+			person.id AS personId,
+			friend.id AS friendId,
+			friend.firstName AS personFirstName,
+			friend.lastName AS personLastName" 0
 }
 
 run_ldbc_c12() {

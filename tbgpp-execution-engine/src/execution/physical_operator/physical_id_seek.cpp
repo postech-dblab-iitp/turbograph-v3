@@ -187,18 +187,22 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<vector<uint64_t>> projection_mapping,
                                vector<vector<uint32_t>> &outer_col_maps,
                                vector<vector<uint32_t>> &inner_col_maps,
-                               vector<duckdb::LogicalType> scan_type,
+                               vector<uint32_t> &union_inner_col_map,
                                vector<vector<uint64_t>> scan_projection_mapping,
-                               vector<unique_ptr<Expression>> predicates)
+                                vector<vector<duckdb::LogicalType>> scan_types,
+                               vector<unique_ptr<Expression>>& predicates,
+                               bool is_output_union_schema)
     : CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch),
       id_col_idx(id_col_idx),
       oids(oids),
+      scan_types(scan_types),
       projection_mapping(projection_mapping),
       outer_col_maps(move(outer_col_maps)),
       inner_col_maps(move(inner_col_maps)),
-      scan_projection_mapping(scan_projection_mapping)
+      union_inner_col_map(move(union_inner_col_map)),
+      scan_projection_mapping(scan_projection_mapping),
+      is_output_union_schema(is_output_union_schema)
 {
-    this->scan_types.push_back(std::move(scan_type));
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
         target_types.push_back(
             sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
@@ -244,7 +248,9 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     do_filter_pushdown = false;
     has_unpushdowned_expressions = true;
-    tmp_chunks.resize(num_total_schemas);
+    for (auto i = 0; i < num_total_schemas; i++) {
+    	tmp_chunks.push_back(std::make_unique<DataChunk>());
+    }
     is_tmp_chunk_initialized_per_schema.resize(num_total_schemas, false);
     
     generatePartialSchemaInfos();
@@ -381,10 +387,10 @@ OperatorResultType PhysicalIdSeek::Execute(
 
                     // init intermediate chunk
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
-                    if (!is_tmp_chunk_initialized) {
+                    if (!is_tmp_chunk_initialized_per_schema[chunk_idx]) {
                         auto types = chunks[chunk_idx]->GetTypes();
                         tmp_chunk.Initialize(types);
-                        is_tmp_chunk_initialized = true;
+                        is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
                     } else {
                         tmp_chunk.Reset();
                     }
@@ -402,12 +408,6 @@ OperatorResultType PhysicalIdSeek::Execute(
                         input, nodeColIdx, target_types, target_eids,
                         target_seqnos_per_extent, extentIdx, output_col_idx,
                         num_tuples_per_chunk[chunk_idx]);
-
-
-                    // Refer input chunk & execute expression
-                    for (idx_t i = 0; i < input.ColumnCount(); i++) {
-                        tmp_chunk.data[i].Reference(input.data[i]);
-                    }
 
                     tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
                     num_tuples_per_chunk[chunk_idx] = executor.SelectExpression(tmp_chunk, state.sels[chunk_idx]);
@@ -576,7 +576,7 @@ OperatorResultType PhysicalIdSeek::Execute(
                             chunks[chunk_idx]->ColumnCount());
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     chunks[chunk_idx]->data[inner_col_maps[inner_col_maps_idx][i]].Slice(
-                        tmp_chunk.data[input.ColumnCount() + i], state.sels[chunk_idx], num_tuples_per_chunk[chunk_idx]);
+                        tmp_chunk.data[inner_col_maps[inner_col_maps_idx][i]], state.sels[chunk_idx], num_tuples_per_chunk[chunk_idx]);
                 }
             }
         }

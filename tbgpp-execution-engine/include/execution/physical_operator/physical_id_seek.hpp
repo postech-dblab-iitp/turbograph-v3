@@ -40,9 +40,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
                    vector<vector<uint32_t>> &inner_col_maps,
-                   vector<duckdb::LogicalType> scan_type,
+                   vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
-                   vector<unique_ptr<Expression>> predicates);
+                   vector<vector<duckdb::LogicalType>> scan_types,
+                   vector<unique_ptr<Expression>>& predicates,
+                   bool is_output_union_schema);
     ~PhysicalIdSeek() {
         for (auto &chunk : tmp_chunks) {
             chunk.reset();
@@ -101,7 +103,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     bool do_filter_pushdown;
     bool has_unpushdowned_expressions = false;
     mutable bool is_tmp_chunk_initialized = false;
-    vector<bool> is_tmp_chunk_initialized_per_schema;
+    mutable vector<bool> is_tmp_chunk_initialized_per_schema;
     // when negative, no filter pushdown
     mutable int64_t filter_pushdown_key_idx;
     // do not use when filter_pushdown_key_idx < 0
