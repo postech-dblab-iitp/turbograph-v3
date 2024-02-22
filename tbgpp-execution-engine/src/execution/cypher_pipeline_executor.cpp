@@ -218,8 +218,8 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		OperatorResultType pipeResult;
 		if (pipeline->pipelineLength == 2) { // nothing passes through pipe.
 			idx_t src_schema_idx = source.GetSchemaIdx();
-			idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 1, src_schema_idx);
-			pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 1][output_schema_idx].get();
+			idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 2, src_schema_idx);
+			pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 			pipeOutputChunk->Reference(source);
 			pipeResult = OperatorResultType::NEED_MORE_INPUT;
 			D_ASSERT(in_process_operators.empty()); // TODO: In this case it should definitely be like this... but check plz

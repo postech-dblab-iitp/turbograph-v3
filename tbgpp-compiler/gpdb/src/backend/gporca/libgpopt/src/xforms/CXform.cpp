@@ -210,8 +210,6 @@ CXform::PbsHashMergeJoinXforms(CMemoryPool *mp)
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2MergeJoin));
 	(void) pbs->ExchangeSet(
-		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2NLJoin));
-	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftOuterJoin2HashJoin));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftSemiJoin2HashJoin));
