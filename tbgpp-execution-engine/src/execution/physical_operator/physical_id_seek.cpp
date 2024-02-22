@@ -32,21 +32,17 @@ class IdSeekState : public OperatorState {
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<uint64_t> oids,
                                vector<vector<uint64_t>> projection_mapping,
-                               vector<uint32_t> &outer_col_map,
-                               vector<uint32_t> &inner_col_map)
+                               vector<vector<uint32_t>> &outer_col_maps,
+                               vector<vector<uint32_t>> &inner_col_maps)
     : CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch),
       id_col_idx(id_col_idx),
       oids(oids),
       projection_mapping(projection_mapping),
+      outer_col_maps(move(outer_col_maps)),
+      inner_col_maps(move(inner_col_maps)),
       scan_projection_mapping(projection_mapping),
       filter_pushdown_key_idx(-1)
 {
-
-    // targetTypes => (pid, newcol1, newcol2, ...) // we fetch pid but abandon pids.
-    // schema = (original cols, projected cols)
-    // 		if (4, 2) => target_types_index starts from: (2+4)-2 = 4
-    this->inner_col_maps.push_back(std::move(inner_col_map));
-    this->outer_col_maps.push_back(std::move(outer_col_map));
     num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     scan_types.resize(1);
@@ -101,19 +97,18 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<uint64_t> oids,
                                vector<vector<uint64_t>> projection_mapping,
-                               vector<uint32_t> &outer_col_map,
-                               vector<uint32_t> &inner_col_map,
+                               vector<vector<uint32_t>> &outer_col_maps,
+                               vector<vector<uint32_t>> &inner_col_maps,
                                vector<unique_ptr<Expression>> predicates)
     : CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch),
       id_col_idx(id_col_idx),
       oids(oids),
       projection_mapping(projection_mapping),
+      outer_col_maps(move(outer_col_maps)),
+      inner_col_maps(move(inner_col_maps)),
       scan_projection_mapping(projection_mapping),
       filter_pushdown_key_idx(-1)
 {
-
-    this->inner_col_maps.push_back(std::move(inner_col_map));
-    this->outer_col_maps.push_back(std::move(outer_col_map));
     num_total_schemas = this->outer_col_maps.size() * this->inner_col_maps.size();
 
     scan_types.resize(1);
@@ -123,7 +118,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
         scan_types[0].push_back(
             sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
     }
-    // tmp_chunk.InitializeEmpty(scan_types[0]);
 
     D_ASSERT(predicates.size() > 0);
     if (predicates.size() > 1) {
@@ -154,8 +148,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<uint64_t> oids,
                                vector<vector<uint64_t>> projection_mapping,
-                               vector<uint32_t> &outer_col_map,
-                               vector<uint32_t> &inner_col_map,
+                               vector<vector<uint32_t>> &outer_col_maps,
+                               vector<vector<uint32_t>> &inner_col_maps,
                                vector<duckdb::LogicalType> scan_type,
                                vector<vector<uint64_t>> scan_projection_mapping,
                                int64_t filterKeyIndex,
@@ -164,13 +158,12 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
       id_col_idx(id_col_idx),
       oids(oids),
       projection_mapping(projection_mapping),
+      outer_col_maps(move(outer_col_maps)),
+      inner_col_maps(move(inner_col_maps)),
       scan_projection_mapping(scan_projection_mapping),
       filter_pushdown_key_idx(filterKeyIndex),
       filter_pushdown_value(filterValue)
 {
-
-    this->inner_col_maps.push_back(std::move(inner_col_map));
-    this->outer_col_maps.push_back(std::move(outer_col_map));
     this->scan_types.push_back(std::move(scan_type));
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
         target_types.push_back(
@@ -192,8 +185,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<uint64_t> oids,
                                vector<vector<uint64_t>> projection_mapping,
-                               vector<uint32_t> &outer_col_map,
-                               vector<uint32_t> &inner_col_map,
+                               vector<vector<uint32_t>> &outer_col_maps,
+                               vector<vector<uint32_t>> &inner_col_maps,
                                vector<duckdb::LogicalType> scan_type,
                                vector<vector<uint64_t>> scan_projection_mapping,
                                vector<unique_ptr<Expression>> predicates)
@@ -201,11 +194,10 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
       id_col_idx(id_col_idx),
       oids(oids),
       projection_mapping(projection_mapping),
+      outer_col_maps(move(outer_col_maps)),
+      inner_col_maps(move(inner_col_maps)),
       scan_projection_mapping(scan_projection_mapping)
 {
-
-    this->inner_col_maps.push_back(std::move(inner_col_map));
-    this->outer_col_maps.push_back(std::move(outer_col_map));
     this->scan_types.push_back(std::move(scan_type));
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
         target_types.push_back(
@@ -309,7 +301,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
         scan_types, target_eids, target_seqnos_per_extent,
         ps_oid_to_projection_mapping, mapping_idxs);
 
-    bool do_unionall = false;
+    // TODO
+    bool do_unionall = true;
 
     if (do_unionall) {
         doSeekUnionAll(context, input, chunk, state, target_eids,
@@ -537,7 +530,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         return OperatorResultType::NEED_MORE_INPUT;
     }
     else if (do_filter_pushdown && !has_expression) {
-        throw NotImplementedException("");
+        throw NotImplementedException("PhysicalIdSeek-Refer do_filter_pushdown && !has_expression");
         // idx_t schema_idx = input.GetSchemaIdx();
         // D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
         // for (int i = 0; i < input.ColumnCount(); i++) {
@@ -549,7 +542,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         // chunk.SetCardinality(output_idx);
     }
     else if (!do_filter_pushdown && has_expression) {
-        throw NotImplementedException("");
+        throw NotImplementedException("PhysicalIdSeek-Refer !do_filter_pushdown && has_expression");
         // idx_t schema_idx = input.GetSchemaIdx();
         // D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
         // for (int i = 0; i < input.ColumnCount(); i++) {
@@ -686,7 +679,7 @@ void PhysicalIdSeek::doSeekSchemaless(
     if (!do_filter_pushdown) {
         if (has_expression) {
             // no filter pushdown but has expression
-            throw NotImplementedException("");
+            throw NotImplementedException("PhysicalIdSeek !do_filter_pushdown && has_expression");
         }
         else {
             // no filter pushdown & has no filter expression
@@ -733,7 +726,7 @@ void PhysicalIdSeek::doSeekSchemaless(
     }
     else {
         // filter pushdown
-        throw NotImplementedException("");
+        throw NotImplementedException("PhysicalIdSeek do_filter_pushdown");
     }
 }
 
@@ -745,6 +738,7 @@ void PhysicalIdSeek::referInputChunk(DataChunk &input, DataChunk &chunk,
     // for original ones reference existing columns
     if (!do_filter_pushdown && !has_expression) {
         idx_t schema_idx = input.GetSchemaIdx();
+        D_ASSERT(schema_idx < outer_col_maps.size());
         D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
         for (int i = 0; i < input.ColumnCount(); i++) {
             if (outer_col_maps[schema_idx][i] !=

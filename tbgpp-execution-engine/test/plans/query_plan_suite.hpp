@@ -94,11 +94,11 @@ public:
 
 		/* LDBC queries */
 		// if( key.compare("s1") == 0 ) { return LDBC_IS1(); }
-		if( key.compare("s2") == 0 ) { return LDBC_IS2(); }
+		// if( key.compare("s2") == 0 ) { return LDBC_IS2(); }
 		// if( key.compare("s3") == 0 ) { return LDBC_IS3(); }
 		// if( key.compare("s4") == 0 ) { return LDBC_IS4(); }
 		// if( key.compare("s5") == 0 ) { return LDBC_IS5(); }
-		if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
+		// if( key.compare("s6") == 0 ) { return LDBC_IS6(); }
 		// if( key.compare("s7") == 0 ) { return LDBC_IS7(); }
 		// if( key.compare("c2") == 0 ) { return LDBC_IC2(); }
 		// if( key.compare("c4") == 0 ) { return LDBC_IC4(); }
@@ -121,17 +121,17 @@ public:
 		// if( key.compare("coco3d") == 0 ) { return COCO_Q3D(); }
 
 		/* Schemaless test */
-		if (key.compare("sch1") == 0) { return SCHEMALESS_TEST1(); }
-		if (key.compare("sch2") == 0) { return SCHEMALESS_TEST2(); }
-		if (key.compare("sch3") == 0) { return SCHEMALESS_TEST3(); }
-		if (key.compare("sch4") == 0) { return SCHEMALESS_TEST4(); }
-		if (key.compare("sch5") == 0) { return SCHEMALESS_TEST5(); }
-		if (key.compare("sch6") == 0) { return SCHEMALESS_TEST6(); }
-		if (key.compare("sch7") == 0) { return SCHEMALESS_TEST7(); }
-		if (key.compare("sch8") == 0) { return SCHEMALESS_TEST8(); }
-		if (key.compare("sch9") == 0) { return SCHEMALESS_TEST9(); }
-		if (key.compare("sch10") == 0) { return SCHEMALESS_TEST10(); }
-		if (key.compare("sch11") == 0) { return SCHEMALESS_TEST11(); }
+		// if (key.compare("sch1") == 0) { return SCHEMALESS_TEST1(); }
+		// if (key.compare("sch2") == 0) { return SCHEMALESS_TEST2(); }
+		// if (key.compare("sch3") == 0) { return SCHEMALESS_TEST3(); }
+		// if (key.compare("sch4") == 0) { return SCHEMALESS_TEST4(); }
+		// if (key.compare("sch5") == 0) { return SCHEMALESS_TEST5(); }
+		// if (key.compare("sch6") == 0) { return SCHEMALESS_TEST6(); }
+		// if (key.compare("sch7") == 0) { return SCHEMALESS_TEST7(); }
+		// if (key.compare("sch8") == 0) { return SCHEMALESS_TEST8(); }
+		// if (key.compare("sch9") == 0) { return SCHEMALESS_TEST9(); }
+		// if (key.compare("sch10") == 0) { return SCHEMALESS_TEST10(); }
+		// if (key.compare("sch11") == 0) { return SCHEMALESS_TEST11(); }
 
 		/* Empty plan at last */
 		return std::vector<CypherPipelineExecutor*>();
@@ -152,11 +152,11 @@ public:
 	// std::vector<CypherPipelineExecutor*> Test12();	// 
 	
 	// std::vector<CypherPipelineExecutor*> LDBC_IS1();
-	std::vector<CypherPipelineExecutor*> LDBC_IS2();
+	// std::vector<CypherPipelineExecutor*> LDBC_IS2();
 	// std::vector<CypherPipelineExecutor*> LDBC_IS3();
 	// std::vector<CypherPipelineExecutor*> LDBC_IS4();
 	// std::vector<CypherPipelineExecutor*> LDBC_IS5();
-	std::vector<CypherPipelineExecutor*> LDBC_IS6();
+	// std::vector<CypherPipelineExecutor*> LDBC_IS6();
 	// std::vector<CypherPipelineExecutor*> LDBC_IS7();
 
 	// std::vector<CypherPipelineExecutor*> LDBC_IC1();	//   |   |   |
@@ -189,17 +189,17 @@ public:
 	// std::vector<CypherPipelineExecutor*> COCO_Q3C();	//   |   |   |
 	// std::vector<CypherPipelineExecutor*> COCO_Q3D();	//   |   |   |
 	
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST1();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST2();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST3();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST4();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST5();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST6();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST7();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST8();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST9();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST10();
-	std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST11();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST1();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST2();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST3();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST4();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST5();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST6();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST7();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST8();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST9();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST10();
+	// std::vector<CypherPipelineExecutor *> SCHEMALESS_TEST11();
 	
 	// std::vector<CypherPipelineExecutor*> TC();			// Triangle Counting
 	ClientContext &context;

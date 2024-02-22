@@ -1485,10 +1485,10 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
             switch (cur_ext_property_type[j].id())
             {
             case LogicalTypeId::VARCHAR:
-                throw NotImplementedException("");
+                throw NotImplementedException("GetNextExtentInRowFormat VARCHAR");
                 break;
             case LogicalTypeId::LIST:
-                throw NotImplementedException("");
+                throw NotImplementedException("GetNextExtentInRowFormat LIST");
                 break;
             case LogicalTypeId::ID:
             {

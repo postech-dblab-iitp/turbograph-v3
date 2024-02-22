@@ -897,6 +897,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<uint32_t> inner_col_map;
     vector<uint32_t> outer_col_map_seek;
     vector<uint32_t> inner_col_map_seek;
+    vector<vector<uint32_t>> outer_col_maps_seek;
+    vector<vector<uint32_t>> inner_col_maps_seek;
 
     vector<uint64_t> oids;
     vector<vector<uint64_t>> projection_mapping;
@@ -1226,9 +1228,11 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         // TODO filter + seek
         duckdb::CypherPhysicalOperator *op_seek;
         if (!generate_sfg) {
+            outer_col_maps_seek.push_back(std::move(outer_col_map_seek));
+            inner_col_maps_seek.push_back(std::move(inner_col_map_seek));
             op_seek = new duckdb::PhysicalIdSeek(
                 tmp_schema_seek, edge_id_col_idx, oids, projection_mapping,
-                outer_col_map_seek, inner_col_map_seek);
+                outer_col_maps_seek, inner_col_maps_seek);
         }
         else {
             /**
@@ -1449,8 +1453,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
 
     unordered_map<ULONG, uint64_t> id_map;
-    vector<uint32_t> outer_col_map;
-    vector<uint32_t> inner_col_map;
+    vector<vector<uint32_t>> outer_col_maps;
+    vector<vector<uint32_t>> inner_col_maps;
 
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         CColRef *col = (*output_cols)[col_idx];
@@ -1653,7 +1657,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     D_ASSERT(idxscan_expr != NULL);
     CColRefSet *inner_output_cols = pexprInner->Prpp()->PcrsRequired();
     CColRefSet *idxscan_output_cols = idxscan_expr->Prpp()->PcrsRequired();
-    D_ASSERT(idxscan_output_cols->ContainsAll(inner_output_cols));
+    // D_ASSERT(idxscan_output_cols->ContainsAll(inner_output_cols));
 
     CPhysicalIndexScan *idxscan_op = (CPhysicalIndexScan *)idxscan_expr->Pop();
     CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(idxscan_op->Ptabdesc()->MDId());
@@ -1688,37 +1692,46 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     D_ASSERT(scan_ident_mapping.size() == idxscan_output_cols->Size());
     scan_projection_mapping.push_back(scan_ident_mapping);
 
-    bool sid_col_idx_found = false;
-    // Construct mapping info
-    for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++) {
-        CColRef *col = outer_cols->operator[](col_idx);
-        ULONG col_id = col->Id();
-        // match _tid
-        auto it = std::find(sccmp_colids.begin(), sccmp_colids.end(), col_id);
-        if (it != sccmp_colids.end()) {
-            D_ASSERT(!sid_col_idx_found);
-            sid_col_idx = col_idx;
-            sid_col_idx_found = true;
-        }
-        // construct outer_col_map
-        auto it_ = id_map.find(col_id);
-        if (it_ == id_map.end()) {
-            outer_col_map.push_back(std::numeric_limits<uint32_t>::max());
-        }
-        else {
-            auto id_idx = id_map.at(
-                col_id);  // std::out_of_range exception if col_id does not exist in id_map
-            outer_col_map.push_back(id_idx);
-        }
+    // Construct outer mapping info
+    auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+    duckdb::idx_t num_outer_schemas = 1;
+    for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+        num_outer_schemas *= num_schemas_of_childs_prev[i];
     }
-    D_ASSERT(sid_col_idx_found);
+    for (auto i = 0; i < num_outer_schemas; i++) {
+        outer_col_maps.push_back(std::vector<uint32_t>());
+        bool sid_col_idx_found = false;
+        for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++) {
+            CColRef *col = outer_cols->operator[](col_idx);
+            ULONG col_id = col->Id();
+            // match _tid
+            auto it = std::find(sccmp_colids.begin(), sccmp_colids.end(), col_id);
+            if (it != sccmp_colids.end()) {
+                D_ASSERT(!sid_col_idx_found);
+                sid_col_idx = col_idx;
+                sid_col_idx_found = true;
+            }
+            // construct outer_col_map
+            auto it_ = id_map.find(col_id);
+            if (it_ == id_map.end()) {
+                outer_col_maps[i].push_back(std::numeric_limits<uint32_t>::max());
+            }
+            else {
+                auto id_idx = id_map.at(
+                    col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                outer_col_maps[i].push_back(id_idx);
+            }
+        }
+        D_ASSERT(sid_col_idx_found);
+    }
 
+    inner_col_maps.push_back(std::vector<uint32_t>());
     for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
         CColRef *col = inner_cols->operator[](col_idx);
         ULONG col_id = col->Id();
         auto id_idx = id_map.at(
             col_id);  // std::out_of_range exception if col_id does not exist in id_map
-        inner_col_map.push_back(id_idx);
+        inner_col_maps[0].push_back(id_idx);
     }
     // for (ULONG col_idx = 0; col_idx < idxscan_output_cols_arr->Size(); col_idx++) {
     // 	CColRef* col = idxscan_output_cols_arr->operator[](col_idx);
@@ -1763,21 +1776,21 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             // 	new duckdb::PhysicalIdSeek(tmp_schema, sid_col_idx, oids, scan_projection_mapping, outer_col_map, inner_col_map, move(filter_exprs));
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_map, inner_col_map, scan_types,
+                outer_col_maps, inner_col_maps, scan_types,
                 scan_projection_mapping, move(filter_exprs));
             result->push_back(op);
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_map, inner_col_map);
+                outer_col_maps, inner_col_maps);
             result->push_back(op);
         }
     }
     else {
         duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
             tmp_schema, sid_col_idx, oids, output_projection_mapping,
-            outer_col_map, inner_col_map, scan_types, scan_projection_mapping,
+            outer_col_maps, inner_col_maps, scan_types, scan_projection_mapping,
             pred_attr_pos, literal_val);
         result->push_back(op);
     }
@@ -3653,7 +3666,7 @@ void Planner::pGenerateFilterExprs(
     }
     else {
         // not implemented yet
-        throw duckdb::NotImplementedException("");
+        throw duckdb::NotImplementedException("pGenerateFilterExprs");
         D_ASSERT(false);
     }
 }

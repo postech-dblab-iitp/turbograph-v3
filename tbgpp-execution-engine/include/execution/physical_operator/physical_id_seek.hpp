@@ -14,8 +14,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
    public:
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<uint32_t> &outer_col_map,
-                   vector<uint32_t> &inner_col_map);
+                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<vector<uint32_t>> &inner_col_maps);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
@@ -26,20 +26,20 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    bool is_output_union_schema);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<uint32_t> &outer_col_map,
-                   vector<uint32_t> &inner_col_map,
+                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<vector<uint32_t>> &inner_col_maps,
                    vector<unique_ptr<Expression>> predicates);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<uint32_t> &outer_col_map,
-                   vector<uint32_t> &inner_col_map,
+                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<vector<uint32_t>> &inner_col_maps,
                    vector<duckdb::LogicalType> scan_type,
                    vector<vector<uint64_t>> scan_projection_mapping,
                    int64_t filterKeyIndex, duckdb::Value filterValue);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<uint32_t> &outer_col_map,
-                   vector<uint32_t> &inner_col_map,
+                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<vector<uint32_t>> &inner_col_maps,
                    vector<duckdb::LogicalType> scan_type,
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<unique_ptr<Expression>> predicates);

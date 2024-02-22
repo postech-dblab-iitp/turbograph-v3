@@ -88,7 +88,7 @@ public:
 		// if( key.compare("t10") == 0 ) { return Test10(); }		// Scan + Order(with grouping; + collect) + Unwind : result same as scan
 		// if( key.compare("t11") == 0 ) { return Test11(); }		// Scan + Expand (incoming) ( using backward edge )
 		// if( key.compare("t11-1") == 0 ) { return Test11_1(); }		// Scan + Expand (outgoing ; reversed of test 11)
-		if( key.compare("t12") == 0 ) { return Test12(); }		// Scan + Expand (outgoing ; reversed of test 11)
+		// if( key.compare("t12") == 0 ) { return Test12(); }		// Scan + Expand (outgoing ; reversed of test 11)
 
 
 		/* LDBC queries */
@@ -136,7 +136,7 @@ public:
 	// std::vector<CypherPipelineExecutor*> Test10();	// 
 	// std::vector<CypherPipelineExecutor*> Test11();	// 
 	// std::vector<CypherPipelineExecutor*> Test11_1();	// 
-	std::vector<CypherPipelineExecutor*> Test12();	// 
+	// std::vector<CypherPipelineExecutor*> Test12();	// 
 	
 	// std::vector<CypherPipelineExecutor*> LDBC_IS1();
 	// std::vector<CypherPipelineExecutor*> LDBC_IS2();
