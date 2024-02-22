@@ -288,6 +288,7 @@ void TemplatedLoopCombineHash(Vector &input, Vector &hashes, const SelectionVect
 		auto other_hash = HashOp::Operation(*ldata, ConstantVector::IsNull(input));
 		*hash_data = CombineHashScalar(*hash_data, other_hash);
 	} else {
+		if (!input.GetIsValid()) return;
 		VectorData idata;
 		input.Orrify(count, idata);
 		if (hashes.GetVectorType() == VectorType::CONSTANT_VECTOR) {
