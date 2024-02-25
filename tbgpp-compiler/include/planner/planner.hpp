@@ -382,7 +382,8 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
-	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression>& table_expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
+	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
+	void pConvertLocalFilterExprToIdSeekFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray *cols, vector<ULONG> inner_col_id, vector<uint32_t> inner_col_map);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -404,6 +405,7 @@ private:
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
 	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
+	void pBuildSchemaFlowGraphForBinaryOperator(duckdb::Schema &output_schema, size_t num_rhs_schemas);
 
 	inline string pGetColNameFromColRef(const CColRef *column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
