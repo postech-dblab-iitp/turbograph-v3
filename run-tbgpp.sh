@@ -450,7 +450,7 @@ run_ldbc_c9() {
 	# 		message.id ASC
 	# 	LIMIT 20" 1
 
-	run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]->(friend:Person)
+	run_query "MATCH (root:Person {id: 94 })-[:KNOWS*1..2]->(friend:Person)
 		WITH DISTINCT friend
 		MATCH (friend)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate < 1289908800000
@@ -523,6 +523,50 @@ run_ldbc_c11() {
 				personId ASC,
 				organizationName DESC
 		LIMIT 10" 0
+
+	# Without filter-only-column
+	run_query "MATCH (person:Person {id: 143})-[:KNOWS*1..2]->(friend:Person)
+		WITH DISTINCT friend
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(p:Place {name: 'Hungary'})
+		RETURN
+				friend.id AS personId,
+				friend.firstName AS personFirstName,
+				friend.lastName AS personLastName,
+				company.name AS organizationName,
+				company.label AS organizationLabel,
+				workAt.workFrom AS organizationWorkFromYear,
+				p.name AS placeName
+		ORDER BY
+				organizationWorkFromYear ASC,
+				personId ASC,
+				organizationName DESC
+		LIMIT 10" 0
+
+	# Test
+	run_query "MATCH (person:Person {id: 143})-[:KNOWS]->(friend:Person)
+		WITH DISTINCT friend
+		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})
+		RETURN
+				friend.id AS personId,
+				friend.firstName AS personFirstName,
+				friend.lastName AS personLastName,
+				company.name AS organizationName,
+				company.label AS organizationLabel,
+				workAt.workFrom AS organizationWorkFromYear
+		ORDER BY
+				organizationWorkFromYear ASC,
+				personId ASC,
+				organizationName DESC
+		LIMIT 10" 0
+
+	# Simplified IdSeek + Filter
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
+		WHERE friend.id > 10000
+		RETURN 
+			person.id AS personId,
+			friend.id AS friendId,
+			friend.firstName AS personFirstName,
+			friend.lastName AS personLastName" 0
 }
 
 run_ldbc_c12() {
