@@ -472,6 +472,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(
     tmp_schema.setStoredTypes(types);
     tmp_schema.setStoredColumnNames(out_col_names);
     duckdb::CypherPhysicalOperator *op = nullptr;
+    generate_sfg = true;
 
     if (!do_filter_pushdown) {
         op = new duckdb::PhysicalNodeScan(tmp_schema, oids,
