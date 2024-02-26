@@ -156,7 +156,7 @@ StoreAPIResult
 iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
 											DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											vector<vector<idx_t>> &target_seqnos_per_extent, unordered_map<idx_t, idx_t> &ps_oid_to_projection_mapping,
-											vector<idx_t> &mapping_idxs)
+											vector<idx_t> &mapping_idxs, std::unordered_map<ExtentID, idx_t> &eid_to_mapping_idx)
 {
 	Catalog &cat_instance = client.db->GetCatalog();
 	vector<idx_t> boundary_position;
@@ -209,6 +209,17 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 	// process remaining
 	_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid, target_seqnos_per_extent_map, boundary_position);
 
+
+	// remove redundant eids
+	std::sort(target_eids.begin(), target_eids.end());
+	target_eids.erase(std::unique(target_eids.begin(), target_eids.end()), target_eids.end());
+	if (target_eids.size() == 0) return StoreAPIResult::DONE;
+	
+	/**
+	 * TODO: this code should be rmoved! this is temporal code
+	 * Also, this is very slow due to GetEntry access.
+	 * Optimize this.
+	*/
 	// remove extent ids to be removed due to filter
 	vector<ExtentID> target_eids_after_remove;
 	for (auto i = 0; i < target_eids.size(); i++) {
@@ -223,22 +234,25 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 	}
 	target_eids = std::move(target_eids_after_remove);
 
-	// remove redundant eids
-	std::sort(target_eids.begin(), target_eids.end());
-	target_eids.erase(std::unique(target_eids.begin(), target_eids.end()), target_eids.end());
-	if (target_eids.size() == 0) return StoreAPIResult::DONE;
-
 	for (auto i = 0; i < target_eids.size(); i++) {
-		string ext_name = DEFAULT_EXTENT_PREFIX + std::to_string(target_eids[i]);
-		ExtentCatalogEntry *ext_cat =
-			(ExtentCatalogEntry *)cat_instance.GetEntry(client, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, ext_name);
-		idx_t psid = ext_cat->ps_oid;
-		auto it = ps_oid_to_projection_mapping.find(psid);
-		if (it == ps_oid_to_projection_mapping.end()) {
-			throw InvalidInputException("Projection mapping not found for ps_oid: " + std::to_string(psid));
+		idx_t mapping_idx = -1;
+		auto eid_it = eid_to_mapping_idx.find(target_eids[i]);
+		if (eid_it == eid_to_mapping_idx.end()) {
+			string ext_name = DEFAULT_EXTENT_PREFIX + std::to_string(target_eids[i]);
+			ExtentCatalogEntry *ext_cat =
+				(ExtentCatalogEntry *)cat_instance.GetEntry(client, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, ext_name);
+			idx_t psid = ext_cat->ps_oid;
+			auto it = ps_oid_to_projection_mapping.find(psid);
+			if (it == ps_oid_to_projection_mapping.end()) {
+				throw InvalidInputException("Projection mapping not found for ps_oid: " + std::to_string(psid));
+			}
+			mapping_idx = it->second;
+			eid_to_mapping_idx.insert({target_eids[i], mapping_idx});
 		}
-		auto mapping_idx = it->second;
-		
+		else {
+			mapping_idx = eid_it->second;
+		}
+		D_ASSERT(mapping_idx != -1);
 		mapping_idxs.push_back(mapping_idx);
 		target_seqnos_per_extent.push_back(std::move(target_seqnos_per_extent_map.at(target_eids[i])));
 	}

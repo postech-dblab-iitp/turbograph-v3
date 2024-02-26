@@ -333,6 +333,15 @@ run_ldbc_c5() {
 			forum.title AS forumName,
 			count(post.id) AS postCount
 		LIMIT 20" 0
+	
+	# Simplified
+	run_query "MATCH (post:Post)<-[:CONTAINER_OF]-(forum:Forum)
+		WITH
+			forum, post
+		RETURN
+			forum.title AS forumName,
+			count(post.id) AS postCount
+		LIMIT 20" 0
 }
 
 run_ldbc_c6() {
@@ -523,50 +532,6 @@ run_ldbc_c11() {
 				personId ASC,
 				organizationName DESC
 		LIMIT 10" 0
-
-	# Without filter-only-column
-	run_query "MATCH (person:Person {id: 143})-[:KNOWS*1..2]->(friend:Person)
-		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(p:Place {name: 'Hungary'})
-		RETURN
-				friend.id AS personId,
-				friend.firstName AS personFirstName,
-				friend.lastName AS personLastName,
-				company.name AS organizationName,
-				company.label AS organizationLabel,
-				workAt.workFrom AS organizationWorkFromYear,
-				p.name AS placeName
-		ORDER BY
-				organizationWorkFromYear ASC,
-				personId ASC,
-				organizationName DESC
-		LIMIT 10" 0
-
-	# Test
-	run_query "MATCH (person:Person {id: 143})-[:KNOWS]->(friend:Person)
-		WITH DISTINCT friend
-		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})
-		RETURN
-				friend.id AS personId,
-				friend.firstName AS personFirstName,
-				friend.lastName AS personLastName,
-				company.name AS organizationName,
-				company.label AS organizationLabel,
-				workAt.workFrom AS organizationWorkFromYear
-		ORDER BY
-				organizationWorkFromYear ASC,
-				personId ASC,
-				organizationName DESC
-		LIMIT 10" 0
-
-	# Simplified IdSeek + Filter
-	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
-		WHERE friend.id > 10000
-		RETURN 
-			person.id AS personId,
-			friend.id AS friendId,
-			friend.firstName AS personFirstName,
-			friend.lastName AS personLastName" 0
 }
 
 run_ldbc_c12() {
