@@ -348,7 +348,7 @@ run_ldbc_c5() {
 		WITH
 			forum, post
 		RETURN
-			forum.id AS forumName,
+			forum.title AS forumName,
 			count(post.id) AS postCount
 		LIMIT 20" 0
 }
