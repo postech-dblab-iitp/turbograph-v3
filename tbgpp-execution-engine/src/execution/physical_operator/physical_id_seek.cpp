@@ -27,6 +27,7 @@ class IdSeekState : public OperatorState {
     idx_t cur_schema_idx;
     idx_t num_total_schemas;
     vector<SelectionVector> sels;  // TODO do we need this?
+    std::unordered_map<ExtentID, idx_t> cached_eid_to_schema_idx;
 };
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -322,7 +323,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
     context.client->graph_store->InitializeVertexIndexSeek(
         state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
-        ps_oid_to_projection_mapping, mapping_idxs);
+        ps_oid_to_projection_mapping, mapping_idxs, state.cached_eid_to_schema_idx);
 
     // TODO
     bool do_unionall = true;
@@ -374,7 +375,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         context.client->graph_store->InitializeVertexIndexSeek(
             state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
             scan_types, target_eids, target_seqnos_per_extent,
-            ps_oid_to_projection_mapping, mapping_idxs);
+            ps_oid_to_projection_mapping, mapping_idxs, state.cached_eid_to_schema_idx);
         state.need_initialize_extit = false;
         state.has_remaining_output = false;
         state.cur_schema_idx = 0;
