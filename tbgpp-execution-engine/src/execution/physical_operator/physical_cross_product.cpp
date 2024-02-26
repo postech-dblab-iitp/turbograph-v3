@@ -67,6 +67,11 @@ SinkResultType PhysicalCrossProduct::Sink(ExecutionContext &context, DataChunk &
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
+DataChunk &PhysicalCrossProduct::GetLastSinkedData(LocalSinkState &lstate) const {
+	auto &sink = (CrossProductLocalState &)lstate;
+	return sink.rhs_materialized.GetChunk(sink.rhs_materialized.Count() - 1);
+}
+
 //===--------------------------------------------------------------------===//
 // Operator
 //===--------------------------------------------------------------------===//
