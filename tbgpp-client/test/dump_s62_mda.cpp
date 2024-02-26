@@ -83,7 +83,7 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
 	// 	"vpart_REGION", "vpart_SUPPLIER"};
 	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person"};
-	vector<string> part_cat_list = {"epart_CONTAINER_OF", "epart_HAS_CREATOR", "epart_HAS_MODERATOR", "epart_REPLY_OF", "epart_REPLY_OF_COMMENT"};
+	vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person", "epart_CONTAINER_OF", "epart_HAS_CREATOR", "epart_HAS_MODERATOR", "epart_REPLY_OF", "epart_REPLY_OF_COMMENT"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -93,7 +93,9 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 			PropertySchemaCatalogEntry *ps_cat =
 				(PropertySchemaCatalogEntry *)cat.GetEntry(*client.get(), DEFAULT_SCHEMA, psids[i]);
 			auto physical_id_index_oid = ps_cat->GetPhysicalIDIndex();
-			fprintf(stdout, "Part %s oid[%ld] %ld, pid_oid %ld\n", part_cat_name.c_str(), i, psids[i], physical_id_index_oid);
+			auto num_tuples = ps_cat->GetNumberOfRowsApproximately();
+			fprintf(stdout, "Part %s oid[%ld] %ld, pid_oid %ld, # tuples = %ld\n",
+				part_cat_name.c_str(), i, psids[i], physical_id_index_oid, num_tuples);
 		}
 		auto *adjidx_oids = part_cat->GetAdjIndexOidVec();
 		fprintf(stdout, "Part %s #adjlists = %ld\n", part_cat_name.c_str(), adjidx_oids->size());

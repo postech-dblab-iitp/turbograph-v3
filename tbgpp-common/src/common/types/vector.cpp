@@ -1379,8 +1379,14 @@ void ConstantVector::Reference(Vector &vector, Vector &source, idx_t position, i
 	default:
 		// default behavior: get a value from the vector and reference it
 		// this is not that expensive for scalar types
-		auto value = source.GetValue(position);
-		vector.Reference(value);
+		if (source.GetIsValid()) {
+			auto value = source.GetValue(position);
+			vector.Reference(value);
+		} else {
+			// if the source is invalid, reference a NULL value
+			auto value = Value(vector.GetType());
+			vector.Reference(value);
+		}
 		D_ASSERT(vector.GetVectorType() == VectorType::CONSTANT_VECTOR);
 		break;
 	}

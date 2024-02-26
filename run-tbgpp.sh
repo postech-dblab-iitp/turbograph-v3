@@ -241,15 +241,6 @@ run_ldbc_c3() {
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
 	run_query "MATCH (countryX:Place {name: 'Angola' }),
-		(countryY:Place {name: 'Colombia' }),
-		(person:Person {id: 94 })
-		WITH person, countryX, countryY
-		LIMIT 1
-		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
-		RETURN person.id, countryX.name, countryY.name, city.name" 0
-	#run_query "MATCH (countryX:Place {name: 'Germany' }),
-	#      (countryY:Place {name: 'Hungary' }),
-	run_query "MATCH (countryX:Place {name: 'Angola' }),
 	      (countryY:Place {name: 'Colombia' }),
 	      (person:Person {id: 94 })
 	WITH person, countryX, countryY

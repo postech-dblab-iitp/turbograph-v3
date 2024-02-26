@@ -148,6 +148,12 @@ public:
 	CExpression *PexprExtractPlan(CMemoryPool *mp, CGroup *pgroupRoot,
 								  CReqdPropPlan *prppInput,
 								  ULONG ulSearchStages);
+	
+	// for s62 debugging - extract a plan that delivers the given required properties
+	CExpression *PexprExtractPlanInteractively(CMemoryPool *mp, CGroup *pgroupRoot,
+								  CReqdPropPlan *prppInput,
+								  ULONG ulSearchStages,
+								  BOOL *stopExtractPlan);
 
 	// merge duplicate groups
 	void GroupMerge();

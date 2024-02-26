@@ -225,6 +225,18 @@ CXform::PbsHashMergeJoinXforms(CMemoryPool *mp)
 	return pbs;
 }
 
+//	returns a set containing all xforms that generate a plan with hash join
+//	Caller takes ownership of the returned set
+CBitSet *
+CXform::PbsMergeJoinXforms(CMemoryPool *mp)
+{
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2MergeJoin));
+	return pbs;
+}
+
 CBitSet *
 CXform::PbsHashIndexJoinXforms(CMemoryPool *mp) 
 {

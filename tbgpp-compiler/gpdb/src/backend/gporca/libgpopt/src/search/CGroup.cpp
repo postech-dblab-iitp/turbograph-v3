@@ -721,6 +721,24 @@ CGroup::PgexprNext(CGroupExpression *pgexpr)
 	return m_listGExprs.Next(pgexpr);
 }
 
+CGroupExpression *
+CGroup::Pgexpr(ULONG ul) const
+{
+	ULONG target_idx = ul;
+	CGroupExpression *pgexpr = m_listGExprs.First();
+
+	while (true) {
+		if (target_idx == 0) {
+			break;
+		} else {
+			target_idx--;
+			pgexpr = m_listGExprs.Next(pgexpr);
+		}
+	}
+
+	return pgexpr;
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:

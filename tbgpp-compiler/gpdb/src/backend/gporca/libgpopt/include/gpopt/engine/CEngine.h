@@ -173,6 +173,9 @@ private:
 	// sample possible plans uniformly
 	void SamplePlans();
 
+	// print all possible plans (s62 debugging)
+	void PrintAllPossiblePlans();
+
 	// check if all children were successfully optimized
 	BOOL FChildrenOptimized(COptimizationContextArray *pdrgpoc);
 
@@ -255,6 +258,9 @@ public:
 
 	// extract a physical plan from the memo
 	CExpression *PexprExtractPlan();
+
+	// for s62 debugging - extract a physical plan from the memo
+	CExpression *PexprExtractPlanInteractively();
 
 	// check required properties;
 	// return false if it's impossible for the operator to satisfy one or more

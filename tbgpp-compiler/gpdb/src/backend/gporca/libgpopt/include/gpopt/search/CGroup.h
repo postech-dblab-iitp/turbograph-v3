@@ -543,6 +543,9 @@ public:
 	// lookup best expression under given optimization context
 	CGroupExpression *PgexprBest(COptimizationContext *poc);
 
+	// for s62 debugging - return i-th group expression
+	CGroupExpression *Pgexpr(ULONG ul) const;
+
 	// materialize a scalar expression for stat derivation if this is a scalar group
 	void CreateScalarExpression();
 

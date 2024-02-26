@@ -1740,6 +1740,7 @@ CEngine::Optimize()
 	if (optimizer_config->GetEnumeratorCfg()->FSample())
 	{
 		SamplePlans();
+		// PrintAllPossiblePlans();
 	}
 }
 
@@ -1844,6 +1845,67 @@ CEngine::PexprExtractPlan()
 	return pexpr;
 }
 
+CExpression *
+CEngine::PexprExtractPlanInteractively()
+{
+	GPOS_ASSERT(NULL != m_pqc);
+	GPOS_ASSERT(NULL != m_pmemo);
+	GPOS_ASSERT(NULL != m_pmemo->PgroupRoot());
+
+	BOOL fGenerateAlt = false;
+	BOOL stopExtractPlan = false;
+	COptimizerConfig *optimizer_config =
+		COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
+	CEnumeratorConfig *pec = optimizer_config->GetEnumeratorCfg();
+	// if (pec->FEnumerate())
+	if (false)
+	{
+		CAutoTrace at(m_mp);
+		ULLONG ullCount = Pmemotmap()->UllCount();
+		at.Os() << "[OPT]: Number of plan alternatives: " << ullCount
+				<< std::endl;
+
+		if (0 < pec->GetPlanId())
+		{
+			if (pec->GetPlanId() > ullCount)
+			{
+				// an invalid plan number is chosen
+				GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiInvalidPlanAlternative,
+						   pec->GetPlanId(), ullCount);
+			}
+
+			// a valid plan number was chosen
+			fGenerateAlt = true;
+		}
+	}
+
+	CExpression *pexpr = NULL;
+	if (fGenerateAlt)
+	{
+		pexpr = PexprUnrank(pec->GetPlanId() -
+							1 /*rank of plan alternative is zero-based*/);
+		CAutoTrace at(m_mp);
+		at.Os() << "[OPT]: Successfully generated plan: " << pec->GetPlanId()
+				<< std::endl;
+	}
+	else
+	{
+		pexpr = m_pmemo->PexprExtractPlanInteractively(m_mp, m_pmemo->PgroupRoot(),
+										  m_pqc->Prpp(),
+										  m_search_stage_array->Size(),
+										  &stopExtractPlan);
+		if (stopExtractPlan) {
+			return NULL;
+		}
+	}
+
+	if (NULL == pexpr)
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiNoPlanFound);
+	}
+
+	return pexpr;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1991,6 +2053,15 @@ CEngine::SamplePlans()
 			// add plan to the sample if it is below cost threshold
 			CCost cost = pexpr->Cost();
 			fAccept = pec->FAddSample(plan_id, cost);
+			// s62 debugging
+			// if (fAccept) {
+			// 	CAutoTrace at(m_mp);
+			// 	at.Os() << std::endl
+            //         << "Physical plan " << ull << "/" << ullTargetSamples
+            //         << " with cost (" << cost << "), best cost(" << costBest
+            //         << "): " << std::endl
+            //         << *pexpr;
+			// }
 			pexpr->Release();
 		}
 
@@ -2005,6 +2076,63 @@ CEngine::SamplePlans()
 	pec->PrintPlanSample();
 }
 
+void
+CEngine::PrintAllPossiblePlans()
+{
+	COptimizerConfig *optimizer_config =
+		COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
+	GPOS_ASSERT(NULL != optimizer_config);
+
+	CEnumeratorConfig *pec = optimizer_config->GetEnumeratorCfg();
+
+	ULLONG ullCount = Pmemotmap()->UllCount();
+	if (0 == ullCount)
+	{
+		// optimizer generated no plans
+		return;
+	}
+
+	// generate full plan space when space size is less than or equal to
+	// the required number of samples
+	ULLONG ullTargetSamples = ullCount > 100 ? 100 : ullCount;
+
+	// find cost of best plan
+	CExpression *pexpr =
+		m_pmemo->PexprExtractPlan(m_mp, m_pmemo->PgroupRoot(), m_pqc->Prpp(),
+								  m_search_stage_array->Size());
+	CCost costBest = pexpr->Cost();
+	pec->SetBestCost(costBest);
+	pexpr->Release();
+
+	// set maximum number of iterations based number of samples
+	// we use maximum iteration to prevent infinite looping below
+	const ULLONG ullMaxIters = ullTargetSamples * GPOPT_SAMPLING_MAX_ITERS;
+	ULLONG ullIters = 0;
+	ULLONG ull = 0;
+	while (ullIters < ullMaxIters && ull < ullTargetSamples)
+	{
+		// generate id of plan to be extracted
+		ULLONG plan_id = ull;
+
+		pexpr = NULL;
+		if (FValidPlanSample(pec, plan_id, &pexpr))
+		{
+			// add plan to the sample if it is below cost threshold
+			CCost cost = pexpr->Cost();
+			// s62 debugging
+			CAutoTrace at(m_mp);
+            at.Os() << std::endl
+                    << "Physical plan " << plan_id << "/" << ullTargetSamples
+                    << " with cost (" << cost << "), best cost(" << costBest
+                    << "): " << std::endl
+                    << *pexpr;
+            pexpr->Release();
+		}
+
+		ull++;
+		ullIters++;
+	}
+}
 
 //---------------------------------------------------------------------------
 //	@function:

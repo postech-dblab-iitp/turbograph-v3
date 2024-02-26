@@ -30,6 +30,9 @@
 #include "gpopt/operators/CLogicalCTEProducer.h"
 #include "gpopt/search/CGroupProxy.h"
 
+// for s62 debugging
+#include <string>
+
 using namespace gpopt;
 
 #define GPOPT_MEMO_HT_BUCKETS 50000
@@ -394,6 +397,164 @@ CMemo::PexprExtractPlan(CMemoryPool *mp, CGroup *pgroupRoot,
 	{
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties);
 	}
+
+	return pexpr;
+}
+
+
+CExpression *
+CMemo::PexprExtractPlanInteractively(CMemoryPool *mp, CGroup *pgroupRoot,
+						CReqdPropPlan *prppInput, ULONG ulSearchStages,
+						BOOL *stopExtractPlan)
+{
+	// check stack size
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_CHECK_ABORT;
+
+	CGroupExpression *pgexprBest = NULL;
+	COptimizationContext *poc = NULL;
+	CCost cost = GPOPT_INVALID_COST;
+	IStatistics *stats = NULL;
+	if (pgroupRoot->FScalar())
+	{
+		// If the group has scalar expression, this group is called scalar group.
+		// It has one and only one group expression, so the expression is also picked
+		// up as the best expression for that group.
+		// The group expression is a scalar expression, which may have 0 or multiple
+		// scalar or non-scalar groups as its children.
+		CGroupProxy gp(pgroupRoot);
+		pgexprBest = gp.PgexprFirst();
+	}
+	else
+	{
+		// print current group
+		CWStringDynamic str(m_mp);
+		COstreamString oss(&str);
+		pgroupRoot->OsPrint(oss);
+		GPOS_TRACE(str.GetBuffer());
+
+		bool target_selected = false;
+		ULONG group_expression_id;
+		ULONG grpOptCtxtId;
+		ULONG costCtxtId;
+
+		if (pgroupRoot->UlGExprs() == 2) {
+			target_selected = false;
+		} else {
+			while (true) {
+				std::cout << "[ORCA DEBUG] Choose GExpr/GrpOptCtxt/CostCtxt: ";
+				std::cin >> group_expression_id >> grpOptCtxtId >> costCtxtId;
+
+				if (group_expression_id >= pgroupRoot->UlGExprs()) {
+					// std::cout << "[ORCA DEBUG] Invalid GroupExpression ID" << std::endl;
+					// continue;
+					*stopExtractPlan = true;
+					return NULL;
+				}
+
+				target_selected = true;
+				break;
+			}
+		}
+		
+		if (target_selected) {
+			pgexprBest = pgroupRoot->Pgexpr(group_expression_id);
+			poc = pgroupRoot->Ppoc(grpOptCtxtId);
+			GPOS_ASSERT(NULL != poc);
+
+			CCostContext *pcc = pgexprBest->PccLookup(poc, costCtxtId);
+
+			if (NULL != pgexprBest)
+			{
+				cost = pcc->Cost();
+				stats = pcc->Pstats();
+			}
+		} else {
+			// If the group does not have scalar expression, which means it has only logical
+			// or physical expressions. In this case, we lookup the best optimization context
+			// for the given required plan properties, and then retrieve the best group
+			// expression under the optimization context.
+			poc = pgroupRoot->PocLookupBest(mp, ulSearchStages, prppInput);
+			GPOS_ASSERT(NULL != poc);
+
+			pgexprBest = pgroupRoot->PgexprBest(poc);
+			if (NULL != pgexprBest)
+			{
+				cost = poc->PccBest()->Cost();
+				stats = poc->PccBest()->Pstats();
+			}
+		}
+	}
+
+	if (NULL == pgexprBest)
+	{
+		// no plan found
+		return NULL;
+	}
+
+	CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+	// Get the length of groups for the best group expression
+	// i.e. given the best expression is
+	// 0: CScalarCmp (>=) [ 1 7 ]
+	// the arity is 2, which means the pgexprBest has 2 children:
+	// Group 1 and Group 7. Every single child is a CGroup.
+	ULONG arity = pgexprBest->Arity();
+	for (ULONG i = 0; i < arity; i++)
+	{
+		CGroup *pgroupChild = (*pgexprBest)[i];
+		CReqdPropPlan *prpp = NULL;
+
+		// If the child group doesn't have scalar expression, we get the optimization
+		// context for that child group as well as the required plan properties.
+		//
+		// But if the child group has scalar expression, which means it has one and
+		// only one best scalar group expression, which does not need optimization,
+		// because CJobGroupExpressionOptimization does not create optimization context
+		// for that group. Besides, the scalar expression doesn't have plan properties.
+		// In this case, the prpp is left to be NULL.
+		if (!pgroupChild->FScalar())
+		{
+			if (pgroupRoot->FScalar())
+			{
+				// In very rare case, Orca may generate the plan that a group is a scalar
+				// group, but it has non-scalar sub groups. i.e.:
+				// Group 7 ():  --> pgroupRoot->FScalar() == true
+				//   0: CScalarSubquery["?column?" (19)] [ 6 ]
+				// Group 6 (#GExprs: 2): --> pgroupChild->FScalar() == false
+				//   0: CLogicalProject [ 2 5 ]
+				//   1: CPhysicalComputeScalar [ 2 5 ]
+				// In the above case, because group 7 has scalar expression, Orca skipped
+				// generating optimization context for group 7 and its subgroup group 6,
+				// even the group 6 doesn't have scalar expression and it needs optimization.
+				// Orca doesn't support this feature yet, so falls back to planner.
+				GPOS_RAISE(gpopt::ExmaGPOPT,
+						   gpopt::ExmiUnsatisfiedRequiredProperties);
+			}
+
+			COptimizationContext *pocChild = (*poc->PccBest()->Pdrgpoc())[i];
+			GPOS_ASSERT(NULL != pocChild);
+
+			prpp = pocChild->Prpp();
+		}
+
+		CExpression *pexprChild =
+			PexprExtractPlanInteractively(mp, pgroupChild, prpp, ulSearchStages, stopExtractPlan);
+
+		if (*stopExtractPlan) {
+			pdrgpexpr->Release();
+			return NULL;
+		}
+		pdrgpexpr->Append(pexprChild);
+	}
+
+	pgexprBest->Pop()->AddRef();
+	CExpression *pexpr = GPOS_NEW(mp)
+		CExpression(mp, pgexprBest->Pop(), pgexprBest, pdrgpexpr, stats, cost);
+
+	// if (pexpr->Pop()->FPhysical() && !poc->PccBest()->IsValid(mp))
+	// {
+	// 	GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties);
+	// }
 
 	return pexpr;
 }
