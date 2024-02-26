@@ -63,8 +63,6 @@ public:
 
 	// filter pushdown
 	mutable FilterPushdownType filter_pushdown_type;
-	mutable int64_t filter_pushdown_key_idx;	// when negative, no filter pushdown	
-	mutable Value filter_pushdown_value;		// do not use when filter_pushdown_key_idx < 0
 	mutable RangeFilterValue range_filter_pushdown_value;
 
 	mutable int64_t current_schema_idx;
