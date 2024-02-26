@@ -261,6 +261,8 @@ class InputParser{
 			planner_config.HASH_JOIN_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--merge-join-only", 17) == 0) {
 			planner_config.MERGE_JOIN_ONLY = true;
+		} else if (std::strncmp(current_str.c_str(), "--disable-merge-join", 20) == 0) {
+			planner_config.DISABLE_MERGE_JOIN = true;
 		} else if (std::strncmp(current_str.c_str(), "--run-plan", 10) == 0) {
 			run_plan_wo_compile = true;
 		} else if (std::strncmp(current_str.c_str(), "--show-top", 10) == 0) {
@@ -274,7 +276,7 @@ class InputParser{
 			planner_config.num_iterations = std::stoi(num_iter);
 		} else if (std::strncmp(current_str.c_str(), "--join-order-optimizer:", 23) == 0) {
 			std::string optimizer_join_order = std::string(*itr).substr(23);
-			if(optimizer_join_order == "query") {
+			if (optimizer_join_order == "query") {
 				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
 			} else if (optimizer_join_order == "greedy") {
 				planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_GREEDY_SEARCH;
@@ -492,7 +494,8 @@ int main(int argc, char** argv) {
 	planner_config = s62::PlannerConfig();
 
 	// Check validity
-	if (planner_config.INDEX_JOIN_ONLY + planner_config.HASH_JOIN_ONLY + planner_config.MERGE_JOIN_ONLY > 1) {
+	if (planner_config.INDEX_JOIN_ONLY + planner_config.HASH_JOIN_ONLY + planner_config.MERGE_JOIN_ONLY
+		+ planner_config.DISABLE_INDEX_JOIN + planner_config.DISABLE_HASH_JOIN + planner_config.DISABLE_MERGE_JOIN > 1) {
 		std::cout << "Error: Only one of INDEX_JOIN_ONLY, HASH_JOIN_ONLY, MERGE_JOIN_ONLY can be true" << std::endl;
 		return 1;
 	}

@@ -91,6 +91,7 @@
 #include "gpopt/operators/CPhysicalIndexPathJoin.h"
 #include "gpopt/operators/CPhysicalInnerNLJoin.h"
 #include "gpopt/operators/CPhysicalInnerHashJoin.h"
+#include "gpopt/operators/CPhysicalInnerMergeJoin.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalLimit.h"
 #include "gpopt/operators/CPhysicalSort.h"
@@ -186,6 +187,9 @@ public:
 	bool INDEX_JOIN_ONLY;
 	bool HASH_JOIN_ONLY;
 	bool MERGE_JOIN_ONLY;
+	bool DISABLE_INDEX_JOIN;
+	bool DISABLE_HASH_JOIN;
+	bool DISABLE_MERGE_JOIN;
 	PlannerConfig::JoinOrderType JOIN_ORDER_TYPE;
 	uint8_t JOIN_ORDER_DP_THRESHOLD_CONFIG;
 
@@ -197,6 +201,9 @@ public:
 		INDEX_JOIN_ONLY(false),
 		HASH_JOIN_ONLY(false),
 		MERGE_JOIN_ONLY(false),
+		DISABLE_INDEX_JOIN(false),
+		DISABLE_HASH_JOIN(false),
+		DISABLE_MERGE_JOIN(false),
 		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH),
 		JOIN_ORDER_DP_THRESHOLD_CONFIG(10)
 	{ }
