@@ -64,14 +64,13 @@ struct MappingValue {
 
 struct SHM_CaseInsensitiveStringHashFunction {
 	uint64_t operator()(const char_string &str) const {
-		std::hash<string> hasher;
-		return hasher(StringUtil::Lower(str.c_str()));
+		return StringUtil::CIHash(str.c_str());
 	}
 };
 
 struct SHM_CaseInsensitiveStringEquality {
 	bool operator()(const char_string &a, const char_string &b) const {
-		return StringUtil::Lower(a.c_str()) == StringUtil::Lower(b.c_str());
+		return StringUtil::CIEquals(a.c_str(), b.c_str());
 	}
 };
 

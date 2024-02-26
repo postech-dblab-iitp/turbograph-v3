@@ -1709,17 +1709,19 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 
                 // Generate inner_col_maps
                 CColRefTable *proj_col = (CColRefTable *)proj_elem_op->Pcr();
+                INT attr_no = proj_col->AttrNum();
                 auto it = id_map.find(proj_col->ColId());
                 if (it != id_map.end()) {
                     inner_col_maps[0].push_back(it->second);
                 }
                 else {
-                    inner_col_maps[0].push_back(num_filter_only_cols + output_cols->Size());
-                    num_filter_only_cols++;
+                    if ((attr_no != (INT)-1)) {
+                        inner_col_maps[0].push_back(num_filter_only_cols + output_cols->Size());
+                        num_filter_only_cols++;
+                    }
                 }
 
                 // Generate scan_projection_mapping
-                INT attr_no = proj_col->AttrNum();
                 if ((attr_no == (INT)-1)) {
                     if (load_system_col) {
                         scan_projection_mapping[0].push_back(0);
@@ -1836,11 +1838,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     /* Generate schema flow graph for IdSeek */
     /* Note: to prevent destruction of inner_col_maps due to move, call this before PhysicalIdSeek */
     pBuildSchemaFlowGraphForBinaryOperator(tmp_schema, inner_col_maps.size());
-
+    vector<uint32_t> union_inner_col_map = inner_col_maps[0];
     if (!do_filter_pushdown) {
         if (has_filter) {
-            vector<uint32_t> union_inner_col_map = inner_col_maps[0];
-            
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map, scan_projection_mapping,
@@ -1850,15 +1850,17 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps);
+                outer_col_maps, inner_col_maps, union_inner_col_map,
+                scan_projection_mapping, scan_types, false);
             result->push_back(op);
         }
     }
     else {
+        D_ASSERT(false);
         duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
-            tmp_schema, sid_col_idx, oids, output_projection_mapping,
-            outer_col_maps, inner_col_maps, scan_types[0], scan_projection_mapping,
-            pred_attr_pos, literal_val);
+                tmp_schema, sid_col_idx, oids, output_projection_mapping,
+                outer_col_maps, inner_col_maps, union_inner_col_map,
+                scan_projection_mapping, scan_types, false);
         result->push_back(op);
     }
 

@@ -1638,6 +1638,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             }
         }
     }
+    output_seqno = begin_seqno + target_seqnos.size();
     return true;
 }
 

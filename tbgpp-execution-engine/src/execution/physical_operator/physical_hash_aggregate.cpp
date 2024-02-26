@@ -163,7 +163,6 @@ unique_ptr<LocalSinkState> PhysicalHashAggregate::GetLocalSinkState(ExecutionCon
 
 SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	auto &llstate = (HashAggregateLocalSinkState &)lstate;
-	// auto &gstate = (HashAggregateGlobalState &)state;
 
 	DataChunk &aggregate_input_chunk = llstate.aggregate_input_chunk;
 
@@ -187,10 +186,6 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 
 	aggregate_input_chunk.SetCardinality(input.size());
 	aggregate_input_chunk.Verify();
-
-	// for (idx_t i = 0; i < radix_tables.size(); i++) {
-	// 	radix_tables[i].Sink(context, *gstate.radix_states[i], *llstate.radix_states[i], input, aggregate_input_chunk);
-	// }
 
 	for (idx_t i = 0; i < radix_tables.size(); i++) {
 		radix_tables[i].Sink(context, *llstate.global_radix_states[i], *llstate.local_radix_states[i], input, aggregate_input_chunk);
