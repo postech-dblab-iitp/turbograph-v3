@@ -209,6 +209,20 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 	// process remaining
 	_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid, target_seqnos_per_extent_map, boundary_position);
 
+	// remove extent ids to be removed due to filter
+	vector<ExtentID> target_eids_after_remove;
+	for (auto i = 0; i < target_eids.size(); i++) {
+		string ext_name = DEFAULT_EXTENT_PREFIX + std::to_string(target_eids[i]);
+		ExtentCatalogEntry *ext_cat =
+			(ExtentCatalogEntry *)cat_instance.GetEntry(client, CatalogType::EXTENT_ENTRY, DEFAULT_SCHEMA, ext_name);
+		idx_t psid = ext_cat->ps_oid;
+		auto it = ps_oid_to_projection_mapping.find(psid);
+		if (it != ps_oid_to_projection_mapping.end()) {
+			target_eids_after_remove.push_back(target_eids[i]);
+		}
+	}
+	target_eids = std::move(target_eids_after_remove);
+
 	// remove redundant eids
 	std::sort(target_eids.begin(), target_eids.end());
 	target_eids.erase(std::unique(target_eids.begin(), target_eids.end()), target_eids.end());

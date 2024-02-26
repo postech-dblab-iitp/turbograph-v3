@@ -40,10 +40,16 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
                    vector<vector<uint32_t>> &inner_col_maps,
-                   vector<duckdb::LogicalType> scan_type,
+                   vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
-                   vector<unique_ptr<Expression>> predicates);
-    ~PhysicalIdSeek() {}
+                   vector<vector<duckdb::LogicalType>> scan_types,
+                   vector<unique_ptr<Expression>>& predicates,
+                   bool is_output_union_schema);
+    ~PhysicalIdSeek() {
+        for (auto &chunk : tmp_chunks) {
+            chunk.reset();
+        }
+    }
 
    public:
     unique_ptr<OperatorState> GetOperatorState(
@@ -77,6 +83,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void referInputChunk(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
     void generatePartialSchemaInfos();
+    void getOutputTypesForFilteredSeek(vector<LogicalType>& org_type, vector<uint32_t> inner_col_map, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
 
     // parameters
     uint64_t id_col_idx;
@@ -93,10 +100,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     mutable vector<vector<uint64_t>> scan_projection_mapping;
     mutable vector<vector<uint64_t>> tmp_chunk_mapping;
 
-    // filter pushdown
+    // filter processing
     bool do_filter_pushdown;
-    bool has_expression = false;
+    bool has_unpushdowned_expressions = false;
     mutable bool is_tmp_chunk_initialized = false;
+    mutable vector<bool> is_tmp_chunk_initialized_per_schema;
     // when negative, no filter pushdown
     mutable int64_t filter_pushdown_key_idx;
     // do not use when filter_pushdown_key_idx < 0
@@ -113,6 +121,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
 
     unique_ptr<Expression> expression;
     mutable DataChunk tmp_chunk;
+    vector<unique_ptr<DataChunk>> tmp_chunks;
     mutable ExpressionExecutor executor;
 };
 
