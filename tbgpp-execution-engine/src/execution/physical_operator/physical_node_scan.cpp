@@ -61,7 +61,6 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	scan_types[0] = std::move(scan_types_);
 	filter_pushdown_key_idxs.push_back(filterKeyIndex);
 	filter_pushdown_values.push_back(filterValue);
-	D_ASSERT(filter_pushdown_key_idx >= 0);
 }
 
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
@@ -76,7 +75,6 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	scan_types[0] = std::move(scan_types_);
 	filter_pushdown_key_idxs.push_back(filterKeyIndex);
 	range_filter_pushdown_values.push_back(range_filter_pushdown_value);
-	D_ASSERT(filter_pushdown_key_idx >= 0);
 }
 
 	
