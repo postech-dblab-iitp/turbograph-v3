@@ -128,6 +128,15 @@ public:
 	//! Equivalent to calling TopNLevenshtein followed by CandidatesMessage
 	DUCKDB_API static string CandidatesErrorMessage(const vector<string> &strings, const string &target,
 	                                                const string &message_prefix, idx_t n = 5);
+
+	//! Case insensitive hash
+	DUCKDB_API static uint64_t CIHash(const string &str);
+
+	//! Case insensitive equals
+	DUCKDB_API static bool CIEquals(const string &l1, const string &l2);
+
+	//! Case insensitive compare
+	DUCKDB_API static bool CILessThan(const string &l1, const string &l2);
 };
 
 } // namespace duckdb
