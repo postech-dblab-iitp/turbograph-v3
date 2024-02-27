@@ -67,7 +67,7 @@ static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &s
 	auto data = (T *)col.data;
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 	idx_t match_count = 0;
-	if (!col.validity.AllValid()) {
+	if (!col.is_valid) {
 		for (idx_t i = 0; i < count; i++) {
 			auto idx = sel.get_index(i);
 
@@ -75,17 +75,54 @@ static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &s
 			ValidityBytes row_mask(row);
 			auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
 
-			auto col_idx = col.sel->get_index(idx);
-			if (!col.validity.RowIsValid(col_idx)) {
-				if (isnull) {
-					// match: move to next value to compare
-					sel.set_index(match_count++, idx);
+			if (isnull) {
+				// match: move to next value to compare
+				sel.set_index(match_count++, idx);
+			} else {
+				if (NO_MATCH_SEL) {
+					no_match->set_index(no_match_count++, idx);
+				}
+			}
+		}
+	} else {
+		if (!col.validity.AllValid()) {
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+
+				auto row = ptrs[idx];
+				ValidityBytes row_mask(row);
+				auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
+
+				auto col_idx = col.sel->get_index(idx);
+				if (!col.validity.RowIsValid(col_idx)) {
+					if (isnull) {
+						// match: move to next value to compare
+						sel.set_index(match_count++, idx);
+					} else {
+						if (NO_MATCH_SEL) {
+							no_match->set_index(no_match_count++, idx);
+						}
+					}
 				} else {
-					if (NO_MATCH_SEL) {
-						no_match->set_index(no_match_count++, idx);
+					auto value = Load<T>(row + col_offset);
+					if (!isnull && OP::template Operation<T>(data[col_idx], value)) {
+						sel.set_index(match_count++, idx);
+					} else {
+						if (NO_MATCH_SEL) {
+							no_match->set_index(no_match_count++, idx);
+						}
 					}
 				}
-			} else {
+			}
+		} else {
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+
+				auto row = ptrs[idx];
+				ValidityBytes row_mask(row);
+				auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
+
+				auto col_idx = col.sel->get_index(idx);
 				auto value = Load<T>(row + col_offset);
 				if (!isnull && OP::template Operation<T>(data[col_idx], value)) {
 					sel.set_index(match_count++, idx);
@@ -93,24 +130,6 @@ static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &s
 					if (NO_MATCH_SEL) {
 						no_match->set_index(no_match_count++, idx);
 					}
-				}
-			}
-		}
-	} else {
-		for (idx_t i = 0; i < count; i++) {
-			auto idx = sel.get_index(i);
-
-			auto row = ptrs[idx];
-			ValidityBytes row_mask(row);
-			auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
-
-			auto col_idx = col.sel->get_index(idx);
-			auto value = Load<T>(row + col_offset);
-			if (!isnull && OP::template Operation<T>(data[col_idx], value)) {
-				sel.set_index(match_count++, idx);
-			} else {
-				if (NO_MATCH_SEL) {
-					no_match->set_index(no_match_count++, idx);
 				}
 			}
 		}

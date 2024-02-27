@@ -83,7 +83,6 @@ public:
 	vector<BoundAggregateExpression *> bindings;
 
 	unordered_map<Expression *, size_t> filter_indexes;
-
 };
 
 } // namespace duckdb
