@@ -74,6 +74,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	scan_types.resize(num_schemas);
 	scan_types[0] = std::move(scan_types_);
 	filter_pushdown_key_idxs.push_back(filterKeyIndex);
+	range_filter_pushdown_values.push_back(range_filter_pushdown_value);
 }
 
 	

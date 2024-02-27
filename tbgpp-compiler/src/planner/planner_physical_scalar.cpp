@@ -18,16 +18,16 @@
 
 namespace s62 {
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 	
 	switch (scalar_expr->Pop()->Eopid()) {
-		case COperator::EopScalarIdent: return pTransformScalarIdent(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarConst: return pTransformScalarConst(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarFunc: return pTransformScalarFunc(scalar_expr, child_cols, rhs_child_cols);
-		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, child_cols, rhs_child_cols);
+		case COperator::EopScalarIdent: return pTransformScalarIdent(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarConst: return pTransformScalarConst(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarCmp: return pTransformScalarCmp(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarBoolOp: return pTransformScalarBoolOp(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarFunc: return pTransformScalarFunc(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, lhs_child_cols, rhs_child_cols);
 		default:
 			D_ASSERT(false); // NOT implemented yet
 	}
@@ -59,15 +59,16 @@ void Planner::pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &s
 	}
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols) {
-	
+unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *lhs_child_cols, CColRefArray *rhs_child_cols) {
 	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
 
 	// first find from LHS
-	ULONG child_index = child_cols->IndexOf(ident_op->Pcr());
+	bool is_inner = false;
+	ULONG child_index = lhs_child_cols->IndexOf(ident_op->Pcr());
 	// try finding from RHS; refer duckdb's mechanism on ColumnBindingResolver
 	if (child_index == gpos::ulong_max && (rhs_child_cols != nullptr)) {
 		child_index = rhs_child_cols->IndexOf(ident_op->Pcr());
+		is_inner = true;
 		/**
 		 * 2024.1.31
 		 * Why this increments index??
@@ -77,14 +78,16 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 		// 	child_index += child_cols->Size();
 		// }
 	}
-	D_ASSERT(child_index != gpos::ulong_max);
+	if (child_index == gpos::ulong_max) {
+		throw InternalException("Column reference not found in child columns");
+	}
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
 	
-	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index);
+	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index, is_inner);
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, ULONG child_index) {	
+unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *lhs_child_cols, ULONG child_index) {	
 	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
 
 	D_ASSERT(child_index != gpos::ulong_max);
@@ -94,7 +97,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index);
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarConst* op = (CScalarConst*)scalar_expr->Pop();
 
@@ -127,12 +130,12 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 	return nullptr;
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarCmp* op = (CScalarCmp*)scalar_expr->Pop();
 
-	unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols);
-	unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(scalar_expr->operator[](1), child_cols, rhs_child_cols);
+	unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(scalar_expr->operator[](0), lhs_child_cols, rhs_child_cols);
+	unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(scalar_expr->operator[](1), lhs_child_cols, rhs_child_cols);
 	//try casting (rhs to lhs)
 	if(lhs->return_type != rhs->return_type) {
 		rhs = pGenScalarCast(move(rhs), lhs->return_type);
@@ -145,7 +148,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar
 	);
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarBoolOp* op = (CScalarBoolOp*)scalar_expr->Pop();
 	auto op_type = pTranslateBoolOpType(op->Eboolop());
@@ -153,26 +156,26 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 	if (op_type == duckdb::ExpressionType::OPERATOR_NOT) {
 		// unary - NOT
 		auto result = make_unique<duckdb::BoundOperatorExpression>(op_type, duckdb::LogicalType::BOOLEAN);
-		result->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](0), child_cols, rhs_child_cols)));
+		result->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](0), lhs_child_cols, rhs_child_cols)));
 		// TODO uncertain if this is right.s
 		return std::move(result);
 	} else if (op_type == duckdb::ExpressionType::CONJUNCTION_AND) {
 		auto conjunction = make_unique<duckdb::BoundConjunctionExpression>(duckdb::ExpressionType::CONJUNCTION_AND);
 		for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
-			conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols, rhs_child_cols)));
+			conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols)));
 		}
 		return conjunction;
 	} else if (op_type == duckdb::ExpressionType::CONJUNCTION_OR) {
 		auto conjunction = make_unique<duckdb::BoundConjunctionExpression>(duckdb::ExpressionType::CONJUNCTION_OR);
 		for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
-			conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), child_cols, rhs_child_cols)));
+			conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols)));
 		}
 		return conjunction;
 	}
 	D_ASSERT(false);
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
 	CExpression* aggargs_expr = scalar_expr->operator[](0);
@@ -183,7 +186,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	vector<unique_ptr<duckdb::Expression>> child;
 	
 	for( ULONG child_idx = 0; child_idx < aggargs_expr->Arity(); child_idx++ ) {
-		child.push_back(pTransformScalarExpr(aggargs_expr->operator[](child_idx), child_cols, rhs_child_cols));
+		child.push_back(pTransformScalarExpr(aggargs_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols));
 	}
 	D_ASSERT(child.size() <= 1);
 
@@ -206,7 +209,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 		std::move(function), std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* lhs_child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray* rhs_child_cols) {
 
 	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
 	CExpression* aggargs_expr = scalar_expr->operator[](0);
@@ -236,13 +239,13 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 		std::move(function), std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
 	CScalarFunc* op = (CScalarFunc*)scalar_expr->Pop();
 	CExpressionArray* scalarfunc_exprs = scalar_expr->PdrgPexpr();
 
 	vector<unique_ptr<duckdb::Expression>> child;
 	for (ULONG child_idx = 0; child_idx < scalarfunc_exprs->Size(); child_idx++) {
-		child.push_back(pTransformScalarExpr(scalarfunc_exprs->operator[](child_idx), child_cols, rhs_child_cols));
+		child.push_back(pTransformScalarExpr(scalarfunc_exprs->operator[](child_idx), lhs_child_cols, rhs_child_cols));
 	}
 
 	OID func_id = CMDIdGPDB::CastMdid(op->FuncMdId())->Oid();
@@ -264,7 +267,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scala
 			function.return_type, function, std::move(child), std::move(bind_info));
 }
 
-unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray* rhs_child_cols) {
+unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarSwitch *op = (CScalarSwitch *)scalar_expr->Pop();
 
@@ -282,12 +285,12 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 		CExpression *when_expr = child_expr->operator[](0);
 		CExpression *then_expr = child_expr->operator[](1);
 
-		e_when = std::move(pTransformScalarExpr(when_expr, child_cols, rhs_child_cols));
-		e_then = std::move(pTransformScalarExpr(then_expr, child_cols, rhs_child_cols));
+		e_when = std::move(pTransformScalarExpr(when_expr, lhs_child_cols, rhs_child_cols));
+		e_then = std::move(pTransformScalarExpr(then_expr, lhs_child_cols, rhs_child_cols));
 	}
 
 	// else
-	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), child_cols, rhs_child_cols));
+	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), lhs_child_cols, rhs_child_cols));
 
 	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));
 }
