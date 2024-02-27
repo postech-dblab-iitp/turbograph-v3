@@ -17,9 +17,11 @@ class BoundReferenceExpression : public Expression {
 public:
 	BoundReferenceExpression(string alias, LogicalType type, idx_t index);
 	BoundReferenceExpression(LogicalType type, storage_t index);
+	BoundReferenceExpression(LogicalType type, storage_t index, bool is_inner);
 
 	//! Index used to access data in the chunks
 	storage_t index;
+	bool is_inner = true;
 
 public:
 	bool IsScalar() const override {

@@ -1462,6 +1462,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
+    CColRefArray *inner_full_cols = GPOS_NEW(mp) CColRefArray(mp);
 
     unordered_map<ULONG, uint64_t> id_map;
     vector<vector<duckdb::LogicalType>> scan_types;
@@ -1501,6 +1502,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     bool do_filter_pushdown = false;
     bool has_filter = false;
     vector<ULONG> inner_col_id;
+    vector<ULONG> proj_inner_col_id;
 
     CExpression *filter_expr = NULL;
     CExpression *filter_pred_expr = NULL;
@@ -1508,6 +1510,12 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     duckdb::ExpressionType exp_type;
     CColRefArray *filter_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
     vector<unique_ptr<duckdb::Expression>> filter_exprs;
+
+    auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+    duckdb::idx_t num_outer_schemas = 1;
+    for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+        num_outer_schemas *= num_schemas_of_childs_prev[i];
+    }
 
     while (true) {
         if (inner_root->Pop()->Eopid() ==
@@ -1623,6 +1631,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                  COperator::EOperatorId::EopPhysicalFilter) {
 
             D_ASSERT(inner_col_id.size() > 0);
+            D_ASSERT(proj_inner_col_id.size() > 0);
             D_ASSERT(inner_col_maps[0].size() > 0);
             
             /**
@@ -1632,6 +1641,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             has_filter = true;
             filter_expr = inner_root;
             filter_pred_expr = filter_expr->operator[](1);
+            CColRefArray *filter_cols =
+                filter_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
             CColRefArray *idxscan_cols =
                 filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);  // idxscan
 
@@ -1686,8 +1697,36 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 */
 
                 do_filter_pushdown = false;
-                auto filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, idxscan_cols, nullptr);
-                pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, idxscan_cols, inner_col_id, inner_col_maps[0]);
+                unique_ptr<duckdb::Expression> filter_duckdb_expr;
+                try
+                {
+                    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, idxscan_cols);
+                    pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, idxscan_cols, inner_col_id, inner_col_maps[0], outer_col_maps[0]);
+                }
+                catch (std::exception& e)
+                {
+                    /**
+                     * Handle case where the ID of filter columns are not found in the idxscan columns.
+                     *      |--CPhysicalComputeScalarC   rows:1   width:1  rebinds:1   cost:16563.253187   origin: [Grp:482, GrpExpr:1]
+                            |  |--CPhysicalFilter   rows:1   width:136  rebinds:528065992   cost:16563.253186   origin: [Grp:481, GrpExpr:1]
+                            |  |  |--CPhysicalIndexScan   Index Name: ("Tag_id"), Table Name: ("vps_Tag"), Columns: ["t._id" (128), "t.id" (129), "t.name" (130), "t.url" (131)]
+                            |  |  |  +--CScalarCmp (EQUAL)   origin: [Grp:242, GrpExpr:0]
+                            |  |  |     |--CScalarIdent "t._id" (128)   origin: [Grp:83, GrpExpr:0]
+                            |  |  |     +--CScalarIdent "_7_._tid" (127)   origin: [Grp:78, GrpExpr:0]
+                            |  |  +--CScalarCmp (EQUAL)   origin: [Grp:108, GrpExpr:0]
+                            |  |     |--CScalarIdent "t.id" (132)   origin: [Grp:107, GrpExpr:0]
+                            |  |     +--CScalarIdent "knownTag.id" (87)   origin: [Grp:71, GrpExpr:0]
+                            |  +--CScalarProjectList   origin: [Grp:87, GrpExpr:0]
+                            |     |--CScalarProjectElement "t._id" (128)   origin: [Grp:84, GrpExpr:0]
+                            |     |  +--CScalarIdent "t._id" (128)   origin: [Grp:83, GrpExpr:0]
+                            |     +--CScalarProjectElement "t.id" (132)   origin: [Grp:86, GrpExpr:0]
+                            |        +--CScalarIdent "t.id" (129)   origin: [Grp:85, GrpExpr:0]
+                    */
+                    std::cerr << e.what() << '\n';
+                    std::cout << "Retry with proj output columns" << '\n';
+                    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, inner_full_cols);
+                    pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, inner_full_cols, proj_inner_col_id, inner_col_maps[0], outer_col_maps[0]);
+                }
                 filter_exprs.push_back(std::move(filter_duckdb_expr));
             // }
             idxscan_cols->Release();
@@ -1722,6 +1761,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     }
                 }
 
+                // Register as full column
+                inner_full_cols->Append(proj_elem_op->Pcr());
+
                 // Generate scan_projection_mapping
                 if ((attr_no == (INT)-1)) {
                     if (load_system_col) {
@@ -1732,9 +1774,11 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 
                     if (pMatchExprPattern(proj_elem_expr, scalarident_pattern)) {
                         inner_col_id.push_back(ident_op->Pcr()->Id());
+                        proj_inner_col_id.push_back(proj_elem_op->Pcr()->Id());
                     }
                     else {
                         inner_col_id.push_back(std::numeric_limits<ULONG>::max());
+                        proj_inner_col_id.push_back(std::numeric_limits<ULONG>::max());
                     }
                 }
                 else {
@@ -1745,9 +1789,30 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     
                     if (pMatchExprPattern(proj_elem_expr, scalarident_pattern)) {
                         inner_col_id.push_back(ident_op->Pcr()->Id());
+                        proj_inner_col_id.push_back(proj_elem_op->Pcr()->Id());
                     }
                     else {
                         inner_col_id.push_back(std::numeric_limits<ULONG>::max());
+                        proj_inner_col_id.push_back(std::numeric_limits<ULONG>::max());
+                    }
+                }
+            }
+        
+            // Construct outer mapping info
+            for (auto i = 0; i < num_outer_schemas; i++) {
+                outer_col_maps.push_back(std::vector<uint32_t>());
+                for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++) {
+                    CColRef *col = outer_cols->operator[](col_idx);
+                    ULONG col_id = col->Id();
+                    // construct outer_col_map
+                    auto it_ = id_map.find(col_id);
+                    if (it_ == id_map.end()) {
+                        outer_col_maps[i].push_back(std::numeric_limits<uint32_t>::max());
+                    }
+                    else {
+                        auto id_idx = id_map.at(
+                            col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                        outer_col_maps[i].push_back(id_idx);
                     }
                 }
             }
@@ -1774,14 +1839,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     OID table_obj_id = table_mdid->Oid();
     oids.push_back(table_obj_id);
 
-    // Construct outer mapping info
-    auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-    duckdb::idx_t num_outer_schemas = 1;
-    for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-        num_outer_schemas *= num_schemas_of_childs_prev[i];
-    }
+    // Construct sid_col_idx
     for (auto i = 0; i < num_outer_schemas; i++) {
-        outer_col_maps.push_back(std::vector<uint32_t>());
         bool sid_col_idx_found = false;
         for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++) {
             CColRef *col = outer_cols->operator[](col_idx);
@@ -1792,16 +1851,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 D_ASSERT(!sid_col_idx_found);
                 sid_col_idx = col_idx;
                 sid_col_idx_found = true;
-            }
-            // construct outer_col_map
-            auto it_ = id_map.find(col_id);
-            if (it_ == id_map.end()) {
-                outer_col_maps[i].push_back(std::numeric_limits<uint32_t>::max());
-            }
-            else {
-                auto id_idx = id_map.at(
-                    col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                outer_col_maps[i].push_back(id_idx);
             }
         }
         D_ASSERT(sid_col_idx_found);
@@ -1869,6 +1918,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     outer_cols->Release();
     inner_cols->Release();
     outer_inner_cols->Release();
+    inner_full_cols->Release();
 
     return result;
 }
@@ -2409,6 +2459,42 @@ void Planner::
                     }
                 }
 
+                // Construct outer mapping info
+                auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
+                duckdb::idx_t num_outer_schemas = 1;
+                for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
+                    num_outer_schemas *= num_schemas_of_childs_prev[i];
+                }
+                for (auto i = 0; i < num_outer_schemas; i++) {
+                    outer_col_maps.push_back(std::vector<uint32_t>());
+                    bool sid_col_idx_found = false;
+                    for (ULONG col_idx = 0; col_idx < outer_cols->Size();
+                            col_idx++) {
+                        CColRef *col = outer_cols->operator[](col_idx);
+                        ULONG col_id = col->Id();
+                        // match _tid
+                        auto it = std::find(sccmp_colids.begin(),
+                                            sccmp_colids.end(), col_id);
+                        if (it != sccmp_colids.end()) {
+                            D_ASSERT(!sid_col_idx_found);
+                            sid_col_idx = col_idx;
+                            sid_col_idx_found = true;
+                        }
+                        // construct outer_col_map
+                        auto it_ = id_map.find(col_id);
+                        if (it_ == id_map.end()) {
+                            outer_col_maps[i].push_back(
+                                std::numeric_limits<uint32_t>::max());
+                        }
+                        else {
+                            auto id_idx = id_map.at(
+                                col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                            outer_col_maps[i].push_back(id_idx);
+                        }
+                    }
+                    D_ASSERT(sid_col_idx_found);
+                }
+
                 scan_projection_mapping.push_back(scan_ident_mapping);
                 scan_types.push_back(std::move(scan_type));
                 output_projection_mapping.push_back(output_ident_mapping);
@@ -2423,8 +2509,8 @@ void Planner::
             filter_expr = inner_root;
             filter_pred_expr = filter_expr->operator[](1);
             CColRefArray *idxscan_cols = filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-            auto filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, idxscan_cols, nullptr);
-            pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, idxscan_cols, inner_col_ids[0], inner_col_maps[0]);
+            auto filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, idxscan_cols);
+            pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, idxscan_cols, inner_col_ids[0], inner_col_maps[0], outer_col_maps[0]);
             filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
             idxscan_cols->Release();
         }
@@ -2437,42 +2523,6 @@ void Planner::
             inner_root =
                 inner_root->operator[](0);  // pass first child in linear plan
         }
-    }
-
-    // Construct outer mapping info
-    auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-    duckdb::idx_t num_outer_schemas = 1;
-    for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-        num_outer_schemas *= num_schemas_of_childs_prev[i];
-    }
-    for (auto i = 0; i < num_outer_schemas; i++) {
-        outer_col_maps.push_back(std::vector<uint32_t>());
-        bool sid_col_idx_found = false;
-        for (ULONG col_idx = 0; col_idx < outer_cols->Size();
-                col_idx++) {
-            CColRef *col = outer_cols->operator[](col_idx);
-            ULONG col_id = col->Id();
-            // match _tid
-            auto it = std::find(sccmp_colids.begin(),
-                                sccmp_colids.end(), col_id);
-            if (it != sccmp_colids.end()) {
-                D_ASSERT(!sid_col_idx_found);
-                sid_col_idx = col_idx;
-                sid_col_idx_found = true;
-            }
-            // construct outer_col_map
-            auto it_ = id_map.find(col_id);
-            if (it_ == id_map.end()) {
-                outer_col_maps[i].push_back(
-                    std::numeric_limits<uint32_t>::max());
-            }
-            else {
-                auto id_idx = id_map.at(
-                    col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                outer_col_maps[i].push_back(id_idx);
-            }
-        }
-        D_ASSERT(sid_col_idx_found);
     }
 
     gpos::ULONG pred_attr_pos, pred_pos;
@@ -2956,11 +3006,6 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     D_ASSERT(plan_expr->Arity() == 3);
 
     /* Non-root - call left child */
-    vector<duckdb::CypherPhysicalOperator *> *lhs_result =
-        pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
-    vector<duckdb::CypherPhysicalOperator *> *rhs_result =
-        pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
-
     CPhysicalInnerNLJoin *expr_op = (CPhysicalInnerNLJoin *)plan_expr->Pop();
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprOuter = (*plan_expr)[0];
@@ -3012,26 +3057,20 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
         inner_col_map);
 
     if (is_correlated) {
-        // finish lhs pipeline
-        lhs_result->push_back(op);
-        auto pipeline =
-            new duckdb::CypherPipeline(*lhs_result, pipelines.size());
-        pipelines.push_back(pipeline);
+        // unsupported yet
+        D_ASSERT(false);
+        // // finish lhs pipeline
+        // lhs_result->push_back(op);
+        // auto pipeline =
+        //     new duckdb::CypherPipeline(*lhs_result, pipelines.size());
+        // pipelines.push_back(pipeline);
 
-        // return rhs pipeline
-        rhs_result->push_back(op);
-        return rhs_result;
+        // // return rhs pipeline
+        // rhs_result->push_back(op);
+        // return rhs_result;
     }
     else {
-        // finish rhs pipeline
-        rhs_result->push_back(op);
-        auto pipeline =
-            new duckdb::CypherPipeline(*rhs_result, pipelines.size());
-        pipelines.push_back(pipeline);
-
-        // return lhs pipeline
-        lhs_result->push_back(op);
-        return lhs_result;
+        return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
     }
 }
 
@@ -4340,30 +4379,35 @@ void Planner::pConvertLocalFilterExprToUnionAllFilterExpr(
 }
 
 void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
-    unique_ptr<duckdb::Expression> &expr, CColRefArray *cols,
-    vector<ULONG> inner_col_id, vector<uint32_t> inner_col_map)
+    unique_ptr<duckdb::Expression> &expr, CColRefArray *inner_cols,
+    vector<ULONG>& inner_col_id, vector<uint32_t>& inner_col_map, vector<uint32_t>& outer_col_map)
 {
     switch (expr->expression_class) {
         case duckdb::ExpressionClass::BOUND_BETWEEN: {
             auto between_expr = (duckdb::BoundBetweenExpression *)expr.get();
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                between_expr->input, cols, inner_col_id, inner_col_map);
+                between_expr->input, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                between_expr->lower, cols, inner_col_id, inner_col_map);
+                between_expr->lower, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                between_expr->upper, cols, inner_col_id, inner_col_map);
+                between_expr->upper, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             break;
         }
         case duckdb::ExpressionClass::BOUND_REF: {
             auto bound_ref_expr =
                 (duckdb::BoundReferenceExpression *)expr.get();
-            CColRef *col = cols->operator[](bound_ref_expr->index);
-            for (uint64_t i = 0; i < inner_col_id.size();
-                 i++) {
-                if (inner_col_id[i] == col->Id()) {
-                    bound_ref_expr->index = inner_col_map[i];
-                    break;
+            if (bound_ref_expr->is_inner) {
+                CColRef *col = inner_cols->operator[](bound_ref_expr->index);
+                for (uint64_t i = 0; i < inner_col_id.size();
+                    i++) {
+                    if (inner_col_id[i] == col->Id()) {
+                        bound_ref_expr->index = inner_col_map[i];
+                        break;
+                    }
                 }
+            }
+            else {
+                bound_ref_expr->index = outer_col_map[bound_ref_expr->index];
             }
             break;
         }
@@ -4371,32 +4415,32 @@ void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
             auto bound_case_expr = (duckdb::BoundCaseExpression *)expr.get();
             for (auto &bound_case_check : bound_case_expr->case_checks) {
                 pConvertLocalFilterExprToIdSeekFilterExpr(
-                    bound_case_check.when_expr, cols,
-                    inner_col_id, inner_col_map);
+                    bound_case_check.when_expr, inner_cols,
+                    inner_col_id, inner_col_map, outer_col_map);
                 pConvertLocalFilterExprToIdSeekFilterExpr(
-                    bound_case_check.then_expr, cols,
-                    inner_col_id, inner_col_map);
+                    bound_case_check.then_expr, inner_cols,
+                    inner_col_id, inner_col_map, outer_col_map);
             }
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                bound_case_expr->else_expr, cols,
-                inner_col_id, inner_col_map);
+                bound_case_expr->else_expr, inner_cols,
+                inner_col_id, inner_col_map, outer_col_map);
             break;
         }
         case duckdb::ExpressionClass::BOUND_CAST: {
             auto bound_cast_expr = (duckdb::BoundCastExpression *)expr.get();
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                bound_cast_expr->child, cols, inner_col_id, inner_col_map);
+                bound_cast_expr->child, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             break;
         }
         case duckdb::ExpressionClass::BOUND_COMPARISON: {
             auto bound_comparison_expr =
                 (duckdb::BoundComparisonExpression *)expr.get();
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                bound_comparison_expr->left, cols,
-                inner_col_id, inner_col_map);
+                bound_comparison_expr->left, inner_cols,
+                inner_col_id, inner_col_map, outer_col_map);
             pConvertLocalFilterExprToIdSeekFilterExpr(
-                bound_comparison_expr->right, cols,
-                inner_col_id, inner_col_map);
+                bound_comparison_expr->right, inner_cols,
+                inner_col_id, inner_col_map, outer_col_map);
             break;
         }
         case duckdb::ExpressionClass::BOUND_CONJUNCTION: {
@@ -4404,7 +4448,7 @@ void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
                 (duckdb::BoundConjunctionExpression *)expr.get();
             for (auto &child : bound_conjunction_expr->children) {
                 pConvertLocalFilterExprToIdSeekFilterExpr(
-                    child, cols, inner_col_id, inner_col_map);
+                    child, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             }
             break;
         }
@@ -4415,7 +4459,7 @@ void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
                 (duckdb::BoundFunctionExpression *)expr.get();
             for (auto &child : bound_function_expr->children) {
                 pConvertLocalFilterExprToIdSeekFilterExpr(
-                    child, cols, inner_col_id, inner_col_map);
+                    child, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             }
             break;
         }
@@ -4424,7 +4468,7 @@ void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
                 (duckdb::BoundOperatorExpression *)expr.get();
             for (auto &child : bound_operator_expr->children) {
                 pConvertLocalFilterExprToIdSeekFilterExpr(
-                    child, cols, inner_col_id, inner_col_map);
+                    child, inner_cols, inner_col_id, inner_col_map, outer_col_map);
             }
             break;
         }

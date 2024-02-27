@@ -22,7 +22,7 @@ std::string PhysicalBlockwiseNLJoin::ToString() const {
 
 std::string PhysicalBlockwiseNLJoin::ParamsToString() const {
 	std::string result = "";
-	string extra_info = JoinTypeToString(join_type) + "\n";
+	string extra_info = JoinTypeToString(join_type) + "   ";
 	extra_info += condition->GetName();
 	result += "extra_info=" + extra_info + ", ";
 	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
@@ -58,6 +58,12 @@ SinkResultType PhysicalBlockwiseNLJoin::Sink(ExecutionContext &context, DataChun
 	auto& lstate = (BlockwiseNLJoinLocalState &)state;
 	lstate.right_chunks.Append(input);
 	return SinkResultType::NEED_MORE_INPUT;
+}
+
+DataChunk &PhysicalBlockwiseNLJoin::GetLastSinkedData(LocalSinkState &lstate) const
+{
+    auto &state = (BlockwiseNLJoinLocalState &)lstate;
+    return state.right_chunks.GetChunk(state.right_chunks.ChunkCount() - 1);
 }
 
 // SinkFinalizeType PhysicalBlockwiseNLJoin::Finalize(Pipeline &pipeline, Event &event, ClientContext &context,

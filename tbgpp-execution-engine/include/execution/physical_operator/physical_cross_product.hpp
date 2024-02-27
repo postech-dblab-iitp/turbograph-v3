@@ -30,6 +30,7 @@ public:
 	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
 	SinkResultType Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const override;
 	bool IsSink() const override { return true; }
+	DataChunk &GetLastSinkedData(LocalSinkState &lstate) const override;
 
 public:
 
