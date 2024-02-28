@@ -69,14 +69,6 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	if (child_index == gpos::ulong_max && (rhs_child_cols != nullptr)) {
 		child_index = rhs_child_cols->IndexOf(ident_op->Pcr());
 		is_inner = true;
-		/**
-		 * 2024.1.31
-		 * Why this increments index??
-		 * Makes no sence. It occurs error in hash join
-		*/
-		// if (child_index != gpos::ulong_max) {	// index rules; LHS first, and then RHS next
-		// 	child_index += child_cols->Size();
-		// }
 	}
 	if (child_index == gpos::ulong_max) {
 		throw InternalException("Column reference not found in child columns");

@@ -333,15 +333,6 @@ run_ldbc_c5() {
 			forum.title AS forumName,
 			count(post.id) AS postCount
 		LIMIT 20" 0
-	
-	# Simplified
-	run_query "MATCH (post:Post)<-[:CONTAINER_OF]-(forum:Forum)
-		WITH
-			forum, post
-		RETURN
-			forum.title AS forumName,
-			count(post.id) AS postCount
-		LIMIT 20" 0
 }
 
 run_ldbc_c6() {
@@ -369,24 +360,6 @@ run_ldbc_c6() {
 	# 		postCount DESC,
 	# 		tagName ASC
 	# 	LIMIT 10" 1
-
-	run_query "MATCH (person:Person {id : 94 })-[:KNOWS*1..2]->(friend:Person)
-		WHERE NOT person = friend
-		WITH friend
-		MATCH (knownTag:Tag { name: 'Carl_Gustaf_Emil_Mannerheim' })
-		WITH friend, knownTag.id as knownTagId
-		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post),
-		      (post)-[:POST_HAS_TAG]->(t:Tag {id: knownTagId}),
-		      (post)-[:POST_HAS_TAG]->(tag:Tag)
-		WITH tag.name as tagName, count(post) as postCount
-		RETURN 
-			tagName, 
-			postCount
-		ORDER BY
-			postCount DESC,
-			tagName ASC
-		LIMIT 10" 0
-
 
 	run_query "MATCH (person:Person {id : 94 })-[:KNOWS*1..2]->(friend:Person)
 		WHERE NOT person = friend
