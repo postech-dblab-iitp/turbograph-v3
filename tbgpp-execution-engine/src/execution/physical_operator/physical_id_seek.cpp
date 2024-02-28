@@ -213,7 +213,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
      * TODO: remove this.
     */
     for (int col_idx = 0; col_idx < this->inner_col_maps[0].size(); col_idx++) {
-        if (this->inner_col_maps[0][col_idx] < sch.getStoredTypes().size()){
+        if (this->inner_col_maps[0][col_idx] < sch.getStoredTypes().size()) {
             target_types.push_back(
                 sch.getStoredTypes()[this->inner_col_maps[0][col_idx]]);
         }
@@ -293,7 +293,8 @@ void PhysicalIdSeek::InitializeOutputChunks(
         }
         for (auto i = 0; i < inner_col_maps[inner_idx].size(); i++) {
             if (inner_col_maps[inner_idx][i] < opOutputChunk->ColumnCount()) {
-                opOutputChunk->data[inner_col_maps[inner_idx][i]].SetIsValid(true);
+                opOutputChunk->data[inner_col_maps[inner_idx][i]].SetIsValid(
+                    true);
             }
         }
     }
@@ -323,7 +324,8 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
     context.client->graph_store->InitializeVertexIndexSeek(
         state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
-        ps_oid_to_projection_mapping, mapping_idxs, state.cached_eid_to_schema_idx);
+        ps_oid_to_projection_mapping, mapping_idxs,
+        state.cached_eid_to_schema_idx);
 
     // TODO
     bool do_unionall = true;
@@ -375,7 +377,8 @@ OperatorResultType PhysicalIdSeek::Execute(
         context.client->graph_store->InitializeVertexIndexSeek(
             state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
             scan_types, target_eids, target_seqnos_per_extent,
-            ps_oid_to_projection_mapping, mapping_idxs, state.cached_eid_to_schema_idx);
+            ps_oid_to_projection_mapping, mapping_idxs,
+            state.cached_eid_to_schema_idx);
         state.need_initialize_extit = false;
         state.has_remaining_output = false;
         state.cur_schema_idx = 0;
@@ -410,7 +413,8 @@ OperatorResultType PhysicalIdSeek::Execute(
                         vector<LogicalType> tmp_chunk_type;
                         auto lhs_type = input.GetTypes();
                         getOutputTypesForFilteredSeek(
-                            lhs_type, scan_types[mapping_idxs[extentIdx]], tmp_chunk_type);
+                            lhs_type, scan_types[mapping_idxs[extentIdx]],
+                            tmp_chunk_type);
                         tmp_chunk.Initialize(tmp_chunk_type);
                         is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
                     }
@@ -418,20 +422,16 @@ OperatorResultType PhysicalIdSeek::Execute(
                         tmp_chunk.Reset();
                     }
 
-                    // do VertexIdSeek
+                    // Get output col idx
                     vector<idx_t> output_col_idx;
-                    for (idx_t i = 0;
-                         i < inner_col_maps[mapping_idxs[extentIdx]].size();
-                         i++) {
-                        output_col_idx.push_back(
-                            inner_col_maps[mapping_idxs[extentIdx]][i]);
-                    }
+                    getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
+                    // do VertexIdSeek
                     context.client->graph_store->doVertexIndexSeek(
                         state.ext_its, tmp_chunk, input, nodeColIdx,
                         target_types, target_eids, target_seqnos_per_extent,
                         extentIdx, output_col_idx,
                         num_tuples_per_chunk[chunk_idx]);
-                        
+
                     tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
 
                     // Filter may have column on lhs. Make tmp_chunk reference it
@@ -884,12 +884,33 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
 }
 
 void PhysicalIdSeek::getOutputTypesForFilteredSeek(
-    vector<LogicalType> &lhs_type, 
-    vector<LogicalType> &scan_type, vector<LogicalType> &out_type) const
+    vector<LogicalType> &lhs_type, vector<LogicalType> &scan_type,
+    vector<LogicalType> &out_type) const
 {
     out_type = lhs_type;
     for (auto i = 0; i < scan_type.size(); i++) {
         out_type.push_back(scan_type[i]);
+    }
+}
+
+void PhysicalIdSeek::getOutputIdxsForFilteredSeek(
+    idx_t chunk_idx, vector<idx_t> &output_col_idx) const
+{
+    /**
+     * In filtered seek, we do seek on outer cols + inner cols chunk
+     * without any projection.
+     * However, output_col_idx is based on the output cols, which is
+     * the result of the projection.
+     * Therefore, we need to postprocess output_col_idx.
+     * 
+     * Strong assumption: inner cols are appended to the outer cols in the output.
+    */
+    auto outer_col_maps_idx = chunk_idx / inner_col_maps.size();
+    auto inner_col_maps_idx = chunk_idx % inner_col_maps.size();
+    auto outer_size = outer_col_maps[outer_col_maps_idx].size();
+    auto inner_size = inner_col_maps[inner_col_maps_idx].size();
+    for (idx_t i = 0; i < inner_size; i++) {
+        output_col_idx.push_back(i + outer_size);
     }
 }
 
