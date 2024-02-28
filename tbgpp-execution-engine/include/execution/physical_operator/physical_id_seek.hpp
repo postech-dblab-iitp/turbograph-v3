@@ -84,6 +84,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                          OperatorState &lstate, idx_t output_idx) const;
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
+    void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
 
     // parameters
     uint64_t id_col_idx;
