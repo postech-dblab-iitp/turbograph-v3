@@ -530,7 +530,6 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
 			}
 		}
 	}
-		std::cout << "result_count: " << result_count << std::endl;
 	result.SetCardinality(result_count);
 }
 
