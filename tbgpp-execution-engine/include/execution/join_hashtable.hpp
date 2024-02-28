@@ -65,7 +65,12 @@ public:
 		JoinHashTable &ht;
 		bool finished;
 
+		// projection mapping
+		vector<uint32_t> output_left_projection_map;
+    	vector<uint32_t> output_right_projection_map;
+
 		explicit ScanStructure(JoinHashTable &ht);
+		explicit ScanStructure(JoinHashTable &ht, vector<uint32_t> &left_map, vector<uint32_t> &right_map);
 		//! Get the next batch of data from the scan structure
 		void Next(DataChunk &keys, DataChunk &left, DataChunk &result);
 
@@ -109,6 +114,8 @@ private:
 public:
 	JoinHashTable(BufferManager &buffer_manager, const vector<JoinCondition> &conditions,
 	              vector<LogicalType> build_types, JoinType type);
+	JoinHashTable(BufferManager &buffer_manager, const vector<JoinCondition> &conditions,
+	              vector<LogicalType> build_types, JoinType type, const vector<uint32_t> &left_map, const vector<uint32_t> &right_map);
 	~JoinHashTable();
 
 	//! Add the given data to the HT
@@ -173,6 +180,10 @@ public:
 		//! Result chunk used for aggregating into correlated_counts
 		DataChunk result_chunk;
 	} correlated_mark_join_info;
+
+	// projection mapping
+	vector<uint32_t> output_left_projection_map;
+	vector<uint32_t> output_right_projection_map;
 
 private:
 	void Hash(DataChunk &keys, const SelectionVector &sel, idx_t count, Vector &hashes);

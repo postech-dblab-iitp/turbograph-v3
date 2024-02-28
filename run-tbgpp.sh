@@ -523,6 +523,16 @@ run_ldbc_c11() {
 				personId ASC,
 				organizationName DESC
 		LIMIT 10" 0
+
+	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
+		WITH DISTINCT friend
+		MATCH (friend)-[:LIKES]->(com:Comment)-[:REPLY_OF]->(p:Post {id: 223})
+		RETURN
+				friend.id AS personId,
+				friend.firstName AS personFirstName,
+				com.length AS length,
+				p.id AS postId
+		LIMIT 10" 0
 }
 
 run_ldbc_c12() {
