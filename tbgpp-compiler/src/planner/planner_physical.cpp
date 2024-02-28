@@ -895,8 +895,11 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     // CColRefArray* inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
     unordered_map<ULONG, uint64_t> id_map;
+    unordered_map<ULONG, uint64_t> id_map_wo_edge_properties;
     vector<uint32_t> outer_col_map;
     vector<uint32_t> inner_col_map;
+    vector<uint32_t> inner_col_map_adj;
+    vector<uint32_t> outer_col_map_adj;
     vector<uint32_t> outer_col_map_seek;
     vector<uint32_t> inner_col_map_seek;
     vector<vector<uint32_t>> outer_col_maps_seek;
@@ -906,6 +909,21 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<vector<uint64_t>> projection_mapping;
     vector<uint64_t> first_table_mapping;
 
+    /**
+     * In AdjIdxJoin + IdSeek case (i.e., edge property load case),
+     * we cannot directly use output_cols, since AdjIdxJoin does not
+     * include edge properties. Instead, we need intermeidate schema.
+     * 
+     * For AdjIdxJoin, we consider the output schema as the schema 
+     * without edge properties (e.g., A B C => A C, if B is edge property).
+     * 
+     * For IdSeek, we consider the output schema as the schema 
+     * with edge properties (e.g., A B C)
+     * 
+     * Therefore, the mapping for each operator should be carefully designed.
+    */
+
+    size_t num_edge_properties = 0;
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         CColRef *col = (*output_cols)[col_idx];
         ULONG col_id = col->Id();
@@ -919,10 +937,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             // col from inner - can be edge property
             if (!pIsColEdgeProperty(col)) {
                 output_types_wo_edge_properties.push_back(logical_type);
+                id_map_wo_edge_properties.insert(std::make_pair(col_id, col_idx - num_edge_properties));
+            }
+            else {
+                num_edge_properties++;
             }
         } else {
             // col from outer
             output_types_wo_edge_properties.push_back(logical_type);
+            id_map_wo_edge_properties.insert(std::make_pair(col_id, col_idx - num_edge_properties));
         }
     }
 
@@ -1167,6 +1190,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         tmp_schema_seek.setStoredTypes(output_types);
 
         if (!load_eid_temporarily) {
+            D_ASSERT(false); // We currently don't handle this case. Error prone due to proj mapping.
             edge_id_col_idx = inner_col_map[0];
             tmp_schema_adjidxjoin.setStoredTypes(
                 output_types_wo_edge_properties);
@@ -1189,20 +1213,67 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             edge_id_col_idx = output_types_wo_edge_properties.size() - 1;
             tmp_schema_adjidxjoin.setStoredTypes(
                 output_types_wo_edge_properties);
-            inner_col_map.push_back(edge_id_col_idx);
+            
+            // inner col map for adj idx join
+            for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+                CColRef *col = inner_cols->operator[](col_idx);
+                CColRefTable *colref_table = (CColRefTable *)col;
+                ULONG col_id = col->Id();
+                auto it_ = id_map_wo_edge_properties.find(col_id);
 
-            outer_col_map_seek.resize(output_types.size() - 1);
+                if (it_ != id_map_wo_edge_properties.end()) {
+                    auto id_idx = it_->second;
+                    if (colref_table->AttrNum() >= 3) {
+                        if (!pIsColEdgeProperty(col)) {
+                            inner_col_map_adj.push_back(id_idx);
+                        }
+                    }
+                    else {
+                        inner_col_map_adj.push_back(id_idx);
+                    }
+                }
+            }
+            inner_col_map_adj.push_back(edge_id_col_idx);
+
+            // outer col map for adj idx join
+            for (ULONG col_idx = 0; col_idx < outer_cols->Size(); col_idx++) {
+                CColRef *col = outer_cols->operator[](col_idx);
+                ULONG col_id = col->Id();
+                auto it_ = id_map_wo_edge_properties.find(col_id);
+                if (it_ == id_map_wo_edge_properties.end()) {
+                    outer_col_map_adj.push_back(std::numeric_limits<uint32_t>::max());
+                }
+                else {
+                    auto id_idx = id_map_wo_edge_properties.at(col_id);
+                    outer_col_map_adj.push_back(id_idx);
+                }
+            }
+
+            /**
+             * outer col map for seek
+             * 
+             * If edge properties are in, the outer columns could be shifted
+             * For example, let the outer columns are A B C and 
+             * inner columns (i.e., edge properties) are D E
+             * Suppose the output is A D B E (note that C is edge id, thus removed)
+             * Then, the outer col map for seek should be 0 2
+             * To calculate this, we need to see inner_col_map_seek
+             * to know whether the outer columns are shifted or not
+            */
+            vector<uint32_t> sorted_inner_col_map_seek = inner_col_map_seek;
+            std::sort(sorted_inner_col_map_seek.begin(), sorted_inner_col_map_seek.end());
+            outer_col_map_seek.resize(output_types_wo_edge_properties.size() - 1);
+            size_t num_inserted_inner_cols = 0;
             for (int i = 0; i < outer_col_map_seek.size(); i++) {
-                auto it = std::find(inner_col_map_seek.begin(),
-                                    inner_col_map_seek.end(), i);
-                if (it == inner_col_map_seek.end())
-                    outer_col_map_seek[i] = i;
-                else
-                    outer_col_map_seek[i] =
-                        std::numeric_limits<uint32_t>::max();
+                auto inner_col_idx = sorted_inner_col_map_seek[num_inserted_inner_cols];
+                // will be shifted? (i.e., is outer_col_idx on the right?)
+                if (inner_col_idx <= i + num_inserted_inner_cols) { 
+                    num_inserted_inner_cols++;
+                }
+                outer_col_map_seek[i] = i + num_inserted_inner_cols;
             }
             outer_col_map_seek.push_back(
-                std::numeric_limits<uint32_t>::max());  // TODO always useless?
+                std::numeric_limits<uint32_t>::max());  // remove edge ID column
         }
 
         duckdb::CypherPhysicalOperator *op_adjidxjoin;
@@ -1211,7 +1282,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 tmp_schema_adjidxjoin, adjidx_obj_id,
                 is_left_outer ? duckdb::JoinType::LEFT
                               : duckdb::JoinType::INNER,
-                sid_col_idx, true, outer_col_map, inner_col_map, true,
+                sid_col_idx, true, outer_col_map_adj, inner_col_map_adj, true,
                 outer_pos, inner_pos, load_eid_temporarily);
         }
         else {
@@ -1219,7 +1290,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 tmp_schema_adjidxjoin, adjidx_obj_id,
                 is_left_outer ? duckdb::JoinType::LEFT
                               : duckdb::JoinType::INNER,
-                sid_col_idx, true, outer_col_map, inner_col_map,
+                sid_col_idx, true, outer_col_map_adj, inner_col_map_adj,
                 load_eid_temporarily);
         }
 

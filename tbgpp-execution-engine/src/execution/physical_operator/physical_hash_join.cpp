@@ -74,7 +74,7 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(
     // globals
     state->hash_table = make_unique<JoinHashTable>(
         BufferManager::GetBufferManager(*(context.client->db.get())),
-        conditions, build_types, join_type);
+        conditions, build_types, join_type, output_left_projection_map, output_right_projection_map);
 
     return move(state);
 }
@@ -224,6 +224,8 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
                 input.data[input_idx]);
         }
     }
+    preprocessed_input.SetCardinality(input.size());
+    preprocessed_input.SetSchemaIdx(input.GetSchemaIdx());
 
     // TODO: currently, for debug purpose, we assume the chunk is UNION schema.
     chunk.SetSchemaIdx(0);
