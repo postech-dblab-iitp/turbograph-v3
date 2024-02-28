@@ -134,6 +134,11 @@ public:
 
 typedef MergeJoinLocalState MergeJoinGlobalState;
 
+DataChunk &PhysicalPiecewiseMergeJoin::GetLastSinkedData(LocalSinkState &lstate) const {
+	auto &llstate = (MergeJoinLocalState &)lstate;
+	return llstate.rhs_keys;
+}
+
 unique_ptr<LocalSinkState> PhysicalPiecewiseMergeJoin::GetLocalSinkState(ExecutionContext &context) const {
     /**
      * Global State Code

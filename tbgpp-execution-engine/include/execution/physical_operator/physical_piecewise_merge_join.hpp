@@ -57,6 +57,7 @@ class PhysicalPiecewiseMergeJoin : public PhysicalComparisonJoin {
                  LocalSinkState &state_p) const override;
 
     bool IsSink() const override { return true; }
+    DataChunk &GetLastSinkedData(LocalSinkState &lstate) const override;
 
     std::string ParamsToString() const override;
     std::string ToString() const override;

@@ -408,10 +408,9 @@ OperatorResultType PhysicalIdSeek::Execute(
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     if (!is_tmp_chunk_initialized_per_schema[chunk_idx]) {
                         vector<LogicalType> tmp_chunk_type;
-                        auto org_type = chunks[chunk_idx]->GetTypes();
+                        auto lhs_type = input.GetTypes();
                         getOutputTypesForFilteredSeek(
-                            org_type, inner_col_maps[mapping_idxs[extentIdx]],
-                            scan_types[mapping_idxs[extentIdx]], tmp_chunk_type);
+                            lhs_type, scan_types[mapping_idxs[extentIdx]], tmp_chunk_type);
                         tmp_chunk.Initialize(tmp_chunk_type);
                         is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
                     }
@@ -434,7 +433,13 @@ OperatorResultType PhysicalIdSeek::Execute(
                         num_tuples_per_chunk[chunk_idx]);
                         
                     tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
-                    OutputUtil::PrintTop10TuplesInDataChunk(tmp_chunk);
+
+                    // Filter may have column on lhs. Make tmp_chunk reference it
+                    for (int i = 0; i < input.ColumnCount(); i++) {
+                        tmp_chunk.data[i].Reference(input.data[i]);
+                    }
+
+                    // Execute filter
                     num_tuples_per_chunk[chunk_idx] = executor.SelectExpression(
                         tmp_chunk, state.sels[chunk_idx]);
                 }
@@ -609,8 +614,7 @@ OperatorResultType PhysicalIdSeek::Execute(
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     chunks[chunk_idx]
                         ->data[inner_col_maps[inner_col_maps_idx][i]]
-                        .Slice(tmp_chunk
-                                   .data[inner_col_maps[inner_col_maps_idx][i]],
+                        .Slice(tmp_chunk.data[i + input.ColumnCount()],
                                state.sels[chunk_idx],
                                num_tuples_per_chunk[chunk_idx]);
                 }
@@ -880,18 +884,12 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
 }
 
 void PhysicalIdSeek::getOutputTypesForFilteredSeek(
-    vector<LogicalType> &org_type, vector<uint32_t> inner_col_map,
+    vector<LogicalType> &lhs_type, 
     vector<LogicalType> &scan_type, vector<LogicalType> &out_type) const
 {
-    /**
-     * Filter-only columns are appended to the output columns.
-     * Filter-only columns have mapping value bigger than the last column index of the output columns.
-    */
-    out_type = org_type;
-    for (auto i = 0; i < inner_col_map.size(); i++) {
-        if (inner_col_map[i] >= org_type.size()) {
-            out_type.push_back(scan_type[i]);
-        }
+    out_type = lhs_type;
+    for (auto i = 0; i < scan_type.size(); i++) {
+        out_type.push_back(scan_type[i]);
     }
 }
 

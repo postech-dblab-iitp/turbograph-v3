@@ -95,7 +95,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 
 	// initialize interm chunks
 	auto &flow_graph = this->sfg.GetFlowGraph();
-	for (int i = 0; i < pipeline->pipelineLength; i++) { // from source to operators ; not sink.
+	for (int i = 0; i < pipeline->pipelineLength; i++) { 
 		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		// we maintain only one chunk for source node (union schema)
@@ -214,6 +214,12 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 	DataChunk *pipeOutputChunk = nullptr;
 	idx_t output_schema_idx;
 	// handle source until need_more_input;
+	/**
+	 * Why pipeline->pipelineLength - 2?
+	 * Here, pipeOutputChunk means the input to the sink.
+	 * The index of the sink operator is pipeline->pipelineLength - 1.
+	 * The index of the last intermeidate operator is therefore pipeline->pipelineLength - 2.
+	*/
 	while (true) {
 		OperatorResultType pipeResult;
 		if (pipeline->pipelineLength == 2) { // nothing passes through pipe.

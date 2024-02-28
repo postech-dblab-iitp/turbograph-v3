@@ -390,7 +390,7 @@ private:
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
 	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
-	void pConvertLocalFilterExprToIdSeekFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray *cols, vector<ULONG>& inner_col_id, vector<uint32_t>& inner_col_map, vector<uint32_t>& outer_col_map);
+	void pConvertLocalFilterExprToIdSeekFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray *cols, vector<ULONG>& inner_col_id, vector<uint32_t>& outer_col_map);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
