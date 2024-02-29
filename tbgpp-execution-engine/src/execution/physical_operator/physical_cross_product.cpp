@@ -69,7 +69,7 @@ SinkResultType PhysicalCrossProduct::Sink(ExecutionContext &context, DataChunk &
 
 DataChunk &PhysicalCrossProduct::GetLastSinkedData(LocalSinkState &lstate) const {
 	auto &sink = (CrossProductLocalState &)lstate;
-	return sink.rhs_materialized.GetChunk(sink.rhs_materialized.Count() - 1);
+	return sink.rhs_materialized.GetChunk(sink.rhs_materialized.ChunkCount() - 1);
 }
 
 //===--------------------------------------------------------------------===//

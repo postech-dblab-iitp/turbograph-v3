@@ -240,49 +240,30 @@ run_ldbc_c3() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
-	run_query "MATCH (countryX:Place {name: 'Angola' }),
-	      (countryY:Place {name: 'Colombia' }),
-	      (person:Person {id: 94 })
-	WITH person, countryX, countryY
-	LIMIT 1
-	MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
-	WHERE
-	  NOT person=friend
-	  AND NOT EXISTS {
-	    MATCH (city)-[:IS_PART_OF]->(country:Place)
-	    WHERE country = countryX OR country = countryY
-	  }
-	RETURN person;" 1
+	run_query "
+		MATCH (countryX:Place {name: 'Laos' }),
+			(countryY:Place {name: 'Scotland' }),
+			(person:Person {id: 17592186055119 })
+		WITH person, countryX, countryY
+		LIMIT 1
+		MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+		WHERE NOT person=friend
+			AND NOT EXISTS {
+				MATCH (city)-[:IS_PART_OF]->(country:Place)
+				WHERE country = countryX OR country = countryY
+			}
+		WITH DISTINCT friend, countryX, countryY
+		RETURN friend, countryX, countryY;" 1
 }
 
 run_ldbc_c4() {
 	# LDBC IC4 New topics
-	# run_query "MATCH (person:Person {id: 4398046511333 })-[:KNOWS]-(friend:Person),
-    #   	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag)
-	# 	WITH DISTINCT tag, post
-	# 	WITH tag,
-	# 		CASE
-	# 		WHEN 1277856000000 > post.creationDate >= 1275350400000 THEN 1
-	# 		ELSE 0
-	# 		END AS valid,
-	# 		CASE
-	# 		WHEN 1275350400000 > post.creationDate THEN 1
-	# 		ELSE 0
-	# 		END AS inValid
-	# 	WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
-	# 	WHERE postCount>0 AND inValidPostCount=0
-	# 	RETURN tag.name AS tagName, postCount
-	# 	ORDER BY postCount DESC, tagName ASC
-	# 	LIMIT 10" 1
-
-	# no > >= in comparison - kuzu parser limitation
-	# with tag, ... -> kuzu does not convert to tag.id, tag.property.... , maybe kuzu bug
 	run_query "MATCH (person:Person {id: 94 })-[:KNOWS]-(friend:Person),
-      	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag:Tag)
+      	(friend)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag:Tag)
 		WITH DISTINCT tag, post
 		WITH tag,
 			CASE
-			WHEN post.creationDate >= 1275350400000 THEN 1
+			WHEN post.creationDate >= 1275350400000 AND post.creationDate < 1277856000000 THEN 1
 			ELSE 0
 			END AS valid,
 			CASE
@@ -290,9 +271,9 @@ run_ldbc_c4() {
 			ELSE 0
 			END AS inValid
 		WITH tag.id AS tagid, tag.name AS tagName, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
-		WHERE postCount>0
-		RETURN tagName
-		ORDER BY tagName ASC
+		WHERE postCount > 0 AND inValidPostCount = 0
+		RETURN tagName, postCount
+		ORDER BY postCount DESC, tagName ASC
 		LIMIT 10" 0
 }
 
@@ -323,13 +304,13 @@ run_ldbc_c5() {
 	run_query "MATCH (person:Person { id: 94 })-[:KNOWS*1..2]->(friend:Person)
 		WITH DISTINCT friend
 		MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
+		WHERE
+			membership.joinDate > 1288612800000
 		WITH
 			forum,
 			friend
-		MATCH (post:Post)<-[:CONTAINER_OF]-(forum)
-		WITH
-			forum, post
-		RETURN
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
+				RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
 		LIMIT 20" 0
@@ -432,25 +413,10 @@ run_ldbc_c8() {
 
 run_ldbc_c9() {
 	# LDBC IC9 Recent messages by friends or friends of friends
-	# run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]-(friend:Person)
-	# 	WHERE NOT friend = root
-	# 	WITH collect(distinct friend) as friends
-	# 	UNWIND friends as friend
-	# 		MATCH (friend)<-[:HAS_CREATOR]-(message:Message)
-	# 		WHERE message.creationDate < 1289908800000
-	# 	RETURN
-	# 		friend.id AS personId,
-	# 		friend.firstName AS personFirstName,
-	# 		friend.lastName AS personLastName,
-	# 		message.id AS commentOrPostId,
-	# 		coalesce(message.content,message.imageFile) AS commentOrPostContent,
-	# 		message.creationDate AS commentOrPostCreationDate
-	# 	ORDER BY
-	# 		commentOrPostCreationDate DESC,
-	# 		message.id ASC
-	# 	LIMIT 20" 1
-
-	run_query "MATCH (root:Person {id: 94 })-[:KNOWS*1..2]->(friend:Person)
+	# (message:Comment) -> (message:Message)
+	# coalesce(message.content,message.imageFile) AS commentOrPostContent,
+	run_query "MATCH (root:Person {id: 4398046511268 })-[:KNOWS*1..2]->(friend:Person)
+		WHERE NOT friend = root
 		WITH DISTINCT friend
 		MATCH (friend)<-[:HAS_CREATOR]-(message:Comment)
 		WHERE message.creationDate < 1289908800000
@@ -507,11 +473,11 @@ run_ldbc_c10() {
 
 run_ldbc_c11() {
 	# LDBC IC11 Job referral
-		#WHERE person._id <> friend._id
-		#WHERE workAt.workFrom < 2011
 	run_query "MATCH (person:Person {id: 94})-[:KNOWS*1..2]->(friend:Person)
+		WHERE NOT person = friend
 		WITH DISTINCT friend
 		MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(:Place {name: 'Hungary'})
+		WHERE workAt.workFrom < 2011
 		RETURN
 				friend.id AS personId,
 				friend.firstName AS personFirstName,
