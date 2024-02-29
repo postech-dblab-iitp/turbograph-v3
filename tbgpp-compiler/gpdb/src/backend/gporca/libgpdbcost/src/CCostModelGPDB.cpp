@@ -1284,22 +1284,23 @@ CCostModelGPDB::CostIndexNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CCost costChild =
 		CostChildren(mp, exprhdl, pci, pcmgpdb->GetCostModelParams());
 
-	ULONG risk = pci->Pcstats()->StatsEstimationRisk();
+	// ULONG risk = pci->Pcstats()->StatsEstimationRisk();
 	ULONG ulPenalizationFactor = 1;
-	const CDouble dIndexJoinAllowedRiskThreshold =
-		pcmgpdb->GetCostModelParams()
-			->PcpLookup(CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold)
-			->Get();
-	BOOL fInnerJoin =
-		COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid();
+	// const CDouble dIndexJoinAllowedRiskThreshold =
+	// 	pcmgpdb->GetCostModelParams()
+	// 		->PcpLookup(CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold)
+	// 		->Get();
+	// BOOL fInnerJoin =
+	// 	COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid();
 
 	// Only apply penalize factor for inner index nestloop join, because we are more confident
 	// on the cardinality estimation of outer join than inner join. So don't penalize outer join
 	// cost, otherwise Orca generate bad plan.
-	if (fInnerJoin && dIndexJoinAllowedRiskThreshold < risk)
-	{
-		ulPenalizationFactor = risk;
-	}
+	// S62 do not penalize idx nl join
+	// if (fInnerJoin && dIndexJoinAllowedRiskThreshold < risk)
+	// {
+	// 	ulPenalizationFactor = risk;
+	// }
 
 	return CCost(ulPenalizationFactor * (costLocal + costChild));
 }
@@ -1384,7 +1385,7 @@ CCostModelGPDB::CostNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	// with the cardinality of outer tuples, rows and width of the materialized inner side.
 	// 3. output tuples. This part is correlated with outer rows and width of the join result.
 	CCost costLocal = CCost(
-		10.0 * pci->NumRebinds() * // S62 penalize 10.0
+		1.0 * pci->NumRebinds() * // S62 penalize 100.0
 		(
 			// cost of feeding outer tuples
 			ulColsUsed * num_rows_outer * dJoinFeedingTupColumnCostUnit +

@@ -424,6 +424,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 					*context, *prev_output_chunk, *((*current_output_chunks)[0]), *local_operator_states[current_idx-1],
 					*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
+				(*current_output_chunks)[0]->SetSchemaIdx(0);
 				output_schema_idx = 0;
 			}
 
