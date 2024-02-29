@@ -206,12 +206,18 @@ private:
 
 	// S62 swap logical select over logical project columnar
 	static CExpression *PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
-													   			CExpression *pexpr);
+													   		   CExpression *pexpr);
 
 	static CExpression *CollapseSelectAndReplaceColref(CMemoryPool *mp,
 													   CExpression *expr,
 													   CColRef *pcolref,
 													   CExpression *pprojExpr);
+	
+	static CExpression *CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
+															   CExpression *expr,
+															   CColRef *pcolref,
+															   CExpression *pprojExpr,
+															   ULONG depth);
 
 	static CExpression *PexprPruneUnnecessaryTables(CMemoryPool *mp,
 													CExpression *pexpr);

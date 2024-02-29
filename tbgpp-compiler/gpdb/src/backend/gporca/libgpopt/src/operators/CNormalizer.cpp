@@ -155,7 +155,6 @@ CNormalizer::FPushable(CExpression *pexprLogical, CExpression *pexprPred)
 		return false;
 	}
 
-
 	CColRefSet *pcrsUsed = pexprPred->DeriveUsedColumns();
 	CColRefSet *pcrsOutput = pexprLogical->DeriveOutputColumns();
 
