@@ -667,6 +667,11 @@ CJoinStatsProcessor::DeriveStatsWithOuterRefs(
 	IStatistics *outer_stats = CJoinStatsProcessor::CalcAllJoinStats(
 		mp, all_outer_stats, expr, exprhdl.Pop());
 	CDouble num_rows_outer = outer_stats->Rows();
+	// s62 added temporarily
+	if (num_rows_outer < 1.0) {
+		outer_stats->SetNumRows(1.0);
+		num_rows_outer = 1.0;
+	}
 
 	// join passed stats object and outer stats based on the passed join type
 	IStatisticsArray *statistics_array = GPOS_NEW(mp) IStatisticsArray(mp);

@@ -2816,22 +2816,6 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColref(CMemoryPool *mp,
 		return pexprTransposed;
 	}
 
-	// S62 added
-	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
-		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar)
-	{
-		(*(*pexpr)[0])[0]->AddRef();
-		CExpression *pexprCollapsedSelect = GPOS_NEW(mp)
-			CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), (*(*pexpr)[0])[0],
-						CollapseSelectAndReplaceColref(mp, (*pexpr)[1], pcolref,
-													   pprojExpr));
-
-		CExpression *pexprTransposed =
-			PexprTransposeSelectAndProject(mp, pexprCollapsedSelect);
-		pexprCollapsedSelect->Release();
-		return pexprTransposed;
-	}
-
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
 		CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
@@ -2846,6 +2830,57 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColref(CMemoryPool *mp,
 	{
 		pdrgpexprChildren->Append(CollapseSelectAndReplaceColref(
 			mp, (*pexpr)[ul], pcolref, pprojExpr));
+	}
+
+	COperator *pop = pexpr->Pop();
+	pop->AddRef();
+	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+}
+
+// Collapse a select over a project and update column reference.
+CExpression *
+CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
+														CExpression *pexpr,
+														CColRef *pcolref,
+														CExpression *pprojExpr,
+														ULONG depth)
+{
+	// S62 added
+	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
+		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) // TODO right?
+	{
+		if (depth == 0) {
+			(*(*pexpr)[0])[0]->AddRef();
+			CExpression *pexprCollapsedSelect = GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), (*(*pexpr)[0])[0],
+							CollapseSelectAndReplaceColrefColumnar(mp, (*pexpr)[1], pcolref,
+														pprojExpr, depth + 1));
+
+			CExpression *pexprTransposed =
+				PexprTransposeSelectAndProjectColumnar(mp, pexprCollapsedSelect);
+			pexprCollapsedSelect->Release();
+			return pexprTransposed;
+		} else {
+			CExpression *pexprTransposed =
+				PexprTransposeSelectAndProjectColumnar(mp, pexpr);
+			return pexprTransposed;
+		}
+	}
+
+	// replace reference
+	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
+		CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
+	{
+		pprojExpr->AddRef();
+		return pprojExpr;
+	}
+
+	// recurse to children
+	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+	for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+	{
+		pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
+			mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
 	}
 
 	COperator *pop = pexpr->Pop();
@@ -3010,14 +3045,15 @@ CExpressionPreprocessor::PexprTransposeSelectAndProject(CMemoryPool *mp,
 // S62 implementation added
 CExpression *
 CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
-													   			CExpression *pexpr) {
-
+													   			CExpression *pexpr)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexpr);
 
 	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&						// Select
 		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {		// LogicalProjectColumnar
-
 		// // if referencing cols of EopLogicalSelect is included in child of EopLogicalProjectColumnar, then pushdown is possible
 		// CExpression *pselect = pexpr;
 		// CExpression *pproject = (*pexpr)[0];
@@ -3091,10 +3127,11 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 			//
 			//       NB: JoinOnViewWithMixOfPushableAndNonpushablePredicates.mdp
 			CExpression *prevpselectNew = pselectNew;
-			pselectNew = CollapseSelectAndReplaceColref(
+			pselectNew = CollapseSelectAndReplaceColrefColumnar(
 				mp, prevpselectNew,
 				CUtils::PNthProjectElement(pproject, ul)->Pcr(),
-				CUtils::PNthProjectElementExpr(pproject, ul));
+				CUtils::PNthProjectElementExpr(pproject, ul),
+				0);
 			if (pexpr != prevpselectNew)
 			{
 				prevpselectNew->Release();

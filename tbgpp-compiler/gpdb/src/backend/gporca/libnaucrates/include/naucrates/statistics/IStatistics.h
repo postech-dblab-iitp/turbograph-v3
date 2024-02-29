@@ -109,6 +109,8 @@ public:
 	// how many rows
 	virtual CDouble Rows() const = 0;
 
+	virtual void SetNumRows(CDouble num_rows) = 0;
+
 	// number of blocks in the relation (not always up to-to-date)
 	virtual ULONG RelPages() const = 0;
 

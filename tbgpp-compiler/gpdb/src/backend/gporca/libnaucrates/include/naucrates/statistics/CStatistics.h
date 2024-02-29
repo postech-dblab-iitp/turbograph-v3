@@ -163,6 +163,13 @@ public:
 	// actual number of rows
 	virtual CDouble Rows() const;
 
+	// s62 added temporary
+	virtual void
+	SetNumRows(CDouble num_rows)
+	{
+		m_rows = num_rows;
+	}
+
 	virtual ULONG
 	RelPages() const
 	{
