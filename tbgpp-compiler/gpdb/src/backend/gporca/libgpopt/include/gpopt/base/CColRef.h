@@ -73,9 +73,6 @@ private:
 	// name: SQL alias or artificial name
 	const CName *m_pname;
 
-	// S62 added property key id
-	const ULONG m_colid;
-
 	// private copy ctor
 	CColRef(const CColRef &);
 
@@ -133,9 +130,9 @@ public:
 
 	// colid
 	ULONG
-	ColId() const
+	PrevId() const
 	{
-		return m_colid;
+		return m_prev_id;
 	}
 
 	// overloaded equality operator
@@ -193,6 +190,9 @@ public:
 	// id, serves as hash key
 	const ULONG m_id;
 
+	// S62 added property key id
+	ULONG m_prev_id;
+
 	// invalid key
 	static const ULONG m_ulInvalid;
 
@@ -239,6 +239,12 @@ public:
 	SetMdidTable(IMDId *mdid_table)
 	{
 		m_mdid_table = mdid_table;
+	}
+
+	void
+	SetPrevId(ULONG prev_id)
+	{
+		m_prev_id = prev_id;
 	}
 
 };	// class CColRef

@@ -151,6 +151,10 @@ public:
 		D_ASSERT( found == true );
 		// in order to change colref from unsed to used
 		found_colref->MarkAsUsed();
+		// projection code
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();\
+		CColRef* prev_colref = col_factory->LookupColRef(found_colref->PrevId());
+		prev_colref->MarkAsUsed();
 		return found_colref;
 	}
 

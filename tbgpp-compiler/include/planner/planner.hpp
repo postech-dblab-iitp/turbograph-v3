@@ -419,15 +419,17 @@ private:
 		string name(name_ws.begin(), name_ws.end());
 		return name;
 	}
-	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid) {
+	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid, INT type_mod) {
 		auto type_id = pConvertTypeOidToLogicalTypeId(oid);
 		if (type_id == duckdb::LogicalTypeId::DECIMAL) {
-			uint16_t width_scale = (oid - LOGICAL_TYPE_BASE_ID) / NUM_MAX_LOGICAL_TYPES;
-			uint8_t width = (uint8_t)(width_scale >> 8);
-			uint8_t scale = (uint8_t)(width_scale & 0xFF);
-			// D_ASSERT(width != 0);
-			if (width_scale == 0) return duckdb::LogicalType::DECIMAL(12, 2); // TODO decimal temporary
-			return duckdb::LogicalType::DECIMAL(width, scale);
+			if (type_mod == 0 || type_mod == -1) {
+				return duckdb::LogicalType::DECIMAL(12, 2);
+			} 
+			else {
+				uint8_t width = (uint8_t)(type_mod >> 8);
+				uint8_t scale = (uint8_t)(type_mod & 0xFF);
+				return duckdb::LogicalType::DECIMAL(width, scale);
+			}
 		}
 		return duckdb::LogicalType(type_id);
 	}
@@ -450,12 +452,23 @@ private:
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
 	static duckdb::JoinType pTranslateJoinType(COperator *op);
 	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);
+
+	// ID Get
 	static OID pGetTypeIdFromScalar(CExpression *expr);
 	static OID pGetTypeIdFromScalarIdent(CExpression *ident_expr);
 	static OID pGetTypeIdFromScalarConst(CExpression *const_expr);
 	static OID pGetTypeIdFromScalarFunc(CExpression *func_expr);
 	static OID pGetTypeIdFromScalarAggFunc(CExpression *agg_expr);
 	static OID pGetTypeIdFromScalarSwitch(CExpression *switch_expr);
+
+	// Mod Get
+	static INT pGetTypeModFromScalar(CExpression *expr);
+	static INT pGetTypeModFromScalarIdent(CExpression *ident_expr);
+	static INT pGetTypeModFromScalarConst(CExpression *const_expr);
+	static INT pGetTypeModFromScalarFunc(CExpression *func_expr);
+	static INT pGetTypeModFromScalarAggFunc(CExpression *agg_expr);
+	static INT pGetTypeModFromScalarSwitch(CExpression *switch_expr);
+
 	
 	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
 

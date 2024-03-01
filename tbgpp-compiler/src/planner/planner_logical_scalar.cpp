@@ -311,7 +311,8 @@ CExpression * Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression* expressi
 		child_exprs->Append(child_expr);
 
 		OID type_oid = pGetTypeIdFromScalar(child_expr);
-		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+		INT type_mod = pGetTypeModFromScalar(child_expr);
+		child_types.push_back(pConvertTypeOidToLogicalType(type_oid, type_mod));
 	}
 	// refer expression_type.h for kuzu function names
 	duckdb::AggregateFunctionCatalogEntry *agg_func_cat;
@@ -370,7 +371,8 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 		child_exprs->Append(child_expr);
 
 		OID type_oid = pGetTypeIdFromScalar(child_expr);
-		child_types.push_back(pConvertTypeOidToLogicalType(type_oid));
+		INT type_mod = pGetTypeModFromScalar(child_expr);
+		child_types.push_back(pConvertTypeOidToLogicalType(type_oid, type_mod));
 	}
 
 	// refer expression_type.h for kuzu function names
