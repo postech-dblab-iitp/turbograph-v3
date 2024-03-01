@@ -246,6 +246,7 @@ CDecorrelator::FProcessOperator(CMemoryPool *mp, CExpression *pexpr,
 
 		case COperator::EopLogicalProject:
 		case COperator::EopLogicalSequenceProject:
+		case COperator::EopLogicalProjectColumnar:
 			result =
 				FProcessProject(mp, pexpr, fEqualityOnly, ppexprDecorrelated,
 								pdrgpexprCorrelations, outerRefsToRemove);
@@ -750,7 +751,8 @@ CDecorrelator::FProcessProject(CMemoryPool *mp, CExpression *pexpr,
 	COperator::EOperatorId op_id = pexpr->Pop()->Eopid();
 
 	GPOS_ASSERT(COperator::EopLogicalProject == op_id ||
-				COperator::EopLogicalSequenceProject == op_id);
+				COperator::EopLogicalSequenceProject == op_id ||
+				COperator::EopLogicalProjectColumnar == op_id);
 
 	CExpression *pexprPrjList = (*pexpr)[1];
 

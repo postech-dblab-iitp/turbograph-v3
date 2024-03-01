@@ -2885,6 +2885,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         }
         D_ASSERT(right_build_map.size() == right_build_types.size());
     }
+    else if (join_type == duckdb::JoinType::ANTI) {
+        // do nothing
+    }
     else {
         D_ASSERT(false);
     }
@@ -4273,11 +4276,15 @@ void Planner::pTranslatePredicateToJoinCondition(
     if (op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
         CScalarBoolOp *boolop = (CScalarBoolOp *)op;
         if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
+            D_ASSERT(pred->Arity() == 2);
             // Split predicates
             pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds,
                                                lhs_cols, rhs_cols);
             pTranslatePredicateToJoinCondition(pred->operator[](1), out_conds,
                                                lhs_cols, rhs_cols);
+        }
+        else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+            D_ASSERT(false);
         }
         else if (boolop->Eboolop() ==
                  CScalarBoolOp::EBoolOperator::EboolopNot) {
@@ -4323,6 +4330,9 @@ void Planner::pTranslatePredicateToJoinCondition(
         else if (cmpop->ParseCmpType() == IMDType::ECmpType::EcmptNEq) {
             // NOT EQUALS
             cond.comparison = duckdb::ExpressionType::COMPARE_NOTEQUAL;
+        }
+        else {
+            D_ASSERT(false);
         }
         out_conds.push_back(move(cond));
     }
