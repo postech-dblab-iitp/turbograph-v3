@@ -87,12 +87,21 @@ private:
 	// corresponding gp_agg mdid for supported ordered aggs
 	IMDId *m_gp_agg_mdid;
 
+	// type modifier
+	INT m_type_modifier;
+
 	// private copy ctor
 	CScalarAggFunc(const CScalarAggFunc &);
 
 public:
 	// ctor
 	CScalarAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc,
+				   IMDId *resolved_rettype, const CWStringConst *pstrAggFunc,
+				   BOOL is_distinct, EAggfuncStage eaggfuncstage, BOOL fSplit,
+				   EAggfuncKind aggkind, IMDId *gp_agg_mdid = NULL);
+	
+
+	CScalarAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc, INT type_modifier,
 				   IMDId *resolved_rettype, const CWStringConst *pstrAggFunc,
 				   BOOL is_distinct, EAggfuncStage eaggfuncstage, BOOL fSplit,
 				   EAggfuncKind aggkind, IMDId *gp_agg_mdid = NULL);
@@ -234,6 +243,13 @@ public:
 	GetGpAggMDId() const
 	{
 		return m_gp_agg_mdid;
+	}
+
+	// the type modifier of the scalar expression
+	INT
+	TypeModifier() const
+	{
+		return m_type_modifier;
 	}
 
 	// is function count(*)?
