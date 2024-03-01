@@ -173,53 +173,60 @@ CExpression *Planner::lTryGenerateScalarIdent(kuzu::binder::Expression* expressi
 	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarPropertyExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
+CExpression *Planner::lExprScalarPropertyExpr(
+    kuzu::binder::Expression *expression, LogicalPlan *prev_plan,
+    DataTypeID required_type)
+{
+    CMemoryPool *mp = this->memory_pool;
 
-	CMemoryPool* mp = this->memory_pool;
+    PropertyExpression *prop_expr = (PropertyExpression *)expression;
+    string k1 = "";
+    string k2 = "";
 
-	PropertyExpression* prop_expr = (PropertyExpression*) expression;
-	string k1 = "";
-	string k2 = "";
+    CColRef *target_colref;
 
-	CColRef* target_colref;
+    // try first with property
+    k1 = prop_expr->getVariableName();
+    k2 = prop_expr->getPropertyName();
+    target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
 
-	// try first with property
-	k1 = prop_expr->getVariableName();
-	k2 = prop_expr->getPropertyName();
-	target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
-	
-	// fallback to alias
-	if( target_colref == NULL && prop_expr->hasAlias() ) {
-		k1 = prop_expr->getAlias();
-		k2 = ""; 
-		target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
-	}
+    // fallback to alias
+    if (target_colref == NULL && prop_expr->hasAlias()) {
+        k1 = prop_expr->getAlias();
+        k2 = "";
+        target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
+    }
 
-	// fallback to outer
-	if( target_colref == NULL && l_is_outer_plan_registered) {
-		GPOS_ASSERT(l_registered_outer_plan != nullptr);
-		k1 = prop_expr->getVariableName();
-		k2 = prop_expr->getPropertyName();
-		target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
-		
-		// fallback to alias
-		if( target_colref == NULL && prop_expr->hasAlias() ) {
-			k1 = prop_expr->getAlias();
-			k2 = ""; 
-			target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
-		}
-	}
-	GPOS_ASSERT(target_colref != NULL);
+    // fallback to outer
+    if (target_colref == NULL && l_is_outer_plan_registered) {
+        GPOS_ASSERT(l_registered_outer_plan != nullptr);
+        k1 = prop_expr->getVariableName();
+        k2 = prop_expr->getPropertyName();
+        target_colref =
+            l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
 
-	// record alias to mapping
-	if( prop_expr->hasAlias() ) {
-		property_col_to_output_col_names_mapping[target_colref] = prop_expr->getAlias();
-	}
+        // fallback to alias
+        if (target_colref == NULL && prop_expr->hasAlias()) {
+            k1 = prop_expr->getAlias();
+            k2 = "";
+            target_colref =
+                l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
+        }
+    }
+    if (target_colref == NULL) {
+        GPOS_ASSERT(target_colref != NULL);
+    }
 
-	CExpression* ident_expr = GPOS_NEW(mp)
-			CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
-	
-	return ident_expr;
+    // record alias to mapping
+    if (prop_expr->hasAlias()) {
+        property_col_to_output_col_names_mapping[target_colref] =
+            prop_expr->getAlias();
+    }
+
+    CExpression *ident_expr = GPOS_NEW(mp)
+        CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+
+    return ident_expr;
 }
 
 CExpression *Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan) {

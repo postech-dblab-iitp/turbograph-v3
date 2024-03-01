@@ -483,6 +483,10 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         expression->dataType.typeID = UBIGINT; // TODO temporary..
         return expression;
     }
+    if (targetType.typeID == UBIGINT && expression->dataType.typeID == INT64) {
+        expression->dataType.typeID = UBIGINT; // TODO temporary..
+        return expression;
+    }
     if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
         expression->dataType.typeID = DECIMAL; // TODO temporary..
         return expression;

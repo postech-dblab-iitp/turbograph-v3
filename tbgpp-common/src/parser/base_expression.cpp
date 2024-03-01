@@ -1,10 +1,11 @@
 #include "parser/base_expression.hpp"
+#include "common/printer.hpp"
 
 
 namespace duckdb {
 
 void BaseExpression::Print() const {
-	//Printer::Print(ToString());
+	Printer::Print(ToString());
 }
 
 string BaseExpression::GetName() const {
