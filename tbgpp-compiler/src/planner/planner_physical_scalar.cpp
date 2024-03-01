@@ -75,8 +75,9 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	}
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
+	INT type_mod = ident_op->Pcr()->TypeModifier();
 	
-	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index, is_inner);
+	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid, type_mod), (int)child_index, is_inner);
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *lhs_child_cols, ULONG child_index) {	
@@ -85,8 +86,9 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 	D_ASSERT(child_index != gpos::ulong_max);
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
+	INT type_mod = ident_op->Pcr()->TypeModifier();
 	
-	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid), (int)child_index);
+	return make_unique<duckdb::BoundReferenceExpression>(pConvertTypeOidToLogicalType(type_oid, type_mod), (int)child_index);
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
@@ -370,6 +372,52 @@ OID Planner::pGetTypeIdFromScalarSwitch(CExpression *switch_expr) {
 	CScalarSwitch *switch_op = CScalarSwitch::PopConvert(switch_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(switch_op->MdidType());
 	return type_mdid->Oid();
+}
+
+INT Planner::pGetTypeModFromScalar(CExpression *expr) {
+	if (expr->Pop()->Eopid() == COperator::EopScalarIdent) {
+		return pGetTypeModFromScalarIdent(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarConst) {
+		return pGetTypeModFromScalarConst(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarFunc) {
+		return pGetTypeModFromScalarFunc(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarAggFunc) {
+		return pGetTypeModFromScalarAggFunc(expr);
+	} else if (expr->Pop()->Eopid() == COperator::EopScalarSwitch) {
+		return pGetTypeModFromScalarSwitch(expr);
+	} else {
+		D_ASSERT(false); // not implemented yet
+	}
+}
+
+INT Planner::pGetTypeModFromScalarIdent(CExpression *ident_expr) {
+	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRef *colref = col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
+	return colref->TypeModifier();
+}
+
+INT Planner::pGetTypeModFromScalarConst(CExpression *const_expr) {
+	D_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
+	CScalarConst *const_op = CScalarConst::PopConvert(const_expr->Pop());
+	return const_op->TypeModifier();
+}
+
+INT Planner::pGetTypeModFromScalarFunc(CExpression *func_expr) {
+	D_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
+	CScalarFunc *func_op = CScalarFunc::PopConvert(func_expr->Pop());
+	return func_op->TypeModifier();
+}
+
+INT Planner::pGetTypeModFromScalarAggFunc(CExpression *agg_expr) {
+	D_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
+	CScalarAggFunc *aggfunc_op = CScalarAggFunc::PopConvert(agg_expr->Pop());
+	return aggfunc_op->TypeModifier();
+}
+
+INT Planner::pGetTypeModFromScalarSwitch(CExpression *switch_expr) {
+	D_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
+	return -1;
 }
 
 }

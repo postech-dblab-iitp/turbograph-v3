@@ -493,6 +493,10 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 			if( CUtils::FScalarIdent(expr) ) {
 				// reuse colref
 				CColRef* orig_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->Id());
+				orig_colref->MarkAsUsed(); // TODO correctness check @jhha
+				// also mark the previous one
+				CColRef* prev_colref = col_factory->LookupColRef(((CScalarIdent*)(expr->Pop()))->Pcr()->PrevId());
+				prev_colref->MarkAsUsed(); // TODO correctness check @jhha
 				generated_colrefs.push_back(orig_colref);
 				if( proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY ) {
 					// considered as property only when users can still access as node property.
@@ -515,6 +519,7 @@ LogicalPlan* Planner::lPlanProjection(const expression_vector& expressions, Logi
 				CName col_cname(&col_name_str);
 				CColRef *new_colref = col_factory->PcrCreate(
 					lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);
+				new_colref->MarkAsUsed(); // TODO correctness check @jhha
 				generated_colrefs.push_back(new_colref);
 				new_schema.appendColumn(col_name, generated_colrefs.back());
 			}
@@ -1638,6 +1643,7 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 				output_col_array->Append(colref);
 			} else {
 				new_colref = col_factory->PcrCopy(colref);
+				new_colref->SetPrevId(colref->Id());
 				// CColRefTable *colref_table = (CColRefTable *)colref;
 				// new_colref = col_factory->PcrCreate(colref_table->RetrieveType(), colref_table->TypeModifier(),
 				// 	colref_table->GetMdidTable(), colref_table->AttrNum(), colref_table->IsNullable(),
@@ -1647,8 +1653,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 				scalar_proj_elem = GPOS_NEW(mp) CExpression(
 					mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), ident_expr); // ident element do not assign new colref id
 
-				colref->MarkAsUsed();
-				new_colref->MarkAsUsed();
+				// colref->MarkAsUsed();
+				// new_colref->MarkAsUsed();
 				proj_array->Append(scalar_proj_elem);
 				output_col_array->Append(new_colref);
 			}

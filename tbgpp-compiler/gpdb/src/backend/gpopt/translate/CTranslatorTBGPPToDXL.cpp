@@ -851,8 +851,9 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		// 	}
 		// }
 
+		auto type_mod = rel->GetExtraTypeInfo(ul);
 		CMDColumn *md_col = GPOS_NEW(mp)
-			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
+			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, type_mod,
 					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
 					  dxl_default_col_val /* default value */, col_len);
 

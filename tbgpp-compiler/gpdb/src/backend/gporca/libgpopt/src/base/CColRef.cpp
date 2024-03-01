@@ -38,10 +38,10 @@ CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
 	: m_pmdtype(pmdtype),
 	  m_type_modifier(type_modifier),
 	  m_pname(pname),
-	  m_colid(id),
 	  m_used(EUnknown),
 	  m_mdid_table(NULL),
-	  m_id(id)
+	  m_id(id),
+	  m_prev_id(id)
 {
 	GPOS_ASSERT(NULL != pmdtype);
 	GPOS_ASSERT(pmdtype->MDId()->IsValid());
@@ -53,10 +53,10 @@ CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id, ULON
 	: m_pmdtype(pmdtype),
 	  m_type_modifier(type_modifier),
 	  m_pname(pname),
-	  m_colid(colid),
 	  m_used(EUnknown),
 	  m_mdid_table(NULL),
-	  m_id(id)
+	  m_id(id),
+	  m_prev_id(colid)
 {
 	GPOS_ASSERT(NULL != pmdtype);
 	GPOS_ASSERT(pmdtype->MDId()->IsValid());

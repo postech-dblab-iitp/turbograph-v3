@@ -438,7 +438,7 @@ OperatorResultType PhysicalIdSeek::Execute(
                     for (int i = 0; i < input.ColumnCount(); i++) {
                         tmp_chunk.data[i].Reference(input.data[i]);
                     }
-
+                    
                     // Execute filter
                     num_tuples_per_chunk[chunk_idx] = executor.SelectExpression(
                         tmp_chunk, state.sels[chunk_idx]);
@@ -871,6 +871,8 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
 
         for (auto j = 0; j < inner_col_maps[i].size(); j++) {
             // TODO check if inefficient
+            if (inner_col_maps[i][j] == std::numeric_limits<uint32_t>::max()) // this case is not handled well, please fix this
+                continue;
             auto it =
                 std::find(union_inner_col_map.begin(),
                           union_inner_col_map.end(), inner_col_maps[i][j]);
