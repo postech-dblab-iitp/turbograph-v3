@@ -1788,6 +1788,25 @@ CUtils::PopAggFunc(
 					   is_distinct, eaggfuncstage, fSplit, aggkind);
 }
 
+// generate an aggregate function operator
+CScalarAggFunc *
+CUtils::PopAggFunc(
+	CMemoryPool *mp, IMDId *pmdidAggFunc, INT type_mod, const CWStringConst *pstrAggFunc,
+	BOOL is_distinct, EAggfuncStage eaggfuncstage, BOOL fSplit,
+	IMDId *
+		pmdidResolvedReturnType,  // return type to be used if original return type is ambiguous
+	EAggfuncKind aggkind)
+{
+	GPOS_ASSERT(NULL != pmdidAggFunc);
+	GPOS_ASSERT(NULL != pstrAggFunc);
+	GPOS_ASSERT_IMP(NULL != pmdidResolvedReturnType,
+					pmdidResolvedReturnType->IsValid());
+
+	return GPOS_NEW(mp)
+		CScalarAggFunc(mp, pmdidAggFunc, type_mod, pmdidResolvedReturnType, pstrAggFunc,
+					   is_distinct, eaggfuncstage, fSplit, aggkind);
+}
+
 // generate an aggregate function
 CExpression *
 CUtils::PexprAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc,

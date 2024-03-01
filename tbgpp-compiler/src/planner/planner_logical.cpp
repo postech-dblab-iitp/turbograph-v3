@@ -586,13 +586,19 @@ LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, Logical
 			w_col_name.assign(col_name_print.begin(), col_name_print.end());
 			const CWStringConst col_name_str(w_col_name.c_str());
 			CName col_cname(&col_name_str);
+			/**
+			 * Basically, this code is wrong.
+			 * We should create CColRef based on 'our' storage info.
+			 * This code only uses Orca info, which ends error.
+			 * Just do bind, and found return type.
+			*/
 			CColRef *new_colref = col_factory->PcrCreate(
 				lGetMDAccessor()->RetrieveType(scalar_op->MdidType()), scalar_op->TypeModifier(), col_cname);	// col_name_print
 			new_schema.appendColumn(col_name, new_colref);	// col_name
 			
 			// add to agg_columns
 			auto* proj_elem = GPOS_NEW(mp)
-				CExpression(mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), expr);
+				CExpression(mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref), expr); // one proj_elem refers to one aggregated value ()
 			agg_columns->Append(proj_elem);
 			proj_expr->is_processed = true;
 		} else {

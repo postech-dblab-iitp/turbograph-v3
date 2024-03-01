@@ -47,7 +47,48 @@ CScalarAggFunc::CScalarAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc,
 	  m_aggkind(aggkind),
 	  m_eaggfuncstage(eaggfuncstage),
 	  m_fSplit(fSplit),
-	  m_gp_agg_mdid(gp_agg_mdid)
+	  m_gp_agg_mdid(gp_agg_mdid),
+	  m_type_modifier(0)
+{
+	GPOS_ASSERT(NULL != pmdidAggFunc);
+	GPOS_ASSERT(NULL != pstrAggFunc);
+	GPOS_ASSERT(pmdidAggFunc->IsValid());
+	GPOS_ASSERT_IMP(NULL != resolved_rettype, resolved_rettype->IsValid());
+	GPOS_ASSERT(EaggfuncstageSentinel > eaggfuncstage);
+
+	// store id of type obtained by looking up MD cache
+	IMDId *mdid = PmdidLookupReturnType(
+		m_pmdidAggFunc, (EaggfuncstageGlobal == m_eaggfuncstage));
+	mdid->AddRef();
+	m_return_type_mdid = mdid;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarAggFunc::CScalarAggFunc
+//
+//	@doc:
+//		Ctor
+//
+//---------------------------------------------------------------------------
+CScalarAggFunc::CScalarAggFunc(CMemoryPool *mp, IMDId *pmdidAggFunc, INT type_modifier, 
+							   IMDId *resolved_rettype,
+							   const CWStringConst *pstrAggFunc,
+							   BOOL is_distinct, EAggfuncStage eaggfuncstage,
+							   BOOL fSplit, EAggfuncKind aggkind,
+							   IMDId *gp_agg_mdid)
+	: CScalar(mp),
+	  m_pmdidAggFunc(pmdidAggFunc),
+	  m_pmdidResolvedRetType(resolved_rettype),
+	  m_return_type_mdid(NULL),
+	  m_pstrAggFunc(pstrAggFunc),
+	  m_is_distinct(is_distinct),
+	  m_aggkind(aggkind),
+	  m_eaggfuncstage(eaggfuncstage),
+	  m_fSplit(fSplit),
+	  m_gp_agg_mdid(gp_agg_mdid),
+	  m_type_modifier(type_modifier)
 {
 	GPOS_ASSERT(NULL != pmdidAggFunc);
 	GPOS_ASSERT(NULL != pstrAggFunc);

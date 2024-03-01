@@ -54,6 +54,10 @@ bool isExpressionParameter(ExpressionType type) {
     return PARAMETER == type;
 }
 
+bool isExpressionProperty(ExpressionType type) {
+    return PROPERTY == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:
