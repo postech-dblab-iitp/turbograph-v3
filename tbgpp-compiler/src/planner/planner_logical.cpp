@@ -180,17 +180,47 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 	
 	LogicalPlan *qg_plan = prev_plan;
 
+	bool is_forward_traverse = true; // true for forward, false for backward
+	if (is_optional_match) {
+		// we can only handle this case in optional_match currently
+		D_ASSERT(qgc.getNumQueryGraphs() == 1);
+
+		QueryGraph *qg = qgc.getQueryGraph(0);
+		for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
+			if (edge_idx == 0) {
+				RelExpression *qedge = qg->getQueryRel(edge_idx).get();
+				string lhs_name = qedge->getSrcNode()->getUniqueName();
+				if (prev_plan_schema->isNodeBound(lhs_name)) {
+					is_forward_traverse = true;
+					break;
+				}
+			}
+			
+			if (edge_idx == qg->getNumQueryRels() - 1) {
+				RelExpression *qedge = qg->getQueryRel(edge_idx).get();
+				string rhs_name = qedge->getDstNode()->getUniqueName();
+				if (prev_plan_schema->isNodeBound(rhs_name)) {
+					is_forward_traverse = false;
+					break;
+				}
+			}
+		}
+	}
+
 	GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
 	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++){
 		QueryGraph *qg = qgc.getQueryGraph(idx);
 
-		for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
+		int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
+		for (;;) {
 			RelExpression *qedge = qg->getQueryRel(edge_idx).get();
-			NodeExpression *lhs = qedge->getSrcNode().get();
-			NodeExpression *rhs = qedge->getDstNode().get();
+			NodeExpression *lhs = is_forward_traverse ?
+				qedge->getSrcNode().get() : qedge->getDstNode().get();
+			NodeExpression *rhs = is_forward_traverse ?
+				qedge->getDstNode().get() : qedge->getSrcNode().get();
 			string edge_name = qedge->getUniqueName();
-			string lhs_name = qedge->getSrcNode()->getUniqueName();
-			string rhs_name = qedge->getDstNode()->getUniqueName();
+			string lhs_name = lhs->getUniqueName();
+			string rhs_name = rhs->getUniqueName();
 
 			bool is_lhs_bound = false;
 			bool is_rhs_bound = false;
@@ -224,14 +254,14 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				// A join R
 				a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
 					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					edge_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? SID_COLNAME : TID_COLNAME),
 					ar_join_type);
 			} else {
 				edge_plan = lPlanPathGet((RelExpression*)qedge);
 				// A pathjoin R
 				a_r_join_expr = lExprLogicalPathJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
 					lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-					edge_plan->getSchema()->getColRefOfKey(edge_name, SID_COLNAME),
+					edge_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? SID_COLNAME : TID_COLNAME),
 					qedge->getLowerBound(), qedge->getUpperBound(),
 					ar_join_type);
 			}
@@ -244,7 +274,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				CMemoryPool* mp = this->memory_pool;
 				hop_plan = lhs_plan;
 				CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, lhs_plan->getPlanExpr(),
-					lExprScalarCmpEq( lExprScalarPropertyExpr(edge_name, TID_COLNAME, lhs_plan), lExprScalarPropertyExpr(rhs_name, ID_COLNAME, lhs_plan) )
+					lExprScalarCmpEq( lExprScalarPropertyExpr(edge_name, is_forward_traverse ? TID_COLNAME : SID_COLNAME, lhs_plan), lExprScalarPropertyExpr(rhs_name, ID_COLNAME, lhs_plan) )
 				);
 				hop_plan->addUnaryParentOp(selection_expr);
 			} else {
@@ -262,7 +292,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 					gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
 					// gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
 				auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-					lhs_plan->getSchema()->getColRefOfKey(edge_name, TID_COLNAME),
+					lhs_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? TID_COLNAME : SID_COLNAME),
 					rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
 					rb_join_type);
 				lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
@@ -279,7 +309,20 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				qg_plan = hop_plan;
 			}
 			GPOS_ASSERT(qg_plan != nullptr);
+
+			if (is_forward_traverse) {
+				edge_idx++;
+				if (edge_idx >= qg->getNumQueryRels()) {
+					break;
+				}
+			} else {
+				edge_idx--;
+				if (edge_idx < 0) {
+					break;
+				}
+			}
 		}
+
 		// if no edge, this is single node scan case
 		if (qg->getQueryNodes().size() == 1) {
 			LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qg->getQueryNodes()[0].get(), true);
@@ -618,24 +661,17 @@ LogicalPlan* Planner::lPlanGroupBy(const expression_vector &expressions, Logical
 				key_columns->Append(orig_colref);
 			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::VARIABLE) {
 				// e.g. WITH person, AGG(...), ...
-				auto property_columns = prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName());
-				for (auto& col: property_columns) {
-					// consider all columns as key columns
-					// TODO this is inefficient
+				kuzu::binder::NodeOrRelExpression *var_expr = (kuzu::binder::NodeOrRelExpression *)(proj_expr);
+				auto property_colrefs = std::move(prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName()));
+				for (auto &col: property_colrefs) {
+					// consider all columns as key columns TODO this is inefficient
 					key_columns->Append(col);
-					if (proj_expr->hasAlias()) {
-						new_schema.appendColumn(col_name, col);
-					} else {
-						if(prev_plan->getSchema()->isNodeBound(proj_expr->getUniqueName())) {
-							// consider as node
-							new_schema.appendNodeProperty(proj_expr->getUniqueName(),
-								prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
-						} else {
-							// considera as edge
-							new_schema.appendEdgeProperty(proj_expr->getUniqueName(),
-								prev_plan->getSchema()->getPropertyNameOfColRef(proj_expr->getUniqueName(), col), col);
-						}
-					}
+				}
+
+				if (var_expr->getDataType().typeID == DataTypeID::NODE) {
+					new_schema.copyNodeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
+				} else { // rel
+					new_schema.copyEdgeFrom(prev_plan->getSchema(), var_expr->getUniqueName());
 				}
 			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::FUNCTION ||
 					   proj_expr->expressionType == kuzu::common::ExpressionType::AGGREGATE_FUNCTION) {

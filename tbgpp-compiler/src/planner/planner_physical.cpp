@@ -1615,7 +1615,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     vector<vector<uint32_t>> inner_col_maps;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<uint64_t>> output_projection_mapping;
-    bool load_system_col = false;
 
     scan_types.push_back(std::vector<duckdb::LogicalType>());
     scan_projection_mapping.push_back(std::vector<uint64_t>());
@@ -1632,8 +1631,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
         OID type_oid = type_mdid->Oid();
         INT type_mod = col->TypeModifier();
         types.push_back(pConvertTypeOidToLogicalType(type_oid, type_mod));
-    
-        if (colref_table->AttrNum() == INT(-1)) load_system_col = true;
     }
 
     uint64_t idx_obj_id;  // 230303
@@ -1775,7 +1772,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
         else if (inner_root->Pop()->Eopid() ==
                  COperator::EOperatorId::EopPhysicalFilter) {
 
-            D_ASSERT(inner_col_id.size() > 0);
+            D_ASSERT(inner_col_id.size() > 0); // TODO @jhha error occurs at LDBC IC10
             D_ASSERT(proj_inner_col_id.size() > 0);
             D_ASSERT(inner_col_maps[0].size() > 0);
             
@@ -1884,6 +1881,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 {COperator::EOperatorId::EopScalarProjectElement,
                 COperator::EOperatorId::EopScalarIdent});
             size_t num_filter_only_cols = 0;
+            bool load_system_col = false;
             for (ULONG i = 0; i < proj_list_expr->Arity(); i++) {
                 // Generate inner_col_id for filter
                 CExpression *proj_elem_expr = proj_list_expr->operator[](i);
@@ -1898,6 +1896,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 auto it = id_map.find(proj_col->Id());
                 if (it != id_map.end()) {
                     inner_col_maps[0].push_back(it->second);
+                    if (attr_no == INT(-1))
+                        load_system_col = true;
                 }
                 else {
                     if ((attr_no != (INT)-1)) {
@@ -2032,6 +2032,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     vector<uint32_t> union_inner_col_map = inner_col_maps[0];
     if (!do_filter_pushdown) {
         if (has_filter) {
+            filter_exprs[0]->Print();
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map, scan_projection_mapping,
