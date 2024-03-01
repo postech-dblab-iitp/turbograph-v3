@@ -200,7 +200,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	function.CastToFunctionArguments(child);
 
 	return make_unique<duckdb::BoundAggregateExpression>(
-		std::move(function), std::move(child), nullptr, std::move(bind_info), op->IsDistinct());
+		std::move(function), std::move(child), nullptr, std::move(bind_info), op->IsDistinct()); // get function.return_type
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* lhs_child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray* rhs_child_cols) {
