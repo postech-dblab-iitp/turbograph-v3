@@ -279,6 +279,20 @@ private:
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	INT lGetTypeModFromType(duckdb::LogicalType type);
+
+	// scalar expression duckdb
+	unique_ptr<duckdb::Expression> lExprScalarExpressionDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarBoolOpDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarComparisonExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarPropertyExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarLiteralExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarAggFuncExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarFuncExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarCaseElseExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarExistentialSubqueryExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(

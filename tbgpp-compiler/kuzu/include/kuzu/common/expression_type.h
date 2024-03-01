@@ -221,6 +221,7 @@ bool isExpressionSubquery(ExpressionType type);
 bool isExpressionCaseElse(ExpressionType type);
 bool isExpressionFunction(ExpressionType type);
 bool isExpressionParameter(ExpressionType type);
+bool isExpressionProperty(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

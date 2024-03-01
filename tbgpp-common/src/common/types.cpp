@@ -722,7 +722,7 @@ bool LogicalType::GetDecimalProperties(uint8_t &width, uint8_t &scale) const {
 		scale = 0;
 		break;
 	case LogicalTypeId::DECIMAL:
-		width = DecimalType::GetWidth(*this); // TODO decimal temporary
+		width = DecimalType::GetWidth(*this);
 		scale = DecimalType::GetScale(*this);
 		// width = 12;
 		// scale = 2;
