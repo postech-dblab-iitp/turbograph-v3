@@ -439,7 +439,7 @@ OperatorResultType PhysicalIdSeek::Execute(
                         tmp_chunk.data[i].Reference(input.data[i]);
                     }
                     
-                    // Execute filter
+                    // Execute filter (note. this is not efficient if no filter pred on inner cols)
                     num_tuples_per_chunk[chunk_idx] = executor.SelectExpression(
                         tmp_chunk, state.sels[chunk_idx]);
                 }
