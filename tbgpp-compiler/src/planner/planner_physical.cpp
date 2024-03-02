@@ -194,6 +194,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
                             plan_expr);
                 }
                 else {
+                    GPOS_ASSERT(false);
                     throw NotImplementedException("Schemaless adjidxjoin case");
                     // result = pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(plan_expr, is_left_outer);
                 }
@@ -1855,17 +1856,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 COperator::EOperatorId::EopScalarIdent});
             size_t num_filter_only_cols = 0;
             bool load_system_col = false;
-            for (ULONG i = 0; i < proj_list_expr->Arity(); i++) {
-                CExpression *proj_elem_expr = proj_list_expr->operator[](i);
-                CScalarProjectElement *proj_elem_op =
-                    (CScalarProjectElement *)proj_elem_expr->Pop();
-                CScalarIdent *ident_op =
-                    (CScalarIdent *)proj_elem_expr->operator[](0)->Pop();
 
-                // Generate inner_col_maps
-                CColRefTable *proj_col = (CColRefTable *)proj_elem_op->Pcr();
-                INT attr_no = proj_col->AttrNum();
-                auto it = id_map.find(proj_col->Id());
+            // generate inner_col_maps, scan_projection_mapping, output_projection_mapping, scan_types
+            for (ULONG i = 0; i < inner_cols->Size(); i++) {
+                // generate inner_col_maps
+                CColRef *col = inner_cols->operator[](i);
+                CColRefTable *colreftbl = (CColRefTable *)col;
+                INT attr_no = colreftbl->AttrNum();
+                ULONG col_id = colreftbl->Id();
+                auto it = id_map.find(col_id);
                 if (it != id_map.end()) {
                     inner_col_maps[0].push_back(it->second);
                     if (attr_no == INT(-1))
@@ -1878,10 +1877,10 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     }
                 }
 
-                // Register as full column
-                proj_inner_cols->Append(proj_elem_op->Pcr());
+                // register as full column
+                proj_inner_cols->Append(col);
 
-                // Generate scan_projection_mapping
+                // generate scan_projection_mapping
                 if ((attr_no == (INT)-1)) {
                     if (load_system_col) {
                         scan_projection_mapping[0].push_back(0);
@@ -1892,11 +1891,54 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 else {
                     scan_projection_mapping[0].push_back(attr_no);
                     output_projection_mapping[0].push_back(i);
-                    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(proj_col->RetrieveType()->MDId());
-                    INT type_mod = proj_elem_op->Pcr()->TypeModifier();
+                    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
+                    INT type_mod = col->TypeModifier();
                     scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), type_mod));
                 }
             }
+            
+            // for (ULONG i = 0; i < proj_list_expr->Arity(); i++) {
+            //     CExpression *proj_elem_expr = proj_list_expr->operator[](i);
+            //     CScalarProjectElement *proj_elem_op =
+            //         (CScalarProjectElement *)proj_elem_expr->Pop();
+            //     CScalarIdent *ident_op =
+            //         (CScalarIdent *)proj_elem_expr->operator[](0)->Pop();
+
+            //     // Generate inner_col_maps
+            //     CColRefTable *proj_col = (CColRefTable *)proj_elem_op->Pcr();
+            //     INT attr_no = proj_col->AttrNum();
+            //     auto it = id_map.find(proj_col->Id());
+            //     if (it != id_map.end()) {
+            //         inner_col_maps[0].push_back(it->second);
+            //         if (attr_no == INT(-1))
+            //             load_system_col = true;
+            //     }
+            //     else {
+            //         if ((attr_no != (INT)-1)) {
+            //             inner_col_maps[0].push_back(num_filter_only_cols + output_cols->Size());
+            //             num_filter_only_cols++;
+            //         }
+            //     }
+
+            //     // Register as full column
+            //     proj_inner_cols->Append(proj_elem_op->Pcr());
+
+            //     // Generate scan_projection_mapping
+            //     if ((attr_no == (INT)-1)) {
+            //         if (load_system_col) {
+            //             scan_projection_mapping[0].push_back(0);
+            //             output_projection_mapping[0].push_back(i);
+            //             scan_types[0].push_back(duckdb::LogicalType::ID);
+            //         }
+            //     }
+            //     else {
+            //         scan_projection_mapping[0].push_back(attr_no);
+            //         output_projection_mapping[0].push_back(i);
+            //         CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(proj_col->RetrieveType()->MDId());
+            //         INT type_mod = proj_elem_op->Pcr()->TypeModifier();
+            //         scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), type_mod));
+            //     }
+            // }
         
             // Construct outer mapping info
             for (auto i = 0; i < num_outer_schemas; i++) {
@@ -2241,7 +2283,8 @@ void Planner::
                         // null column
                     }
                     else {
-                        throw InternalException(
+                        GPOS_ASSERT(false);
+                        throw duckdb::InvalidInputException(
                             "Project element types other than ident & const is "
                             "not desired");
                     }
@@ -2293,6 +2336,7 @@ void Planner::
     duckdb::Value literal_val;
     duckdb::LogicalType pred_attr_type;
     if (has_filter && do_filter_pushdown) {
+        GPOS_ASSERT(false);
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
@@ -2302,6 +2346,7 @@ void Planner::
 
     if (!do_filter_pushdown) {
         if (has_filter) {
+            GPOS_ASSERT(false);
             throw NotImplementedException("InnerIdxNLJoin for Filter case");
         }
         else {
@@ -2313,6 +2358,7 @@ void Planner::
         }
     }
     else {
+        GPOS_ASSERT(false);
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
@@ -2560,8 +2606,8 @@ void Planner::
                         // null column
                     }
                     else {
-
-                        throw InternalException(
+                        GPOS_ASSERT(false);
+                        throw duckdb::InvalidInputException(
                             "Project element types other than ident & const is "
                             "not desired");
                     }
@@ -2638,6 +2684,7 @@ void Planner::
     duckdb::Value literal_val;
     duckdb::LogicalType pred_attr_type;
     if (has_filter && do_filter_pushdown) {
+        GPOS_ASSERT(false);
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
@@ -2683,6 +2730,7 @@ void Planner::
         }
     }
     else {
+        GPOS_ASSERT(false);
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
@@ -2849,6 +2897,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         D_ASSERT(right_build_map.size() == right_build_types.size());
     }
     else if (join_type == duckdb::JoinType::ANTI) {
+        // do nothing
+    }
+    else if (join_type == duckdb::JoinType::SEMI) {
         // do nothing
     }
     else {
@@ -3277,7 +3328,8 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
             }
         }
         if (!found) {
-            throw InternalException("Projection column not found");
+            GPOS_ASSERT(false);
+            throw duckdb::InvalidInputException("Projection column not found");
         }
     }
 
@@ -4055,8 +4107,8 @@ void Planner::pGenerateFilterExprs(
     }
     else {
         // not implemented yet
-        throw InternalException("pGenerateFilterExprs");
-        D_ASSERT(false);
+        GPOS_ASSERT(false);
+        throw duckdb::NotImplementedException("pGenerateFilterExprs");
     }
 }
 
@@ -4506,6 +4558,7 @@ void Planner::pConvertLocalFilterExprToUnionAllFilterExpr(
         case duckdb::ExpressionClass::BOUND_PARAMETER:
             break;
         default:
+            GPOS_ASSERT(false);
             throw InternalException(
                 "Attempting to execute expression of unknown type!");
     }
@@ -4598,6 +4651,7 @@ void Planner::pConvertLocalFilterExprToIdSeekFilterExpr(
         case duckdb::ExpressionClass::BOUND_PARAMETER:
             break;
         default:
+            GPOS_ASSERT(false);
             throw InternalException(
                 "Attempting to execute expression of unknown type!");
     }
