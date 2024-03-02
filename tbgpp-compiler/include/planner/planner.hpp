@@ -405,6 +405,7 @@ private:
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
 	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
 	void pConvertLocalFilterExprToIdSeekFilterExpr(unique_ptr<duckdb::Expression> &expr, size_t outer_size);
+	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefArray *inner_cols, CColRefArray *output_cols, vector<ULONG> &inner_cols_idx);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
