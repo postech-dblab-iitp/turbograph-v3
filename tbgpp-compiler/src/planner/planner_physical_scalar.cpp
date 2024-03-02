@@ -29,7 +29,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarFunc: return pTransformScalarFunc(scalar_expr, lhs_child_cols, rhs_child_cols);
 		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, lhs_child_cols, rhs_child_cols);
 		default:
-			D_ASSERT(false); // NOT implemented yet
+			GPOS_ASSERT(false); // NOT implemented yet
 	}
 }
 
@@ -55,7 +55,7 @@ void Planner::pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &s
 		case COperator::EopScalarFunc: return;
 		case COperator::EopScalarSwitch: return;
 		default:
-			D_ASSERT(false); // NOT implemented yet
+			GPOS_ASSERT(!"[pGetAllScalarIdents] Not Implemeneted Yet"); // NOT implemented yet
 	}
 }
 
@@ -70,9 +70,9 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 		child_index = rhs_child_cols->IndexOf(ident_op->Pcr());
 		is_inner = true;
 	}
-	if (child_index == gpos::ulong_max) {
-		throw InternalException("Column reference not found in child columns");
-	}
+
+	GPOS_ASSERT(child_index != gpos::ulong_max); // column reference not found in child columns
+	
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
 	INT type_mod = ident_op->Pcr()->TypeModifier();
@@ -83,7 +83,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *lhs_child_cols, ULONG child_index) {	
 	CScalarIdent *ident_op = (CScalarIdent*)scalar_expr->Pop();
 
-	D_ASSERT(child_index != gpos::ulong_max);
+	GPOS_ASSERT(child_index != gpos::ulong_max);
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();
 	INT type_mod = ident_op->Pcr()->TypeModifier();
@@ -102,7 +102,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 		case IMDType::EtiInt2:
 		case IMDType::EtiInt4:
 		case IMDType::EtiInt8:
-			D_ASSERT(false);
+			GPOS_ASSERT(false);
 			break;
 		case IMDType::EtiBool:{
 			CDatumBoolGPDB *datum_bool = (CDatumBoolGPDB*)datum;
@@ -117,10 +117,10 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 			return make_unique<duckdb::BoundConstantExpression>(literal_val);
 		}
 		default: {
-			D_ASSERT(false);
+			GPOS_ASSERT(false);
 		}
 	}
-	D_ASSERT(false);
+	GPOS_ASSERT(false);
 	return nullptr;
 }
 
@@ -166,7 +166,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 		}
 		return conjunction;
 	}
-	D_ASSERT(false);
+	GPOS_ASSERT(false);
 }
 
 unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * scalar_expr, CColRefArray* lhs_child_cols, CColRefArray* rhs_child_cols) {
@@ -182,7 +182,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 	for( ULONG child_idx = 0; child_idx < aggargs_expr->Arity(); child_idx++ ) {
 		child.push_back(pTransformScalarExpr(aggargs_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols));
 	}
-	D_ASSERT(child.size() <= 1);
+	GPOS_ASSERT(child.size() <= 1);
 
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
 	duckdb::AggregateFunctionCatalogEntry *aggfunc_catalog_entry;
@@ -212,7 +212,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarAggFunc(CExpression * sc
 
 	vector<unique_ptr<duckdb::Expression>> child;
 	child.push_back(make_unique<duckdb::BoundReferenceExpression>(child_ref_type, child_ref_idx));
-	D_ASSERT(child.size() <= 1);
+	GPOS_ASSERT(child.size() <= 1);
 
 	OID agg_func_id = CMDIdGPDB::CastMdid(op->MDId())->Oid();
 	duckdb::AggregateFunctionCatalogEntry *aggfunc_catalog_entry;
@@ -266,7 +266,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 	CScalarSwitch *op = (CScalarSwitch *)scalar_expr->Pop();
 
 	uint32_t num_childs = scalar_expr->Arity();
-	D_ASSERT(num_childs == 2); // currently support only one when/then
+	GPOS_ASSERT(num_childs == 2); // currently support only one when/then
 	unique_ptr<duckdb::Expression> e_when;
 	unique_ptr<duckdb::Expression> e_then;
 	unique_ptr<duckdb::Expression> e_else;
@@ -274,7 +274,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 	// when/then
 	for (uint32_t i = 0; i < num_childs - 1; i++) {
 		CExpression *child_expr = scalar_expr->operator[](i);
-		D_ASSERT(child_expr->Arity() == 2); // when & then
+		GPOS_ASSERT(child_expr->Arity() == 2); // when & then
 
 		CExpression *when_expr = child_expr->operator[](0);
 		CExpression *then_expr = child_expr->operator[](1);
@@ -302,7 +302,7 @@ duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
 		case IMDType::ECmpType::EcmptG: return duckdb::ExpressionType::COMPARE_GREATERTHAN;
 		case IMDType::ECmpType::EcmptGEq: return duckdb::ExpressionType::COMPARE_GREATERTHANOREQUALTO;
 		case IMDType::ECmpType::EcmptIDF: return duckdb::ExpressionType::COMPARE_DISTINCT_FROM;
-		default: D_ASSERT(false);
+		default: GPOS_ASSERT(false);
 	}
 
 }
@@ -312,12 +312,12 @@ duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperato
 		case CScalarBoolOp::EBoolOperator::EboolopAnd: return duckdb::ExpressionType::CONJUNCTION_AND;
 		case CScalarBoolOp::EBoolOperator::EboolopOr: return duckdb::ExpressionType::CONJUNCTION_OR;
 		case CScalarBoolOp::EBoolOperator::EboolopNot: return duckdb::ExpressionType::OPERATOR_NOT;
-		default: D_ASSERT(false);
+		default: GPOS_ASSERT(false);
 	}
 }
 
 CColRef *Planner::pGetColRefFromScalarIdent(CExpression *ident_expr) {
-	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	GPOS_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	return col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
 }
@@ -334,12 +334,12 @@ OID Planner::pGetTypeIdFromScalar(CExpression *expr) {
 	} else if (expr->Pop()->Eopid() == COperator::EopScalarSwitch) {
 		return pGetTypeIdFromScalarSwitch(expr);
 	} else {
-		D_ASSERT(false); // not implemented yet
+		GPOS_ASSERT(false); // not implemented yet
 	}
 }
 
 OID Planner::pGetTypeIdFromScalarIdent(CExpression *ident_expr) {
-	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	GPOS_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CColRef *colref = col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(colref->RetrieveType()->MDId());
@@ -347,28 +347,28 @@ OID Planner::pGetTypeIdFromScalarIdent(CExpression *ident_expr) {
 }
 
 OID Planner::pGetTypeIdFromScalarConst(CExpression *const_expr) {
-	D_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
+	GPOS_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
 	CScalarConst *const_op = CScalarConst::PopConvert(const_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(const_op->MdidType());
 	return type_mdid->Oid();
 }
 
 OID Planner::pGetTypeIdFromScalarFunc(CExpression *func_expr) {
-	D_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
+	GPOS_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
 	CScalarFunc *func_op = CScalarFunc::PopConvert(func_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(func_op->MdidType());
 	return type_mdid->Oid();
 }
 
 OID Planner::pGetTypeIdFromScalarAggFunc(CExpression *agg_expr) {
-	D_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
+	GPOS_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
 	CScalarAggFunc *aggfunc_op = CScalarAggFunc::PopConvert(agg_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(aggfunc_op->MdidType());
 	return type_mdid->Oid();
 }
 
 OID Planner::pGetTypeIdFromScalarSwitch(CExpression *switch_expr) {
-	D_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
+	GPOS_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
 	CScalarSwitch *switch_op = CScalarSwitch::PopConvert(switch_expr->Pop());
 	CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(switch_op->MdidType());
 	return type_mdid->Oid();
@@ -386,37 +386,37 @@ INT Planner::pGetTypeModFromScalar(CExpression *expr) {
 	} else if (expr->Pop()->Eopid() == COperator::EopScalarSwitch) {
 		return pGetTypeModFromScalarSwitch(expr);
 	} else {
-		D_ASSERT(false); // not implemented yet
+		GPOS_ASSERT(false); // not implemented yet
 	}
 }
 
 INT Planner::pGetTypeModFromScalarIdent(CExpression *ident_expr) {
-	D_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
+	GPOS_ASSERT(ident_expr->Pop()->Eopid() == COperator::EopScalarIdent);
 	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 	CColRef *colref = col_factory->LookupColRef(((CScalarIdent*)(ident_expr->Pop()))->Pcr()->Id());
 	return colref->TypeModifier();
 }
 
 INT Planner::pGetTypeModFromScalarConst(CExpression *const_expr) {
-	D_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
+	GPOS_ASSERT(const_expr->Pop()->Eopid() == COperator::EopScalarConst);
 	CScalarConst *const_op = CScalarConst::PopConvert(const_expr->Pop());
 	return const_op->TypeModifier();
 }
 
 INT Planner::pGetTypeModFromScalarFunc(CExpression *func_expr) {
-	D_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
+	GPOS_ASSERT(func_expr->Pop()->Eopid() == COperator::EopScalarFunc);
 	CScalarFunc *func_op = CScalarFunc::PopConvert(func_expr->Pop());
 	return func_op->TypeModifier();
 }
 
 INT Planner::pGetTypeModFromScalarAggFunc(CExpression *agg_expr) {
-	D_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
+	GPOS_ASSERT(agg_expr->Pop()->Eopid() == COperator::EopScalarAggFunc);
 	CScalarAggFunc *aggfunc_op = CScalarAggFunc::PopConvert(agg_expr->Pop());
 	return aggfunc_op->TypeModifier();
 }
 
 INT Planner::pGetTypeModFromScalarSwitch(CExpression *switch_expr) {
-	D_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
+	GPOS_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
 	return -1;
 }
 

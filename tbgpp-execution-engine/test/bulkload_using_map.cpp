@@ -171,7 +171,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
 							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
 							  string &dst_column_name, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
-							  LogicalType edge_direction_type) {
+							  LogicalType edge_direction_type, idx_t num_src_columns) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
 	string property_schema_name = DEFAULT_EDGE_PROPERTYSCHEMA_PREFIX + edge_type;
 	vector<PropertyKeyID> property_key_ids;
@@ -261,8 +261,12 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		IndexType::FORWARD_CSR : IndexType::BACKWARD_CSR;
 	string adj_idx_name = edge_direction_type == LogicalType::FORWARD_ADJLIST ?
 		edge_type + "_fwd" : edge_type + "_bwd";
+	// _sid, _sid_2, _tid ==> 1, 3 / _sid, _tid, _tid_2 ==> 1, 2
+	int64_t src_key_col_idx = 1;
+	int64_t dst_key_col_idx = src_key_col_idx + num_src_columns;
+	vector<int64_t> adj_key_col_idxs = { src_key_col_idx, dst_key_col_idx };
 	CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, adj_idx_name, index_type,
-								partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, {1, 2});
+								partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, adj_key_col_idxs);
 	IndexCatalogEntry *adj_index_cat =
 		(IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &adj_idx_info);
 
@@ -748,7 +752,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
 		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
-			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST);
+			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
 
 		// Initialize variables related to vertex extent
 		LidPair cur_src_id, cur_dst_id, prev_id;
@@ -947,7 +951,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
 		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
-			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST);
+			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST, dst_column_idx.size());
 		
 		// Initialize variables related to vertex extent
 		LidPair cur_src_id, cur_dst_id, prev_id;

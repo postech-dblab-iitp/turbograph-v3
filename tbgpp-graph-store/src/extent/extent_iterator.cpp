@@ -351,7 +351,7 @@ bool ExtentIterator::RequestNextIO(ClientContext &context, DataChunk &output, Ex
         
         // Unpin previous chunks
         if (current_eid != std::numeric_limits<uint32_t>::max()) {
-            if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0);
+            // if (previous_idx == 0) D_ASSERT(io_requested_cdf_ids[next_toggle].size() == 0); // wrong condition
             for (size_t i = 0; i < io_requested_cdf_ids[next_toggle].size(); i++) {
                 if (io_requested_cdf_ids[next_toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
                 ChunkCacheManager::ccm->UnPinSegment(io_requested_cdf_ids[next_toggle][i]);

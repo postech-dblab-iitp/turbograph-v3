@@ -83,7 +83,8 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 	// vector<string> part_cat_list = {"vpart_ORDERS", "vpart_LINEITEM", "vpart_PART", "vpart_CUSTOMER", "vpart_NATION",
 	// 	"vpart_REGION", "vpart_SUPPLIER"};
 	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person"};
-	vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person", "epart_CONTAINER_OF", "epart_HAS_CREATOR", "epart_HAS_MODERATOR", "epart_REPLY_OF", "epart_REPLY_OF_COMMENT"};
+	// vector<string> part_cat_list = {"vpart_Comment:Message", "vpart_Post:Message", "vpart_Person", "epart_CONTAINER_OF", "epart_HAS_CREATOR", "epart_HAS_MODERATOR", "epart_REPLY_OF", "epart_REPLY_OF_COMMENT"};
+	vector<string> part_cat_list = {"epart_SUPPLIED_BY", "epart_SUPP_BELONG_TO"};
 	for (auto &part_cat_name : part_cat_list) {
 		PartitionCatalogEntry *part_cat =
 			(PartitionCatalogEntry *)cat.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_cat_name);
@@ -103,6 +104,9 @@ void PrintCatalogEntryOid(std::shared_ptr<ClientContext> client, Catalog &cat) {
 			IndexCatalogEntry *index_cat =
 				(IndexCatalogEntry *)cat.GetEntry(*client.get(), DEFAULT_SCHEMA, adjidx_oids->at(i));
 			fprintf(stdout, "Part %s adjidx oid[%ld] %ld: %s, adjColIdx: %ld\n", part_cat_name.c_str(), i, adjidx_oids->at(i), index_cat->GetName().c_str(), index_cat->GetAdjColIdx());
+			for (size_t j = 0; j < index_cat->GetIndexKeyColumns()->size(); j++) {
+				fprintf(stdout, "\tkey[%ld] = %ld\n", j, index_cat->GetIndexKeyColumns()->at(j));
+			}
 		}
 	}
 	// vector<string> ps_cat_list = {"vps_Post:Message", "vps_Comment:Message", "vps_Forum", "vps_Person", "eps_HAS_CREATOR"};
@@ -266,7 +270,7 @@ int main(int argc, char** argv) {
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
 	DiskAioParameters::NUM_CPU_SOCKETS = 1;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = "/data/ldbc/sf1_schemaless_240220/";
+	DiskAioParameters::WORKSPACE = "/data/tpch/sf1_240302/";
 	fprintf(stdout, "Workspace: %s\n", DiskAioParameters::WORKSPACE.c_str());
 	
 	int res;
