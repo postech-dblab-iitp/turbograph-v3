@@ -216,6 +216,8 @@ CScalarCmp::OsPrint(IOstream &os) const
 {
 	os << SzId() << " (";
 	os << Pstr()->GetBuffer();
+	os << "/";
+	os << IMDType::GetCmpTypeStr(m_comparision_type)->GetBuffer();
 	os << ")";
 
 	return os;

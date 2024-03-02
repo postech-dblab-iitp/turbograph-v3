@@ -3695,14 +3695,14 @@ CTranslatorTBGPPToDXL::RelHasSystemColumns(char rel_kind)
 IMDType::ECmpType
 CTranslatorTBGPPToDXL::ParseCmpType(ULONG cmpt)
 {
-	// for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
-	// {
-	// 	const ULONG *mapping = cmp_type_mappings[ul];
-	// 	if (mapping[1] == cmpt)
-	// 	{
-	// 		return (IMDType::ECmpType) mapping[0];
-	// 	}
-	// }
+	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
+	{
+		const ULONG *mapping = cmp_type_mappings[ul];
+		if (mapping[1] == cmpt)
+		{
+			return (IMDType::ECmpType) mapping[0];
+		}
+	}
 
 	return IMDType::EcmptOther;
 }
