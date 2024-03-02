@@ -85,8 +85,10 @@ public:
         vector<Cluster> clusters;
         runClique(histograms, xsi, tau, clusters);
 
-        // Remove overlapping clusters
-        vector<Cluster> finalClusters = findMinimumCover(clusters);
+        // Filter clusters with final dimension
+        vector<Cluster> finalClusters;
+        filterFinalDimClusters(clusters, num_buckets, finalClusters);
+        createUnclusteredDataPointsClusters(finalClusters, num_histograms);
 
         // Output to num_groups and group_info
         num_groups = finalClusters.size();
@@ -138,7 +140,7 @@ private:
 
 
     // Function to get one-dimensional dense units
-    void getOneDimDenseUnits(const vector<vector<double>>& data, double tau, uint64_t xsi, vector<DenseUnit>& oneDimDenseUnits) {
+    void getOneDimDenseUnits(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<DenseUnit>& oneDimDenseUnits) {
         size_t numDataPoints = data.size();
         size_t numFeatures = data[0].size();
         vector<vector<uint64_t>> projection(xsi, vector<uint64_t>(numFeatures, 0));
@@ -148,15 +150,6 @@ private:
                 uint64_t bucketIndex = static_cast<uint64_t>(floor(row[f] * xsi));
                 projection[bucketIndex % xsi][f]++;
             }
-        }
-
-        // print projection
-        cout << "Projection: " << endl;
-        for (size_t i = 0; i < projection.size(); ++i) {
-            for (size_t j = 0; j < projection[i].size(); ++j) {
-                cout << projection[i][j] << " ";
-            }
-            cout << endl;
         }
 
         for (size_t f = 0; f < numFeatures; ++f) {
@@ -338,47 +331,36 @@ private:
         }
     }
 
-    std::vector<Cluster> findMinimumCover(const std::vector<Cluster>& clusters) {
-        std::set<size_t> allDataPoints;
-        // Gather all unique data points across all clusters
+    void filterFinalDimClusters(const vector<Cluster>& clusters, size_t finalDim,  vector<Cluster>& finalClusters) {
         for (const auto& cluster : clusters) {
-            allDataPoints.insert(cluster.data_point_ids.begin(), cluster.data_point_ids.end());
-        }
-
-        std::vector<Cluster> minimumCover;
-        std::set<size_t> coveredDataPoints;
-
-        while (coveredDataPoints.size() < allDataPoints.size()) {
-            const Cluster* bestCluster = nullptr;
-            size_t maxNewCoverage = 0;
-
-            // Find the cluster that covers the most uncovered data points
-            for (const auto& cluster : clusters) {
-                std::set<size_t> newCoverage;
-                std::set_difference(cluster.data_point_ids.begin(), cluster.data_point_ids.end(),
-                                    coveredDataPoints.begin(), coveredDataPoints.end(),
-                                    std::inserter(newCoverage, newCoverage.begin()));
-
-                if (newCoverage.size() > maxNewCoverage) {
-                    maxNewCoverage = newCoverage.size();
-                    bestCluster = &cluster;
-                }
+            if (cluster.dimensions.size() == finalDim) {
+                finalClusters.push_back(cluster);
             }
+        }
+    }
 
-            if (bestCluster != nullptr) {
-                // Add the best cluster to the minimum cover
-                minimumCover.push_back(*bestCluster);
-                // Mark its data points as covered
-                coveredDataPoints.insert(bestCluster->data_point_ids.begin(), bestCluster->data_point_ids.end());
+    void createUnclusteredDataPointsClusters(vector<Cluster>& finalClusters, size_t totalDataPoints) {
+        vector<bool> isClustered(totalDataPoints, false);
+
+        // Mark clustered data points
+        for (const auto& cluster : finalClusters) {
+            for (const auto id : cluster.data_point_ids) {
+                isClustered[id] = true;
             }
         }
 
-        return minimumCover;
+        // Create a cluster for each unclustered data point
+        for (size_t i = 0; i < totalDataPoints; ++i) {
+            if (!isClustered[i]) {
+                set<size_t> dataPointId = {i};
+                finalClusters.emplace_back(DenseUnit(), set<uint64_t>(), dataPointId);
+            }
+        }
     }
 
     void runClique(const vector<vector<double>>& data, uint64_t xsi, double tau, vector<Cluster>& clusters) {
         vector<DenseUnit> denseUnits;
-        getOneDimDenseUnits(data, tau, xsi, denseUnits);
+        getOneDimDenseUnits(data, xsi, tau, denseUnits);
 
         // Get clusters for 1-dimensional dense units
         vector<Cluster> currentClusters = getClusters(denseUnits, data, xsi);

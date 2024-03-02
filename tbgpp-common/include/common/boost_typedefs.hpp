@@ -5,6 +5,19 @@
 #include "common/types.hpp"
 
 namespace duckdb {
+    #define MIN_MAX_ARRAY_SIZE 1024
+
+    struct minmax_t {
+        idx_t min = 0;
+        idx_t max = 0;
+    };
+
+    struct welford_t {
+        idx_t n = 0;
+        int64_t mean = 0;
+        int64_t M2 = 0;
+    };
+
     // typedefs for shared memory object
     typedef boost::interprocess::basic_managed_shared_memory< char,boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family, void * >,boost::interprocess::iset_index > fixed_managed_shared_memory;
     typedef boost::interprocess::basic_managed_mapped_file< char,boost::interprocess::rbtree_best_fit< boost::interprocess::mutex_family, boost::interprocess::offset_ptr<void> >,boost::interprocess::iset_index > fixed_managed_mapped_file;
@@ -64,4 +77,8 @@ namespace duckdb {
        	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
 		, idx_t_to_idx_t_value_type_allocator>
 	PropertyToIdxUnorderedMap;
+	typedef boost::interprocess::allocator<minmax_t, segment_manager_t> minmax_allocator;
+	typedef boost::interprocess::vector<minmax_t, minmax_allocator> minmax_t_vector;
+    typedef boost::interprocess::allocator<welford_t, segment_manager_t> welford_allocator;
+    typedef boost::interprocess::vector<welford_t, welford_allocator> welford_t_vector;
 } // namespace duckdb
