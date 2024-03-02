@@ -1771,7 +1771,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
         }
         else if (inner_root->Pop()->Eopid() ==
                  COperator::EOperatorId::EopPhysicalFilter) {
-
             D_ASSERT(inner_col_id.size() > 0); // TODO @jhha error occurs at LDBC IC10
             D_ASSERT(proj_inner_col_id.size() > 0);
             D_ASSERT(inner_col_maps[0].size() > 0);
@@ -2887,6 +2886,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         D_ASSERT(right_build_map.size() == right_build_types.size());
     }
     else if (join_type == duckdb::JoinType::ANTI) {
+        // do nothing
+    }
+    else if (join_type == duckdb::JoinType::SEMI) {
         // do nothing
     }
     else {
