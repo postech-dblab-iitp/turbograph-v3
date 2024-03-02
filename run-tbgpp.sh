@@ -259,7 +259,7 @@ run_ldbc_c3() {
 run_ldbc_c4() {
 	# LDBC IC4 New topics
 	run_query "MATCH (person:Person {id: 94 })-[:KNOWS]-(friend:Person),
-      	(friend)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag:Tag)
+      	(friend)<-[:POST_HAS_CREATOR]-(post:Post)-[:POST_HAS_TAG]->(tag:Tag)
 		WITH DISTINCT tag, post
 		WITH tag,
 			CASE
@@ -995,69 +995,30 @@ run_tpch21() {
 		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
 		ORDER BY numwait desc, S_NAME
 		LIMIT 100;" 1
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
-		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 1
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
+	run_query "MATCH 
+			(l1:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER), 
+			(l1)-[:IS_PART_OF]->(o:ORDERS), 
+			(s)-[:SUPP_BELONG_TO]->(n:NATION)
+		WHERE n.N_NAME = 'SAUDI ARABIA' AND
+			l1.L_RECEIPTDATE > l1.L_COMMITDATE AND
+			o.O_ORDERSTATUS = 'F'
 			AND EXISTS {
-				MATCH (s2:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l2:LINEITEM)-[:IS_PART_OF]->(o)
+				MATCH 
+				(l2:LINEITEM)-[:IS_PART_OF]->(o),
+				(l2)-[:SUPPLIED_BY]->(s2:SUPPLIER)
 				WHERE s.S_SUPPKEY <> s2.S_SUPPKEY
 			}
 			AND NOT EXISTS {
-				MATCH (s3:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l3:LINEITEM)-[:IS_PART_OF]->(o)
-				WHERE s.S_SUPPKEY <> s3.S_SUPPKEY
-					AND l3.L_RECEIPTDATE > l3.L_COMMITDATE
+				MATCH 
+				(l3:LINEITEM)-[:IS_PART_OF]->(o),
+				(l3)-[:SUPPLIED_BY]->(s3:SUPPLIER)
+				WHERE 
+				s.S_SUPPKEY <> s3.S_SUPPKEY and
+				l3.L_RECEIPTDATE > l3.L_COMMITDATE
 			}
 		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
 		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 1
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-			AND EXISTS {
-				MATCH (s2:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l2:LINEITEM)-[:IS_PART_OF]->(o)
-			}
-		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
-		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 0
-	# exists
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-		WITH o, s
-		MATCH (o)-[:IS_PART_OF_BWD]->(l2:LINEITEM)-[:SUPPLIED_BY]->(s2:SUPPLIER)
-		WHERE s.S_SUPPKEY <> s2.S_SUPPKEY
-		WITH distinct o, s
-		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
-		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 1
-	# not exists
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-		WITH o, s
-		MATCH (o)-[:IS_PART_OF_BWD]->(l2:LINEITEM)-[:SUPPLIED_BY]->(s2:SUPPLIER)
-		WHERE s.S_SUPPKEY <> s2.S_SUPPKEY
-		WITH distinct o, s
-		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
-		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 1
-	run_query "MATCH (n:NATION)-[:SUPP_BELONG_TO_BWD]->(s:SUPPLIER)-[:SUPPLIED_BY_BWD]->(l1:LINEITEM)-[:IS_PART_OF]->(o:ORDERS)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-		RETURN s.S_SUPPKEY AS S_SUPPKEY, s.S_NAME, COUNT(*) AS numwait
-        ORDER BY numwait desc;" 1
+		LIMIT 100;"
 }
 
 run_tpch22() {
