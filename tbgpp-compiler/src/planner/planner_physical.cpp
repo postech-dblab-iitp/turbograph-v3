@@ -1578,9 +1578,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
     CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-    CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
-    outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
-    CColRefArray *proj_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
     CColRefArray *idxscan_cols = nullptr;
 
     unordered_map<ULONG, uint64_t> id_map;
@@ -1710,14 +1707,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     filter_pred_expr = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, cnf_exprs);
                 }
 
-                if (!is_proj_exist) {
-                    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, idxscan_cols);
-                    pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, outer_cols->Size());
-                }
-                else {
-                    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, proj_inner_cols);
-                    pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, outer_cols->Size());
-                }
+                filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, nullptr); // only outer cols exist
                 filter_exprs.push_back(std::move(filter_duckdb_expr));
                 filter_pred_expr->Release();
             }
@@ -1816,34 +1806,38 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             do_filter_pushdown = false;
             filter_expr = inner_root;
             filter_pred_expr = filter_expr->operator[](1);
+            D_ASSERT(filter_expr->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalIndexScan);
+            idxscan_cols = filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
             /**
              * TODO: revive filter pushdown
             */
 
-            /**
-             * Q. Why we need pConvertLocalFilterExprToIdSeekFilterExpr?
-             * A. The plan pattern is as follows:
-             *      CPhysicalComputeScalarC
-             *      |--CPhysicalFilter
-             *      |  |--CPhysicalIndexScan
-             * 
-             * As we don't do filter pushdown, we process filter expression after seeking.
-             * The problem is that, after seek, we generate chunk intialized with 
-             * 'join output cols', not 'filter output cols'.
-             * Since the filter expression's index is based on 'filter output cols', 
-             * we need to convert the filter expression to 'join output cols'.
-            */
+            // Get filter only columns in idxscan_cols
+            vector<ULONG> inner_filter_only_cols_idx;
+            pGetFilterOnlyInnerColsIdx(filter_pred_expr, idxscan_cols /* all inner cols */, inner_cols /* output inner cols */, 
+            inner_filter_only_cols_idx);
+            
+            // Get required cols for seek (inner cols + filter only cols)
+            CColRefArray *inner_required_cols = GPOS_NEW(mp) CColRefArray(mp);
+            for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+                inner_required_cols->Append(inner_cols->operator[](col_idx));
+            }
+            for (auto col_idx : inner_filter_only_cols_idx) {
+                CColRef *col = idxscan_cols->operator[](col_idx);
+                CColRefTable *colreftbl = (CColRefTable *)col;
+                // register as required column (since we use in filter)
+                inner_required_cols->Append(col);
+                // register as seek column
+                inner_col_maps[0].push_back(std::numeric_limits<uint32_t>::max());
+                scan_projection_mapping[0].push_back(colreftbl->AttrNum());
+                CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
+                scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), col->TypeModifier()));
+            }
 
             unique_ptr<duckdb::Expression> filter_duckdb_expr;
-            if (!is_proj_exist) {
-                filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, idxscan_cols);
-                pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, outer_cols->Size());
-            }
-            else {
-                filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, proj_inner_cols);
-                pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, outer_cols->Size());
-            }
+            filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, outer_cols, inner_required_cols);
+            pConvertLocalFilterExprToIdSeekFilterExpr(filter_duckdb_expr, outer_cols->Size());
             filter_exprs.push_back(std::move(filter_duckdb_expr));
         }
         else if (inner_root->Pop()->Eopid() ==
@@ -1859,7 +1853,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 
             // generate inner_col_maps, scan_projection_mapping, output_projection_mapping, scan_types
             for (ULONG i = 0; i < inner_cols->Size(); i++) {
-                // generate inner_col_maps
                 CColRef *col = inner_cols->operator[](i);
                 CColRefTable *colreftbl = (CColRefTable *)col;
                 INT attr_no = colreftbl->AttrNum();
@@ -1870,75 +1863,20 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     if (attr_no == INT(-1))
                         load_system_col = true;
                 }
-                else {
-                    if ((attr_no != (INT)-1)) {
-                        inner_col_maps[0].push_back(num_filter_only_cols + output_cols->Size());
-                        num_filter_only_cols++;
-                    }
-                }
-
-                // register as full column
-                proj_inner_cols->Append(col);
 
                 // generate scan_projection_mapping
                 if ((attr_no == (INT)-1)) {
                     if (load_system_col) {
                         scan_projection_mapping[0].push_back(0);
-                        output_projection_mapping[0].push_back(i);
                         scan_types[0].push_back(duckdb::LogicalType::ID);
                     }
                 }
                 else {
                     scan_projection_mapping[0].push_back(attr_no);
-                    output_projection_mapping[0].push_back(i);
                     CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
-                    INT type_mod = col->TypeModifier();
-                    scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), type_mod));
+                    scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), col->TypeModifier()));
                 }
             }
-            
-            // for (ULONG i = 0; i < proj_list_expr->Arity(); i++) {
-            //     CExpression *proj_elem_expr = proj_list_expr->operator[](i);
-            //     CScalarProjectElement *proj_elem_op =
-            //         (CScalarProjectElement *)proj_elem_expr->Pop();
-            //     CScalarIdent *ident_op =
-            //         (CScalarIdent *)proj_elem_expr->operator[](0)->Pop();
-
-            //     // Generate inner_col_maps
-            //     CColRefTable *proj_col = (CColRefTable *)proj_elem_op->Pcr();
-            //     INT attr_no = proj_col->AttrNum();
-            //     auto it = id_map.find(proj_col->Id());
-            //     if (it != id_map.end()) {
-            //         inner_col_maps[0].push_back(it->second);
-            //         if (attr_no == INT(-1))
-            //             load_system_col = true;
-            //     }
-            //     else {
-            //         if ((attr_no != (INT)-1)) {
-            //             inner_col_maps[0].push_back(num_filter_only_cols + output_cols->Size());
-            //             num_filter_only_cols++;
-            //         }
-            //     }
-
-            //     // Register as full column
-            //     proj_inner_cols->Append(proj_elem_op->Pcr());
-
-            //     // Generate scan_projection_mapping
-            //     if ((attr_no == (INT)-1)) {
-            //         if (load_system_col) {
-            //             scan_projection_mapping[0].push_back(0);
-            //             output_projection_mapping[0].push_back(i);
-            //             scan_types[0].push_back(duckdb::LogicalType::ID);
-            //         }
-            //     }
-            //     else {
-            //         scan_projection_mapping[0].push_back(attr_no);
-            //         output_projection_mapping[0].push_back(i);
-            //         CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(proj_col->RetrieveType()->MDId());
-            //         INT type_mod = proj_elem_op->Pcr()->TypeModifier();
-            //         scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), type_mod));
-            //     }
-            // }
         
             // Construct outer mapping info
             for (auto i = 0; i < num_outer_schemas; i++) {
@@ -1974,7 +1912,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     D_ASSERT(idxscan_expr != NULL);
     CColRefSet *inner_output_cols = pexprInner->Prpp()->PcrsRequired();
     CColRefSet *idxscan_output_cols = idxscan_expr->Prpp()->PcrsRequired();
-    // D_ASSERT(idxscan_output_cols->ContainsAll(inner_output_cols));
 
     CPhysicalIndexScan *idxscan_op = (CPhysicalIndexScan *)idxscan_expr->Pop();
     CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(idxscan_op->Ptabdesc()->MDId());
@@ -2061,8 +1998,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     output_cols->Release();
     outer_cols->Release();
     inner_cols->Release();
-    outer_inner_cols->Release();
-    proj_inner_cols->Release();
     idxscan_cols->Release();
 
     return result;
@@ -2658,7 +2593,6 @@ void Planner::
         }
         else if (inner_root->Pop()->Eopid() ==
                  COperator::EOperatorId::EopPhysicalFilter) {
-
             has_filter = true;
             do_filter_pushdown = false;
             filter_expr = inner_root;
@@ -4883,6 +4817,36 @@ bool Planner::pCmpColName(const CColRef *colref, const WCHAR *col_name)
                             std::wcslen(colref->Name().Pstr()->GetBuffer()) -
                             std::wcslen(col_name),
                         col_name, std::wcslen(col_name)) == 0;
+}
+
+
+void Planner::pGetFilterOnlyInnerColsIdx(CExpression *expr, CColRefArray *inner_cols, CColRefArray *output_cols, vector<ULONG> &inner_cols_idx) {
+    switch (expr->Pop()->Eopid()) {
+		case COperator::EopScalarIdent:
+        {
+            CScalarIdent *ident = (CScalarIdent *)expr->Pop();
+            // check is filter only
+            if (inner_cols->IndexOf(ident->Pcr()) != gpos::ulong_max &&
+                output_cols->IndexOf(ident->Pcr()) == gpos::ulong_max) {
+                inner_cols_idx.push_back(inner_cols->IndexOf(ident->Pcr()));
+            }
+            break;
+        }
+		case COperator::EopScalarConst:
+		case COperator::EopScalarBoolOp:
+		case COperator::EopScalarAggFunc:
+        case COperator::EopScalarFunc:
+		case COperator::EopScalarCmp: 
+        case COperator::EopScalarSwitch:
+        {
+            for (ULONG child_idx = 0; child_idx < expr->Arity(); child_idx++) {
+                pGetFilterOnlyInnerColsIdx(expr->operator[](child_idx), inner_cols, output_cols, inner_cols_idx);
+            }
+            break;
+        }
+		default:
+			GPOS_ASSERT(false); // NOT implemented yet
+	}
 }
 
 }  // namespace s62
