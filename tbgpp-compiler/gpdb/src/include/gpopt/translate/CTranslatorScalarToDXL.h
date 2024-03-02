@@ -1,34 +1,34 @@
-// //---------------------------------------------------------------------------
-// //	Greenplum Database
-// //	Copyright (C) 2011 Greenplum, Inc.
-// //
-// //	@filename:
-// //		CTranslatorScalarToDXL.h
-// //
-// //	@doc:
-// //		Class providing methods for translating a GPDB Scalar Operation (in a Query / PlStmt object)
-// //		into a DXL tree.
-// //
-// //	@test:
-// //
-// //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2011 Greenplum, Inc.
+//
+//	@filename:
+//		CTranslatorScalarToDXL.h
+//
+//	@doc:
+//		Class providing methods for translating a GPDB Scalar Operation (in a Query / PlStmt object)
+//		into a DXL tree.
+//
+//	@test:
+//
+//---------------------------------------------------------------------------
 
-// #ifndef GPDXL_CTranslatorScalarToDXL_H
-// #define GPDXL_CTranslatorScalarToDXL_H
+#ifndef GPDXL_CTranslatorScalarToDXL_H
+#define GPDXL_CTranslatorScalarToDXL_H
 
-// extern "C" {
-// #include "postgres.h"
+extern "C" {
+#include "postgres.h"
 
 // #include "nodes/primnodes.h"
-// }
+}
 
-// #include "gpos/base.h"
+#include "gpos/base.h"
 
 // #include "gpopt/translate/CCTEListEntry.h"
 // #include "gpopt/translate/CContextQueryToDXL.h"
 // #include "gpopt/translate/CMappingVarColId.h"
-// #include "naucrates/base/IDatum.h"
-// #include "naucrates/md/IMDType.h"
+#include "naucrates/base/IDatum.h"
+#include "naucrates/md/IMDType.h"
 
 // // fwd declarations
 // namespace gpopt
@@ -48,17 +48,17 @@
 // struct RelabelType;
 // struct ScalarArrayOpExpr;
 
-// namespace gpdxl
-// {
-// using namespace gpopt;
-// using namespace gpmd;
+namespace gpdxl
+{
+using namespace gpopt;
+using namespace gpmd;
 
-// // fwd decl
-// class CMappingVarColId;
-// class CDXLDatum;
+// fwd decl
+class CMappingVarColId;
+class CDXLDatum;
 
-// class CTranslatorScalarToDXL
-// {
+class CTranslatorScalarToDXL
+{
 // 	// shorthand for functions for translating GPDB expressions into DXL nodes
 // 	typedef CDXLNode *(CTranslatorScalarToDXL::*ExprToDXLFn)(
 // 		const Expr *expr, const CMappingVarColId *var_colid_mapping);
@@ -256,7 +256,7 @@
 // 		const Node *node, const CMappingVarColId *var_colid_mapping,
 // 		CDXLNode *new_scalar_proj_list);
 
-// public:
+public:
 // 	// ctor
 // 	CTranslatorScalarToDXL(CContextQueryToDXL *context,
 // 						   CMDAccessor *md_accessor, ULONG query_level,
@@ -303,22 +303,22 @@
 // 	// translate GPDB Const to CDXLDatum
 // 	static CDXLDatum *TranslateConstToDXL(CMemoryPool *mp, CMDAccessor *mda,
 // 										  const Const *constant);
+public:
+	// translate GPDB datum to CDXLDatum
+	static CDXLDatum *TranslateDatumToDXL(CMemoryPool *mp,
+										  const IMDType *md_type,
+										  INT type_modifier, BOOL is_null,
+										  ULONG len, Datum datum);
 
-// 	// translate GPDB datum to CDXLDatum
-// 	static CDXLDatum *TranslateDatumToDXL(CMemoryPool *mp,
-// 										  const IMDType *md_type,
-// 										  INT type_modifier, BOOL is_null,
-// 										  ULONG len, Datum datum);
+	// translate GPDB datum to IDatum
+	static IDatum *CreateIDatumFromGpdbDatum(CMemoryPool *mp,
+											 const IMDType *md_type,
+											 BOOL is_null, Datum datum);
 
-// 	// translate GPDB datum to IDatum
-// 	static IDatum *CreateIDatumFromGpdbDatum(CMemoryPool *mp,
-// 											 const IMDType *md_type,
-// 											 BOOL is_null, Datum datum);
-
-// 	// extract the byte array value of the datum
-// 	static BYTE *ExtractByteArrayFromDatum(CMemoryPool *mp,
-// 										   const IMDType *md_type, BOOL is_null,
-// 										   ULONG len, Datum datum);
+	// extract the byte array value of the datum
+	static BYTE *ExtractByteArrayFromDatum(CMemoryPool *mp,
+										   const IMDType *md_type, BOOL is_null,
+										   ULONG len, Datum datum);
 
 // 	static CDouble ExtractDoubleValueFromDatum(IMDId *mdid, BOOL is_null,
 // 											   BYTE *bytes, Datum datum);
@@ -365,14 +365,14 @@
 // 											  BOOL is_null, ULONG len,
 // 											  Datum datum);
 
-// 	// datum to generic CDXLDatum
-// 	static CDXLDatum *TranslateGenericDatumToDXL(CMemoryPool *mp,
-// 												 const IMDType *md_type,
-// 												 INT type_modifier,
-// 												 BOOL is_null, ULONG len,
-// 												 Datum datum);
-// };
-// }  // namespace gpdxl
-// #endif	// GPDXL_CTranslatorScalarToDXL_H
+	// datum to generic CDXLDatum
+	static CDXLDatum *TranslateGenericDatumToDXL(CMemoryPool *mp,
+												 const IMDType *md_type,
+												 INT type_modifier,
+												 BOOL is_null, ULONG len,
+												 Datum datum);
+};
+}  // namespace gpdxl
+#endif	// GPDXL_CTranslatorScalarToDXL_H
 
-// // EOF
+// EOF

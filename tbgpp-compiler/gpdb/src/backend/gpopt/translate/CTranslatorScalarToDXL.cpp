@@ -1,19 +1,19 @@
-// //---------------------------------------------------------------------------
-// //	Greenplum Database
-// //	Copyright (C) 2011 Greenplum, Inc.
-// //
-// //	@filename:
-// //		CTranslatorScalarToDXL.cpp
-// //
-// //	@doc:
-// //		Implementing the methods needed to translate a GPDB Scalar Operation (in a Query / PlStmt object)
-// //		into a DXL trees
-// //
-// //	@test:
-// //
-// //---------------------------------------------------------------------------
-// extern "C" {
-// #include "postgres.h"
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2011 Greenplum, Inc.
+//
+//	@filename:
+//		CTranslatorScalarToDXL.cpp
+//
+//	@doc:
+//		Implementing the methods needed to translate a GPDB Scalar Operation (in a Query / PlStmt object)
+//		into a DXL trees
+//
+//	@test:
+//
+//---------------------------------------------------------------------------
+extern "C" {
+#include "postgres.h"
 
 // #include "nodes/parsenodes.h"
 // #include "nodes/plannodes.h"
@@ -21,11 +21,11 @@
 // #include "utils/date.h"
 // #include "utils/datum.h"
 // #include "utils/uuid.h"
-// }
+}
 
-// #include <vector>
+#include <vector>
 
-// #include "gpos/base.h"
+#include "gpos/base.h"
 // #include "gpos/common/CAutoP.h"
 // #include "gpos/string/CWStringDynamic.h"
 
@@ -34,7 +34,7 @@
 // #include "gpopt/mdcache/CMDAccessor.h"
 // #include "gpopt/translate/CCTEListEntry.h"
 // #include "gpopt/translate/CTranslatorQueryToDXL.h"
-// #include "gpopt/translate/CTranslatorScalarToDXL.h"
+#include "gpopt/translate/CTranslatorScalarToDXL.h"
 // #include "gpopt/translate/CTranslatorUtils.h"
 // #include "naucrates/dxl/CDXLUtils.h"
 // #include "naucrates/dxl/operators/CDXLDatumBool.h"
@@ -43,13 +43,13 @@
 // #include "naucrates/dxl/operators/CDXLDatumInt8.h"
 // #include "naucrates/dxl/operators/CDXLDatumOid.h"
 // #include "naucrates/dxl/xml/dxltokens.h"
-// #include "naucrates/md/CMDTypeGenericGPDB.h"
+#include "naucrates/md/CMDTypeGenericGPDB.h"
 // #include "naucrates/md/IMDAggregate.h"
 // #include "naucrates/md/IMDScalarOp.h"
-// #include "naucrates/md/IMDType.h"
+#include "naucrates/md/IMDType.h"
 
-// using namespace gpdxl;
-// using namespace gpopt;
+using namespace gpdxl;
+using namespace gpopt;
 
 
 // //---------------------------------------------------------------------------
@@ -2039,90 +2039,93 @@
 // //	@doc:
 // //		Create CDXLDatum from GPDB datum
 // //---------------------------------------------------------------------------
-// CDXLDatum *
-// CTranslatorScalarToDXL::TranslateDatumToDXL(CMemoryPool *mp,
-// 											const IMDType *md_type,
-// 											INT type_modifier, BOOL is_null,
-// 											ULONG len, Datum datum)
-// {
-// 	static const SDXLDatumTranslatorElem translators[] = {
-// 		{IMDType::EtiInt2, &CTranslatorScalarToDXL::TranslateInt2DatumToDXL},
-// 		{IMDType::EtiInt4, &CTranslatorScalarToDXL::TranslateInt4DatumToDXL},
-// 		{IMDType::EtiInt8, &CTranslatorScalarToDXL::TranslateInt8DatumToDXL},
-// 		{IMDType::EtiBool, &CTranslatorScalarToDXL::TranslateBoolDatumToDXL},
-// 		{IMDType::EtiOid, &CTranslatorScalarToDXL::TranslateOidDatumToDXL},
-// 	};
+CDXLDatum *
+CTranslatorScalarToDXL::TranslateDatumToDXL(CMemoryPool *mp,
+											const IMDType *md_type,
+											INT type_modifier, BOOL is_null,
+											ULONG len, Datum datum)
+{
+	// static const SDXLDatumTranslatorElem translators[] = {
+	// 	{IMDType::EtiInt2, &CTranslatorScalarToDXL::TranslateInt2DatumToDXL},
+	// 	{IMDType::EtiInt4, &CTranslatorScalarToDXL::TranslateInt4DatumToDXL},
+	// 	{IMDType::EtiInt8, &CTranslatorScalarToDXL::TranslateInt8DatumToDXL},
+	// 	{IMDType::EtiBool, &CTranslatorScalarToDXL::TranslateBoolDatumToDXL},
+	// 	{IMDType::EtiOid, &CTranslatorScalarToDXL::TranslateOidDatumToDXL},
+	// };
 
-// 	const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
-// 	// find translator for the datum type
-// 	DxlDatumFromDatum *func_ptr = NULL;
-// 	for (ULONG ul = 0; ul < num_translators; ul++)
-// 	{
-// 		SDXLDatumTranslatorElem elem = translators[ul];
-// 		if (md_type->GetDatumType() == elem.type_info)
-// 		{
-// 			func_ptr = elem.func_ptr;
-// 			break;
-// 		}
-// 	}
+	// const ULONG num_translators = GPOS_ARRAY_SIZE(translators);
+	// // find translator for the datum type
+	// DxlDatumFromDatum *func_ptr = NULL;
+	// for (ULONG ul = 0; ul < num_translators; ul++)
+	// {
+	// 	SDXLDatumTranslatorElem elem = translators[ul];
+	// 	if (md_type->GetDatumType() == elem.type_info)
+	// 	{
+	// 		func_ptr = elem.func_ptr;
+	// 		break;
+	// 	}
+	// }
 
-// 	if (NULL == func_ptr)
-// 	{
-// 		// generate a datum of generic type
-// 		return TranslateGenericDatumToDXL(mp, md_type, type_modifier, is_null,
-// 										  len, datum);
-// 	}
-// 	else
-// 	{
-// 		return (*func_ptr)(mp, md_type, is_null, len, datum);
-// 	}
-// }
+	// if (NULL == func_ptr)
+	// {
+		// generate a datum of generic type
+		return TranslateGenericDatumToDXL(mp, md_type, type_modifier, is_null,
+										  len, datum);
+	// }
+	// else
+	// {
+	// 	return (*func_ptr)(mp, md_type, is_null, len, datum);
+	// }
+}
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorScalarToDXL::TranslateGenericDatumToDXL
-// //
-// //	@doc:
-// //		Translate a datum of generic type
-// //---------------------------------------------------------------------------
-// CDXLDatum *
-// CTranslatorScalarToDXL::TranslateGenericDatumToDXL(CMemoryPool *mp,
-// 												   const IMDType *md_type,
-// 												   INT type_modifier,
-// 												   BOOL is_null, ULONG len,
-// 												   Datum datum)
-// {
-// 	CMDIdGPDB *mdid_old = CMDIdGPDB::CastMdid(md_type->MDId());
-// 	CMDIdGPDB *mdid = GPOS_NEW(mp) CMDIdGPDB(*mdid_old);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::TranslateGenericDatumToDXL
+//
+//	@doc:
+//		Translate a datum of generic type
+//---------------------------------------------------------------------------
+CDXLDatum *
+CTranslatorScalarToDXL::TranslateGenericDatumToDXL(CMemoryPool *mp,
+												   const IMDType *md_type,
+												   INT type_modifier,
+												   BOOL is_null, ULONG len,
+												   Datum datum)
+{
+	CMDIdGPDB *mdid_old = CMDIdGPDB::CastMdid(md_type->MDId());
+	CMDIdGPDB *mdid = GPOS_NEW(mp) CMDIdGPDB(*mdid_old);
 
-// 	BYTE *bytes = ExtractByteArrayFromDatum(mp, md_type, is_null, len, datum);
-// 	ULONG length = 0;
-// 	if (!is_null)
-// 	{
-// 		length =
-// 			(ULONG) gpdb::DatumSize(datum, md_type->IsPassedByValue(), len);
-// 	}
+	BYTE *bytes = ExtractByteArrayFromDatum(mp, md_type, is_null, len, datum);
+	ULONG length = 0;
+	if (!is_null)
+	{
+        length = len;
+		// length =
+		// 	(ULONG) gpdb::DatumSize(datum, md_type->IsPassedByValue(), len);
+	}
 
-// 	CDouble double_value(0);
-// 	if (CMDTypeGenericGPDB::HasByte2DoubleMapping(mdid))
-// 	{
-// 		double_value = ExtractDoubleValueFromDatum(mdid, is_null, bytes, datum);
-// 	}
+	CDouble double_value(0);
+	if (CMDTypeGenericGPDB::HasByte2DoubleMapping(mdid))
+	{
+        GPOS_ASSERT(false);
+		// double_value = ExtractDoubleValueFromDatum(mdid, is_null, bytes, datum);
+	}
 
-// 	LINT lint_value = 0;
-// 	if (CMDTypeGenericGPDB::HasByte2IntMapping(md_type))
-// 	{
-// 		IMDId *base_mdid = GPOS_NEW(mp)
-// 			CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetBaseType(mdid->Oid()));
-// 		// base_mdid is used for text related domain types
-// 		lint_value = ExtractLintValueFromDatum(md_type, is_null, bytes, length,
-// 											   base_mdid);
-// 	}
+	LINT lint_value = 0;
+	if (CMDTypeGenericGPDB::HasByte2IntMapping(md_type))
+	{
+        GPOS_ASSERT(false);
+		// IMDId *base_mdid = GPOS_NEW(mp)
+		// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetBaseType(mdid->Oid()));
+		// // base_mdid is used for text related domain types
+		// lint_value = ExtractLintValueFromDatum(md_type, is_null, bytes, length,
+		// 									   base_mdid);
+	}
 
-// 	return CMDTypeGenericGPDB::CreateDXLDatumVal(
-// 		mp, mdid, md_type, type_modifier, is_null, bytes, length, lint_value,
-// 		double_value);
-// }
+	return CMDTypeGenericGPDB::CreateDXLDatumVal(
+		mp, mdid, md_type, type_modifier, is_null, bytes, length, lint_value,
+		double_value);
+}
 
 
 // //---------------------------------------------------------------------------
@@ -2309,44 +2312,45 @@
 // }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorScalarToDXL::ExtractByteArrayFromDatum
-// //
-// //	@doc:
-// //		Extract the byte array value of the datum. The result is NULL if datum is NULL
-// //---------------------------------------------------------------------------
-// BYTE *
-// CTranslatorScalarToDXL::ExtractByteArrayFromDatum(CMemoryPool *mp,
-// 												  const IMDType *md_type,
-// 												  BOOL is_null, ULONG len,
-// 												  Datum datum)
-// {
-// 	ULONG length = 0;
-// 	BYTE *bytes = NULL;
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::ExtractByteArrayFromDatum
+//
+//	@doc:
+//		Extract the byte array value of the datum. The result is NULL if datum is NULL
+//---------------------------------------------------------------------------
+BYTE *
+CTranslatorScalarToDXL::ExtractByteArrayFromDatum(CMemoryPool *mp,
+												  const IMDType *md_type,
+												  BOOL is_null, ULONG len,
+												  Datum datum)
+{
+	ULONG length = 0;
+	BYTE *bytes = NULL;
 
-// 	if (is_null)
-// 	{
-// 		return bytes;
-// 	}
+	if (is_null)
+	{
+		return bytes;
+	}
 
-// 	length = (ULONG) gpdb::DatumSize(datum, md_type->IsPassedByValue(), len);
-// 	GPOS_ASSERT(length > 0);
+	// length = (ULONG) gpdb::DatumSize(datum, md_type->IsPassedByValue(), len);
+    length = len;
+	GPOS_ASSERT(length > 0);
 
-// 	bytes = GPOS_NEW_ARRAY(mp, BYTE, length);
+	bytes = GPOS_NEW_ARRAY(mp, BYTE, length);
 
-// 	if (md_type->IsPassedByValue())
-// 	{
-// 		GPOS_ASSERT(length <= ULONG(sizeof(Datum)));
-// 		clib::Memcpy(bytes, &datum, length);
-// 	}
-// 	else
-// 	{
-// 		clib::Memcpy(bytes, gpdb::PointerFromDatum(datum), length);
-// 	}
+	if (md_type->IsPassedByValue())
+	{
+		GPOS_ASSERT(length <= ULONG(sizeof(Datum)));
+		clib::Memcpy(bytes, &datum, length);
+	}
+	else
+	{
+		// clib::Memcpy(bytes, gpdb::PointerFromDatum(datum), length);
+	}
 
-// 	return bytes;
-// }
+	return bytes;
+}
 
 
 // //---------------------------------------------------------------------------
@@ -2425,34 +2429,34 @@
 // }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorScalarToDXL::TranslateDatumToDXL
-// //
-// //	@doc:
-// //		Create IDatum from GPDB datum
-// //---------------------------------------------------------------------------
-// IDatum *
-// CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(CMemoryPool *mp,
-// 												  const IMDType *md_type,
-// 												  BOOL is_null,
-// 												  Datum gpdb_datum)
-// {
-// 	ULONG length = md_type->Length();
-// 	if (!md_type->IsPassedByValue() && !is_null)
-// 	{
-// 		INT len =
-// 			dynamic_cast<const CMDTypeGenericGPDB *>(md_type)->GetGPDBLength();
-// 		length = (ULONG) gpdb::DatumSize(gpdb_datum, md_type->IsPassedByValue(),
-// 										 len);
-// 	}
-// 	GPOS_ASSERT(is_null || length > 0);
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::TranslateDatumToDXL
+//
+//	@doc:
+//		Create IDatum from GPDB datum
+//---------------------------------------------------------------------------
+IDatum *
+CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(CMemoryPool *mp,
+												  const IMDType *md_type,
+												  BOOL is_null,
+												  Datum gpdb_datum)
+{
+	ULONG length = md_type->Length();
+	// if (!md_type->IsPassedByValue() && !is_null)
+	// {
+	// 	INT len =
+	// 		dynamic_cast<const CMDTypeGenericGPDB *>(md_type)->GetGPDBLength();
+	// 	length = (ULONG) gpdb::DatumSize(gpdb_datum, md_type->IsPassedByValue(),
+	// 									 len);
+	// }
+	GPOS_ASSERT(is_null || length > 0);
 
-// 	CDXLDatum *datum_dxl = CTranslatorScalarToDXL::TranslateDatumToDXL(
-// 		mp, md_type, gpmd::default_type_modifier, is_null, length, gpdb_datum);
-// 	IDatum *datum = md_type->GetDatumForDXLDatum(mp, datum_dxl);
-// 	datum_dxl->Release();
-// 	return datum;
-// }
+	CDXLDatum *datum_dxl = CTranslatorScalarToDXL::TranslateDatumToDXL(
+		mp, md_type, gpmd::default_type_modifier, is_null, length, gpdb_datum);
+	IDatum *datum = md_type->GetDatumForDXLDatum(mp, datum_dxl);
+	datum_dxl->Release();
+	return datum;
+}
 
 // // EOF

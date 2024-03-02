@@ -35,6 +35,7 @@ AggregateFunctionCatalogEntry *GetAggFunc(idx_t aggfunc_oid);
 ScalarFunctionCatalogEntry *GetScalarFunc(idx_t scalarfunc_oid);
 idx_t GetAggFuncIndex(idx_t aggfunc_oid);
 idx_t GetScalarFuncIndex(idx_t scalarfunc_oid);
+void GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStatsSlot *hist_slot);
 
 // get type related informations
 string GetTypeName(idx_t type_id);

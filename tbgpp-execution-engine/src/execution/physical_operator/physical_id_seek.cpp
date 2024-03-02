@@ -383,6 +383,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         state.has_remaining_output = false;
         state.cur_schema_idx = 0;
         num_tuples_per_chunk.resize(num_total_schemas, 0);
+        // TODO seems inefficient
         state.sels.clear();
         state.sels.resize(chunks.size());
         for (auto i = 0; i < state.sels.size(); i++) {
@@ -400,6 +401,7 @@ OperatorResultType PhysicalIdSeek::Execute(
     if (!state.has_remaining_output) {
         if (!do_filter_pushdown) {
             if (has_unpushdowned_expressions) {
+                D_ASSERT(chunks.size() == 1); // TODO handling multi-schema case
                 for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                      extentIdx++) {
                     // get chunk index
@@ -431,23 +433,24 @@ OperatorResultType PhysicalIdSeek::Execute(
                         target_types, target_eids, target_seqnos_per_extent,
                         extentIdx, output_col_idx,
                         num_tuples_per_chunk[chunk_idx]);
+                }
 
+                for (auto chunk_idx = 0; chunk_idx < chunks.size();
+                     chunk_idx++) {
+                    auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
 
                     // Filter may have column on lhs. Make tmp_chunk reference it
                     for (int i = 0; i < input.ColumnCount(); i++) {
                         tmp_chunk.data[i].Reference(input.data[i]);
                     }
-                    
+
                     // Execute filter (note. this is not efficient if no filter pred on inner cols)
                     num_tuples_per_chunk[chunk_idx] = executor.SelectExpression(
                         tmp_chunk, state.sels[chunk_idx]);
                 }
 
                 state.has_remaining_output = true;
-                for (auto i = 0; i < chunks.size(); i++) {
-                    chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
-                }
             }
             else {
                 /**
@@ -488,10 +491,8 @@ OperatorResultType PhysicalIdSeek::Execute(
                             target_seqnos_per_extent[extentIdx][i]);
                     }
                 }
+
                 state.has_remaining_output = true;
-                for (auto i = 0; i < chunks.size(); i++) {
-                    chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
-                }
             }
         }
         else {
@@ -544,6 +545,10 @@ OperatorResultType PhysicalIdSeek::Execute(
                 }
             }
         }
+
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
+        }
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         for (auto i = 0; i < chunks.size(); i++) {
             OutputUtil::PrintTop10TuplesInDataChunk(*(chunks[i].get()));
@@ -556,6 +561,8 @@ OperatorResultType PhysicalIdSeek::Execute(
             state.cur_schema_idx = chunk_idx + 1;
             return OperatorResultType::HAVE_MORE_OUTPUT;
         }
+        state.has_remaining_output = false;
+        state.need_initialize_extit = true;
         return OperatorResultType::NEED_MORE_INPUT;
     }
     else if (do_filter_pushdown && !has_unpushdowned_expressions) {
@@ -620,7 +627,27 @@ OperatorResultType PhysicalIdSeek::Execute(
                 }
             }
         }
-        return OperatorResultType::NEED_MORE_INPUT;
+
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
+        }
+
+        if (chunks.size() == 1) {
+            state.has_remaining_output = false;
+            state.need_initialize_extit = true;
+            return OperatorResultType::NEED_MORE_INPUT;
+        } else {
+            for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
+                if (num_tuples_per_chunk[chunk_idx] == 0)
+                    continue;
+                output_chunk_idx = chunk_idx;
+                state.cur_schema_idx = chunk_idx + 1;
+                return OperatorResultType::HAVE_MORE_OUTPUT;
+            }
+            state.has_remaining_output = false;
+            state.need_initialize_extit = true;
+            return OperatorResultType::NEED_MORE_INPUT;
+        }
     }
     else {
         D_ASSERT(false);
@@ -929,6 +956,9 @@ std::string PhysicalIdSeek::ParamsToString() const
     result +=
         "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
     result += "inner_col_map.size()=" + std::to_string(inner_col_map.size());
+    if (expression != nullptr) {
+        result += ", expression=" + expression->ToString();
+    }
     return result;
 }
 
