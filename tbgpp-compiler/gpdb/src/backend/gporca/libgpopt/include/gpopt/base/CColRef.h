@@ -139,7 +139,8 @@ public:
 	BOOL
 	operator==(const CColRef &cr) const
 	{
-		return Equals(m_id, cr.Id());
+		return Equals(m_id, cr.Id()) || Equals(m_prev_id, cr.Id()) ||
+			   Equals(m_id, cr.PrevId()) || Equals(m_prev_id, cr.PrevId());
 	}
 
 	// static hash functions
@@ -158,7 +159,9 @@ public:
 	static BOOL
 	Equals(const CColRef *pcrFirst, const CColRef *pcrSecond)
 	{
-		return Equals(pcrFirst->Id(), pcrSecond->Id());
+		// consider all four cases
+		return Equals(pcrFirst->Id(), pcrSecond->Id()) || Equals(pcrFirst->PrevId(), pcrSecond->Id()) ||
+			   Equals(pcrFirst->Id(), pcrSecond->PrevId()) || Equals(pcrFirst->PrevId(), pcrSecond->PrevId());
 	}
 
 	// extract array of colids from array of colrefs

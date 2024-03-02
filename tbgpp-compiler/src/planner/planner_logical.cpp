@@ -212,6 +212,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 		QueryGraph *qg = qgc.getQueryGraph(idx);
 
 		int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
+		if (qg->getNumQueryRels() >= 1) {
 		for (;;) {
 			RelExpression *qedge = qg->getQueryRel(edge_idx).get();
 			NodeExpression *lhs = is_forward_traverse ?
@@ -322,6 +323,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				}
 			}
 		}
+		} else {
 
 		// if no edge, this is single node scan case
 		if (qg->getQueryNodes().size() == 1) {
@@ -334,6 +336,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				qg_plan->getSchema()->appendSchema(nodescan_plan->getSchema());
 				qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
 			}
+		}
 		}
 		GPOS_ASSERT(qg_plan != nullptr);
 	}
