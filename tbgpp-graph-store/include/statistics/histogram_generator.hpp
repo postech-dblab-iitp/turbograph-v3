@@ -18,6 +18,9 @@ class LogicalType;
 class DataChunk;
 class PartitionCatalogEntry;
 
+// Square-root, Sturges, Freedman–Diaconis
+enum class BinningMethod : uint8_t { SQRT, STURGES, RICE, SCOTT, CONST };
+
 //! Class for creating histogram
 class HistogramGenerator {
 private:
@@ -45,11 +48,8 @@ private:
     //! Create histogram internal function
     void _create_histogram(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat);
 
-    //! Create histogram internal function
-    void _create_histogram_test(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat);
-
     //! Initialize accumulator for target types
-    void _init_accumulators(vector<LogicalType> &universal_schema);
+    void _init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column);
 
     //! Iterate data chunk & accumulate values
     void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
@@ -71,8 +71,12 @@ private:
         group_info = std::move(clustering.group_info);
     }
 
-    //! print group info
-    void _print_group_info(PartitionCatalogEntry *partition_cat, size_t num_histograms);
+    //! calcualte bin boundaries
+    void _calculate_bin_boundaries(std::vector<std::vector<double>>& probs_per_column, vector<uint64_t>& bin_sizes);
+
+    //! calculate bin size. note that bin_size follows universal_schema order
+    void _calculate_bin_sizes(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat, vector<uint64_t>& bin_sizes);
+    uint64_t _calculate_bin_size(uint64_t num_rows, BinningMethod method = BinningMethod::STURGES);
 };
 
 } // namespace duckdb
