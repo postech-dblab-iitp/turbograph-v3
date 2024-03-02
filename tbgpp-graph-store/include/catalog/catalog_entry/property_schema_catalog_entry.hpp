@@ -177,11 +177,6 @@ public:
 	uint64_t GetNumberOfRowsApproximately();
 	uint64_t GetNumberOfExtents();
 
-	/* histogram */
-	void InitializeAccumulators();
-	void AccumulateExtent(DataChunk &chunk);
-	void FinalizeAccumulators();
-
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:
 	//! If if_exists is true, returns DConstants::INVALID_INDEX
