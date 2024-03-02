@@ -140,6 +140,15 @@ void OutputUtil::PrintAllTuplesInDataChunk(DataChunk &chunk)
 {
     tblr::Table t;
 	t.layout(tblr::unicode_box_light_headerline());
+
+    // print type & vector info
+    for (int i = 0; i < chunk.ColumnCount(); i++) {
+        t << chunk.GetTypes()[i].ToString() + " / " +
+                 VectorTypeToString(chunk.data[i].GetVectorType()) + " / " +
+                 std::to_string(chunk.data[i].GetIsValid());
+    }
+    t << tblr::endr;
+
 	idx_t num_tuples_to_print = chunk.size();
 	for (int idx = 0 ; idx < num_tuples_to_print ; idx++) {
 		for (int i = 0; i < chunk.ColumnCount(); i++) {

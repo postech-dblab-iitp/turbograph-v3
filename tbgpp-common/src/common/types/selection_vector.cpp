@@ -1,5 +1,5 @@
 #include "common/types/selection_vector.hpp"
-//#include "common/printer.hpp"
+#include "common/printer.hpp"
 #include "common/to_string.hpp"
 
 namespace duckdb {
@@ -18,7 +18,7 @@ string SelectionVector::ToString(idx_t count) const {
 }
 
 void SelectionVector::Print(idx_t count) const {
-	//Printer::Print(ToString(count));
+	Printer::Print(ToString(count));
 }
 // LCOV_EXCL_STOP
 
