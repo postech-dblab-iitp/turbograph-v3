@@ -208,7 +208,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 	}
 
 	GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
-	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++){
+	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++) {
 		QueryGraph *qg = qgc.getQueryGraph(idx);
 
 		int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
@@ -337,8 +337,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
 			}
 		}
-		GPOS_ASSERT(qg_plan != nullptr);
 	}
+	GPOS_ASSERT(qg_plan != nullptr);
 
 	return qg_plan;
 }
