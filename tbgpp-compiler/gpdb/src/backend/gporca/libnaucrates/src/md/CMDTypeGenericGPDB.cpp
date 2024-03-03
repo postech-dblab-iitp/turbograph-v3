@@ -475,6 +475,7 @@ CMDTypeGenericGPDB::HasByte2IntMapping(const IMDType *mdtype)
 	IMDId *mdid = mdtype->MDId();
 	return mdtype->IsTextRelated() || mdid->Equals(&CMDIdGPDB::m_mdid_uuid) ||
 		   mdid->Equals(&CMDIdGPDB::m_mdid_cash) ||
+		   mdid->Equals(&CMDIdGPDB::m_mdid_s62_ubigint) ||
 		   IsTimeRelatedTypeMappableToLint(mdid);
 }
 

@@ -2105,21 +2105,20 @@ CTranslatorScalarToDXL::TranslateGenericDatumToDXL(CMemoryPool *mp,
 	}
 
 	CDouble double_value(0);
-	if (CMDTypeGenericGPDB::HasByte2DoubleMapping(mdid))
-	{
-        GPOS_ASSERT(false);
-		// double_value = ExtractDoubleValueFromDatum(mdid, is_null, bytes, datum);
-	}
+	// if (CMDTypeGenericGPDB::HasByte2DoubleMapping(mdid))
+	// {
+    //     GPOS_ASSERT(false);
+	// 	// double_value = ExtractDoubleValueFromDatum(mdid, is_null, bytes, datum);
+	// }
 
 	LINT lint_value = 0;
 	if (CMDTypeGenericGPDB::HasByte2IntMapping(md_type))
 	{
-        GPOS_ASSERT(false);
-		// IMDId *base_mdid = GPOS_NEW(mp)
-		// 	CMDIdGPDB(IMDId::EmdidGeneral, gpdb::GetBaseType(mdid->Oid()));
-		// // base_mdid is used for text related domain types
-		// lint_value = ExtractLintValueFromDatum(md_type, is_null, bytes, length,
-		// 									   base_mdid);
+		IMDId *base_mdid = GPOS_NEW(mp)
+			CMDIdGPDB(IMDId::EmdidGeneral, mdid->Oid()/*gpdb::GetBaseType(mdid->Oid())*/);
+		// base_mdid is used for text related domain types
+		lint_value = ExtractLintValueFromDatum(md_type, is_null, bytes, length,
+											   base_mdid);
 	}
 
 	return CMDTypeGenericGPDB::CreateDXLDatumVal(
@@ -2353,80 +2352,86 @@ CTranslatorScalarToDXL::ExtractByteArrayFromDatum(CMemoryPool *mp,
 }
 
 
-// //---------------------------------------------------------------------------
-// //	@function:
-// //		CTranslatorScalarToDXL::ExtractLintValueFromDatum
-// //
-// //	@doc:
-// //		Extract the long int value of a datum
-// //---------------------------------------------------------------------------
-// LINT
-// CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
-// 												  BOOL is_null, BYTE *bytes,
-// 												  ULONG length,
-// 												  IMDId *base_mdid)
-// {
-// 	IMDId *mdid = md_type->MDId();
-// 	GPOS_ASSERT(CMDTypeGenericGPDB::HasByte2IntMapping(md_type));
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorScalarToDXL::ExtractLintValueFromDatum
+//
+//	@doc:
+//		Extract the long int value of a datum
+//---------------------------------------------------------------------------
+LINT
+CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
+												  BOOL is_null, BYTE *bytes,
+												  ULONG length,
+												  IMDId *base_mdid)
+{
+	IMDId *mdid = md_type->MDId();
+	GPOS_ASSERT(CMDTypeGenericGPDB::HasByte2IntMapping(md_type));
 
-// 	LINT lint_value = 0;
-// 	if (is_null)
-// 	{
-// 		return lint_value;
-// 	}
+	LINT lint_value = 0;
+	if (is_null)
+	{
+		return lint_value;
+	}
 
-// 	if (mdid->Equals(&CMDIdGPDB::m_mdid_cash) ||
-// 		mdid->Equals(&CMDIdGPDB::m_mdid_date))
-// 	{
-// 		// cash is a pass-by-ref type
-// 		Datum datumConstVal = (Datum) 0;
-// 		clib::Memcpy(&datumConstVal, bytes, length);
-// 		// Date is internally represented as an int32
-// 		lint_value = (LINT)(gpdb::Int32FromDatum(datumConstVal));
-// 	}
-// 	else
-// 	{
-// 		// use hash value
-// 		ULONG hash = 0;
-// 		if (is_null)
-// 		{
-// 			hash = gpos::HashValue<ULONG>(&hash);
-// 		}
-// 		else
-// 		{
-// 			if (mdid->Equals(&CMDIdGPDB::m_mdid_uuid))
-// 			{
-// 				hash = gpdb::UUIDHash((Datum) bytes);
-// 			}
-// 			else if (mdid->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
-// 					 (base_mdid->IsValid() &&
-// 					  base_mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)))
-// 			{
-// 				hash = gpdb::HashBpChar((Datum) bytes);
-// 			}
-// 			else if (mdid->Equals(&CMDIdGPDB::m_mdid_char) ||
-// 					 (base_mdid->IsValid() &&
-// 					  base_mdid->Equals(&CMDIdGPDB::m_mdid_char)))
-// 			{
-// 				hash = gpdb::HashChar((Datum) bytes);
-// 			}
-// 			else if (mdid->Equals(&CMDIdGPDB::m_mdid_name) ||
-// 					 (base_mdid->IsValid() &&
-// 					  base_mdid->Equals(&CMDIdGPDB::m_mdid_name)))
-// 			{
-// 				hash = gpdb::HashName((Datum) bytes);
-// 			}
-// 			else
-// 			{
-// 				hash = gpdb::HashText((Datum) bytes);
-// 			}
-// 		}
+	if (mdid->Equals(&CMDIdGPDB::m_mdid_cash) ||
+		mdid->Equals(&CMDIdGPDB::m_mdid_date))
+	{
+		GPOS_ASSERT(false);
+		// // cash is a pass-by-ref type
+		// Datum datumConstVal = (Datum) 0;
+		// clib::Memcpy(&datumConstVal, bytes, length);
+		// // Date is internally represented as an int32
+		// lint_value = (LINT)(gpdb::Int32FromDatum(datumConstVal));
+	}
+	else
+	{
+		// use hash value
+		ULONG hash = 0;
+		if (is_null)
+		{
+			hash = gpos::HashValue<ULONG>(&hash);
+		}
+		else
+		{
+			if (mdid->Equals(&CMDIdGPDB::m_mdid_s62_ubigint)) {
+				clib::Memcpy(&hash, bytes, length);
+			} else {
+				GPOS_ASSERT(false);
+			}
+			// if (mdid->Equals(&CMDIdGPDB::m_mdid_uuid))
+			// {
+			// 	hash = gpdb::UUIDHash((Datum) bytes);
+			// }
+			// else if (mdid->Equals(&CMDIdGPDB::m_mdid_bpchar) ||
+			// 		 (base_mdid->IsValid() &&
+			// 		  base_mdid->Equals(&CMDIdGPDB::m_mdid_bpchar)))
+			// {
+			// 	hash = gpdb::HashBpChar((Datum) bytes);
+			// }
+			// else if (mdid->Equals(&CMDIdGPDB::m_mdid_char) ||
+			// 		 (base_mdid->IsValid() &&
+			// 		  base_mdid->Equals(&CMDIdGPDB::m_mdid_char)))
+			// {
+			// 	hash = gpdb::HashChar((Datum) bytes);
+			// }
+			// else if (mdid->Equals(&CMDIdGPDB::m_mdid_name) ||
+			// 		 (base_mdid->IsValid() &&
+			// 		  base_mdid->Equals(&CMDIdGPDB::m_mdid_name)))
+			// {
+			// 	hash = gpdb::HashName((Datum) bytes);
+			// }
+			// else
+			// {
+			// 	hash = gpdb::HashText((Datum) bytes);
+			// }
+		}
 
-// 		lint_value = (LINT) hash;
-// 	}
+		lint_value = (LINT) hash;
+	}
 
-// 	return lint_value;
-// }
+	return lint_value;
+}
 
 
 //---------------------------------------------------------------------------

@@ -564,8 +564,7 @@ int main(int argc, char** argv) {
 				break;
 			} else if (query_str.compare("analyze") == 0) {
 				HistogramGenerator hist_gen;
-				string part_name = "vpart_LINEITEM";
-				hist_gen.CreateHistogram(client, part_name);
+				hist_gen.CreateHistogram(client);
 			} else {
 				if (query_str != prev_query_str) {
 					add_history(query_str.c_str());
