@@ -159,8 +159,7 @@ void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientConte
 	graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
 
 	partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
-	partition_cat->SetKeys(*client.get(), key_names);
-	partition_cat->SetTypes(types);
+	partition_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
 	partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 	partition_cat->SetPartitionID(new_pid);
 

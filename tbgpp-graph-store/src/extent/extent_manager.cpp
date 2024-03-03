@@ -213,23 +213,13 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog. We support only INT types for now.
             size_t input_size = input.size();
-            switch (input.GetTypes()[input_chunk_idx].InternalType())
-            {
-            case PhysicalType::INT8:
-            case PhysicalType::INT16:
-            case PhysicalType::INT32:
-            case PhysicalType::INT64:
-            case PhysicalType::UINT8:
-            case PhysicalType::UINT16:
-            case PhysicalType::UINT32:
-            case PhysicalType::UINT64:
+            if (input.GetTypes()[input_chunk_idx] == LogicalType::UBIGINT ||
+                input.GetTypes()[input_chunk_idx] == LogicalType::ID ||
+                input.GetTypes()[input_chunk_idx] == LogicalType::BIGINT) {
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
                 _UpdatePartitionMinMaxArray(part_cat_entry, prop_key_id, *chunkdefinition_cat);
                 part_cat_entry.UpdateWelfordStdDevArray(prop_key_id, input.data[input_chunk_idx], input_size);
                 if(input_chunk_idx == 0) fprintf(stdout, "StdDev: %f\n", part_cat_entry.GetStdDev(prop_key_id));
-                break;
-            default:
-                break;
             }
 
             // Copy Data Into Cache

@@ -4,8 +4,6 @@
 
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include "catalog/catalog.hpp"
-#include "catalog/catalog_entry/list.hpp"
 #include "common/types/data_chunk.hpp"
 
 #include <boost/array.hpp>
@@ -104,13 +102,18 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         chunk.Initialize(scan_types[0]);
         
         StoreAPIResult res;
+        std::vector<std::unordered_set<uint64_t>> ndv_counters(scan_types[0].size());
+        size_t num_total_tuples = 0;
 
         while(true) {
             res = client->graph_store->doScan(ext_its, chunk, scan_types[0]);
             if (res == StoreAPIResult::DONE) { break; }
 
-            _accumulate_data(chunk, universal_schema, target_cols_in_univ_schema);
+            _accumulate_data_for_hist(chunk, universal_schema, target_cols_in_univ_schema);
+            _accumulate_data_for_ndv(chunk, scan_types[0], ndv_counters, num_total_tuples);
         }
+
+        _store_ndv(ps_cat, scan_types[0], ndv_counters, num_total_tuples);
     }
 
     // store histogram info in the partition catalog
@@ -127,11 +130,15 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 
     for (auto i = 0; i < universal_schema.size(); i++) {
         auto& probs = probs_per_column[i];
-        accumulated_offset += probs.size(); // TODO skip if not numeric
+        accumulated_offset += probs.size();
         offset_infos->push_back(accumulated_offset);
         for (auto j = 0; j < probs.size(); j++) {
-            auto boundary_value = quantile(*accms[i], quantile_probability = probs[j]);
-            boundary_values->push_back(boundary_value);
+            if (!universal_schema[i].IsNumeric()) {
+                boundary_values->push_back(0);
+            } else {
+                auto boundary_value = quantile(*accms[i], quantile_probability = probs[j]);
+                boundary_values->push_back(boundary_value);
+            }
         }
         num_buckets_for_each_column.push_back(probs.size() - 1);
     }
@@ -162,7 +169,16 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             auto num_boundaries = target_col_idx == 0 ? offset_infos->at(0) : offset_infos->at(target_col_idx) - offset_infos->at(target_col_idx - 1);
             std::vector<idx_t> boundaries;
             for (auto j = begin_offset; j < end_offset; j++) {
-                boundaries.push_back(boundary_values->at(j));
+                // TODO bug "input sequence must be strictly ascending" occur
+                if (j == begin_offset) {
+                    boundaries.push_back(boundary_values->at(j));
+                } else {
+                    if (boundaries.back() >= boundary_values->at(j)) {
+                        boundaries.push_back(boundaries.back() + 1);
+                    } else {
+                        boundaries.push_back(boundary_values->at(j));
+                    }
+                }
             }
             auto v = boost::histogram::axis::variable<>(boundaries.begin(), boundaries.end());
             auto h = boost::histogram::make_histogram(v);
@@ -223,18 +239,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             col_idx++;
         }
     }
-    
-    for (auto i = 0; i < frequency_values_for_each_column.size(); i++) {
-        std::cout << i << "-th column freq values: ";
-        for (auto j = 0; j < frequency_values_for_each_column[i].size(); j++) {
-            if (j % num_buckets_for_each_column[i] == 0) {
-                std::cout << std::endl;
-            }
-
-            std::cout << frequency_values_for_each_column[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
 
     // generate group info
     _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
@@ -252,6 +256,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
             target_cols.push_back(i);
         } else if (universal_schema[i] == LogicalType::VARCHAR) {
             // singletone histogram type for varchar type
+            accms.push_back(nullptr);
         } else {
             accms.push_back(nullptr);
         }
@@ -259,7 +264,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
 }
 
 
-void HistogramGenerator::_accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema)
+void HistogramGenerator::_accumulate_data_for_hist(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema)
 {
     for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
         auto &target_accm = *(accms[target_cols_in_univ_schema[i]]);
@@ -471,6 +476,59 @@ uint64_t HistogramGenerator::_calculate_bin_size(uint64_t num_rows, BinningMetho
         default:
             throw std::runtime_error("Unknown binning method");
     }
+}
+
+
+void HistogramGenerator::_accumulate_data_for_ndv(DataChunk& chunk, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples) {
+    num_total_tuples += chunk.size();
+    for (auto i = 0; i < chunk.size(); i++) {
+        for (auto j = 0; j < chunk.ColumnCount(); j++) {
+            auto &target_set = ndv_counters[j];
+            auto &target_vec = chunk.data[j];
+            auto target_value = target_vec.GetValue(i);
+            switch(types[j].id()) {
+                case LogicalTypeId::INTEGER:{
+                    target_set.insert(target_value.GetValue<int32_t>());
+                    break;
+                }
+                case LogicalTypeId::BIGINT:{
+                    target_set.insert(target_value.GetValue<int64_t>());
+                    break;
+                }
+                case LogicalTypeId::UINTEGER:{
+                    target_set.insert(target_value.GetValue<uint32_t>());
+                    break;
+                }
+                case LogicalTypeId::UBIGINT: {
+                    target_set.insert(target_value.GetValue<uint64_t>());
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void HistogramGenerator::_store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples) {
+    auto ndvs = ps_cat->GetNDVs();
+    ndvs->clear();
+    ndvs->push_back(num_total_tuples); // ID column
+    for (auto i = 0; i < types.size(); i++) {
+        auto &target_set = ndv_counters[i];
+        switch(types[i].id()) {
+            case LogicalTypeId::INTEGER:
+            case LogicalTypeId::BIGINT:
+            case LogicalTypeId::UINTEGER:
+            case LogicalTypeId::UBIGINT: {
+                ndvs->push_back(target_set.size());
+                break;
+            }
+            default: {
+                ndvs->push_back(num_total_tuples);
+                break;
+            }
+        }
+    }
+    D_ASSERT(ndvs->size() == types.size() + 1);
 }
 
 } // namespace duckdb

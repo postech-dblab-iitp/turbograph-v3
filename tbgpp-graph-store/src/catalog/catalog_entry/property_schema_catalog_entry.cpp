@@ -13,7 +13,7 @@ PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaC
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
 	, property_keys(void_alloc), extent_ids(void_alloc), key_column_idxs(void_alloc), property_typesid(void_alloc),
 	property_key_names(void_alloc), adjlist_typesid(void_alloc), adjlist_names(void_alloc), num_columns(0),
-	extra_typeinfo_vec(void_alloc), offset_infos(void_alloc), frequency_values(void_alloc)
+	extra_typeinfo_vec(void_alloc), offset_infos(void_alloc), frequency_values(void_alloc), ndvs(void_alloc)
 {
 	this->temporary = info->temporary;
 	this->pid = info->pid;
@@ -38,9 +38,14 @@ void PropertySchemaCatalogEntry::AddExtent(ExtentID eid, size_t num_tuples_in_ex
 
 vector<LogicalType> PropertySchemaCatalogEntry::GetTypesWithCopy() {
 	vector<LogicalType> types;
-	for (auto &it : this->property_typesid) {
-		LogicalType type(it);
-		types.push_back(type);
+	for (auto i = 0; i < this->property_typesid.size(); i++) {
+		if (this->property_typesid[i] == LogicalTypeId::DECIMAL) {
+			auto extra_info = extra_typeinfo_vec[i];
+			types.push_back(LogicalType::DECIMAL((extra_info & 0xFF00) >> 8, extra_info & 0x00FF));
+		} else {
+			LogicalType type(this->property_typesid[i]);
+			types.push_back(type);
+		}
 	}
 	return types;
 }
