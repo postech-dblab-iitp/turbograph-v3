@@ -298,7 +298,7 @@ public:
 
     string GetOpName(idx_t op_id) {
         ExpressionType etype = (ExpressionType) ((op_id - OPERATOR_BASE_ID) / (256 * 256));
-        return ExpressionTypeToString(etype);
+        return ExpressionTypeToOrcaString(etype);
     }
 
     void GetOpInputTypes(idx_t op_id, idx_t &left_type_id, idx_t &right_type_id) {
