@@ -41,6 +41,8 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_name);
     
+    std::cout << "Create Histogram for partition " << partition_cat->GetName() << std::endl;
+    
     _create_histogram(client, partition_cat);
 }
 
@@ -51,6 +53,8 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     // Get partition catalog
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, partition_oid);
+    
+    std::cout << "Create Histogram for partition " << partition_cat->GetName() << std::endl;
     
     _create_histogram(client, partition_cat);
 }
@@ -245,6 +249,8 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 }
 
 void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column) {
+    accms.clear();
+    target_cols.clear();
     for (auto i = 0; i < universal_schema.size(); i++) {
         if (universal_schema[i].IsNumeric()) {
             // Use the dynamic probs array

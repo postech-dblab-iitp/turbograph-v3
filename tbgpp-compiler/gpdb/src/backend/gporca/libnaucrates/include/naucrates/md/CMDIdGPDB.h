@@ -230,6 +230,9 @@ public:
 	// uuid mdid
 	static CMDIdGPDB m_mdid_uuid;
 
+	// s62 ubigint mdid
+	static CMDIdGPDB m_mdid_s62_ubigint;
+
 	// unknown datatype mdid
 	static CMDIdGPDB m_mdid_unknown;
 };

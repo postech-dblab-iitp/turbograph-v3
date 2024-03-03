@@ -779,7 +779,8 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = sizeof(uint64_t);
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::UBIGINT + LOGICAL_TYPE_BASE_ID);
+			// GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
 		
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, -1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
@@ -2543,6 +2544,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);
+	num_distinct = CDouble(duckdb::GetNDV(rel, attno));
 	// if (form_pg_stats->stadistinct < 0)
 	// {
 	// 	GPOS_ASSERT(form_pg_stats->stadistinct > -1.01);
@@ -2628,6 +2630,12 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 
 		// TODO release hist_slot
 		// gpdb::FreeAttrStatsSlot(&hist_slot);
+		is_dummy_stats = true;
+	}
+
+	// s62 added
+	if (InvalidOid == hist_slot.valuetype)
+	{
 		is_dummy_stats = true;
 	}
 
@@ -3755,9 +3763,13 @@ CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 	// ForEach(lc, op_families)
 	// {
 		// OID op_family_oid = lfirst_oid(lc);
+		// OID op_family_logical_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
+		// 	(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
+		// 	(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
+		// 	CmptEq);
 		OID op_family_logical_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
-			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
-			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
+			(idx_t)LogicalTypeId::UBIGINT + LOGICAL_TYPE_BASE_ID,
+			(idx_t)LogicalTypeId::UBIGINT + LOGICAL_TYPE_BASE_ID,
 			CmptEq);
 		OID op_family_oid = duckdb::GetOpFamiliesForScOp(op_family_logical_oid);
 		input_col_mdids->Append(
