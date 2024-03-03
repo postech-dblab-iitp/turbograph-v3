@@ -155,8 +155,8 @@ vector<LogicalType> PartitionCatalogEntry::GetTypes() {
 			universal_schema.push_back(LogicalType(global_property_typesid[i]));
 		} else {
 			// decimal type case
-			uint8_t width = (uint8_t)((extra_typeinfo_vec[i] | 0xFF00) >> 8);
-			uint8_t scale = (uint8_t)(extra_typeinfo_vec[i] | 0xFF);
+			uint8_t width = (uint8_t)(extra_typeinfo_vec[i] >> 8);
+			uint8_t scale = (uint8_t)(extra_typeinfo_vec[i] & 0xFF);
 			universal_schema.push_back(LogicalType::DECIMAL(width, scale));
 		}
 	}
@@ -218,9 +218,6 @@ StdDev PartitionCatalogEntry::GetStdDev(PropertyKeyID key_id) {
 	auto location = global_property_key_to_location.find(key_id);
 	if (location != global_property_key_to_location.end()) {
 		auto welford_v = welford_array[location->second];
-		fprintf(stderr, "welford_v.n: %ld\n", welford_v.n);
-		fprintf(stderr, "welford_v.mean: %ld\n", welford_v.mean);
-		fprintf(stderr, "welford_v.M2: %ld\n", welford_v.M2);
 		if (welford_v.n > 1) {
 			std_dev = sqrt(welford_v.M2 / (welford_v.n));
 		}

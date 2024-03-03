@@ -84,6 +84,9 @@ public:
 
 	//! Frequency values of the histogram corresponding to each bucket
 	idx_t_vector frequency_values;
+
+	//! Number of distinct values of each property
+	uint64_t_vector ndvs;
 	
 public:
 	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
@@ -154,6 +157,12 @@ public:
 	//! Get OID of physical id index
 	idx_t GetPhysicalIDIndex(){
 		return physical_id_index;
+	}
+
+	//! Get the ndvs
+	uint64_t_vector *GetNDVs() {
+		// ID column + other columns
+		return &ndvs;
 	}
 
 	vector<LogicalType> GetTypesWithCopy();

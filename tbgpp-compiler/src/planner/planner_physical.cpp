@@ -892,8 +892,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CColRefSet *outer_cols_set = pexprOuter->Prpp()->PcrsRequired();
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
-    CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-
     CColRefArray *proj_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
 
     unordered_map<ULONG, uint64_t> id_map;
@@ -1075,29 +1073,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             auto scalarident_pattern = vector<COperator::EOperatorId>(
                 {COperator::EOperatorId::EopScalarProjectElement,
                 COperator::EOperatorId::EopScalarIdent});
-
-            // inner cols
-            for (ULONG i = 0; i < inner_cols->Size(); i++) {
-                CColRef *col = inner_cols->operator[](i);
-                CColRefTable *colreftbl = (CColRefTable *)col;
-                INT attr_no = colreftbl->AttrNum();
-                ULONG col_id = colreftbl->Id();
-                auto it = id_map.find(col_id);
-                if (it != id_map.end()) {
-                    inner_col_maps[0].push_back(it->second);
-                }
-
-                // generate scan_projection_mapping
-                if ((attr_no == (INT)-1)) {
-                    scan_projection_mapping[0].push_back(0);
-                    scan_types[0].push_back(duckdb::LogicalType::ID);
-                }
-                else {
-                    scan_projection_mapping[0].push_back(attr_no);
-                    CMDIdGPDB *type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId());
-                    scan_types[0].push_back(pConvertTypeOidToLogicalType(type_mdid->Oid(), col->TypeModifier()));
-                }
-            }            
 
             /**
              * IdSeek performs filter on outer_cols + [id] + edge Id + edge properties

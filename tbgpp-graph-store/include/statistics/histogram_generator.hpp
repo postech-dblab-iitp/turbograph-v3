@@ -2,13 +2,15 @@
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
-
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "common/boost_typedefs.hpp"
 #include "boost/histogram.hpp"
 #include "boost/accumulators/accumulators.hpp"
 #include "boost/accumulators/statistics/stats.hpp"
 #include "boost/accumulators/statistics/extended_p_square_quantile.hpp"
 #include <queue>
+#include <unordered_set>
 
 namespace duckdb {
 
@@ -52,7 +54,7 @@ private:
     void _init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column);
 
     //! Iterate data chunk & accumulate values
-    void _accumulate_data(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
+    void _accumulate_data_for_hist(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema);
 
     //! create buckets for each column
     void _create_bucket(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema,
@@ -77,6 +79,12 @@ private:
     //! calculate bin size. note that bin_size follows universal_schema order
     void _calculate_bin_sizes(std::shared_ptr<ClientContext> client, PartitionCatalogEntry *partition_cat, vector<uint64_t>& bin_sizes);
     uint64_t _calculate_bin_size(uint64_t num_rows, BinningMethod method = BinningMethod::STURGES);
+
+    //! Iterate data chunk & accumulate values for NDV counting
+    void _accumulate_data_for_ndv(DataChunk& chunk, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples);
+
+    //! calculate NDV
+    void _store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples);
 };
 
 } // namespace duckdb
