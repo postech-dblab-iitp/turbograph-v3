@@ -1509,16 +1509,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     unique_ptr<duckdb::Expression> filter_duckdb_expr;
     duckdb::Schema schema_adj;
     duckdb::Schema schema_seek;
+    size_t ID_COL_SIZE = 1;
 
     // Flags
     bool is_edge_prop_in_output = pIsPropertyInCols(inner_cols);
     bool is_edge_id_in_inner_cols = pIsIDInCols(inner_cols);
     bool is_filter_exist = pIsFilterExist(plan_expr->operator[](1));
+    bool is_seek_needed = is_edge_prop_in_output || is_filter_exist;
     D_ASSERT(!is_edge_id_in_inner_cols); // cannot understand the intend
-
-    /**
-     * Not considering filter only columns
-    */
 
     // Calculate join key columns index
     auto idxscan_epxr = pFindIndexScanExpr(plan_expr->operator[](1));
@@ -1548,19 +1546,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
     }
 
-    if (is_filter_exist) {
-        // Push filter only columns
-        vector<ULONG> inner_filter_only_cols_idx;
-        auto idxscan_cols = idxscan_epxr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-        auto filter_pred_expr = pFindFilterExpr(idxscan_epxr)->operator[](1);
-        pGetFilterOnlyInnerColsIdx(
-            filter_pred_expr, idxscan_cols /* all inner cols */,
-            inner_cols /* output inner cols */, inner_filter_only_cols_idx);
-        for (auto col_idx : inner_filter_only_cols_idx) {
-            seek_inner_cols->Append(idxscan_cols->operator[](col_idx));
-        }
-    }
-
     D_ASSERT(adj_output_cols->Size() > 0);
     D_ASSERT(adj_inner_cols->Size() > 0);
 
@@ -1575,8 +1560,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         if (!is_edge_id_in_inner_cols) {
             // edge ID column for seek
-            inner_col_maps_adj[0].push_back(adj_inner_cols->Size());
-            edge_id_col_idx = adj_inner_cols->Size();
+            inner_col_maps_adj[0].push_back(outer_cols->Size() + adj_inner_cols->Size());
+            edge_id_col_idx = outer_cols->Size() + adj_inner_cols->Size();
         }
     }
     D_ASSERT(inner_col_maps_adj[0].size() > 0);
@@ -1586,6 +1571,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
     // Construct AdjIdxJoin schema
     pGetDuckDBTypesFromColRefs(adj_output_cols, output_types_adj);
+    if (is_seek_needed && !is_edge_id_in_inner_cols) { output_types_adj.push_back(duckdb::LogicalType::ID); } // Append ID Column
     schema_adj.setStoredTypes(output_types_adj);
 
     // Construct adjidx_obj_id
@@ -1617,8 +1603,21 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     pBuildSchemaFlowGraphForUnaryOperator(schema_adj);
     result->push_back(duckdb_adjidx_op);
 
+    // Push filter only columns
+    if (is_filter_exist) {
+        vector<ULONG> inner_filter_only_cols_idx;
+        auto idxscan_cols = idxscan_epxr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+        auto filter_pred_expr = pFindFilterExpr(plan_expr->operator[](1))->operator[](1);
+        pGetFilterOnlyInnerColsIdx(
+            filter_pred_expr, idxscan_cols /* all scanned cols */,
+            inner_cols /* output inner cols */, inner_filter_only_cols_idx);
+        for (auto col_idx : inner_filter_only_cols_idx) {
+            seek_inner_cols->Append(idxscan_cols->operator[](col_idx));
+        }
+    }
     // Construct IdSeek
-    if (is_edge_prop_in_output) {
+    if (is_seek_needed) {
+
         // Construct inner col map
         pConstructColMapping(seek_inner_cols, seek_output_cols, inner_col_maps_seek[0]);
         D_ASSERT(inner_col_maps_seek[0].size() > 0);
@@ -1628,7 +1627,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         union_inner_col_map_seek = inner_col_maps_seek[0];
 
         // Construct outer col map
-        pConstructColMapping(outer_cols, seek_output_cols, outer_col_maps_seek[0]);
+        pConstructColMapping(adj_output_cols, seek_output_cols, outer_col_maps_seek[0]);
+        if (!is_edge_id_in_inner_cols) { outer_col_maps_seek[0].push_back(std::numeric_limits<uint32_t>::max()); } // Remove ID COlumn
         D_ASSERT(outer_col_maps_seek[0].size() > 0);
 
         // Construct scan_projection_mappings_seek and output_projection_mappings_seek and scan_types
@@ -1659,19 +1659,19 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                     scan_projection_mappings_seek, scan_types_seek, false /* is output UNION Schema */);
         }
         else {
-            // Get filter_duckdb_expr
-            vector<unique_ptr<duckdb::Expression>> filter_exprs;
+            // Get filter_exprs
+            vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
             unique_ptr<duckdb::Expression> filter_duckdb_expr;
-            auto filter_expr = pFindFilterExpr(idxscan_epxr);
-            filter_duckdb_expr = pTransformScalarExpr(filter_expr->operator[](1), adj_output_cols, seek_inner_cols);
-            pShiftFilterPredInnerColumnIndices(filter_duckdb_expr, adj_output_cols->Size());
-            filter_exprs.push_back(std::move(filter_duckdb_expr));
+            auto filter_pred_expr = pFindFilterExpr(plan_expr->operator[](1))->operator[](1);
+            filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr, adj_output_cols, seek_inner_cols);
+            pShiftFilterPredInnerColumnIndices(filter_duckdb_expr, adj_output_cols->Size() + ID_COL_SIZE);
+            filter_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
             // Construct IdSeek Operator for filter
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
                     schema_seek, edge_id_col_idx, seek_obj_ids,
                     output_projection_mappings_seek /* not used */ , outer_col_maps_seek,
                     inner_col_maps_seek, union_inner_col_map_seek,
-                    scan_projection_mappings_seek, scan_types_seek, filter_exprs, false /* is output UNION Schema */);
+                    scan_projection_mappings_seek, scan_types_seek, filter_duckdb_exprs, false /* is output UNION Schema */);
         }
         
         // Construct schema flow graph
