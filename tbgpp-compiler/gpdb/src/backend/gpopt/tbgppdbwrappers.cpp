@@ -80,31 +80,31 @@ duckdb::GetScalarFuncIndex(idx_t scalarfunc_oid) {
 	return (scalarfunc_oid - FUNCTION_BASE_ID) % 65536;
 }
 
-void
-duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStatsSlot *hist_slot) {
-	auto *offset_infos = rel->GetOffsetInfos();
-	if (offset_infos->size() == 0) {
-		// there is no histogram
-		hist_slot->valuetype = InvalidOid;
-		return;
-	} else {
-		idx_t num_buckets = attno == 0 ? (*offset_infos)[0] : (*offset_infos)[attno] - (*offset_infos)[attno - 1];
+// void
+// duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStatsSlot *hist_slot) {
+// 	auto *offset_infos = rel->GetOffsetInfos();
+// 	if (offset_infos->size() == 0) {
+// 		// there is no histogram
+// 		hist_slot->valuetype = InvalidOid;
+// 		return;
+// 	} else {
+// 		idx_t num_buckets = attno == 0 ? (*offset_infos)[0] : (*offset_infos)[attno] - (*offset_infos)[attno - 1];
 
-		if (num_buckets == 0) {
-			// there is no histogram for this column
-			hist_slot->valuetype = InvalidOid;
-			return;
-		}
+// 		if (num_buckets == 0) {
+// 			// there is no histogram for this column
+// 			hist_slot->valuetype = InvalidOid;
+// 			return;
+// 		}
 
-		// get valuetype
-		hist_slot->valuetype = (Oid)((*rel->GetTypes())[attno]) + LOGICAL_TYPE_BASE_ID;
+// 		// get valuetype
+// 		hist_slot->valuetype = (Oid)((*rel->GetTypes())[attno]) + LOGICAL_TYPE_BASE_ID;
 
-		// get nvalues
-		hist_slot->nvalues = num_buckets;
+// 		// get nvalues
+// 		hist_slot->nvalues = num_buckets;
 
-		// get histogram values
-	}
-}
+// 		// get histogram values
+// 	}
+// }
 
 idx_t
 duckdb::GetRelationPhysicalIDIndex(idx_t partition_oid) {

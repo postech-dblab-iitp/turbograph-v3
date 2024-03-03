@@ -404,7 +404,7 @@ private:
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
 	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
-	void pConvertLocalFilterExprToIdSeekFilterExpr(unique_ptr<duckdb::Expression> &expr, size_t outer_size);
+	void pShiftFilterPredInnerColumnIndices(unique_ptr<duckdb::Expression> &expr, size_t outer_size);
 	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefArray *inner_cols, CColRefArray *output_cols, vector<ULONG> &inner_cols_idx);
 
 	// investigate plan properties
@@ -484,8 +484,22 @@ private:
 	static INT pGetTypeModFromScalarAggFunc(CExpression *agg_expr);
 	static INT pGetTypeModFromScalarSwitch(CExpression *switch_expr);
 
-	
+	// Attr Value Get
 	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
+
+	// AdjIdxJoin Helpers
+	CExpression *pFindFilterExpr(CExpression *plan_expr);
+	CExpression *pFindIndexScanExpr(CExpression *plan_expr);
+	bool pIsFilterExist(CExpression* plan_expr);
+	bool pIsEdgePropertyInFilter(CExpression* plan_expr);
+	bool pIsPropertyInCols(CColRefArray *cols);
+	bool pIsIDInCols(CColRefArray *cols);
+	duckdb::idx_t pGetColIndexInPred(CExpression *pred, CColRefArray *colrefs);
+	void pGetDuckDBTypesFromColRefs(CColRefArray *colrefs, vector<duckdb::LogicalType> &out_types);
+	void pGetObjetIdsForColRefs(CColRefArray *cols, vector<uint64_t> &out_oids);
+	void pPushCartesianProductSchema(duckdb::Schema& out_schema, vector<duckdb::LogicalType> &rhs_types);
+	void pConstructColMapping(CColRefArray *in_cols, CColRefArray *out_cols, vector<uint32_t> &out_mapping);
+	size_t pGetNumOuterSchemas();
 
 private:
 	// config
