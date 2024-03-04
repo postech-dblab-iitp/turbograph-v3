@@ -277,7 +277,7 @@ run_ldbc_c3() {
 			(person:Person {id: 17592186055119 })
 		WITH person, countryX, countryY
 		LIMIT 1
-		MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
 		WHERE NOT person=friend
 			AND NOT EXISTS {
 				MATCH (city)-[:IS_PART_OF]->(country:Place)
