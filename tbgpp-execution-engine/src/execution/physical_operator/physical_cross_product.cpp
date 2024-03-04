@@ -93,6 +93,8 @@ OperatorResultType PhysicalCrossProduct::Execute(ExecutionContext &context, Data
 	auto &sink_state = (CrossProductLocalState &)sink_state_p;
 	auto &right_collection = sink_state.rhs_materialized;
 
+	chunk.SetCardinality(0);
+
 	if (right_collection.Count() == 0) {
 		// no RHS: empty result
 		return OperatorResultType::FINISHED;
