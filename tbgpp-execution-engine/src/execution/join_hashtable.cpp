@@ -72,6 +72,14 @@ JoinHashTable::JoinHashTable(BufferManager &buffer_manager, const vector<JoinCon
 	output_right_projection_map = right_map;
 }
 
+JoinHashTable::JoinHashTable(BufferManager &buffer_manager, const vector<vector<JoinCondition>> &or_conditions,
+                             vector<LogicalType> btypes, JoinType type, const vector<uint32_t> &left_map, const vector<uint32_t> &right_map)
+							 : JoinHashTable(buffer_manager, or_conditions[0], btypes, type) {
+	D_ASSERT(false); // intermediate implementaiton
+	output_left_projection_map = left_map;
+	output_right_projection_map = right_map;
+}
+
 JoinHashTable::~JoinHashTable() {
 }
 
@@ -532,7 +540,8 @@ void ScanStructure::ScanKeyMatches(DataChunk &keys) {
 
 template <bool MATCH>
 void ScanStructure::NextSemiOrAntiJoin(DataChunk &keys, DataChunk &left, DataChunk &result) {
-	D_ASSERT(left.ColumnCount() == result.ColumnCount());
+	// S62 - we do not need this condition because we can drop useless column after join
+	// D_ASSERT(result.ColumnCount() == left.ColumnCount() + ht.build_types.size());
 	D_ASSERT(keys.size() == left.size());
 	// create the selection vector from the matches that were found
 	SelectionVector sel(STANDARD_VECTOR_SIZE);
@@ -547,10 +556,19 @@ void ScanStructure::NextSemiOrAntiJoin(DataChunk &keys, DataChunk &left, DataChu
 	if (result_count > 0) {
 		// we only return the columns on the left side
 		// reference the columns of the left side from the result
-		result.Slice(left, sel, result_count);
+		// result.Slice(left, sel, result_count);
+		for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
+            if (output_left_projection_map[i] !=
+                std::numeric_limits<uint32_t>::max()) {
+                result.data[output_left_projection_map[i]].Slice(
+                    left.data[output_left_projection_map[i]], sel,
+                    result_count);
+            }
+        }
 	} else {
 		D_ASSERT(result.size() == 0);
 	}
+	result.SetCardinality(result_count);
 }
 
 void ScanStructure::NextSemiJoin(DataChunk &keys, DataChunk &left, DataChunk &result) {

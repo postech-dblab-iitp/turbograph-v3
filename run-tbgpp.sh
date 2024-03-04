@@ -240,6 +240,37 @@ run_ldbc_c3() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20" 1
+
+	run_query "
+	MATCH (countryX:Place {name: 'Honduras' }),
+			(countryY:Place {name: 'Mauritania' }),
+			(person:Person {id: 32985348839760 })
+		WITH person, countryX, countryY
+		LIMIT 1
+		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+		WHERE NOT person=friend
+			AND NOT EXISTS {
+				MATCH (city)-[:IS_PART_OF]->(country:Place)
+				WHERE country._id = countryX._id OR country._id = countryY._id
+			}
+		WITH DISTINCT friend, countryX, countryY
+		MATCH (friend)<-[:HAS_CREATOR]-(message:Comment),
+			(message)-[:IS_LOCATED_IN]->(country2:Place)
+		WHERE 1298940019200 > message.creationDate AND message.creationDate >= 1298937600000 AND
+			country2._id = countryX._id OR country2._id = countryY._id
+		WITH friend,
+			CASE WHEN country2=countryX THEN 1 ELSE 0 END AS messageX,
+			CASE WHEN country2=countryY THEN 1 ELSE 0 END AS messageY
+		WITH friend, sum(messageX) AS xCount, sum(messageY) AS yCount
+		WHERE xCount>0 AND yCount>0
+		RETURN friend.id AS friendId,
+			friend.firstName AS friendFirstName,
+			friend.lastName AS friendLastName,
+			xCount,
+			yCount,
+			xCount + yCount AS xyCount
+		ORDER BY xyCount DESC, friendId ASC
+		LIMIT 20; "
 	run_query "
 		MATCH (countryX:Place {name: 'Laos' }),
 			(countryY:Place {name: 'Scotland' }),
