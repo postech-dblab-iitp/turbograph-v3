@@ -139,6 +139,13 @@ public:
 		return m_pdrgpcr;
 	}
 
+	// s62 added.. but i'm not sure that we can use this
+	virtual const CColRefArray *
+	PdrgpcrMinimalGroupingCols() const
+	{
+		return m_pdrgpcrMinimal;
+	}
+
 	// array of columns used in distinct qualified aggregates (DQA)
 	virtual const CColRefArray *
 	PdrgpcrArgDQA() const

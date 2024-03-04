@@ -798,52 +798,46 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs, const
 
 LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan) {
 	// TODO bug..
-	CMemoryPool* mp = this->memory_pool;
-	// CColRefArray* key_columns = GPOS_NEW(mp) CColRefArray(mp);
-	// CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
-	// key_columns->AddRef();
+	CMemoryPool *mp = this->memory_pool;
+	CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+	CColRefArray* key_columns = GPOS_NEW(mp) CColRefArray(mp);
+	CColRefArray* minimal_key_columns = GPOS_NEW(mp) CColRefArray(mp);
+	key_columns->AddRef();
+	minimal_key_columns->AddRef();
 
 	for (auto& proj_expr_ptr: expressions) {
-	// 	vector<CExpression *> generated_exprs;
-	// 	vector<CColRef *> generated_colrefs;
 		kuzu::binder::Expression *proj_expr = proj_expr_ptr.get();
 		string col_name = proj_expr->getUniqueName();
 		string col_name_print = proj_expr->hasAlias() ? proj_expr->getAlias() : proj_expr->getUniqueName();
 		if (proj_expr->hasAggregationExpression()) {
-	// 		D_ASSERT(false); // TODO
+			D_ASSERT(false); // TODO not implemented yet
 		} else {
 			if (proj_expr->expressionType == kuzu::common::ExpressionType::PROPERTY) {
-				D_ASSERT(false); // TODO not implemented yet
-			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::VARIABLE) {
-	// 			kuzu::binder::NodeOrRelExpression *var_expr = (kuzu::binder::NodeOrRelExpression*)(proj_expr);
-	// 			auto property_columns = prev_plan->getSchema()->getAllColRefsOfKey(proj_expr->getUniqueName());
-	// 			if (proj_expr->getDataType().typeID == kuzu::common::DataTypeID::NODE) {
-	// 				// distinct on physical id column
-	// 				key_columns->Append(property_columns[0]);
-	// 				for (auto i = 0; i < property_columns.size(); i++) {
-	// 					generated_colrefs.push_back(property_columns[i]);
-	// 					generated_exprs.push_back(lExprScalarPropertyExpr(var_expr->getUniqueName(),
-	// 						prev_plan->getSchema()->getPropertyNameOfColRef(var_expr->getUniqueName(), property_columns[i]), prev_plan));
-	// 				}
-	// 			} else {
-	// 				for (auto& col: property_columns) {
-	// 					// consider all columns as key columns
-	// 					// TODO this is inefficient
-	// 					key_columns->Append(col);
-	// 				}
-	// 			}
-			} else if (proj_expr->expressionType == kuzu::common::ExpressionType::FUNCTION) {
+                proj_expr->is_processed = true;
+                CExpression *expr = lExprScalarExpression(proj_expr, prev_plan);
+                // add original colref to schema
+                CColRef *orig_colref = col_factory->LookupColRef(
+                    ((CScalarIdent *)(expr->Pop()))->Pcr()->Id());
+                // add to key_columns
+                key_columns->Append(orig_colref);
+                minimal_key_columns->Append(orig_colref);
+            } else if (proj_expr->expressionType == kuzu::common::ExpressionType::VARIABLE) {
+                proj_expr->is_processed = true;
+                kuzu::binder::NodeOrRelExpression *var_expr =
+                    (kuzu::binder::NodeOrRelExpression *)(proj_expr);
+                auto property_colrefs =
+                    std::move(prev_plan->getSchema()->getAllColRefsOfKey(
+                        proj_expr->getUniqueName()));
+                minimal_key_columns->Append(property_colrefs[0]);
+				for (auto &col : property_colrefs) {
+					key_columns->Append(col);
+				}
+            } else if (proj_expr->expressionType == kuzu::common::ExpressionType::FUNCTION) {
 				D_ASSERT(false); // TODO not implemented yet
 			} else {
 				D_ASSERT(false); // TODO not implemented yet
 			}
 		}
-	// 	D_ASSERT(generated_exprs.size() > 0 && generated_exprs.size() == generated_colrefs.size());
-	// 	for (int expr_idx = 0; expr_idx < generated_exprs.size(); expr_idx++) {
-	// 		CExpression* scalar_proj_elem = GPOS_NEW(mp) CExpression(
-	// 			mp, GPOS_NEW(mp) CScalarProjectElement(mp, generated_colrefs[expr_idx]), generated_exprs[expr_idx]);
-	// 		proj_array->Append(scalar_proj_elem);
-	// 	}
 	}
 
 	// CLogicalGbAgg *pop_gbagg = 
@@ -860,7 +854,7 @@ LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions, CColRe
 
 	CLogicalGbAgg *pop_gbagg = 
 		GPOS_NEW(mp) CLogicalGbAgg(
-			mp, colrefs, COperator::EgbaggtypeGlobal /*egbaggtype*/);
+			mp, key_columns, minimal_key_columns, COperator::EgbaggtypeGlobal /*egbaggtype*/);
 	CExpression *gbagg_expr =  GPOS_NEW(mp)
 		CExpression(mp, pop_gbagg, prev_plan->getPlanExpr(),
 		GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp)));
