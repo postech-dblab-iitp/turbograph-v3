@@ -966,7 +966,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
                                          adj_inner_cols);
-        // TODO: change code more efficiently. Obtain filter only cols and append twice
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
@@ -2642,6 +2641,14 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     duckdb::Schema schema;
     schema.setStoredTypes(hash_output_types);
 
+    if (remaining_condition != nullptr) {
+        std::cout << "remaining_condition:" << std::endl;
+        CWStringDynamic str(mp, L"\n");
+        COstreamString oss(&str);
+        remaining_condition->OsPrint(oss);
+        GPOS_TRACE(str.GetBuffer());
+    }
+
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
         right_build_types, right_build_map);
@@ -2653,9 +2660,11 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         duckdb::Schema schema_filter;
         schema_filter.setStoredTypes(hash_output_types);
         vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
-        pGetFilterDuckDBExprs(remaining_condition, hash_output_cols, nullptr, 0, filter_duckdb_exprs);
+        pGetFilterDuckDBExprs(remaining_condition, hash_output_cols, nullptr, 0,
+                              filter_duckdb_exprs);
         duckdb::CypherPhysicalOperator *duckdb_filter_op =
-            new duckdb::PhysicalFilter(schema_filter, move(filter_duckdb_exprs));
+            new duckdb::PhysicalFilter(schema_filter,
+                                       move(filter_duckdb_exprs));
         lhs_result->push_back(duckdb_filter_op);
         pBuildSchemaFlowGraphForUnaryOperator(schema_filter);
 
@@ -4926,8 +4935,8 @@ void Planner::pGetFilterDuckDBExprs(
         filter_pred_expr = filter_or_pred_expr;
     }
     unique_ptr<duckdb::Expression> filter_duckdb_expr;
-    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr,
-                                              outer_cols, inner_cols);
+    filter_duckdb_expr =
+        pTransformScalarExpr(filter_pred_expr, outer_cols, inner_cols);
     if (index_shifting_size > 0)
         pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                            index_shifting_size);
