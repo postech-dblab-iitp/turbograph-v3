@@ -397,12 +397,12 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
         _cluster_column<CliqueClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
         
         // print num_groups_for_this_column and group_info_for_this_column
-        std::cout << i << "-th column num_groups: " << num_groups_for_this_column << std::endl;
-        std::cout << i << "-th column group_info: ";
-        for (auto j = 0; j < group_info_for_this_column.size(); j++) {
-            std::cout << group_info_for_this_column[j] << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << i << "-th column num_groups: " << num_groups_for_this_column << std::endl;
+        // std::cout << i << "-th column group_info: ";
+        // for (auto j = 0; j < group_info_for_this_column.size(); j++) {
+        //     std::cout << group_info_for_this_column[j] << " ";
+        // }
+        // std::cout << std::endl;
 
         num_groups->push_back(num_groups_for_this_column);
         for (auto j = 0; j < group_info_for_this_column.size(); j++) {
