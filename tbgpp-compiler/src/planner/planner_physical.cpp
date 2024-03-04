@@ -924,12 +924,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     bool is_edge_prop_in_output = pIsPropertyInCols(inner_cols);
     bool is_edge_id_in_inner_cols = pIsIDColInCols(inner_cols);
     bool is_filter_exist = pIsFilterExist(plan_expr->operator[](1));
-    bool filter_after_adj = is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1));
+    bool filter_after_adj =
+        is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1));
     bool filter_in_seek = is_filter_exist && !filter_after_adj;
     bool generate_seek = is_edge_prop_in_output || filter_in_seek;
 
     // Get filter
-    if (is_filter_exist) filter_expr = pFindFilterExpr(plan_expr->operator[](1));
+    if (is_filter_exist)
+        filter_expr = pFindFilterExpr(plan_expr->operator[](1));
 
     // Calculate join key columns index
     auto idxscan_epxr = pFindIndexScanExpr(plan_expr->operator[](1));
@@ -962,30 +964,32 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     if (filter_after_adj && generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr,
-                              idxscan_cols, inner_cols, adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr,
-                              idxscan_cols, inner_cols, adj_output_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
+                                         adj_inner_cols);
+        // TODO: change code more efficiently. Obtain filter only cols and append twice
+        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                              adj_inner_cols);
+        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                              adj_output_cols);
     }
     else if (filter_after_adj && !generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
         adj_inner_cols->AppendArray(inner_cols);
-        pAppendFilterOnlyCols(filter_expr,
-                              idxscan_cols, inner_cols, adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr,
-                              idxscan_cols, inner_cols, adj_output_cols);
-        
+        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                              adj_inner_cols);
+        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                              adj_output_cols);
     }
     else if (!filter_after_adj && generate_seek) {
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
+                                         adj_inner_cols);
         adj_output_cols->AppendArray(adj_inner_cols);
         if (filter_in_seek) {
             D_ASSERT(filter_expr != NULL);
-            pAppendFilterOnlyCols(filter_expr,
-                                  idxscan_cols, inner_cols, seek_inner_cols);
+            pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                                  seek_inner_cols);
         }
     }
     else {
@@ -1025,9 +1029,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
     // Construct AdjIdxJoin schema
     pGetDuckDBTypesFromColRefs(adj_output_cols, output_types_adj);
-    if (generate_seek && !is_edge_id_in_inner_cols) { // Append ID Column
+    if (generate_seek && !is_edge_id_in_inner_cols) {  // Append ID Column
         output_types_adj.push_back(duckdb::LogicalType::ID);
-    } 
+    }
     schema_adj.setStoredTypes(output_types_adj);
 
     // Construct adjidx_obj_id
@@ -1063,9 +1067,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     if (filter_after_adj) {
         D_ASSERT(!filter_in_seek);
         vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
-        pGetFilterDuckDBExprs(filter_expr,
-                              adj_output_cols, nullptr, adj_output_cols->Size(),
-                              filter_duckdb_exprs);
+        pGetFilterDuckDBExprs(filter_expr, adj_output_cols, nullptr,
+                              adj_output_cols->Size(), filter_duckdb_exprs);
         duckdb::CypherPhysicalOperator *duckdb_filter_op =
             new duckdb::PhysicalFilter(schema_adj, move(filter_duckdb_exprs));
         result->push_back(duckdb_filter_op);
@@ -1078,8 +1081,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 vector<unique_ptr<duckdb::Expression>> proj_exprs;
                 pGetDuckDBTypesFromColRefs(output_cols, output_types_proj);
                 schema_proj.setStoredTypes(output_types_proj);
-                pGetProjectionExprs(adj_output_cols, output_cols, output_types_proj,
-                                    proj_exprs);
+                pGetProjectionExprs(adj_output_cols, output_cols,
+                                    output_types_proj, proj_exprs);
                 if (proj_exprs.size() != 0) {
                     duckdb::CypherPhysicalOperator *duckdb_proj_op =
                         new duckdb::PhysicalProjection(schema_proj,
@@ -1147,8 +1150,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         else {
             // Get filter_exprs
             vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
-            pGetFilterDuckDBExprs(filter_expr,
-                                  adj_output_cols, seek_inner_cols,
+            pGetFilterDuckDBExprs(filter_expr, adj_output_cols, seek_inner_cols,
                                   adj_output_cols->Size() + ID_COL_SIZE,
                                   filter_duckdb_exprs);
             // Construct IdSeek Operator for filter
@@ -2521,17 +2523,23 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
 vector<duckdb::CypherPhysicalOperator *> *
 Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 {
-
     CMemoryPool *mp = this->memory_pool;
-    D_ASSERT(plan_expr->Arity() == 3);
 
+    // Don't need to explicitly convert to LeftAntiJoin, LeftSemiJoin, LeftMarkJoin
     CPhysicalInnerHashJoin *expr_op =
         (CPhysicalInnerHashJoin *)plan_expr->Pop();
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRefArray *hash_output_cols = GPOS_NEW(mp) CColRefArray(mp);
+    CColRefArray *filter_output_cols = NULL;
+    CColRefArray *proj_output_cols = output_cols;
+
+    // Obtain left and right cols
     CExpression *pexprLeft = (*plan_expr)[0];
     CColRefArray *left_cols;
+    CColRefArray *right_cols;
     if (pexprLeft->Pop()->Eopid() ==
-        COperator::EOperatorId::EopPhysicalSerialUnionAll) {
+        COperator::EOperatorId::
+            EopPhysicalSerialUnionAll) {  // TODO: correctness check (is it okay to call PdrgpcrOutput?)
         CPhysicalSerialUnionAll *unionall_op =
             (CPhysicalSerialUnionAll *)pexprLeft->Pop();
         left_cols = unionall_op->PdrgpcrOutput();
@@ -2540,9 +2548,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         left_cols = pexprLeft->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     }
     CExpression *pexprRight = (*plan_expr)[1];
-    CColRefArray *right_cols;
     if (pexprRight->Pop()->Eopid() ==
-        COperator::EOperatorId::EopPhysicalSerialUnionAll) {
+        COperator::EOperatorId::
+            EopPhysicalSerialUnionAll) {  // TODO: correctness check (is it okay to call PdrgpcrOutput?)
         CPhysicalSerialUnionAll *unionall_op =
             (CPhysicalSerialUnionAll *)pexprRight->Pop();
         right_cols = unionall_op->PdrgpcrOutput();
@@ -2551,36 +2559,43 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         right_cols = pexprRight->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     }
 
-    vector<duckdb::LogicalType> types;
+    /**
+     * 1) Hash Join: when join condition have no OR conditions
+     *  - Hash Join output: output cols
+     * 2) Hash Join + Filter + Projection: when join condition have OR conditions
+     *  - Hash Join output: left cols + right cols
+     *  - Filter output: left cols + right cols 
+     *  - Projection output: output cols
+     * 
+     * Note: there is no filter only column, since predicate is on the join operator,
+     * not sepreate filter operator like AdjIdxJoin case.
+    */
+    vector<duckdb::JoinCondition> join_conds;
+    CExpression *remaining_condition = nullptr;
+    pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
+                                       left_cols, right_cols,
+                                       remaining_condition);
+    bool is_filter_proj_needed = remaining_condition != nullptr;
+    if (!is_filter_proj_needed) {
+        hash_output_cols = output_cols;
+    }
+    else {
+        D_ASSERT(remaining_condition != nullptr);
+        // hash output cols
+        hash_output_cols->AppendArray(left_cols);
+        hash_output_cols->AppendArray(right_cols);
+        // filter output cols
+        filter_output_cols = hash_output_cols;
+    }
+
+    // Construct col map, types and etc
+    vector<duckdb::LogicalType> hash_output_types;
     vector<uint32_t> left_col_map;
     vector<uint32_t> right_col_map;
 
-    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-        CColRef *col = output_cols->operator[](col_idx);
-        OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
-        INT type_mod = col->TypeModifier();
-        duckdb::LogicalType col_type =
-            pConvertTypeOidToLogicalType(type_oid, type_mod);
-        types.push_back(col_type);
-    }
-    for (ULONG col_idx = 0; col_idx < left_cols->Size(); col_idx++) {
-        auto idx = output_cols->IndexOf(left_cols->operator[](col_idx));
-        if (idx == gpos::ulong_max) {
-            left_col_map.push_back(std::numeric_limits<uint32_t>::max());
-        }
-        else {
-            left_col_map.push_back(idx);
-        }
-    }
-    for (ULONG col_idx = 0; col_idx < right_cols->Size(); col_idx++) {
-        auto idx = output_cols->IndexOf(right_cols->operator[](col_idx));
-        if (idx == gpos::ulong_max) {
-            right_col_map.push_back(std::numeric_limits<uint32_t>::max());
-        }
-        else {
-            right_col_map.push_back(idx);
-        }
-    }
+    pGetDuckDBTypesFromColRefs(hash_output_cols, hash_output_types);
+    pConstructColMapping(left_cols, hash_output_cols, left_col_map);
+    pConstructColMapping(right_cols, hash_output_cols, right_col_map);
 
     duckdb::JoinType join_type = pTranslateJoinType(expr_op);
     D_ASSERT(join_type != duckdb::JoinType::RIGHT);
@@ -2625,19 +2640,49 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 
     // define op
     duckdb::Schema schema;
-    schema.setStoredTypes(types);
-
-    // generate conditions
-    vector<duckdb::JoinCondition> join_conds;
-    CExpression *remaining_condition = nullptr;
-    pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols, remaining_condition);
+    schema.setStoredTypes(hash_output_types);
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
         right_build_types, right_build_map);
 
-    return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
+    auto lhs_result = pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
+
+    if (is_filter_proj_needed) {
+        // Filter
+        duckdb::Schema schema_filter;
+        schema_filter.setStoredTypes(hash_output_types);
+        vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
+        pGetFilterDuckDBExprs(remaining_condition, hash_output_cols, nullptr, 0, filter_duckdb_exprs);
+        duckdb::CypherPhysicalOperator *duckdb_filter_op =
+            new duckdb::PhysicalFilter(schema_filter, move(filter_duckdb_exprs));
+        lhs_result->push_back(duckdb_filter_op);
+        pBuildSchemaFlowGraphForUnaryOperator(schema_filter);
+
+        // Projection
+        duckdb::Schema schema_proj;
+        vector<duckdb::LogicalType> proj_output_types;
+        pGetDuckDBTypesFromColRefs(proj_output_cols, proj_output_types);
+        schema_proj.setStoredTypes(proj_output_types);
+        vector<unique_ptr<duckdb::Expression>> proj_exprs;
+        pGetProjectionExprs(filter_output_cols, proj_output_cols,
+                            proj_output_types, proj_exprs);
+
+        if (proj_exprs.size() > 0) {
+            duckdb::CypherPhysicalOperator *duckdb_proj_op =
+                new duckdb::PhysicalProjection(schema_proj, move(proj_exprs));
+            lhs_result->push_back(duckdb_proj_op);
+            pBuildSchemaFlowGraphForUnaryOperator(schema_proj);
+        }
+    }
+
+    // Release
+    output_cols->Release();
+    left_cols->Release();
+    right_cols->Release();
+    hash_output_cols->Release();
+
+    return lhs_result;
 }
 
 vector<duckdb::CypherPhysicalOperator *> *
@@ -2714,7 +2759,8 @@ Planner::pTransformEopPhysicalMergeJoinToMergeJoin(CExpression *plan_expr)
     vector<duckdb::JoinCondition> join_conds;
     CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols, remaining_condition);
+                                       left_cols, right_cols,
+                                       remaining_condition);
 
     // Calculate lhs and rhs types
     vector<duckdb::LogicalType> lhs_types;
@@ -4008,7 +4054,8 @@ bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
 
 void Planner::pTranslatePredicateToJoinCondition(
     CExpression *pred, vector<duckdb::JoinCondition> &out_conds,
-    CColRefArray *lhs_cols, CColRefArray *rhs_cols, CExpression *&remaining_condition)
+    CColRefArray *lhs_cols, CColRefArray *rhs_cols,
+    CExpression *&remaining_condition)
 {
 
     // split AND predicates into each JoinCondition
@@ -4020,9 +4067,11 @@ void Planner::pTranslatePredicateToJoinCondition(
             D_ASSERT(pred->Arity() == 2);
             // Split predicates
             pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds,
-                                               lhs_cols, rhs_cols, remaining_condition);
+                                               lhs_cols, rhs_cols,
+                                               remaining_condition);
             pTranslatePredicateToJoinCondition(pred->operator[](1), out_conds,
-                                               lhs_cols, rhs_cols, remaining_condition);
+                                               lhs_cols, rhs_cols,
+                                               remaining_condition);
         }
         else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
             remaining_condition = pred;
@@ -4158,14 +4207,12 @@ duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
         }
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin:
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
-        case COperator::EOperatorId::
-            EopPhysicalCorrelatedLeftAntiSemiNLJoin: {
+        case COperator::EOperatorId::EopPhysicalCorrelatedLeftAntiSemiNLJoin: {
             return duckdb::JoinType::ANTI;
         }
         case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:
         case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin:
-        case COperator::EOperatorId::
-            EopPhysicalCorrelatedLeftSemiNLJoin: {
+        case COperator::EOperatorId::EopPhysicalCorrelatedLeftSemiNLJoin: {
             return duckdb::JoinType::SEMI;
         }
             // TODO where is FULL OUTER??????
@@ -4724,9 +4771,9 @@ bool Planner::pIsIDColInCols(CColRefArray *cols)
     return is_edge_id_found;
 }
 
-CColRef* Planner::pGetIDColInCols(CColRefArray *cols)
+CColRef *Planner::pGetIDColInCols(CColRefArray *cols)
 {
-    CColRef* id_col = NULL;
+    CColRef *id_col = NULL;
     for (ULONG col_idx = 0; col_idx < cols->Size(); col_idx++) {
         CColRef *col = cols->operator[](col_idx);
         CColRefTable *colref_table = (CColRefTable *)col;
@@ -4751,9 +4798,9 @@ size_t Planner::pGetNumOuterSchemas()
 CExpression *Planner::pFindIndexScanExpr(CExpression *plan_expr)
 {
     if (plan_expr->Pop()->Eopid() ==
-        COperator::EOperatorId::EopPhysicalIndexScan || 
-        plan_expr->Pop()->Eopid() == 
-        COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
+            COperator::EOperatorId::EopPhysicalIndexScan ||
+        plan_expr->Pop()->Eopid() ==
+            COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
         return plan_expr;
     }
     for (ULONG child_idx = 0; child_idx < plan_expr->Arity(); child_idx++) {
@@ -4863,14 +4910,23 @@ void Planner::pAppendFilterOnlyCols(CExpression *filter_expr,
 }
 
 void Planner::pGetFilterDuckDBExprs(
-    CExpression *filter_expr, CColRefArray *outer_cols,
+    CExpression *filter_or_pred_expr, CColRefArray *outer_cols,
     CColRefArray *inner_cols, size_t index_shifting_size,
     vector<unique_ptr<duckdb::Expression>> &out_exprs)
 {
-    D_ASSERT(filter_expr->Pop()->Eopid() ==
-             COperator::EOperatorId::EopPhysicalFilter);
+    CExpression *filter_pred_expr;
+    if (filter_or_pred_expr->Pop()->Eopid() ==
+        COperator::EOperatorId::EopPhysicalFilter) {
+        filter_pred_expr = filter_or_pred_expr->operator[](1);
+    }
+    else if (filter_or_pred_expr->Pop()->Eopid() ==
+                 COperator::EOperatorId::EopScalarBoolOp ||
+             filter_or_pred_expr->Pop()->Eopid() ==
+                 COperator::EOperatorId::EopScalarCmp) {
+        filter_pred_expr = filter_or_pred_expr;
+    }
     unique_ptr<duckdb::Expression> filter_duckdb_expr;
-    filter_duckdb_expr = pTransformScalarExpr(filter_expr->operator[](1),
+    filter_duckdb_expr = pTransformScalarExpr(filter_pred_expr,
                                               outer_cols, inner_cols);
     if (index_shifting_size > 0)
         pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
@@ -4878,7 +4934,10 @@ void Planner::pGetFilterDuckDBExprs(
     out_exprs.push_back(std::move(filter_duckdb_expr));
 }
 
-void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols, CColRefArray* property_cols, CColRefArray* non_property_cols) {
+void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,
+                                               CColRefArray *property_cols,
+                                               CColRefArray *non_property_cols)
+{
     for (ULONG col_idx = 0; col_idx < input_cols->Size(); col_idx++) {
         CColRef *col = input_cols->operator[](col_idx);
         if (!pIsColEdgeProperty(col)) {
@@ -4890,7 +4949,11 @@ void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols, CColRef
     }
 }
 
-void Planner::pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs) {
+void Planner::pGetProjectionExprs(
+    CColRefArray *input_cols, CColRefArray *output_cols,
+    vector<duckdb::LogicalType> output_types,
+    vector<unique_ptr<duckdb::Expression>> &out_exprs)
+{
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         CColRef *col = (*output_cols)[col_idx];
         ULONG idx = input_cols->IndexOf(col);
