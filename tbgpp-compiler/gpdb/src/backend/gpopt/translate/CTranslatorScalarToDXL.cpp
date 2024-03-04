@@ -2387,16 +2387,17 @@ CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
 	else
 	{
 		// use hash value
-		ULONG hash = 0;
+		// ULONG hash = 0;
 		if (is_null)
 		{
-			hash = gpos::HashValue<ULONG>(&hash);
+			// hash = gpos::HashValue<ULONG>(&hash);
+			lint_value = gpos::HashValue<LINT>(&lint_value);
 		}
 		else
 		{
 			if (mdid->Equals(&CMDIdGPDB::m_mdid_s62_ubigint) ||
 				mdid->Equals(&CMDIdGPDB::m_mdid_s62_id)) {
-				clib::Memcpy(&hash, bytes, length);
+				clib::Memcpy(&lint_value, bytes, length);
 			} else {
 				GPOS_ASSERT(false);
 			}
@@ -2428,7 +2429,7 @@ CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
 			// }
 		}
 
-		lint_value = (LINT) hash;
+		// lint_value = (LINT) hash;
 	}
 
 	return lint_value;

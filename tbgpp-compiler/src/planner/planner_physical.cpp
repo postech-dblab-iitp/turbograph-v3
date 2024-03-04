@@ -942,22 +942,27 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     // Calculate adj_inner_cols and adj_output_cols and seek_inner_cols
     /**
      * 1) AdjIdxJoin + Filter + Seek
-     *  - AdjIdxJoin output: outer_cols + inner_cols (w/o edge properties) + filter only columns
+     *  - AdjIdxJoin output: outer_cols + inner_cols (w/o edge properties) + filter only columns + edge ID
      *  - Filter output: outer_cols + inner_cols (w/o edge properties) + filter only columns
+     *  - Seek inner: edge properties
      *  - Seek output: output_cols
      * 2) AdjIdxJoin + Filter + [Projection]
+     *  - AdjIdxJoin inner: inner_cols + filter only columns
      *  - AdjIdxJoin output: outer_cols + inner_cols + filter only columns
      *  - Filter output: output_cols
      * 3) AdjIdxJoin + Seek
-     *  - AdjIdxJoin output: outer_cols + inner_cols (w/o edge properties)
+     *  - AdjIdxJoin inner: inner_cols (w/o edge properties)
+     *  - AdjIdxJoin output: outer_cols + inner_cols (w/o edge properties) + edge ID
+     *  - Seek inner: edge properties + filter only columns (if filter exists)
      *  - Seek output: output_cols
      * 4) AdjIdxJoin
-     *  - AdjIdxJoin: output cols
+     *  - AdjIdxJoin inner: inner cols
+     *  - AdjIdxJoin output: output cols
     */
     if (filter_after_adj && generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, adj_inner_cols, seek_inner_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr,
                               idxscan_cols, inner_cols, adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr,
@@ -975,8 +980,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     }
     else if (!filter_after_adj && generate_seek) {
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, adj_inner_cols, seek_inner_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
         adj_output_cols->AppendArray(adj_inner_cols);
+        if (filter_in_seek) {
+            D_ASSERT(filter_expr != NULL);
+            pAppendFilterOnlyCols(filter_expr,
+                                  idxscan_cols, inner_cols, seek_inner_cols);
+        }
     }
     else {
         adj_output_cols->AppendArray(output_cols);
@@ -1084,13 +1094,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
     // Construct IdSeek
     if (generate_seek) {
-        // Push filter only columns
-        if (filter_in_seek) {
-            D_ASSERT(filter_expr != NULL);
-            pAppendFilterOnlyCols(filter_expr,
-                                idxscan_cols, inner_cols, seek_inner_cols);
-        }
-
         // Construct inner col map
         pConstructColMapping(seek_inner_cols, seek_output_cols,
                              inner_col_maps_seek[0]);
@@ -1133,7 +1136,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
         // Construct IdSeek Operator
         duckdb::CypherPhysicalOperator *duckdb_idseek_op;
-        if (!is_filter_exist) {
+        if (!filter_in_seek) {
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
                 schema_seek, edge_id_col_idx, seek_obj_ids,
                 output_projection_mappings_seek /* not used */,
