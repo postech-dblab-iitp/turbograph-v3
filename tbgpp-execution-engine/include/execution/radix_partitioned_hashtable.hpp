@@ -50,7 +50,7 @@ public:
 	//! Source interface
 	unique_ptr<GlobalSourceState> GetGlobalSourceState() const;
 	void GetData(ExecutionContext &context, DataChunk &chunk, GlobalSinkState &sink_state,
-	             GlobalSourceState &gstate_p) const;
+	             GlobalSourceState &gstate_p, const vector<uint64_t> &output_projection_mapping) const;
 
 	static void SetMultiScan(GlobalSinkState &state);
 	bool ForceSingleHT(GlobalSinkState &state) const;

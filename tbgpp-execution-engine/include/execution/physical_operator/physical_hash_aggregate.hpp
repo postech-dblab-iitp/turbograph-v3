@@ -25,10 +25,10 @@ class BufferManager;
 //! a hash table to perform the grouping
 class PhysicalHashAggregate : public CypherPhysicalOperator {
 public:
-	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions);
-	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
+	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions);
+	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
 	                      vector<unique_ptr<Expression>> groups);
-	PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
+	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
 	                      vector<unique_ptr<Expression>> groups,
 						  vector<GroupingSet> grouping_sets,
 	                      vector<vector<idx_t>> grouping_functions);
@@ -83,6 +83,8 @@ public:
 	vector<BoundAggregateExpression *> bindings;
 
 	unordered_map<Expression *, size_t> filter_indexes;
+
+	vector<uint64_t> output_projection_mapping;
 };
 
 } // namespace duckdb

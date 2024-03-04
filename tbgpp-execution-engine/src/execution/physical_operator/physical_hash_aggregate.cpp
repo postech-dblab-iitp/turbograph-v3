@@ -22,20 +22,21 @@
 
 namespace duckdb {
 
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions)
-	: PhysicalHashAggregate(sch, move(expressions), {}) {
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions)
+	: PhysicalHashAggregate(sch, output_projection_mapping, move(expressions), {}) {
 }
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
 						vector<unique_ptr<Expression>> groups_p)
-	: PhysicalHashAggregate(sch, move(expressions), move(groups_p), {}, {}) {
+	: PhysicalHashAggregate(sch, output_projection_mapping, move(expressions), move(groups_p), {}, {}) {
 }
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<unique_ptr<Expression>> expressions,
+PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping,
+						vector<unique_ptr<Expression>> expressions,
 						vector<unique_ptr<Expression>> groups_p,
 						vector<GroupingSet> grouping_sets_p,
 						vector<vector<idx_t>> grouping_functions_p)
 	: CypherPhysicalOperator(PhysicalOperatorType::HASH_AGGREGATE, sch), groups(move(groups_p)),
       grouping_sets(move(grouping_sets_p)), grouping_functions(move(grouping_functions_p)), all_combinable(true),	
-      any_distinct(false) {
+      any_distinct(false), output_projection_mapping(output_projection_mapping) {
 	// TODO no support for custom grouping sets and grouping functions
 	D_ASSERT(grouping_sets.size() == 0 );
 	D_ASSERT(grouping_functions.size() == 0 );
@@ -286,7 +287,7 @@ void PhysicalHashAggregate::GetData(ExecutionContext &context, DataChunk &chunk,
 	while (state.scan_index < state.radix_states.size()) {
 		auto prev_chunk_card = chunk.size();
 		radix_tables[state.scan_index].GetData(context, chunk, *sstate.global_radix_states[state.scan_index],
-		                                       *state.radix_states[state.scan_index]);
+		                                       *state.radix_states[state.scan_index], output_projection_mapping);
 		auto new_chunk_card = chunk.size() - prev_chunk_card;
 		if (new_chunk_card != 0) {
 			return;
