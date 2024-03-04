@@ -338,7 +338,7 @@ unique_ptr<GlobalSourceState> RadixPartitionedHashTable::GetGlobalSourceState() 
 }
 
 void RadixPartitionedHashTable::GetData(ExecutionContext &context, DataChunk &chunk, GlobalSinkState &sink_state,
-                                        GlobalSourceState &source_state) const {
+                                        GlobalSourceState &source_state, const vector<uint64_t> &output_projection_mapping) const {
 	auto &gstate = (RadixHTGlobalState &)sink_state;
 	auto &state = (RadixHTGlobalSourceState &)source_state;
 	D_ASSERT(gstate.is_finalized);
@@ -400,19 +400,28 @@ void RadixPartitionedHashTable::GetData(ExecutionContext &context, DataChunk &ch
 	chunk.SetCardinality(elements_found);
 
 	idx_t chunk_index = 0;
-	for (auto &entry : grouping_set) {
-		chunk.data[entry].Reference(state.scan_chunk.data[chunk_index++]);
+	idx_t num_unused_grouping_cols = 0;
+	for (auto i = 0; i < output_projection_mapping.size(); i++) {
+		if (output_projection_mapping[i] != std::numeric_limits<uint32_t>::max()) {
+			chunk.data[output_projection_mapping[i]].Reference(state.scan_chunk.data[i]);
+		} else {
+			num_unused_grouping_cols++;
+		}
 	}
+	// for (auto &entry : grouping_set) {
+	// 	chunk.data[entry].Reference(state.scan_chunk.data[chunk_index++]);
+	// }
 	for (auto null_group : null_groups) {
 		chunk.data[null_group].SetVectorType(VectorType::CONSTANT_VECTOR);
 		ConstantVector::SetNull(chunk.data[null_group], true);
 	}
+	idx_t skip_offset = op.groups.size() - num_unused_grouping_cols;
 	for (idx_t col_idx = 0; col_idx < op.aggregates.size(); col_idx++) {
-		chunk.data[op.groups.size() + col_idx].Reference(state.scan_chunk.data[group_types.size() + col_idx]);
+		chunk.data[skip_offset + col_idx].Reference(state.scan_chunk.data[group_types.size() + col_idx]);
 	}
 	D_ASSERT(op.grouping_functions.size() == grouping_values.size());
 	for (idx_t i = 0; i < op.grouping_functions.size(); i++) {
-		chunk.data[op.groups.size() + op.aggregates.size() + i].Reference(grouping_values[i]);
+		chunk.data[skip_offset + op.aggregates.size() + i].Reference(grouping_values[i]);
 	}
 }
 
