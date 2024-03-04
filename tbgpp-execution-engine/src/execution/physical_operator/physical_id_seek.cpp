@@ -428,11 +428,12 @@ OperatorResultType PhysicalIdSeek::Execute(
                     vector<idx_t> output_col_idx;
                     getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
                     // do VertexIdSeek
+                    // TODO in schemaless case, we need to change this API carefully. it should cover both cases
                     context.client->graph_store->doVertexIndexSeek(
                         state.ext_its, tmp_chunk, input, nodeColIdx,
                         target_types, target_eids, target_seqnos_per_extent,
-                        extentIdx, output_col_idx,
-                        num_tuples_per_chunk[chunk_idx]);
+                        extentIdx, output_col_idx);
+                    num_tuples_per_chunk[chunk_idx] += target_seqnos_per_extent[extentIdx].size();
                 }
 
                 for (auto chunk_idx = 0; chunk_idx < chunks.size();

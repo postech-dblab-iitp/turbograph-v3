@@ -5,7 +5,7 @@ workspace=$2
 debug_plan=$3
 
 if [ "$#" -eq 1 ]; then
-	workspace="/data/tpch/sf1_swizzling2/"
+	workspace="/data/tpch/sf1_240302/"
 	debug_plan_option=""
 elif [ "$#" -eq 2 ]; then
 	debug_plan_option=""
@@ -31,7 +31,7 @@ run_query() {
 	echo "$query_str"
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain --debug-orca
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:greedy --profile --explain
-	./build-release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive --profile --explain
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --show-top
 	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --profile --explain
 }
 
@@ -654,28 +654,16 @@ run_tpch1() {
 
 run_tpch2() {
 	# TPC-H Q2 Minimum Cost Supplier Query
-	run_query "MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)-[:IS_LOCATED_IN]->(r:REGION)
-		WHERE r.R_NAME = 'AMERICA'
-		WITH min(p.PS_SUPPLYCOST) as minvalue
-		MATCH (pa2:PART)-[p2:PARTSUPP]->(s2:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)-[:IS_LOCATED_IN]->(r2:REGION)
-		WHERE pa2.P_SIZE = 43
-			AND r2.R_NAME = 'AMERICA'
-			AND pa2.P_TYPE CONTAINS 'COPPER'
-			AND p2.PS_SUPPLYCOST = minvalue
-		RETURN
-			s2.S_ACCTBAL,
-			s2.S_NAME,
-			n2.N_NAME,
-			pa2.P_PARTKEY,
-			pa2.P_MFGR,
-			s2.S_ADDRESS,
-			s2.S_PHONE,
-			s2.S_COMMENT
-		ORDER BY
-			s2.S_ACCTBAL DESC,
-			n2.N_NAME,
-			s2.S_NAME,
-			pa2.P_PARTKEY
+	run_query "MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)-[:IS_LOCATED_IN]->(r:REGION) 
+		WHERE pa.P_SIZE = 43 and pa.P_TYPE CONTAINS 'COPPER' and r.R_NAME = 'AMERICA' 
+		WITH pa, p.PS_SUPPLYCOST AS PS_SUPPLYCOST, s.S_ACCTBAL AS S_ACCTBAL,s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS,s.S_PHONE AS S_PHONE,s.S_COMMENT AS S_COMMENT, n.N_NAME AS N_NAME
+		MATCH
+		(pa)-[p2:PARTSUPP]->(:SUPPLIER)-[:SUPP_BELONG_TO]->(:NATION)-[:IS_LOCATED_IN]->(r2:REGION)
+		WHERE r2.R_NAME = 'AMERICA' 
+		WITH pa.P_PARTKEY AS P_PARTKEY, pa.P_MFGR AS P_MFGR, PS_SUPPLYCOST, S_ACCTBAL, S_NAME, S_ADDRESS, S_PHONE, S_COMMENT, N_NAME, min(p2.PS_SUPPLYCOST) as minvalue
+		WHERE PS_SUPPLYCOST = minvalue
+		RETURN S_ACCTBAL, S_NAME, N_NAME, P_PARTKEY, P_MFGR, S_ADDRESS, S_PHONE, S_COMMENT
+		ORDER BY S_ACCTBAL desc,N_NAME,S_NAME,P_PARTKEY
 		LIMIT 100;" 0
 }
 
@@ -703,12 +691,12 @@ run_tpch4() {
 		WHERE l.L_COMMITDATE < l.L_RECEIPTDATE 
 			AND ord.O_ORDERDATE >= date('1994-01-01')
 			AND ord.O_ORDERDATE < date('1994-04-01')
-		WITH distinct(ord)
+		WITH distinct ord._id AS ord_id, ord.O_ORDERPRIORITY AS ord_pr
 		RETURN
-			ord.O_ORDERPRIORITY AS ord_pr,
+			ord_pr,
 			COUNT(*) AS ORDER_COUNT
-		ORDER BY
-			ord_pr;" 0
+        	ORDER BY
+           	ord_pr;" 0
 }
 
 run_tpch5() {
@@ -744,13 +732,18 @@ run_tpch7() {
 		MATCH (li)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n2:NATION) 
 		WHERE ((n1.N_NAME = 'IRAN' AND n2.N_NAME = 'ETHIOPIA')
 			OR (n1.N_NAME = 'ETHIOPIA' AND n2.N_NAME = 'IRAN'))
-			AND li.L_SHIPDATE > date('1995-01-01')
-			AND li.L_SHIPDATE < date('1996-12-31')
-		RETURN 
+			AND li.L_SHIPDATE >= date('1995-01-01')
+			AND li.L_SHIPDATE <= date('1996-12-31')
+		WITH 
 			n1.N_NAME AS supp_nation,
 			n2.N_NAME AS cust_nation,
 			year(li.L_SHIPDATE) AS l_year,
-			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) as volume
+			li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT) AS volume_tmp
+		RETURN 
+			supp_nation,
+			cust_nation,
+			l_year,
+			sum(volume_tmp) as volume
 		ORDER BY
 			supp_nation,
 			cust_nation,
@@ -939,10 +932,11 @@ run_tpch16() {
 
 run_tpch17() {
 	# TPC-H Q17 Small-Quantity-Order Revenue Query
+	# WITH 0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
 	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part:PART)
 		WHERE part.P_BRAND = 'Brand#15'
 			AND part.P_CONTAINER = 'LG CASE'
-		WITH 0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
+		WITH avg(lineitem.L_QUANTITY) AS avg_quantity
 		MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part2:PART)
 		WHERE part2.P_BRAND = 'Brand#15'
 			AND part2.P_CONTAINER = 'LG CASE'
@@ -1087,7 +1081,9 @@ run_tpch() {
 	for query in "${queries[@]}"; do
 		echo "RUN TPC-H query" $query
 		if [ $query == 'All' ]; then
-			run_tpch1
+			for query_num in {1..22}; do
+				run_tpch${query_num}
+			done
 		else
 			run_tpch${query}
 		fi
