@@ -313,6 +313,8 @@ run_ldbc_c5() {
 				RETURN
 			forum.title AS forumName,
 			count(post.id) AS postCount
+		ORDER BY
+			postCount DESC
 		LIMIT 20" 0
 }
 
@@ -1011,7 +1013,7 @@ run_tpch21() {
 			}
 		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
 		ORDER BY numwait desc, S_NAME
-		LIMIT 100;"
+		LIMIT 100;" 0
 }
 
 run_tpch22() {
