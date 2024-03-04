@@ -920,7 +920,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
         return false;
     }
     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-    if(!getScanRange(context, filter_cdf_id, l_filterValue, scan_size, scan_start_offset, scan_end_offset)) {
+    if(!getScanRange(context, filter_cdf_id, l_filterValue, r_filterValue, l_inclusive, r_inclusive, scan_size, scan_start_offset, scan_end_offset)) {
         output.SetCardinality(0);
     }
     else {
@@ -994,27 +994,6 @@ ChunkDefinitionID ExtentIterator::getFilterCDFID(ExtentID output_eid, int64_t fi
     filter_cdf_id = filter_cdf_id + filterKeyColIdx - target_idxs_offset;
     return filter_cdf_id;
 }
-
-//     // TODO move this logic to InitializeScan (We don't need to do I/O in this case)
-//     if (cdf_cat_entry->IsMinMaxArrayExist()) {
-//         vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
-//         bool find_block_to_scan = false;
-//         for (size_t i = 0; i < minmax.size(); i++) {
-//             if (minmax[i].min <= filterValue.GetValue<idx_t>() && minmax[i].max >= filterValue.GetValue<idx_t>()) {
-//                 scan_start_offset = i * MIN_MAX_ARRAY_SIZE;
-//                 scan_end_offset = MIN((i + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
-//                 find_block_to_scan = true;
-//                 break;
-//             }
-//         }
-//         if (!find_block_to_scan) {
-//             output.SetCardinality(0);
-//             return true;
-//         }
-//     } else {
-//         scan_start_offset = 0;
-//         scan_end_offset = cdf_cat_entry->GetNumEntriesInColumn();
-//     }
     
 
 bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
@@ -1033,6 +1012,59 @@ bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filt
                 scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
                 find_block_to_scan = true;
                 break;
+            }
+        }
+    } else {
+        find_block_to_scan = true;
+        scan_start_offset = current_idx_in_this_extent * scan_size;
+        scan_end_offset = std::min((current_idx_in_this_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
+    }
+
+    return find_block_to_scan;
+}
+
+bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
+                    bool l_inclusive, bool r_inclusive, size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset) {
+    Catalog& cat_instance = context.db->GetCatalog();
+    ChunkDefinitionCatalogEntry* cdf_cat_entry = 
+            (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, DEFAULT_SCHEMA, "cdf_" + std::to_string(filter_cdf_id));
+
+    bool find_block_to_scan = false;
+    if (cdf_cat_entry->IsMinMaxArrayExist()) {
+        vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
+        for (; current_idx_in_this_extent < minmax.size(); current_idx_in_this_extent++) {
+            if (l_inclusive && r_inclusive) {
+                if (minmax[current_idx_in_this_extent].min <= r_filterValue.GetValue<idx_t>() 
+                    && minmax[current_idx_in_this_extent].max >= l_filterValue.GetValue<idx_t>()) {
+                    scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
+                    scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                    find_block_to_scan = true;
+                    break;
+                }
+            } else if (l_inclusive && !r_inclusive) {
+                if (minmax[current_idx_in_this_extent].min <= r_filterValue.GetValue<idx_t>() 
+                    && minmax[current_idx_in_this_extent].max > l_filterValue.GetValue<idx_t>()) {
+                    scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
+                    scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                    find_block_to_scan = true;
+                    break;
+                }
+            } else if (!l_inclusive && r_inclusive) {
+                if (minmax[current_idx_in_this_extent].min < r_filterValue.GetValue<idx_t>() 
+                    && minmax[current_idx_in_this_extent].max >= l_filterValue.GetValue<idx_t>()) {
+                    scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
+                    scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                    find_block_to_scan = true;
+                    break;
+                }
+            } else {
+                if (minmax[current_idx_in_this_extent].min < r_filterValue.GetValue<idx_t>() 
+                    && minmax[current_idx_in_this_extent].max > l_filterValue.GetValue<idx_t>()) {
+                    scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
+                    scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
+                    find_block_to_scan = true;
+                    break;
+                }
             }
         }
     } else {
