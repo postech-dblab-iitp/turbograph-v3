@@ -493,12 +493,17 @@ private:
 	bool pIsFilterExist(CExpression* plan_expr);
 	bool pIsEdgePropertyInFilter(CExpression* plan_expr);
 	bool pIsPropertyInCols(CColRefArray *cols);
-	bool pIsIDInCols(CColRefArray *cols);
+	bool pIsIDColInCols(CColRefArray *cols);
 	duckdb::idx_t pGetColIndexInPred(CExpression *pred, CColRefArray *colrefs);
 	void pGetDuckDBTypesFromColRefs(CColRefArray *colrefs, vector<duckdb::LogicalType> &out_types);
 	void pGetObjetIdsForColRefs(CColRefArray *cols, vector<uint64_t> &out_oids);
 	void pPushCartesianProductSchema(duckdb::Schema& out_schema, vector<duckdb::LogicalType> &rhs_types);
 	void pConstructColMapping(CColRefArray *in_cols, CColRefArray *out_cols, vector<uint32_t> &out_mapping);
+	void pAppendFilterOnlyCols(CExpression *filter_expr, CColRefArray *input_cols, CColRefArray *output_cols, CColRefArray* result_cols);
+	void pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,CColRefArray* property_cols, CColRefArray* non_property_cols);
+	void pGetFilterDuckDBExprs(CExpression *filter_expr, CColRefArray *outer_cols, CColRefArray *inner_cols, size_t index_shifting_size, vector<unique_ptr<duckdb::Expression>> &out_exprs);
+	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
+	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
 
 private:
