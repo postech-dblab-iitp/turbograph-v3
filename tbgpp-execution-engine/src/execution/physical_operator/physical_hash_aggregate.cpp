@@ -303,7 +303,15 @@ bool PhysicalHashAggregate::IsSourceDataRemaining(LocalSourceState &lstate, Loca
 }
 
 string PhysicalHashAggregate::ParamsToString() const {
-	return "hashagg-params";
+	string params = "hashagg-params / groups: ";
+	for (auto &group : groups) {
+		params += group->ToString() + ", ";
+	}
+	params += " / aggregates: ";
+	for (auto &aggr : aggregates) {
+		params += aggr->ToString() + ", ";
+	}
+	return params;
 }
 std::string PhysicalHashAggregate::ToString() const {
 	return "HashAggregate";

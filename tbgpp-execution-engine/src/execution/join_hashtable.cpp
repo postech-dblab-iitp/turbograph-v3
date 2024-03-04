@@ -454,7 +454,8 @@ void ScanStructure::GatherResult(Vector &result, const SelectionVector &sel_vect
 }
 
 void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &result) {
-	D_ASSERT(result.ColumnCount() == left.ColumnCount() + ht.build_types.size());
+	// S62 - we do not need this condition because we can drop useless column after join
+	// D_ASSERT(result.ColumnCount() == left.ColumnCount() + ht.build_types.size());
 	if (this->count == 0) {
 		// no pointers left to chase
 		/**
@@ -464,15 +465,6 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
 		result.SetCardinality(0); 
 		return;
 	}
-
-	// For projection mapping, use temp_result
-	DataChunk temp_result;
-	vector<LogicalType> temp_types;
-	auto left_types = left.GetTypes();
-	auto right_types = ht.build_types;
-	temp_types.insert(temp_types.end(), left_types.begin(), left_types.end());
-	temp_types.insert(temp_types.end(), right_types.begin(), right_types.end());
-	temp_result.Initialize(temp_types);
 
 	// Perform the actual join
 	SelectionVector result_vector(STANDARD_VECTOR_SIZE);
@@ -491,44 +483,28 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
 		// matches were found
 		// construct the result
 		// on the LHS, we create a slice using the result vector
-		temp_result.Slice(left, result_vector, result_count);
-
-		// on the RHS, we need to fetch the data from the hash table
-		for (idx_t i = 0; i < ht.build_types.size(); i++) {
-			auto &vector = temp_result.data[left.ColumnCount() + i];
-			D_ASSERT(vector.GetType() == ht.build_types[i]);
-			GatherResult(vector, result_vector, result_count, i + ht.condition_types.size());
-		}
-		AdvancePointers();
-
-		/**
-		 * This code assumes that the _id is always removed
-		 * TODO: correct this code
-		*/
-		D_ASSERT(output_left_projection_map.size() != left.ColumnCount());
-
 		// Left projection mapping
-		size_t num_removed_left_cols = 0;
-		for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
-			if (output_left_projection_map[i] != std::numeric_limits<uint32_t>::max()) {
-				result.data[output_left_projection_map[i]].Reference(temp_result.data[i - num_removed_left_cols]);
-			}
-			else {
-				num_removed_left_cols++;
-			}
-		}
-		D_ASSERT(output_left_projection_map.size() - num_removed_left_cols == left.ColumnCount());
+        for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
+            if (output_left_projection_map[i] !=
+                std::numeric_limits<uint32_t>::max()) {
+                result.data[output_left_projection_map[i]].Slice(
+                    left.data[output_left_projection_map[i]], result_vector,
+                    result_count);
+            }
+        }
 
-		// Right projection mapping
-		size_t num_removed_right_cols = 0;
-		for (idx_t i = 0; i < output_right_projection_map.size(); i++) {
-			if (output_right_projection_map[i] != std::numeric_limits<uint32_t>::max()) {
-				result.data[output_right_projection_map[i]].Reference(temp_result.data[i + left.ColumnCount() - num_removed_right_cols]);
-			}
-			else {
-				num_removed_right_cols++;
-			}
-		}
+        // on the RHS, we need to fetch the data from the hash table
+        D_ASSERT(ht.build_types.size() == output_right_projection_map.size());
+        for (idx_t i = 0; i < ht.build_types.size(); i++) {
+            if (output_right_projection_map[i] !=
+                std::numeric_limits<uint32_t>::max()) {
+                auto &vector = result.data[output_right_projection_map[i]];
+                D_ASSERT(vector.GetType() == ht.build_types[i]);
+                GatherResult(vector, result_vector, result_count,
+                             i + ht.condition_types.size());
+            }
+        }
+        AdvancePointers();
 	}
 	result.SetCardinality(result_count);
 }

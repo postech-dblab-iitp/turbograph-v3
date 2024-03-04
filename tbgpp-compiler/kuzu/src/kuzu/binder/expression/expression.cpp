@@ -70,7 +70,7 @@ bool Expression::hasSubExpressionOfType(
         return true;
     }
     for (auto& child : children) {
-        if (child->hasSubExpressionOfType(typeCheckFunc)) {
+        if (child->hasSubExpressionOfType(typeCheckFunc) && !child->is_processed) {
             return true;
         }
     }
