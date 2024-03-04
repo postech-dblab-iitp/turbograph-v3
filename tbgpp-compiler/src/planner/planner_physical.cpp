@@ -957,7 +957,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     if (filter_after_adj && generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, adj_inner_cols, seek_inner_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr,
                               idxscan_cols, inner_cols, adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr,
@@ -975,7 +975,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     }
     else if (!filter_after_adj && generate_seek) {
         adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, adj_inner_cols, seek_inner_cols);
+        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols, adj_inner_cols);
         adj_output_cols->AppendArray(adj_inner_cols);
     }
     else {
@@ -2629,6 +2629,14 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
                                        left_cols, right_cols, remaining_condition);
+
+    if (remaining_condition != nullptr) {
+        std::cout << "remaining_condition:" << std::endl;
+        CWStringDynamic str(mp, L"\n");
+        COstreamString oss(&str);
+        remaining_condition->OsPrint(oss);
+        GPOS_TRACE(str.GetBuffer());
+    }
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
