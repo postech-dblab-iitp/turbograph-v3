@@ -43,3 +43,7 @@ test*.cmake
 
 # logs
 *.html
+
+# Tools
+*.csv
+*.csv.backward
