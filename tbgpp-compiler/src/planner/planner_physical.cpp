@@ -1560,8 +1560,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             do_filter_pushdown = false;
             filter_expr = inner_root;
             filter_pred_expr = filter_expr->operator[](1);
-            D_ASSERT(filter_expr->operator[](0)->Pop()->Eopid() ==
-                     COperator::EOperatorId::EopPhysicalIndexScan);
+            // D_ASSERT(filter_expr->operator[](0)->Pop()->Eopid() ==
+            //          COperator::EOperatorId::EopPhysicalIndexScan);
             idxscan_cols =
                 filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
@@ -2629,8 +2629,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 
     // generate conditions
     vector<duckdb::JoinCondition> join_conds;
+    CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols);
+                                       left_cols, right_cols, remaining_condition);
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
@@ -2711,8 +2712,9 @@ Planner::pTransformEopPhysicalMergeJoinToMergeJoin(CExpression *plan_expr)
 
     // generate conditions
     vector<duckdb::JoinCondition> join_conds;
+    CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols);
+                                       left_cols, right_cols, remaining_condition);
 
     // Calculate lhs and rhs types
     vector<duckdb::LogicalType> lhs_types;
@@ -3105,7 +3107,6 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
 vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     CExpression *plan_expr)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
@@ -4007,7 +4008,7 @@ bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
 
 void Planner::pTranslatePredicateToJoinCondition(
     CExpression *pred, vector<duckdb::JoinCondition> &out_conds,
-    CColRefArray *lhs_cols, CColRefArray *rhs_cols)
+    CColRefArray *lhs_cols, CColRefArray *rhs_cols, CExpression *&remaining_condition)
 {
 
     // split AND predicates into each JoinCondition
@@ -4019,12 +4020,13 @@ void Planner::pTranslatePredicateToJoinCondition(
             D_ASSERT(pred->Arity() == 2);
             // Split predicates
             pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds,
-                                               lhs_cols, rhs_cols);
+                                               lhs_cols, rhs_cols, remaining_condition);
             pTranslatePredicateToJoinCondition(pred->operator[](1), out_conds,
-                                               lhs_cols, rhs_cols);
+                                               lhs_cols, rhs_cols, remaining_condition);
         }
         else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
-            D_ASSERT(false);
+            remaining_condition = pred;
+            return;
         }
         else if (boolop->Eboolop() ==
                  CScalarBoolOp::EBoolOperator::EboolopNot) {
@@ -4157,13 +4159,13 @@ duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiNLJoin:
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
         case COperator::EOperatorId::
-            EopPhysicalCorrelatedLeftAntiSemiNLJoin: {  // correct?
+            EopPhysicalCorrelatedLeftAntiSemiNLJoin: {
             return duckdb::JoinType::ANTI;
         }
         case COperator::EOperatorId::EopPhysicalLeftSemiNLJoin:
         case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin:
         case COperator::EOperatorId::
-            EopPhysicalCorrelatedLeftSemiNLJoin: {  // correct?
+            EopPhysicalCorrelatedLeftSemiNLJoin: {
             return duckdb::JoinType::SEMI;
         }
             // TODO where is FULL OUTER??????
