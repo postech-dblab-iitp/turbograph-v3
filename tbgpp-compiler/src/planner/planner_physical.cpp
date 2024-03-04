@@ -1738,7 +1738,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     vector<uint32_t> union_inner_col_map = inner_col_maps[0];
     if (!do_filter_pushdown) {
         if (has_filter) {
-            filter_exprs[0]->Print();
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
@@ -3912,8 +3911,8 @@ void Planner::pGenerateSchemaFlowGraph(
             num_total_child_schemas *= num_schemas_of_childs_[i][j];
         }
         flow_graph[i].resize(num_total_child_schemas);
-        std::cout << "lv " << i << " : " << num_total_child_schemas
-                  << std::endl;
+        // std::cout << "lv " << i << " : " << num_total_child_schemas
+        //           << std::endl;
         for (auto j = 0; j < flow_graph[i].size(); j++) {
             flow_graph[i][j] = j;  // TODO
         }
