@@ -352,9 +352,11 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 		// state.current_path_vid.clear(); // temp
 		// fprintf(stdout, "Add Src %ld to output\n", src_vid);
 		state.dfs_it->initialize(*context.client, src_vid, state.adj_col_idxs[state.adj_idx]);
-		addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, src_vid);
-		// state.current_path_vid.push_back(src_vid); // temp
-		if (++num_found_paths == remaining_output) return num_found_paths;
+		if (state.cur_lv >= state.start_lv) {
+			addNewPathToOutput(tgt_adj_column, eid_adj_column, state.output_idx + num_found_paths, state.current_path, src_vid);
+			// state.current_path_vid.push_back(src_vid); // temp
+			if (++num_found_paths == remaining_output) return num_found_paths;
+		}
 	}
 
 	// if (state.start_lv == 0) {
