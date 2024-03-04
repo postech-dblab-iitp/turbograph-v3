@@ -655,6 +655,12 @@ bool TryCast::Operation(uint64_t input, double &result, bool strict) {
 	return NumericTryCast::Operation<uint64_t, double>(input, result, strict);
 }
 
+template <>
+bool TryCast::Operation(uint64_t input, date_t &result, bool strict) {
+	result.days = input;
+	return true;
+}
+
 //===--------------------------------------------------------------------===//
 // Cast float -> Numeric
 //===--------------------------------------------------------------------===//
@@ -1062,6 +1068,12 @@ bool TryCast::Operation(date_t input, date_t &result, bool strict) {
 template <>
 bool TryCast::Operation(date_t input, timestamp_t &result, bool strict) {
 	return Timestamp::TryFromDatetime(input, Time::FromTime(0, 0, 0), result);
+}
+
+template <>
+bool TryCast::Operation(date_t input, uint64_t &result, bool strict) {
+	result = input.days;
+	return true;
 }
 
 //===--------------------------------------------------------------------===//

@@ -350,6 +350,8 @@ template <>
 DUCKDB_API bool TryCast::Operation(uint64_t input, float &result, bool strict);
 template <>
 DUCKDB_API bool TryCast::Operation(uint64_t input, double &result, bool strict);
+template <>
+DUCKDB_API bool TryCast::Operation(uint64_t input, date_t &result, bool strict);
 
 //===--------------------------------------------------------------------===//
 // Cast float -> Numeric
@@ -442,6 +444,8 @@ template <>
 DUCKDB_API bool TryCast::Operation(date_t input, date_t &result, bool strict);
 template <>
 DUCKDB_API bool TryCast::Operation(date_t input, timestamp_t &result, bool strict);
+template <>
+DUCKDB_API bool TryCast::Operation(date_t input, uint64_t &result, bool strict);
 
 //===--------------------------------------------------------------------===//
 // Time Casts
