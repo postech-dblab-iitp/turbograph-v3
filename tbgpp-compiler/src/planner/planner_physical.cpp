@@ -3175,10 +3175,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             pConvertTypeOidToLogicalType(type_oid, type_mod);
         types.push_back(col_type);
         output_column_names.push_back(pGetColNameFromColRef(col));
-        // proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-        //     col_type, child_cols->IndexOf(col)));
-        // agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(
-        //     col_type, child_cols->IndexOf(col)));
     }
 
     bool has_pre_projection = false;
