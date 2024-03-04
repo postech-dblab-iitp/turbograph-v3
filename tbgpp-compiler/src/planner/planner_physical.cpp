@@ -165,10 +165,14 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
             break;
         }
         case COperator::EOperatorId::EopPhysicalInnerHashJoin:
-        case COperator::EOperatorId::EopPhysicalLeftOuterHashJoin:
+        case COperator::EOperatorId::EopPhysicalLeftOuterHashJoin: {
+            result = pTransformEopPhysicalHashJoinToHashJoin(plan_expr);
+            break;
+        }
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
         case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin: {
-            result = pTransformEopPhysicalHashJoinToHashJoin(plan_expr);
+            result = 
+                pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr, false);
             break;
         }
         case COperator::EOperatorId::EopPhysicalInnerMergeJoin: {
@@ -2558,34 +2562,10 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
         right_cols = pexprRight->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     }
 
-    /**
-     * 1) Hash Join: when join condition have no OR conditions
-     *  - Hash Join output: output cols
-     * 2) Hash Join + Filter + Projection: when join condition have OR conditions
-     *  - Hash Join output: left cols + right cols
-     *  - Filter output: left cols + right cols 
-     *  - Projection output: output cols
-     * 
-     * Note: there is no filter only column, since predicate is on the join operator,
-     * not sepreate filter operator like AdjIdxJoin case.
-    */
     vector<duckdb::JoinCondition> join_conds;
-    CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols,
-                                       remaining_condition);
-    bool is_filter_proj_needed = remaining_condition != nullptr;
-    if (!is_filter_proj_needed) {
-        hash_output_cols = output_cols;
-    }
-    else {
-        D_ASSERT(remaining_condition != nullptr);
-        // hash output cols
-        hash_output_cols->AppendArray(left_cols);
-        hash_output_cols->AppendArray(right_cols);
-        // filter output cols
-        filter_output_cols = hash_output_cols;
-    }
+                                       left_cols, right_cols); // Shifting is not needed!
+    hash_output_cols = output_cols;
 
     // Construct col map, types and etc
     vector<duckdb::LogicalType> hash_output_types;
@@ -2641,49 +2621,9 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     duckdb::Schema schema;
     schema.setStoredTypes(hash_output_types);
 
-    if (remaining_condition != nullptr) {
-        std::cout << "remaining_condition:" << std::endl;
-        CWStringDynamic str(mp, L"\n");
-        COstreamString oss(&str);
-        remaining_condition->OsPrint(oss);
-        GPOS_TRACE(str.GetBuffer());
-    }
-
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
         right_build_types, right_build_map);
-
-    auto lhs_result = pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
-
-    if (is_filter_proj_needed) {
-        // Filter
-        duckdb::Schema schema_filter;
-        schema_filter.setStoredTypes(hash_output_types);
-        vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
-        pGetFilterDuckDBExprs(remaining_condition, hash_output_cols, nullptr, 0,
-                              filter_duckdb_exprs);
-        duckdb::CypherPhysicalOperator *duckdb_filter_op =
-            new duckdb::PhysicalFilter(schema_filter,
-                                       move(filter_duckdb_exprs));
-        lhs_result->push_back(duckdb_filter_op);
-        pBuildSchemaFlowGraphForUnaryOperator(schema_filter);
-
-        // Projection
-        duckdb::Schema schema_proj;
-        vector<duckdb::LogicalType> proj_output_types;
-        pGetDuckDBTypesFromColRefs(proj_output_cols, proj_output_types);
-        schema_proj.setStoredTypes(proj_output_types);
-        vector<unique_ptr<duckdb::Expression>> proj_exprs;
-        pGetProjectionExprs(filter_output_cols, proj_output_cols,
-                            proj_output_types, proj_exprs);
-
-        if (proj_exprs.size() > 0) {
-            duckdb::CypherPhysicalOperator *duckdb_proj_op =
-                new duckdb::PhysicalProjection(schema_proj, move(proj_exprs));
-            lhs_result->push_back(duckdb_proj_op);
-            pBuildSchemaFlowGraphForUnaryOperator(schema_proj);
-        }
-    }
 
     // Release
     output_cols->Release();
@@ -2691,7 +2631,7 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     right_cols->Release();
     hash_output_cols->Release();
 
-    return lhs_result;
+    return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
 }
 
 vector<duckdb::CypherPhysicalOperator *> *
@@ -2766,10 +2706,8 @@ Planner::pTransformEopPhysicalMergeJoinToMergeJoin(CExpression *plan_expr)
 
     // generate conditions
     vector<duckdb::JoinCondition> join_conds;
-    CExpression *remaining_condition = nullptr;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols,
-                                       remaining_condition);
+                                       left_cols, right_cols);
 
     // Calculate lhs and rhs types
     vector<duckdb::LogicalType> lhs_types;
@@ -2945,13 +2883,11 @@ vector<duckdb::CypherPhysicalOperator *> *
 Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
                                                       bool is_correlated)
 {
-
     CMemoryPool *mp = this->memory_pool;
 
     D_ASSERT(plan_expr->Arity() == 3);
 
     /* Non-root - call left child */
-    CPhysicalInnerNLJoin *expr_op = (CPhysicalInnerNLJoin *)plan_expr->Pop();
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprOuter = (*plan_expr)[0];
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -2993,11 +2929,17 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     duckdb::Schema schema;
     schema.setStoredTypes(types);
 
-    duckdb::JoinType join_type = pTranslateJoinType(expr_op);
+    duckdb::JoinType join_type = pTranslateJoinType(plan_expr->Pop());
     D_ASSERT(join_type != duckdb::JoinType::RIGHT);
 
+    CExpression *join_pred = (*plan_expr)[2];
+    if (plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin) {
+        // Temporal code for anti hash join handling
+        join_pred = CUtils::PexprNegate(mp, join_pred);
+    }
+
     auto join_condition_expr = pTransformScalarExpr(
-        (*plan_expr)[2], outer_cols, inner_cols);  // left - right
+        join_pred, outer_cols, inner_cols);  // left - right
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalBlockwiseNLJoin(
         schema, move(join_condition_expr), join_type, outer_col_map,
@@ -4095,11 +4037,8 @@ bool Planner::pIsColumnarProjectionSimpleProject(CExpression *proj_expr)
 
 void Planner::pTranslatePredicateToJoinCondition(
     CExpression *pred, vector<duckdb::JoinCondition> &out_conds,
-    CColRefArray *lhs_cols, CColRefArray *rhs_cols,
-    CExpression *&remaining_condition)
+    CColRefArray *lhs_cols, CColRefArray *rhs_cols)
 {
-
-    // split AND predicates into each JoinCondition
     // TODO what about OR condition in duckdb ?? -> IDK
     auto *op = pred->Pop();
     if (op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
@@ -4108,15 +4047,12 @@ void Planner::pTranslatePredicateToJoinCondition(
             D_ASSERT(pred->Arity() == 2);
             // Split predicates
             pTranslatePredicateToJoinCondition(pred->operator[](0), out_conds,
-                                               lhs_cols, rhs_cols,
-                                               remaining_condition);
+                                               lhs_cols, rhs_cols);
             pTranslatePredicateToJoinCondition(pred->operator[](1), out_conds,
-                                               lhs_cols, rhs_cols,
-                                               remaining_condition);
+                                               lhs_cols, rhs_cols);
         }
         else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
-            remaining_condition = pred;
-            return;
+            D_ASSERT(false);
         }
         else if (boolop->Eboolop() ==
                  CScalarBoolOp::EBoolOperator::EboolopNot) {
@@ -4173,6 +4109,9 @@ void Planner::pTranslatePredicateToJoinCondition(
     }
     return;
 }
+
+
+
 
 bool Planner::pIsCartesianProduct(CExpression *expr)
 {
@@ -4259,6 +4198,82 @@ duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
             // TODO where is FULL OUTER??????
     }
     D_ASSERT(false);
+}
+
+
+CExpression* Planner::pPredToDNF(CExpression *pred) {
+    CMemoryPool *mp = this->memory_pool;
+
+    if (pred->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
+        CScalarBoolOp *boolop = (CScalarBoolOp *)pred->Pop();
+        if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
+            // Recursively convert children to DNF
+            CExpression* leftDNF = pPredToDNF(pred->operator[](0));
+            CExpression* rightDNF = pPredToDNF(pred->operator[](1));
+
+            // Apply distributive law if one child is an OR
+            CScalarBoolOp *left_op = (CScalarBoolOp *)leftDNF->Pop();
+            CScalarBoolOp *right_op = (CScalarBoolOp *)rightDNF->Pop();
+            if (left_op->Eopid() == COperator::EOperatorId::EopScalarBoolOp &&
+                left_op->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+                // (A OR B) AND C => (A AND C) OR (B AND C)
+                return pDistributeANDOverOR(leftDNF, rightDNF);
+            } else if (right_op->Eopid() == COperator::EOperatorId::EopScalarBoolOp &&
+                       right_op->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+                // A AND (B OR C) => (A AND B) OR (A AND C)
+                return pDistributeANDOverOR(rightDNF, leftDNF);
+            } else {
+                // If neither child is an OR, just combine the DNF children with AND
+                CExpressionArray* newDNF = GPOS_NEW(mp) CExpressionArray(mp);
+                newDNF->Append(leftDNF);
+                newDNF->Append(rightDNF);
+                return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, newDNF);
+            }
+        } else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+            // Recursively convert children to DNF
+            CExpression* leftDNF = pPredToDNF(pred->operator[](0));
+            CExpression* rightDNF = pPredToDNF(pred->operator[](1));
+            CExpressionArray* newDNF = GPOS_NEW(mp) CExpressionArray(mp);
+            newDNF->Append(leftDNF);
+            newDNF->Append(rightDNF);
+
+            // Combine the DNF children with OR
+            return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopOr, newDNF);
+        }
+    } else {
+        return pred;
+    }
+}
+CExpression* Planner::pDistributeANDOverOR(CExpression *a, CExpression *b) {
+    CMemoryPool *mp = this->memory_pool;
+    // Ensure that 'a' is the OR expression and 'b' is the one to distribute
+    // If 'a' is not an OR expression, we should swap 'a' and 'b'
+    if (!(a->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp &&
+        ((CScalarBoolOp *)(a->Pop()))->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr)) {
+        std::swap(a, b);
+    }
+
+    // Now 'a' is (B OR C) and 'b' is A in the (A AND (B OR C)) structure
+    CExpression* left = a->operator[](0);  // B
+    CExpression* right = a->operator[](1); // C
+
+    // Create (A AND B)
+    CExpressionArray* left_array = GPOS_NEW(mp) CExpressionArray(mp);
+    left_array->Append(b);
+    left_array->Append(left);
+    auto left_and = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, left_array);
+
+    // Create (A AND C)
+    CExpressionArray* right_array = GPOS_NEW(mp) CExpressionArray(mp);
+    right_array->Append(b);
+    right_array->Append(right);
+    auto right_and = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, right_array);
+
+    // Create ((A AND B) OR (A AND C))
+    CExpressionArray* or_array = GPOS_NEW(mp) CExpressionArray(mp);
+    or_array->Append(left_and);
+    or_array->Append(right_and);
+    return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopOr, or_array);
 }
 
 void Planner::pGetFilterAttrPosAndValue(CExpression *filter_pred_expr,

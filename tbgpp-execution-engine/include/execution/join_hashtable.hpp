@@ -116,6 +116,8 @@ public:
 	              vector<LogicalType> build_types, JoinType type);
 	JoinHashTable(BufferManager &buffer_manager, const vector<JoinCondition> &conditions,
 	              vector<LogicalType> build_types, JoinType type, const vector<uint32_t> &left_map, const vector<uint32_t> &right_map);
+	JoinHashTable(BufferManager &buffer_manager, const vector<vector<JoinCondition>> &conditions,
+	              vector<LogicalType> build_types, JoinType type, const vector<uint32_t> &left_map, const vector<uint32_t> &right_map);
 	~JoinHashTable();
 
 	//! Add the given data to the HT

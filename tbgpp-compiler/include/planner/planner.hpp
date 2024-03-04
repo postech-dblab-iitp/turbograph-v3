@@ -461,7 +461,7 @@ private:
 	bool pCmpColName(const CColRef *colref, const WCHAR *col_name);
 
 	// scalar helper functions
-	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols, CExpression *&remaining_condition);
+	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
 	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
@@ -505,6 +505,10 @@ private:
 	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
+
+	// Filter DNF Transformation
+	CExpression* pPredToDNF(CExpression *pred);
+	CExpression* pDistributeANDOverOR(CExpression *a, CExpression *b);
 
 private:
 	// config

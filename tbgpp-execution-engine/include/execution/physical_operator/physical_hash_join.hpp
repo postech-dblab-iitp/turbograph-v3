@@ -36,6 +36,18 @@ class PhysicalHashJoin : public PhysicalComparisonJoin {
             &right_build_map  // duckdb style build map - what build types
     );
 
+    // Extension for OR Type predicate
+    PhysicalHashJoin(
+        Schema sch, vector<vector<JoinCondition>> cond, JoinType join_type,
+        vector<uint32_t>
+            &output_left_projection_map,  // s62 style projection map
+        vector<uint32_t>
+            &output_right_projection_map,  // s62 style projection map
+        vector<LogicalType> &right_build_types,
+        vector<idx_t>
+            &right_build_map  // duckdb style build map - what build types
+    );
+
     //! S62 style projection map. Indexes into the output.
     vector<uint32_t> output_left_projection_map;
     vector<uint32_t> output_right_projection_map;
