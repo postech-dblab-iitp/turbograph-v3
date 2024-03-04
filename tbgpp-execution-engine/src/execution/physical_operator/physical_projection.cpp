@@ -28,7 +28,11 @@ OperatorResultType PhysicalProjection::Execute(ExecutionContext &context, DataCh
 }
 
 std::string PhysicalProjection::ParamsToString() const {
-	return "projection-param";
+	string result = "projection-param: ";
+	for (auto &expr : expressions) {
+		result += expr->ToString() + ", ";
+	}
+	return result;
 }
 
 std::string PhysicalProjection::ToString() const {

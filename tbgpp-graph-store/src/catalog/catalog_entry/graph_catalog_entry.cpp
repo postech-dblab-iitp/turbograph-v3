@@ -189,8 +189,14 @@ vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<
 			if (target_id != vertexlabel_map.end()) {
 				label_ids.push_back(target_id->second);
 			} else {
-				throw InvalidInputException("There is no vertex with the given label");
-			}
+                std::string error_msg =
+                    "There is no vertex with the given label " + keys[i] +
+                    "\nPossible vertex labels: \n";
+                for (auto &vlabel : vertexlabel_map) {
+                    error_msg += "\t" + vlabel.first + "\n";
+                }
+                throw InvalidInputException(error_msg);
+            }
 		}
 		return_pids = Intersection(context, label_ids);
 	}

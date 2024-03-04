@@ -42,7 +42,7 @@ OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk 
 }
 
 std::string PhysicalFilter::ParamsToString() const {
-	return "filter-param";
+	return "filter-param: " + expression->ToString();
 }
 
 std::string PhysicalFilter::ToString() const {

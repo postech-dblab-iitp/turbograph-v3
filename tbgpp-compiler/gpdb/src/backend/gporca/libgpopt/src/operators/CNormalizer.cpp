@@ -1304,7 +1304,8 @@ CNormalizer::PexprPullUpAndCombineProjects(
 	pop->AddRef();
 
 	if (0 < pdrgpexprPrElPullUp->Size() &&
-		COperator::EopLogicalProject == pop->Eopid())
+		(COperator::EopLogicalProject == pop->Eopid() ||
+		 COperator::EopLogicalProjectColumnar == pop->Eopid())) // TODO s62 not sure
 	{
 		// some project elements have been pulled up and the original expression
 		// was a project - combine its project list with the pulled up project elements
