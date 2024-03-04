@@ -22,7 +22,11 @@ public:
 	PhysicalComparisonJoin(Schema& sch, PhysicalOperatorType type, vector<JoinCondition> cond,
 	                       JoinType join_type);
 
+	PhysicalComparisonJoin(Schema& sch, PhysicalOperatorType type, vector<vector<JoinCondition>> cond,
+	                       JoinType join_type);
+
 	vector<JoinCondition> conditions;
+	vector<vector<JoinCondition>> or_conditions;
 
 public:
 	string ParamsToString() const override;
