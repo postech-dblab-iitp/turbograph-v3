@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import os
 
 DYNAMIC_PATH = sys.argv[1]
 
@@ -32,6 +33,10 @@ def generate_undirected_edges_with_types(input_file, output_file_all, output_fil
     # Sort by START_ID and END_ID (without types for sorting) for the first output file
     df_concat.sort_values(by=[start_col, end_col], inplace=True)
     
+    # Remove file if exists
+    if os.path.exists(output_file_all):
+        os.remove(output_file_all)
+    
     # Write the first output file with all columns
     df_concat.to_csv(output_file_all, index=False, sep='|')
     
@@ -40,8 +45,13 @@ def generate_undirected_edges_with_types(input_file, output_file_all, output_fil
     df_basic = df_concat[[end_col, start_col]].copy()
     df_basic.sort_values(by=[end_col, start_col], inplace=True)
     
+    # Remove file if exists
+    if os.path.exists(output_file_basic):
+        os.remove(output_file_basic)
+    
     # Write the second output file with only END_ID and START_ID (preserving types)
     df_basic.to_csv(output_file_basic, index=False, sep='|')
 
 # Example usage (commented out as it's just for demonstration)
+
 generate_undirected_edges_with_types(f'{DYNAMIC_PATH}/Person_knows_Person.csv', f'{DYNAMIC_PATH}/Person_knows_Person.csv', f'{DYNAMIC_PATH}/Person_knows_Person.csv.backward')

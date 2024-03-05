@@ -400,6 +400,7 @@ private:
 	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression * scalar_expr, vector<unique_ptr<duckdb::Expression>>& child);
 	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
 	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
@@ -506,6 +507,18 @@ private:
 	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
+
+	// Hash Aggregate Helpers
+	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 
+								vector<unique_ptr<duckdb::Expression>> &agg_exprs, 
+								vector<unique_ptr<duckdb::Expression>> &agg_groups, 
+								vector<unique_ptr<duckdb::Expression>> &proj_exprs,
+								vector<duckdb::LogicalType>& agg_types,
+								vector<duckdb::LogicalType>& proj_types,
+								CColRefArray* child_cols, 
+								bool& adjust_agg_groups_performed, 
+								bool &has_pre_projection);
+	void pAdustAggGroups( vector<unique_ptr<duckdb::Expression>>& agg_groups,  vector<unique_ptr<duckdb::Expression>> &agg_exprs);
 
 	// Filter DNF Transformation
 	CExpression* pPredToDNF(CExpression *pred);

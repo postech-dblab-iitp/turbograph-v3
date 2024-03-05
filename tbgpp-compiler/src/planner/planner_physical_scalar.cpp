@@ -261,6 +261,31 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scala
 			function.return_type, function, std::move(child), std::move(bind_info));
 }
 
+
+unique_ptr<duckdb::Expression> Planner::pTransformScalarFunc(CExpression * scalar_expr, vector<unique_ptr<duckdb::Expression>>& child) {
+	CScalarFunc* op = (CScalarFunc*)scalar_expr->Pop();
+	CExpressionArray* scalarfunc_exprs = scalar_expr->PdrgPexpr();
+
+	OID func_id = CMDIdGPDB::CastMdid(op->FuncMdId())->Oid();
+	duckdb::ScalarFunctionCatalogEntry *func_catalog_entry;
+	duckdb::idx_t function_idx;
+	context->db->GetCatalogWrapper().GetScalarFuncAndIdx(*context, func_id, func_catalog_entry, function_idx);
+
+	auto function = func_catalog_entry->functions.get()->functions[function_idx];
+	unique_ptr<duckdb::FunctionData> bind_info;
+	if (function.bind) {
+		bind_info = function.bind(*context, function, child);
+		child.resize(std::min(function.arguments.size(), child.size()));
+	}
+
+	// check if we need to add casts to the children
+	function.CastToFunctionArguments(child);
+
+	return make_unique<duckdb::BoundFunctionExpression>(
+			function.return_type, function, std::move(child), std::move(bind_info));
+}
+
+
 unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *lhs_child_cols, CColRefArray* rhs_child_cols) {
 
 	CScalarSwitch *op = (CScalarSwitch *)scalar_expr->Pop();
@@ -419,5 +444,9 @@ INT Planner::pGetTypeModFromScalarSwitch(CExpression *switch_expr) {
 	GPOS_ASSERT(switch_expr->Pop()->Eopid() == COperator::EopScalarSwitch);
 	return -1;
 }
+
+/**
+ * Special handling for post projection
+*/
 
 }
