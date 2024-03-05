@@ -41,7 +41,7 @@ run_ldbc_s() {
 
 	# LDBC IS1 Profile of a person
 	# Place -> City
-	run_query "MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place)
+	run_query "MATCH (n:Person {id: 35184372099695})-[r:IS_LOCATED_IN]->(p:Place)
 		   RETURN
 		   	n.firstName AS firstName,
 			n.lastName AS lastName,
@@ -92,7 +92,7 @@ run_ldbc_s() {
 	
 	
 	# LDBC IS3 Friends of a Person
-	run_query "MATCH (n:Person {id: 94})-[r:KNOWS]->(friend:Person)
+	run_query "MATCH (n:Person {id: 933})-[r:KNOWS]->(friend:Person)
 		RETURN
 			friend.id AS personId,
 			friend.firstName AS firstName,
