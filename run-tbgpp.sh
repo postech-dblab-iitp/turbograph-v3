@@ -751,10 +751,12 @@ run_tpch8() {
 			year(o.O_ORDERDATE) AS o_year,
 			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
 			n2.N_NAME AS nation
-		RETURN o_year,
+		WITH o_year,
 			sum(CASE WHEN nation = 'ETHIOPIA'
 				THEN volume
-				ELSE 0 END) as mkt_share
+				ELSE 0 END) as total_volume,
+			sum(volume) as num_volume
+		RETURN o_year, total_volume / num_volume AS mkt_share
 		ORDER BY o_year;" 0
 }
 
@@ -798,7 +800,7 @@ run_tpch11() {
 	# WITH sum(tmp1) * 0.0001 as subquery, sum(tmp2) as value 
 	run_query "MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)
 		WHERE n.N_NAME = 'ROMANIA'
-		WITH sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) as subquery
+		WITH sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) * 0.0001 as subquery
 		MATCH (pa2:PART)-[p2:PARTSUPP]->(s2:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
 		WHERE n2.N_NAME = 'ROMANIA'
 		WITH pa2.P_PARTKEY AS P_PARTKEY, sum(p2.PS_SUPPLYCOST * p2.PS_AVAILQTY) as value, subquery
@@ -922,13 +924,13 @@ run_tpch17() {
 	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part:PART)
 		WHERE part.P_BRAND = 'Brand#15'
 			AND part.P_CONTAINER = 'LG CASE'
-		WITH avg(lineitem.L_QUANTITY) AS avg_quantity
+		WITH  0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
 		MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part2:PART)
 		WHERE part2.P_BRAND = 'Brand#15'
 			AND part2.P_CONTAINER = 'LG CASE'
 			AND item.L_QUANTITY < avg_quantity
 		RETURN
-			SUM(item.L_EXTENDEDPRICE) AS avg_yearly;" 0
+			SUM(item.L_EXTENDEDPRICE) / 7.0 AS avg_yearly;" 0
 }
 
 run_tpch18() {
@@ -984,7 +986,7 @@ run_tpch20() {
 			AND p.P_NAME CONTAINS 'smoke'
 			AND li.L_SHIPDATE >= date('1997-01-01')
 			AND li.L_SHIPDATE < date('1998-01-01')
-		WITH ps.PS_AVAILQTY AS PS_AVAILQTY, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as quantity_sum
+		WITH ps.PS_AVAILQTY AS PS_AVAILQTY, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, 0.5 * sum(li.L_QUANTITY) as quantity_sum
 		RETURN
 			S_NAME, S_ADDRESS
 		ORDER BY S_NAME;" 0

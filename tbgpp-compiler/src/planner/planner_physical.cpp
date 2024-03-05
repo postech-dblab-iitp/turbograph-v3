@@ -3076,8 +3076,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     vector<duckdb::CypherPhysicalOperator *> *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
-    vector<duckdb::LogicalType> types;
+    vector<duckdb::LogicalType> agg_types;
     vector<duckdb::LogicalType> proj_types;
+    vector<duckdb::LogicalType> post_proj_type;
     vector<unique_ptr<duckdb::Expression>> agg_exprs;
     vector<unique_ptr<duckdb::Expression>> agg_groups;
     vector<string> output_column_names;
@@ -3119,6 +3120,8 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             make_unique<duckdb::BoundReferenceExpression>(col_type, child_idx));
         proj_exprs.push_back(
             make_unique<duckdb::BoundReferenceExpression>(col_type, child_idx));
+        post_proj_exprs.push_back(
+            make_unique<duckdb::BoundReferenceExpression>(col_type, child_idx));
         proj_types.push_back(col_type);
         output_column_names_proj.push_back(pGetColNameFromColRef(col));
         if (output_cols->IndexOf(col) != gpos::ulong_max) {
@@ -3141,7 +3144,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         INT type_mod = col->TypeModifier();
         duckdb::LogicalType col_type =
             pConvertTypeOidToLogicalType(type_oid, type_mod);
-        types.push_back(col_type);
+        agg_types.push_back(col_type);
         output_column_names.push_back(pGetColNameFromColRef(col));
     }
 
@@ -3152,6 +3155,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     for (ULONG elem_idx = 0; elem_idx < pexprProjList->Arity(); elem_idx++) {
         CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
         CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
+        CExpression *aggargs_expr = pexprScalarExpr->operator[](0);
         CExpression *pexprAggExpr;
 
         output_column_names.push_back(pGetColNameFromColRef(
@@ -3160,77 +3164,44 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
 
         if (pexprScalarExpr->Pop()->Eopid() != COperator::EopScalarAggFunc) {
+            D_ASSERT(pexprScalarExpr->Pop()->Eopid() ==
+                     COperator::EopScalarFunc);
             has_post_projection = true;
+
+            // do the same operation for left and right
+	        vector<unique_ptr<duckdb::Expression>> child_duckdb_expressions;
+            for (ULONG child_idx = 0; child_idx < 2; child_idx++) {
+                CExpression *pexprChild = (*pexprScalarExpr)[child_idx];
+                if (pexprChild->Arity() > 0) {
+                    pUpdateProjAggExprs(pexprChild, agg_exprs, agg_groups, proj_exprs,
+                                        agg_types, proj_types, child_cols,
+                                        adjust_agg_groups_performed,
+                                        has_pre_projection);
+                    child_duckdb_expressions.push_back(make_unique<duckdb::BoundReferenceExpression>(agg_exprs.back()->return_type, proj_exprs.size() - 1));
+                }
+                else {
+                    child_duckdb_expressions.push_back(pTransformScalarExpr(pexprChild, child_cols));
+                }
+            }
+            post_proj_exprs.push_back(pTransformScalarFunc(pexprScalarExpr, child_duckdb_expressions));
+            post_proj_type.push_back(post_proj_exprs.back()->return_type);
         }
         else {
-            CExpression *aggargs_expr = pexprScalarExpr->operator[](0);
             if (aggargs_expr->Arity() == 0) {  // no child
                 agg_exprs.push_back(std::move(
                     pTransformScalarExpr(pexprScalarExpr, child_cols)));
-                types.push_back(agg_exprs.back()->return_type);
+                agg_types.push_back(agg_exprs.back()->return_type);
                 continue;
             }
-            if (aggargs_expr->operator[](0)->Pop()->Eopid() !=
-                COperator::EopScalarIdent) {
-                has_pre_projection = true;
-                if (!adjust_agg_groups_performed) {
-                    for (ULONG agg_group_idx = 0;
-                         agg_group_idx < agg_groups.size(); agg_group_idx++) {
-                        auto agg_group_expr =
-                            (duckdb::BoundReferenceExpression *)
-                                agg_groups[agg_group_idx]
-                                    .get();
-                        agg_group_expr->index = agg_group_idx;
-                    }
-                    ULONG accm_agg_expr_idx = 0;
-                    for (ULONG agg_expr_idx = 0;
-                         agg_expr_idx < agg_exprs.size(); agg_expr_idx++) {
-                        auto agg_expr = (duckdb::BoundAggregateExpression *)
-                                            agg_exprs[agg_expr_idx]
-                                                .get();
-                        for (ULONG agg_expr_child_idx = 0;
-                             agg_expr_child_idx < agg_expr->children.size();
-                             agg_expr_child_idx++) {
-                            auto bound_expr =
-                                (duckdb::BoundReferenceExpression *)agg_expr
-                                    ->children[agg_expr_child_idx]
-                                    .get();
-                            bound_expr->index =
-                                agg_groups.size() + accm_agg_expr_idx++;
-                        }
-                    }
-                    adjust_agg_groups_performed = true;
-                }
-                proj_exprs.push_back(std::move(pTransformScalarExpr(
-                    aggargs_expr->operator[](0), child_cols)));
-                agg_exprs.push_back(std::move(pTransformScalarAggFunc(
-                    pexprScalarExpr, child_cols, proj_exprs.back()->return_type,
-                    proj_exprs.size() - 1)));
-                proj_types.push_back(proj_exprs.back()->return_type);
-                types.push_back(agg_exprs.back()->return_type);
-            }
-            else {
-                proj_exprs.push_back(std::move(pTransformScalarExpr(
-                    aggargs_expr->operator[](0), child_cols)));
-                if (has_pre_projection) {
-                    agg_exprs.push_back(std::move(
-                        pTransformScalarAggFunc(pexprScalarExpr, child_cols,
-                                                proj_exprs.back()->return_type,
-                                                proj_exprs.size() - 1)));
-                }
-                else {
-                    agg_exprs.push_back(std::move(
-                        pTransformScalarExpr(pexprScalarExpr, child_cols)));
-                }
-                proj_types.push_back(proj_exprs.back()->return_type);
-                types.push_back(agg_exprs.back()->return_type);
-            }
+            pUpdateProjAggExprs(
+                pexprScalarExpr, agg_exprs, agg_groups, proj_exprs, agg_types, proj_types,
+                child_cols, adjust_agg_groups_performed, has_pre_projection);
         }
     }
 
-    duckdb::Schema tmp_schema;
-    tmp_schema.setStoredTypes(types);
-    tmp_schema.setStoredColumnNames(output_column_names);
+    duckdb::Schema agg_schema;
+    agg_schema.setStoredTypes(agg_types);
+    agg_schema.setStoredColumnNames(output_column_names);
 
     if (has_pre_projection) {
         duckdb::Schema proj_schema;
@@ -3242,16 +3213,16 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         result->push_back(proj_op);
     }
 
-    pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
+    pBuildSchemaFlowGraphForUnaryOperator(agg_schema);
 
     duckdb::CypherPhysicalOperator *op;
     if (agg_groups.empty()) {
         op = new duckdb::PhysicalHashAggregate(
-            tmp_schema, output_projection_mapping, move(agg_exprs));
+            agg_schema, output_projection_mapping, move(agg_exprs));
     }
     else {
         op = new duckdb::PhysicalHashAggregate(
-            tmp_schema, output_projection_mapping, move(agg_exprs),
+            agg_schema, output_projection_mapping, move(agg_exprs),
             move(agg_groups));
     }
 
@@ -3271,8 +3242,18 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         pClearSchemaFlowGraph();
         pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
         num_schemas_of_childs.push_back({1});
-        pipeline_schemas.push_back({tmp_schema});
-        pipeline_union_schema.push_back(tmp_schema);
+        pipeline_schemas.push_back({agg_schema});
+        pipeline_union_schema.push_back(agg_schema);
+    }
+
+    // Projection for post processing
+    if (has_post_projection) {
+        duckdb::Schema post_proj_schema;
+        post_proj_schema.setStoredTypes(post_proj_type);
+        pBuildSchemaFlowGraphForUnaryOperator(post_proj_schema);
+        duckdb::CypherPhysicalOperator *post_proj_op =
+            new duckdb::PhysicalProjection(post_proj_schema, move(post_proj_exprs));
+        new_result->push_back(post_proj_op);
     }
 
     // if output_cols size != child_cols, we need to do projection
@@ -5023,6 +5004,75 @@ bool Planner::pIsComplexPred(CExpression *pred_expr)
     else {
         D_ASSERT(false);
     }
+}
+
+void Planner::pAdustAggGroups(
+    vector<unique_ptr<duckdb::Expression>> &agg_groups,
+    vector<unique_ptr<duckdb::Expression>> &agg_exprs)
+{
+    for (ULONG agg_group_idx = 0; agg_group_idx < agg_groups.size();
+         agg_group_idx++) {
+        auto agg_group_expr =
+            (duckdb::BoundReferenceExpression *)agg_groups[agg_group_idx].get();
+        agg_group_expr->index = agg_group_idx;
+    }
+    ULONG accm_agg_expr_idx = 0;
+    for (ULONG agg_expr_idx = 0; agg_expr_idx < agg_exprs.size();
+         agg_expr_idx++) {
+        auto agg_expr =
+            (duckdb::BoundAggregateExpression *)agg_exprs[agg_expr_idx].get();
+        for (ULONG agg_expr_child_idx = 0;
+             agg_expr_child_idx < agg_expr->children.size();
+             agg_expr_child_idx++) {
+            auto bound_expr = (duckdb::BoundReferenceExpression *)agg_expr
+                                  ->children[agg_expr_child_idx]
+                                  .get();
+            bound_expr->index = agg_groups.size() + accm_agg_expr_idx++;
+        }
+    }
+}
+
+void Planner::pUpdateProjAggExprs(
+    CExpression *pexprScalarExpr,
+    vector<unique_ptr<duckdb::Expression>> &agg_exprs,
+    vector<unique_ptr<duckdb::Expression>> &agg_groups,
+    vector<unique_ptr<duckdb::Expression>> &proj_exprs,
+    vector<duckdb::LogicalType>& agg_types,
+    vector<duckdb::LogicalType>& proj_types, CColRefArray *child_cols,
+    bool &adjust_agg_groups_performed, bool &has_pre_projection)
+{
+    CExpression *aggargs_expr = pexprScalarExpr->operator[](0);
+    if (aggargs_expr->operator[](0)->Pop()->Eopid() !=
+        COperator::EopScalarIdent) {
+        has_pre_projection = true;
+        if (!adjust_agg_groups_performed) {
+            pAdustAggGroups(agg_groups, agg_exprs);
+            adjust_agg_groups_performed = true;
+        }
+        // aggregation have child in the last column
+        proj_exprs.push_back(std::move(
+            pTransformScalarExpr(aggargs_expr->operator[](0), child_cols)));
+        agg_exprs.push_back(std::move(pTransformScalarAggFunc(
+            pexprScalarExpr, child_cols, proj_exprs.back()->return_type,
+            proj_exprs.size() - 1)));
+    }
+    else {
+        proj_exprs.push_back(std::move(
+            pTransformScalarExpr(aggargs_expr->operator[](0), child_cols)));
+        if (has_pre_projection) {
+            agg_exprs.push_back(std::move(pTransformScalarAggFunc(
+                pexprScalarExpr, child_cols, proj_exprs.back()->return_type,
+                proj_exprs.size() - 1)));
+        }
+        else {
+            agg_exprs.push_back(
+                std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
+        }
+        proj_types.push_back(proj_exprs.back()->return_type);
+        agg_types.push_back(agg_exprs.back()->return_type);
+    }
+    proj_types.push_back(proj_exprs.back()->return_type);
+    agg_types.push_back(agg_exprs.back()->return_type);
 }
 
 }  // namespace s62
