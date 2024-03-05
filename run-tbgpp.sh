@@ -1046,7 +1046,8 @@ run_tpch22() {
 		RETURN
 			cntrycode,
 			COUNT(*) as numcust,
-			sum(acctbal) as totacctbal;" 0
+			sum(acctbal) as totacctbal
+		ORDER BY cntrycode;" 0
 }
 
 run_tpch() {

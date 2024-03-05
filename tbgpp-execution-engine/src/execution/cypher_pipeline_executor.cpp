@@ -361,8 +361,8 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			// for (auto i = 0; i < current_output_chunks->size(); i++) {
 			// 	current_output_chunks->at(i)->SetSchemaIdx(i);
 			// }
-			// D_ASSERT(opOutputSchemaIdx[current_idx] < current_output_chunks->size());
-			// current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
+			D_ASSERT(opOutputSchemaIdx[current_idx] < current_output_chunks->size());
+			current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
 		}
 #ifdef DEBUG_PRINT_PIPELINE
         if (cur_op_type == OperatorType::UNARY) {

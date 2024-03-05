@@ -22,11 +22,19 @@ std::string PhysicalBlockwiseNLJoin::ToString() const {
 
 std::string PhysicalBlockwiseNLJoin::ParamsToString() const {
 	std::string result = "";
-	string extra_info = JoinTypeToString(join_type) + "   ";
+	string extra_info = JoinTypeToString(join_type) + " ";
 	extra_info += condition->GetName();
 	result += "extra_info=" + extra_info + ", ";
-	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
-	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
+	result += "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + "[";
+	for (auto &it : outer_col_map) {
+		result += std::to_string(it) + ", ";
+	}
+	result += "], ";
+	result += "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + "[";
+	for (auto &it : inner_col_map) {
+		result += std::to_string(it) + ", ";
+	}
+	result += "]";
 	return result;
 }
 
@@ -225,7 +233,6 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 			}
 		}
 	} while (result_count == 0);
-
 
 	ConstructOutputChunk(chunk, output_chunk);
 	return OperatorResultType::HAVE_MORE_OUTPUT;
