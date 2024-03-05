@@ -171,8 +171,13 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
         }
         case COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin:
         case COperator::EOperatorId::EopPhysicalLeftSemiHashJoin: {
-            result = 
-                pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr, false);
+            if (pIsComplexPred(plan_expr->operator[](2))) {
+                result = pTransformEopPhysicalNLJoinToBlockwiseNLJoin(plan_expr,
+                                                                      false);
+            }
+            else {
+                result = pTransformEopPhysicalHashJoinToHashJoin(plan_expr);
+            }
             break;
         }
         case COperator::EOperatorId::EopPhysicalInnerMergeJoin: {
@@ -2530,7 +2535,8 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 
     vector<duckdb::JoinCondition> join_conds;
     pTranslatePredicateToJoinCondition(plan_expr->operator[](2), join_conds,
-                                       left_cols, right_cols); // Shifting is not needed!
+                                       left_cols,
+                                       right_cols);  // Shifting is not needed!
     hash_output_cols = output_cols;
 
     // Construct col map, types and etc
@@ -2893,7 +2899,8 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     D_ASSERT(join_type != duckdb::JoinType::RIGHT);
 
     CExpression *join_pred = (*plan_expr)[2];
-    if (plan_expr->Pop()->Eopid() == COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin) {
+    if (plan_expr->Pop()->Eopid() ==
+        COperator::EOperatorId::EopPhysicalLeftAntiSemiHashJoin) {
         // Temporal code for anti hash join handling
         join_pred = CUtils::PexprNegate(mp, join_pred);
     }
@@ -3107,16 +3114,18 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         duckdb::LogicalType col_type =
             pConvertTypeOidToLogicalType(type_oid, type_mod);
         ULONG child_idx = child_cols->IndexOf(col);
-        agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(
-            col_type, child_idx));
-        proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-            col_type, child_idx));
+        agg_groups.push_back(
+            make_unique<duckdb::BoundReferenceExpression>(col_type, child_idx));
+        proj_exprs.push_back(
+            make_unique<duckdb::BoundReferenceExpression>(col_type, child_idx));
         proj_types.push_back(col_type);
         output_column_names_proj.push_back(pGetColNameFromColRef(col));
         if (output_cols->IndexOf(col) != gpos::ulong_max) {
             output_projection_mapping.push_back(num_outputs_in_grouping_col++);
-        } else {
-            output_projection_mapping.push_back(std::numeric_limits<uint32_t>::max());
+        }
+        else {
+            output_projection_mapping.push_back(
+                std::numeric_limits<uint32_t>::max());
         }
     }
 
@@ -3236,11 +3245,13 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
 
     duckdb::CypherPhysicalOperator *op;
     if (agg_groups.empty()) {
-        op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs));
+        op = new duckdb::PhysicalHashAggregate(
+            tmp_schema, output_projection_mapping, move(agg_exprs));
     }
     else {
-        op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs),
-                                               move(agg_groups));
+        op = new duckdb::PhysicalHashAggregate(
+            tmp_schema, output_projection_mapping, move(agg_exprs),
+            move(agg_groups));
     }
 
     result->push_back(op);
@@ -4064,9 +4075,6 @@ void Planner::pTranslatePredicateToJoinCondition(
     return;
 }
 
-
-
-
 bool Planner::pIsCartesianProduct(CExpression *expr)
 {
     return expr->Pop()->Eopid() ==
@@ -4087,23 +4095,21 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
     filter_pred_expr = filter_expr->operator[](1);
 
     auto ok = filter_pred_expr->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarCmp 
-                  &&
+                  COperator::EOperatorId::EopScalarCmp &&
               ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                   IMDType::ECmpType::EcmptEq
-            //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            //        IMDType::ECmpType::EcmptNEq ||
-            //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            //        IMDType::ECmpType::EcmptL ||
-            //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            //        IMDType::ECmpType::EcmptLEq ||
-            //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            //        IMDType::ECmpType::EcmptG ||
-            //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            //        IMDType::ECmpType::EcmptGEq) 
-            &&
-              filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarIdent &&
+                  IMDType::ECmpType::EcmptEq
+              //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              //        IMDType::ECmpType::EcmptNEq ||
+              //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              //        IMDType::ECmpType::EcmptL ||
+              //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              //        IMDType::ECmpType::EcmptLEq ||
+              //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              //        IMDType::ECmpType::EcmptG ||
+              //    ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              //        IMDType::ECmpType::EcmptGEq)
+              && filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+                     COperator::EOperatorId::EopScalarIdent &&
               filter_pred_expr->operator[](1)->Pop()->Eopid() ==
                   COperator::EOperatorId::EopScalarConst;
 
@@ -4156,16 +4162,16 @@ duckdb::JoinType Planner::pTranslateJoinType(COperator *op)
     D_ASSERT(false);
 }
 
-
-CExpression* Planner::pPredToDNF(CExpression *pred) {
+CExpression *Planner::pPredToDNF(CExpression *pred)
+{
     CMemoryPool *mp = this->memory_pool;
 
     if (pred->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
         CScalarBoolOp *boolop = (CScalarBoolOp *)pred->Pop();
         if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
             // Recursively convert children to DNF
-            CExpression* leftDNF = pPredToDNF(pred->operator[](0));
-            CExpression* rightDNF = pPredToDNF(pred->operator[](1));
+            CExpression *leftDNF = pPredToDNF(pred->operator[](0));
+            CExpression *rightDNF = pPredToDNF(pred->operator[](1));
 
             // Apply distributive law if one child is an OR
             CScalarBoolOp *left_op = (CScalarBoolOp *)leftDNF->Pop();
@@ -4174,62 +4180,75 @@ CExpression* Planner::pPredToDNF(CExpression *pred) {
                 left_op->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
                 // (A OR B) AND C => (A AND C) OR (B AND C)
                 return pDistributeANDOverOR(leftDNF, rightDNF);
-            } else if (right_op->Eopid() == COperator::EOperatorId::EopScalarBoolOp &&
-                       right_op->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+            }
+            else if (right_op->Eopid() ==
+                         COperator::EOperatorId::EopScalarBoolOp &&
+                     right_op->Eboolop() ==
+                         CScalarBoolOp::EBoolOperator::EboolopOr) {
                 // A AND (B OR C) => (A AND B) OR (A AND C)
                 return pDistributeANDOverOR(rightDNF, leftDNF);
-            } else {
+            }
+            else {
                 // If neither child is an OR, just combine the DNF children with AND
-                CExpressionArray* newDNF = GPOS_NEW(mp) CExpressionArray(mp);
+                CExpressionArray *newDNF = GPOS_NEW(mp) CExpressionArray(mp);
                 newDNF->Append(leftDNF);
                 newDNF->Append(rightDNF);
-                return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, newDNF);
+                return CUtils::PexprScalarBoolOp(
+                    mp, CScalarBoolOp::EBoolOperator::EboolopAnd, newDNF);
             }
-        } else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+        }
+        else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
             // Recursively convert children to DNF
-            CExpression* leftDNF = pPredToDNF(pred->operator[](0));
-            CExpression* rightDNF = pPredToDNF(pred->operator[](1));
-            CExpressionArray* newDNF = GPOS_NEW(mp) CExpressionArray(mp);
+            CExpression *leftDNF = pPredToDNF(pred->operator[](0));
+            CExpression *rightDNF = pPredToDNF(pred->operator[](1));
+            CExpressionArray *newDNF = GPOS_NEW(mp) CExpressionArray(mp);
             newDNF->Append(leftDNF);
             newDNF->Append(rightDNF);
 
             // Combine the DNF children with OR
-            return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopOr, newDNF);
+            return CUtils::PexprScalarBoolOp(
+                mp, CScalarBoolOp::EBoolOperator::EboolopOr, newDNF);
         }
-    } else {
+    }
+    else {
         return pred;
     }
 }
-CExpression* Planner::pDistributeANDOverOR(CExpression *a, CExpression *b) {
+CExpression *Planner::pDistributeANDOverOR(CExpression *a, CExpression *b)
+{
     CMemoryPool *mp = this->memory_pool;
     // Ensure that 'a' is the OR expression and 'b' is the one to distribute
     // If 'a' is not an OR expression, we should swap 'a' and 'b'
     if (!(a->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp &&
-        ((CScalarBoolOp *)(a->Pop()))->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr)) {
+          ((CScalarBoolOp *)(a->Pop()))->Eboolop() ==
+              CScalarBoolOp::EBoolOperator::EboolopOr)) {
         std::swap(a, b);
     }
 
     // Now 'a' is (B OR C) and 'b' is A in the (A AND (B OR C)) structure
-    CExpression* left = a->operator[](0);  // B
-    CExpression* right = a->operator[](1); // C
+    CExpression *left = a->operator[](0);   // B
+    CExpression *right = a->operator[](1);  // C
 
     // Create (A AND B)
-    CExpressionArray* left_array = GPOS_NEW(mp) CExpressionArray(mp);
+    CExpressionArray *left_array = GPOS_NEW(mp) CExpressionArray(mp);
     left_array->Append(b);
     left_array->Append(left);
-    auto left_and = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, left_array);
+    auto left_and = CUtils::PexprScalarBoolOp(
+        mp, CScalarBoolOp::EBoolOperator::EboolopAnd, left_array);
 
     // Create (A AND C)
-    CExpressionArray* right_array = GPOS_NEW(mp) CExpressionArray(mp);
+    CExpressionArray *right_array = GPOS_NEW(mp) CExpressionArray(mp);
     right_array->Append(b);
     right_array->Append(right);
-    auto right_and = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopAnd, right_array);
+    auto right_and = CUtils::PexprScalarBoolOp(
+        mp, CScalarBoolOp::EBoolOperator::EboolopAnd, right_array);
 
     // Create ((A AND B) OR (A AND C))
-    CExpressionArray* or_array = GPOS_NEW(mp) CExpressionArray(mp);
+    CExpressionArray *or_array = GPOS_NEW(mp) CExpressionArray(mp);
     or_array->Append(left_and);
     or_array->Append(right_and);
-    return CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EBoolOperator::EboolopOr, or_array);
+    return CUtils::PexprScalarBoolOp(
+        mp, CScalarBoolOp::EBoolOperator::EboolopOr, or_array);
 }
 
 void Planner::pGetFilterAttrPosAndValue(CExpression *filter_pred_expr,
@@ -4972,6 +4991,36 @@ void Planner::pGetProjectionExprs(
         D_ASSERT(idx != gpos::ulong_max);
         out_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
             output_types[col_idx], (int)idx));
+    }
+}
+
+bool Planner::pIsComplexPred(CExpression *pred_expr)
+{
+    // recursivley iterate over predicate and check
+    auto *op = pred_expr->Pop();
+    if (op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
+        CScalarBoolOp *boolop = (CScalarBoolOp *)op;
+        if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopAnd) {
+            D_ASSERT(pred_expr->Arity() == 2);
+            return pIsComplexPred(pred_expr->operator[](0)) ||
+                   pIsComplexPred(pred_expr->operator[](1));
+        }
+        else if (boolop->Eboolop() == CScalarBoolOp::EBoolOperator::EboolopOr) {
+            return true;
+        }
+        else if (boolop->Eboolop() ==
+                 CScalarBoolOp::EBoolOperator::EboolopNot) {
+            return false;
+        }
+        else {
+            D_ASSERT(false);
+        }
+    }
+    else if (op->Eopid() == COperator::EOperatorId::EopScalarCmp) {
+        return false;
+    }
+    else {
+        D_ASSERT(false);
     }
 }
 

@@ -488,6 +488,7 @@ private:
 	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
 
 	// AdjIdxJoin Helpers
+	bool pIsComplexPred(CExpression *pred_expr);
 	CExpression *pFindFilterExpr(CExpression *plan_expr);
 	CExpression *pFindIndexScanExpr(CExpression *plan_expr);
 	bool pIsFilterExist(CExpression* plan_expr);
