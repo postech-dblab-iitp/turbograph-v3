@@ -10,7 +10,7 @@ IMAGE_TAG="sys"
 CONTAINER_NAME="tbgppv3-docker-tslee"
 
 # TODO override from user input
-SHARED_MEM_SIZE="100g"
+SHARED_MEM_SIZE="256g"
 # TODO add ulimit
 
 CONTAINER_UID=$(id -u)
