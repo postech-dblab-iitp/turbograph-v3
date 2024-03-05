@@ -2905,8 +2905,9 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
         join_pred = CUtils::PexprNegate(mp, join_pred);
     }
 
-    auto join_condition_expr = pTransformScalarExpr(
+    unique_ptr<duckdb::Expression> join_condition_expr = pTransformScalarExpr(
         join_pred, outer_cols, inner_cols);  // left - right
+    pShiftFilterPredInnerColumnIndices(join_condition_expr, outer_cols->Size());
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalBlockwiseNLJoin(
         schema, move(join_condition_expr), join_type, outer_col_map,
