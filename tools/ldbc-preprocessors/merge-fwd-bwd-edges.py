@@ -1,4 +1,7 @@
 import pandas as pd
+import sys
+
+DYNAMIC_PATH = sys.argv[1]
 
 def generate_undirected_edges_with_types(input_file, output_file_all, output_file_basic):
     # Read the input file with '|' as the delimiter
@@ -41,4 +44,4 @@ def generate_undirected_edges_with_types(input_file, output_file_all, output_fil
     df_basic.to_csv(output_file_basic, index=False, sep='|')
 
 # Example usage (commented out as it's just for demonstration)
-generate_undirected_edges_with_types('/source-data/ldbc-hadoop/sf1/converted/dynamic/Person_knows_Person.csv', 'Person_knows_Person.csv', 'Person_knows_Person.csv.backward')
+generate_undirected_edges_with_types(f'{DYNAMIC_PATH}/Person_knows_Person.csv', f'{DYNAMIC_PATH}/Person_knows_Person.csv', f'{DYNAMIC_PATH}/Person_knows_Person.csv.backward')
