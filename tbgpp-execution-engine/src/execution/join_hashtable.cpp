@@ -563,15 +563,14 @@ void ScanStructure::NextSemiOrAntiJoin(DataChunk &keys, DataChunk &left, DataChu
 		// we only return the columns on the left side
 		// reference the columns of the left side from the result
 		// result.Slice(left, sel, result_count);
-		for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
+        for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
             if (output_left_projection_map[i] !=
                 std::numeric_limits<uint32_t>::max()) {
                 result.data[output_left_projection_map[i]].Slice(
-                    left.data[output_left_projection_map[i]], sel,
-                    result_count);
+                    left.data[i], sel, result_count);
             }
         }
-	} else {
+    } else {
 		D_ASSERT(result.size() == 0);
 	}
 	result.SetCardinality(result_count);
