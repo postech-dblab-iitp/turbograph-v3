@@ -496,20 +496,26 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
             if (output_left_projection_map[i] !=
                 std::numeric_limits<uint32_t>::max()) {
                 result.data[output_left_projection_map[i]].Slice(
-                    left.data[output_left_projection_map[i]], result_vector,
+                    left.data[i], result_vector,
                     result_count);
             }
         }
 
         // on the RHS, we need to fetch the data from the hash table
-        D_ASSERT(ht.build_types.size() == output_right_projection_map.size());
-        for (idx_t i = 0; i < ht.build_types.size(); i++) {
-            if (output_right_projection_map[i] !=
+        D_ASSERT(ht.build_types.size() + ht.condition_types.size() == output_right_projection_map.size());
+		idx_t i = 0;
+        for (idx_t projection_map_idx = 0;
+             projection_map_idx < output_right_projection_map.size();
+             projection_map_idx++) {
+            if (output_right_projection_map[projection_map_idx] !=
                 std::numeric_limits<uint32_t>::max()) {
-                auto &vector = result.data[output_right_projection_map[i]];
+                auto &vector =
+                    result
+                        .data[output_right_projection_map[projection_map_idx]];
                 D_ASSERT(vector.GetType() == ht.build_types[i]);
                 GatherResult(vector, result_vector, result_count,
                              i + ht.condition_types.size());
+                i++;
             }
         }
         AdvancePointers();

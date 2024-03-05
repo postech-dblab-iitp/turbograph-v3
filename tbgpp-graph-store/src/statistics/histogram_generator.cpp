@@ -252,7 +252,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
     accms.clear();
     target_cols.clear();
     for (auto i = 0; i < universal_schema.size(); i++) {
-        if (universal_schema[i].IsNumeric()) {
+        if (universal_schema[i].IsNumeric() || universal_schema[i] == LogicalType::DATE) {
             // Use the dynamic probs array
             accumulator_set<int64_t, stats<tag::extended_p_square_quantile>> *acc =
                 new accumulator_set<int64_t, stats<tag::extended_p_square_quantile>>(
@@ -278,6 +278,13 @@ void HistogramGenerator::_accumulate_data_for_hist(DataChunk &chunk, vector<Logi
 
         switch(universal_schema[target_cols_in_univ_schema[i]].id()) {
             case LogicalTypeId::INTEGER: {
+                int32_t *target_vec_data = (int32_t *)target_vec.GetData();
+                for (auto j = 0; j < chunk.size(); j++) {
+                    target_accm(target_vec_data[j]);
+                }
+                break;
+            }
+            case LogicalTypeId::DATE: {
                 int32_t *target_vec_data = (int32_t *)target_vec.GetData();
                 for (auto j = 0; j < chunk.size(); j++) {
                     target_accm(target_vec_data[j]);
@@ -332,6 +339,13 @@ void HistogramGenerator::_create_bucket(DataChunk &chunk, vector<LogicalType> &u
 
         switch(universal_schema[target_cols_in_univ_schema[i]].id()) {
             case LogicalTypeId::INTEGER: {
+                int32_t *target_vec_data = (int32_t *)target_vec.GetData();
+                for (auto j = 0; j < chunk.size(); j++) {
+                    h(target_vec_data[j]);
+                }
+                break;
+            }
+            case LogicalTypeId::DATE: {
                 int32_t *target_vec_data = (int32_t *)target_vec.GetData();
                 for (auto j = 0; j < chunk.size(); j++) {
                     h(target_vec_data[j]);
@@ -497,6 +511,10 @@ void HistogramGenerator::_accumulate_data_for_ndv(DataChunk& chunk, vector<Logic
                     target_set.insert(target_value.GetValue<int32_t>());
                     break;
                 }
+                case LogicalTypeId::DATE:{
+                    target_set.insert(target_value.GetValue<int32_t>());
+                    break;
+                }
                 case LogicalTypeId::BIGINT:{
                     target_set.insert(target_value.GetValue<int64_t>());
                     break;
@@ -522,6 +540,7 @@ void HistogramGenerator::_store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<L
         auto &target_set = ndv_counters[i];
         switch(types[i].id()) {
             case LogicalTypeId::INTEGER:
+            case LogicalTypeId::DATE:
             case LogicalTypeId::BIGINT:
             case LogicalTypeId::UINTEGER:
             case LogicalTypeId::UBIGINT: {

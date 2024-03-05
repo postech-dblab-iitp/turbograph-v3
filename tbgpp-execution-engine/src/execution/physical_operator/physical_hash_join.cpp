@@ -318,15 +318,31 @@ std::string PhysicalHashJoin::ParamsToString() const
 {
     std::string result = "";
     result += "output_left_projection_map.size()=" +
-              std::to_string(output_left_projection_map.size()) + ", ";
+              std::to_string(output_left_projection_map.size()) + "[";
+    for (auto &i : output_left_projection_map) {
+        result += std::to_string(i) + ", ";
+    }
+    result += "], ";
     result += "output_right_projection_map.size()=" +
-              std::to_string(output_right_projection_map.size()) + ", ";
+              std::to_string(output_right_projection_map.size()) + "[";
+    for (auto &i : output_right_projection_map) {
+        result += std::to_string(i) + ", ";
+    }
+    result += "], ";
     result += "right_projection_map.size()=" +
-              std::to_string(right_projection_map.size()) + ", ";
+              std::to_string(right_projection_map.size()) + "[";
+    for (auto &i : right_projection_map) {
+        result += std::to_string(i) + ", ";
+    }
+    result += "], ";
     result +=
         "condition_types.size()=" + std::to_string(condition_types.size()) +
         ", ";
-    result += "build_types.size()=" + std::to_string(build_types.size()) + ", ";
+    result += "build_types.size()=" + std::to_string(build_types.size()) + "[";
+    for (auto &build_type : build_types) {
+        result += build_type.ToString() + ", ";
+    }
+    result += "]";
     return result;
 }
 

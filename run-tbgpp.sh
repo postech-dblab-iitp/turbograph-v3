@@ -271,20 +271,6 @@ run_ldbc_c3() {
 			xCount + yCount AS xyCount
 		ORDER BY xyCount DESC, friendId ASC
 		LIMIT 20; "
-	run_query "
-		MATCH (countryX:Place {name: 'Laos' }),
-			(countryY:Place {name: 'Scotland' }),
-			(person:Person {id: 17592186055119 })
-		WITH person, countryX, countryY
-		LIMIT 1
-		MATCH (person)-[:KNOWS*1..2]->(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
-		WHERE NOT person=friend
-			AND NOT EXISTS {
-				MATCH (city)-[:IS_PART_OF]->(country:Place)
-				WHERE country = countryX OR country = countryY
-			}
-		WITH DISTINCT friend, countryX, countryY
-		RETURN friend, countryX, countryY;" 1
 }
 
 run_ldbc_c4() {
@@ -998,7 +984,7 @@ run_tpch20() {
 			AND p.P_NAME CONTAINS 'smoke'
 			AND li.L_SHIPDATE >= date('1997-01-01')
 			AND li.L_SHIPDATE < date('1998-01-01')
-		WITH ps, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as quantity_sum
+		WITH ps.PS_AVAILQTY AS PS_AVAILQTY, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as quantity_sum
 		RETURN
 			S_NAME, S_ADDRESS
 		ORDER BY S_NAME;" 0
@@ -1006,15 +992,6 @@ run_tpch20() {
 
 run_tpch21() {
 	# TPC-H Q21 Suppliers Who Kept Orders Waiting Query
-	run_query "MATCH (l1:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER),
-			(l1)-[:IS_PART_OF]->(o:ORDERS), 
-			(s)-[:SUPP_BELONG_TO]->(n:NATION)
-		WHERE n.N_NAME = 'SAUDI ARABIA'
-			AND l1.L_RECEIPTDATE > l1.L_COMMITDATE
-			AND o.O_ORDERSTATUS = 'F'
-		RETURN s.S_NAME AS S_NAME, COUNT(*) AS numwait
-		ORDER BY numwait desc, S_NAME
-		LIMIT 100;" 1
 	run_query "MATCH 
 			(l1:LINEITEM)-[:SUPPLIED_BY]->(s:SUPPLIER), 
 			(l1)-[:IS_PART_OF]->(o:ORDERS), 
