@@ -99,7 +99,7 @@ CLogicalSelect::PxfsCandidates(CMemoryPool *mp) const
 	(void) xform_set->ExchangeSet(CXform::ExfSelect2PartialDynamicIndexGet);
 	(void) xform_set->ExchangeSet(CXform::ExfSelect2BitmapBoolOp);
 	(void) xform_set->ExchangeSet(CXform::ExfSelect2DynamicBitmapBoolOp);
-	(void) xform_set->ExchangeSet(CXform::ExfSimplifySelectWithSubquery);
+	// (void) xform_set->ExchangeSet(CXform::ExfSimplifySelectWithSubquery);
 	(void) xform_set->ExchangeSet(CXform::ExfSelect2Filter);
 
 	return xform_set;

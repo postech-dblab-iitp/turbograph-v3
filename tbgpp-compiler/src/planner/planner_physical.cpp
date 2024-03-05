@@ -1173,14 +1173,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         result->push_back(duckdb_idseek_op);
     }
 
-    // Release
-    output_cols->Release();
-    outer_cols->Release();
-    inner_cols->Release();
-    adj_inner_cols->Release();
-    adj_output_cols->Release();
-    seek_inner_cols->Release();
-
     return result;
 }
 
@@ -1299,10 +1291,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     result->push_back(op);
 
     pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
-
-    output_cols->Release();
-    outer_cols->Release();
-    inner_cols->Release();
 
     return result;
 }
@@ -1465,7 +1453,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                     pTransformScalarExpr(filter_pred_expr, outer_cols,
                                          nullptr);  // only outer cols exist
                 filter_exprs.push_back(std::move(filter_duckdb_expr));
-                filter_pred_expr->Release();
             }
 
             // Get JoinColumnID (We assume binary tree of BoolOp)
@@ -1553,10 +1540,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
             }
 
-            // release
-            output_cols->Release();
-            outer_cols->Release();
-            inner_cols->Release();
             return result;
         }
         else if (inner_root->Pop()->Eopid() ==
@@ -1760,11 +1743,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             scan_projection_mapping, scan_types, false);
         result->push_back(op);
     }
-
-    output_cols->Release();
-    outer_cols->Release();
-    inner_cols->Release();
-    idxscan_cols->Release();
 
     return result;
 }
@@ -2064,11 +2042,6 @@ void Planner::
     }
 
     pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
-
-    output_cols->Release();
-    outer_cols->Release();
-    inner_cols->Release();
-    outer_inner_cols->Release();
 }
 
 void Planner::
@@ -2378,7 +2351,6 @@ void Planner::
             pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                outer_cols->Size());
             filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
-            idxscan_cols->Release();
         }
 
         // reached to the bottom
@@ -2446,11 +2418,6 @@ void Planner::
         GPOS_ASSERT(false);
         throw NotImplementedException("InnerIdxNLJoin for Filter case");
     }
-
-    output_cols->Release();
-    outer_cols->Release();
-    inner_cols->Release();
-    outer_inner_cols->Release();
 }
 
 void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
@@ -2623,12 +2590,6 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalHashJoin(
         schema, move(join_conds), join_type, left_col_map, right_col_map,
         right_build_types, right_build_map);
-
-    // Release
-    output_cols->Release();
-    left_cols->Release();
-    right_cols->Release();
-    hash_output_cols->Release();
 
     return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
 }
@@ -3094,8 +3055,6 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
     duckdb::CypherPhysicalOperator *op =
         new duckdb::PhysicalProjection(tmp_schema, std::move(proj_exprs));
     result->push_back(op);
-
-    child_cols->Release();
 
     return result;
 }
