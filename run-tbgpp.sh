@@ -50,45 +50,27 @@ run_ldbc_s() {
 			n.browserUsed AS browserUsed,
 			p.id AS cityId,
 			n.gender AS gender,
-			n.creationDate AS creationDate"
+			n.creationDate AS creationDate;"
 
 	# LDBC IS2 Recent messages of a person
-	run_query "MATCH (:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)
-			   WITH
-				message,
-				message.id AS messageId,
-				message.creationDate AS messageCreationDate
-			   ORDER BY messageCreationDate DESC, messageId ASC
-			   LIMIT 10
-			   MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
-					(post)-[:POST_HAS_CREATOR]->(person:Person)
-			   RETURN
-				messageId,
-				message.content AS messageContent,
-				messageCreationDate,
-				post.id AS postId,
-				person.id AS personId,
-				person.firstName AS personFirstName,
-				person.lastName AS personLastName
-			   ORDER BY messageCreationDate DESC, messageId ASC"
-
-	# LDBC IS2 Other
-	run_query "MATCH (:Person {id: 143})<-[:HAS_CREATOR]-(message:Comment)
-				WITH
-				message
-				ORDER BY message.creationDate DESC, message.id ASC
-				LIMIT 10
-				MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
-				(post)-[:POST_HAS_CREATOR]->(person:Person)
-				RETURN
-				message.id AS messageId,
-				message.content AS messageContent,
-				message.creationDate AS messageCreationDate,
-				post.id AS postId,
-				person.id AS personId,
-				person.firstName AS personFirstName,
-				person.lastName AS personLastName
-				ORDER BY messageCreationDate DESC, messageId ASC;"
+	run_query "MATCH (:Person {id: 933})<-[:HAS_CREATOR]-(message:Comment)
+		WITH
+			message,
+			message.id AS messageId,
+			message.creationDate AS messageCreationDate
+		ORDER BY messageCreationDate DESC, messageId ASC
+		LIMIT 10
+		MATCH (message)-[:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(post:Post),
+			(post)-[:POST_HAS_CREATOR]->(person:Person)
+		RETURN
+			messageId,
+			message.content AS messageContent,
+			messageCreationDate,
+			post.id AS postId,
+			person.id AS personId,
+			person.firstName AS personFirstName,
+			person.lastName AS personLastName
+		ORDER BY messageCreationDate DESC, messageId ASC;"
 	
 	
 	# LDBC IS3 Friends of a Person
@@ -100,24 +82,24 @@ run_ldbc_s() {
 			r.creationDate AS friendshipCreationDate
 		ORDER BY
 			friendshipCreationDate DESC,
-			personId ASC"
+			personId ASC;"
 
 	# LDBC IS4 Content of a message
-	run_query "MATCH (m:Comment {id: 557})
+	run_query "MATCH (m:Post {id: 2199029886840})
 		RETURN
 			m.creationDate as messageCreationDate,
-			m.content as messageContent"
+			m.imageFile as messageContent;"
 	
 	# LDBC IS5 Creator of a message
-	run_query "MATCH (m:Comment {id: 557})-[r:HAS_CREATOR]->(p:Person)
+	run_query "MATCH (m:Comment {id: 824635044686})-[r:HAS_CREATOR]->(p:Person)
 		RETURN
 			p.id AS personId,
 			p.firstName AS firstName,
-			p.lastName AS lastName"
+			p.lastName AS lastName;"
 
 	# LDBC IS6 Forum of a message
 	run_query "MATCH
-			(m:Comment {id: 1099511628400})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)
+			(m:Comment {id: 824635044686})-[roc:REPLY_OF_COMMENT*0..8]->(n:Comment)-[ro:REPLY_OF]->(p:Post)
 			<-[co:CONTAINER_OF]-(f:Forum)-[hm:HAS_MODERATOR]->(mod:Person)
 		RETURN
 			f.id AS forumId,
@@ -127,8 +109,8 @@ run_ldbc_s() {
 			mod.lastName AS moderatorLastName"
 
 	# LDBC IS7 Replies of a message
-	run_query "MATCH (m:Post {id: 556 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-	    OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
+	run_query "MATCH (m:Comment {id: 824635044682 })<-[:REPLY_OF_COMMENT]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+	    OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
 	    RETURN c.id AS commentId,
 			c.content AS commentContent,
 			c.creationDate AS commentCreationDate,

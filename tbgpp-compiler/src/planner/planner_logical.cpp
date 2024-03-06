@@ -167,180 +167,246 @@ LogicalPlan* Planner::lPlanUnwindClause(
 	return nullptr;
 }
 
-LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, LogicalPlan *prev_plan, bool is_optional_match)
-{	
-	LogicalPlan *plan = nullptr;
+LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
+                                        LogicalPlan *prev_plan,
+                                        bool is_optional_match)
+{
+    LogicalPlan *plan = nullptr;
 
-	s62::LogicalSchema *prev_plan_schema;	// maintain snapshot of the prev. schema, which is used for optional match
-	if (prev_plan == nullptr) {
-		prev_plan_schema = new s62::LogicalSchema();
-	} else {
-		prev_plan_schema = prev_plan->getSchema();
-	}
-	
-	LogicalPlan *qg_plan = prev_plan;
+	// maintain snapshot of the prev. schema, which is used for optional match
+    s62::LogicalSchema *prev_plan_schema;
+    if (prev_plan == nullptr) {
+        prev_plan_schema = new s62::LogicalSchema();
+    }
+    else {
+        prev_plan_schema = prev_plan->getSchema();
+    }
 
-	bool is_forward_traverse = true; // true for forward, false for backward
-	if (is_optional_match) {
-		// we can only handle this case in optional_match currently
-		D_ASSERT(qgc.getNumQueryGraphs() == 1);
+    LogicalPlan *qg_plan = prev_plan;
 
-		QueryGraph *qg = qgc.getQueryGraph(0);
-		for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
-			if (edge_idx == 0) {
-				RelExpression *qedge = qg->getQueryRel(edge_idx).get();
-				string lhs_name = qedge->getSrcNode()->getUniqueName();
-				if (prev_plan_schema->isNodeBound(lhs_name)) {
-					is_forward_traverse = true;
-					break;
-				}
-			}
-			
-			if (edge_idx == qg->getNumQueryRels() - 1) {
-				RelExpression *qedge = qg->getQueryRel(edge_idx).get();
-				string rhs_name = qedge->getDstNode()->getUniqueName();
-				if (prev_plan_schema->isNodeBound(rhs_name)) {
-					is_forward_traverse = false;
-					break;
-				}
-			}
-		}
-	}
+    bool is_forward_traverse = true;  // true for forward, false for backward
+    if (is_optional_match) {
+        // we can only handle this case in optional_match currently
+        D_ASSERT(qgc.getNumQueryGraphs() == 1);
 
-	GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
-	for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++) {
-		QueryGraph *qg = qgc.getQueryGraph(idx);
+        QueryGraph *qg = qgc.getQueryGraph(0);
+        for (int edge_idx = 0; edge_idx < qg->getNumQueryRels(); edge_idx++) {
+            if (edge_idx == 0) {
+                RelExpression *qedge = qg->getQueryRel(edge_idx).get();
+                string lhs_name = qedge->getSrcNode()->getUniqueName();
+                if (prev_plan_schema->isNodeBound(lhs_name)) {
+                    is_forward_traverse = true;
+                    break;
+                }
+            }
 
-		int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
-		if (qg->getNumQueryRels() >= 1) {
-			for (;;) {
-				RelExpression *qedge = qg->getQueryRel(edge_idx).get();
-				NodeExpression *lhs = is_forward_traverse ?
-					qedge->getSrcNode().get() : qedge->getDstNode().get();
-				NodeExpression *rhs = is_forward_traverse ?
-					qedge->getDstNode().get() : qedge->getSrcNode().get();
-				string edge_name = qedge->getUniqueName();
-				string lhs_name = lhs->getUniqueName();
-				string rhs_name = rhs->getUniqueName();
+            if (edge_idx == qg->getNumQueryRels() - 1) {
+                RelExpression *qedge = qg->getQueryRel(edge_idx).get();
+                string rhs_name = qedge->getDstNode()->getUniqueName();
+                if (prev_plan_schema->isNodeBound(rhs_name)) {
+                    is_forward_traverse = false;
+                    break;
+                }
+            }
+        }
+    }
 
-				bool is_lhs_bound = false;
-				bool is_rhs_bound = false;
-				if (qg_plan != nullptr) {
-					is_lhs_bound = qg_plan->getSchema()->isNodeBound(lhs_name) ? true : false;
-					is_rhs_bound = qg_plan->getSchema()->isNodeBound(rhs_name) ? true : false;
-				}
+    GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
+    for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++) {
+        QueryGraph *qg = qgc.getQueryGraph(idx);
 
-				// case for variable length join
-				bool is_pathjoin = qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
+        int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
+        if (qg->getNumQueryRels() >= 1) {
+            for (;;) {
+                RelExpression *qedge = qg->getQueryRel(edge_idx).get();
+                NodeExpression *lhs = is_forward_traverse
+                                          ? qedge->getSrcNode().get()
+                                          : qedge->getDstNode().get();
+                NodeExpression *rhs = is_forward_traverse
+                                          ? qedge->getDstNode().get()
+                                          : qedge->getSrcNode().get();
+                string edge_name = qedge->getUniqueName();
+                string lhs_name = lhs->getUniqueName();
+                string rhs_name = rhs->getUniqueName();
 
-				LogicalPlan *hop_plan;
-				LogicalPlan *lhs_plan;
-				// A join R
-				if (!is_lhs_bound) {
-					lhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)lhs, true);
-				} else {
-					// lhs bound
-					lhs_plan = qg_plan;
-				}
-				GPOS_ASSERT(lhs_plan != nullptr);
+                bool is_lhs_bound = false;
+                bool is_rhs_bound = false;
+                if (qg_plan != nullptr) {
+                    is_lhs_bound = qg_plan->getSchema()->isNodeBound(lhs_name)
+                                       ? true
+                                       : false;
+                    is_rhs_bound = qg_plan->getSchema()->isNodeBound(rhs_name)
+                                       ? true
+                                       : false;
+                }
 
-				// Scan R
-				LogicalPlan *edge_plan;
-				CExpression *a_r_join_expr;
-				auto ar_join_type = is_optional_match && prev_plan_schema->isNodeBound(lhs_name) ? // check optional match
-						gpopt::COperator::EOperatorId::EopLogicalLeftOuterJoin :
-						gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
-				if (!is_pathjoin) {
-					edge_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qedge, false);
-					// A join R
-					a_r_join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-						lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-						edge_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? SID_COLNAME : TID_COLNAME),
-						ar_join_type);
-				} else {
-					edge_plan = lPlanPathGet((RelExpression*)qedge);
-					// A pathjoin R
-					a_r_join_expr = lExprLogicalPathJoin(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-						lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-						edge_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? SID_COLNAME : TID_COLNAME),
-						qedge->getLowerBound(), qedge->getUpperBound(),
-						ar_join_type);
-				}
-				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
-				lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
+                // case for variable length join
+                bool is_pathjoin =
+                    qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
 				
-				// R join B
-				if (is_lhs_bound && is_rhs_bound) {
-					// no join necessary - add filter predicate on edge.tid = rhs.id
-					CMemoryPool* mp = this->memory_pool;
+				// case for optional match
+				bool push_selection_pred_into_join =
+					is_optional_match && is_lhs_bound && is_rhs_bound;
+
+                LogicalPlan *hop_plan;
+                LogicalPlan *lhs_plan;
+                // A join R
+                if (!is_lhs_bound) {
+                    lhs_plan =
+                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs, true);
+                }
+                else {
+                    // lhs bound
+                    lhs_plan = qg_plan;
+                }
+                GPOS_ASSERT(lhs_plan != nullptr);
+
+                // Scan R
+                LogicalPlan *edge_plan;
+                CExpression *a_r_join_expr;
+                auto ar_join_type =
+                    is_optional_match && prev_plan_schema->isNodeBound(lhs_name)
+                        ? gpopt::COperator::EOperatorId::EopLogicalLeftOuterJoin
+                        : gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
+				CExpression *additional_join_pred;
+
+                edge_plan = is_pathjoin
+                                ? lPlanPathGet((RelExpression *)qedge)
+                                : lPlanNodeOrRelExpr(
+                                      (NodeOrRelExpression *)qedge, false);
+                lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
+                if (push_selection_pred_into_join) {
+                    CMemoryPool *mp = this->memory_pool;
+                    additional_join_pred = lExprScalarCmpEq(
+                        lExprScalarPropertyExpr(
+                            edge_name,
+                            is_forward_traverse ? TID_COLNAME : SID_COLNAME,
+                            lhs_plan),
+                        lExprScalarPropertyExpr(rhs_name, ID_COLNAME,
+                                                lhs_plan));
+                }
+                a_r_join_expr =
+                    is_pathjoin
+                        ? lExprLogicalPathJoin(
+                              lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
+                              lhs_plan->getSchema()->getColRefOfKey(lhs_name,
+                                                                    ID_COLNAME),
+                              edge_plan->getSchema()->getColRefOfKey(
+                                  edge_name, is_forward_traverse ? SID_COLNAME
+                                                                 : TID_COLNAME),
+                              qedge->getLowerBound(), qedge->getUpperBound(),
+                              ar_join_type)
+                        : lExprLogicalJoin(
+                              lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
+                              lhs_plan->getSchema()->getColRefOfKey(lhs_name,
+                                                                    ID_COLNAME),
+                              edge_plan->getSchema()->getColRefOfKey(
+                                  edge_name, is_forward_traverse ? SID_COLNAME
+                                                                 : TID_COLNAME),
+                              ar_join_type, additional_join_pred);
+                lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
+
+                // R join B
+				if (!push_selection_pred_into_join) {
+					if (is_lhs_bound && is_rhs_bound) {
+						// no join necessary - add filter predicate on edge.tid = rhs.id
+						CMemoryPool *mp = this->memory_pool;
+						hop_plan = lhs_plan;
+						CExpression *selection_expr = CUtils::PexprLogicalSelect(
+							mp, lhs_plan->getPlanExpr(),
+							lExprScalarCmpEq(
+								lExprScalarPropertyExpr(
+									edge_name,
+									is_forward_traverse ? TID_COLNAME : SID_COLNAME,
+									lhs_plan),
+								lExprScalarPropertyExpr(rhs_name, ID_COLNAME,
+														lhs_plan)));
+						hop_plan->addUnaryParentOp(selection_expr);
+					}
+					else {
+						LogicalPlan *rhs_plan;
+						// join necessary
+						if (!is_rhs_bound) {
+							rhs_plan = lPlanNodeOrRelExpr(
+								(NodeOrRelExpression *)rhs, true);
+						}
+						else {
+							// lhs unbound and rhs bound
+							rhs_plan = qg_plan;
+						}
+						// (AR) join B
+                        auto rb_join_type =
+                            is_optional_match &&
+                                    prev_plan_schema->isNodeBound(rhs_name)
+                                ? gpopt::COperator::EOperatorId::
+                                      EopLogicalLeftOuterJoin
+                                : gpopt::COperator::EOperatorId::
+                                      EopLogicalInnerJoin;
+                        auto join_expr = lExprLogicalJoin(
+							lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
+							lhs_plan->getSchema()->getColRefOfKey(
+								edge_name,
+								is_forward_traverse ? TID_COLNAME : SID_COLNAME),
+							rhs_plan->getSchema()->getColRefOfKey(rhs_name,
+																	ID_COLNAME),
+							rb_join_type);
+						lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
+						lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
+						hop_plan = lhs_plan;
+					}
+				} else {
 					hop_plan = lhs_plan;
-					CExpression* selection_expr = CUtils::PexprLogicalSelect(mp, lhs_plan->getPlanExpr(),
-						lExprScalarCmpEq( lExprScalarPropertyExpr(edge_name, is_forward_traverse ? TID_COLNAME : SID_COLNAME, lhs_plan), lExprScalarPropertyExpr(rhs_name, ID_COLNAME, lhs_plan) )
-					);
-					hop_plan->addUnaryParentOp(selection_expr);
-				} else {
-					LogicalPlan* rhs_plan;
-					// join necessary
-					if (!is_rhs_bound) {
-						rhs_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)rhs, true);
-					} else {
-						// lhs unbound and rhs bound
-						rhs_plan = qg_plan;
-					}
-					// (AR) join B
-					auto rb_join_type = is_optional_match && prev_plan_schema->isNodeBound(rhs_name) ? // check optional match
-						gpopt::COperator::EOperatorId::EopLogicalLeftOuterJoin :
-						gpopt::COperator::EOperatorId::EopLogicalInnerJoin;
-						// gpopt::COperator::EOperatorId::EopLogicalRightOuterJoin :
-					auto join_expr = lExprLogicalJoin(lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
-						lhs_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? TID_COLNAME : SID_COLNAME),
-						rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
-						rb_join_type);
-					lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
-					lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
-					hop_plan = lhs_plan;
 				}
-				GPOS_ASSERT(hop_plan != nullptr);
-				// When lhs, rhs is unbound, qg_plan is not merged with the hop_plan. Thus cartprod.
-				if ( (qg_plan != nullptr) && (!is_lhs_bound) && (!is_rhs_bound)) {
-					auto cart_expr = lExprLogicalCartProd(qg_plan->getPlanExpr(), hop_plan->getPlanExpr());
-					qg_plan->getSchema()->appendSchema(hop_plan->getSchema());
-					qg_plan->addBinaryParentOp(cart_expr, hop_plan);
-				} else {
-					qg_plan = hop_plan;
-				}
-				GPOS_ASSERT(qg_plan != nullptr);
+                GPOS_ASSERT(hop_plan != nullptr);
 
-				if (is_forward_traverse) {
-					edge_idx++;
-					if (edge_idx >= qg->getNumQueryRels()) {
-						break;
-					}
-				} else {
-					edge_idx--;
-					if (edge_idx < 0) {
-						break;
-					}
-				}
-			}
-		} else {
-			// if no edge, this is single node scan case
-			D_ASSERT(qg->getQueryNodes().size() == 1);
+                // When lhs, rhs is unbound, qg_plan is not merged with the hop_plan. Thus cartprod.
+                if ((qg_plan != nullptr) && (!is_lhs_bound) &&
+                    (!is_rhs_bound)) {
+                    auto cart_expr = lExprLogicalCartProd(
+                        qg_plan->getPlanExpr(), hop_plan->getPlanExpr());
+                    qg_plan->getSchema()->appendSchema(hop_plan->getSchema());
+                    qg_plan->addBinaryParentOp(cart_expr, hop_plan);
+                }
+                else {
+                    qg_plan = hop_plan;
+                }
+                GPOS_ASSERT(qg_plan != nullptr);
 
-			LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr((NodeOrRelExpression*)qg->getQueryNodes()[0].get(), true);
-			if (qg_plan == nullptr) {
-				qg_plan = nodescan_plan;
-			} else {
-				// cartprod
-				auto cart_expr = lExprLogicalCartProd(qg_plan->getPlanExpr(), nodescan_plan->getPlanExpr());
-				qg_plan->getSchema()->appendSchema(nodescan_plan->getSchema());
-				qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
-			}
-		}
-	}
-	GPOS_ASSERT(qg_plan != nullptr);
+                if (is_forward_traverse) {
+                    edge_idx++;
+                    if (edge_idx >= qg->getNumQueryRels()) {
+                        break;
+                    }
+                }
+                else {
+                    edge_idx--;
+                    if (edge_idx < 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            // if no edge, this is single node scan case
+            D_ASSERT(qg->getQueryNodes().size() == 1);
 
-	return qg_plan;
+            LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr(
+                (NodeOrRelExpression *)qg->getQueryNodes()[0].get(), true);
+            if (qg_plan == nullptr) {
+                qg_plan = nodescan_plan;
+            }
+            else {
+                // cartprod
+                auto cart_expr = lExprLogicalCartProd(
+                    qg_plan->getPlanExpr(), nodescan_plan->getPlanExpr());
+                qg_plan->getSchema()->appendSchema(nodescan_plan->getSchema());
+                qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
+            }
+        }
+    }
+    GPOS_ASSERT(qg_plan != nullptr);
+
+    return qg_plan;
 }
 
 LogicalPlan *Planner::lPlanRegularMatchFromSubquery(const QueryGraphCollection &qgc, LogicalPlan *outer_plan) 
@@ -1710,7 +1776,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 }
 
 CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op) {
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
+		CExpression *additional_join_pred) {
 	
 	CMemoryPool* mp = this->memory_pool;
 
@@ -1720,7 +1787,15 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	lhs->AddRef();
 	rhs->AddRef();
 
-	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	CExpression *pexprEquality;
+	if (additional_join_pred == nullptr) { 
+		pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	} else {
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		pdrgpexprChildren->Append(additional_join_pred);
+		pdrgpexprChildren->Append(CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight));
+		pexprEquality = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EboolopAnd, pdrgpexprChildren);
+	}
 	pexprEquality->AddRef();
 
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
