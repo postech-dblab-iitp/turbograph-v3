@@ -779,10 +779,10 @@ run_tpch10() {
 
 run_tpch11() {
 	# TPC-H Q11 Important Stock Identification Query
-	# WITH sum(tmp1) * 0.0001 as subquery, sum(tmp2) as value 
 	run_query "MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)
 		WHERE n.N_NAME = 'ROMANIA'
-		WITH sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) * 0.0001 as subquery
+		WITH sum(p.PS_SUPPLYCOST * p.PS_AVAILQTY) as prev_subquery
+		WITH prev_subquery * 0.0001 as subquery
 		MATCH (pa2:PART)-[p2:PARTSUPP]->(s2:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
 		WHERE n2.N_NAME = 'ROMANIA'
 		WITH pa2.P_PARTKEY AS P_PARTKEY, sum(p2.PS_SUPPLYCOST * p2.PS_AVAILQTY) as value, subquery
@@ -830,22 +830,16 @@ run_tpch13() {
 
 run_tpch14() {
 	# TPC-H Q14 Promotion Effect Query
-	# 100 * SUM(CASE WHEN part.P_TYPE =~ '.*PROMO.*'
 	run_query "MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part: PART)
-		WHERE item.L_SHIPDATE >= date('1995-09-01') 
-			AND item.L_SHIPDATE < date('1995-12-01')
-		RETURN
+		WHERE item.L_SHIPDATE >= date('1997-05-01') 
+			AND item.L_SHIPDATE < date('1997-06-01')
+		WITH
 			SUM(CASE WHEN part.P_TYPE CONTAINS 'PROMO'
-				THEN item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT) 
-				ELSE 0 END) / SUM(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS PROMO_REVENUE;" 1
-	run_query "MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part: PART)
-		WHERE item.L_SHIPDATE >= date('1995-09-01') 
-			AND item.L_SHIPDATE < date('1995-12-01')
+				THEN item.L_EXTENDEDPRICE * (1.0 - item.L_DISCOUNT) 
+				ELSE 0.0 END) AS PROMO_REVENUE1,
+			SUM(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS PROMO_REVENUE2
 		RETURN
-			SUM(CASE WHEN part.P_TYPE CONTAINS 'PROMO'
-				THEN item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT) 
-				ELSE 0 END) AS PROMO_REVENUE1,
-			SUM(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS PROMO_REVENUE2;" 0
+			100 * PROMO_REVENUE1 / PROMO_REVENUE2 AS PROMO_REVENUE;" 0
 }
 
 run_tpch15() {
@@ -902,17 +896,26 @@ run_tpch16() {
 
 run_tpch17() {
 	# TPC-H Q17 Small-Quantity-Order Revenue Query
-	# WITH 0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
 	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part:PART)
 		WHERE part.P_BRAND = 'Brand#15'
 			AND part.P_CONTAINER = 'LG CASE'
-		WITH  0.2 * avg(lineitem.L_QUANTITY) AS avg_quantity
+		WITH avg(lineitem.L_QUANTITY) AS prev_avg_quantity
+		WITH 0.2 * prev_avg_quantity AS avg_quantity
 		MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part2:PART)
 		WHERE part2.P_BRAND = 'Brand#15'
 			AND part2.P_CONTAINER = 'LG CASE'
 			AND item.L_QUANTITY < avg_quantity
 		RETURN
 			SUM(item.L_EXTENDEDPRICE) / 7.0 AS avg_yearly;" 0
+
+	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part: PART)
+		WHERE part.P_BRAND = 'Brand#15' AND part.P_CONTAINER = 'LG CASE'
+		WITH lineitem._id AS LID, lineitem.L_QUANTITY AS LQUAN, lineitem.L_EXTENDEDPRICE AS LEXT, part
+		MATCH (item2: LINEITEM)-[:COMPOSED_BY]->(part)
+		WITH LID AS LID, LQUAN AS LQUAN, LEXT AS LEXT, avg(item2.L_QUANTITY) as prev_avg_quantity
+		WITH LQUAN AS LQUAN, LEXT AS LEXT, 0.2 * prev_avg_quantity AS avg_quantity
+		WHERE LQUAN < avg_quantity
+		RETURN sum(LEXT) / 7.0 as avg_yearly;" 0
 }
 
 run_tpch18() {
@@ -962,16 +965,31 @@ run_tpch19() {
 
 run_tpch20() {
 	# TPC-H Q20 Potential Part Promotion Query
+	# not contains! STARTS WITH!
+	run_query "MATCH (n:NATION)<-[:SUPP_BELONG_TO]-(s:SUPPLIER)<-[:SUPPLIED_BY]-(li:LINEITEM)-[:COMPOSED_BY]->(p:PART),
+            (p)-[ps:PARTSUPP]->(s)
+        WHERE n.N_NAME = 'BRAZIL'
+            AND p.P_NAME CONTAINS 'smoke'
+            AND li.L_SHIPDATE >= date('1997-01-01')
+            AND li.L_SHIPDATE < date('1998-01-01')
+        WITH ps._id AS PSID, ps.PS_AVAILQTY AS PS_AVAILQTY, s._id AS SID, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as prev_quantity_sum
+        WITH PS_AVAILQTY AS PS_AVAILQTY, S_NAME AS S_NAME, S_ADDRESS AS S_ADDRESS, 0.5 * prev_quantity_sum AS quantity_sum
+        WHERE PS_AVAILQTY > quantity_sum
+        RETURN
+            S_NAME, S_ADDRESS
+        ORDER BY S_NAME;" 0
+
 	run_query "MATCH (n:NATION)<-[:SUPP_BELONG_TO]-(s:SUPPLIER)<-[:SUPPLIED_BY]-(li:LINEITEM)-[:COMPOSED_BY]->(p:PART),
 			(p)-[ps:PARTSUPP]->(s)
-		WHERE n.N_NAME = 'BRAZIL'
+        WHERE n.N_NAME = 'BRAZIL' AND li.L_SHIPDATE >= date('1997-01-01')
+            AND li.L_SHIPDATE < date('1998-01-01')
 			AND p.P_NAME CONTAINS 'smoke'
-			AND li.L_SHIPDATE >= date('1997-01-01')
-			AND li.L_SHIPDATE < date('1998-01-01')
-		WITH ps.PS_AVAILQTY AS PS_AVAILQTY, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, 0.5 * sum(li.L_QUANTITY) as quantity_sum
-		RETURN
-			S_NAME, S_ADDRESS
-		ORDER BY S_NAME;" 0
+        WITH ps._id AS PSID, ps.PS_AVAILQTY AS PS_AVAILQTY, s._id AS SID, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as prev_quantity_sum
+		WITH PS_AVAILQTY, S_NAME, S_ADDRESS, 0.5 * prev_quantity_sum AS quantity_sum
+		WHERE PS_AVAILQTY > quantity_sum
+        RETURN
+            S_NAME, S_ADDRESS
+        ORDER BY S_NAME;" 0
 }
 
 run_tpch21() {

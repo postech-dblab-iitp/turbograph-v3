@@ -44,36 +44,6 @@ PhysicalHashJoin::PhysicalHashJoin(
     D_ASSERT(delim_types.size() == 0);
 }
 
-// Extension for OR Type predicate
-PhysicalHashJoin::PhysicalHashJoin(
-    Schema sch, vector<vector<JoinCondition>> or_conds, JoinType join_type,
-    vector<uint32_t> &output_left_projection_map,  // s62 style projection map
-    vector<uint32_t> &output_right_projection_map,  // s62 style projection map (not used due to right_build_map)
-    vector<LogicalType> &right_build_types,
-    vector<idx_t> &right_build_map  // right column indexes to build (they should be in the output)
-    )
-    : PhysicalComparisonJoin(sch, PhysicalOperatorType::HASH_JOIN, move(or_conds),
-                             join_type),
-      build_types(right_build_types),
-      right_projection_map(right_build_map),
-      output_left_projection_map(output_left_projection_map),
-      output_right_projection_map(output_right_projection_map)
-{
-
-    for (auto &conds : or_conditions) {
-        for (auto &condition : conds) {
-            condition_types.push_back(condition.left->return_type);
-        }
-    }
-
-    D_ASSERT(build_types.size() == right_projection_map.size());
-    if (join_type == JoinType::ANTI || join_type == JoinType::SEMI) {
-        D_ASSERT(build_types.size() == 0);
-    }
-
-    D_ASSERT(delim_types.size() == 0);
-}
-
 
 //===--------------------------------------------------------------------===//
 // Sink
@@ -97,31 +67,15 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(
     if (!right_projection_map.empty()) {
         state->build_chunk.Initialize(build_types);
     }
-    if (conditions.size() != 0) {
-        for (auto &cond : conditions) {
-            state->build_executor.AddExpression(*cond.right);
-        }
-    }
-    else {
-        for (auto &conds : or_conditions) {
-            for (auto &cond : conds) {
-                state->build_executor.AddExpression(*cond.right);
-            }
-        }
+    for (auto &cond : conditions) {
+        state->build_executor.AddExpression(*cond.right);
     }
     state->join_keys.Initialize(condition_types);
 
     // globals
-    if (conditions.size() != 0) {
-        state->hash_table = make_unique<JoinHashTable>(
-            BufferManager::GetBufferManager(*(context.client->db.get())),
-            conditions, build_types, join_type, output_left_projection_map, output_right_projection_map);
-    }
-    else {
-        state->hash_table = make_unique<JoinHashTable>(
-            BufferManager::GetBufferManager(*(context.client->db.get())),
-            or_conditions, build_types, join_type, output_left_projection_map, output_right_projection_map);
-    }
+    state->hash_table = make_unique<JoinHashTable>(
+        BufferManager::GetBufferManager(*(context.client->db.get())),
+        conditions, build_types, join_type, output_left_projection_map, output_right_projection_map);
 
     return move(state);
 }
@@ -218,19 +172,9 @@ unique_ptr<OperatorState> PhysicalHashJoin::GetOperatorState(
     // 	state->perfect_hash_join_state = sink.perfect_join_executor->GetOperatorState(context);
     // } else {
     state->join_keys.Initialize(condition_types);
-    if (conditions.size() != 0) {
-        for (auto &cond : conditions) {
-            state->probe_executor.AddExpression(*cond.left);
-        }
+    for (auto &cond : conditions) {
+        state->probe_executor.AddExpression(*cond.left);
     }
-    else {
-        for (auto &conds : or_conditions) {
-            for (auto &cond : conds) {
-                state->probe_executor.AddExpression(*cond.left);
-            }
-        }
-    }
-    //}
     return move(state);
 }
 

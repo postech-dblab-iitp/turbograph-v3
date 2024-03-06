@@ -502,7 +502,6 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
         }
 
         // on the RHS, we need to fetch the data from the hash table
-        D_ASSERT(ht.build_types.size() + ht.condition_types.size() == output_right_projection_map.size());
 		idx_t i = 0;
         for (idx_t projection_map_idx = 0;
              projection_map_idx < output_right_projection_map.size();
