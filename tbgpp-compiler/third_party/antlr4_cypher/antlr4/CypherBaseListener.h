@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.13.1
+// Generated from Cypher.g4 by ANTLR 4.11.0-SNAPSHOT
 
 #pragma once
 
@@ -162,6 +162,9 @@ public:
 
   virtual void enterOC_AnonymousPatternPart(CypherParser::OC_AnonymousPatternPartContext * /*ctx*/) override { }
   virtual void exitOC_AnonymousPatternPart(CypherParser::OC_AnonymousPatternPartContext * /*ctx*/) override { }
+
+  virtual void enterOC_ShortestPathPattern(CypherParser::OC_ShortestPathPatternContext * /*ctx*/) override { }
+  virtual void exitOC_ShortestPathPattern(CypherParser::OC_ShortestPathPatternContext * /*ctx*/) override { }
 
   virtual void enterOC_PatternElement(CypherParser::OC_PatternElementContext * /*ctx*/) override { }
   virtual void exitOC_PatternElement(CypherParser::OC_PatternElementContext * /*ctx*/) override { }

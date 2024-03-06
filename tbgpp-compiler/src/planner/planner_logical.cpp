@@ -337,6 +337,13 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc, Logical
 				qg_plan->addBinaryParentOp(cart_expr, nodescan_plan);
 			}
 		}
+		GPOS_ASSERT(qg_plan != nullptr);
+
+		if (qg_type == QueryGraphType::SHORTEST) {
+			CMemoryPool* mp = this->memory_pool; 
+			auto shortest_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalShortestPath(mp), qg_plan->getPlanExpr());
+			qg_plan->addUnaryParentOp(shortest_expr);
+		}
 	}
 	GPOS_ASSERT(qg_plan != nullptr);
 

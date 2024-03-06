@@ -112,6 +112,7 @@ public:
 		EopLogicalRename,
 		EopLogicalInnerApply,
 		EopLogicalPathApply,				// S62VAR added
+		EopLogicalShortestPath,				// S62VAR added
 		EopLogicalInnerCorrelatedApply,
 		EopLogicalIndexApply,
 		EopLogicalIndexPathApply,			// S62VAR added
@@ -250,6 +251,7 @@ public:
 		EopPhysicalLimit,
 		EopPhysicalComputeScalar,					// PSQL operator - Row major
 		EopPhysicalComputeScalarColumnar,			// S62 Added
+		EopPhysicalShortestPath,				// S62 Added
 		EopPhysicalSpool,
 		EopPhysicalPartitionSelector,
 		EopPhysicalPartitionSelectorDML,

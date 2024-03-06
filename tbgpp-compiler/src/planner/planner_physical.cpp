@@ -23,6 +23,7 @@
 #include "execution/physical_operator/physical_top.hpp"
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
+#include "execution/physical_operator/physical_shortestpath.hpp"
 
 #include "planner/expression/bound_between_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
@@ -273,6 +274,10 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
             result = pTransformEopAgg(plan_expr);
             break;
         }
+		case COperator::EOperatorId::EopPhysicalShortestPath: {
+			result = pTransformEopShortestPath(plan_expr);
+			break;
+		}
         default:
             D_ASSERT(false);
             break;
@@ -290,10 +295,8 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(
-    CExpression *plan_expr)
-{
-    /*
+vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpression* plan_expr) {
+	/*
 		handles
 		 - F + S
 		 - S
