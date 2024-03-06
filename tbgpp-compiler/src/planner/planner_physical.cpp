@@ -934,9 +934,16 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     bool is_edge_id_in_inner_cols = pIsIDColInCols(inner_cols);
     bool is_filter_exist = pIsFilterExist(plan_expr->operator[](1));
     bool filter_after_adj =
-        is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1));
-    bool filter_in_seek = is_filter_exist && !filter_after_adj;
+        is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
+        !is_left_outer;
+    bool filter_in_adj = is_filter_exist &&
+                         !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
+                         is_left_outer;
+    bool filter_in_seek = is_filter_exist && !(filter_after_adj || filter_in_adj);
     bool generate_seek = is_edge_prop_in_output || filter_in_seek;
+
+    D_ASSERT((!filter_after_adj && !filter_in_adj && !filter_in_seek) ||
+             (filter_after_adj ^ filter_in_adj ^ filter_in_seek));
 
     // Get filter
     if (is_filter_exist)
@@ -970,7 +977,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
      *  - AdjIdxJoin inner: inner cols
      *  - AdjIdxJoin output: output cols
     */
-    if (filter_after_adj && generate_seek) {
+    if ((filter_after_adj || filter_in_adj) && generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
@@ -980,16 +987,17 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_output_cols);
     }
-    else if (filter_after_adj && !generate_seek) {
+    else if ((filter_after_adj || filter_in_adj) && !generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
+        adj_output_cols->AppendArray(inner_cols);
         adj_inner_cols->AppendArray(inner_cols);
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_output_cols);
     }
-    else if (!filter_after_adj && generate_seek) {
+    else if (!(filter_after_adj && filter_in_adj) && generate_seek) {
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
                                          adj_inner_cols);

@@ -22,41 +22,41 @@ bash sort-convert-node.sh ${dynamic_dir}/Forum.csv
 bash sort-convert-node.sh ${dynamic_dir}/Person.csv
 bash sort-convert-node.sh ${dynamic_dir}/Post.csv
 
-# # In place sort fwd edge data 
-# bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasCreator_Person.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasTag_Tag.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Comment_isLocatedIn_Place.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Comment_replyOf_Comment.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Comment_replyOf_Post.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Forum_containerOf_Post.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasMember_Person.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasModerator_Person.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasTag_Tag.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_hasInterest_Tag.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_isLocatedIn_Place.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_knows_Person.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_likes_Comment.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_likes_Post.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_studyAt_Organisation.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Person_workAt_Organisation.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Post_hasCreator_Person.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Post_hasTag_Tag.csv
-# bash sort-convert-edge.sh ${dynamic_dir}/Post_isLocatedIn_Place.csv
+# In place sort fwd edge data 
+bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasCreator_Person.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasTag_Tag.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Comment_isLocatedIn_Place.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Comment_replyOf_Comment.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Comment_replyOf_Post.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Forum_containerOf_Post.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasMember_Person.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasModerator_Person.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Forum_hasTag_Tag.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_hasInterest_Tag.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_isLocatedIn_Place.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_knows_Person.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_likes_Comment.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_likes_Post.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_studyAt_Organisation.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Person_workAt_Organisation.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Post_hasCreator_Person.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Post_hasTag_Tag.csv
+bash sort-convert-edge.sh ${dynamic_dir}/Post_isLocatedIn_Place.csv
 
 echo "Static Data Processing..."
 
-# # Inplace sort node data
+# Inplace sort node data
 cd ${current_dir}
 bash sort-convert-node.sh ${static_dir}/Organisation.csv
 bash sort-convert-node.sh ${static_dir}/Place.csv
 bash sort-convert-node.sh ${static_dir}/Tag.csv
 bash sort-convert-node.sh ${static_dir}/TagClass.csv
 
-# # In place sort fwd edge data
-# bash sort-convert-edge.sh ${static_dir}/Organisation_isLocatedIn_Place.csv
-# bash sort-convert-edge.sh ${static_dir}/Place_isPartOf_Place.csv
-# bash sort-convert-edge.sh ${static_dir}/TagClass_isSubclassOf_TagClass.csv
-# bash sort-convert-edge.sh ${static_dir}/Tag_hasType_TagClass.csv
+# In place sort fwd edge data
+bash sort-convert-edge.sh ${static_dir}/Organisation_isLocatedIn_Place.csv
+bash sort-convert-edge.sh ${static_dir}/Place_isPartOf_Place.csv
+bash sort-convert-edge.sh ${static_dir}/TagClass_isSubclassOf_TagClass.csv
+bash sort-convert-edge.sh ${static_dir}/Tag_hasType_TagClass.csv
 
 # echo "Person Knows Person FWD BWD Merging..."
 

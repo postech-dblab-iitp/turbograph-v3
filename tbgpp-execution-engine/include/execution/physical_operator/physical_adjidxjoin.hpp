@@ -5,6 +5,7 @@
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
 #include "extent/adjlist_iterator.hpp"
+#include "execution/expression_executor.hpp"
 
 #include <boost/timer/timer.hpp>
 #include <unordered_set>
@@ -196,6 +197,8 @@ public:
 	uint32_t outer_pos;
 	uint32_t inner_pos;
 	uint64_t *inner_vec;
+	unique_ptr<Expression> expression;
+	ExpressionExecutor executor;
 
 private:
 	void setFillFuncLoadEID() {
