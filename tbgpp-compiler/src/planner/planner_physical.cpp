@@ -982,6 +982,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
                                          adj_inner_cols);
+        adj_output_cols->AppendArray(adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_inner_cols);
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,

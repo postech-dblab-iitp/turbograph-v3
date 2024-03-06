@@ -22,43 +22,11 @@ PhysicalComparisonJoin::PhysicalComparisonJoin(Schema& sch, PhysicalOperatorType
 	}
 }
 
-PhysicalComparisonJoin::PhysicalComparisonJoin(Schema& sch, PhysicalOperatorType type,
-                                               vector<vector<JoinCondition>> or_conditions_p, JoinType join_type)
-    : PhysicalJoin(sch, type, join_type) {
-	// we reorder conditions so the ones with COMPARE_EQUAL occur first
-	for (idx_t i = 0; i < or_conditions_p.size(); i++) {
-		or_conditions[i].resize(or_conditions_p[i].size());
-		idx_t equal_position = 0;
-		idx_t other_position = or_conditions_p[i].size() - 1;
-		for (idx_t j = 0; j < or_conditions_p[i].size(); j++) {
-			if (or_conditions_p[i][j].comparison == ExpressionType::COMPARE_EQUAL ||
-			    or_conditions_p[i][j].comparison == ExpressionType::COMPARE_NOT_DISTINCT_FROM) {
-				// COMPARE_EQUAL and COMPARE_NOT_DISTINCT_FROM, move to the start
-				or_conditions[i][equal_position++] = std::move(or_conditions_p[i][j]);
-			} else {
-				// other expression, move to the end
-				or_conditions[i][other_position--] = std::move(or_conditions_p[i][j]);
-			}
-		}
-	}
-}
-
 string PhysicalComparisonJoin::ParamsToString() const {
 	string extra_info = JoinTypeToString(join_type) + "\n";
-	if (conditions.size() != 0) {
-		for (auto &it : conditions) {
-			string op = ExpressionTypeToOperator(it.comparison);
-			extra_info += it.left->GetName() + " " + op + " " + it.right->GetName() + "\n";
-		}
-	}
-	else {
-		for (auto &it : or_conditions) {
-			extra_info += "OR ";
-			for (auto &jt : it) {
-				string op = ExpressionTypeToOperator(jt.comparison);
-				extra_info += jt.left->GetName() + " " + op + " " + jt.right->GetName() + "\n";
-			}
-		}
+	for (auto &it : conditions) {
+		string op = ExpressionTypeToOperator(it.comparison);
+		extra_info += it.left->GetName() + " " + op + " " + it.right->GetName() + "\n";
 	}
 	return extra_info;
 }

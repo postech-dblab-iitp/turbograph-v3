@@ -3054,11 +3054,11 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&						// Select
 		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {		// LogicalProjectColumnar
-		// std::cout << "Before Collapse" << std::endl;
-		// CWStringDynamic str1(mp, L"\n");
-		// COstreamString oss1(&str1);
-		// pexpr->OsPrint(oss1);
-		// GPOS_TRACE(str1.GetBuffer());
+		std::cout << "Before Collapse" << std::endl;
+		CWStringDynamic str1(mp, L"\n");
+		COstreamString oss1(&str1);
+		pexpr->OsPrint(oss1);
+		GPOS_TRACE(str1.GetBuffer());
 		// // if referencing cols of EopLogicalSelect is included in child of EopLogicalProjectColumnar, then pushdown is possible
 		// CExpression *pselect = pexpr;
 		// CExpression *pproject = (*pexpr)[0];
@@ -3098,6 +3098,7 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 		CExpression *pselectNew = pexpr;
 
 		CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+		BOOL can_transpose = true;
 		for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
 		{
 			CExpression *pprojexpr =
@@ -3109,59 +3110,90 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 				// Bail if project expression contains a set-returning function
 				// or subquery
 				pdrgpexpr->Release();
-				pexpr->AddRef();
-				return pexpr;
-			}
-
-			CExpressionHandle exprhdl(mp);
-			exprhdl.Attach(pprojexpr);
-			exprhdl.DeriveProps(NULL /*pdpctxt*/);
-
-			if (exprhdl.FChildrenHaveVolatileFunc())
-			{
-				// Bail if project expression contains a volatile function
-				pdrgpexpr->Release();
-				pexpr->AddRef();
-				return pexpr;
-			}
-
-			// TODO: In order to support mixed pushable and non-pushable
-			//       predicates we need to be able to deconstruct a select
-			//       conjunction constraint into pushable and non-pushable
-			//       parts.
-			//
-			//       NB: JoinOnViewWithMixOfPushableAndNonpushablePredicates.mdp
-			CExpression *prevpselectNew = pselectNew;
-			pselectNew = CollapseSelectAndReplaceColrefColumnar(
-				mp, prevpselectNew,
-				CUtils::PNthProjectElement(pproject, ul)->Pcr(),
-				CUtils::PNthProjectElementExpr(pproject, ul),
-				0);
-			if (pexpr != prevpselectNew)
-			{
-				prevpselectNew->Release();
+				can_transpose = false;
 			}
 		}
-		pdrgpexpr->Append(pselectNew);
 
-		CExpressionArray *pdrgpprojelems = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
+		if (can_transpose)
 		{
-			(*pprojectList)[ul]->AddRef();
-			pdrgpprojelems->Append((*pprojectList)[ul]);
+			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
+			{
+				CExpression *pprojexpr =
+					CUtils::PNthProjectElementExpr(pproject, ul);
+
+				// if (pprojexpr->DeriveHasNonScalarFunction() ||
+				// 	pprojexpr->DeriveHasSubquery())
+				// {
+				// 	// Bail if project expression contains a set-returning function
+				// 	// or subquery
+				// 	pdrgpexpr->Release();
+				// 	pexpr->AddRef();
+				// 	return pexpr;
+				// }
+
+				CExpressionHandle exprhdl(mp);
+				exprhdl.Attach(pprojexpr);
+				exprhdl.DeriveProps(NULL /*pdpctxt*/);
+
+				if (exprhdl.FChildrenHaveVolatileFunc())
+				{
+					// Bail if project expression contains a volatile function
+					pdrgpexpr->Release();
+					pexpr->AddRef();
+					return pexpr;
+				}
+
+				// TODO: In order to support mixed pushable and non-pushable
+				//       predicates we need to be able to deconstruct a select
+				//       conjunction constraint into pushable and non-pushable
+				//       parts.
+				//
+				//       NB: JoinOnViewWithMixOfPushableAndNonpushablePredicates.mdp
+				CExpression *prevpselectNew = pselectNew;
+				pselectNew = CollapseSelectAndReplaceColrefColumnar(
+					mp, prevpselectNew,
+					CUtils::PNthProjectElement(pproject, ul)->Pcr(),
+					CUtils::PNthProjectElementExpr(pproject, ul),
+					0);
+				if (pexpr != prevpselectNew)
+				{
+					prevpselectNew->Release();
+				}
+			}
+			pdrgpexpr->Append(pselectNew);
+
+			CExpressionArray *pdrgpprojelems = GPOS_NEW(mp) CExpressionArray(mp);
+			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
+			{
+				(*pprojectList)[ul]->AddRef();
+				pdrgpprojelems->Append((*pprojectList)[ul]);
+			}
+			pdrgpexpr->Append(GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpprojelems));
+
+			CExpression *result_expr = GPOS_NEW(mp)
+				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
+			std::cout << "After Collapse" << std::endl;
+			CWStringDynamic str(mp, L"\n");
+			COstreamString oss(&str);
+			result_expr->OsPrint(oss);
+			GPOS_TRACE(str.GetBuffer());
+
+			return result_expr;
 		}
-		pdrgpexpr->Append(GPOS_NEW(mp) CExpression(
-			mp, GPOS_NEW(mp) CScalarProjectList(mp), pdrgpprojelems));
-
-		CExpression *result_expr = GPOS_NEW(mp)
-			CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
-		// std::cout << "After Collapse" << std::endl;
-		// CWStringDynamic str(mp, L"\n");
-		// COstreamString oss(&str);
-		// result_expr->OsPrint(oss);
-		// GPOS_TRACE(str.GetBuffer());
-
-		return result_expr;
+		else
+		{
+			// recurse child
+			CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+			for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+			{
+				pdrgpexprChildren->Append(
+					PexprTransposeSelectAndProjectColumnar(mp, (*pexpr)[ul]));
+			}
+			COperator *pop = pexpr->Pop();
+			pop->AddRef();
+			return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+		}
 	} else {
 		// recurse child
 		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
@@ -3466,11 +3498,21 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProject->Release();
 
+	CWStringDynamic str1(mp, L"\n");
+	COstreamString oss1(&str1);
+	pexprTransposeSelectAndProjectColumnar->OsPrint(oss1);
+	GPOS_TRACE(str1.GetBuffer());
+
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =
 		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProjectColumnar);
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProjectColumnar->Release();
+
+	CWStringDynamic str2(mp, L"\n");
+	COstreamString oss2(&str2);
+	pexprNormalized2->OsPrint(oss2);
+	GPOS_TRACE(str2.GetBuffer());
 
 	// S62 prune tables with no results
 	CExpression *pexprFinal =
