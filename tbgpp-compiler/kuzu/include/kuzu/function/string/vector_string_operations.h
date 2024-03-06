@@ -147,6 +147,12 @@ struct StartsWithVectorOperation : public VectorStringOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+
+struct PrefixVectorOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+
 struct SubStrVectorOperation : public VectorStringOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
@@ -174,6 +180,11 @@ struct UpperVectorOperation : public VectorStringOperations {
         return definitions;
     }
 };
+
+struct RegexMatchesVectorOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 
 } // namespace function
 } // namespace kuzu

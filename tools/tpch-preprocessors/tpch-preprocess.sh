@@ -14,13 +14,13 @@ sed 's/.$//' ${basedir}/partsupp.tbl.original > ${basedir}/partsupp.tbl
 
 # Insert header
 list=(
-"customer C_CUSTKEY:ID(CUSTOMER)|C_NAME:STRING|C_ADDRESS:STRING|C_NATIONKEY:ADJLIST(NATION)|C_PHONE:STRING|C_ACCTBAL:DECIMAL(12,2)|C_MKTSEGMENT:STRING|C_COMMENT:STRING"
-"lineitem L_ORDERKEY:ID_1(LINEITEM)|L_PARTKEY:ADJLIST(PART)|L_SUPPKEY:ADJLIST(SUPPLIER)|L_LINENUMBER:ID_2(LINEITEM)|L_QUANTITY:INT|L_EXTENDEDPRICE:DECIMAL(12,2)|L_DISCOUNT:DECIMAL(12,2)|L_TAX:DECIMAL(12,2)|L_RETURNFLAG:STRING|L_LINESTATUS:STRING|L_SHIPDATE:DATE|L_COMMITDATE:DATE|L_RECEIPTDATE:DATE|L_SHIPINSTRUCT:STRING|L_SHIPMODE:STRING|L_COMMENT:STRING"
-"nation N_NATIONKEY:ID(NATION)|N_NAME:STRING|N_REGIONKEY:ADJLIST(REGION)|N_COMMENT:STRING"
-"orders O_ORDERKEY:ID(ORDERS)|O_CUSTKEY:ADJLIST(CUSTOMER)|O_ORDERSTATUS:STRING|O_TOTALPRICE:DECIMAL(12,2)|O_ORDERDATE:DATE|O_ORDERPRIORITY:STRING|O_CLERK:STRING|O_SHIPPRIORITY:INT|O_COMMENT:STRING"
+"customer C_CUSTKEY:ID(CUSTOMER)|C_NAME:STRING|C_ADDRESS:STRING|C_NATIONKEY:UBIGINT(NATION)|C_PHONE:STRING|C_ACCTBAL:DECIMAL(12,2)|C_MKTSEGMENT:STRING|C_COMMENT:STRING"
+"lineitem L_ORDERKEY:ID_1(LINEITEM)|L_PARTKEY:UBIGINT(PART)|L_SUPPKEY:UBIGINT(SUPPLIER)|L_LINENUMBER:ID_2(LINEITEM)|L_QUANTITY:INT|L_EXTENDEDPRICE:DECIMAL(12,2)|L_DISCOUNT:DECIMAL(12,2)|L_TAX:DECIMAL(12,2)|L_RETURNFLAG:STRING|L_LINESTATUS:STRING|L_SHIPDATE:DATE|L_COMMITDATE:DATE|L_RECEIPTDATE:DATE|L_SHIPINSTRUCT:STRING|L_SHIPMODE:STRING|L_COMMENT:STRING"
+"nation N_NATIONKEY:ID(NATION)|N_NAME:STRING|N_REGIONKEY:UBIGINT(REGION)|N_COMMENT:STRING"
+"orders O_ORDERKEY:ID(ORDERS)|O_CUSTKEY:UBIGINT(CUSTOMER)|O_ORDERSTATUS:STRING|O_TOTALPRICE:DECIMAL(12,2)|O_ORDERDATE:DATE|O_ORDERPRIORITY:STRING|O_CLERK:STRING|O_SHIPPRIORITY:INT|O_COMMENT:STRING"
 "part P_PARTKEY:ID(PART)|P_NAME:STRING|P_MFGR:STRING|P_BRAND:STRING|P_TYPE:STRING|P_SIZE:INT|P_CONTAINER:STRING|P_RETAILPRICE:DECIMAL(12,2)|P_COMMENT:STRING"
 "region R_REGIONKEY:ID(REGION)|R_NAME:STRING|R_COMMENT:STRING"
-"supplier S_SUPPKEY:ID(SUPPLIER)|S_NAME:STRING|S_ADDRESS:STRING|S_NATIONKEY:ADJLIST(NATION)|S_PHONE:STRING|S_ACCTBAL:DECIMAL(12,2)|S_COMMENT:STRING"
+"supplier S_SUPPKEY:ID(SUPPLIER)|S_NAME:STRING|S_ADDRESS:STRING|S_NATIONKEY:UBIGINT(NATION)|S_PHONE:STRING|S_ACCTBAL:DECIMAL(12,2)|S_COMMENT:STRING"
 "partsupp :START_ID(PART)|:END_ID(SUPPLIER)|PS_AVAILQTY:INT|PS_SUPPLYCOST:DECIMAL(12,2)|PS_COMMENT:STRING"
 )
 
@@ -29,14 +29,14 @@ for ((i = 0; i < ${#list[@]}; i++)); do
         sed -i '1s/^/'${array[1]}'\n/' "${basedir}/${array[0]}.tbl"
 done
 
-# Remove adjlist column
-cat ${basedir}/customer.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7"|"$8}' > ${basedir}/customer.tbl.woadj
-cat ${basedir}/lineitem.tbl | awk -F '|' '{print $1"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9"|"$10"|"$11"|"$12"|"$13"|"$14"|"$15"|"$16}' > ${basedir}/lineitem.tbl.woadj
-cat ${basedir}/nation.tbl | awk -F '|' '{print $1"|"$2"|"$4}' > ${basedir}/nation.tbl.woadj
-cat ${basedir}/orders.tbl | awk -F '|' '{print $1"|"$3"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9}' > ${basedir}/orders.tbl.woadj
-cp ${basedir}/part.tbl ${basedir}/part.tbl.woadj
-cp ${basedir}/region.tbl ${basedir}/region.tbl.woadj
-cat ${basedir}/supplier.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7}' > ${basedir}/supplier.tbl.woadj
+# Remove UBIGINT column
+# cat ${basedir}/customer.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7"|"$8}' > ${basedir}/customer.tbl.woadj
+# cat ${basedir}/lineitem.tbl | awk -F '|' '{print $1"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9"|"$10"|"$11"|"$12"|"$13"|"$14"|"$15"|"$16}' > ${basedir}/lineitem.tbl.woadj
+# cat ${basedir}/nation.tbl | awk -F '|' '{print $1"|"$2"|"$4}' > ${basedir}/nation.tbl.woadj
+# cat ${basedir}/orders.tbl | awk -F '|' '{print $1"|"$3"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9}' > ${basedir}/orders.tbl.woadj
+# cp ${basedir}/part.tbl ${basedir}/part.tbl.woadj
+# cp ${basedir}/region.tbl ${basedir}/region.tbl.woadj
+# cat ${basedir}/supplier.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7}' > ${basedir}/supplier.tbl.woadj
 
 # Generate forward edge data
 tail -n+2 ${basedir}/customer.tbl | awk -F '|' '{print $1"|"$4}' > ${basedir}/customer_belongTo_nation.tbl
