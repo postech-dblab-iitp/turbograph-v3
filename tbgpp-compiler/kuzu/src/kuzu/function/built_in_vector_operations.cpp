@@ -271,7 +271,7 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({LOWER_FUNC_NAME, LowerVectorOperation::getDefinitions()});
     vectorOperations.insert({LPAD_FUNC_NAME, LpadVectorOperation::getDefinitions()});
     vectorOperations.insert({LTRIM_FUNC_NAME, LtrimVectorOperation::getDefinitions()});
-    vectorOperations.insert({PREFIX_FUNC_NAME, StartsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({PREFIX_FUNC_NAME, PrefixVectorOperation::getDefinitions()});
     vectorOperations.insert({REPEAT_FUNC_NAME, RepeatVectorOperation::getDefinitions()});
     vectorOperations.insert({REVERSE_FUNC_NAME, ReverseVectorOperation::getDefinitions()});
     vectorOperations.insert({RIGHT_FUNC_NAME, RightVectorOperation::getDefinitions()});
@@ -281,6 +281,7 @@ void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert({SUBSTR_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({SUBSTRING_FUNC_NAME, SubStrVectorOperation::getDefinitions()});
     vectorOperations.insert({SUFFIX_FUNC_NAME, EndsWithVectorOperation::getDefinitions()});
+    vectorOperations.insert({REGEXP_MATCH_FUNC_NAME, RegexMatchesVectorOperation::getDefinitions()});
     vectorOperations.insert({TRIM_FUNC_NAME, TrimVectorOperation::getDefinitions()});
     vectorOperations.insert({UCASE_FUNC_NAME, UpperVectorOperation::getDefinitions()});
     vectorOperations.insert({UPPER_FUNC_NAME, UpperVectorOperation::getDefinitions()});

@@ -132,6 +132,29 @@ StartsWithVectorOperation::getDefinitions() {
     return definitions;
 }
 
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+PrefixVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(PREFIX_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        empty_scalar_exec_func(),
+        empty_scalar_select_func(),
+        false /* isVarLength */));
+    return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+RegexMatchesVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCH_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        empty_scalar_exec_func(),
+        empty_scalar_select_func(),
+        false /* isVarLength */));
+    return definitions;
+}
+
+
 std::vector<std::unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(SUBSTRING_FUNC_NAME,

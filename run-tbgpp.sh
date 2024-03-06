@@ -725,15 +725,20 @@ run_tpch8() {
 	run_query "MATCH (li:LINEITEM)-[:COMPOSED_BY]->(p:PART)
 		MATCH (li)-[:SUPPLIED_BY]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n2:NATION)
 		MATCH (li)-[:IS_PART_OF]->(o:ORDERS)-[:MADE_BY]->(c:CUSTOMER)-[:CUST_BELONG_TO]->(n1:NATION)-[:IS_LOCATED_IN]->(r:REGION)
-		WHERE r.R_NAME = 'AMERICA'
+		WHERE r.R_NAME = 'AFRICA'
 			AND o.O_ORDERDATE > date('1995-01-01')
 			AND o.O_ORDERDATE < date('1996-12-31')
-			AND p.P_TYPE = 'ECONOMY ANODIZED STEEL'
-		WITH 
+			AND p.P_TYPE = 'ECONOMY BRUSHED BRASS'
+		WITH
 			year(o.O_ORDERDATE) AS o_year,
-			sum(li.L_EXTENDEDPRICE * (1-li.L_DISCOUNT)) AS volume,
+			li.L_EXTENDEDPRICE AS L_EXTENDEDPRICE,
+			li.L_DISCOUNT AS L_DISCOUNT,
 			n2.N_NAME AS nation
-		WITH o_year,
+		WITH 
+			o_year,
+			sum(L_EXTENDEDPRICE * (1 - L_DISCOUNT)) AS volume,
+			nation
+		WITH o_year AS o_year,
 			sum(CASE WHEN nation = 'ETHIOPIA'
 				THEN volume
 				ELSE 0 END) as total_volume,
@@ -815,10 +820,9 @@ run_tpch12() {
 
 run_tpch13() {
 	# TPC-H Q13 Customer Distribution Query
-	# WHERE NOT (order.O_COMMENT =~ '.*special.*.*requests.*')
 	run_query "MATCH (ord: ORDERS)
 		OPTIONAL MATCH (ord)-[:MADE_BY]->(c: CUSTOMER)
-		WHERE NOT (ord.O_COMMENT CONTAINS 'express' AND ord.O_COMMENT CONTAINS 'deposits')
+		WHERE NOT REGEXP_MATCHES(ord.O_COMMENT, '.*express.*.*deposits.*')
 		WITH c.C_CUSTKEY AS c_id, COUNT(ord.O_ORDERKEY) AS c_count
 		RETURN
 			c_count,
@@ -872,9 +876,8 @@ run_tpch15() {
 
 run_tpch16() {
 	# TPC-H Q16 Parts/Supplier Relationship Query
-	# 			AND p.P_SIZE in [49,14,23,45,19,3,36,9]
 	run_query "MATCH (s:SUPPLIER)<-[:PARTSUPP]-(p:PART)
-		WHERE NOT s.S_COMMENT CONTAINS 'Complaints'
+		WHERE NOT REGEXP_MATCHES(s.S_COMMENT,'.*Customer.*Complaints.*')
 			AND p.P_BRAND <> 'Brand#51'
 			AND NOT (p.P_TYPE CONTAINS 'PROMO PLATED')
 			AND ((p.P_SIZE = 11)
@@ -896,18 +899,6 @@ run_tpch16() {
 
 run_tpch17() {
 	# TPC-H Q17 Small-Quantity-Order Revenue Query
-	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part:PART)
-		WHERE part.P_BRAND = 'Brand#15'
-			AND part.P_CONTAINER = 'LG CASE'
-		WITH avg(lineitem.L_QUANTITY) AS prev_avg_quantity
-		WITH 0.2 * prev_avg_quantity AS avg_quantity
-		MATCH (item: LINEITEM)-[:COMPOSED_BY]->(part2:PART)
-		WHERE part2.P_BRAND = 'Brand#15'
-			AND part2.P_CONTAINER = 'LG CASE'
-			AND item.L_QUANTITY < avg_quantity
-		RETURN
-			SUM(item.L_EXTENDEDPRICE) / 7.0 AS avg_yearly;" 0
-
 	run_query "MATCH (lineitem: LINEITEM)-[:COMPOSED_BY]->(part: PART)
 		WHERE part.P_BRAND = 'Brand#15' AND part.P_CONTAINER = 'LG CASE'
 		WITH lineitem._id AS LID, lineitem.L_QUANTITY AS LQUAN, lineitem.L_EXTENDEDPRICE AS LEXT, part
@@ -983,12 +974,11 @@ run_tpch20() {
 			(p)-[ps:PARTSUPP]->(s)
         WHERE n.N_NAME = 'BRAZIL' AND li.L_SHIPDATE >= date('1997-01-01')
             AND li.L_SHIPDATE < date('1998-01-01')
-			AND p.P_NAME CONTAINS 'smoke'
+			AND PREFIX(p.P_NAME,'smoke')
         WITH ps._id AS PSID, ps.PS_AVAILQTY AS PS_AVAILQTY, s._id AS SID, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as prev_quantity_sum
 		WITH PS_AVAILQTY, S_NAME, S_ADDRESS, 0.5 * prev_quantity_sum AS quantity_sum
 		WHERE PS_AVAILQTY > quantity_sum
-        RETURN
-            S_NAME, S_ADDRESS
+        RETURN DISTINCT S_NAME, S_ADDRESS
         ORDER BY S_NAME;" 0
 }
 
