@@ -129,6 +129,7 @@ const string LOWER_FUNC_NAME = "LOWER";
 const string LPAD_FUNC_NAME = "LPAD";
 const string LTRIM_FUNC_NAME = "LTRIM";
 const string PREFIX_FUNC_NAME = "PREFIX";
+const string REGEXP_MATCH_FUNC_NAME = "REGEXP_MATCHES";
 const string REPEAT_FUNC_NAME = "REPEAT";
 const string REVERSE_FUNC_NAME = "REVERSE";
 const string RIGHT_FUNC_NAME = "RIGHT";

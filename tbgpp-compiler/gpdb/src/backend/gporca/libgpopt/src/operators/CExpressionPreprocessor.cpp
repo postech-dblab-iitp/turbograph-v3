@@ -3054,11 +3054,6 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&						// Select
 		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) {		// LogicalProjectColumnar
-		std::cout << "Before Collapse" << std::endl;
-		CWStringDynamic str1(mp, L"\n");
-		COstreamString oss1(&str1);
-		pexpr->OsPrint(oss1);
-		GPOS_TRACE(str1.GetBuffer());
 		// // if referencing cols of EopLogicalSelect is included in child of EopLogicalProjectColumnar, then pushdown is possible
 		// CExpression *pselect = pexpr;
 		// CExpression *pproject = (*pexpr)[0];
@@ -3173,11 +3168,6 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 			CExpression *result_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
-			std::cout << "After Collapse" << std::endl;
-			CWStringDynamic str(mp, L"\n");
-			COstreamString oss(&str);
-			result_expr->OsPrint(oss);
-			GPOS_TRACE(str.GetBuffer());
 
 			return result_expr;
 		}
@@ -3498,21 +3488,11 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProject->Release();
 
-	CWStringDynamic str1(mp, L"\n");
-	COstreamString oss1(&str1);
-	pexprTransposeSelectAndProjectColumnar->OsPrint(oss1);
-	GPOS_TRACE(str1.GetBuffer());
-
 	// (28) normalize expression again
 	CExpression *pexprNormalized2 =
 		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProjectColumnar);
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProjectColumnar->Release();
-
-	CWStringDynamic str2(mp, L"\n");
-	COstreamString oss2(&str2);
-	pexprNormalized2->OsPrint(oss2);
-	GPOS_TRACE(str2.GetBuffer());
 
 	// S62 prune tables with no results
 	CExpression *pexprFinal =
