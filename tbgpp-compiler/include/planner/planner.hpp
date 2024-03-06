@@ -76,6 +76,7 @@
 #include "gpopt/operators/CLogicalPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
+#include "gpopt/operators/CLogicalShortestPath.h"
 #include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
@@ -100,6 +101,7 @@
 #include "gpopt/operators/CPhysicalHashAggDeduplicate.h"
 #include "gpopt/operators/CPhysicalStreamAgg.h"
 #include "gpopt/operators/CPhysicalStreamAggDeduplicate.h"
+#include "gpopt/operators/CPhysicalShortestPath.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
@@ -386,6 +388,9 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopSort(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopTopNSort(CExpression *plan_expr);
+
+	// shortestPath
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopShortestPath(CExpression* plan_expr);
 
 	// aggregations
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopAgg(CExpression *plan_expr);

@@ -1059,7 +1059,6 @@ CCostModelGPDBLegacy::CostScan(CMemoryPool *,  // mp
 	}
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CCostModelGPDBLegacy::Cost
