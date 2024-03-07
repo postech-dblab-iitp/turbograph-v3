@@ -247,6 +247,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
 				// case for optional match
 				bool push_selection_pred_into_join =
 					is_optional_match && is_lhs_bound && is_rhs_bound;
+				push_selection_pred_into_join = false; // TODO need to fix optional match bug
 
                 LogicalPlan *hop_plan;
                 LogicalPlan *lhs_plan;
@@ -274,9 +275,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                                 ? lPlanPathGet((RelExpression *)qedge)
                                 : lPlanNodeOrRelExpr(
                                       (NodeOrRelExpression *)qedge, false);
-                lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
+                
                 if (push_selection_pred_into_join) {
-                    CMemoryPool *mp = this->memory_pool;
                     additional_join_pred = lExprScalarCmpEq(
                         lExprScalarPropertyExpr(
                             edge_name,
@@ -303,7 +303,8 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                               edge_plan->getSchema()->getColRefOfKey(
                                   edge_name, is_forward_traverse ? SID_COLNAME
                                                                  : TID_COLNAME),
-                              ar_join_type, additional_join_pred);
+                              ar_join_type/*, additional_join_pred*/);
+				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
                 lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
 
                 // R join B
@@ -1776,8 +1777,8 @@ std::pair<CExpression*, CColRefArray*> Planner::lExprScalarAddSchemaConformProje
 }
 
 CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
-		CExpression *additional_join_pred) {
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op/*,
+		CExpression *additional_join_pred*/) {
 	
 	CMemoryPool* mp = this->memory_pool;
 
@@ -1787,15 +1788,15 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	lhs->AddRef();
 	rhs->AddRef();
 
-	CExpression *pexprEquality;
-	if (additional_join_pred == nullptr) { 
-		pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
-	} else {
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
-		pdrgpexprChildren->Append(additional_join_pred);
-		pdrgpexprChildren->Append(CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight));
-		pexprEquality = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EboolopAnd, pdrgpexprChildren);
-	}
+	CExpression *pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	// if (additional_join_pred == nullptr) { 
+	// 	pexprEquality = CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight);
+	// } else {
+	// 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+	// 	pdrgpexprChildren->Append(additional_join_pred);
+	// 	pdrgpexprChildren->Append(CUtils::PexprScalarEqCmp(mp, pcrLeft, pcrRight));
+	// 	pexprEquality = CUtils::PexprScalarBoolOp(mp, CScalarBoolOp::EboolopAnd, pdrgpexprChildren);
+	// }
 	pexprEquality->AddRef();
 
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION

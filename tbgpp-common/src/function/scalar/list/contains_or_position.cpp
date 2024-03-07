@@ -180,7 +180,9 @@ static unique_ptr<FunctionData> ListContainsOrPositionBind(ClientContext &contex
 		bound_function.arguments[1] = value;
 		bound_function.return_type = LogicalTypeId::SQLNULL;
 	} else {
-		auto const &child_type = ListType::GetChildType(arguments[0]->return_type);
+		// TODO: This is a temporary fix to resolve the type of the list
+		// auto const &child_type = ListType::GetChildType(arguments[0]->return_type);
+		auto const &child_type = LogicalType::ID;
 		auto max_child_type = LogicalType::MaxLogicalType(child_type, value);
 		// ExpressionBinder::ResolveParameterType(max_child_type); // TODO
 		auto list_type = LogicalType::LIST(max_child_type);

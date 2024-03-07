@@ -9,6 +9,8 @@
 #include "storage/buffer_manager.hpp"
 #include "storage/storage_manager.hpp"
 
+#include "common/output_util.hpp"
+
 namespace duckdb {
 
 /**
@@ -240,7 +242,6 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
         state.scan_structure = nullptr;
         return OperatorResultType::NEED_MORE_INPUT;
     }
-
     // probe the HT
     if (sink.hash_table->Count() == 0) {  // number of tuples in a rhs
         ConstructEmptyJoinResult(sink.hash_table->join_type,
@@ -281,12 +282,21 @@ std::string PhysicalHashJoin::ParamsToString() const
     result += "], ";
     result +=
         "condition_types.size()=" + std::to_string(condition_types.size()) +
-        ", ";
-    result += "build_types.size()=" + std::to_string(build_types.size()) + "[";
+        " [";
+    for (auto &condition_type : condition_types) {
+        result += condition_type.ToString() + ", ";
+    }
+    result += "], ";
+    result += "build_types.size()=" + std::to_string(build_types.size()) + " [";
     for (auto &build_type : build_types) {
         result += build_type.ToString() + ", ";
     }
-    result += "]";
+    result += "], join conditions: ";
+    for (auto &expression: conditions) {
+        result += expression.left->ToString() + ", ";
+        result += expression.right->ToString() + ",";
+        result += " / ";
+    }
     return result;
 }
 

@@ -455,7 +455,8 @@ LogicalTypeComparisonResult RequiresCast(const LogicalType &source_type, const L
 		return LogicalTypeComparisonResult::IDENTICAL_TYPE;
 	}
 	if (source_type.id() == LogicalTypeId::LIST && target_type.id() == LogicalTypeId::LIST) {
-		return RequiresCast(ListType::GetChildType(source_type), ListType::GetChildType(target_type));
+		return RequiresCast(LogicalType::ID, LogicalType::ID);
+		// return RequiresCast(ListType::GetChildType(source_type), ListType::GetChildType(target_type));
 	}
 	return LogicalTypeComparisonResult::DIFFERENT_TYPES;
 }
