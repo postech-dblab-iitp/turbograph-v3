@@ -547,12 +547,17 @@ run_ldbc_c13() {
 	run_query "MATCH
 		(person1:Person {id: 8796093022390}),
 		(person2:Person {id: 8796093022357}),
-		path = shortestPath((person1)-[:KNOWS*]-(person2))
+		path = (shortestPath((person1)-[:KNOWS*]-(person2)))
 		RETURN
 			CASE path IS NULL
 				WHEN true THEN -1
 				ELSE length(path)
 			END AS shortestPathLength" 1
+	run_query "MATCH
+		(person1:Person {id: 8796093022390}),
+		(person2:Person {id: 8796093022357}),
+		path = shortestPath((person1)-[:KNOWS*]-(person2))
+		RETURN path" 1
 }
 
 run_ldbc_c14() {

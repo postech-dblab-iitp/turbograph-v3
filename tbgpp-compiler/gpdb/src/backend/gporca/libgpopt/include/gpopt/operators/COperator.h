@@ -86,6 +86,7 @@ public:
 		EopLogicalGet,
 		EopLogicalExternalGet,
 		EopLogicalPathGet,					// S62VAR varlen added
+		EopLogicalShortestPathGet,			// S62VAR varlen added
 		EopLogicalIndexGet,
 		EopLogicalIndexPathGet,					// S62VAR  varlen added
 		EopLogicalBitmapTableGet,

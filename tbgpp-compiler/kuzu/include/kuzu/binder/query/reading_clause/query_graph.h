@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/path_expression.h"
 #include "binder/parse_tree_node.h"
 
 namespace kuzu {
@@ -74,16 +75,14 @@ private:
 // QueryGraph represents a connected pattern specified in MATCH clause.
 enum QueryGraphType: uint8_t { NONE = 0, SHORTEST = 1, ALL_SHORTEST = 2 };
 
-class QueryGraph : public Expression  {
+class QueryGraph : public ParseTreeNode {
 public:
-    QueryGraph(const string& uniqueName) : Expression{VARIABLE, DataTypeID::PATH, uniqueName} {}
+    QueryGraph() = default;
 
     QueryGraph(const QueryGraph& other)
-        : Expression{VARIABLE, DataTypeID::PATH, other.getUniqueName()},
-          queryGraphType{other.queryGraphType},
-          queryNodeNameToPosMap{other.queryNodeNameToPosMap},
+        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
           queryRelNameToPosMap{other.queryRelNameToPosMap},
-          queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
+          queryNodes{other.queryNodes}, queryRels{other.queryRels}, queryPath(other.queryPath) {}
 
     ~QueryGraph() = default;
 
@@ -113,6 +112,21 @@ public:
     }
     void addQueryNode(shared_ptr<NodeExpression> queryNode);
 
+    inline shared_ptr<PathExpression> getQueryPath() const {
+        return queryPath;
+    }
+
+    inline void setQueryPath(string& unique_name) {
+        assert(queryPath == nullptr);
+        if (queryGraphType == QueryGraphType::SHORTEST) {
+            queryPath = make_shared<PathExpression>(SHORTEST_PATH, unique_name, queryNodes, queryRels);
+        }
+        else {
+            queryPath = make_shared<PathExpression>(ALL_SHORTEST_PATH, unique_name, queryNodes, queryRels);
+        }
+        
+    }
+
     inline uint32_t getNumQueryRels() const { return queryRels.size(); }
     inline bool containsQueryRel(const string& queryRelName) const {
         return queryRelNameToPosMap.find(queryRelName) != queryRelNameToPosMap.end();
@@ -135,7 +149,7 @@ public:
 
     void merge(const QueryGraph& other);
 
-    inline unique_ptr<QueryGraph> copyQueryGraph() const { return make_unique<QueryGraph>(*this); }
+    inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
 
     std::string getName() override { return "[QueryGraph]"; }
     std::list<ParseTreeNode*> getChildNodes() override { 
@@ -165,6 +179,7 @@ private:
     unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<shared_ptr<NodeExpression>> queryNodes;
     vector<shared_ptr<RelExpression>> queryRels;
+    shared_ptr<PathExpression> queryPath = nullptr; 
 };
 
 // QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH
@@ -173,7 +188,7 @@ class QueryGraphCollection : public ParseTreeNode {
 public:
     QueryGraphCollection() = default;
 
-    void addAndMergeQueryGraphIfConnected(shared_ptr<QueryGraph> queryGraphToAdd);
+    void addAndMergeQueryGraphIfConnected(unique_ptr<QueryGraph> queryGraphToAdd);
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
@@ -192,7 +207,7 @@ public:
     }
 
 private:
-    vector<shared_ptr<QueryGraph>> queryGraphs;
+    vector<unique_ptr<QueryGraph>> queryGraphs;
 };
 
 class PropertyKeyValCollection {

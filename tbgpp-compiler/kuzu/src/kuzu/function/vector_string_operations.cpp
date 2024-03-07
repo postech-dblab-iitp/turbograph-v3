@@ -82,6 +82,9 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> LengthVectorOperation::g
     definitions.emplace_back(make_unique<VectorOperationDefinition>(LENGTH_FUNC_NAME,
         std::vector<DataTypeID>{STRING}, INT64,
         empty_scalar_exec_func(), false /* isVarLength */));
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(LENGTH_FUNC_NAME,
+        std::vector<DataTypeID>{PATH}, INT64,
+        empty_scalar_exec_func(), false)); // shortest path
     return definitions;
 }
 
