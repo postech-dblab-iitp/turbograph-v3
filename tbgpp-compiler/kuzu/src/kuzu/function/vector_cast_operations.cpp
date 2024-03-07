@@ -97,6 +97,9 @@ CastToFloatVectorFunction::getDefinitions() {
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
         std::vector<DataTypeID>{DOUBLE}, FLOAT,
         empty_scalar_exec_func()));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
+        std::vector<DataTypeID>{STRING}, FLOAT,
+        empty_scalar_exec_func()));
     return result;
 }
 
