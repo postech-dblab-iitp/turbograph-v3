@@ -109,7 +109,7 @@ class DataType {
 public:
     DataType() : typeID{ANY}, childType{nullptr} {}
     explicit DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
-        assert(typeID != LIST);
+        // assert(typeID != LIST);
     }
     DataType(DataTypeID typeID, std::unique_ptr<DataType> childType)
         : typeID{typeID}, childType{std::move(childType)} {

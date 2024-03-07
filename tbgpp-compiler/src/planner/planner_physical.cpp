@@ -939,14 +939,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     bool filter_after_adj =
         is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
         !is_left_outer;
-    bool filter_in_adj = is_filter_exist &&
-                         !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
-                         is_left_outer;
-    bool filter_in_seek = is_filter_exist && !(filter_after_adj || filter_in_adj);
+    // bool filter_in_adj = is_filter_exist &&
+    //                      !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
+    //                      is_left_outer;
+    bool filter_in_seek = is_filter_exist && !filter_after_adj;
+    // bool filter_in_seek = is_filter_exist && !(filter_after_adj || filter_in_adj);
     bool generate_seek = is_edge_prop_in_output || filter_in_seek;
 
-    D_ASSERT((!filter_after_adj && !filter_in_adj && !filter_in_seek) ||
-             (filter_after_adj ^ filter_in_adj ^ filter_in_seek));
+    // D_ASSERT((!filter_after_adj && !filter_in_adj && !filter_in_seek) ||
+    //          (filter_after_adj ^ filter_in_adj ^ filter_in_seek));
 
     // Get filter
     if (is_filter_exist)
@@ -980,7 +981,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
      *  - AdjIdxJoin inner: inner cols
      *  - AdjIdxJoin output: output cols
     */
-    if ((filter_after_adj || filter_in_adj) && generate_seek) {
+    if ((filter_after_adj) && generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
@@ -991,7 +992,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_output_cols);
     }
-    else if ((filter_after_adj || filter_in_adj) && !generate_seek) {
+    else if ((filter_after_adj) && !generate_seek) {
         D_ASSERT(filter_expr != NULL);
         adj_output_cols->AppendArray(outer_cols);
         adj_output_cols->AppendArray(inner_cols);
@@ -1001,7 +1002,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                               adj_output_cols);
     }
-    else if (!(filter_after_adj && filter_in_adj) && generate_seek) {
+    else if (!(filter_after_adj) && generate_seek) {
         adj_output_cols->AppendArray(outer_cols);
         pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
                                          adj_inner_cols);
@@ -3079,6 +3080,10 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
     return result;
 }
 
+/**
+ * This code is for post-projection implementation.
+ * Need to fix someday
+*/
 // vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
 //     CExpression *plan_expr)
 // {
@@ -3278,11 +3283,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
-
     /* Non-root - call single child */
     vector<duckdb::CypherPhysicalOperator *> *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
-
     vector<duckdb::LogicalType> types;
     vector<duckdb::LogicalType> proj_types;
     vector<unique_ptr<duckdb::Expression>> agg_exprs;
@@ -3293,7 +3296,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     // vector<ULONG> groups_idx;
     // vector<ULONG> proj_mapping;
     vector<uint64_t> output_projection_mapping;
-
     CPhysicalAgg *agg_op = (CPhysicalAgg *)plan_expr->Pop();
     CExpression *pexprProjRelational = (*plan_expr)[0];  // Prev op
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -3305,13 +3307,10 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     const CColRefArray *grouping_cols = agg_op->PdrgpcrGroupingCols();
     CColRefSet *grouping_col_set = GPOS_NEW(mp) CColRefSet(mp, grouping_cols);
     CColRefArray *grouping_cols_sorted = grouping_col_set->Pdrgpcr(mp);
-
     // used for pre-projection
     vector<unique_ptr<duckdb::Expression>> proj_exprs;
-
     // used for post-projection
     vector<unique_ptr<duckdb::Expression>> post_proj_exprs;
-
     // get agg groups
     uint64_t num_outputs_in_grouping_col = 0;
     for (ULONG group_col_idx = 0; group_col_idx < grouping_cols_sorted->Size();
@@ -3334,7 +3333,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             output_projection_mapping.push_back(std::numeric_limits<uint32_t>::max());
         }
     }
-
     // get output columns
     for (ULONG output_col_idx = 0; output_col_idx < output_cols->Size();
          output_col_idx++) {
@@ -3349,7 +3347,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         types.push_back(col_type);
         output_column_names.push_back(pGetColNameFromColRef(col));
     }
-
     bool has_pre_projection = false;
     bool has_post_projection = false;
     bool adjust_agg_groups_performed = false;
@@ -3358,12 +3355,10 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         CExpression *pexprProjElem = pexprProjList->operator[](elem_idx);
         CExpression *pexprScalarExpr = pexprProjElem->operator[](0);
         CExpression *pexprAggExpr;
-
         output_column_names.push_back(pGetColNameFromColRef(
             ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
         output_column_names_proj.push_back(pGetColNameFromColRef(
             ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
-
         if (pexprScalarExpr->Pop()->Eopid() != COperator::EopScalarAggFunc) {
             has_post_projection = true;
         }
@@ -3432,11 +3427,9 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             }
         }
     }
-
     duckdb::Schema tmp_schema;
     tmp_schema.setStoredTypes(types);
     tmp_schema.setStoredColumnNames(output_column_names);
-
     if (has_pre_projection) {
         duckdb::Schema proj_schema;
         proj_schema.setStoredTypes(proj_types);
@@ -3446,9 +3439,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
             new duckdb::PhysicalProjection(proj_schema, move(proj_exprs));
         result->push_back(proj_op);
     }
-
     pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
-
     duckdb::CypherPhysicalOperator *op;
     if (agg_groups.empty()) {
         op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs));
@@ -3457,18 +3448,14 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs),
                                                move(agg_groups));
     }
-
     result->push_back(op);
     pGenerateSchemaFlowGraph(*result);
-
     // finish pipeline
     auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
-
     // new pipeline
     auto new_result = new vector<duckdb::CypherPhysicalOperator *>();
     new_result->push_back(op);
-
     if (generate_sfg) {
         // Set for the current pipeline. We consider after group by, schema is merged.
         pClearSchemaFlowGraph();
@@ -3477,37 +3464,6 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
         pipeline_schemas.push_back({tmp_schema});
         pipeline_union_schema.push_back(tmp_schema);
     }
-
-    // if output_cols size != child_cols, we need to do projection
-
-    // TODO use of interm_output_cols is wrong
-    // if (interm_output_cols->Size() != output_cols->Size()) {
-    // 	duckdb::Schema proj_schema;
-    // 	vector<duckdb::LogicalType> proj_types;
-    // 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-    // 		CColRef *col = (*output_cols)[col_idx];
-    // 		CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId() );
-    // 		OID type_oid = type_mdid->Oid();
-    // 		proj_types.push_back(pConvertTypeOidToLogicalType(type_oid));
-    // 	}
-    // 	proj_schema.setStoredTypes(proj_types);
-
-    // 	vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    // 	for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
-    // 		CColRef *col = (*output_cols)[col_idx];
-    // 		ULONG idx = interm_output_cols->IndexOf(col);
-    // 		if (idx == gpos::ulong_max) { continue;	}
-    // 		D_ASSERT(idx != gpos::ulong_max);
-    // 		proj_exprs.push_back(
-    // 			make_unique<duckdb::BoundReferenceExpression>(proj_types[col_idx], (int)idx));
-    // 	}
-    // 	if (proj_exprs.size() != 0) {
-    // 		D_ASSERT(proj_exprs.size() == output_cols->Size());
-    // 		duckdb::CypherPhysicalOperator* op =
-    // 			new duckdb::PhysicalProjection(proj_schema, std::move(proj_exprs));
-    // 		new_result->push_back(op);
-    // 	}
-    // }
     return new_result;
 }
 
@@ -4262,10 +4218,23 @@ void Planner::pTranslatePredicateToJoinCondition(
     else if (op->Eopid() == COperator::EOperatorId::EopScalarCmp) {
         CScalarCmp *cmpop = (CScalarCmp *)op;
         duckdb::JoinCondition cond;
+        D_ASSERT(pred->operator[](0)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent &&
+                 pred->operator[](1)->Pop()->Eopid() == COperator::EOperatorId::EopScalarIdent);
+        bool is_left_col_included_in_lhs = lhs_cols->IndexOf(
+            ((CScalarIdent *)pred->operator[](0)->Pop())->Pcr()) != gpos::ulong_max;
+        D_ASSERT(is_left_col_included_in_lhs ||
+                 rhs_cols->IndexOf(
+                     ((CScalarIdent *)pred->operator[](0)->Pop())->Pcr()) !=
+                     gpos::ulong_max);
         unique_ptr<duckdb::Expression> lhs =
-            pTransformScalarExpr(pred->operator[](0), lhs_cols, rhs_cols);
+            is_left_col_included_in_lhs
+                ? pTransformScalarExpr(pred->operator[](0), lhs_cols, rhs_cols)
+                : pTransformScalarExpr(pred->operator[](1), lhs_cols, rhs_cols);
         unique_ptr<duckdb::Expression> rhs =
-            pTransformScalarExpr(pred->operator[](1), lhs_cols, rhs_cols);
+            !is_left_col_included_in_lhs
+                ? pTransformScalarExpr(pred->operator[](0), lhs_cols, rhs_cols)
+                : pTransformScalarExpr(pred->operator[](1), lhs_cols, rhs_cols);
+
         if (lhs->return_type != rhs->return_type) {
             rhs = pGenScalarCast(move(rhs), lhs->return_type);
         }

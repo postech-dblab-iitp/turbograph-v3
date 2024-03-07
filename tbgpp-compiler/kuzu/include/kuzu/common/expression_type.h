@@ -22,6 +22,7 @@ const string MAX_FUNC_NAME = "MAX";
 
 const string FIRST_FUNC_NAME = "FIRST";
 const string LAST_FUNC_NAME = "LAST";
+const string COLLECT_FUNC_NAME = "COLLECT";
 
 // cast
 const string CAST_TO_DATE_FUNC_NAME = "DATE";

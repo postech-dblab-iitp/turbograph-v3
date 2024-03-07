@@ -326,12 +326,9 @@ private:
 	std::pair<CExpression *, CColRefArray *> lExprScalarAddSchemaConformProject(
 		CExpression *relation, vector<uint64_t> &col_ids_to_project,
 		vector<pair<IMDId *, gpos::INT>> *target_schema_types, vector<CColRef *> &union_schema_colrefs
-	);
-	// CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-	// 	CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
+	);	
 	CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
-		CExpression *additional_join_pred = nullptr);
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);

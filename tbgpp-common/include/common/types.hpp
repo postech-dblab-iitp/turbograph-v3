@@ -381,6 +381,7 @@ enum class LogicalTypeId : uint8_t {
 	ID = 108,
 	ADJLISTCOLUMN = 109,
 	ROWCOL = 110,
+	PATH = 210,
 };
 
 struct ExtraTypeInfo;
