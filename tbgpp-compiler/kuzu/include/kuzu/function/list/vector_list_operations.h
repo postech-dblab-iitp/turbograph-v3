@@ -44,7 +44,7 @@ struct VectorListOperations : public VectorOperations {
         scalar_exec_func execFunc;
         for (auto& rightTypeID :
             std::vector<common::DataTypeID>{common::BOOL, common::INT64, common::UBIGINT, common::DOUBLE,
-                common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL, common::LIST}) {
+                common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL, common::LIST, common::NODE_ID}) {
             // switch (rightTypeID) {
             // case common::BOOL: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, uint8_t,
@@ -113,11 +113,11 @@ struct ListCreationVectorOperation : public VectorListOperations {
 //     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 // };
 
-// struct ListAppendVectorOperation : public VectorListOperations {
-//     static void listAppendBindFunc(const std::vector<common::DataType>& argumentTypes,
-//         VectorOperationDefinition* definition, common::DataType& returnType);
-//     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-// };
+struct ListAppendVectorOperation : public VectorListOperations {
+    static void listAppendBindFunc(const std::vector<common::DataType>& argumentTypes,
+        VectorOperationDefinition* definition, common::DataType& returnType);
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
 // struct ListPrependVectorOperation : public VectorListOperations {
 //     static void listPrependBindFunc(const std::vector<common::DataType>& argumentTypes,

@@ -154,61 +154,71 @@ ListCreationVectorOperation::getDefinitions() {
 //     return result;
 // }
 
-// void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& argumentTypes,
-//     VectorOperationDefinition* definition, DataType& returnType) {
-//     if (*argumentTypes[0].childType != argumentTypes[1]) {
-//         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-//             LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
-//     }
-//     definition->returnTypeID = argumentTypes[0].typeID;
-//     returnType = argumentTypes[0];
-//     switch (argumentTypes[1].typeID) {
-//     case INT64: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case DOUBLE: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, double_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case BOOL: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, uint8_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case STRING: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, ku_string_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case DATE: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, date_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case TIMESTAMP: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, timestamp_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case INTERVAL: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, interval_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     case LIST: {
-//         definition->execFunc =
-//             BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListAppend>;
-//     } break;
-//     default: {
-//         assert(false);
-//     }
-//     }
-// }
+void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& argumentTypes,
+    VectorOperationDefinition* definition, DataType& returnType) {
+    if (*argumentTypes[0].childType != argumentTypes[1]) {
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
+            LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    }
+    definition->returnTypeID = argumentTypes[0].typeID;
+    returnType = argumentTypes[0];
+    switch (argumentTypes[1].typeID) {
+    case INT64:
+    case DOUBLE:
+    case BOOL:
+    case STRING:
+    case DATE:
+    case TIMESTAMP:
+    case INTERVAL:
+    case LIST: {
+        definition->execFunc = empty_scalar_exec_func();
+    } break;
+    // case INT64: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case DOUBLE: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, double_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case BOOL: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, uint8_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case STRING: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, ku_string_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case DATE: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, date_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case TIMESTAMP: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, timestamp_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case INTERVAL: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, interval_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    // case LIST: {
+    //     definition->execFunc =
+    //         BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListAppend>;
+    // } break;
+    default: {
+        assert(false);
+    }
+    }
+}
 
-// std::vector<std::unique_ptr<VectorOperationDefinition>>
-// ListAppendVectorOperation::getDefinitions() {
-//     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-//     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_APPEND_FUNC_NAME,
-//         std::vector<DataTypeID>{LIST, ANY}, LIST, nullptr, nullptr, listAppendBindFunc,
-//         false /* isVarlength*/));
-//     return result;
-// }
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+ListAppendVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_APPEND_FUNC_NAME,
+        std::vector<DataTypeID>{LIST, ANY}, LIST, nullptr, nullptr, listAppendBindFunc,
+        false /* isVarlength*/));
+    return result;
+}
 
 // void ListPrependVectorOperation::listPrependBindFunc(const std::vector<DataType>& argumentTypes,
 //     VectorOperationDefinition* definition, DataType& returnType) {

@@ -204,34 +204,6 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         setFillFunc();
     }
 
-    PhysicalAdjIdxJoin(Schema &sch, uint64_t adjidx_obj_id, JoinType join_type,
-                       uint64_t sid_col_idx, bool load_eid,
-                       vector<uint32_t> &outer_col_map,
-                       vector<uint32_t> &inner_col_map, bool do_filter_pushdown,
-                       uint32_t outer_pos, uint32_t inner_pos,
-                       vector<unique_ptr<Expression>> &predicates,
-                       bool load_eid_temporarily = false)
-        : PhysicalAdjIdxJoin(sch, adjidx_obj_id, join_type, sid_col_idx,
-                             load_eid, outer_col_map, inner_col_map,
-                             do_filter_pushdown, outer_pos, inner_pos,
-                             load_eid_temporarily)
-    {
-		D_ASSERT(predicates.size() > 0);
-		if (predicates.size() > 1) {
-			auto conjunction = make_unique<BoundConjunctionExpression>(
-				ExpressionType::CONJUNCTION_AND);
-			for (auto &expr : predicates) {
-				conjunction->children.push_back(move(expr));
-			}
-			expression = move(conjunction);
-		}
-		else {
-			expression = move(predicates[0]);
-		}
-
-		executor.AddExpression(*expression);
-	}
-
     ~PhysicalAdjIdxJoin() {}
 
    public:

@@ -107,9 +107,9 @@ class AggregateFunctionUtil {
 
 public:
 
+    static unique_ptr<AggregateFunction> getEmptyFunction(const DataType& inputType, bool isDistinct);
     static unique_ptr<AggregateFunction> getCountStarFunction();
-    static unique_ptr<AggregateFunction> getCountFunction(
-        const DataType& inputType, bool isDistinct);
+    static unique_ptr<AggregateFunction> getCountFunction(const DataType& inputType, bool isDistinct);   
     static unique_ptr<AggregateFunction> getAvgFunction(const DataType& inputType, bool isDistinct);
     static unique_ptr<AggregateFunction> getSumFunction(const DataType& inputType, bool isDistinct);
     static unique_ptr<AggregateFunction> getMinFunction(const DataType& inputType, bool isDistinct);
