@@ -74,6 +74,7 @@
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalPathJoin.h"
 #include "gpopt/operators/CLogicalPathGet.h"
+#include "gpopt/operators/CLogicalShortestPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
 #include "gpopt/operators/CLogicalShortestPath.h"
@@ -258,7 +259,7 @@ private:
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan, bool is_optional_match);
 	LogicalPlan *lPlanRegularMatchFromSubquery(const QueryGraphCollection& queryGraphCollection, LogicalPlan *outer_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
-	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
+	LogicalPlan *lPlanPathGet(RelExpression *edge_expr, bool is_shortest_path);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanGroupBy(const expression_vector &expressions, LogicalPlan *prev_plan);
@@ -333,6 +334,9 @@ private:
 	CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);
+
+	CExpression *lExprLogicalShortestPath(CExpression *lhs, CExpression *rhs,
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression *lExprLogicalCartProd(CExpression *lhs, CExpression *rhs);
 	
 	CTableDescriptor *lCreateTableDescForRel(CMDIdGPDB *rel_mdid, std::string rel_name="");

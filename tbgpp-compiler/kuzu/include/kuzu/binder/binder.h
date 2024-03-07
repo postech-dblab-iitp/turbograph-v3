@@ -107,7 +107,7 @@ private:
         const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
     // Rewrite variable "v" as all properties of "v"
     expression_vector rewriteNodeOrRelExpression(const Expression& expression);
-    expression_vector rewriteQueryGraph(const Expression& expression);
+    expression_vector rewritePathExpression(const Expression& expression);
 
     void bindOrderBySkipLimitIfNecessary(
         BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);

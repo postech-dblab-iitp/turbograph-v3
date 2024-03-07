@@ -321,7 +321,7 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
                 upperBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   // same ones
             } else {    // *
                 lowerBound = "1";
-                upperBound = infBoundStr;
+                upperBound = "-1";
             }
         }
     }

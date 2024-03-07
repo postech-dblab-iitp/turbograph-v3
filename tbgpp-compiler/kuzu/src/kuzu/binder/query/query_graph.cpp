@@ -188,7 +188,7 @@ bool QueryGraph::isConnected(const QueryGraph& other) {
 }
 
 void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
-    shared_ptr<QueryGraph> queryGraphToAdd) {
+    unique_ptr<QueryGraph> queryGraphToAdd) {
     bool isMerged = false;
     for (auto& queryGraph : queryGraphs) {
         if (queryGraph->isConnected(*queryGraphToAdd)) {
@@ -224,7 +224,7 @@ vector<shared_ptr<RelExpression>> QueryGraphCollection::getQueryRels() const {
 unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
     auto result = make_unique<QueryGraphCollection>();
     for (auto& queryGraph : queryGraphs) {
-        result->queryGraphs.push_back(queryGraph->copyQueryGraph());
+        result->queryGraphs.push_back(queryGraph->copy());
     }
     return result;
 }

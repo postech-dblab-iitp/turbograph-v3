@@ -35,7 +35,7 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
             statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
         } 
         else if (dataType.typeID == common::PATH ) {
-            statementResult->addColumn(expression, rewriteQueryGraph(*expression));
+            statementResult->addColumn(expression, rewritePathExpression(*expression));
         }
         else {
             statementResult->addColumn(expression, expression_vector{expression});
@@ -79,18 +79,20 @@ expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expressio
     return result;
 }
 
-expression_vector Binder::rewriteQueryGraph(const Expression& expression) {
+expression_vector Binder::rewritePathExpression(const Expression& expression) {
     expression_vector result;
-    auto& queryGraph = (QueryGraph&)expression;
+    auto& path = (PathExpression&)expression;
     // Node
-    for (auto& nodeExpr: queryGraph.getQueryNodes()) {
+    for (auto& nodeExpr: path.getQueryNodes()) {
         auto nodeOrRel = (NodeOrRelExpression*)nodeExpr.get();
-        for (auto& property : nodeOrRel->getPropertyExpressions()) {
-            result.push_back(property->copy());
-        }
+        // _id columns only
+        result.push_back(nodeOrRel->getPropertyExpressions()[0]->copy());
     }
+    // // Length
+    // auto length_property = make_shared<PropertyExpression>(UBIGINT, "length", 0, path);
+
     // Edge
-    for (auto& relExpr: queryGraph.getQueryRels()) {
+    for (auto& relExpr: path.getQueryRels()) {
         auto nodeOrRel = (NodeOrRelExpression*)relExpr.get();
         for (auto& property : nodeOrRel->getPropertyExpressions()) {
             result.push_back(property->copy());
