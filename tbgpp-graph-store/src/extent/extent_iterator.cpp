@@ -880,8 +880,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
         return false;
     }
+
     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-    if(!getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset)) {
+    if (!getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset)) {
         output.SetCardinality(0);
     }
     else {
@@ -919,8 +920,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
         return false;
     }
+
     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-    if(!getScanRange(context, filter_cdf_id, l_filterValue, r_filterValue, l_inclusive, r_inclusive, scan_size, scan_start_offset, scan_end_offset)) {
+    if (!getScanRange(context, filter_cdf_id, l_filterValue, r_filterValue, l_inclusive, r_inclusive, scan_size, scan_start_offset, scan_end_offset)) {
         output.SetCardinality(0);
     }
     else {
@@ -2015,14 +2017,6 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
     return true;
 }
-
-// // For Seek Operator + General Filter predicate - Bulk Mode
-// bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
-//                                    ExpressionExecutor &executor, ExtentID target_eid, DataChunk &input,
-//                                    idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
-//                                    idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized) {
-//     throw NotImplementedException("");
-// }
 
 // For AdjList
 bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized) {

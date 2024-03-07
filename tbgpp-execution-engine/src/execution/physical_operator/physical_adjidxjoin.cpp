@@ -374,45 +374,7 @@ void PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext &context,
             D_ASSERT(false);
         }
     }
-    // while (state.output_idx < STANDARD_VECTOR_SIZE && state.lhs_idx < input.size()) {
-    // 	uint64_t &src_vid = getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
-    // 	context.client->graph_store->getAdjListFromVid(*state.adj_it, state.adj_col_idxs[state.adj_idx],
-    // 		src_vid, adj_start, adj_end, cur_direction);
-
-    // 	// calculate size
-    // 	int adj_size = (adj_end - adj_start) / 2;
-    // 	size_t num_rhs_left = adj_size - state.rhs_idx;
-    // 	size_t num_rhs_to_try_fetch = ((STANDARD_VECTOR_SIZE - state.output_idx) > num_rhs_left)
-    // 									? num_rhs_left : (STANDARD_VECTOR_SIZE - state.output_idx);
-    // 	// TODO apply filter predicates
-    // 	if (adj_size == 0) {
-    // 		D_ASSERT(num_rhs_to_try_fetch == 0);
-    // 	} else {
-    // 		state.all_adjs_null = false;
-
-    // 		// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-    // 		fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, num_rhs_to_try_fetch, false, outer_vec);
-    // 	}
-
-    // 	// update lhs_idx and adj_idx for next iteration
-    // 	if (state.rhs_idx >= adj_size) {
-    // 		// for this (lhs_idx, adj_idx), equi join is done
-    // 		if (state.adj_idx == state.adj_col_idxs.size() - 1) {
-    // 			if (state.all_adjs_null && (join_type == JoinType::LEFT)) {
-    // 				// produce rhs (update output_idx and rhs_idx)	// TODO apply predicate : use other than for statement
-    // 				fillFunc(state, adj_start, tgt_adj_column, eid_adj_column, 1, true, outer_vec);
-    // 			}
-    // 			state.all_adjs_null = true;
-    // 			state.lhs_idx++;
-    // 			state.adj_idx = 0;
-    // 			// cur_direction = adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]);
-    // 		} else {
-    // 			state.adj_idx++;
-    // 			// cur_direction = adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]);
-    // 		}
-    // 		state.rhs_idx = 0;
-    // 	}
-    // }
+   
     // chunk determined. now fill in lhs using slice operation
     idx_t schema_idx = input.GetSchemaIdx();
     schema_idx = 0;  // TODO 240117 tslee maybe we don't need
@@ -522,6 +484,7 @@ OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext &context,
 std::string PhysicalAdjIdxJoin::ParamsToString() const
 {
     std::string result = "";
+    result += JoinTypeToString(join_type) + ", ";
     result += "adjidx_obj_id=" + std::to_string(adjidx_obj_id) + ", ";
     result += "sid_col_idx=" + std::to_string(sid_col_idx) + ", ";
     result +=

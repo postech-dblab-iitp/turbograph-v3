@@ -141,7 +141,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK);
 	}
 	D_ASSERT(state.ext_its.size() > 0);
-	idx_t j = 0;
 
 	StoreAPIResult res;
 	if (filter_pushdown_key_idxs.empty()) {
@@ -166,8 +165,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		}
 	}
 	
-	// current_schema_idx = 0; // TODO temporary logic!
-	
 	if (res == StoreAPIResult::DONE) {
 #ifdef DEBUG_PRINT_PIPELINE
 		printf("current_schema_idx = %ld, num_schemas = %ld\n", current_schema_idx, num_schemas);
@@ -175,21 +172,6 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		current_schema_idx++;
 		state.iter_finished = true;
 		return;
-		// if (++current_schema_idx == num_schemas) return;
-		// idx_t j = 0;
-		// for (auto i = 0; i < chunk.ColumnCount(); i++) {
-		// 	if (projection_mapping[current_schema_idx][j] == i) {
-		// 		j++;
-		// 	} else {
-		// 		auto &validity = FlatVector::Validity(chunk.data[i]);
-		// 		validity.EnsureWritable(STANDARD_VECTOR_SIZE);
-		// 		validity.SetAllInvalid(STANDARD_VECTOR_SIZE);
-		// 	}
-		// }
-		// chunk.Destroy();
-		// chunk.Initialize(scan_types[current_schema_idx]);
-		// GetData(context, chunk, lstate);
-		// return;
 	} else {
 		state.iter_finished = false;
 	}
