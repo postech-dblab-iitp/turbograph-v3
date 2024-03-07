@@ -72,6 +72,8 @@ public:
 	mutable vector<int64_t> filter_pushdown_key_idxs;	// when negative, no filter pushdown
 	mutable vector<Value> filter_pushdown_values;		// do not use when filter_pushdown_key_idx < 0
 	mutable vector<RangeFilterValue> range_filter_pushdown_values;
+
+	mutable boost::timer::cpu_timer timers[2];
 };	
 
 }
