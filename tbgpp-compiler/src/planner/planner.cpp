@@ -414,6 +414,12 @@ void *Planner::_orcaExec(void *planner_ptr)
         logical_plan->getSchema()->getOutputColumns(output_columns);
 
         for (auto &col : output_columns) {
+            if (col->GetMdidTable() == NULL) {
+				planner->logical_plan_output_col_oids.push_back(GPDB_UNKNOWN);
+			} else {
+				planner->logical_plan_output_col_oids.push_back(CMDIdGPDB::CastMdid(((CColRefTable*) col)->GetMdidTable())->Oid());
+			}
+
             // check if alternative column name exists on property_col_to_output_col_names_mapping
             if (planner->property_col_to_output_col_names_mapping.find(col) !=
                 planner->property_col_to_output_col_names_mapping.end()) {

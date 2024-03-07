@@ -399,6 +399,8 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 
 uint64_t s62_get_id(s62_resultset_wrapper* result_set_wrp, idx_t col_idx);
 
+s62_string s62_decimal_to_string(s62_decimal val);
+
 #ifdef __cplusplus
 }
 #endif
