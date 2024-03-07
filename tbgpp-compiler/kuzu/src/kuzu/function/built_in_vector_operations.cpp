@@ -311,7 +311,7 @@ void BuiltInVectorOperations::registerListOperations() {
 //     vectorOperations.insert({LIST_CAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
 //     vectorOperations.insert({ARRAY_CONCAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
 //     vectorOperations.insert({ARRAY_CAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
 //     vectorOperations.insert({ARRAY_APPEND_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});
 //     vectorOperations.insert(
 //         {ARRAY_PUSH_BACK_FUNC_NAME, ListAppendVectorOperation::getDefinitions()});

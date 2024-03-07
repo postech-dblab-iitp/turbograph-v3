@@ -26,6 +26,12 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(
         isDistinct);
 }
 
+unique_ptr<AggregateFunction> AggregateFunctionUtil::getEmptyFunction(
+    const DataType& inputType, bool isDistinct) {
+    return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
+        isDistinct);
+}
+
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
     const DataType& inputType, bool isDistinct) {
     switch (inputType.typeID) {
