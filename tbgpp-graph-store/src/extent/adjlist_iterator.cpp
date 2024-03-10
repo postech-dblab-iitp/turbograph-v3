@@ -174,6 +174,8 @@ ShortestPathIterator::ShortestPathIterator() {
 ShortestPathIterator::~ShortestPathIterator() {}
 
 void ShortestPathIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t tgt_id, uint64_t adj_col_idx) {
+    if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
+
     srcId = src_id;
     tgtId = tgt_id;
     adjColIdx = adj_col_idx;
@@ -188,17 +190,12 @@ void ShortestPathIterator::initialize(ClientContext &context, uint64_t src_id, u
     while (!queue.empty()) {
         uint64_t current = queue.front();
         queue.pop();
-
-        if (current == tgtId) {
-            // Stop if the target is reached
-            break;
-        }
-
-        enqueueNeighbors(context, current, queue);
+        bool found = enqueueNeighbors(context, current, queue);
+        if (found) { break; }
     }
 }
 
-void ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue) {
+bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue) {
     uint64_t *start_ptr, *end_ptr;
     ExtentID target_eid = node_id >> 32;
     bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
@@ -208,12 +205,20 @@ void ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t nod
         uint64_t neighbor = *ptr;
         uint64_t edge_id = *(ptr + 1);
 
+        // If found
+        if (neighbor == tgtId) {
+            predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
+            return true;
+        }
+
         // If the neighbor has not been visited
         if (predecessor.find(neighbor) == predecessor.end()) {
             queue.push(neighbor);
             predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
         }
     }
+
+    return false;
 }
 
 

@@ -91,7 +91,7 @@ private:
     std::shared_ptr<ExtentIterator> ext_it = nullptr;
     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
 
-    void enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue);
+    bool enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue);
 };
 
 
