@@ -74,7 +74,6 @@
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalPathJoin.h"
 #include "gpopt/operators/CLogicalPathGet.h"
-#include "gpopt/operators/CLogicalShortestPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
 #include "gpopt/operators/CLogicalShortestPath.h"
@@ -141,6 +140,7 @@
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
 #include "kuzu/binder/expression/parameter_expression.h"
+#include "kuzu/binder/expression/path_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -259,13 +259,14 @@ private:
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan, bool is_optional_match);
 	LogicalPlan *lPlanRegularMatchFromSubquery(const QueryGraphCollection& queryGraphCollection, LogicalPlan *outer_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
-	LogicalPlan *lPlanPathGet(RelExpression *edge_expr, bool is_shortest_path);
+	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanGroupBy(const expression_vector &expressions, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, RelExpression* edge, NodeExpression *rhs, LogicalPlan *prev_plan);
 
 	// scalar expression
 	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type = DataTypeID::INVALID);
@@ -282,6 +283,7 @@ private:
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	INT lGetTypeModFromType(duckdb::LogicalType type);
 
 	// scalar expression duckdb
@@ -296,6 +298,7 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarExistentialSubqueryExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
@@ -333,7 +336,7 @@ private:
 		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);
 
-	CExpression *lExprLogicalShortestPath(CExpression *lhs, CExpression *rhs,
+	CExpression *lExprLogicalShortestPathJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression *lExprLogicalCartProd(CExpression *lhs, CExpression *rhs);
 	
@@ -357,6 +360,8 @@ private:
 
 	// helper functions
 	bool lIsCastingFunction(std::string& func_name);
+	CColRef *lCreateColRefFromName(std::string& name, const IMDType *mdid_type);
+	CTableDescriptorArray *lGetTableDescriptorArrayFromOids(string& unique_name, vector<uint64_t> &oids);
 
 private:
 	// planner_physical.cpp
@@ -453,6 +458,9 @@ private:
 				uint8_t scale = (uint8_t)(type_mod & 0xFF);
 				return duckdb::LogicalType::DECIMAL(width, scale);
 			}
+		}
+		else if (type_id == duckdb::LogicalTypeId::PATH) {
+			return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
 		}
 		return duckdb::LogicalType(type_id);
 	}

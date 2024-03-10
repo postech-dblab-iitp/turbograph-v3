@@ -459,20 +459,17 @@ run_ldbc_c12() {
 
 run_ldbc_c13() {
 	# LDBC IC13 Single shortest path
+	# Currently only supports WITH
 	run_query "MATCH
-		(person1:Person {id: 8796093022390}),
-		(person2:Person {id: 8796093022357}),
-		path = (shortestPath((person1)-[:KNOWS*]-(person2)))
-		RETURN
-			CASE path IS NULL
-				WHEN true THEN -1
-				ELSE length(path)
+		(person1:Person {id: 17592186055119}),
+		(person2:Person {id: 8796093025131})
+		WITH 
+		person1, person2
+		MATCH path = shortestPath((person1)-[:KNOWS*]-(person2))
+		RETURN CASE path
+				WHEN null THEN 0
+				ELSE path_length(path)
 			END AS shortestPathLength" 1
-	run_query "MATCH
-		(person1:Person {id: 8796093022390}),
-		(person2:Person {id: 8796093022357}),
-		path = shortestPath((person1)-[:KNOWS*]-(person2))
-		RETURN path" 1
 }
 
 run_ldbc_c14() {

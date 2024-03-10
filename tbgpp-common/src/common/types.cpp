@@ -150,6 +150,8 @@ PhysicalType LogicalType::GetInternalType() {
 		return PhysicalType::UINT64;
 	case LogicalTypeId::ROWCOL:
 		return PhysicalType::ROWCOL;
+	case LogicalTypeId::PATH:
+		return PhysicalType::LIST;
 	default:
 		throw InternalException("Invalid LogicalType %s", ToString());
 	}
@@ -201,6 +203,7 @@ constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
 constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
 constexpr const LogicalTypeId LogicalType::ROWCOL;
+constexpr const LogicalTypeId LogicalType::PATH;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -482,6 +485,8 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 		return "ADJLISTCOLUMN";
 	case LogicalTypeId::ROWCOL:
 		return "ROWCOL";
+	case LogicalTypeId::PATH:
+		return "PATH";
 	}
 	return "UNDEFINED";
 }

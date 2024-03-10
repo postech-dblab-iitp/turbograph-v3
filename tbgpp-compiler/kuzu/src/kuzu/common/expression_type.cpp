@@ -58,6 +58,11 @@ bool isExpressionProperty(ExpressionType type) {
     return PROPERTY == type;
 }
 
+bool isExpressionShortestPath(ExpressionType type) {
+    return SHORTEST_PATH == type;
+}
+
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:

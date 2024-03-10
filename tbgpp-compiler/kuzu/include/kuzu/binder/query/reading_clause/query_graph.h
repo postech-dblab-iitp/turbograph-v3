@@ -80,7 +80,7 @@ public:
     QueryGraph() = default;
 
     QueryGraph(const QueryGraph& other)
-        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
+        : queryGraphType{other.queryGraphType}, queryNodeNameToPosMap{other.queryNodeNameToPosMap},
           queryRelNameToPosMap{other.queryRelNameToPosMap},
           queryNodes{other.queryNodes}, queryRels{other.queryRels}, queryPath(other.queryPath) {}
 

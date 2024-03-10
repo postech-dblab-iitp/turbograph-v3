@@ -311,6 +311,11 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 	// else
 	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), lhs_child_cols, rhs_child_cols));
 
+	// try casting (e_else to e_then)
+	if (e_then->return_type != e_else->return_type) {
+		e_else = pGenScalarCast(move(e_else), e_then->return_type);
+	}
+
 	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));
 }
 

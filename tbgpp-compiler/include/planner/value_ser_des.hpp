@@ -179,6 +179,9 @@ public:
 				int64_t value = *((int64_t *)mem_ptr);
 				return duckdb::Value::DECIMAL(value, 12, 2);
 			}
+			case duckdb::LogicalTypeId::PATH: {
+				return duckdb::Value::LIST(duckdb::LogicalTypeId::UBIGINT, {});
+			}
 			default:
 				D_ASSERT(false);
 		}
