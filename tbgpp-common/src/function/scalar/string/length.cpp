@@ -33,6 +33,13 @@ struct ArrayLengthBinaryOperator {
 	}
 };
 
+struct PathLengthOperator {
+	template <class TA, class TR>
+	static inline TR Operation(TA input) {
+		return (input.length - 1)/2;
+	}
+};
+
 // strlen returns the size in bytes
 struct StrLenOperator {
 	template <class TA, class TR>
@@ -90,6 +97,13 @@ void LengthFun::RegisterFunction(BuiltinFunctions &set) {
 	                   ScalarFunction::BinaryFunction<list_entry_t, int64_t, int64_t, ArrayLengthBinaryOperator>, false,
 	                   false, ListLengthBind));
 	set.AddFunction(array_length);
+
+	ScalarFunctionSet path_length("path_length");
+	ScalarFunction path_length_unary = ScalarFunction(
+	    {LogicalType::LIST(LogicalType::ANY)}, LogicalType::UBIGINT,
+	    ScalarFunction::UnaryFunction<list_entry_t, uint64_t, PathLengthOperator>, false, false, ListLengthBind);
+	path_length.AddFunction(path_length_unary);
+	set.AddFunction(path_length);
 
 	set.AddFunction(ScalarFunction("strlen", {LogicalType::VARCHAR}, LogicalType::BIGINT,
 	                               ScalarFunction::UnaryFunction<string_t, int64_t, StrLenOperator>));

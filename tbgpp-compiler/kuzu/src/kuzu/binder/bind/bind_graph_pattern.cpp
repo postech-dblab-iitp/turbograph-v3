@@ -30,10 +30,10 @@ Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern)
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-unique_ptr<QueryGraph> Binder::bindPatternElement(
+shared_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement &patternElement, PropertyKeyValCollection &collection) {
     D_ASSERT(false); // TODO 231120 deprecated
-    auto queryGraph = make_unique<QueryGraph>();
+    auto queryGraph = make_shared<QueryGraph>();
     // auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
     // for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
     //     auto patternElementChain = patternElement.getPatternElementChain(i);
@@ -50,6 +50,7 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
 unique_ptr<QueryGraph> Binder::bindPatternElementTmp(
     const PatternElement &patternElement, PropertyKeyValCollection &collection) {
     auto queryGraph = make_unique<QueryGraph>();
+    queryGraph->setQueryGraphType((QueryGraphType)patternElement.getPatternType());
 
     // bind partition IDs first
     auto leftNode = bindQueryNodeTmp(*patternElement.getFirstNodePattern(), *queryGraph, collection);
@@ -80,6 +81,23 @@ unique_ptr<QueryGraph> Binder::bindPatternElementTmp(
         for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
             queryGraph->getQueryNode(i + 1)->setDSITarget();
             queryGraph->getQueryRel(i)->setDSITarget();
+        }
+    }
+    
+    if (queryGraph->getQueryGraphType() != QueryGraphType::NONE) {
+        string pathName = patternElement.getPathName();
+        queryGraph->setQueryPath(pathName);
+
+        if (variablesInScope.find(pathName) != variablesInScope.end()) {
+            auto prevVariable = variablesInScope.at(pathName);
+            ExpressionBinder::validateExpectedDataType(*prevVariable, PATH);
+            throw BinderException("Bind path " + pathName +
+                                " to path with same name is not supported.");
+        }
+        else {
+            if (!pathName.empty()) {
+                variablesInScope.insert({pathName, queryGraph->getQueryPath()});
+            }
         }
     }
 

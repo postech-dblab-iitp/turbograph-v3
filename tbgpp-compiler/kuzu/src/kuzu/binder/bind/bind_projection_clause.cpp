@@ -33,7 +33,11 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
         auto dataType = expression->getDataType();
         if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
             statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
-        } else {
+        } 
+        else if (dataType.typeID == common::PATH ) {
+            statementResult->addColumn(expression, rewritePathExpression(*expression));
+        }
+        else {
             statementResult->addColumn(expression, expression_vector{expression});
         }
     }
@@ -71,6 +75,28 @@ expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expressio
     auto& nodeOrRel = (NodeOrRelExpression&)expression;
     for (auto& property : nodeOrRel.getPropertyExpressions()) {
         result.push_back(property->copy());
+    }
+    return result;
+}
+
+expression_vector Binder::rewritePathExpression(const Expression& expression) {
+    expression_vector result;
+    auto& path = (PathExpression&)expression;
+    // Node
+    for (auto& nodeExpr: path.getQueryNodes()) {
+        auto nodeOrRel = (NodeOrRelExpression*)nodeExpr.get();
+        // _id columns only
+        result.push_back(nodeOrRel->getPropertyExpressions()[0]->copy());
+    }
+    // // Length
+    // auto length_property = make_shared<PropertyExpression>(UBIGINT, "length", 0, path);
+
+    // Edge
+    for (auto& relExpr: path.getQueryRels()) {
+        auto nodeOrRel = (NodeOrRelExpression*)relExpr.get();
+        for (auto& property : nodeOrRel->getPropertyExpressions()) {
+            result.push_back(property->copy());
+        }
     }
     return result;
 }

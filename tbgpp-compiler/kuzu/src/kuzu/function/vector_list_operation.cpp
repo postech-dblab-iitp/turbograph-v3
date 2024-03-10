@@ -288,6 +288,13 @@ ListContainsVectorOperation::getDefinitions() {
         LIST_CONTAINS_FUNC_NAME, BOOL);
 }
 
+std::vector<std::unique_ptr<VectorOperationDefinition>> PathListLenVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(
+        PATH_LIST_LEN_FUNC_NAME, std::vector<DataTypeID>{PATH}, INTEGER, empty_scalar_exec_func(), true /* isVarlength*/));
+    return result;
+}
+
 // std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     auto bindFunc = [](const std::vector<DataType>& argumentTypes,

@@ -24,15 +24,16 @@ public:
     ALL = 57, OPTIONAL = 58, MATCH = 59, UNWIND = 60, CREATE = 61, SET = 62, 
     DELETE = 63, WITH = 64, RETURN = 65, DISTINCT = 66, STAR = 67, AS = 68, 
     ORDER = 69, BY = 70, L_SKIP = 71, LIMIT = 72, ASCENDING = 73, ASC = 74, 
-    DESCENDING = 75, DESC = 76, WHERE = 77, RANGE = 78, OR = 79, XOR = 80, 
-    AND = 81, NOT = 82, INVALID_NOT_EQUAL = 83, MINUS = 84, FACTORIAL = 85, 
-    IN = 86, STARTS = 87, ENDS = 88, CONTAINS = 89, IS = 90, NULL_ = 91, 
-    TRUE = 92, FALSE = 93, EXISTS = 94, CASE = 95, ELSE = 96, END = 97, 
-    WHEN = 98, THEN = 99, StringLiteral = 100, EscapedChar = 101, DecimalInteger = 102, 
-    HexLetter = 103, HexDigit = 104, Digit = 105, NonZeroDigit = 106, NonZeroOctDigit = 107, 
-    ZeroDigit = 108, RegularDecimalReal = 109, UnescapedSymbolicName = 110, 
-    IdentifierStart = 111, IdentifierPart = 112, EscapedSymbolicName = 113, 
-    SP = 114, WHITESPACE = 115, Comment = 116, Unknown = 117
+    DESCENDING = 75, DESC = 76, WHERE = 77, SHORTESTPATH = 78, ALLSHORTESTPATHS = 79, 
+    RANGE = 80, OR = 81, XOR = 82, AND = 83, NOT = 84, INVALID_NOT_EQUAL = 85, 
+    MINUS = 86, FACTORIAL = 87, IN = 88, STARTS = 89, ENDS = 90, CONTAINS = 91, 
+    IS = 92, NULL_ = 93, TRUE = 94, FALSE = 95, EXISTS = 96, CASE = 97, 
+    ELSE = 98, END = 99, WHEN = 100, THEN = 101, StringLiteral = 102, EscapedChar = 103, 
+    DecimalInteger = 104, HexLetter = 105, HexDigit = 106, Digit = 107, 
+    NonZeroDigit = 108, NonZeroOctDigit = 109, ZeroDigit = 110, RegularDecimalReal = 111, 
+    UnescapedSymbolicName = 112, IdentifierStart = 113, IdentifierPart = 114, 
+    EscapedSymbolicName = 115, SP = 116, WHITESPACE = 117, Comment = 118, 
+    Unknown = 119
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

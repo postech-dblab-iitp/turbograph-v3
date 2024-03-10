@@ -77,6 +77,7 @@
 #include "gpopt/operators/CLogicalPathGet.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
+#include "gpopt/operators/CLogicalShortestPath.h"
 #include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
@@ -101,6 +102,7 @@
 #include "gpopt/operators/CPhysicalHashAggDeduplicate.h"
 #include "gpopt/operators/CPhysicalStreamAgg.h"
 #include "gpopt/operators/CPhysicalStreamAggDeduplicate.h"
+#include "gpopt/operators/CPhysicalShortestPath.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
@@ -143,6 +145,7 @@
 #include "kuzu/binder/expression/pattern_comprehension_expression.h"
 #include "kuzu/binder/expression/filter_expression.h"
 #include "kuzu/binder/expression/idincoll_expression.h"
+#include "kuzu/binder/expression/path_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -269,6 +272,7 @@ private:
 	LogicalPlan *lPlanOrderBy(const expression_vector &orderby_exprs, const vector<bool> sort_orders, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, RelExpression* edge, NodeExpression *rhs, LogicalPlan *prev_plan);
 
 	// scalar expression
 	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type = DataTypeID::INVALID);
@@ -289,6 +293,7 @@ private:
 	CExpression *lExprScalarPatternComprehensionExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarFilterExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarIdInCollExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	INT lGetTypeModFromType(duckdb::LogicalType type);
 
 	// scalar expression duckdb
@@ -303,6 +308,7 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarExistentialSubqueryExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
@@ -333,15 +339,16 @@ private:
 	std::pair<CExpression *, CColRefArray *> lExprScalarAddSchemaConformProject(
 		CExpression *relation, vector<uint64_t> &col_ids_to_project,
 		vector<pair<IMDId *, gpos::INT>> *target_schema_types, vector<CColRef *> &union_schema_colrefs
-	);
-	// CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-	// 	CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
+	);	
 	CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
 		CExpression *additional_join_pred);
 	CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);
+
+	CExpression *lExprLogicalShortestPathJoin(CExpression *lhs, CExpression *rhs,
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression *lExprLogicalCartProd(CExpression *lhs, CExpression *rhs);
 	
 	CTableDescriptor *lCreateTableDescForRel(CMDIdGPDB *rel_mdid, std::string rel_name="");
@@ -364,6 +371,8 @@ private:
 
 	// helper functions
 	bool lIsCastingFunction(std::string& func_name);
+	CColRef *lCreateColRefFromName(std::string& name, const IMDType *mdid_type);
+	CTableDescriptorArray *lGetTableDescriptorArrayFromOids(string& unique_name, vector<uint64_t> &oids);
 
 private:
 	// planner_physical.cpp
@@ -397,6 +406,9 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopLimit(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopSort(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopTopNSort(CExpression *plan_expr);
+
+	// shortestPath
+	vector<duckdb::CypherPhysicalOperator*>* pTransformEopShortestPath(CExpression* plan_expr);
 
 	// aggregations
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopAgg(CExpression *plan_expr);
@@ -458,6 +470,9 @@ private:
 				uint8_t scale = (uint8_t)(type_mod & 0xFF);
 				return duckdb::LogicalType::DECIMAL(width, scale);
 			}
+		}
+		else if (type_id == duckdb::LogicalTypeId::PATH) {
+			return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
 		}
 		return duckdb::LogicalType(type_id);
 	}
@@ -557,6 +572,10 @@ private:
 	vector<OID> logical_plan_output_col_oids;									// output col oids			
 	std::vector<CColRef*> logical_plan_output_colrefs;							// final output colrefs of the logical plan (user's view)
 	std::vector<CColRef*> physical_plan_output_colrefs;							// final output colrefs of the physical plan
+	
+	// logical soptimization context
+	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan
+	LogicalPlan* l_registered_outer_plan;	// registered plan
 
 	// schema flow graph
 	PipelineOperatorTypes pipeline_operator_types;
@@ -572,10 +591,6 @@ private:
 	// vector<CColRef *> colrefs_for_dsi; // should include columns used for grouping key / join column
 	CColRefSet *colrefs_for_dsi = nullptr;
 	bool analyze_ongoing = false;
-
-	// logical soptimization context
-	bool l_is_outer_plan_registered;		// whether subquery opt context can access outer plan
-	LogicalPlan *l_registered_outer_plan;	// registered plan
 
 	// const string for system columns
 	string ID_COLNAME = "_id";

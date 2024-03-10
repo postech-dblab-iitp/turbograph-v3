@@ -73,6 +73,10 @@ bool isExpressionFilter(ExpressionType type) {
 bool isExpressionIdInColl(ExpressionType type) {
     return ID_IN_COLL == type;
 }
+bool isExpressionShortestPath(ExpressionType type) {
+    return SHORTEST_PATH == type;
+}
+
 
 string expressionTypeToString(ExpressionType type) {
     switch (type) {

@@ -51,8 +51,10 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 		return lExprScalarFilterExpr(expression, prev_plan, required_type);
 	case ID_IN_COLL:
 		return lExprScalarIdInCollExpr(expression, prev_plan, required_type);
+	case SHORTEST_PATH:
+		return lExprScalarShortestPathExpr(expression, prev_plan, required_type);
 	default:
-		D_ASSERT(false);	// TODO Not yet
+		D_ASSERT(false);
 	}
 }
 
@@ -534,7 +536,7 @@ CExpression *Planner::lExprScalarCastExpr(kuzu::binder::Expression *expression, 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
-
+	
 	// Get child expr
 	kuzu::binder::expression_vector children = scalarfunc_expr->getChildren();
 	D_ASSERT(children.size() == 1);
@@ -616,8 +618,18 @@ CExpression *Planner::lExprScalarIdInCollExpr(kuzu::binder::Expression *expressi
     IdInCollExpression *filter_expr =
         (IdInCollExpression *)expression;
 	
-	// CExpression *expr = lExprScalarExpression(
-	// 	filter_expr->getExpr().get(), prev_plan, required_type);
+	CExpression *expr = lExprScalarExpression(
+		filter_expr->getExpr().get(), prev_plan, required_type);
+}
+
+CExpression *Planner::lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
+    CMemoryPool *mp = this->memory_pool;
+	PathExpression *path_expr = (PathExpression *)expression;
+	string k1 = path_expr->getUniqueName();
+    auto target_colref = prev_plan->getSchema()->getColRefOfKey(k1, "");
+	D_ASSERT(target_colref != NULL);
+	CExpression *ident_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+    return ident_expr;
 }
 
 bool Planner::lIsCastingFunction(std::string& func_name) {
