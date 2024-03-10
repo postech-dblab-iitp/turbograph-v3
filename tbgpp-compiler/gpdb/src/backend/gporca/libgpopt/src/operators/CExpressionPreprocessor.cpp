@@ -2869,7 +2869,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
-		CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
+		CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
 	{
 		pprojExpr->AddRef();
 		return pprojExpr;
@@ -3111,6 +3111,10 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 		if (can_transpose)
 		{
+			CWStringDynamic str2(mp, L"Before Collapse\n");
+			COstreamString oss2(&str2);
+			pexpr->OsPrint(oss2);
+			GPOS_TRACE(str2.GetBuffer());
 			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
 			{
 				CExpression *pprojexpr =
@@ -3168,6 +3172,11 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 			CExpression *result_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
+
+			CWStringDynamic str(mp, L"After Collapse\n");
+			COstreamString oss(&str);
+			result_expr->OsPrint(oss);
+			GPOS_TRACE(str.GetBuffer());
 
 			return result_expr;
 		}
@@ -3494,11 +3503,24 @@ CExpressionPreprocessor::PexprPreprocess(
 	GPOS_CHECK_ABORT;
 	pexprTransposeSelectAndProjectColumnar->Release();
 
-	// S62 prune tables with no results
-	CExpression *pexprFinal =
-		PexprPruneUnnecessaryTables(mp, pexprNormalized2);
+	// TODO recursively swap in one function call
+	// S62 swap logical select over logical project columnar
+	CExpression *pexprTransposeSelectAndProjectColumnar2 = 
+		PexprTransposeSelectAndProjectColumnar(mp, pexprNormalized2);
 	GPOS_CHECK_ABORT;
 	pexprNormalized2->Release();
+
+	// (28) normalize expression again
+	CExpression *pexprNormalized3 =
+		CNormalizer::PexprNormalize(mp, pexprTransposeSelectAndProjectColumnar2);
+	GPOS_CHECK_ABORT;
+	pexprTransposeSelectAndProjectColumnar2->Release();
+
+	// S62 prune tables with no results
+	CExpression *pexprFinal =
+		PexprPruneUnnecessaryTables(mp, pexprNormalized3);
+	GPOS_CHECK_ABORT;
+	pexprNormalized3->Release();
 
 	return pexprFinal;
 }

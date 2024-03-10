@@ -71,6 +71,7 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 #include "gpopt/operators/CLogicalLeftOuterJoin.h"
 #include "gpopt/operators/CLogicalRightOuterJoin.h"
+#include "gpopt/operators/CLogicalLeftOuterApply.h"
 #include "gpopt/operators/CLogicalLimit.h"
 #include "gpopt/operators/CLogicalPathJoin.h"
 #include "gpopt/operators/CLogicalPathGet.h"
@@ -138,6 +139,10 @@
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
 #include "kuzu/binder/expression/parameter_expression.h"
+#include "kuzu/binder/expression/list_comprehension_expression.h"
+#include "kuzu/binder/expression/pattern_comprehension_expression.h"
+#include "kuzu/binder/expression/filter_expression.h"
+#include "kuzu/binder/expression/idincoll_expression.h"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -253,7 +258,8 @@ private:
 		BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanUnwindClause(
         BoundReadingClause *boundReadingClause, LogicalPlan *prev_plan);
-	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan, bool is_optional_match);
+	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanRegularOptionalMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanRegularMatchFromSubquery(const QueryGraphCollection& queryGraphCollection, LogicalPlan *outer_plan);
 	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
 	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
@@ -279,6 +285,10 @@ private:
 	CExpression *lExprScalarExistentialSubqueryExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarCastExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 	CExpression *lExprScalarParamExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarListComprehensionExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarPatternComprehensionExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarFilterExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
+	CExpression *lExprScalarIdInCollExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	INT lGetTypeModFromType(duckdb::LogicalType type);
 
 	// scalar expression duckdb
@@ -327,7 +337,8 @@ private:
 	// CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	// 	CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
 	CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
+		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
+		CExpression *additional_join_pred);
 	CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
 		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
 		 gpopt::COperator::EOperatorId join_op);
@@ -407,6 +418,7 @@ private:
 	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
 	void pShiftFilterPredInnerColumnIndices(unique_ptr<duckdb::Expression> &expr, size_t outer_size);
 	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefArray *inner_cols, CColRefArray *output_cols, vector<ULONG> &inner_cols_idx);
+	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefSet *inner_cols, CColRefSet *output_cols, vector<const CColRef *> &filter_only_inner_cols);
 
 	// investigate plan properties
 	bool pMatchExprPattern(CExpression *root, vector<COperator::EOperatorId>& pattern, uint64_t pattern_root_idx=0, bool physical_op_only=false);
@@ -502,11 +514,14 @@ private:
 	void pPushCartesianProductSchema(duckdb::Schema& out_schema, vector<duckdb::LogicalType> &rhs_types);
 	void pConstructColMapping(CColRefArray *in_cols, CColRefArray *out_cols, vector<uint32_t> &out_mapping);
 	void pAppendFilterOnlyCols(CExpression *filter_expr, CColRefArray *input_cols, CColRefArray *output_cols, CColRefArray* result_cols);
-	void pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,CColRefArray* property_cols, CColRefArray* non_property_cols);
+	void pSeperatePropertyNonPropertyCols(CColRefSet *input_cols, CColRefSet *property_cols, CColRefSet* non_property_cols);
 	void pGetFilterDuckDBExprs(CExpression *filter_expr, CColRefArray *outer_cols, CColRefArray *inner_cols, size_t index_shifting_size, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
+	bool pIsAdjIdxJoinInto(CExpression *scalar_expr, CColRefSet *outer_cols, CColRefSet *inner_cols, CExpression *&adjidxjoin_into_expr);
+	CExpression *reBuildFilterExpr(CExpression *filter_expr, CExpression *adjidxjoin_into_expr);
+	CExpression *recursiveBuildFilterExpr(CExpression *scalar_expr, CExpression *adjidxjoin_into_expr);
 
 	// Hash Aggregate Helpers
 	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 

@@ -170,6 +170,15 @@ private:
 
     unique_ptr<ParsedExpression> transformParenthesizedExpression(
         CypherParser::OC_ParenthesizedExpressionContext& ctx);
+    
+    unique_ptr<PatternElement> transformRelationshipsPatternExpression(
+        CypherParser::OC_RelationshipsPatternContext &ctx);
+    
+    unique_ptr<ParsedExpression> transformFilterExpression(
+        CypherParser::OC_FilterExpressionContext &ctx);
+
+    unique_ptr<ParsedExpression> transformIdInColl(
+        CypherParser::OC_IdInCollContext &ctx);
 
     unique_ptr<ParsedExpression> transformFunctionInvocation(
         CypherParser::OC_FunctionInvocationContext& ctx);
@@ -186,6 +195,12 @@ private:
 
     unique_ptr<ParsedCaseAlternative> transformCaseAlternative(
         CypherParser::OC_CaseAlternativeContext& ctx);
+    
+    unique_ptr<ParsedExpression> transformListComprehension(
+        CypherParser::OC_ListComprehensionContext& ctx);
+    
+    unique_ptr<ParsedExpression> transformPatternComprehension(
+        CypherParser::OC_PatternComprehensionContext& ctx);
 
     string transformVariable(CypherParser::OC_VariableContext& ctx);
 

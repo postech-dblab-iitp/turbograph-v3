@@ -293,6 +293,15 @@ public:
   virtual void enterOC_ParenthesizedExpression(CypherParser::OC_ParenthesizedExpressionContext *ctx) = 0;
   virtual void exitOC_ParenthesizedExpression(CypherParser::OC_ParenthesizedExpressionContext *ctx) = 0;
 
+  virtual void enterOC_RelationshipsPattern(CypherParser::OC_RelationshipsPatternContext *ctx) = 0;
+  virtual void exitOC_RelationshipsPattern(CypherParser::OC_RelationshipsPatternContext *ctx) = 0;
+
+  virtual void enterOC_FilterExpression(CypherParser::OC_FilterExpressionContext *ctx) = 0;
+  virtual void exitOC_FilterExpression(CypherParser::OC_FilterExpressionContext *ctx) = 0;
+
+  virtual void enterOC_IdInColl(CypherParser::OC_IdInCollContext *ctx) = 0;
+  virtual void exitOC_IdInColl(CypherParser::OC_IdInCollContext *ctx) = 0;
+
   virtual void enterOC_FunctionInvocation(CypherParser::OC_FunctionInvocationContext *ctx) = 0;
   virtual void exitOC_FunctionInvocation(CypherParser::OC_FunctionInvocationContext *ctx) = 0;
 
@@ -301,6 +310,12 @@ public:
 
   virtual void enterOC_ExistentialSubquery(CypherParser::OC_ExistentialSubqueryContext *ctx) = 0;
   virtual void exitOC_ExistentialSubquery(CypherParser::OC_ExistentialSubqueryContext *ctx) = 0;
+
+  virtual void enterOC_ListComprehension(CypherParser::OC_ListComprehensionContext *ctx) = 0;
+  virtual void exitOC_ListComprehension(CypherParser::OC_ListComprehensionContext *ctx) = 0;
+
+  virtual void enterOC_PatternComprehension(CypherParser::OC_PatternComprehensionContext *ctx) = 0;
+  virtual void exitOC_PatternComprehension(CypherParser::OC_PatternComprehensionContext *ctx) = 0;
 
   virtual void enterOC_PropertyLookup(CypherParser::OC_PropertyLookupContext *ctx) = 0;
   virtual void exitOC_PropertyLookup(CypherParser::OC_PropertyLookupContext *ctx) = 0;

@@ -16,28 +16,42 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 	if (expr != NULL) { /* found */ return expr; }
 
 	auto expr_type = expression->expressionType;
-	if (isExpressionBoolConnection(expr_type)) {
+	switch(expr_type) {
+	case OR:
+	case XOR:
+	case AND:
+	case NOT:
 		return lExprScalarBoolOp(expression, prev_plan, required_type);
-	} else if (isExpressionComparison(expr_type)) {
+	case EQUALS:
+	case NOT_EQUALS:
+	case GREATER_THAN:
+    case GREATER_THAN_EQUALS:
+	case LESS_THAN:
+	case LESS_THAN_EQUALS:
 		return lExprScalarComparisonExpr(expression, prev_plan, required_type);
-	} else if (isExpressionProperty(expr_type)) {
+	case PROPERTY:
 		return lExprScalarPropertyExpr(expression, prev_plan, required_type);
-	} else if (isExpressionLiteral(expr_type)) {
+	case LITERAL:
 		return lExprScalarLiteralExpr(expression, prev_plan, required_type);
-	} else if (isExpressionAggregate(expr_type)) {			// must first check aggfunc over func
+	case AGGREGATE_FUNCTION:
 		return lExprScalarAggFuncExpr(expression, prev_plan, required_type);
-	} else if (isExpressionScalarFunc(expr_type)) {
+	case FUNCTION:
 		return lExprScalarFuncExpr(expression, prev_plan, required_type);
-	} else if (isExpressionCaseElse(expr_type)) {
+	case CASE_ELSE:
 		return lExprScalarCaseElseExpr(expression, prev_plan, required_type);
-	} else if (isExpressionSubquery(expr_type)) {
+	case EXISTENTIAL_SUBQUERY:
 		return lExprScalarExistentialSubqueryExpr(expression, prev_plan, required_type);
-	} else if (isExpressionFunction(expr_type)) {
-		return lExprScalarFuncExpr(expression, prev_plan, required_type);
-	} else if (isExpressionParameter(expr_type)) {
+	case PARAMETER:
 		return lExprScalarParamExpr(expression, prev_plan, required_type);
-	}
-	else {
+	case LIST_COMPREHENSION:
+		return lExprScalarListComprehensionExpr(expression, prev_plan, required_type);
+	case PATTERN_COMPREHENSION:
+		// return lExprScalarPatternComprehensionExpr(expression, prev_plan, required_type);
+	case FILTER:
+		return lExprScalarFilterExpr(expression, prev_plan, required_type);
+	case ID_IN_COLL:
+		return lExprScalarIdInCollExpr(expression, prev_plan, required_type);
+	default:
 		D_ASSERT(false);	// TODO Not yet
 	}
 }
@@ -87,25 +101,51 @@ CExpression* Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expres
 	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan, required_type);
 	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan, required_type);
 
-	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+    CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	// map comparison type
 	IMDType::ECmpType cmp_type;
-	switch (comp_expr->expressionType) {
-		case ExpressionType::EQUALS: 
-			cmp_type = IMDType::ECmpType::EcmptEq; break;
-		case ExpressionType::NOT_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptNEq; break;
-		case ExpressionType::GREATER_THAN:
-			cmp_type = IMDType::ECmpType::EcmptG; break;
-		case ExpressionType::GREATER_THAN_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptGEq; break;
-		case ExpressionType::LESS_THAN:
-			cmp_type = IMDType::ECmpType::EcmptL; break;
-		case ExpressionType::LESS_THAN_EQUALS:
-			cmp_type = IMDType::ECmpType::EcmptLEq; break;
-		default:
-			D_ASSERT(false);
+	if (lhs_scalar_expr->Pop()->Eopid() == COperator::EopScalarConst &&
+        rhs_scalar_expr->Pop()->Eopid() == COperator::EopScalarIdent) {
+        // swap
+        CExpression *tmp = lhs_scalar_expr;
+        lhs_scalar_expr = rhs_scalar_expr;
+        rhs_scalar_expr = tmp;
+
+		// reverse comp type
+		switch (comp_expr->expressionType) {
+			case ExpressionType::EQUALS: 
+				cmp_type = IMDType::ECmpType::EcmptEq; break;
+			case ExpressionType::NOT_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptNEq; break;
+			case ExpressionType::GREATER_THAN:
+				cmp_type = IMDType::ECmpType::EcmptL; break;
+			case ExpressionType::GREATER_THAN_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptLEq; break;
+			case ExpressionType::LESS_THAN:
+				cmp_type = IMDType::ECmpType::EcmptG; break;
+			case ExpressionType::LESS_THAN_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptGEq; break;
+			default:
+				D_ASSERT(false);
+		}
+    } else {
+		switch (comp_expr->expressionType) {
+			case ExpressionType::EQUALS: 
+				cmp_type = IMDType::ECmpType::EcmptEq; break;
+			case ExpressionType::NOT_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptNEq; break;
+			case ExpressionType::GREATER_THAN:
+				cmp_type = IMDType::ECmpType::EcmptG; break;
+			case ExpressionType::GREATER_THAN_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptGEq; break;
+			case ExpressionType::LESS_THAN:
+				cmp_type = IMDType::ECmpType::EcmptL; break;
+			case ExpressionType::LESS_THAN_EQUALS:
+				cmp_type = IMDType::ECmpType::EcmptLEq; break;
+			default:
+				D_ASSERT(false);
+		}
 	}
 
 	IMDId *left_mdid = CScalar::PopConvert(lhs_scalar_expr->Pop())->MdidType();
@@ -529,6 +569,55 @@ CExpression *Planner::lExprScalarParamExpr(kuzu::binder::Expression *expression,
 	auto param_data_type_id = param_data_type.typeID;
 	auto default_literal_exp = make_shared<LiteralExpression>(param_data_type, make_unique<Literal>(0));
 	return lExprScalarLiteralExpr(default_literal_exp.get(), prev_plan, required_type);
+}
+
+CExpression *Planner::lExprScalarListComprehensionExpr(
+    kuzu::binder::Expression *expression, LogicalPlan *prev_plan,
+    DataTypeID required_type)
+{
+    CMemoryPool *mp = this->memory_pool;
+    ListComprehensionExpression *list_comp_expr =
+        (ListComprehensionExpression *)expression;
+
+    CExpression *filter_expr = lExprScalarFilterExpr(
+        list_comp_expr->getFilterExpression().get(), prev_plan, required_type);
+	
+	if (!list_comp_expr->getExpr()) {
+		throw NotImplementedException("List comprehension expression not implemented");
+	}
+
+	return filter_expr;
+}
+
+CExpression *Planner::lExprScalarPatternComprehensionExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type)
+{
+	D_ASSERT(false);
+}
+
+CExpression *Planner::lExprScalarFilterExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type)
+{
+	CMemoryPool *mp = this->memory_pool;
+    FilterExpression *filter_expr =
+        (FilterExpression *)expression;
+	
+	CExpression *id_in_coll_expr = lExprScalarIdInCollExpr(
+		filter_expr->getIdInCollExpression().get(), prev_plan, required_type);
+	
+	if (!filter_expr->getWhereExpression()) {
+		throw NotImplementedException("Filter expression not implemented");
+	}
+
+	return id_in_coll_expr;
+}
+
+CExpression *Planner::lExprScalarIdInCollExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type)
+{
+	CMemoryPool *mp = this->memory_pool;
+    IdInCollExpression *filter_expr =
+        (IdInCollExpression *)expression;
+	
+	// CExpression *expr = lExprScalarExpression(
+	// 	filter_expr->getExpr().get(), prev_plan, required_type);
 }
 
 bool Planner::lIsCastingFunction(std::string& func_name) {

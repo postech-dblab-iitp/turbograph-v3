@@ -102,6 +102,11 @@ CPhysicalTableScan::OsPrint(IOstream &os) const
 	m_ptabdesc->Name().OsPrint(os);
 	os << ")";
 
+	// s62 added for debugging
+	os << ", Columns: [";
+	CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
+	os << "]";
+
 	return os;
 }
 

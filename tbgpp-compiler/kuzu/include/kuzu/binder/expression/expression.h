@@ -49,7 +49,7 @@ public:
 protected:
     Expression(ExpressionType expressionType, DataTypeID dataTypeID, const string& uniqueName)
         : Expression{expressionType, DataType(dataTypeID), uniqueName} {
-        assert(dataTypeID != LIST);
+        // assert(dataTypeID != LIST);
     }
 
 public:

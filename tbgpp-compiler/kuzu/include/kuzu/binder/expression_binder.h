@@ -69,6 +69,11 @@ private:
 
     shared_ptr<Expression> bindCaseExpression(const ParsedExpression& parsedExpression);
 
+    shared_ptr<Expression> bindListComprehensionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindPatternComprehensionExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindFilterExpression(const ParsedExpression& parsedExpression);
+    shared_ptr<Expression> bindIdInCollExpression(const ParsedExpression& parsedExpression);
+
     /****** cast *****/
     // Note: we expose two implicitCastIfNecessary interfaces.
     // For function binding we cast with data type ID because function definition cannot be

@@ -407,6 +407,9 @@ oC_Atom
     : oC_Literal
         | oC_Parameter
         | oC_CaseExpression
+		| oC_ListComprehension
+        | oC_PatternComprehension
+		| oC_RelationshipsPattern
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
         | oC_ExistentialSubquery
@@ -436,6 +439,15 @@ oC_ListLiteral
 oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;
 
+oC_RelationshipsPattern
+                    :  oC_NodePattern ( SP? oC_PatternElementChain )+ ;
+
+oC_FilterExpression
+                :  oC_IdInColl ( SP? oC_Where )? ;
+
+oC_IdInColl
+        :  oC_Variable SP IN SP oC_Expression ;
+
 oC_FunctionInvocation
     : oC_FunctionName SP? '(' SP? '*' SP? ')'
         | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
@@ -447,6 +459,12 @@ oC_ExistentialSubquery
     :  EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
 
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
+
+oC_ListComprehension
+                 :  '[' SP? oC_FilterExpression ( SP? '|' SP? oC_Expression )? SP? ']' ;
+
+oC_PatternComprehension
+                    :  '[' SP? ( oC_Variable SP? '=' SP? )? oC_RelationshipsPattern SP? ( WHERE SP? oC_Expression SP? )? '|' SP? oC_Expression SP? ']' ;
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName ) ;

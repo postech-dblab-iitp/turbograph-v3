@@ -229,6 +229,8 @@ void BuiltInVectorOperations::registerArithmeticOperations() {
 void BuiltInVectorOperations::registerDateOperations() {
     vectorOperations.insert({DATE_PART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_PART_YEAR_FUNC_NAME, DatePartYearVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_PART_MONTH_FUNC_NAME, DatePartMonthVectorOperation::getDefinitions()});
+    vectorOperations.insert({DATE_PART_DAY_FUNC_NAME, DatePartDayVectorOperation::getDefinitions()});
     vectorOperations.insert({DATEPART_FUNC_NAME, DatePartVectorOperation::getDefinitions()});
     vectorOperations.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
     vectorOperations.insert({DATETRUNC_FUNC_NAME, DateTruncVectorOperation::getDefinitions()});
@@ -304,7 +306,7 @@ void BuiltInVectorOperations::registerCastOperations() {
 void BuiltInVectorOperations::registerListOperations() {
     vectorOperations.insert(
         {LIST_CREATION_FUNC_NAME, ListCreationVectorOperation::getDefinitions()});
-//     vectorOperations.insert({LIST_LEN_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_LEN_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorOperation::getDefinitions()});
 //     vectorOperations.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorOperation::getDefinitions()});

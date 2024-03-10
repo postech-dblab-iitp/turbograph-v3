@@ -726,13 +726,26 @@ void ScanStructure::NextLeftJoin(DataChunk &keys, DataChunk &left, DataChunk &re
 		if (remaining_count > 0) {
 			// have remaining tuples
 			// slice the left side with tuples that did not find a match
-			result.Slice(left, sel, remaining_count);
+			result.SetCardinality(remaining_count);
+			for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
+				if (output_left_projection_map[i] !=
+					std::numeric_limits<uint32_t>::max()) {
+					result.data[output_left_projection_map[i]].Slice(
+						left.data[i], sel,
+						remaining_count);
+				}
+			}
 
 			// now set the right side to NULL
-			for (idx_t i = left.ColumnCount(); i < result.ColumnCount(); i++) {
-				Vector &vec = result.data[i];
-				vec.SetVectorType(VectorType::CONSTANT_VECTOR);
-				ConstantVector::SetNull(vec, true);
+			for (idx_t projection_map_idx = 0;
+				projection_map_idx < output_right_projection_map.size();
+				projection_map_idx++) {
+				if (output_right_projection_map[projection_map_idx] !=
+					std::numeric_limits<uint32_t>::max()) {
+					Vector &vec = result.data[output_right_projection_map[projection_map_idx]];
+					vec.SetVectorType(VectorType::CONSTANT_VECTOR);
+					ConstantVector::SetNull(vec, true);
+				}
 			}
 		}
 		finished = true;
