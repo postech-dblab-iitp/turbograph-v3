@@ -44,6 +44,7 @@ const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 const string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
 const string LIST_LEN_FUNC_NAME = "LEN";
+const string PATH_LIST_LEN_FUNC_NAME = "PATH_LENGTH";
 const string LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
 const string LIST_CAT_FUNC_NAME = "LIST_CAT";
 const string ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
@@ -217,6 +218,10 @@ enum ExpressionType : uint8_t {
     EXISTENTIAL_SUBQUERY = 190,
 
     CASE_ELSE = 200,
+
+    SHORTEST_PATH = 210,
+
+    ALL_SHORTEST_PATH = 220,
 };
 
 bool isExpressionUnary(ExpressionType type);
@@ -232,6 +237,7 @@ bool isExpressionCaseElse(ExpressionType type);
 bool isExpressionFunction(ExpressionType type);
 bool isExpressionParameter(ExpressionType type);
 bool isExpressionProperty(ExpressionType type);
+bool isExpressionShortestPath(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

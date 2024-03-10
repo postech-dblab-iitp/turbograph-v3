@@ -161,6 +161,9 @@ public:
   virtual void enterOC_AnonymousPatternPart(CypherParser::OC_AnonymousPatternPartContext *ctx) = 0;
   virtual void exitOC_AnonymousPatternPart(CypherParser::OC_AnonymousPatternPartContext *ctx) = 0;
 
+  virtual void enterOC_ShortestPathPattern(CypherParser::OC_ShortestPathPatternContext *ctx) = 0;
+  virtual void exitOC_ShortestPathPattern(CypherParser::OC_ShortestPathPatternContext *ctx) = 0;
+
   virtual void enterOC_PatternElement(CypherParser::OC_PatternElementContext *ctx) = 0;
   virtual void exitOC_PatternElement(CypherParser::OC_PatternElementContext *ctx) = 0;
 

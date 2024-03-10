@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/path_expression.h"
 #include "binder/parse_tree_node.h"
 
 namespace kuzu {
@@ -72,14 +73,16 @@ private:
 };
 
 // QueryGraph represents a connected pattern specified in MATCH clause.
+enum QueryGraphType: uint8_t { NONE = 0, SHORTEST = 1, ALL_SHORTEST = 2 };
+
 class QueryGraph : public ParseTreeNode {
 public:
     QueryGraph() = default;
 
     QueryGraph(const QueryGraph& other)
-        : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
+        : queryGraphType{other.queryGraphType}, queryNodeNameToPosMap{other.queryNodeNameToPosMap},
           queryRelNameToPosMap{other.queryRelNameToPosMap},
-          queryNodes{other.queryNodes}, queryRels{other.queryRels} {}
+          queryNodes{other.queryNodes}, queryRels{other.queryRels}, queryPath(other.queryPath) {}
 
     ~QueryGraph() = default;
 
@@ -108,6 +111,21 @@ public:
         return queryNodeNameToPosMap.at(queryNodeName);
     }
     void addQueryNode(shared_ptr<NodeExpression> queryNode);
+
+    inline shared_ptr<PathExpression> getQueryPath() const {
+        return queryPath;
+    }
+
+    inline void setQueryPath(string& unique_name) {
+        assert(queryPath == nullptr);
+        if (queryGraphType == QueryGraphType::SHORTEST) {
+            queryPath = make_shared<PathExpression>(SHORTEST_PATH, unique_name, queryNodes, queryRels);
+        }
+        else {
+            queryPath = make_shared<PathExpression>(ALL_SHORTEST_PATH, unique_name, queryNodes, queryRels);
+        }
+        
+    }
 
     inline uint32_t getNumQueryRels() const { return queryRels.size(); }
     inline bool containsQueryRel(const string& queryRelName) const {
@@ -148,11 +166,20 @@ public:
         return result;
     }
 
+    inline QueryGraphType getQueryGraphType() const { return queryGraphType; }
+
+    void setQueryGraphType(QueryGraphType queryGraphType) {
+        assert(this->queryGraphType == QueryGraphType::NONE);
+        this->queryGraphType = queryGraphType;
+    }
+
 private:
+    QueryGraphType queryGraphType = QueryGraphType::NONE;
     unordered_map<string, uint32_t> queryNodeNameToPosMap;
     unordered_map<string, uint32_t> queryRelNameToPosMap;
     vector<shared_ptr<NodeExpression>> queryNodes;
     vector<shared_ptr<RelExpression>> queryRels;
+    shared_ptr<PathExpression> queryPath = nullptr; 
 };
 
 // QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH

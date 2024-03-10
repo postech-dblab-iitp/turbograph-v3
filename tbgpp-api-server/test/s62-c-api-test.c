@@ -49,7 +49,7 @@ int main() {
 		WHERE item.L_EXTENDEDPRICE <= $ext \
 		RETURN \
 			item.L_RETURNFLAG AS ret_flag, \
-			item.L_LINESTATUS AS line_stat, \ 
+			item.L_LINESTATUS AS line_stat, \
 			sum(item.L_QUANTITY) AS sum_qty, \
 			sum(item.L_EXTENDEDPRICE) AS sum_base_price, \
 			sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price, \
@@ -98,18 +98,18 @@ int main() {
         s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
         s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
         s62_hugeint sum_qty_value = s62_get_hugeint(resultset_wrapper, 2);
-        s62_decimal sum_base_price_value = s62_get_decimal(resultset_wrapper, 3);
-        s62_decimal sum_disc_price_value = s62_get_decimal(resultset_wrapper, 4);
-        s62_decimal sum_charge_value = s62_get_decimal(resultset_wrapper, 5);
+        s62_string sum_base_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 3));
+        s62_string sum_disc_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 4));
+        s62_string sum_charge_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 5));
         double avg_qty_value = s62_get_double(resultset_wrapper, 6);
         double avg_price_value = s62_get_double(resultset_wrapper, 7);
         double avg_disc_value = s62_get_double(resultset_wrapper, 8);
         int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
-        printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld, sum_base_price: %ld%ld, sum_disc_price: %ld%ld, sum_charge: %ld%ld, avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
+        printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld, sum_base_price: %s, sum_disc_price: %s, sum_charge: %s, avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
                 ret_flag_value.data, line_stat_value.data, sum_qty_value.upper, sum_qty_value.lower, 
-                sum_base_price_value.value.upper, sum_base_price_value.value.lower,
-                sum_disc_price_value.value.upper, sum_disc_price_value.value.lower,
-                sum_charge_value.value.upper, sum_charge_value.value.lower,
+                sum_base_price_value.data, 
+                sum_disc_price_value.data,
+                sum_charge_value.data, 
                 avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
     }
     printf("s62_fetch() done\n");

@@ -194,6 +194,7 @@ void QueryGraphCollection::addAndMergeQueryGraphIfConnected(
         if (queryGraph->isConnected(*queryGraphToAdd)) {
             queryGraph->merge(*queryGraphToAdd);
             isMerged = true;
+            break;
         }
     }
     if (!isMerged) {

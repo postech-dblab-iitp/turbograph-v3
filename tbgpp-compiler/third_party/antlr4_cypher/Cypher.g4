@@ -240,7 +240,18 @@ oC_PatternPart
                ;
 
 oC_AnonymousPatternPart
-    : oC_PatternElement ;
+            :  oC_ShortestPathPattern
+                | oC_PatternElement
+                ;
+
+oC_ShortestPathPattern
+                   :  ( SHORTESTPATH '(' oC_PatternElement ')' )
+                       | ( ALLSHORTESTPATHS '(' oC_PatternElement ')' )
+                       ;
+
+SHORTESTPATH : ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'P' | 'p' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'H' | 'h' )  ;
+
+ALLSHORTESTPATHS : ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'P' | 'p' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'H' | 'h' ) ( 'S' | 's' )  ;
 
 oC_PatternElement
     : ( oC_NodePattern ( SP? oC_PatternElementChain )* )

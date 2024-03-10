@@ -23,7 +23,7 @@ protected:
         // }
 
         // S62 extended as we 
-        for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL}) {
+        for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL, PATH}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
 

@@ -1158,6 +1158,7 @@ CUtils::PexprLogicalApply(CMemoryPool *mp, CExpression *pexprLeft,
 					pexprLeft, pexprRight, pexprScalar);
 }
 
+
 //---------------------------------------------------------------------------
 //	@class:
 //		CUtils::PexprLogicalCorrelatedQuantifiedApply

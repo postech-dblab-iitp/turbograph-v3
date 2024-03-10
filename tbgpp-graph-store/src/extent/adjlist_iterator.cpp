@@ -166,4 +166,81 @@ void DFSIterator::initializeDSForNewLv(int new_lv) {
     }
 }
 
+ShortestPathIterator::ShortestPathIterator() {
+    ext_it = std::make_shared<ExtentIterator>();
+    eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, int>>();
+}
+
+ShortestPathIterator::~ShortestPathIterator() {}
+
+void ShortestPathIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t tgt_id, uint64_t adj_col_idx) {
+    if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
+
+    srcId = src_id;
+    tgtId = tgt_id;
+    adjColIdx = adj_col_idx;
+    predecessor.clear();
+    predecessor[srcId] = {src_id, 0}; // Source node is its own predecessor
+    adjlist_iterator = std::make_shared<AdjacencyListIterator>(this->ext_it, this->eid_to_bufptr_idx_map);
+
+    // Start the BFS from the source node
+    std::queue<uint64_t> queue;
+    queue.push(srcId);
+
+    while (!queue.empty()) {
+        uint64_t current = queue.front();
+        queue.pop();
+        bool found = enqueueNeighbors(context, current, queue);
+        if (found) { break; }
+    }
+}
+
+bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue) {
+    uint64_t *start_ptr, *end_ptr;
+    ExtentID target_eid = node_id >> 32;
+    bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+    adjlist_iterator->getAdjListPtr(node_id, target_eid, start_ptr, end_ptr, is_initialized);
+
+    for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
+        uint64_t neighbor = *ptr;
+        uint64_t edge_id = *(ptr + 1);
+
+        // If found
+        if (neighbor == tgtId) {
+            predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
+            return true;
+        }
+
+        // If the neighbor has not been visited
+        if (predecessor.find(neighbor) == predecessor.end()) {
+            queue.push(neighbor);
+            predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
+        }
+    }
+
+    return false;
+}
+
+
+bool ShortestPathIterator::getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes) {
+    if (predecessor.find(tgtId) == predecessor.end()) {
+        return false; // Target not reachable from source
+    }
+
+    // Reconstruct the path from target to source
+    uint64_t current = tgtId;
+    while (current != srcId) {
+        nodes.push_back(current);
+        edges.push_back(predecessor[current].second);
+        current = predecessor[current].first;
+    }
+    nodes.push_back(srcId);
+
+    // Reverse the path to get the correct order from source to target
+    std::reverse(nodes.begin(), nodes.end());
+    std::reverse(edges.begin(), edges.end());
+
+    return true;
+}
+
 }
