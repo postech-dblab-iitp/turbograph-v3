@@ -9,6 +9,8 @@
 #include "common/vector_size.hpp"
 
 #include "extent/extent_iterator.hpp"
+#include <queue>
+#include <unordered_map>
 
 #include <limits>
 
@@ -73,23 +75,24 @@ private:
     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
 };
 
-// class BFSIterator {
-// public:
-//     BFSIterator();
-//     ~BFSIterator();
+class ShortestPathIterator {
+public:
+    ShortestPathIterator();
+    ~ShortestPathIterator();
 
-//     void initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx);
-//     bool getNextEdge(ClientContext &context, uint64_t &tgt, uint64_t &edge);
-//     void expandLevel(ClientContext &context);
+    void initialize(ClientContext &context, uint64_t src_id, uint64_t tgt_id, uint64_t adj_col_idx);
+    bool getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes);
 
-// private:
-//     void enqueueNeighbors(ClientContext &context, uint64_t src_id);
+private:
+    uint64_t srcId, tgtId;
+    uint64_t adjColIdx;
+    std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> predecessor;  // Node ID mapped to a pair of its predecessor and the connecting edge ID
+    std::shared_ptr<AdjacencyListIterator> adjlist_iterator;
+    std::shared_ptr<ExtentIterator> ext_it = nullptr;
+    std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
 
-//     int adjColIdx;
-//     std::queue<uint64_t> frontier;
-//     std::shared_ptr<AdjacencyListIterator> adjlist_iterator;
-//     std::shared_ptr<unordered_map<ExtentID, int>> eid_to_bufptr_idx_map;
-// };
+    void enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue);
+};
 
 
 } // namespace duckdb

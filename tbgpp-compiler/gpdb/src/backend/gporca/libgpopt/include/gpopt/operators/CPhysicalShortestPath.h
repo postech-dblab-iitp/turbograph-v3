@@ -36,6 +36,12 @@ public:
 	// ctor
 	CPhysicalShortestPath(CMemoryPool *mp);
 
+	// ctor
+	CPhysicalShortestPath(CMemoryPool *mp, const CName *pnameAlias,
+				CTableDescriptorArray *ptabdescArray,
+				CColRef *srccr, 
+				CColRef *destcr);
+
 	// dtor
 	virtual ~CPhysicalShortestPath();
 
@@ -60,6 +66,34 @@ public:
 	FInputOrderSensitive() const
 	{
 		return true;
+	}
+
+	// alias accessor
+	const CName *
+	PnameAlias() const
+	{
+		return m_pnameAlias;
+	}
+
+	// table descriptor accessor
+	CTableDescriptorArray *
+	PtabdescArray() const
+	{
+		return m_ptabdescArray;
+	}
+
+	// source ID column reference accessor
+	CColRef*
+	PcrSource() const
+	{
+		return m_srccr;
+	}
+
+	// destination ID column reference accessor
+	CColRef*
+	PcrDestination() const
+	{
+		return m_destcr;
 	}
 
 	//-------------------------------------------------------------------------------------
@@ -182,6 +216,19 @@ public:
 
 		return dynamic_cast<CPhysicalShortestPath *>(pop);
 	}
+
+private:
+	// alias for table
+	const CName *m_pnameAlias;
+
+	// table descriptor array
+	CTableDescriptorArray *m_ptabdescArray;
+
+	// source ID column reference
+	CColRef *m_srccr;
+
+	// destination ID column reference
+	CColRef *m_destcr;
 
 };	// class CPhysicalShortestPath
 

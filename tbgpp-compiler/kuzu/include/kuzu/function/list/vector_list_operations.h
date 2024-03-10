@@ -137,5 +137,9 @@ struct ListContainsVectorOperation : public VectorListOperations {
 //     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 // };
 
+struct PathListLenVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 } // namespace function
 } // namespace kuzu

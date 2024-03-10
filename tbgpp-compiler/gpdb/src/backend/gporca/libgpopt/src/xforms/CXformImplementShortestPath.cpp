@@ -31,11 +31,11 @@ using namespace gpopt;
 //---------------------------------------------------------------------------
 CXformImplementShortestPath::CXformImplementShortestPath(CMemoryPool *mp)
 	:  // pattern
-	  CXformImplementation(GPOS_NEW(mp) CExpression(
-		  mp, GPOS_NEW(mp) CLogicalShortestPath(mp),
+	  CXformImplementation(
 		  GPOS_NEW(mp) CExpression(
-			  mp, GPOS_NEW(mp) CPatternLeaf(mp))  // relational child
-		  ))
+			  mp, GPOS_NEW(mp) CLogicalShortestPath(mp),
+			  GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternLeaf(mp)),
+			  GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CPatternTree(mp))))
 {
 }
 
@@ -67,15 +67,21 @@ CXformImplementShortestPath::Transform(CXformContext *pxfctxt, CXformResult *pxf
 	CMemoryPool *mp = pxfctxt->Pmp();
 
 	// extract components
-	// CLogicalShortestPath *popShortestPath = CLogicalShortestPath::PopConvert(pexpr->Pop());
+	CLogicalShortestPath *popShortestPath = CLogicalShortestPath::PopConvert(pexpr->Pop());
 	CExpression *pexprRelational = (*pexpr)[0];
+	CExpression *pexprScalar = (*pexpr)[1];
 
 	// addref all components
 	pexprRelational->AddRef();
+	pexprScalar->AddRef();
 
 	// assemble physical operator
 	CExpression *pexprShortestPath = GPOS_NEW(mp) CExpression(
-		mp, GPOS_NEW(mp) CPhysicalShortestPath(mp), pexprRelational);
+		mp, GPOS_NEW(mp) CPhysicalShortestPath(mp, popShortestPath->PnameAlias(),
+			popShortestPath->PtabdescArray(), 
+			popShortestPath->PcrSource(), 
+			popShortestPath->PcrDestination()), 
+			pexprRelational, pexprScalar);
 
 	// add alternative to results
 	pxfres->Add(pexprShortestPath);

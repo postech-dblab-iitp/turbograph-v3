@@ -232,7 +232,6 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
     for (int idx = 0; idx < qgc.getNumQueryGraphs(); idx++) {
         QueryGraph *qg = qgc.getQueryGraph(idx);
 		auto qg_type = qg->getQueryGraphType();
-
         int edge_idx = is_forward_traverse ? 0 : qg->getNumQueryRels() - 1;
         if (qg->getNumQueryRels() >= 1) {
             for (;;) {
@@ -261,7 +260,6 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 // case for variable length join
                 bool is_pathjoin =
                     qedge->getLowerBound() != 1 || qedge->getUpperBound() != 1;
-				bool is_shortestpath = qg_type == QueryGraphType::SHORTEST;
 				
 				// case for optional match
 				bool push_selection_pred_into_join =
@@ -281,6 +279,20 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 }
                 GPOS_ASSERT(lhs_plan != nullptr);
 
+                // case for shortest path join
+                bool is_shortestpath = qg_type == QueryGraphType::SHORTEST;
+
+                // create shorest path operator
+                if (is_shortestpath) {
+                    D_ASSERT(qg->getNumQueryRels() == 1); 
+                    D_ASSERT(is_pathjoin);
+                    D_ASSERT(is_lhs_bound);
+                    D_ASSERT(is_rhs_bound);
+
+                    qg_plan = lPlanShortestPath(qg, lhs, qedge, rhs, lhs_plan);
+                    break;
+                }
+
                 // Scan R
                 LogicalPlan *edge_plan;
                 CExpression *a_r_join_expr;
@@ -291,7 +303,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
 				CExpression *additional_join_pred;
 
                 edge_plan = is_pathjoin
-                                ? lPlanPathGet((RelExpression *)qedge, is_shortestpath)
+                                ? lPlanPathGet((RelExpression *)qedge)
                                 : lPlanNodeOrRelExpr(
                                       (NodeOrRelExpression *)qedge, false);
                 
@@ -306,23 +318,15 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 }
                 a_r_join_expr =
                     is_pathjoin
-                        ? 
-					(
-						is_shortestpath ?
-						lExprLogicalShortestPath(lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-						lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
-						edge_plan->getSchema()->getColRefOfKey(edge_name, is_forward_traverse ? SID_COLNAME : TID_COLNAME),
-						ar_join_type) :
-						lExprLogicalPathJoin(
-                              lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-                              lhs_plan->getSchema()->getColRefOfKey(lhs_name,
-                                                                    ID_COLNAME),
-                              edge_plan->getSchema()->getColRefOfKey(
-                                  edge_name, is_forward_traverse ? SID_COLNAME
-                                                                 : TID_COLNAME),
-                              qedge->getLowerBound(), qedge->getUpperBound(),
-                              ar_join_type)
-					)
+                        ? lExprLogicalPathJoin(
+                            lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
+                            lhs_plan->getSchema()->getColRefOfKey(lhs_name,
+                                                                ID_COLNAME),
+                            edge_plan->getSchema()->getColRefOfKey(
+                                edge_name, is_forward_traverse ? SID_COLNAME
+                                                                : TID_COLNAME),
+                            qedge->getLowerBound(), qedge->getUpperBound(),
+                            ar_join_type)
                         : lExprLogicalJoin(
                               lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
                               lhs_plan->getSchema()->getColRefOfKey(lhs_name,
@@ -331,7 +335,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                                   edge_name, is_forward_traverse ? SID_COLNAME
                                                                  : TID_COLNAME),
                               ar_join_type/*, additional_join_pred*/);
-				lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
+                lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
                 lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
 
                 // R join B
@@ -432,15 +436,6 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
             }
         }
 		GPOS_ASSERT(qg_plan != nullptr);
-
-		if (qg_type == QueryGraphType::SHORTEST) {
-			CMemoryPool* mp = this->memory_pool; 
-			auto shortest_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CLogicalShortestPath(mp), qg_plan->getPlanExpr());
-			qg_plan->addUnaryParentOp(shortest_expr);
-		}
-		else if (qg_type == QueryGraphType::ALL_SHORTEST) {
-			GPOS_ASSERT(false);
-		}
     }
     GPOS_ASSERT(qg_plan != nullptr);
 
@@ -503,7 +498,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                     lPlanNodeOrRelExpr((NodeOrRelExpression *)qedge, false);
             }
             else {
-                edge_plan = lPlanPathGet((RelExpression *)qedge, false);
+                edge_plan = lPlanPathGet((RelExpression *)qedge);
             }
             D_ASSERT(edge_plan != nullptr);
 
@@ -1118,8 +1113,7 @@ LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions,
     return prev_plan;
 }
 
-LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr,
-                                   bool is_shortest_path)
+LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
 {
     CMemoryPool *mp = this->memory_pool;
 
@@ -1198,20 +1192,11 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr,
     const CWStringConst path_name_str(w_alias.c_str());
 
     CExpression *path_get_expr = NULL;
-    if (!is_shortest_path) {
-        CLogicalPathGet *pop = GPOS_NEW(mp) CLogicalPathGet(
-            mp, GPOS_NEW(mp) CName(mp, CName(&path_name_str)), path_table_descs,
-            path_output_cols, (gpos::INT)edge_expr->getLowerBound(),
-            (gpos::INT)edge_expr->getUpperBound());
-        path_get_expr = GPOS_NEW(mp) CExpression(mp, pop);
-    }
-    else {
-        CLogicalShortestPathGet *pop = GPOS_NEW(mp) CLogicalShortestPathGet(
-            mp, GPOS_NEW(mp) CName(mp, CName(&path_name_str)), path_table_descs,
-            path_output_cols, (gpos::INT)edge_expr->getLowerBound(),
-            (gpos::INT)edge_expr->getUpperBound());
-        path_get_expr = GPOS_NEW(mp) CExpression(mp, pop);
-    }
+    CLogicalPathGet *pop = GPOS_NEW(mp) CLogicalPathGet(
+        mp, GPOS_NEW(mp) CName(mp, CName(&path_name_str)), path_table_descs,
+        path_output_cols, (gpos::INT)edge_expr->getLowerBound(),
+        (gpos::INT)edge_expr->getUpperBound());
+    path_get_expr = GPOS_NEW(mp) CExpression(mp, pop);
 
     path_output_cols->AddRef();
 
@@ -2168,6 +2153,67 @@ CExpression *Planner::lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
 	return join_result;
 }
 
+LogicalPlan *Planner::lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, RelExpression* edge, NodeExpression *rhs, LogicalPlan *prev_plan)
+{
+    CMemoryPool *mp = this->memory_pool;
+    CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+
+    LogicalSchema new_schema;
+
+    string lhs_name = lhs->getUniqueName();
+    string rhs_name = rhs->getUniqueName();
+
+    CColRef* lhs_col_ref = prev_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME);
+    CColRef* rhs_col_ref = prev_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME);
+    CColRef* prev_lhs_col_ref = col_factory->LookupColRef(lhs_col_ref->PrevId());
+    CColRef* prev_rhs_col_ref = col_factory->LookupColRef(rhs_col_ref->PrevId());
+
+    // Marking
+    lhs_col_ref->MarkAsUsed();
+    rhs_col_ref->MarkAsUsed();
+    prev_lhs_col_ref->MarkAsUsed();
+    prev_rhs_col_ref->MarkAsUsed();
+
+    // Create projection expression List
+    auto path_name = qg->getQueryPath()->getUniqueName();
+    auto path_col_ref = lCreateColRefFromName(path_name, lGetMDAccessor()->RetrieveType(&CMDIdGPDB::m_mdid_s62_path));
+    prev_plan->getSchema()->appendColumn(path_name, path_col_ref);
+
+    // Create project element
+    CExpressionArray *ident_array = GPOS_NEW(mp) CExpressionArray(mp);
+    ident_array->Append(GPOS_NEW(mp)  CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, lhs_col_ref)));
+    ident_array->Append(GPOS_NEW(mp)  CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, rhs_col_ref)));
+    CExpression *pexpr_value_list = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarValuesList(mp), ident_array);
+    auto *proj_elem = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectElement(mp, path_col_ref), pexpr_value_list);
+
+    // Create project List
+    CExpressionArray *proj_array = GPOS_NEW(mp) CExpressionArray(mp);
+    proj_array->Append(proj_elem);
+    CExpression *pexprPrjList = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
+
+    // Create descriptor array
+    auto table_oids = edge->getTableIDs();
+    auto edge_name = edge->getUniqueName();
+    CTableDescriptorArray *path_table_descs = lGetTableDescriptorArrayFromOids(edge_name, table_oids);
+
+    // Create pathname
+    std::wstring w_alias = L"";
+    w_alias.assign(edge_name.begin(), edge_name.end());
+    const CWStringConst path_name_str(w_alias.c_str());
+    const CName c_path_name(&path_name_str);
+
+    // Create shortest path
+    CExpression *shortestpath_expr = 
+        GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) 
+            CLogicalShortestPath(mp, &c_path_name, path_table_descs, lhs_col_ref, rhs_col_ref), prev_plan->getPlanExpr(), pexprPrjList);
+
+    // Add new operator
+    prev_plan->addUnaryParentOp(shortestpath_expr);
+    new_schema.appendColumn(path_name, path_col_ref);
+    prev_plan->setSchema(move(new_schema));
+    return prev_plan;
+}
+
 CExpression *Planner::lExprLogicalPathJoin(
     CExpression *lhs, CExpression *rhs, CColRef *lhs_colref,
     CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
@@ -2194,7 +2240,7 @@ CExpression *Planner::lExprLogicalPathJoin(
     return join_result;
 }
 
-CExpression *Planner::lExprLogicalShortestPath(
+CExpression *Planner::lExprLogicalShortestPathJoin(
     CExpression *lhs, CExpression *rhs, CColRef *lhs_colref,
     CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op)
 {
@@ -2388,6 +2434,34 @@ CExpression *Planner::lRecurseRefinePlanForDSI(CMemoryPool *mp,
     // 	pop->AddRef();
     // 	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
     // }
+}
+
+
+CColRef *Planner::lCreateColRefFromName(std::string& name, const IMDType *mdid_type) 
+{
+    std::wstring w_name = L"";
+    w_name.assign(name.begin(), name.end());
+    const CWStringConst col_name_str(w_name.c_str());
+    CName col_cname(&col_name_str);
+    CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+    CColRef *path_col_ref = col_factory->PcrCreate(mdid_type, 0, col_cname);
+    path_col_ref->MarkAsUsed();
+    return path_col_ref;
+}
+
+
+CTableDescriptorArray *Planner::lGetTableDescriptorArrayFromOids(string& unique_name, vector<uint64_t> &oids) 
+{
+    CMemoryPool *mp = this->memory_pool;
+    CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+    CTableDescriptorArray *path_table_descs =
+        GPOS_NEW(mp) CTableDescriptorArray(mp);
+    path_table_descs->AddRef();
+    for (auto &obj_id : oids) {
+        path_table_descs->Append(
+            lCreateTableDescForRel(lGenRelMdid(obj_id), unique_name));
+    }
+    return path_table_descs;
 }
 
 }  // namespace s62

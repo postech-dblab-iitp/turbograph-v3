@@ -36,6 +36,8 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 		return lExprScalarFuncExpr(expression, prev_plan, required_type);
 	} else if (isExpressionParameter(expr_type)) {
 		return lExprScalarParamExpr(expression, prev_plan, required_type);
+	} else if (isExpressionShortestPath(expr_type)) {
+		return lExprScalarShortestPathExpr(expression, prev_plan, required_type);
 	}
 	else {
 		D_ASSERT(false);	// TODO Not yet
@@ -529,6 +531,17 @@ CExpression *Planner::lExprScalarParamExpr(kuzu::binder::Expression *expression,
 	auto param_data_type_id = param_data_type.typeID;
 	auto default_literal_exp = make_shared<LiteralExpression>(param_data_type, make_unique<Literal>(0));
 	return lExprScalarLiteralExpr(default_literal_exp.get(), prev_plan, required_type);
+}
+
+
+CExpression *Planner::lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
+    CMemoryPool *mp = this->memory_pool;
+	PathExpression *path_expr = (PathExpression *)expression;
+	string k1 = path_expr->getUniqueName();
+    auto target_colref = prev_plan->getSchema()->getColRefOfKey(k1, "");
+	D_ASSERT(target_colref != NULL);
+	CExpression *ident_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+    return ident_expr;
 }
 
 bool Planner::lIsCastingFunction(std::string& func_name) {

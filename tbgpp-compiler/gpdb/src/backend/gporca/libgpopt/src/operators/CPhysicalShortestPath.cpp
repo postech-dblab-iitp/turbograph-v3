@@ -34,7 +34,26 @@ CPhysicalShortestPath::CPhysicalShortestPath(CMemoryPool *mp)
 {
 	GPOS_ASSERT(NULL != mp);
 }
-
+//---------------------------------------------------------------------------
+//	@function:
+//		CPhysicalShortestPath::CPhysicalShortestPath
+//
+//	@doc:
+//		Ctor
+//
+//---------------------------------------------------------------------------
+CPhysicalShortestPath::CPhysicalShortestPath(CMemoryPool *mp, const CName *pnameAlias,
+			CTableDescriptorArray *ptabdescArray,
+			CColRef *srccr, 
+			CColRef *destcr)
+	: CPhysical(mp),
+	m_pnameAlias(pnameAlias),
+	m_ptabdescArray(ptabdescArray),
+	m_srccr(srccr),
+	m_destcr(destcr)
+{
+	
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -72,7 +91,7 @@ CPhysicalShortestPath::Matches(COperator *pop) const
 //		CPhysicalShortestPath::PcrsRequired
 //
 //	@doc:
-//		Columns required by Limit's relational child
+//		Columns required by CPhysicalShortestPath's relational child
 //
 //---------------------------------------------------------------------------
 CColRefSet *
@@ -84,7 +103,13 @@ CPhysicalShortestPath::PcrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 {
 	GPOS_ASSERT(0 == child_index);
 
-	return PcrsChildReqd(mp, exprhdl, pcrsRequired, child_index, gpos::ulong_max);
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp);
+	pcrs->Union(pcrsRequired);
+
+	CColRefSet *prcsOutput = PcrsChildReqd(mp, exprhdl, pcrsRequired, child_index, 1);
+	pcrs->Release();
+
+	return prcsOutput;
 }
 
 //---------------------------------------------------------------------------
@@ -209,7 +234,13 @@ CPhysicalShortestPath::FProvidesReqdCols(CExpressionHandle &exprhdl,
 								  ULONG	 // ulOptReq
 ) const
 {
-	return FUnaryProvidesReqdCols(exprhdl, pcrsRequired);
+	CColRefSet *pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
+	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
+
+	BOOL fProvidesCols = pcrs->ContainsAll(pcrsRequired);
+	pcrs->Release();
+
+	return fProvidesCols;
 }
 
 
@@ -307,8 +338,14 @@ CPhysicalShortestPath::EpetRewindability(CExpressionHandle &,		  // exprhdl
 IOstream &
 CPhysicalShortestPath::OsPrint(IOstream &os) const
 {
-	os << SzId();
-
+	os << SzId() << "( ";
+	os << " Src Col: [";
+	m_srccr->OsPrint(os);
+	os << "]"
+	   << " Dst Col: [";
+	m_destcr->OsPrint(os);
+	os << "]";
+	os << " )";
 	return os;
 }
 

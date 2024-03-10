@@ -47,6 +47,9 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarExpressionDuckDB(
     else if (isExpressionParameter(expr_type)) {
         return lExprScalarParamExprDuckDB(expression);
     }
+    else if (isExpressionShortestPath(expr_type)) {
+        return lExprScalarShortestPathExprDuckDB(expression);
+    }
     else {
         D_ASSERT(false);
     }
@@ -308,6 +311,19 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarParamExprDuckDB(
 {
     D_ASSERT(false);
     return nullptr;
+}
+
+
+unique_ptr<duckdb::Expression> Planner::lExprScalarShortestPathExprDuckDB(
+    kuzu::binder::Expression *expression)
+{
+    PathExpression *path_expr = (PathExpression *)expression;
+    DataType type = path_expr->getDataType();
+    duckdb::LogicalTypeId duckdb_type_id = (duckdb::LogicalTypeId)type.typeID;
+    duckdb::LogicalType duckdb_type = duckdb::LogicalType(duckdb_type_id);
+    D_ASSERT(duckdb_type_id == duckdb::LogicalTypeId::PATH);
+    return make_unique<duckdb::BoundReferenceExpression>(
+        duckdb_type, 0 /* child_idx TODO: give proper value */);
 }
 
 }  // namespace s62
