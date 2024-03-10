@@ -146,6 +146,8 @@ const string UPPER_FUNC_NAME = "UPPER";
 
 // Date functions.
 const string DATE_PART_YEAR_FUNC_NAME = "YEAR";
+const string DATE_PART_MONTH_FUNC_NAME = "MONTH";
+const string DATE_PART_DAY_FUNC_NAME = "DAY";
 const string DATE_PART_FUNC_NAME = "DATE_PART";
 const string DATEPART_FUNC_NAME = "DATEPART";
 const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
@@ -193,6 +195,12 @@ enum ExpressionType : uint8_t {
     // Null Operator Expressions
     IS_NULL = 50,
     IS_NOT_NULL = 51,
+
+    ID_IN_COLL = 52,
+    FILTER = 53,
+    LIST_COMPREHENSION = 54,
+    RELATIONSHIPS = 55,
+    PATTERN_COMPREHENSION = 56,
 
     PROPERTY = 60,
 

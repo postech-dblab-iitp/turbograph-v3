@@ -14,6 +14,14 @@ struct DatePartYearVectorOperation : public VectorDateOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct DatePartMonthVectorOperation : public VectorDateOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct DatePartDayVectorOperation : public VectorDateOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 struct DateTruncVectorOperation : public VectorDateOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };

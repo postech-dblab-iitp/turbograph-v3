@@ -106,7 +106,7 @@ run_ldbc_s() {
 			f.title AS forumTitle,
 			mod.id AS moderatorId,
 			mod.firstName AS moderatorFirstName,
-			mod.lastName AS moderatorLastName"
+			mod.lastName AS moderatorLastName;"
 
 	# LDBC IS7 Replies of a message
 	run_query "MATCH (m:Comment {id: 824635044682 })<-[:REPLY_OF_COMMENT]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
@@ -121,7 +121,7 @@ run_ldbc_s() {
 		    WHEN null THEN false
 		    ELSE true
 		END AS replyAuthorKnowsOriginalMessageAuthor
-	    ORDER BY commentCreationDate DESC, replyAuthorId"
+	    ORDER BY commentCreationDate DESC, replyAuthorId;"
 
 }
 
@@ -206,23 +206,54 @@ run_ldbc_c3() {
 		WHERE NOT person=friend AND NOT city2._id IN cities
 		WITH DISTINCT friend, countryX, countryY
 		MATCH (friend)<-[:HAS_CREATOR]-(message:Comment)
-		WHERE 1315958400000 > message.creationDate AND message.creationDate >= 1306886400000
+		WHERE 1310515200000 > message.creationDate AND message.creationDate >= 1306886400000
 		WITH friend, countryX, countryY, message
 		MATCH (message)-[:COMMENT_IS_LOCATED_IN]->(country2:Place)
-				WHERE country2._id = countryX._id OR country2._id = countryY._id
-				WITH friend,
-					CASE WHEN country2=countryX THEN 1 ELSE 0 END AS messageX,
-					CASE WHEN country2=countryY THEN 1 ELSE 0 END AS messageY
-				WITH friend, sum(messageX) AS xCount, sum(messageY) AS yCount
-				WHERE xCount>0 AND yCount>0
-				RETURN friend.id AS friendId,
-					friend.firstName AS friendFirstName,
-					friend.lastName AS friendLastName,
-					xCount,
-					yCount,
-					xCount + yCount AS xyCount
-				ORDER BY xyCount DESC, friendId ASC
-				LIMIT 20;"
+		WHERE country2._id = countryX._id OR country2._id = countryY._id
+		WITH friend.id AS friendId, friend.firstName AS friendFirstName, friend.lastName AS friendLastName,
+			CASE WHEN country2=countryX THEN 1 ELSE 0 END AS messageX,
+			CASE WHEN country2=countryY THEN 1 ELSE 0 END AS messageY
+		WITH friendId, friendFirstName, friendLastName,
+			sum(messageX) AS xCount, sum(messageY) AS yCount
+		WHERE xCount>0 AND yCount>0
+		RETURN friendId,
+			friendFirstName,
+			friendLastName,
+			xCount,
+			yCount,
+			xCount + yCount AS xyCount
+		ORDER BY xyCount DESC, friendId ASC
+		LIMIT 20;"
+	run_query "MATCH (countryX:Place {name: "Laos" }),
+			(countryY:Place {name: "Scotland" }),
+			(person:Person {id: 17592186055119 })
+		WITH person, countryX, countryY
+		LIMIT 1
+		MATCH (city:Place)-[:IS_PART_OF]->(country:Place)
+		WHERE country._id = countryX._id OR country._id = countryY._id
+		WITH person, countryX, countryY, collect(city._id) AS cities
+		MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city2:Place)
+		WHERE NOT person=friend AND NOT city2._id in cities
+		WITH DISTINCT friend, countryX, countryY, city2.id AS cid
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(message:Post)
+		WHERE 1310515200000 > message.creationDate AND message.creationDate >= 1306886400000
+		WITH friend, countryX, countryY, message
+		MATCH (message)-[:POST_IS_LOCATED_IN]->(country2:Place)
+		WHERE country2._id = countryX._id OR country2._id = countryY._id
+		WITH friend.id AS friendId, friend.firstName AS friendFirstName, friend.lastName AS friendLastName,
+			CASE WHEN country2=countryX THEN 1 ELSE 0 END AS messageX,
+			CASE WHEN country2=countryY THEN 1 ELSE 0 END AS messageY
+		WITH friendId, friendFirstName, friendLastName,
+			sum(messageX) AS xCount, sum(messageY) AS yCount
+		WHERE xCount>0 AND yCount>0
+		RETURN friendId,
+			friendFirstName,
+			friendLastName,
+			xCount,
+			yCount,
+			xCount + yCount AS xyCount
+		ORDER BY xyCount DESC, friendId ASC
+		LIMIT 20;"
 }
 
 run_ldbc_c4() {
@@ -232,7 +263,7 @@ run_ldbc_c4() {
 		WITH DISTINCT tag, post
 		WITH tag,
 			CASE
-			WHEN post.creationDate >= 1335830400000 AND post.creationDate < 1335830400037 THEN 1
+			WHEN post.creationDate >= 1335830400000 AND post.creationDate < 1339027200000 THEN 1
 			ELSE 0
 			END AS valid,
 			CASE
@@ -253,11 +284,11 @@ run_ldbc_c5() {
 		WITH DISTINCT friend
 		MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
 		WHERE
-			membership.joinDate > 1348704000000
+			membership.joinDate > 1344704000000
 		WITH
 			forum,
 			friend
-		OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
+		MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
 		WITH
 			forum,
 			count(post) AS postCount
@@ -342,7 +373,7 @@ run_ldbc_c8() {
 		ORDER BY
 			commentCreationDate DESC,
 			commentId ASC
-		LIMIT 20" 0
+		LIMIT 20;" 0
 }
 
 run_ldbc_c9() {
@@ -369,16 +400,17 @@ run_ldbc_c9() {
 
 run_ldbc_c10() {
 	# LDBC IC10 Friend recommendation
-	run_query "MATCH (person:Person {id: 94})-[:KNOWS*2..2]-(friend),
-       		(friend)-[:IS_LOCATED_IN]->(city:City)
+	run_query "MATCH (person:Person {id: 30786325583618})-[:KNOWS*2..2]-(friend),
+       		(friend)-[:IS_LOCATED_IN]->(city:Place)
 	WHERE NOT friend=person AND
 		NOT EXISTS { (friend)-[:KNOWS]-(person) }
 	WITH person, city, friend, friend as birthday
-	WHERE  (birthday.month=5 AND birthday.day>=21) OR
-        	(birthday.month=6 AND birthday.day<22)
+	WHERE  (birthday.month=11 AND birthday.day>=21) OR
+        	(birthday.month=12 AND birthday.day<22)
 	WITH DISTINCT friend, city, person
-	OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)
-	WITH friend, city, person, post, (CASE WHEN EXISTS { MATCH (post)-[:HAS_TAG]->()<-[:HAS_INTEREST]-(person) } THEN 1 ELSE 0 END) AS postCommon
+	OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
+	WITH friend,city, person, post, 
+		CASE WHEN EXISTS { MATCH (post)-[:POST_HAS_TAG]->(t:Tag)<-[:HAS_INTEREST]-(person) } THEN 1 ELSE 0 END AS postCommon
 	WITH friend, city, person, count(post) AS postCount, sum(postCommon) AS commonPostCount
 	RETURN friend.id AS personId,
 		friend.firstName AS personFirstName,
@@ -386,23 +418,31 @@ run_ldbc_c10() {
        		commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
        		friend.gender AS personGender, 
        		city.name AS personCityName
-	ORDER BY commonInterestScore DESC, personId ASCLIMIT 10" 1
-	run_query "MATCH (person:Person {id: 96})-[:KNOWS*2..2]->(friend:Person),
-		(friend)-[:IS_LOCATED_IN]->(city:Place)
-	WHERE NOT friend=person
-	WITH person, city, friend, friend.birthday as birthday
-	WHERE (birthday >= 378086400000 AND birthday < 541209600000)
-	WITH DISTINCT friend, city, person
-	OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
-	WITH friend, city, person, count(post) AS postCount
-	RETURN friend.id AS personId,
-	       friend.firstName AS personFirstName,
-	       friend.lastName AS personLastName,
-	       postCount AS commonInterestScore,
-	       friend.gender AS personGender,
-	       city.name AS personCityName
 	ORDER BY commonInterestScore DESC, personId ASC
-	LIMIT 10" 0
+	LIMIT 10;" 1
+
+	run_query "MATCH (person:Person {id: 30786325583618})-[:KNOWS*2..2]-(friend),
+		(friend)-[:IS_LOCATED_IN]->(city:Place)
+	WHERE NOT friend=person AND
+		NOT EXISTS { MATCH (friend)-[:KNOWS]-(person) }
+	WITH person, city.name AS personCityName, friend
+	WHERE (month(friend.birthday)=11 AND day(friend.birthday)>=21) OR
+        	(month(friend.birthday)=12 AND day(friend.birthday)<22)
+	WITH DISTINCT friend, personCityName, person
+	OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
+	WITH friend, personCityName, collect(post) AS posts, person
+	WITH friend,
+		city,
+		len(posts) AS postCount,
+		len([p IN posts WHERE (p)-[:POST_HAS_TAG]->()<-[:HAS_INTEREST]-(person)]) AS commonPostCount
+	RETURN friend.id AS personId,
+		friend.firstName AS personFirstName,
+		friend.lastName AS personLastName,
+		commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
+		friend.gender AS personGender,
+		personCityName
+	ORDER BY commonInterestScore DESC, personId ASC
+	LIMIT 10;" 0
 }
 
 run_ldbc_c11() {

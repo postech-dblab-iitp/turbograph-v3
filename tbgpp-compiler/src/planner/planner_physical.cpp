@@ -425,9 +425,13 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(
     CMDIdGPDB *table_mdid = CMDIdGPDB::CastMdid(scan_op->Ptabdesc()->MDId());
     OID table_obj_id = table_mdid->Oid();
 
+    // CColRefSetArray *output_cols_array =
+    //     plan_expr->PdrgpcrOutput();
     CColRefSet *output_cols =
         plan_expr->Prpp()
             ->PcrsRequired();  // columns required for the output of NodeScan
+    // CColRefSetArray *scan_cols_array =
+    //     plan_expr->PdrgpcrOutput();
     CColRefSet *scan_cols =
         scan_expr->Prpp()
             ->PcrsRequired();  // columns required to be scanned from storage
@@ -896,21 +900,33 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
     // ORCA data structures
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRefSet *output_colset = plan_expr->Prpp()->PcrsRequired();
     CColRefArray *outer_cols =
         (*plan_expr)[0]->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRefSet *outer_colset =
+        (*plan_expr)[0]->Prpp()->PcrsRequired();
     CColRefArray *inner_cols =
         (*plan_expr)[1]->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRefSet *inner_colset =
+        (*plan_expr)[1]->Prpp()->PcrsRequired();
     CColRefArray *adj_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
+    CColRefSet *adj_inner_colset = GPOS_NEW(mp) CColRefSet(mp);
     CColRefArray *adj_output_cols = GPOS_NEW(mp) CColRefArray(mp);
     CColRefArray *seek_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
+    CColRefSet *seek_inner_colset = GPOS_NEW(mp) CColRefSet(mp);
     CColRefArray *seek_output_cols = output_cols;
     CColRefArray *idxscan_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
     CColRefArray *idxscan_cols = NULL;
+    CColRefSet *idxscan_colset = NULL;
+    CColRefSet *adj_output_colset = GPOS_NEW(mp) CColRefSet(mp);
+    CColRefSet *adj_input_colset = GPOS_NEW(mp) CColRefSet(mp);
+    CColRef *edge_physical_id_col;
     CExpression *filter_expr = NULL;
 
     // DuckDB data structures
     size_t num_outer_schemas = pGetNumOuterSchemas();
     duckdb::idx_t outer_join_key_col_idx;
+    duckdb::idx_t tgt_key_col_idx;
     duckdb::idx_t edge_id_col_idx;
     uint64_t adjidx_obj_id;
     vector<uint64_t> seek_obj_ids;
@@ -933,30 +949,51 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     bool is_edge_prop_in_output = pIsPropertyInCols(inner_cols);
     bool is_edge_id_in_inner_cols = pIsIDColInCols(inner_cols);
     bool is_filter_exist = pIsFilterExist(plan_expr->operator[](1));
+    bool is_adjidxjoin_into = false;
+
+    // Calculate join key columns index
+    auto idxscan_expr = pFindIndexScanExpr(plan_expr->operator[](1));
+    D_ASSERT(idxscan_expr != NULL);
+    idxscan_colset = idxscan_expr->Prpp()->PcrsRequired();
+    idxscan_cols = idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    outer_join_key_col_idx =
+        pGetColIndexInPred(idxscan_expr->operator[](0), outer_cols);
+    D_ASSERT(outer_join_key_col_idx != gpos::ulong_max);
+    D_ASSERT(idxscan_expr->Pop()->Eopid() == COperator::EopPhysicalIndexScan);
+    edge_physical_id_col = ((CPhysicalIndexScan *)idxscan_expr->Pop())->PdrgpcrOutput()->operator[](0);
+
+    // Get filter
+    if (is_filter_exist) {
+        CExpression *adjidxjoin_into_expr = nullptr;
+        filter_expr = pFindFilterExpr(plan_expr->operator[](1));
+
+        // check if filter contains adjidxjoin_into condition
+        is_adjidxjoin_into = pIsAdjIdxJoinInto(
+            (*filter_expr)[1], (*plan_expr)[0]->Prpp()->PcrsRequired(),
+            idxscan_expr->Prpp()->PcrsRequired(), adjidxjoin_into_expr);
+
+        // if so, rebuild filter expr without adjidxjoin_into condition
+        if (is_adjidxjoin_into) {
+            filter_expr = reBuildFilterExpr(filter_expr, adjidxjoin_into_expr);
+            if (filter_expr == nullptr) {
+                is_filter_exist = false;
+            }
+
+            // get tgt_col_idx
+            tgt_key_col_idx =
+                pGetColIndexInPred(adjidxjoin_into_expr, outer_cols);
+        }
+    }
+
     bool filter_after_adj =
         is_filter_exist && !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
         !is_left_outer;
-    // bool filter_in_adj = is_filter_exist &&
-    //                      !pIsEdgePropertyInFilter(plan_expr->operator[](1)) &&
-    //                      is_left_outer;
     bool filter_in_seek = is_filter_exist && !filter_after_adj;
-    // bool filter_in_seek = is_filter_exist && !(filter_after_adj || filter_in_adj);
     bool generate_seek = is_edge_prop_in_output || filter_in_seek;
 
-    // D_ASSERT((!filter_after_adj && !filter_in_adj && !filter_in_seek) ||
-    //          (filter_after_adj ^ filter_in_adj ^ filter_in_seek));
-
-    // Get filter
-    if (is_filter_exist)
-        filter_expr = pFindFilterExpr(plan_expr->operator[](1));
-
-    // Calculate join key columns index
-    auto idxscan_epxr = pFindIndexScanExpr(plan_expr->operator[](1));
-    D_ASSERT(idxscan_epxr != NULL);
-    idxscan_cols = idxscan_epxr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-    outer_join_key_col_idx =
-        pGetColIndexInPred(idxscan_epxr->operator[](0), outer_cols);
-    D_ASSERT(outer_join_key_col_idx != gpos::ulong_max);
+    CColRefSet *output_cols_copy = GPOS_NEW(mp) CColRefSet(mp, *(plan_expr->Prpp()->PcrsRequired()));
+    CColRefSet *inner_cols_set = (*plan_expr)[1]->Prpp()->PcrsRequired();
+    output_cols_copy->Difference(inner_cols_set);
 
     // Calculate adj_inner_cols and adj_output_cols and seek_inner_cols
     /**
@@ -977,46 +1014,105 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
      * 4) AdjIdxJoin
      *  - AdjIdxJoin inner: inner cols
      *  - AdjIdxJoin output: output cols
-    */
-    if ((filter_after_adj) && generate_seek) {
-        D_ASSERT(filter_expr != NULL);
-        adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
-                                         adj_inner_cols);
-        adj_output_cols->AppendArray(adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
-                              adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
-                              adj_output_cols);
+    **/
+    std::cout << "output_cols: " << std::endl;
+    for (ULONG i = 0; i < output_cols->Size(); i++) {
+        std::cout << output_cols->operator[](i)->Id() << ", ";
     }
-    else if ((filter_after_adj) && !generate_seek) {
-        D_ASSERT(filter_expr != NULL);
-        adj_output_cols->AppendArray(outer_cols);
-        adj_output_cols->AppendArray(inner_cols);
-        adj_inner_cols->AppendArray(inner_cols);
-        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
-                              adj_inner_cols);
-        pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
-                              adj_output_cols);
+    std::cout << std::endl;
+    std::cout << "outer_cols: " << std::endl;
+    for (ULONG i = 0; i < outer_cols->Size(); i++) {
+        std::cout << outer_cols->operator[](i)->Id() << ", ";
     }
-    else if (!(filter_after_adj) && generate_seek) {
-        adj_output_cols->AppendArray(outer_cols);
-        pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
-                                         adj_inner_cols);
+    std::cout << std::endl;
+    std::cout << "inner_cols: " << std::endl;
+    for (ULONG i = 0; i < inner_cols->Size(); i++) {
+        std::cout << inner_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "idxscan_cols: " << std::endl;
+    for (ULONG i = 0; i < idxscan_cols->Size(); i++) {
+        std::cout << idxscan_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+    if (filter_after_adj && generate_seek) {
+        if (!is_adjidxjoin_into) {
+            D_ASSERT(false);
+            D_ASSERT(filter_expr != NULL);
+            adj_output_cols->AppendArray(outer_cols);
+            // pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
+            //                                 adj_inner_cols);
+            adj_output_cols->AppendArray(adj_inner_cols);
+            pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                                adj_inner_cols);
+            pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                                adj_output_cols);
+        } else {
+            D_ASSERT(false);
+        }
+    }
+    else if (filter_after_adj && !generate_seek) {
+        if (!is_adjidxjoin_into) {
+            D_ASSERT(false);
+            D_ASSERT(filter_expr != NULL);
+            adj_output_cols->AppendArray(outer_cols);
+            adj_output_cols->AppendArray(inner_cols);
+            adj_inner_cols->AppendArray(inner_cols);
+            pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                                adj_inner_cols);
+            pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
+                                adj_output_cols);
+        } else {
+            D_ASSERT(false);
+        }
+    }
+    else if (!filter_after_adj && generate_seek) {
+        adj_output_colset->Include(output_cols_copy);
+        pSeperatePropertyNonPropertyCols(inner_colset, seek_inner_colset,
+                                        adj_inner_colset);
         adj_output_cols->AppendArray(adj_inner_cols);
+        adj_inner_colset->Include(edge_physical_id_col);
+        adj_output_colset->Include(adj_inner_colset);
+        seek_inner_cols = seek_inner_colset->Pdrgpcr(mp);
         if (filter_in_seek) {
             D_ASSERT(filter_expr != NULL);
             pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
-                                  seek_inner_cols);
+                                    seek_inner_cols);
         }
     }
     else {
-        adj_output_cols->AppendArray(output_cols);
-        adj_inner_cols->AppendArray(inner_cols);
+        adj_output_colset->Include(output_colset);
+        adj_inner_colset->Include(inner_colset);
     }
 
-    D_ASSERT(adj_output_cols->Size() > 0);
-    D_ASSERT(adj_inner_cols->Size() > 0);
+    // TODO remove colrefarray
+    adj_output_cols = adj_output_colset->Pdrgpcr(mp);
+    adj_inner_cols = adj_inner_colset->Pdrgpcr(mp);
+    // seek_inner_cols = seek_inner_colset->Pdrgpcr(mp);
+
+    std::cout << "adj_output_cols: " << std::endl;
+    for (ULONG i = 0; i < adj_output_cols->Size(); i++) {
+        std::cout << adj_output_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "adj_inner_cols: " << std::endl;
+    for (ULONG i = 0; i < adj_inner_cols->Size(); i++) {
+        std::cout << adj_inner_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "seek_inner_cols: " << std::endl;
+    for (ULONG i = 0; i < seek_inner_cols->Size(); i++) {
+        std::cout << seek_inner_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "seek_output_cols: " << std::endl;
+    for (ULONG i = 0; i < seek_output_cols->Size(); i++) {
+        std::cout << seek_output_cols->operator[](i)->Id() << ", ";
+    }
+    std::cout << std::endl;
+
+    // D_ASSERT(adj_output_cols->Size() > 0);
+    // D_ASSERT(adj_inner_cols->Size() > 0); // release this condition
 
     // Construct inner_col_maps_adj
     if (!generate_seek) {
@@ -1024,36 +1120,22 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                              inner_col_maps_adj[0]);
     }
     else {
-        for (ULONG col_idx = 0; col_idx < adj_inner_cols->Size(); col_idx++) {
-            // inner cols appended to outer cols
-            inner_col_maps_adj[0].push_back(outer_cols->Size() + col_idx);
-        }
-        if (!is_edge_id_in_inner_cols) {
-            // edge ID column for seek
-            inner_col_maps_adj[0].push_back(outer_cols->Size() +
-                                            adj_inner_cols->Size());
-            edge_id_col_idx = outer_cols->Size() + adj_inner_cols->Size();
-        }
-        else {
-            auto edge_id_col_ref = pGetIDColInCols(inner_cols);
-            D_ASSERT(edge_id_col_ref != NULL);
-            edge_id_col_idx = adj_output_cols->IndexOf(edge_id_col_ref);
-        }
+        pConstructColMapping(adj_inner_cols, adj_output_cols,
+                             inner_col_maps_adj[0]);
+        edge_id_col_idx = adj_output_cols->IndexOf(edge_physical_id_col);     
     }
-    D_ASSERT(inner_col_maps_adj[0].size() > 0);
+    output_cols_copy->Release();
+    // D_ASSERT(inner_col_maps_adj[0].size() > 0); // release this condition
 
     // Construct outer_cols_maps_adj
     pConstructColMapping(outer_cols, adj_output_cols, outer_col_maps_adj[0]);
 
     // Construct AdjIdxJoin schema
     pGetDuckDBTypesFromColRefs(adj_output_cols, output_types_adj);
-    if (generate_seek && !is_edge_id_in_inner_cols) {  // Append ID Column
-        output_types_adj.push_back(duckdb::LogicalType::ID);
-    }
     schema_adj.setStoredTypes(output_types_adj);
 
     // Construct adjidx_obj_id
-    CPhysicalIndexScan *idxscan_op = (CPhysicalIndexScan *)idxscan_epxr->Pop();
+    CPhysicalIndexScan *idxscan_op = (CPhysicalIndexScan *)idxscan_expr->Pop();
     CMDIdGPDB *index_mdid =
         CMDIdGPDB::CastMdid(idxscan_op->Pindexdesc()->MDId());
     adjidx_obj_id = index_mdid->Oid();
@@ -1065,8 +1147,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         new duckdb::PhysicalAdjIdxJoin(
             schema_adj, adjidx_obj_id,
             is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
-            outer_join_key_col_idx, load_eid, outer_col_maps_adj[0],
-            inner_col_maps_adj[0], false /* do filter pushdown */,
+            is_adjidxjoin_into, outer_join_key_col_idx, tgt_key_col_idx,
+            load_eid, outer_col_maps_adj[0], inner_col_maps_adj[0],
             0 /* unused outer_pos */, 0 /* unused inner_pos */, load_eid_temp);
 
     /**
@@ -1127,10 +1209,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         // Construct outer col map
         pConstructColMapping(adj_output_cols, seek_output_cols,
                              outer_col_maps_seek[0]);
-        if (!is_edge_id_in_inner_cols) {
-            outer_col_maps_seek[0].push_back(
-                std::numeric_limits<uint32_t>::max());
-        }  // Remove ID COlumn
         D_ASSERT(outer_col_maps_seek[0].size() > 0);
 
         // Construct scan_projection_mappings_seek and output_projection_mappings_seek and scan_types
@@ -1148,7 +1226,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
         // Get OIDs
         CColRefArray *idxscan_output_cols =
-            idxscan_epxr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+            idxscan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
         pGetObjetIdsForColRefs(idxscan_output_cols, seek_obj_ids);
 
         // Construct seek scheam
@@ -1169,7 +1247,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             // Get filter_exprs
             vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
             pGetFilterDuckDBExprs(filter_expr, adj_output_cols, seek_inner_cols,
-                                  adj_output_cols->Size() + ID_COL_SIZE,
+                                  adj_output_cols->Size(),
                                   filter_duckdb_exprs);
             // Construct IdSeek Operator for filter
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
@@ -1477,20 +1555,20 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 sccmp_colids.push_back(sc_ident->Pcr()->Id());
             }
 
-            CColRefArray *output =
-                inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+            // CColRefArray *output =
+            //     inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
-            // try seek bypassing
-            if ((output->Size() == 0) ||
-                (output->Size() == 1 &&
-                 pGetColIdxFromTable(
-                     CMDIdGPDB::CastMdid(((CColRefTable *)output->operator[](0))
-                                             ->GetMdidTable())
-                         ->Oid(),
-                     output->operator[](0)) == 0)) {
-                // nothing changes, we don't need seek, pass directly
-                return result;
-            }
+            // // try seek bypassing
+            // if ((output->Size() == 0) ||
+            //     (output->Size() == 1 &&
+            //      pGetColIdxFromTable(
+            //          CMDIdGPDB::CastMdid(((CColRefTable *)output->operator[](0))
+            //                                  ->GetMdidTable())
+            //              ->Oid(),
+            //          output->operator[](0)) == 0)) {
+            //     // nothing changes, we don't need seek, pass directly
+            //     return result;
+            // }
         }
         else if (inner_root->Pop()->Eopid() ==
                  COperator::EOperatorId::EopPhysicalIndexOnlyScan) {
@@ -4713,6 +4791,39 @@ void Planner::pGetFilterOnlyInnerColsIdx(CExpression *expr,
     }
 }
 
+void Planner::pGetFilterOnlyInnerColsIdx(CExpression *expr,
+                                         CColRefSet *inner_cols,
+                                         CColRefSet *output_cols,
+                                         vector<const CColRef *> &filter_only_inner_cols)
+{
+    switch (expr->Pop()->Eopid()) {
+        case COperator::EopScalarIdent: {
+            CScalarIdent *ident = (CScalarIdent *)expr->Pop();
+            // check is filter only
+            if (inner_cols->FMember(ident->Pcr()) &&
+                !(output_cols->FMember(ident->Pcr()))) {
+                filter_only_inner_cols.push_back(ident->Pcr());
+            }
+            break;
+        }
+        case COperator::EopScalarConst:
+        case COperator::EopScalarBoolOp:
+        case COperator::EopScalarAggFunc:
+        case COperator::EopScalarFunc:
+        case COperator::EopScalarCmp:
+        case COperator::EopScalarSwitch: {
+            for (ULONG child_idx = 0; child_idx < expr->Arity(); child_idx++) {
+                pGetFilterOnlyInnerColsIdx(expr->operator[](child_idx),
+                                           inner_cols, output_cols,
+                                           filter_only_inner_cols);
+            }
+            break;
+        }
+        default:
+            GPOS_ASSERT(false);  // NOT implemented yet
+    }
+}
+
 CExpression *Planner::pFindFilterExpr(CExpression *plan_expr)
 {
     if (plan_expr->Pop()->Eopid() ==
@@ -4964,17 +5075,34 @@ void Planner::pGetFilterDuckDBExprs(
     out_exprs.push_back(std::move(filter_duckdb_expr));
 }
 
-void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,
-                                               CColRefArray *property_cols,
-                                               CColRefArray *non_property_cols)
+// void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,
+//                                                CColRefArray *property_cols,
+//                                                CColRefArray *non_property_cols)
+// {
+//     for (ULONG col_idx = 0; col_idx < input_cols->Size(); col_idx++) {
+//         CColRef *col = input_cols->operator[](col_idx);
+//         if (!pIsColEdgeProperty(col)) {
+//             non_property_cols->Append(col);
+//         }
+//         else {
+//             property_cols->Append(col);
+//         }
+//     }
+// }
+
+void Planner::pSeperatePropertyNonPropertyCols(CColRefSet *input_cols,
+                                               CColRefSet *property_cols,
+                                               CColRefSet *non_property_cols)
 {
-    for (ULONG col_idx = 0; col_idx < input_cols->Size(); col_idx++) {
-        CColRef *col = input_cols->operator[](col_idx);
+    CColRefSetIter crsi(*input_cols);
+	while (crsi.Advance())
+	{
+        CColRef *col = crsi.Pcr();
         if (!pIsColEdgeProperty(col)) {
-            non_property_cols->Append(col);
+            non_property_cols->Include(col);
         }
         else {
-            property_cols->Append(col);
+            property_cols->Include(col);
         }
     }
 }
@@ -5090,6 +5218,110 @@ void Planner::pUpdateProjAggExprs(
     }
     proj_types.push_back(proj_exprs.back()->return_type);
     agg_types.push_back(agg_exprs.back()->return_type);
+}
+
+bool Planner::pIsAdjIdxJoinInto(CExpression *scalar_expr, CColRefSet *outer_cols,
+                       CColRefSet *inner_cols, CExpression *&adjidxjoin_into_expr)
+{
+    if (scalar_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp) {
+        CScalarCmp *cmp = (CScalarCmp *)scalar_expr->Pop();
+        if (cmp->ParseCmpType() == IMDType::EcmptEq) {
+            CExpression *left = scalar_expr->operator[](0);
+            CExpression *right = scalar_expr->operator[](1);
+            if (left->Pop()->Eopid() ==
+                    COperator::EOperatorId::EopScalarIdent &&
+                right->Pop()->Eopid() ==
+                    COperator::EOperatorId::EopScalarIdent) {
+                CScalarIdent *left_ident = (CScalarIdent *)left->Pop();
+                CScalarIdent *right_ident = (CScalarIdent *)right->Pop();
+                if (outer_cols->FMember(left_ident->Pcr()) &&
+                    inner_cols->FMember(right_ident->Pcr())) {
+                    adjidxjoin_into_expr = scalar_expr;
+                    return true;
+                }
+                else if (outer_cols->FMember(right_ident->Pcr()) &&
+                         inner_cols->FMember(left_ident->Pcr())) {
+                    adjidxjoin_into_expr = scalar_expr;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    else {
+        for (ULONG child_idx = 0; child_idx < scalar_expr->Arity();
+             child_idx++) {
+            if (pIsAdjIdxJoinInto(scalar_expr->operator[](child_idx),
+                                  outer_cols, inner_cols, adjidxjoin_into_expr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+CExpression *Planner::reBuildFilterExpr(CExpression *filter_expr,
+                                        CExpression *adjidxjoin_into_expr)
+{
+    if ((*filter_expr)[1] == adjidxjoin_into_expr) {
+        return nullptr;
+    }
+    else {
+        CExpression *new_scalar_expr = recursiveBuildFilterExpr((*filter_expr)[1], adjidxjoin_into_expr);
+        if (new_scalar_expr != nullptr) {
+            CExpression *new_filter_expr = GPOS_NEW(this->memory_pool) CExpression(
+                this->memory_pool, filter_expr->Pop(), (*filter_expr)[0], new_scalar_expr);
+            return new_filter_expr;
+        } else {
+            return nullptr;
+        }
+    }
+}
+
+CExpression *Planner::recursiveBuildFilterExpr(
+    CExpression *scalar_expr, CExpression *adjidxjoin_into_expr)
+{
+    switch (scalar_expr->Pop()->Eopid()) {
+		case COperator::EopScalarCmp: {
+            if (scalar_expr == adjidxjoin_into_expr) {
+                return nullptr;
+            }
+            else {
+                CMemoryPool *mp = this->memory_pool;
+                return GPOS_NEW(mp) CExpression(mp, scalar_expr->Pop(),
+                                                scalar_expr->operator[](0),
+                                                scalar_expr->operator[](1));
+            }
+            break;
+        }
+		case COperator::EopScalarBoolOp: {
+            CMemoryPool *mp = this->memory_pool;
+            ULONG num_valid_children = 0;
+            CExpressionArray *pdrgpexpr = GPOS_NEW(mp) CExpressionArray(mp);
+            for (ULONG child_idx = 0; child_idx < scalar_expr->Arity();
+                    child_idx++) {
+                CExpression *result = recursiveBuildFilterExpr(
+                    scalar_expr->operator[](child_idx), adjidxjoin_into_expr);
+                if (result != nullptr) {
+                    num_valid_children++;
+                    pdrgpexpr->Append(result);
+                }
+            }
+            if (num_valid_children == 0) {
+                return nullptr;
+            }
+            else if (num_valid_children == 1) {
+                return pdrgpexpr->operator[](0);
+            }
+            else {
+                return GPOS_NEW(mp) CExpression(mp, scalar_expr->Pop(),
+                                                pdrgpexpr);
+            }
+            break;
+        }
+		default:
+			GPOS_ASSERT(false); // NOT implemented yet
+	}
 }
 
 }  // namespace s62

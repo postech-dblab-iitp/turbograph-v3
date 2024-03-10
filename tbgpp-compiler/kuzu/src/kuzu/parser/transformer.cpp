@@ -13,6 +13,10 @@
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
+#include "parser/expression/parsed_idincoll_expression.h"
+#include "parser/expression/parsed_filter_expression.h"
+#include "parser/expression/parsed_list_comprehension_expression.h"
+#include "parser/expression/parsed_pattern_comprehension_expression.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
@@ -727,6 +731,12 @@ unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomCon
         return transformParameterExpression(*ctx.oC_Parameter());
     } else if (ctx.oC_CaseExpression()) {
         return transformCaseExpression(*ctx.oC_CaseExpression());
+    } else if (ctx.oC_ListComprehension()) {
+        return transformListComprehension(*ctx.oC_ListComprehension());
+    } else if (ctx.oC_PatternComprehension()) {
+        return transformPatternComprehension(*ctx.oC_PatternComprehension());
+    } else if (ctx.oC_RelationshipsPattern()) {
+        assert(false);
     } else if (ctx.oC_ParenthesizedExpression()) {
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
@@ -788,6 +798,35 @@ unique_ptr<ParsedExpression> Transformer::transformParameterExpression(
 unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
     CypherParser::OC_ParenthesizedExpressionContext& ctx) {
     return transformExpression(*ctx.oC_Expression());
+}
+
+unique_ptr<PatternElement> Transformer::transformRelationshipsPatternExpression(
+        CypherParser::OC_RelationshipsPatternContext &ctx) {
+    auto relationships_pattern = make_unique<PatternElement>(transformNodePattern(*ctx.oC_NodePattern()));
+    if (!ctx.oC_PatternElementChain().empty()) {
+        for (auto& patternElementChain : ctx.oC_PatternElementChain()) {
+            relationships_pattern->addPatternElementChain(
+                transformPatternElementChain(*patternElementChain));
+        }
+    }
+    return relationships_pattern;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformFilterExpression(
+        CypherParser::OC_FilterExpressionContext& ctx) {
+    auto id_in_coll_expr = transformIdInColl(*ctx.oC_IdInColl());
+    auto filter_expr = make_unique<ParsedFilterExpression>(std::move(id_in_coll_expr), ctx.getText());
+    if (ctx.oC_Where()) {
+        filter_expr->setWhereClause(transformWhere(*ctx.oC_Where()));
+    }
+    return filter_expr;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformIdInColl(
+        CypherParser::OC_IdInCollContext &ctx) {
+    auto transformedVariable = transformVariable(*ctx.oC_Variable());
+    auto expression = transformExpression(*ctx.oC_Expression());
+    return make_unique<ParsedIdInCollExpression>(transformedVariable, std::move(expression), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
@@ -855,6 +894,32 @@ unique_ptr<ParsedCaseAlternative> Transformer::transformCaseAlternative(
     auto whenExpression = transformExpression(*ctx.oC_Expression(0));
     auto thenExpression = transformExpression(*ctx.oC_Expression(1));
     return make_unique<ParsedCaseAlternative>(std::move(whenExpression), std::move(thenExpression));
+}
+    
+unique_ptr<ParsedExpression> Transformer::transformListComprehension(
+    CypherParser::OC_ListComprehensionContext& ctx) {
+    auto filter_expr = transformFilterExpression(*ctx.oC_FilterExpression());
+    auto list_comp_expr = make_unique<ParsedListComprehensionExpression>(std::move(filter_expr), ctx.getText());
+    if (ctx.oC_Expression()) {
+        list_comp_expr->setExpression(transformExpression(*ctx.oC_Expression()));
+    }
+    return list_comp_expr;
+}
+
+unique_ptr<ParsedExpression> Transformer::transformPatternComprehension(
+        CypherParser::OC_PatternComprehensionContext& ctx) {
+    string variable = ctx.oC_Variable() == nullptr ? "" : transformVariable(*ctx.oC_Variable());
+    vector<unique_ptr<PatternElement>> relationships_pattern;
+    relationships_pattern.push_back(std::move(transformRelationshipsPatternExpression(*ctx.oC_RelationshipsPattern())));
+    auto whereExpression = ctx.oC_Expression().size() > 1 ? transformExpression(*(ctx.oC_Expression()[0])) : nullptr;
+    auto expression = transformExpression(*(ctx.oC_Expression().back()));
+    auto matchClause =
+        make_unique<MatchClause>(std::move(relationships_pattern), false /*optional*/);
+    if (whereExpression) {
+        matchClause->setWhereClause(std::move(whereExpression));
+    }
+    
+    return make_unique<ParsedPatternComprehensionExpression>(std::move(matchClause), std::move(expression), ctx.getText());
 }
 
 string Transformer::transformVariable(CypherParser::OC_VariableContext& ctx) {

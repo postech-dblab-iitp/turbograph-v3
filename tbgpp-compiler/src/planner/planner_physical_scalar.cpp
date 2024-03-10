@@ -71,7 +71,9 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarIdent(CExpression *scala
 		is_inner = true;
 	}
 
+	if (child_index == gpos::ulong_max) {
 	GPOS_ASSERT(child_index != gpos::ulong_max); // column reference not found in child columns
+	}
 	
 	CMDIdGPDB* type_mdid = CMDIdGPDB::CastMdid(ident_op->Pcr()->RetrieveType()->MDId());
 	OID type_oid = type_mdid->Oid();

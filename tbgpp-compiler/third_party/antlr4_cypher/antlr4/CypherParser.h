@@ -67,13 +67,15 @@ public:
     RuleKU_ListSliceOperatorExpression = 84, RuleOC_StringOperatorExpression = 85, 
     RuleOC_NullOperatorExpression = 86, RuleOC_PropertyOrLabelsExpression = 87, 
     RuleOC_Atom = 88, RuleOC_Literal = 89, RuleOC_BooleanLiteral = 90, RuleOC_ListLiteral = 91, 
-    RuleOC_ParenthesizedExpression = 92, RuleOC_FunctionInvocation = 93, 
-    RuleOC_FunctionName = 94, RuleOC_ExistentialSubquery = 95, RuleOC_PropertyLookup = 96, 
-    RuleOC_CaseExpression = 97, RuleOC_CaseAlternative = 98, RuleOC_Variable = 99, 
-    RuleOC_NumberLiteral = 100, RuleOC_Parameter = 101, RuleOC_PropertyExpression = 102, 
-    RuleOC_PropertyKeyName = 103, RuleOC_IntegerLiteral = 104, RuleOC_DoubleLiteral = 105, 
-    RuleOC_SchemaName = 106, RuleOC_SymbolicName = 107, RuleOC_LeftArrowHead = 108, 
-    RuleOC_RightArrowHead = 109, RuleOC_Dash = 110
+    RuleOC_ParenthesizedExpression = 92, RuleOC_RelationshipsPattern = 93, 
+    RuleOC_FilterExpression = 94, RuleOC_IdInColl = 95, RuleOC_FunctionInvocation = 96, 
+    RuleOC_FunctionName = 97, RuleOC_ExistentialSubquery = 98, RuleOC_ListComprehension = 99, 
+    RuleOC_PatternComprehension = 100, RuleOC_PropertyLookup = 101, RuleOC_CaseExpression = 102, 
+    RuleOC_CaseAlternative = 103, RuleOC_Variable = 104, RuleOC_NumberLiteral = 105, 
+    RuleOC_Parameter = 106, RuleOC_PropertyExpression = 107, RuleOC_PropertyKeyName = 108, 
+    RuleOC_IntegerLiteral = 109, RuleOC_DoubleLiteral = 110, RuleOC_SchemaName = 111, 
+    RuleOC_SymbolicName = 112, RuleOC_LeftArrowHead = 113, RuleOC_RightArrowHead = 114, 
+    RuleOC_Dash = 115
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -186,9 +188,14 @@ public:
   class OC_BooleanLiteralContext;
   class OC_ListLiteralContext;
   class OC_ParenthesizedExpressionContext;
+  class OC_RelationshipsPatternContext;
+  class OC_FilterExpressionContext;
+  class OC_IdInCollContext;
   class OC_FunctionInvocationContext;
   class OC_FunctionNameContext;
   class OC_ExistentialSubqueryContext;
+  class OC_ListComprehensionContext;
+  class OC_PatternComprehensionContext;
   class OC_PropertyLookupContext;
   class OC_CaseExpressionContext;
   class OC_CaseAlternativeContext;
@@ -1624,6 +1631,9 @@ public:
     OC_LiteralContext *oC_Literal();
     OC_ParameterContext *oC_Parameter();
     OC_CaseExpressionContext *oC_CaseExpression();
+    OC_ListComprehensionContext *oC_ListComprehension();
+    OC_PatternComprehensionContext *oC_PatternComprehension();
+    OC_RelationshipsPatternContext *oC_RelationshipsPattern();
     OC_ParenthesizedExpressionContext *oC_ParenthesizedExpression();
     OC_FunctionInvocationContext *oC_FunctionInvocation();
     OC_ExistentialSubqueryContext *oC_ExistentialSubquery();
@@ -1698,6 +1708,55 @@ public:
 
   OC_ParenthesizedExpressionContext* oC_ParenthesizedExpression();
 
+  class  OC_RelationshipsPatternContext : public antlr4::ParserRuleContext {
+  public:
+    OC_RelationshipsPatternContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_NodePatternContext *oC_NodePattern();
+    std::vector<OC_PatternElementChainContext *> oC_PatternElementChain();
+    OC_PatternElementChainContext* oC_PatternElementChain(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  OC_RelationshipsPatternContext* oC_RelationshipsPattern();
+
+  class  OC_FilterExpressionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_FilterExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_IdInCollContext *oC_IdInColl();
+    OC_WhereContext *oC_Where();
+    antlr4::tree::TerminalNode *SP();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  OC_FilterExpressionContext* oC_FilterExpression();
+
+  class  OC_IdInCollContext : public antlr4::ParserRuleContext {
+  public:
+    OC_IdInCollContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_VariableContext *oC_Variable();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *IN();
+    OC_ExpressionContext *oC_Expression();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  OC_IdInCollContext* oC_IdInColl();
+
   class  OC_FunctionInvocationContext : public antlr4::ParserRuleContext {
   public:
     OC_FunctionInvocationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -1747,6 +1806,41 @@ public:
   };
 
   OC_ExistentialSubqueryContext* oC_ExistentialSubquery();
+
+  class  OC_ListComprehensionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_ListComprehensionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_FilterExpressionContext *oC_FilterExpression();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    OC_ExpressionContext *oC_Expression();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  OC_ListComprehensionContext* oC_ListComprehension();
+
+  class  OC_PatternComprehensionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_PatternComprehensionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_RelationshipsPatternContext *oC_RelationshipsPattern();
+    std::vector<OC_ExpressionContext *> oC_Expression();
+    OC_ExpressionContext* oC_Expression(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    OC_VariableContext *oC_Variable();
+    antlr4::tree::TerminalNode *WHERE();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  OC_PatternComprehensionContext* oC_PatternComprehension();
 
   class  OC_PropertyLookupContext : public antlr4::ParserRuleContext {
   public:

@@ -16,13 +16,16 @@
 namespace duckdb {
 
 inline uint64_t& getIdRefFromVectorTemp(Vector& vector, idx_t index) {
-	switch( vector.GetVectorType() ) {
+	switch (vector.GetVectorType()) {
 		case VectorType::DICTIONARY_VECTOR: {
 			return ((uint64_t *)vector.GetData())[DictionaryVector::SelVector(vector).get_index(index)];
 		}
 		case VectorType::FLAT_VECTOR: {
 			return ((uint64_t *)vector.GetData())[index];
 		}
+        case VectorType::CONSTANT_VECTOR: {
+            return ((uint64_t *)vector.GetData())[0];
+        }
 		default: {
 			D_ASSERT(false);
 		}

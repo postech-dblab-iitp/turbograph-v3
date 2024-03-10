@@ -99,9 +99,9 @@ struct ListCreationVectorOperation : public VectorListOperations {
         VectorOperationDefinition* definition, common::DataType& actualReturnType);
 };
 
-// struct ListLenVectorOperation : public VectorListOperations {
-//     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-// };
+struct ListLenVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
 
 // struct ListExtractVectorOperation : public VectorListOperations {
 //     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();

@@ -77,6 +77,16 @@ struct ListPositionFun {
 // 	static void RegisterFunction(BuiltinFunctions &set);
 // };
 
+struct ListApplyFun {
+	static ScalarFunction GetFunction();
+	static void RegisterFunction(BuiltinFunctions &set);
+};
+
+struct ListFilterFun {
+	static ScalarFunction GetFunction();
+	static void RegisterFunction(BuiltinFunctions &set);
+};
+
 // struct CardinalityFun {
 // 	static void RegisterFunction(BuiltinFunctions &set);
 // };

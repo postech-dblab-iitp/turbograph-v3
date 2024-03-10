@@ -507,7 +507,8 @@ string LogicalType::ToString() const {
 		if (!type_info_) {
 			return "LIST";
 		}
-		return ListType::GetChildType(*this).ToString() + "[]";
+		// return ListType::GetChildType(*this).ToString() + "[]";
+		return "ID[]"; // S62 list todo
 	}
 	case LogicalTypeId::MAP: {
 		if (!type_info_) {
@@ -977,9 +978,13 @@ public:
 };
 
 const LogicalType &ListType::GetChildType(const LogicalType &type) {
+	// S62 list todo
 	D_ASSERT(type.id() == LogicalTypeId::LIST);
 	auto info = type.AuxInfo();
-	D_ASSERT(info);
+	// D_ASSERT(info);
+	if (!info) {
+		info = move(make_shared<ListTypeInfo>(LogicalType::ID).get());
+	}
 	return ((ListTypeInfo &)*info).child_type;
 }
 

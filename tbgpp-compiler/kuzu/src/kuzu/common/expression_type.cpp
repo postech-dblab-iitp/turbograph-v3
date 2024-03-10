@@ -58,6 +58,22 @@ bool isExpressionProperty(ExpressionType type) {
     return PROPERTY == type;
 }
 
+bool isExpressionListComprehension(ExpressionType type) {
+    return LIST_COMPREHENSION == type;
+}
+
+bool isExpressionPatternComprehension(ExpressionType type) {
+    return PATTERN_COMPREHENSION == type;
+}
+
+bool isExpressionFilter(ExpressionType type) {
+    return FILTER == type;
+}
+
+bool isExpressionIdInColl(ExpressionType type) {
+    return ID_IN_COLL == type;
+}
+
 string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:
@@ -84,6 +100,16 @@ string expressionTypeToString(ExpressionType type) {
         return "IS_NULL";
     case IS_NOT_NULL:
         return "IS_NOT_NULL";
+    case ID_IN_COLL:
+        return "ID_IN_COLL";
+    case FILTER:
+        return "FILTER";
+    case LIST_COMPREHENSION:
+        return "LIST_COMPREHENSION";
+    case RELATIONSHIPS:
+        return "RELATIONSHIPS";
+    case PATTERN_COMPREHENSION:
+        return "PATTERN_COMPREHENSION";
     case PROPERTY:
         return "PROPERTY";
     case LITERAL:

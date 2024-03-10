@@ -41,6 +41,40 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DatePartYearVectorOperat
     return result;
 }
 
+std::vector<std::unique_ptr<VectorOperationDefinition>> DatePartMonthVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_MONTH_FUNC_NAME,
+        std::vector<DataTypeID>{DATE}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, date_t, int64_t, operation::DatePart>));
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_MONTH_FUNC_NAME,
+        std::vector<DataTypeID>{TIMESTAMP}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, timestamp_t, int64_t, operation::DatePart>));
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_MONTH_FUNC_NAME,
+        std::vector<DataTypeID>{INTERVAL}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, interval_t, int64_t, operation::DatePart>));
+    return result;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> DatePartDayVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_DAY_FUNC_NAME,
+        std::vector<DataTypeID>{DATE}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, date_t, int64_t, operation::DatePart>));
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_DAY_FUNC_NAME,
+        std::vector<DataTypeID>{TIMESTAMP}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, timestamp_t, int64_t, operation::DatePart>));
+    result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_DAY_FUNC_NAME,
+        std::vector<DataTypeID>{INTERVAL}, INT64,
+        empty_scalar_exec_func()));
+        // BinaryExecFunction<ku_string_t, interval_t, int64_t, operation::DatePart>));
+    return result;
+}
+
 std::vector<std::unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,

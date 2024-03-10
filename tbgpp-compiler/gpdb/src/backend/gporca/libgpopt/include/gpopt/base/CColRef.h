@@ -164,6 +164,14 @@ public:
 			   Equals(pcrFirst->Id(), pcrSecond->PrevId()) || Equals(pcrFirst->PrevId(), pcrSecond->PrevId());
 	}
 
+	static BOOL
+	EqualsCurIdOnly(const CColRef *pcrFirst, const CColRef *pcrSecond)
+	{
+		// consider all four cases
+		return Equals(pcrFirst->Id(), pcrSecond->Id());
+	}
+	
+
 	// extract array of colids from array of colrefs
 	static ULongPtrArray *Pdrgpul(CMemoryPool *mp, CColRefArray *colref_array);
 

@@ -298,16 +298,8 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::SMALLINT:
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int16_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::INTEGER:
-      // for (size_t j = start_offset; j < end_offset; j++) {
-      //     std::cout << p[j];
-      // }
-      // std::cout << std::endl;
       std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int32_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::BIGINT:
-      // for (size_t j = start_offset; j < end_offset; j++) {
-      //     std::cout << p[j];
-      // }
-      // std::cout << std::endl;
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((int64_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::UTINYINT:
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint8_t *)data_ptr)[current_index]); break;
@@ -318,10 +310,6 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::UBIGINT:
     case LogicalTypeId::ID:
     case LogicalTypeId::ADJLISTCOLUMN:
-      // for (size_t j = start_offset; j < end_offset; j++) {
-      //     std::cout << p[j];
-      // }
-      // std::cout << std::endl;
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint64_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::HUGEINT:
 			throw NotImplementedException("Do not support HugeInt"); break;
@@ -362,13 +350,15 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 		case LogicalTypeId::DOUBLE:
       std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((double *)data_ptr)[current_index]); break;
 		case LogicalTypeId::VARCHAR:
-      // for (size_t j = start_offset; j < end_offset; j++) {
-      //     std::cout << p[j];
-      // }
-      // std::cout << std::endl;
 			((string_t *)data_ptr)[current_index] = StringVector::AddStringOrBlob(output.data[i], (const char*)p.data() + start_offset, string_size); break;
     case LogicalTypeId::DATE:
       ((date_t *)data_ptr)[current_index] = Date::FromCString((const char*)p.data() + start_offset, end_offset - start_offset); break;
+    case LogicalTypeId::TIMESTAMP_MS:
+      int64_t epoch_ms;
+      std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, epoch_ms);
+      epoch_ms = epoch_ms / 1000;
+      ((date_t *)data_ptr)[current_index] = Date::EpochToDate(epoch_ms);
+      break;
 		default:
 			throw NotImplementedException("SetValueFromCSV - Unsupported type");
 	}
@@ -658,6 +648,8 @@ public:
 			}
 		}
 
+    D_ASSERT(types.size() == internal_key_types.size());
+
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
@@ -668,7 +660,8 @@ public:
         idx_t target_index = index_cursor + required_key_column_idxs[i];
         idx_t start_offset = pcsv.indexes[target_index - 1] + 1;
         idx_t end_offset = pcsv.indexes[target_index];
-				SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+				// SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+        SetValueFromCSV(internal_key_types[i], output, i, current_index, p, start_offset, end_offset);
 			}
 			current_index++;
       index_cursor += num_columns;
@@ -770,6 +763,7 @@ public:
 				throw InvalidInputException("B");
 			}
 		}
+    D_ASSERT(types.size() == internal_key_types.size());
 
     // Row-oriented manner
     std::cout << "num_rows: " << num_rows << std::endl;
@@ -779,7 +773,8 @@ public:
         idx_t target_index = index_cursor + required_key_column_idxs[i];
         idx_t start_offset = pcsv.indexes[target_index-1] + 1;
         idx_t end_offset = pcsv.indexes[target_index];
-				SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+				// SetValueFromCSV(types[i], output, i, current_index, p, start_offset, end_offset);
+        SetValueFromCSV(internal_key_types[i], output, i, current_index, p, start_offset, end_offset);
 			}
 			current_index++;
       index_cursor += num_columns;
@@ -794,7 +789,13 @@ private:
 		auto it = m.find(type_name);
 		if (it != end) {
       LogicalType return_type = it->second;
-			return return_type;
+      if (type_name.find("DATE_EPOCHMS") != std::string::npos) {
+        // TODO TIMESTAMP_MS is not equal to DATE_EPOCHMS originally, but use temporarily
+        internal_key_types.push_back(LogicalType::TIMESTAMP_MS);
+      } else {
+        internal_key_types.push_back(return_type);
+      }
+      return return_type;
 		} else {
 			if (type_name.find("ID") != std::string::npos) {
 				// ID Column
@@ -812,11 +813,9 @@ private:
             // Single key
             key_columns.push_back(column_idx);
           }
-					// D_ASSERT(key_column == -1);
-					// key_column = column_idx;
+          internal_key_types.push_back(LogicalType::UBIGINT);
           return LogicalType::UBIGINT;
 				} else { // type == GraphComponentType::EDGE
-					// D_ASSERT((src_column == -1) || (dst_column == -1));
 					auto first_pos = type_name.find_first_of('(');
 					auto last_pos = type_name.find_last_of(')');
 					string label_name = type_name.substr(first_pos + 1, last_pos - first_pos - 1);
@@ -828,18 +827,16 @@ private:
             dst_key_name = move(label_name);
 						dst_columns.push_back(column_idx);
           }
-          // return LogicalType::ID;
+          internal_key_types.push_back(LogicalType::UBIGINT);
           return LogicalType::UBIGINT;
 				}
-      // } else if (type_name.find("ADJLIST") != std::string::npos) {
-      //   D_ASSERT(type == GraphComponentType::VERTEX);
-      //   return LogicalType::ADJLISTCOLUMN;
       } else if (type_name.find("DECIMAL") != std::string::npos) {
         auto first_pos = type_name.find_first_of('(');
         auto comma_pos = type_name.find_first_of(',');
 				auto last_pos = type_name.find_last_of(')');
         int width = std::stoi(type_name.substr(first_pos + 1, comma_pos - first_pos - 1));
         int scale = std::stoi(type_name.substr(comma_pos + 1, last_pos - comma_pos - 1));
+        internal_key_types.push_back(LogicalType::DECIMAL(width, scale));
         return LogicalType::DECIMAL(width, scale);
 			} else {
         fprintf(stdout, "%s\n", type_name.c_str());
@@ -854,6 +851,7 @@ private:
 	string src_key_name;
 	string dst_key_name;
   vector<LogicalType> key_types;
+  vector<LogicalType> internal_key_types;
   vector<int64_t> key_columns;
   vector<int64_t> key_columns_order;
   vector<int64_t> src_columns;
@@ -869,12 +867,13 @@ private:
 	unordered_map<string, LogicalType> m {
 		{"STRING", LogicalType(LogicalTypeId::VARCHAR)},
 		{"STRING[]", LogicalType(LogicalTypeId::VARCHAR)},
-		{"INT"   , LogicalType(LogicalTypeId::INTEGER)},
-    {"INTEGER"   , LogicalType(LogicalTypeId::INTEGER)},
-		{"LONG"  , LogicalType(LogicalTypeId::BIGINT)},
-    {"ULONG"  , LogicalType(LogicalTypeId::UBIGINT)},
-    {"DATE"  , LogicalType(LogicalTypeId::DATE)},
-    {"DECIMAL"  , LogicalType(LogicalTypeId::DECIMAL)},
+		{"INT", LogicalType(LogicalTypeId::INTEGER)},
+    {"INTEGER", LogicalType(LogicalTypeId::INTEGER)},
+		{"LONG", LogicalType(LogicalTypeId::BIGINT)},
+    {"ULONG", LogicalType(LogicalTypeId::UBIGINT)},
+    {"DATE", LogicalType(LogicalTypeId::DATE)},
+    {"DECIMAL", LogicalType(LogicalTypeId::DECIMAL)},
+    {"DATE_EPOCHMS", LogicalType(LogicalTypeId::DATE)},
     // {"ADJLIST"  , LogicalType(LogicalTypeId::ADJLISTCOLUMN)},
 	};
 };

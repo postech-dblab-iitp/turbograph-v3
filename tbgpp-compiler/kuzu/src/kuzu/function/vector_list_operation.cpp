@@ -71,13 +71,13 @@ ListCreationVectorOperation::getDefinitions() {
     return result;
 }
 
-// std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::getDefinitions() {
-//     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-//     auto execFunc = UnaryExecFunction<ku_list_t, int64_t, operation::ListLen>;
-//     result.push_back(std::make_unique<VectorOperationDefinition>(
-//         LIST_LEN_FUNC_NAME, std::vector<DataTypeID>{LIST}, INT64, execFunc, true /* isVarlength*/));
-//     return result;
-// }
+std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    // auto execFunc = UnaryExecFunction<ku_list_t, int64_t, operation::ListLen>;
+    result.push_back(std::make_unique<VectorOperationDefinition>(
+        LIST_LEN_FUNC_NAME, std::vector<DataTypeID>{LIST}, INT64, empty_scalar_exec_func(), true /* isVarlength*/));
+    return result;
+}
 
 // void ListExtractVectorOperation::listExtractBindFunc(const std::vector<DataType>& argumentTypes,
 //     VectorOperationDefinition* definition, DataType& returnType) {

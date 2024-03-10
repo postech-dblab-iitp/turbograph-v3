@@ -7,6 +7,10 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/list_comprehension_expression.h"
+#include "binder/expression/pattern_comprehension_expression.h"
+#include "binder/expression/filter_expression.h"
+#include "binder/expression/idincoll_expression.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
 
@@ -22,6 +26,10 @@
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
+#include "parser/expression/parsed_list_comprehension_expression.h"
+#include "parser/expression/parsed_pattern_comprehension_expression.h"
+#include "parser/expression/parsed_filter_expression.h"
+#include "parser/expression/parsed_idincoll_expression.h"
 
 // using namespace kuzu::function;
 
@@ -51,6 +59,14 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
         expression = bindExistentialSubqueryExpression(parsedExpression);
     } else if (CASE_ELSE == expressionType) {
         expression = bindCaseExpression(parsedExpression);
+    } else if (LIST_COMPREHENSION == expressionType) {
+        expression = bindListComprehensionExpression(parsedExpression);
+    } else if (PATTERN_COMPREHENSION == expressionType) {
+        expression = bindPatternComprehensionExpression(parsedExpression);
+    } else if (ID_IN_COLL == expressionType) {
+        expression = bindIdInCollExpression(parsedExpression);
+    } else if (FILTER == expressionType) {
+        expression = bindFilterExpression(parsedExpression);
     } else {
         throw NotImplementedException(
             "bindExpression(" + expressionTypeToString(expressionType) + ").");
@@ -464,6 +480,74 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         }
     }
     return boundCaseExpression;
+}
+
+shared_ptr<Expression> ExpressionBinder::bindListComprehensionExpression(
+    const ParsedExpression &parsedExpression)
+{
+    auto &parsedListCompExpression =
+        (ParsedListComprehensionExpression &)parsedExpression;
+    D_ASSERT(parsedListCompExpression.getNumChildren() == 1);
+    auto filterExpression =
+        bindExpression(*parsedListCompExpression.getChild(0));
+    if (parsedListCompExpression.hasExpression()) {
+        auto expression =
+            bindExpression(*parsedListCompExpression.getExpression());
+        return make_shared<ListComprehensionExpression>(
+            std::move(filterExpression), std::move(expression),
+            binder->getUniqueExpressionName(parsedExpression.getRawName()));
+    }
+    return make_shared<ListComprehensionExpression>(
+        std::move(filterExpression), nullptr,
+        binder->getUniqueExpressionName(parsedExpression.getRawName()));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindPatternComprehensionExpression(
+    const ParsedExpression& parsedExpression) {
+    throw NotImplementedException("bindPatternComprehensionExpression");
+}
+
+shared_ptr<Expression> ExpressionBinder::bindFilterExpression(const ParsedExpression& parsedExpression)
+{
+    auto &parsedFilterExpression =
+        (ParsedFilterExpression &)parsedExpression;
+    auto idincollExpression =
+        bindExpression(*parsedFilterExpression.getChild(0));
+    if (parsedFilterExpression.hasWhereClause()) {
+        auto whereExpression =
+            bindExpression(*parsedFilterExpression.getWhereClause());
+        return make_shared<FilterExpression>(
+            std::move(idincollExpression), std::move(whereExpression),
+            binder->getUniqueExpressionName(parsedExpression.getRawName()));
+    }
+    return make_shared<FilterExpression>(
+        std::move(idincollExpression), nullptr,
+        binder->getUniqueExpressionName(parsedExpression.getRawName()));
+}
+
+shared_ptr<Expression> ExpressionBinder::bindIdInCollExpression(const ParsedExpression& parsedExpression)
+{
+    auto &parsedIdInCollExpression =
+        (ParsedIdInCollExpression &)parsedExpression;
+    auto coll_expression = bindExpression(*parsedIdInCollExpression.getChild(0));
+    if (coll_expression->dataType.typeID != LIST) {
+        throw BinderException("Expression " + coll_expression->getRawName() +
+                              " has data type " +
+                              Types::dataTypeToString(coll_expression->dataType) +
+                              ". List was expected.");
+    }
+    if (coll_expression->getNumChildren() == 1) {
+        binder->createVariable(parsedIdInCollExpression.getVarName(), coll_expression->getChild(0)->dataType);
+    } else if (coll_expression->dataType.childType) {
+        binder->createVariable(parsedIdInCollExpression.getVarName(), *(coll_expression->dataType.childType));
+    } else {
+        throw BinderException("Cannot resolve child data type of " +
+                              coll_expression->getRawName() + ".");
+    }
+    return make_shared<IdInCollExpression>(
+        parsedIdInCollExpression.getVarName(),
+        std::move(bindExpression(*parsedIdInCollExpression.getChild(0))),
+        binder->getUniqueExpressionName(parsedExpression.getRawName()));
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
