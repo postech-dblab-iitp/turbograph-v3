@@ -21,6 +21,7 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntr
 	this->pid = info->pid;
 	this->num_columns = 0;
 	this->local_temporal_id_version = 0;
+	this->local_extent_id_version = 0;
 	this->physical_id_index = INVALID_OID;
 }
 

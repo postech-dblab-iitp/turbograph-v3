@@ -754,7 +754,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
 
 		// Initialize variables related to vertex extent
-		LidPair cur_src_id, cur_dst_id, prev_id;
+		LidPair prev_id {0, 0};
 		idx_t cur_src_pid, prev_src_pid;
 		ExtentID cur_vertex_extentID;
 		idx_t vertex_seqno;
@@ -953,7 +953,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST, dst_column_idx.size());
 		
 		// Initialize variables related to vertex extent
-		LidPair cur_src_id, cur_dst_id, prev_id;
+		LidPair prev_id {0, 0};
 		idx_t cur_src_pid, prev_src_pid;
 		ExtentID cur_vertex_extentID;
 		idx_t vertex_seqno;
