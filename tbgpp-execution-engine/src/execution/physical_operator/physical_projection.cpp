@@ -6,7 +6,6 @@
 
 #include "icecream.hpp"
 
-
 namespace duckdb {
 
 class ProjectionState : public OperatorState {

@@ -133,8 +133,19 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarCmp(CExpression * scalar
 	unique_ptr<duckdb::Expression> lhs = pTransformScalarExpr(scalar_expr->operator[](0), lhs_child_cols, rhs_child_cols);
 	unique_ptr<duckdb::Expression> rhs = pTransformScalarExpr(scalar_expr->operator[](1), lhs_child_cols, rhs_child_cols);
 	//try casting (rhs to lhs)
-	if(lhs->return_type != rhs->return_type) {
+	if (lhs->return_type != rhs->return_type) {
 		rhs = pGenScalarCast(move(rhs), lhs->return_type);
+	}
+
+	if (rhs->GetExpressionClass() == duckdb::ExpressionClass::BOUND_CONSTANT) {
+		auto constant = (duckdb::BoundConstantExpression*)rhs.get();
+		if (constant->value.IsNull()) {
+			return make_unique<duckdb::BoundComparisonExpression>(
+				pTranslateCmpType(op->ParseCmpType(), true),
+				std::move(lhs),	// lhs
+				std::move(rhs)	// rhs
+			);
+		}
 	}
 
 	return make_unique<duckdb::BoundComparisonExpression>(
@@ -325,18 +336,31 @@ unique_ptr<duckdb::Expression> Planner::pGenScalarCast(unique_ptr<duckdb::Expres
 	return make_unique<duckdb::BoundCastExpression>(move(orig_expr), target_type, false /* try_cast */);
 }
 
-duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type) {
-	switch(cmp_type) {
-		case IMDType::ECmpType::EcmptEq: return duckdb::ExpressionType::COMPARE_EQUAL;
-		case IMDType::ECmpType::EcmptNEq: return duckdb::ExpressionType::COMPARE_NOTEQUAL;
-		case IMDType::ECmpType::EcmptL: return duckdb::ExpressionType::COMPARE_LESSTHAN;
-		case IMDType::ECmpType::EcmptLEq: return duckdb::ExpressionType::COMPARE_LESSTHANOREQUALTO;
-		case IMDType::ECmpType::EcmptG: return duckdb::ExpressionType::COMPARE_GREATERTHAN;
-		case IMDType::ECmpType::EcmptGEq: return duckdb::ExpressionType::COMPARE_GREATERTHANOREQUALTO;
-		case IMDType::ECmpType::EcmptIDF: return duckdb::ExpressionType::COMPARE_DISTINCT_FROM;
-		default: GPOS_ASSERT(false);
-	}
-
+duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type, bool contains_null) {
+    switch (cmp_type) {
+        case IMDType::ECmpType::EcmptEq:
+            if (contains_null)
+                return duckdb::ExpressionType::COMPARE_NOT_DISTINCT_FROM;
+            else
+                return duckdb::ExpressionType::COMPARE_EQUAL;
+        case IMDType::ECmpType::EcmptNEq:
+            if (contains_null)
+                return duckdb::ExpressionType::COMPARE_DISTINCT_FROM;
+            else
+                return duckdb::ExpressionType::COMPARE_NOTEQUAL;
+        case IMDType::ECmpType::EcmptL:
+            return duckdb::ExpressionType::COMPARE_LESSTHAN;
+        case IMDType::ECmpType::EcmptLEq:
+            return duckdb::ExpressionType::COMPARE_LESSTHANOREQUALTO;
+        case IMDType::ECmpType::EcmptG:
+            return duckdb::ExpressionType::COMPARE_GREATERTHAN;
+        case IMDType::ECmpType::EcmptGEq:
+            return duckdb::ExpressionType::COMPARE_GREATERTHANOREQUALTO;
+        case IMDType::ECmpType::EcmptIDF:
+            return duckdb::ExpressionType::COMPARE_DISTINCT_FROM;
+        default:
+            GPOS_ASSERT(false);
+    }
 }
 
 duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type) {

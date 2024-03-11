@@ -365,6 +365,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
                         state.rhs_sel.set_index(state.output_idx,
                                                 state.lhs_idx);
+                        eid_adj_column[state.output_idx] = 0;
                         eid_validity_mask->SetInvalid(state.output_idx);
                         state.output_idx++;
                     }
@@ -397,6 +398,8 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
                         state.rhs_sel.set_index(state.output_idx,
                                                 state.lhs_idx);
+                        tgt_adj_column[state.output_idx] = 0;
+                        eid_adj_column[state.output_idx] = 0;
                         tgt_validity_mask->SetInvalid(state.output_idx);
                         eid_validity_mask->SetInvalid(state.output_idx);
                         state.output_idx++;
@@ -466,6 +469,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 							state.rhs_idx++) {
 						state.rhs_sel.set_index(state.output_idx,
 												state.lhs_idx);
+                        tgt_adj_column[state.output_idx] = 0;
 						tgt_validity_mask->SetInvalid(state.output_idx);
 						state.output_idx++;
 					}
@@ -505,6 +509,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
                         state.rhs_sel.set_index(state.output_idx,
                                                 state.lhs_idx);
+                        eid_adj_column[state.output_idx] = 0;
                         eid_validity_mask->SetInvalid(state.output_idx);
                         state.output_idx++;
                     }
@@ -540,6 +545,8 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
                         state.rhs_sel.set_index(state.output_idx,
                                                 state.lhs_idx);
+                        tgt_adj_column[state.output_idx] = 0;
+                        eid_adj_column[state.output_idx] = 0;
                         tgt_validity_mask->SetInvalid(state.output_idx);
                         eid_validity_mask->SetInvalid(state.output_idx);
                         state.output_idx++;
@@ -614,6 +621,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 							state.rhs_idx++) {
 						state.rhs_sel.set_index(state.output_idx,
 												state.lhs_idx);
+                        tgt_adj_column[state.output_idx] = 0;
 						tgt_validity_mask->SetInvalid(state.output_idx);
 						state.output_idx++;
 					}

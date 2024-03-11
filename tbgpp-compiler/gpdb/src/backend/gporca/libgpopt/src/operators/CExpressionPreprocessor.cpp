@@ -3111,10 +3111,10 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 		if (can_transpose)
 		{
-			CWStringDynamic str2(mp, L"Before Collapse\n");
-			COstreamString oss2(&str2);
-			pexpr->OsPrint(oss2);
-			GPOS_TRACE(str2.GetBuffer());
+			// CWStringDynamic str2(mp, L"Before Collapse\n");
+			// COstreamString oss2(&str2);
+			// pexpr->OsPrint(oss2);
+			// GPOS_TRACE(str2.GetBuffer());
 			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
 			{
 				CExpression *pprojexpr =
@@ -3173,10 +3173,10 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 			CExpression *result_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
 
-			CWStringDynamic str(mp, L"After Collapse\n");
-			COstreamString oss(&str);
-			result_expr->OsPrint(oss);
-			GPOS_TRACE(str.GetBuffer());
+			// CWStringDynamic str(mp, L"After Collapse\n");
+			// COstreamString oss(&str);
+			// result_expr->OsPrint(oss);
+			// GPOS_TRACE(str.GetBuffer());
 
 			return result_expr;
 		}
@@ -3237,9 +3237,9 @@ CExpressionPreprocessor::PexprPruneUnnecessaryTables(CMemoryPool *mp, CExpressio
 			
 			// TODO recursively check
 			if (pScalarExpr->Pop()->Eopid() == COperator::EopScalarCmp) {
-				CScalarCmp *popScalarCmp = CScalarCmp::PopConvert(pScalarExpr->Pop());
-				GPOS_ASSERT(popScalarCmp->ParseCmpType() != IMDType::EcmptIDF);
-				CExpression *pexprLeft = (*pScalarExpr)[0];
+                GPOS_ASSERT(CScalarCmp::PopConvert(pScalarExpr->Pop())
+                                ->ParseCmpType() != IMDType::EcmptIDF);
+                CExpression *pexprLeft = (*pScalarExpr)[0];
 				CExpression *pexprRight = (*pScalarExpr)[1];
 				if (pexprLeft->Pop()->Eopid() == COperator::EopScalarConst) {
 					CScalarConst *popScalarConst = CScalarConst::PopConvert(pexprLeft->Pop());

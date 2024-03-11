@@ -615,11 +615,28 @@ CExpression *Planner::lExprScalarFilterExpr(kuzu::binder::Expression *expression
 CExpression *Planner::lExprScalarIdInCollExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type)
 {
 	CMemoryPool *mp = this->memory_pool;
-    IdInCollExpression *filter_expr =
+    IdInCollExpression *id_in_coll_expr =
         (IdInCollExpression *)expression;
 	
-	CExpression *expr = lExprScalarExpression(
-		filter_expr->getExpr().get(), prev_plan, required_type);
+	CExpression *coll_expr = lExprScalarExpression(
+		id_in_coll_expr->getExpr().get(), prev_plan, required_type);
+	
+	string var_name = id_in_coll_expr->getVariableName();
+	// OID type_oid = pGetTypeIdFromScalar(coll_expr);
+	// INT type_mod = pGetTypeModFromScalar(coll_expr);
+
+	std::wstring w_col_name = L"";
+	// w_col_name.assign(col_name.begin(), col_name.end());
+	// const CWStringConst col_name_str(w_col_name.c_str());
+	// CName col_cname(&col_name_str);
+	// CColRef *new_colref = col_factory->PcrCreate(
+	// 	lGetMDAccessor()->RetrieveType(scalar_op->MdidType()),
+	// 	scalar_op->TypeModifier(), col_cname);
+	auto target_colref = prev_plan->getSchema()->getColRefOfKey(var_name, "");
+	D_ASSERT(target_colref != NULL);
+
+	CExpression *ident_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
+    return ident_expr;
 }
 
 CExpression *Planner::lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {

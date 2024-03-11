@@ -330,6 +330,11 @@ public:
 	static CExpression *PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 											CExpression *pexprPrjList,
 											BOOL fNewComputedCol);
+	
+	// generate a project expression
+	static CExpression *PexprLogicalProjectColumnar(CMemoryPool *mp, CExpression *pexpr,
+											CExpression *pexprPrjList,
+											BOOL fNewComputedCol);
 
 	// generate a sequence project expression
 	static CExpression *PexprLogicalSequenceProject(CMemoryPool *mp,

@@ -108,7 +108,7 @@ CXformSubqueryUnnest::PexprSubqueryUnnest(CMemoryPool *mp, CExpression *pexpr,
 				break;
 
 			case COperator::EopLogicalProjectColumnar:
-				pexprResult = CUtils::PexprLogicalProject(
+				pexprResult = CUtils::PexprLogicalProjectColumnar(
 					mp, pexprNewOuter, pexprResidualScalar,
 					false /*fNewComputedCol*/);
 				break;
