@@ -160,8 +160,11 @@ LogicalPlan *Planner::lPlanMatchClause(BoundReadingClause *boundReadingClause,
             expression_vector{};
 
     LogicalPlan *plan;
-    plan = lPlanRegularMatch(*queryGraphCollection, prev_plan,
-                             boundMatchClause->getIsOptional());
+	if (!boundMatchClause->getIsOptional()) {
+    	plan = lPlanRegularMatch(*queryGraphCollection, prev_plan);
+	} else {
+		plan = lPlanRegularOptionalMatch(*queryGraphCollection, prev_plan);
+	}
 
     // TODO append edge isomorphism
     // TODO need to know about the label info...
@@ -968,7 +971,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
             D_ASSERT(lhs_plan != nullptr);
 
             // Plan R - B
-            if (is_lhs_bound && is_rhs_bound) {
+            if (is_lhs_bound && is_rhs_bound && is_rhs_bound_on_outer) {
                 // no join necessary - add filter predicate on edge.tid = rhs.id
                 CMemoryPool *mp = this->memory_pool;
                 hop_plan = lhs_plan;

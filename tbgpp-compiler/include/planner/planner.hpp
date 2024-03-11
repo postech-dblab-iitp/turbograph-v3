@@ -491,7 +491,7 @@ private:
 	// scalar helper functions
 	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
 	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
-	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type);
+	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type, bool contains_null = false);
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
 	static duckdb::JoinType pTranslateJoinType(COperator *op);
 	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);

@@ -2233,6 +2233,30 @@ CUtils::PexprLogicalProject(CMemoryPool *mp, CExpression *pexpr,
 		CExpression(mp, GPOS_NEW(mp) CLogicalProject(mp), pexpr, pexprPrjList);
 }
 
+// generate a project expression
+CExpression *
+CUtils::PexprLogicalProjectColumnar(CMemoryPool *mp, CExpression *pexpr,
+							CExpression *pexprPrjList, BOOL fNewComputedCol)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(NULL != pexprPrjList);
+	GPOS_ASSERT(COperator::EopScalarProjectList ==
+				pexprPrjList->Pop()->Eopid());
+
+	if (fNewComputedCol)
+	{
+		CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
+		const ULONG arity = pexprPrjList->Arity();
+		for (ULONG ul = 0; ul < arity; ul++)
+		{
+			CExpression *pexprPrEl = (*pexprPrjList)[ul];
+			col_factory->AddComputedToUsedColsMap(pexprPrEl);
+		}
+	}
+	return GPOS_NEW(mp)
+		CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pexpr, pexprPrjList);
+}
+
 // generate a sequence project expression
 CExpression *
 CUtils::PexprLogicalSequenceProject(CMemoryPool *mp, CDistributionSpec *pds,

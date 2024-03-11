@@ -1018,26 +1018,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
      *  - AdjIdxJoin inner: inner cols
      *  - AdjIdxJoin output: output cols
     **/
-    std::cout << "output_cols: " << std::endl;
-    for (ULONG i = 0; i < output_cols->Size(); i++) {
-        std::cout << output_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "outer_cols: " << std::endl;
-    for (ULONG i = 0; i < outer_cols->Size(); i++) {
-        std::cout << outer_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "inner_cols: " << std::endl;
-    for (ULONG i = 0; i < inner_cols->Size(); i++) {
-        std::cout << inner_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "idxscan_cols: " << std::endl;
-    for (ULONG i = 0; i < idxscan_cols->Size(); i++) {
-        std::cout << idxscan_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
     if (filter_after_adj && generate_seek) {
         if (!is_adjidxjoin_into) {
             D_ASSERT(false);
@@ -1092,27 +1072,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     adj_output_cols = adj_output_colset->Pdrgpcr(mp);
     adj_inner_cols = adj_inner_colset->Pdrgpcr(mp);
     // seek_inner_cols = seek_inner_colset->Pdrgpcr(mp);
-
-    std::cout << "adj_output_cols: " << std::endl;
-    for (ULONG i = 0; i < adj_output_cols->Size(); i++) {
-        std::cout << adj_output_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "adj_inner_cols: " << std::endl;
-    for (ULONG i = 0; i < adj_inner_cols->Size(); i++) {
-        std::cout << adj_inner_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "seek_inner_cols: " << std::endl;
-    for (ULONG i = 0; i < seek_inner_cols->Size(); i++) {
-        std::cout << seek_inner_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "seek_output_cols: " << std::endl;
-    for (ULONG i = 0; i < seek_output_cols->Size(); i++) {
-        std::cout << seek_output_cols->operator[](i)->Id() << ", ";
-    }
-    std::cout << std::endl;
 
     // D_ASSERT(adj_output_cols->Size() > 0);
     // D_ASSERT(adj_inner_cols->Size() > 0); // release this condition
@@ -4161,8 +4120,6 @@ void Planner::pGenerateSchemaFlowGraph(
             num_total_child_schemas *= num_schemas_of_childs_[i][j];
         }
         flow_graph[i].resize(num_total_child_schemas);
-        // std::cout << "lv " << i << " : " << num_total_child_schemas
-        //           << std::endl;
         for (auto j = 0; j < flow_graph[i].size(); j++) {
             flow_graph[i][j] = j;  // TODO
         }

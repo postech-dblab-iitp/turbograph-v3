@@ -295,8 +295,10 @@ unique_ptr<duckdb::Expression>
 Planner::lExprScalarExistentialSubqueryExprDuckDB(
     kuzu::binder::Expression *expression)
 {
-    D_ASSERT(false);
-    return nullptr;
+    // D_ASSERT(false);
+    // return nullptr;
+    return make_unique<duckdb::BoundConstantExpression>(
+        duckdb::Value(duckdb::LogicalType::BOOLEAN));
 }
 
 unique_ptr<duckdb::Expression> Planner::lExprScalarCastExprDuckDB(
