@@ -6,6 +6,7 @@
 #include "common/types/data_chunk.hpp"
 #include "common/enums/graph_component_type.hpp"
 #include "common/types/date.hpp"
+#include "common/output_util.hpp"
 #include "third_party/csv-parser/csv.hpp"
 #include <unistd.h> // for getopt
 
@@ -625,6 +626,7 @@ public:
 		D_ASSERT(required_keys.size() == types.size());
 		D_ASSERT(required_keys.size() == output.ColumnCount());
 
+    OutputUtil::PrintProgress((double)row_cursor / (double)num_rows);
 		if (type == GraphComponentType::VERTEX) {
 			return ReadVertexCSVFile(required_keys, types, output);
 		} else if (type == GraphComponentType::EDGE) {
@@ -653,7 +655,6 @@ public:
     // What's the best? Cache miss vs branch prediction cost..
 
     // Row-oriented manner
-    std::cout << "[ " << row_cursor << " / " << num_rows << " ]" << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
@@ -766,7 +767,6 @@ public:
     D_ASSERT(types.size() == internal_key_types.size());
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {

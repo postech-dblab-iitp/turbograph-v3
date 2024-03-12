@@ -6,6 +6,9 @@
 
 namespace duckdb {
 
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
 class DataChunk;
 
 class OutputUtil {
@@ -17,6 +20,8 @@ class OutputUtil {
     static void PrintAllTuplesInDataChunk(DataChunk &chunk);
     static void PrintTop10TuplesInDataChunk(DataChunk &chunk);
     static void PrintLast10TuplesInDataChunk(DataChunk &chunk);
+
+    static void PrintProgress(double percentage);
 };
 }  // namespace duckdb
 

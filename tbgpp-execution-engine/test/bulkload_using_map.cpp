@@ -520,7 +520,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
 
-		fprintf(stdout, "Start to load %s, %s\n", vertex_labelset.c_str(), vertex_file_path.c_str());
+		fprintf(stdout, "\nStart to load %s, %s\n", vertex_labelset.c_str(), vertex_file_path.c_str());
 
 		// Create Partition for each vertex (partitioned by labelset)
 		ParseLabelSet(vertex_labelset, vertex_labels);
@@ -564,14 +564,13 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		while (!reader.ReadCSVFile(key_names, types, data)) {
 			auto read_chunk_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> read_chunk_duration = read_chunk_end - read_chunk_start;
-			fprintf(stdout, "\tRead CSV File Ongoing.. Elapsed: %.3f\n", read_chunk_duration.count());
 
 			// Create Vertex Extent by Extent Manager
 			auto create_extent_start = std::chrono::high_resolution_clock::now();
 			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat);
 			auto create_extent_end = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+			// fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
 			property_schema_cat->AddExtent(new_eid, data.size());
 			
 			if (load_edge) {
@@ -606,7 +605,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 				auto map_build_end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
+				// fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
 
 				// Build Index
 				// BuildIndex();
@@ -616,7 +615,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		auto vertex_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
 
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
+		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
 	}
 }
 
@@ -671,7 +670,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 		}
 		auto json_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> load_json_duration = json_end - json_start;
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", json_files[idx].first.c_str(), json_files[idx].second.c_str(), load_json_duration.count());
+		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", json_files[idx].first.c_str(), json_files[idx].second.c_str(), load_json_duration.count());
 	}
 }
 
@@ -694,7 +693,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		PropertySchemaCatalogEntry *property_schema_cat;
 
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Start to load %s, %s\n", edge_type.c_str(), edge_file_path.c_str());
+		fprintf(stdout, "\nStart to load %s, %s\n", edge_type.c_str(), edge_file_path.c_str());
 #endif
 
 		// Read & Parse Edge CSV File
@@ -762,10 +761,6 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-#ifdef BULKLOAD_DEBUG_PRINT
-			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-#endif
-
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = partition_cat->GetNewExtentID();
 
@@ -865,7 +860,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count());
+		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count());
 #endif
 	}
 }
@@ -894,7 +889,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		PropertySchemaCatalogEntry *property_schema_cat;
 
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
+		fprintf(stdout, "\nStart to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
 #endif
 
 		// Read & Parse Edge CSV File
@@ -961,10 +956,6 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 
 		// Read CSV File into DataChunk & CreateEdgeExtent
 		while (!reader.ReadCSVFile(key_names, types, data)) {
-#ifdef BULKLOAD_DEBUG_PRINT
-			fprintf(stdout, "Read Edge CSV File Ongoing..\n");
-#endif
-
 			// Convert lid to pid using LID_TO_PID_MAP
 			vector<idx_t *> src_key_columns, dst_key_columns;
 			src_key_columns.resize(src_column_idx.size());
@@ -1046,7 +1037,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
+		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
 #endif
 	}
 }
