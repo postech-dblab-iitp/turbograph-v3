@@ -324,37 +324,23 @@ run_ldbc_c6() {
 
 run_ldbc_c7() {
 	# LDBC IC7 Recent likers
-	run_query "MATCH (person:Person {id: 4398046511268})<-[:HAS_CREATOR]-(message:Message)<-[like:LIKES]-(liker:Person)
+	run_query "MATCH (person:Person {id: 17592186053137})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
 		WITH liker, message, like.creationDate AS likeTime, person
-		ORDER BY likeTime DESC, toInteger(message.id) ASC
-		WITH liker, head(collect({msg: message, likeTime: likeTime})) AS latestLike, person
-		RETURN
-			liker.id AS personId,
-			liker.firstName AS personFirstName,
-			liker.lastName AS personLastName,
-			latestLike.likeTime AS likeCreationDate,
-			latestLike.msg.id AS commentOrPostId,
-			coalesce(latestLike.msg.content, latestLike.msg.imageFile) AS commentOrPostContent,
-			toInteger(round(toFloat(latestLike.likeTime - latestLike.msg.creationDate)/1000.0)/60.0) AS minutesLatency,
-			not((liker)-[:KNOWS]-(person)) AS isNew
-		ORDER BY
-			likeCreationDate DESC,
-			toInteger(personId) ASC
-		LIMIT 20" 1
-	run_query "MATCH (person:Person {id: 94})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
-		WITH liker, message, like, person
-		ORDER BY like.creationDate DESC, message.id ASC
+		ORDER BY likeTime DESC, message.id ASC
+		WITH liker, message, person, likeTime,
+			CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN 0 ELSE 1 END AS isNew
 		RETURN
 			liker.id AS personId,
 			liker.firstName AS personFirstName,
 			liker.lastName AS personLastName,
 			first(message.id) AS msg_id,
-			first(like.creationDate) AS likeCreationDate,
-			person._id AS person_id
+			first(likeTime) AS likeCreationDate,
+			message.content AS commentOrPostContent,
+			isNew
 		ORDER BY
 			likeCreationDate DESC,
 			personId ASC
-		LIMIT 20" 0
+		LIMIT 20;" 1
 }
 
 run_ldbc_c8() {

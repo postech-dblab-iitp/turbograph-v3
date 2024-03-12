@@ -526,8 +526,12 @@ public:
     // Parse CSV File
     vector<string> col_names = reader->get_col_names();
     num_columns = col_names.size();
-    pcsv.indexes = new (std::nothrow) uint64_t[num_file_rows * (num_columns+1)]; // can't have more indexes than we have data
-    if(pcsv.indexes == nullptr) {
+    if (num_file_rows > 0) {
+      pcsv.indexes = new (std::nothrow) uint64_t[num_file_rows * (num_columns+1)]; // can't have more indexes than we have data
+    } else {
+      pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
+    }
+    if (pcsv.indexes == nullptr) {
       throw InvalidInputException("You are running out of memory.");
     }
     find_indexes(p.data(), p.size(), pcsv);
@@ -868,7 +872,9 @@ private:
 		{"INT", LogicalType(LogicalTypeId::INTEGER)},
     {"INTEGER", LogicalType(LogicalTypeId::INTEGER)},
 		{"LONG", LogicalType(LogicalTypeId::BIGINT)},
+    {"BIGINT", LogicalType(LogicalTypeId::BIGINT)},
     {"ULONG", LogicalType(LogicalTypeId::UBIGINT)},
+    {"UBIGINT", LogicalType(LogicalTypeId::UBIGINT)},
     {"DATE", LogicalType(LogicalTypeId::DATE)},
     {"DECIMAL", LogicalType(LogicalTypeId::DECIMAL)},
     {"DATE_EPOCHMS", LogicalType(LogicalTypeId::DATE)},
