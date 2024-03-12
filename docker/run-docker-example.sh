@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Example usage: ./run-docker-example.sh /mnt/md0/stlee_ldbc/tbgpp3-data/ /mnt/md0/tslee_ldbc/interactive
+# Example usage: ./run-docker-example.sh /mnt/sde/jhha_ldbc/tbgppv3-data/ /mnt/sde/source-data
 
 # Parse user input
 
 # Target image
-IMAGE_NAME="turbograph-s62-0727"
+IMAGE_NAME="turbograph-s62-0312"
 IMAGE_TAG="latest"
-CONTAINER_NAME="turbograph-s62-new"
+CONTAINER_NAME="turbograph-s62-0312"
 
 # TODO override from user input
 SHARED_MEM_SIZE="256g"
