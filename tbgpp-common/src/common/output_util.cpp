@@ -202,4 +202,13 @@ void OutputUtil::PrintLast10TuplesInDataChunk(DataChunk &chunk)
 	std::cout << t << std::endl;
 }
 
+void OutputUtil::PrintProgress(double percentage)
+{
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
+}
+
 };  // namespace duckdb

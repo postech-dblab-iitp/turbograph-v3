@@ -1,5 +1,4 @@
 #!/bin/bash
-
 basedir=$1
 
 # Remove last character '|' for each line
@@ -14,30 +13,19 @@ sed 's/.$//' ${basedir}/partsupp.tbl.original > ${basedir}/partsupp.tbl
 
 # Insert header
 list=(
-"customer C_CUSTKEY:ID(CUSTOMER)|C_NAME:STRING|C_ADDRESS:STRING|C_NATIONKEY:UBIGINT(NATION)|C_PHONE:STRING|C_ACCTBAL:DECIMAL(12,2)|C_MKTSEGMENT:STRING|C_COMMENT:STRING"
-"lineitem L_ORDERKEY:ID_1(LINEITEM)|L_PARTKEY:UBIGINT(PART)|L_SUPPKEY:UBIGINT(SUPPLIER)|L_LINENUMBER:ID_2(LINEITEM)|L_QUANTITY:INT|L_EXTENDEDPRICE:DECIMAL(12,2)|L_DISCOUNT:DECIMAL(12,2)|L_TAX:DECIMAL(12,2)|L_RETURNFLAG:STRING|L_LINESTATUS:STRING|L_SHIPDATE:DATE|L_COMMITDATE:DATE|L_RECEIPTDATE:DATE|L_SHIPINSTRUCT:STRING|L_SHIPMODE:STRING|L_COMMENT:STRING"
-"nation N_NATIONKEY:ID(NATION)|N_NAME:STRING|N_REGIONKEY:UBIGINT(REGION)|N_COMMENT:STRING"
-"orders O_ORDERKEY:ID(ORDERS)|O_CUSTKEY:UBIGINT(CUSTOMER)|O_ORDERSTATUS:STRING|O_TOTALPRICE:DECIMAL(12,2)|O_ORDERDATE:DATE|O_ORDERPRIORITY:STRING|O_CLERK:STRING|O_SHIPPRIORITY:INT|O_COMMENT:STRING"
+"customer C_CUSTKEY:ID(CUSTOMER)|C_NAME:STRING|C_ADDRESS:STRING|C_NATIONKEY:ULONG|C_PHONE:STRING|C_ACCTBAL:DECIMAL(12,2)|C_MKTSEGMENT:STRING|C_COMMENT:STRING"
+"lineitem L_ORDERKEY:ID_1(LINEITEM)|L_PARTKEY:ULONG|L_SUPPKEY:ULONG|L_LINENUMBER:ID_2(LINEITEM)|L_QUANTITY:INT|L_EXTENDEDPRICE:DECIMAL(12,2)|L_DISCOUNT:DECIMAL(12,2)|L_TAX:DECIMAL(12,2)|L_RETURNFLAG:STRING|L_LINESTATUS:STRING|L_SHIPDATE:DATE|L_COMMITDATE:DATE|L_RECEIPTDATE:DATE|L_SHIPINSTRUCT:STRING|L_SHIPMODE:STRING|L_COMMENT:STRING"
+"nation N_NATIONKEY:ID(NATION)|N_NAME:STRING|N_REGIONKEY:ULONG|N_COMMENT:STRING"
+"orders O_ORDERKEY:ID(ORDERS)|O_CUSTKEY:ULONG|O_ORDERSTATUS:STRING|O_TOTALPRICE:DECIMAL(12,2)|O_ORDERDATE:DATE|O_ORDERPRIORITY:STRING|O_CLERK:STRING|O_SHIPPRIORITY:INT|O_COMMENT:STRING"
 "part P_PARTKEY:ID(PART)|P_NAME:STRING|P_MFGR:STRING|P_BRAND:STRING|P_TYPE:STRING|P_SIZE:INT|P_CONTAINER:STRING|P_RETAILPRICE:DECIMAL(12,2)|P_COMMENT:STRING"
 "region R_REGIONKEY:ID(REGION)|R_NAME:STRING|R_COMMENT:STRING"
-"supplier S_SUPPKEY:ID(SUPPLIER)|S_NAME:STRING|S_ADDRESS:STRING|S_NATIONKEY:UBIGINT(NATION)|S_PHONE:STRING|S_ACCTBAL:DECIMAL(12,2)|S_COMMENT:STRING"
+"supplier S_SUPPKEY:ID(SUPPLIER)|S_NAME:STRING|S_ADDRESS:STRING|S_NATIONKEY:ULONG|S_PHONE:STRING|S_ACCTBAL:DECIMAL(12,2)|S_COMMENT:STRING"
 "partsupp :START_ID(PART)|:END_ID(SUPPLIER)|PS_AVAILQTY:INT|PS_SUPPLYCOST:DECIMAL(12,2)|PS_COMMENT:STRING"
 )
-
 for ((i = 0; i < ${#list[@]}; i++)); do
         IFS=' ' read -ra array <<< "${list[$i]}"
         sed -i '1s/^/'${array[1]}'\n/' "${basedir}/${array[0]}.tbl"
 done
-
-# Remove UBIGINT column
-# cat ${basedir}/customer.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7"|"$8}' > ${basedir}/customer.tbl.woadj
-# cat ${basedir}/lineitem.tbl | awk -F '|' '{print $1"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9"|"$10"|"$11"|"$12"|"$13"|"$14"|"$15"|"$16}' > ${basedir}/lineitem.tbl.woadj
-# cat ${basedir}/nation.tbl | awk -F '|' '{print $1"|"$2"|"$4}' > ${basedir}/nation.tbl.woadj
-# cat ${basedir}/orders.tbl | awk -F '|' '{print $1"|"$3"|"$4"|"$5"|"$6"|"$7"|"$8"|"$9}' > ${basedir}/orders.tbl.woadj
-# cp ${basedir}/part.tbl ${basedir}/part.tbl.woadj
-# cp ${basedir}/region.tbl ${basedir}/region.tbl.woadj
-# cat ${basedir}/supplier.tbl | awk -F '|' '{print $1"|"$2"|"$3"|"$5"|"$6"|"$7}' > ${basedir}/supplier.tbl.woadj
-
 # Generate forward edge data
 tail -n+2 ${basedir}/customer.tbl | awk -F '|' '{print $1"|"$4}' > ${basedir}/customer_belongTo_nation.tbl
 tail -n+2 ${basedir}/lineitem.tbl | awk -F '|' '{print $1"|"$4"|"$1}' > ${basedir}/lineitem_isPartOf_orders.tbl
@@ -46,7 +34,6 @@ tail -n+2 ${basedir}/lineitem.tbl | awk -F '|' '{print $1"|"$4"|"$3}' > ${basedi
 tail -n+2 ${basedir}/nation.tbl | awk -F '|' '{print $1"|"$3}' > ${basedir}/nation_isLocatedIn_region.tbl
 tail -n+2 ${basedir}/orders.tbl | awk -F '|' '{print $1"|"$2}' > ${basedir}/orders_madeBy_customer.tbl
 tail -n+2 ${basedir}/supplier.tbl | awk -F '|' '{print $1"|"$4}' > ${basedir}/supplier_belongTo_nation.tbl
-
 # Generate backward edge data
 cat ${basedir}/customer_belongTo_nation.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/customer_belongTo_nation.tbl.backward
 cat ${basedir}/lineitem_isPartOf_orders.tbl | sort -t '|' -n -k 3 -k 1 -k 2 | awk -F '|' '{print $3"|"$1"|"$2}' > ${basedir}/lineitem_isPartOf_orders.tbl.backward
@@ -55,8 +42,7 @@ cat ${basedir}/lineitem_suppliedBy_supplier.tbl | sort -t '|' -n -k 3 -k 1 -k 2 
 cat ${basedir}/nation_isLocatedIn_region.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/nation_isLocatedIn_region.tbl.backward
 cat ${basedir}/orders_madeBy_customer.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/orders_madeBy_customer.tbl.backward
 cat ${basedir}/supplier_belongTo_nation.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/supplier_belongTo_nation.tbl.backward
-tail -n+2 ${basedir}/partsupp.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1"|"$3"|"$4"|"$5}' > ${basedir}/partsupp.tbl.backward
-
+cat ${basedir}/partsupp.tbl | sort -t '|' -n -k 2 -k 1 | awk -F '|' '{print $2"|"$1}' > ${basedir}/partsupp.tbl.backward
 # Insert edge header
 edge_list=(
 "customer_belongTo_nation :START_ID(CUSTOMER)|:END_ID(NATION)"
@@ -67,12 +53,10 @@ edge_list=(
 "orders_madeBy_customer :START_ID(ORDERS)|:END_ID(CUSTOMER)"
 "supplier_belongTo_nation :START_ID(SUPPLIER)|:END_ID(NATION)"
 )
-
 for ((i = 0; i < ${#edge_list[@]}; i++)); do
         IFS=' ' read -ra array <<< "${edge_list[$i]}"
         sed -i '1s/^/'${array[1]}'\n/' "${basedir}/${array[0]}.tbl"
 done
-
 bwd_edge_list=(
 "customer_belongTo_nation :END_ID(NATION)|:START_ID(CUSTOMER)"
 "lineitem_isPartOf_orders :END_ID(ORDERS)|:START_ID_1(LINEITEM)|:START_ID_2(LINEITEM)"
@@ -81,9 +65,8 @@ bwd_edge_list=(
 "nation_isLocatedIn_region :END_ID(REGION)|:START_ID(NATION)"
 "orders_madeBy_customer :END_ID(CUSTOMER)|:START_ID(ORDERS)"
 "supplier_belongTo_nation :END_ID(NATION)|:START_ID(SUPPLIER)"
-"partsupp :END_ID(SUPPLIER)|:START_ID(PART)|PS_AVAILQTY:INT|PS_SUPPLYCOST:DECIMAL(12,2)|PS_COMMENT:STRING"
+"partsupp :END_ID(SUPPLIER)|:START_ID(PART)"
 )
-
 for ((i = 0; i < ${#bwd_edge_list[@]}; i++)); do
         IFS=' ' read -ra array <<< "${bwd_edge_list[$i]}"
         sed -i '1s/^/'${array[1]}'\n/' "${basedir}/${array[0]}.tbl.backward"
