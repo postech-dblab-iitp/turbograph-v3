@@ -1,4 +1,5 @@
 #include <iostream>
+#include <tuple>
 #include <iterator>
 #include <cassert> 
 #include <filesystem>
@@ -63,9 +64,9 @@ vector<std::pair<string, string>> json_files;
 vector<JsonFileType> json_file_types;
 vector<vector<std::pair<string, string>>> json_file_vertices;
 vector<vector<std::pair<string, string>>> json_file_edges;
-vector<std::pair<string, string>> vertex_files;
-vector<std::pair<string, string>> edge_files;
-vector<std::pair<string, string>> edge_files_backward;
+vector<std::tuple<string, string, size_t>> vertex_files;
+vector<std::tuple<string, string, size_t>> edge_files;
+vector<std::tuple<string, string, size_t>> edge_files_backward;
 string output_dir;
 
 bool load_edge;
@@ -510,8 +511,8 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 	for (auto &vertex_file: vertex_files) {
 		auto vertex_file_start = std::chrono::high_resolution_clock::now();
 
-		string &vertex_labelset = vertex_file.first;
-		string &vertex_file_path = vertex_file.second;
+		string &vertex_labelset = std::get<0>(vertex_file);
+		string &vertex_file_path = std::get<1>(vertex_file);
 		vector<string> vertex_labels;
 		vector<string> key_names;
 		vector<int64_t> key_column_idxs;
@@ -527,7 +528,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		
 		// Read & Parse Vertex CSV File
 		auto init_csv_start = std::chrono::high_resolution_clock::now();
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|');
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', std::get<2>(vertex_file));
 		auto init_csv_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
 		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
@@ -616,7 +617,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		auto vertex_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
 
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", vertex_file.first.c_str(), vertex_file.second.c_str(), duration.count());
+		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", std::get<0>(vertex_file).c_str(), std::get<1>(vertex_file).c_str(), duration.count());
 	}
 }
 
@@ -681,8 +682,8 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 	for (auto &edge_file: edge_files) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
-		string &edge_type = edge_file.first;
-		string &edge_file_path = edge_file.second;
+		string &edge_type = std::get<0>(edge_file);
+		string &edge_file_path = std::get<1>(edge_file);
 		string src_column_name;
 		string dst_column_name;
 		vector<string> key_names;
@@ -698,7 +699,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 #endif
 
 		// Read & Parse Edge CSV File
-		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
+		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
 
 		// Get Schema Information From the CSV Header
 		if (!reader.GetSchemaFromHeader(key_names, types)) {
@@ -736,7 +737,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		// Initialize LID_PAIR_TO_EPID_MAP
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
 		if (load_backward_edge) {
-			lid_pair_to_epid_map.emplace_back(edge_file.first, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_pair_to_epid_map.emplace_back(std::get<0>(edge_file), unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
 			lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
 			lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
 		}
@@ -816,7 +817,6 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 						FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, prev_src_pid, vertex_seqno,
 										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 										  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
-
 						prev_id = src_key;
 						prev_src_pid = cur_src_pid;
 						begin_idx = src_seqno;
@@ -881,8 +881,8 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 	for (auto &edge_file: edge_files_backward) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
-		string &edge_type = edge_file.first;
-		string &edge_file_path = edge_file.second;
+		string &edge_type = std::get<0>(edge_file);
+		string &edge_file_path = std::get<1>(edge_file);
 		string src_column_name;
 		string dst_column_name;
 		vector<string> key_names;
@@ -894,11 +894,11 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		PropertySchemaCatalogEntry *property_schema_cat;
 
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Start to load %s, %s\n", edge_file.first.c_str(), edge_file.second.c_str());
+		fprintf(stdout, "Start to load %s, %s\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str());
 #endif
 
 		// Read & Parse Edge CSV File
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
+		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
 
 		// Get Schema Information From the CSV Header
 		if (!reader.GetSchemaFromHeader(key_names, types)) {
@@ -1046,7 +1046,7 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", edge_file.first.c_str(), edge_file.second.c_str(), duration.count());
+		fprintf(stdout, "Load %s, %s Done! Elapsed: %.3f\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str(), duration.count());
 #endif
 	}
 }
@@ -1067,25 +1067,31 @@ class InputParser{ // TODO use boost options
     	for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
     		std::string current_str = *itr;
     		if (std::strncmp(current_str.c_str(), "--nodes:", 8) == 0) {
-				std::pair<std::string, std::string> pair_to_insert;
-				pair_to_insert.first = std::string(*itr).substr(8);
+				std::tuple<std::string, std::string, size_t> tuple_to_insert;
+				std::get<0>(tuple_to_insert) = std::string(*itr).substr(8);
 				itr++;
-				pair_to_insert.second = *itr;
-				vertex_files.push_back(pair_to_insert);
+				std::get<1>(tuple_to_insert) = *itr;
+				itr++;
+				std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				vertex_files.push_back(tuple_to_insert);
 			} else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
-				std::pair<std::string, std::string> pair_to_insert;
-				pair_to_insert.first = std::string(*itr).substr(16);
+				std::tuple<std::string, std::string, size_t> tuple_to_insert;
+				std::get<0>(tuple_to_insert) = std::string(*itr).substr(16);
 				itr++;
-				pair_to_insert.second = *itr;
-				edge_files.push_back(pair_to_insert);
+				std::get<1>(tuple_to_insert) = *itr;
+				itr++;
+				std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				edge_files.push_back(tuple_to_insert);
 				load_edge = true;
 			} else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
 				// TODO check if a corresponding forward edge exists
-				std::pair<std::string, std::string> pair_to_insert;
-				pair_to_insert.first = std::string(*itr).substr(25);
+				std::tuple<std::string, std::string, size_t> tuple_to_insert;
+				std::get<0>(tuple_to_insert) = std::string(*itr).substr(25);
 				itr++;
-				pair_to_insert.second = *itr;
-				edge_files_backward.push_back(pair_to_insert);
+				std::get<1>(tuple_to_insert) = *itr;
+				itr++;
+				std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				edge_files_backward.push_back(tuple_to_insert);
 				load_backward_edge = true;
 			} else if (std::strncmp(current_str.c_str(), "--json:", 7) == 0) {
 				bool is_file_path_exist = false;
@@ -1231,13 +1237,13 @@ class InputParser{ // TODO use boost options
 				json_file_edges.push_back(edge_label_json_expression_pairs);
 			} else if (std::strncmp(current_str.c_str(), "--output_dir:", 13) == 0) {
 				output_dir = std::string(*itr).substr(13);
-			}
+			} 
     	}
 
 		// Print Bulkloading Informations
 		fprintf(stdout, "\nLoad Following Nodes\n");
 		for (int i = 0; i < vertex_files.size(); i++) {
-			fprintf(stdout, "\t%s : %s\n", vertex_files[i].first.c_str(), vertex_files[i].second.c_str());
+			fprintf(stdout, "\t%s : %s\n", std::get<0>(vertex_files[i]).c_str(), std::get<1>(vertex_files[i]).c_str());
 		}
 		for (unsigned idx : util::lang::indices(json_files)) {
 			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
@@ -1246,10 +1252,10 @@ class InputParser{ // TODO use boost options
 		}
 		fprintf(stdout, "\nLoad Following Relationships\n");
 		for (int i = 0; i < edge_files.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", edge_files[i].first.c_str(), edge_files[i].second.c_str());
+			fprintf(stdout, "\t%s : %s\n", std::get<0>(edge_files[i]).c_str(), std::get<1>(edge_files[i]).c_str());
 		fprintf(stdout, "\nLoad Following Backward Relationships\n");
 		for (int i = 0; i < edge_files_backward.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", edge_files_backward[i].first.c_str(), edge_files_backward[i].second.c_str());
+			fprintf(stdout, "\t%s : %s\n", std::get<0>(edge_files_backward[i]).c_str(), std::get<1>(edge_files_backward[i]).c_str());
     }
   private:
     std::vector <std::string> tokens;

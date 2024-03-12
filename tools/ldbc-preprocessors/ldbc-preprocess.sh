@@ -22,7 +22,7 @@ bash sort-convert-node.sh ${dynamic_dir}/Forum.csv
 bash sort-convert-node.sh ${dynamic_dir}/Person.csv
 bash sort-convert-node.sh ${dynamic_dir}/Post.csv
 
-# In place sort fwd edge data 
+# In place sort fwd edge data and create bwd edge data
 bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasCreator_Person.csv
 bash sort-convert-edge.sh ${dynamic_dir}/Comment_hasTag_Tag.csv
 bash sort-convert-edge.sh ${dynamic_dir}/Comment_isLocatedIn_Place.csv
@@ -52,7 +52,7 @@ bash sort-convert-node.sh ${static_dir}/Place.csv
 bash sort-convert-node.sh ${static_dir}/Tag.csv
 bash sort-convert-node.sh ${static_dir}/TagClass.csv
 
-# In place sort fwd edge data
+# In place sort fwd edge data and create bwd edge data
 bash sort-convert-edge.sh ${static_dir}/Organisation_isLocatedIn_Place.csv
 bash sort-convert-edge.sh ${static_dir}/Place_isPartOf_Place.csv
 bash sort-convert-edge.sh ${static_dir}/TagClass_isSubclassOf_TagClass.csv
