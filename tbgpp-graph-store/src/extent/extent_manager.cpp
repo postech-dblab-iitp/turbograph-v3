@@ -217,8 +217,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 input.GetTypes()[input_chunk_idx] == LogicalType::ID ||
                 input.GetTypes()[input_chunk_idx] == LogicalType::BIGINT) {
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-                _UpdatePartitionMinMaxArray(part_cat_entry, prop_key_id, *chunkdefinition_cat);
-                part_cat_entry.UpdateWelfordStdDevArray(prop_key_id, input.data[input_chunk_idx], input_size);
+                // _UpdatePartitionMinMaxArray(part_cat_entry, prop_key_id, *chunkdefinition_cat);
+                // part_cat_entry.UpdateWelfordStdDevArray(prop_key_id, input.data[input_chunk_idx], input_size);
                 // if(input_chunk_idx == 0) fprintf(stdout, "StdDev: %f\n", part_cat_entry.GetStdDev(prop_key_id));
             }
 

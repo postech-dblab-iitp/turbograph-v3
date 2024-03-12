@@ -335,67 +335,68 @@ void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
-	boost::timer::cpu_timer compile_timer;
-	compile_timer.start();
-
 /*
 	COMPILATION
 */
 
 	if (!run_plan_wo_compile) {
-		auto inputStream = ANTLRInputStream(query_str);
+		// start timer
+		vector<double> query_execution_times;
+		vector<double> query_compile_times;
+		for (int i = 0; i < planner_config.num_iterations; i++) {
+			boost::timer::cpu_timer compile_timer;
+			compile_timer.start();
 
-		// Lexer		
-		auto cypherLexer = CypherLexer(&inputStream);
-		//cypherLexer.removeErrorListeners();
-		//cypherLexer.addErrorListener(&parserErrorListener);
-		auto tokens = CommonTokenStream(&cypherLexer);
-		tokens.fill();
+			auto inputStream = ANTLRInputStream(query_str);
 
-		if (planner_config.DEBUG_PRINT) {
-			std::cout << "Parsing/Lexing Done" << std::endl;
-		}
+			// Lexer		
+			auto cypherLexer = CypherLexer(&inputStream);
+			//cypherLexer.removeErrorListeners();
+			//cypherLexer.addErrorListener(&parserErrorListener);
+			auto tokens = CommonTokenStream(&cypherLexer);
+			tokens.fill();
 
-		// Parser
-		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+			if (planner_config.DEBUG_PRINT) {
+				std::cout << "Parsing/Lexing Done" << std::endl;
+			}
 
-		// Sematic parsing
-		// Transformer
-		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-		auto statement = transformer.transform();
+			// Parser
+			auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
 
-		if (planner_config.DEBUG_PRINT) {
-			std::cout << "Transformation Done" << std::endl;
-		}
-		
-		// Binder
-		auto binder = kuzu::binder::Binder(client.get());
-		auto boundStatement = binder.bind(*statement);
-		kuzu::binder::BoundStatement * bst = boundStatement.get();
+			// Sematic parsing
+			// Transformer
+			kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+			auto statement = transformer.transform();
 
-		if (planner_config.DEBUG_PRINT) {
-			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-			std::cout << "Tree => " << std::endl;
-			printer.print();
-			std::cout << std::endl;
-		}
+			if (planner_config.DEBUG_PRINT) {
+				std::cout << "Transformation Done" << std::endl;
+			}
+			
+			// Binder
+			auto binder = kuzu::binder::Binder(client.get());
+			auto boundStatement = binder.bind(*statement);
+			kuzu::binder::BoundStatement * bst = boundStatement.get();
 
-		boost::timer::cpu_timer orca_compile_timer;
-		orca_compile_timer.start();
-		planner.execute(bst);
+			if (planner_config.DEBUG_PRINT) {
+				BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+				std::cout << "Tree => " << std::endl;
+				printer.print();
+				std::cout << std::endl;
+			}
 
-		auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
-		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+			boost::timer::cpu_timer orca_compile_timer;
+			orca_compile_timer.start();
+			planner.execute(bst);
 
-		std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
+			auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+			auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+			query_compile_times.push_back(compile_time_ms);
+
+			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
 
 	/*
 		EXECUTE QUERY
 	*/
-
-		// start timer
-		vector<double> query_execution_times;
-		for (int i = 0; i < planner_config.num_iterations; i++) {
 			auto executors = planner.genPipelineExecutors();
 			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
 			std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
@@ -437,7 +438,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
 			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			printOutput(planner, resultChunks, schema);
+			// printOutput(planner, resultChunks, schema);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
@@ -449,6 +450,10 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		double max_exec_time = std::numeric_limits<double>::min();
 		double min_exec_time = std::numeric_limits<double>::max();
 		double accumulated_exec_time = 0.0;
+
+		// get minimum compile time using std
+		double min_compile_time = *std::min_element(query_compile_times.begin(), query_compile_times.end());
+
 		for (int i = 0; i < query_execution_times.size(); i++) {
 			if (max_exec_time < query_execution_times[i]) max_exec_time = query_execution_times[i];
 			if (min_exec_time > query_execution_times[i]) min_exec_time = query_execution_times[i];
@@ -457,7 +462,8 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		if (query_execution_times.size() >= 3) {
 			accumulated_exec_time -= max_exec_time;
 			accumulated_exec_time -= min_exec_time;
-			std::cout << "Average Query Execution Time (w/o min/max exec time): " << accumulated_exec_time / (query_execution_times.size() - 2) << " ms" << std::endl;
+			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size() - 2) << " ms" << std::endl;
+			std::cout << "Average Compile Time: " << min_compile_time << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
 		} else {
 			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size()) << " ms" << std::endl;
 		}
@@ -533,6 +539,7 @@ int main(int argc, char** argv) {
 	// Initialize ClientContext
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
+
 	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 	if (enable_profile) {
 		client.get()->EnableProfiling();

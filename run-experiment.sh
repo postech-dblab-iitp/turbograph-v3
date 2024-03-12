@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Input parameters
+database_path=$1
+queries_path=$2
+query_numbers=$3
+output_file=$4
+
+# Function to parse query numbers
+parse_query_numbers() {
+    if [[ $1 == *-* ]]; then
+        IFS='-' read -ra RANGE <<< "$1"
+        for i in $(seq ${RANGE[0]} ${RANGE[1]}); do
+            echo $i
+        done
+    elif [[ $1 == *';'* ]]; then
+        IFS=';' read -ra NUMS <<< "$1"
+        for i in "${NUMS[@]}"; do
+            echo $i
+        done
+    else
+        echo $1
+    fi
+}
+
+# Parse query numbers
+queries=$(parse_query_numbers $query_numbers)
+
+# Prepare the output file
+echo "Query number,Compile time,Query execution time" > $output_file
+
+# Execute queries
+for query_num in $queries; do
+    query_file="${queries_path}/q${query_num}.cql"
+    if [ ! -f "$query_file" ]; then
+        echo "Query file $query_file not found!"
+        continue
+    fi
+    query_str=$(cat "$query_file")
+    warmup_output=$(timeout 1200 ./build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
+    output_str=$(timeout 1200 ./build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:5 --join-order-optimizer:exhaustive)
+    exit_status=$?
+
+    if [ $exit_status -ne 0 ]; then
+        echo "$query_num, timeout, timeout" >> $output_file
+        continue
+    fi
+
+    # Extract times
+    compile_time=$(echo "$output_str" | grep -oP 'Average Compile Time: \K[0-9.]+')
+    exec_time=$(echo "$output_str" | grep -oP 'Average Query Execution Time: \K[0-9.]+')
+
+    # Write to output file
+    echo "$query_num, $compile_time, $exec_time" >> "$output_file"
+done

@@ -29,10 +29,7 @@ run_query() {
 	fi
 
 	echo "$query_str"
-	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:query --explain --debug-orca
-	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:greedy --profile --explain
-	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --show-top
-	# ./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --index-join-only ${iterations} --join-order-optimizer:exhaustive2 --profile --explain
+	./build_release/tbgpp-client/TurboGraph-S62 --workspace:${workspace} --query:"$query_str" ${debug_plan_option} --disable-merge-join ${iterations} --join-order-optimizer:exhaustive1
 }
 
 run_ldbc_s() {
@@ -858,7 +855,8 @@ run_tpch17() {
 		WITH LID AS LID, LQUAN AS LQUAN, LEXT AS LEXT, avg(item2.L_QUANTITY) as prev_avg_quantity
 		WITH LQUAN AS LQUAN, LEXT AS LEXT, 0.2 * prev_avg_quantity AS avg_quantity
 		WHERE LQUAN < avg_quantity
-		RETURN sum(LEXT) / 7.0 as avg_yearly;" 0
+		WITH sum(LEXT) as SUM_LEXT
+		RETURN SUM_LEXT / 7.0 as avg_yearly;" 0
 }
 
 run_tpch18() {
@@ -908,20 +906,6 @@ run_tpch19() {
 
 run_tpch20() {
 	# TPC-H Q20 Potential Part Promotion Query
-	# not contains! STARTS WITH!
-	run_query "MATCH (n:NATION)<-[:SUPP_BELONG_TO]-(s:SUPPLIER)<-[:SUPPLIED_BY]-(li:LINEITEM)-[:COMPOSED_BY]->(p:PART),
-            (p)-[ps:PARTSUPP]->(s)
-        WHERE n.N_NAME = 'BRAZIL'
-            AND p.P_NAME CONTAINS 'smoke'
-            AND li.L_SHIPDATE >= date('1997-01-01')
-            AND li.L_SHIPDATE < date('1998-01-01')
-        WITH ps._id AS PSID, ps.PS_AVAILQTY AS PS_AVAILQTY, s._id AS SID, s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS, sum(li.L_QUANTITY) as prev_quantity_sum
-        WITH PS_AVAILQTY AS PS_AVAILQTY, S_NAME AS S_NAME, S_ADDRESS AS S_ADDRESS, 0.5 * prev_quantity_sum AS quantity_sum
-        WHERE PS_AVAILQTY > quantity_sum
-        RETURN
-            S_NAME, S_ADDRESS
-        ORDER BY S_NAME;" 0
-
 	run_query "MATCH (n:NATION)<-[:SUPP_BELONG_TO]-(s:SUPPLIER)<-[:SUPPLIED_BY]-(li:LINEITEM)-[:COMPOSED_BY]->(p:PART),
 			(p)-[ps:PARTSUPP]->(s)
         WHERE n.N_NAME = 'BRAZIL' AND li.L_SHIPDATE >= date('1997-01-01')
