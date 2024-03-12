@@ -5,13 +5,13 @@ SF=1
 
 ./tbgpp-execution-engine/bulkload_using_map \
 	--output_dir:"/data/tpch/sf${SF}/" \
-	--nodes:LINEITEM /source-data/tpch/sf${SF}/lineitem.tbl.woadj${SUFFIX} \
-	--nodes:ORDERS /source-data/tpch/sf${SF}/orders.tbl.woadj${SUFFIX} \
-	--nodes:CUSTOMER /source-data/tpch/sf${SF}/customer.tbl.woadj${SUFFIX} \
-	--nodes:NATION /source-data/tpch/sf${SF}/nation.tbl.woadj${SUFFIX} \
+	--nodes:LINEITEM /source-data/tpch/sf${SF}/lineitem.tbl${SUFFIX} \
+	--nodes:ORDERS /source-data/tpch/sf${SF}/orders.tbl${SUFFIX} \
+	--nodes:CUSTOMER /source-data/tpch/sf${SF}/customer.tbl${SUFFIX} \
+	--nodes:NATION /source-data/tpch/sf${SF}/nation.tbl${SUFFIX} \
 	--nodes:REGION /source-data/tpch/sf${SF}/region.tbl${SUFFIX} \
-	--nodes:PART /source-data/tpch/sf${SF}/part.tbl.woadj${SUFFIX} \
-	--nodes:SUPPLIER /source-data/tpch/sf${SF}/supplier.tbl.woadj${SUFFIX} \
+	--nodes:PART /source-data/tpch/sf${SF}/part.tbl${SUFFIX} \
+	--nodes:SUPPLIER /source-data/tpch/sf${SF}/supplier.tbl${SUFFIX} \
 	--relationships:CUST_BELONG_TO /source-data/tpch/sf${SF}/customer_belongTo_nation.tbl${SUFFIX} \
 	--relationships_backward:CUST_BELONG_TO /source-data/tpch/sf${SF}/customer_belongTo_nation.tbl${SUFFIX}.backward \
 	--relationships:COMPOSED_BY /source-data/tpch/sf${SF}/lineitem_composedBy_part.tbl${SUFFIX} \

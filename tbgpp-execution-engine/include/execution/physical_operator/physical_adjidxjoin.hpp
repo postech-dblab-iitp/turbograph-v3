@@ -191,15 +191,6 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
     {
         this->outer_col_maps.push_back(std::move(outer_col_map));
         discard_tgt = discard_edge = false;
-        std::cout << "load_eid: " << load_eid << std::endl;
-        for (auto i = 0; i < this->outer_col_maps[0].size(); i++) {
-            std::cout << "outer_col_maps[0][" << i
-                      << "]: " << this->outer_col_maps[0][i] << std::endl;
-        }
-        for (auto i = 0; i < this->inner_col_map.size(); i++) {
-            std::cout << "inner_col_map[" << i
-                      << "]: " << this->inner_col_map[i] << std::endl;
-        }
         if (load_eid) {
             // D_ASSERT(this->inner_col_map.size() >= 2);  // inner = (tid, eid)
             if (this->inner_col_map.size() == 2) {

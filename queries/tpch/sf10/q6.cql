@@ -1,0 +1,8 @@
+MATCH (li:LINEITEM)
+		WHERE li.L_SHIPDATE >= date('1993-01-01')
+			AND li.L_SHIPDATE < date('1994-01-01')
+			AND li.L_DISCOUNT >= 0.03 - 0.01
+			AND li.L_DISCOUNT <= 0.03 + 0.01
+			AND li.L_QUANTITY < 25
+		RETURN
+			sum(li.L_EXTENDEDPRICE * li.L_DISCOUNT) as revenue;

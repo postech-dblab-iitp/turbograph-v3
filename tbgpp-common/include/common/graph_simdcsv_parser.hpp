@@ -500,11 +500,11 @@ class GraphSIMDCSVFileParser {
 public:
   GraphSIMDCSVFileParser() {}
   ~GraphSIMDCSVFileParser() {
-    // delete[] pcsv.indexes;
+    delete[] pcsv.indexes;
     // aligned_free((void*)p.data());
   }
 
-  size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
+  size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim, size_t num_file_rows) {
 #ifdef __AVX2__
     // fprintf(stdout, "AVX2 defined\n");
 #endif
@@ -520,19 +520,18 @@ public:
     csv::CSVFormat csv_form;
       csv_form.delimiter('|')
               .header_row(0);
-      csv::CSVReader *reader = new csv::CSVReader(csv_file_path, csv_form);
+    std::unique_ptr<csv::CSVReader> reader = make_unique<csv::CSVReader>(csv_file_path, csv_form);
 
     // Parse CSV File
-    // std::cout << "File: " << csv_file_path << ", string size: " << p.size() << std::endl;
-    pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
+    vector<string> col_names = reader->get_col_names();
+    num_columns = col_names.size();
+    pcsv.indexes = new (std::nothrow) uint64_t[num_file_rows * (num_columns+1)]; // can't have more indexes than we have data
     if(pcsv.indexes == nullptr) {
       throw InvalidInputException("You are running out of memory.");
     }
     find_indexes(p.data(), p.size(), pcsv);
 
     // Parse header
-    vector<string> col_names = move(reader->get_col_names());
-    num_columns = col_names.size();
     num_rows = pcsv.n_indexes / num_columns;
     fprintf(stdout, "n_indexes = %ld, num_columns = %ld\n", pcsv.n_indexes, num_columns);
     D_ASSERT((pcsv.n_indexes % num_columns == 0) || (pcsv.n_indexes % num_columns == num_columns - 1)); // no newline at the end of file
@@ -585,7 +584,6 @@ public:
     // Initialize Cursor
     row_cursor = 1; // After the header
     index_cursor = num_columns;
-    delete reader;
 
     return num_rows;
   }
@@ -766,7 +764,6 @@ public:
     D_ASSERT(types.size() == internal_key_types.size());
 
     // Row-oriented manner
-    std::cout << "num_rows: " << num_rows << std::endl;
 		for (; row_cursor < num_rows; row_cursor++) {
 			if (current_index == STORAGE_STANDARD_VECTOR_SIZE) break;
 			for (size_t i = 0; i < required_key_column_idxs.size(); i++) {
