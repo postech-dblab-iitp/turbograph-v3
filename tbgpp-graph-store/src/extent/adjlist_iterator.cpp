@@ -23,27 +23,33 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     
     if (!ext_it ->IsInitialized()) {
         ext_it->Initialize(context, target_types, target_idxs, target_eid); // TODO
-        eid_to_bufptr_idx_map->insert( {target_eid, 0} );
+        eid_to_bufptr_idx_map->insert( {target_eid, std::make_pair<idx_t, data_ptr_t>(0, nullptr)} );
         return false;
     } else {
-        if (eid_to_bufptr_idx_map->find(target_eid) != eid_to_bufptr_idx_map->end()) {
-            if (eid_to_bufptr_idx_map->at(target_eid) != -1) {
+        auto it = eid_to_bufptr_idx_map->find(target_eid);
+        if (it != eid_to_bufptr_idx_map->end()) {
+            if (it->second.first != -1) {
                 // Find! Nothing to do
                 return true;
             } else {
                 // Evicted extent
                 ExtentID evicted_eid;
                 int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
-                eid_to_bufptr_idx_map->at(target_eid) = bufptr_idx;
-                if (evicted_eid != std::numeric_limits<ExtentID>::max()) (*eid_to_bufptr_idx_map)[evicted_eid] = -1;
+                it->second.first = bufptr_idx;
+                it->second.second = nullptr;
+                // if (evicted_eid != std::numeric_limits<ExtentID>::max()) {
+                //     (*eid_to_bufptr_idx_map)[evicted_eid].first = -1;
+                // }
                 return false;
             }
         } else {
             // Fail to find
             ExtentID evicted_eid;
             int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
-            eid_to_bufptr_idx_map->insert( {target_eid, bufptr_idx} );
-            if (evicted_eid != std::numeric_limits<ExtentID>::max()) (*eid_to_bufptr_idx_map)[evicted_eid] = -1;
+            eid_to_bufptr_idx_map->insert( {target_eid, std::make_pair<idx_t, data_ptr_t>(bufptr_idx, nullptr)} );
+            // if (evicted_eid != std::numeric_limits<ExtentID>::max()) {
+            //     (*eid_to_bufptr_idx_map)[evicted_eid].first = -1;
+            // }
             return false;
         }
     }
@@ -89,10 +95,15 @@ void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, u
 void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized) {
     idx_t target_seqno = GET_SEQNO_FROM_PHYSICAL_ID(vid);
     
-    D_ASSERT(eid_to_bufptr_idx_map->at(target_eid) != -1);
-    // if (change_base_ptr) { adjListBase = (idx_t *)cur_adj_list; }
-    ext_it->GetExtent(cur_adj_list, eid_to_bufptr_idx_map->at(target_eid), is_initialized);
-    adjListBase = (idx_t *)cur_adj_list;
+    D_ASSERT(eid_to_bufptr_idx_map->at(target_eid).first != -1);
+    auto &bufptr_adjidx_pair = eid_to_bufptr_idx_map->at(target_eid);
+    if (bufptr_adjidx_pair.second == nullptr) {
+        ext_it->GetExtent(cur_adj_list, bufptr_adjidx_pair.first, is_initialized);
+        bufptr_adjidx_pair.second = cur_adj_list;
+        adjListBase = (idx_t *)cur_adj_list;
+    } else {
+        adjListBase = (idx_t *)bufptr_adjidx_pair.second;
+    }
     start_ptr = adjListBase + (target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1]);
     end_ptr = adjListBase + adjListBase[target_seqno];
 }
@@ -168,7 +179,7 @@ void DFSIterator::initializeDSForNewLv(int new_lv) {
 
 ShortestPathIterator::ShortestPathIterator() {
     ext_it = std::make_shared<ExtentIterator>();
-    eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, int>>();
+    eid_to_bufptr_idx_map = std::make_shared<unordered_map<ExtentID, BufPtrAdjIdxPair>>();
 }
 
 ShortestPathIterator::~ShortestPathIterator() {}

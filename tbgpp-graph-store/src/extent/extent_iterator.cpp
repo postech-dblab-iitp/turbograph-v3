@@ -1470,13 +1470,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];
                 auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
+                auto target_ptr = output.data[output_column_idxs[i]].GetData();
                 for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                     idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    memcpy(output.data[output_column_idxs[i]].GetData() + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                    memcpy(target_ptr + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
                     validity.SetValid(seqno);
                 }
-                
             }
         }
     }
@@ -1661,14 +1661,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];
                 auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
+                auto target_ptr = output.data[output_column_idxs[i]].GetData();
                 for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                     idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    memcpy(output.data[output_column_idxs[i]].GetData() + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                    memcpy(target_ptr + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
                     validity.SetValid(output_seqno);
                     output_seqno++;
                 }
-                
             }
         }
     }
@@ -2032,8 +2032,6 @@ bool ExtentIterator::GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is
             ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[target_toggle][i], true, false);
         }
     }
-
-    CompressionHeader comp_header;
     
     D_ASSERT(ext_property_type.size() == 1);
     for (size_t i = 0; i < ext_property_type.size(); i++) {
