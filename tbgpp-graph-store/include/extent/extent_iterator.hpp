@@ -111,9 +111,9 @@ private:
         Vector &vids = input.data[nodeColIdx];
         auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
         if (cur_ext_property_type[col_idx] == LogicalType::VARCHAR) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], comp_header.GetSizeWoBitSet());
             // size_t comp_header_valid_size = comp_header.GetValidSize();
-            size_t comp_header_valid_size = sizeof(CompressionHeader);
+            size_t comp_header_valid_size = comp_header.GetSizeWoBitSet();
             if (comp_header.comp_type == DICTIONARY) {
                 throw NotImplementedException("Filter predicate on DICTIONARY compression is not implemented yet");
             } else {
@@ -140,9 +140,9 @@ private:
         } else if (cur_ext_property_type[col_idx] == LogicalType::ID) {
             throw InvalidInputException("Filter predicate on PID column");
         } else {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], sizeof(CompressionHeader));
+            memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], comp_header.GetSizeWoBitSet());
             // size_t comp_header_valid_size = comp_header.GetValidSize();
-            size_t comp_header_valid_size = sizeof(CompressionHeader);
+            size_t comp_header_valid_size = comp_header.GetSizeWoBitSet();
             if (comp_header.comp_type == BITPACKING) {
                 throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
             } else {

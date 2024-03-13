@@ -30,7 +30,7 @@ int main() {
   //   exit(-1);
   // }
 
-  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 120 * 1024 * 1024 * 1024L);
+  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", 256 * 1024 * 1024 * 1024L);
   store->Run();
 
   return 0;
