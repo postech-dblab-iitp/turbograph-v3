@@ -450,20 +450,28 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		double max_exec_time = std::numeric_limits<double>::min();
 		double min_exec_time = std::numeric_limits<double>::max();
 		double accumulated_exec_time = 0.0;
-
-		// get minimum compile time using std
-		double min_compile_time = *std::min_element(query_compile_times.begin(), query_compile_times.end());
-
 		for (int i = 0; i < query_execution_times.size(); i++) {
 			if (max_exec_time < query_execution_times[i]) max_exec_time = query_execution_times[i];
 			if (min_exec_time > query_execution_times[i]) min_exec_time = query_execution_times[i];
 			accumulated_exec_time += query_execution_times[i];
 		}
+		// get minimum compile time using std
+		double max_compile_time = std::numeric_limits<double>::min();
+		double min_compile_time = std::numeric_limits<double>::max();
+		double accululated_compile_time = 0.0;
+		for (int i = 0; i < query_compile_times.size(); i++) {
+			if (max_compile_time < query_compile_times[i]) max_compile_time = query_compile_times[i];
+			if (min_compile_time > query_compile_times[i]) min_compile_time = query_compile_times[i];
+			accululated_compile_time += query_compile_times[i];
+		}
+
 		if (query_execution_times.size() >= 3) {
 			accumulated_exec_time -= max_exec_time;
 			accumulated_exec_time -= min_exec_time;
 			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size() - 2) << " ms" << std::endl;
-			std::cout << "Average Compile Time: " << min_compile_time << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
+			accululated_compile_time -= max_compile_time;
+			accululated_compile_time -= min_compile_time;
+			std::cout << "Average Compile Time: " << accululated_compile_time / (query_compile_times.size() - 2) << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
 		} else {
 			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size()) << " ms" << std::endl;
 		}

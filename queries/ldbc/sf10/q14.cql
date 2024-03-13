@@ -1,4 +1,4 @@
-MATCH (person:Person {id: 17592186053137})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
+MATCH (person:Person {id: 2199023278337})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
 WITH liker, message, like.creationDate AS likeTime, person
 ORDER BY likeTime DESC, message.id ASC
 WITH liker, message, person, likeTime,
