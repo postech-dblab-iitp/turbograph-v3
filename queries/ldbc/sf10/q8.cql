@@ -1,4 +1,4 @@
-MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
+MATCH (p:Person {id: 6597069812321}), (friend:Person {firstName: 'John'})
 WHERE NOT p=friend
 WITH p, friend
 MATCH path = shortestPath((p)-[:KNOWS*1..3]-(friend))
