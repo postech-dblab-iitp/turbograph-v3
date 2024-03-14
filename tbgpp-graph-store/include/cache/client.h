@@ -50,6 +50,7 @@ public:
 
   // tslee added for debugging purpose
   int GetRefCount(uint64_t object_id);
+  void GetRemainingMemory();
 
 private:
   int store_conn_;

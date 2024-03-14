@@ -52,7 +52,7 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
             file_handlers[chunk_id]->WaitAllPendingDiskIO(true);
 
             size_t requested_size = ((size_t *)first_block)[0];
-            file_handlers[chunk_id]->SetRequestedSize(requested_size);
+            file_handlers[chunk_id]->SetRequestedSize(requested_size + 8);
             delete first_block;
           }
         }
@@ -135,7 +135,6 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       ReadData(cid, file_path, file_ptr, file_size, false);
 
       if (!is_initial_loading) {
-        // std::cout << "SWIZZLE CID: " << cid << std::endl;
         CacheDataTransformer::Swizzle(*ptr);
       }
       client->Seal(cid);

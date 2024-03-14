@@ -205,6 +205,7 @@ void MemAllocator::Init(sm_offset offset, size_t size) {
   }
 
   split_memory_to_free_lists(offset, size);
+  PrintAvalaibleMemory();
 }
 
 int64_t MemAllocator::remove_from_free_list(int index) {
@@ -266,7 +267,10 @@ int64_t MemAllocator::get_free_block(int size_index) {
   // find a block that is larger than the request block
   int i = size_index + 1;
   while (free_list_->free_list_head[i] < 0) {
-    assert(i <= MAXIMUM_BLOCK_SIZE_LOG);
+    if (i > MAXIMUM_BLOCK_SIZE_LOG) {
+      fprintf(stderr, "Cannot find a free block!");
+      assert(i <= MAXIMUM_BLOCK_SIZE_LOG);
+    }
     i++;
   }
 
@@ -282,7 +286,8 @@ int64_t MemAllocator::get_free_block(int size_index) {
 }
 
 sm_offset MemAllocator::MallocShared(size_t size) {
-  size_t real_size = size + sizeof(MemoryEntry);
+  // size_t real_size = size + sizeof(MemoryEntry);
+  size_t real_size = size;
 
   int size_index = fls(real_size - 1);
   if (size_index < MINIMAL_BLOCK_SIZE_LOG) {
@@ -295,6 +300,7 @@ sm_offset MemAllocator::MallocShared(size_t size) {
   MemoryEntry *entry = &header_->memory_entries[mem_index];
   LOGGED_WRITE(entry->in_use, true, header_, disk_);
   // entry->in_use = true;
+  
   return entry->offset + sizeof(MemoryHeader);
 }
 
@@ -502,23 +508,27 @@ void MemAllocator::FreeShared(sm_offset offset) {
 }
 
 void MemAllocator::PrintAvalaibleMemory() {
+  uint64_t total_available_memory = 0;
   for (int i = 0; i < 64; i++) {
-    if (free_list_->free_list_head[i] > 0) {
+    if (free_list_->free_list_head[i] >= 0) {
 
       int64_t mem_entry_index = free_list_->free_list_head[i];
-      std::cout << i << ":";
+      // std::cout << i << ":";
 
       while (mem_entry_index >= 0) {
         MemoryEntry *cur =
             (MemoryEntry *)&header_->memory_entries[mem_entry_index];
-        std::cout << " " << mem_entry_index << ",";
+        // std::cout << " " << mem_entry_index 
+        //   << "(" << cur->size << ")" << ",";
         mem_entry_index = cur->next;
+        total_available_memory += cur->size;
       }
-      std::cout << std::endl;
+      // std::cout << std::endl;
     } else {
-      std::cout << i << ":" << std::endl;
+      // std::cout << i << ":" << std::endl;
     }
   }
+  std::cout << "total: " << total_available_memory << std::endl;
 }
 
 void MemAllocator::FreeSharedNoLog(sm_offset offset) {
