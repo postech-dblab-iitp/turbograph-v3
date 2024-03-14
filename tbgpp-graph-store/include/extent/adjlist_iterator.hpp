@@ -77,23 +77,29 @@ private:
     std::shared_ptr<unordered_map<ExtentID, BufPtrAdjIdxPair>> eid_to_bufptr_idx_map;
 };
 
+typedef uint64_t NodeID;
+typedef uint64_t EdgeID;
+typedef uint64_t Level;
+
 class ShortestPathIterator {
 public:
     ShortestPathIterator();
     ~ShortestPathIterator();
 
-    void initialize(ClientContext &context, uint64_t src_id, uint64_t tgt_id, uint64_t adj_col_idx);
-    bool getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes);
+    void initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx, Level lower_bound, Level upper_bound);
+    bool getShortestPath(ClientContext &context, std::vector<EdgeID>& edges, std::vector<NodeID>& nodes);
 
 private:
     uint64_t srcId, tgtId;
     uint64_t adjColIdx;
-    std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> predecessor;  // Node ID mapped to a pair of its predecessor and the connecting edge ID
+    Level lowerBound;
+    Level upperBound;
+    std::unordered_map<NodeID, std::pair<NodeID, EdgeID>> predecessor;  // Node ID mapped to a pair of its predecessor and the connecting edge ID
     std::shared_ptr<AdjacencyListIterator> adjlist_iterator;
     std::shared_ptr<ExtentIterator> ext_it = nullptr;
     std::shared_ptr<unordered_map<ExtentID, BufPtrAdjIdxPair>> eid_to_bufptr_idx_map;
 
-    bool enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue);
+    bool enqueueNeighbors(ClientContext &context, NodeID node_id, Level node_level, std::queue<std::pair<NodeID, Level>>& queue);
 };
 
 

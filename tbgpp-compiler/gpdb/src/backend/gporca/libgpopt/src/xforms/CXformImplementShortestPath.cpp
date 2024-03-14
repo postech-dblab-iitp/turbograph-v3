@@ -80,7 +80,9 @@ CXformImplementShortestPath::Transform(CXformContext *pxfctxt, CXformResult *pxf
 		mp, GPOS_NEW(mp) CPhysicalShortestPath(mp, popShortestPath->PnameAlias(),
 			popShortestPath->PtabdescArray(), 
 			popShortestPath->PcrSource(), 
-			popShortestPath->PcrDestination()), 
+			popShortestPath->PcrDestination(),
+			popShortestPath->PathLowerBound(),
+			popShortestPath->PathUpperBound()), 
 			pexprRelational, pexprScalar);
 
 	// add alternative to results
