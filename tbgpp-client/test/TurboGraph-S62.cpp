@@ -552,11 +552,6 @@ int main(int argc, char** argv) {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
 			std::cin.ignore();
-			// input_cmd.reset(readline(shell_prompt.c_str()));
-			// query_str = input_cmd.get();
-			// std::cout << "TurboGraph-S62 >> ";
-			// std::getline(std::cin, query_str, ';');	// receive multiline until ';' comes in
-			// check termination
 			if (query_str.compare(":exit") == 0) {
 				break;
 			} else if (query_str.compare("analyze") == 0) {
