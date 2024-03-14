@@ -338,6 +338,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 /*
 	COMPILATION
 */
+	show_top_10_only = planner_config.num_iterations > 1;
 
 	if (!run_plan_wo_compile) {
 		// start timer
@@ -438,7 +439,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			D_ASSERT(executors.back()->context->query_results != nullptr);
 			auto &resultChunks = *(executors.back()->context->query_results);
 			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			// printOutput(planner, resultChunks, schema);
+			printOutput(planner, resultChunks, schema);
 			
 			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
@@ -447,33 +448,14 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 			}
 		}
-		double max_exec_time = std::numeric_limits<double>::min();
-		double min_exec_time = std::numeric_limits<double>::max();
-		double accumulated_exec_time = 0.0;
-		for (int i = 0; i < query_execution_times.size(); i++) {
-			if (max_exec_time < query_execution_times[i]) max_exec_time = query_execution_times[i];
-			if (min_exec_time > query_execution_times[i]) min_exec_time = query_execution_times[i];
-			accumulated_exec_time += query_execution_times[i];
-		}
-		// get minimum compile time using std
-		double max_compile_time = std::numeric_limits<double>::min();
-		double min_compile_time = std::numeric_limits<double>::max();
-		double accululated_compile_time = 0.0;
-		for (int i = 0; i < query_compile_times.size(); i++) {
-			if (max_compile_time < query_compile_times[i]) max_compile_time = query_compile_times[i];
-			if (min_compile_time > query_compile_times[i]) min_compile_time = query_compile_times[i];
-			accululated_compile_time += query_compile_times[i];
-		}
+		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
+		double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
 
 		if (query_execution_times.size() >= 3) {
-			accumulated_exec_time -= max_exec_time;
-			accumulated_exec_time -= min_exec_time;
-			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size() - 2) << " ms" << std::endl;
-			accululated_compile_time -= max_compile_time;
-			accululated_compile_time -= min_compile_time;
-			std::cout << "Average Compile Time: " << accululated_compile_time / (query_compile_times.size() - 2) << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
+			std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
+			std::cout << "Average Compile Time: " << average_compile_time << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
 		} else {
-			std::cout << "Average Query Execution Time: " << accumulated_exec_time / (query_execution_times.size()) << " ms" << std::endl;
+			std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
 		}
 	} else { // For testing
 		// load plans

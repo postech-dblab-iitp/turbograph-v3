@@ -245,6 +245,20 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 }
                 GPOS_ASSERT(lhs_plan != nullptr);
 
+                // case for shortest path join
+                bool is_shortestpath = qg->getQueryGraphType() == QueryGraphType::SHORTEST;
+
+                // create shorest path operator
+                if (is_shortestpath) {
+                    D_ASSERT(qg->getNumQueryRels() == 1); 
+                    D_ASSERT(is_pathjoin);
+                    D_ASSERT(is_lhs_bound);
+                    D_ASSERT(is_rhs_bound);
+
+                    qg_plan = lPlanShortestPath(qg, lhs, qedge, rhs, lhs_plan);
+                    break;
+                }
+
                 // Scan R
                 LogicalPlan *edge_plan;
                 CExpression *a_r_join_expr;
