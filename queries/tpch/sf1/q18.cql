@@ -2,7 +2,7 @@ MATCH (lineitem: LINEITEM)
 		WITH lineitem.L_ORDERKEY as l_orderkey, sum(lineitem.L_QUANTITY) AS sum_lquantity
 		WHERE sum_lquantity > 315
 		MATCH (item:LINEITEM)-[:IS_PART_OF]->(ord: ORDERS)-[:MADE_BY]->(customer: CUSTOMER)
-		WHERE item.L_ORDERKEY = l_orderkey
+        WHERE ord.O_ORDERKEY = l_orderkey
 		RETURN
 			customer.C_NAME,
 			customer.C_CUSTKEY,

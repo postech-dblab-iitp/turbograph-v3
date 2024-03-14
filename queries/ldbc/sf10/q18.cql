@@ -1,8 +1,8 @@
-MATCH (person:Person {id: 30786325583618})-[:KNOWS*1..2]->(friend:Person)
+MATCH (person:Person {id: 6597069812321})-[:KNOWS*1..2]->(friend:Person)
 WHERE NOT person = friend
 WITH DISTINCT friend
-MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(:Place {name: "Laos", label: "Country"})
-WHERE workAt.workFrom < 2010
+MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: 'Company'})-[:ORG_IS_LOCATED_IN]->(:Place {name: "Papua_New_Guinea", label: "Country"})
+WHERE workAt.workFrom < 2011
 RETURN
         friend.id AS personId,
         friend.firstName AS personFirstName,
