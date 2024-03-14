@@ -502,7 +502,7 @@ public:
   GraphSIMDCSVFileParser() {}
   ~GraphSIMDCSVFileParser() {
     delete[] pcsv.indexes;
-    // aligned_free((void*)p.data());
+    aligned_free((void*)p.data());
   }
 
   size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim, size_t num_file_rows) {
