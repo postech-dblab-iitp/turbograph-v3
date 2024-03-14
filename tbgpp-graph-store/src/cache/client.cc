@@ -976,3 +976,7 @@ int LightningClient::GetRefCount(uint64_t object_id) {
   mpk_lock();
   return status;
 }
+
+void LightningClient::GetRemainingMemory() {
+  allocator_->PrintAvalaibleMemory();
+}
