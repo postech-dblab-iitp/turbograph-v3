@@ -13,9 +13,6 @@ struct LogicalType;
 
 enum class StoreAPIResult { OK, DONE, ERROR };
 
-typedef long VertexID;
-typedef long EdgeID;
-
 typedef std::vector<std::string> PropertyKeys;
 
 enum class LoadAdjListOption { NONE, OUTGOING, INCOMING, BOTH };

@@ -72,7 +72,7 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 		uint64_t dst_id = dst_id_column[srtp_state.input_idx];
 		std::vector<uint64_t> edges;
 		std::vector<uint64_t> nodes;
-		srtp_state.srtp_iter->initialize(*context.client, src_id, dst_id, srtp_state.adj_col_idxs[0]);
+		srtp_state.srtp_iter->initialize(*context.client, src_id, dst_id, srtp_state.adj_col_idxs[0], lower_bound, upper_bound);
 		bool found = srtp_state.srtp_iter->getShortestPath(*context.client, edges, nodes);
 		if(found) {
 			D_ASSERT(edges.size() == nodes.size() - 1);
