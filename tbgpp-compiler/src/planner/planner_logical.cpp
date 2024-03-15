@@ -1685,7 +1685,6 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr,
                                          bool is_node)
 {
     auto table_oids = node_expr->getTableIDs();
-    auto univ_table_oid = node_expr->getUnivTableID();
     GPOS_ASSERT(table_oids.size() >= 1);
 
     std::vector<uint64_t> prop_key_ids;

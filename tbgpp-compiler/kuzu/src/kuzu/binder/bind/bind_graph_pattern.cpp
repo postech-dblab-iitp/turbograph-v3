@@ -331,7 +331,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema;
         duckdb::PropertyKeyID_vector *universal_schema_keyids;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -345,20 +345,21 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
 
         // for each property, create property expression
         // for variable length join, cannot create property
-        for (uint64_t i = 0; i < universal_schema.size(); i++) {
-            auto it = pkey_to_ps_map.find(universal_schema[i]);
+        for (auto pkey_to_ps: pkey_to_ps_map) {
+            auto property_name = pkey_to_ps.first;
             vector<Property> prop_id;
-            if (isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid")) {
+
+            if (isVariableLength && !(property_name == "_sid" || property_name == "_tid")) {
                 // when variable length, only fetch _sid and _tid, propery cannot be fetched
                 continue;
             }
-            for (auto &tid_and_cid_pair : it->second) {
+            for (auto &tid_and_cid_pair : pkey_to_ps.second) {
                 uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(property_name, kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id, universal_schema_keyids->at(i));
-            queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            queryRel->addPropertyExpression(property_name, std::move(prop_idexpr));
         }
         queryRel->setSchemainfoBound(true);
     }
@@ -460,19 +461,14 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         D_ASSERT(client != nullptr);
 
         vector<uint64_t> tableIDs;
-        uint64_t univTableID;
-        bindNodeTableIDsFromPartitions(queryNode->getPartitionIDs(), tableIDs, univTableID);
-        if (tableIDs.size() == 1) univTableID = tableIDs[0];
+        bindNodeTableIDsFromPartitions(queryNode->getPartitionIDs(), tableIDs);
         queryNode->pushBackTableIDs(tableIDs);
-        queryNode->setUnivTableID(univTableID);
 
         // set tableIds
         queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
-        vector<string> universal_schema; // TODO temporary
-        duckdb::PropertyKeyID_vector *universal_schema_keyids;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -484,17 +480,15 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         }
 
         // for each property, create property expression
-        D_ASSERT(universal_schema.size() == universal_schema_keyids->size());
-        for (uint64_t i = 0; i < universal_schema.size(); i++) {
-            auto it = pkey_to_ps_map.find(universal_schema[i]);
+        for (auto pkey_to_ps: pkey_to_ps_map) {
             vector<Property> prop_id;
-            for (auto &tid_and_cid_pair : it->second) {
+            for (auto &tid_and_cid_pair : pkey_to_ps.second) {
                 uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
-                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
+                prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(pkey_to_ps.first, kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id, universal_schema_keyids->at(i));
-            queryNode->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            queryNode->addPropertyExpression(pkey_to_ps.first, std::move(prop_idexpr));
         }
         queryNode->setSchemainfoBound(true);
     }
@@ -606,9 +600,9 @@ void Binder::bindNodePartitionIDs(const vector<string> &tableNames, vector<uint6
     client->db->GetCatalogWrapper().GetPartitionIDs(*client, tableNames, partitionIDs, duckdb::GraphComponentType::VERTEX);
 }
 
-void Binder::bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs, uint64_t &univTableID) {
+void Binder::bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs) {
     D_ASSERT(client != nullptr);
-    client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(*client, partitionIDs, tableIDs, univTableID, duckdb::GraphComponentType::VERTEX);
+    client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(*client, partitionIDs, tableIDs, duckdb::GraphComponentType::VERTEX);
 }
 
 // S62 access catalog and  change to mdids
@@ -642,7 +636,7 @@ void Binder::bindRelTableIDs(const vector<string> &tableNames, const shared_ptr<
 
 void Binder::bindRelTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs, uint64_t &univTableID) {
     D_ASSERT(client != nullptr);
-    client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(*client, partitionIDs, tableIDs, univTableID, duckdb::GraphComponentType::EDGE);
+    client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(*client, partitionIDs, tableIDs, duckdb::GraphComponentType::EDGE);
 }
 
 void Binder::bindRelPartitionIDs(const vector<string> &tableNames, const shared_ptr<NodeExpression> &srcNode,
