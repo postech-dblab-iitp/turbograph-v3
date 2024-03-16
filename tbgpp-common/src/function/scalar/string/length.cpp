@@ -103,6 +103,10 @@ void LengthFun::RegisterFunction(BuiltinFunctions &set) {
 	    {LogicalType::LIST(LogicalType::ANY)}, LogicalType::UBIGINT,
 	    ScalarFunction::UnaryFunction<list_entry_t, uint64_t, PathLengthOperator>, false, false, ListLengthBind);
 	path_length.AddFunction(path_length_unary);
+	path_length.AddFunction(
+		ScalarFunction({LogicalType::PATH(LogicalType::ANY)}, LogicalType::UBIGINT,
+					   ScalarFunction::UnaryFunction<list_entry_t, uint64_t, PathLengthOperator>, false,
+					   false, ListLengthBind));
 	set.AddFunction(path_length);
 
 	set.AddFunction(ScalarFunction("strlen", {LogicalType::VARCHAR}, LogicalType::BIGINT,

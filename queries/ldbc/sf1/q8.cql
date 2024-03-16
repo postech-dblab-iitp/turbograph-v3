@@ -1,29 +1,23 @@
 MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
 WHERE NOT p=friend
 WITH p, friend
-MATCH path = shortestPath((p)-[:KNOWS*1..3]-(friend))
-WITH min(length(path)) AS distance, friend
-ORDER BY
-    distance ASC,
-    friend.lastName ASC,
-    toInteger(friend.id) ASC
+MATCH path = shortestPath((p)-[:KNOWS*]-(friend))
+WITH min(path_length(path)) AS distance, friend
+ORDER BY distance ASC, friend.lastName ASC, friend.id ASC
 LIMIT 20
-
 MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place {label: "City"})
-OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation {label: "University"})-[:IS_LOCATED_IN]->(uniCity: {label: "City"})
+OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation {label: "University"})-[:ORG_IS_LOCATED_IN]->(uniCity:Place {label: "City"})
 WITH friend, collect(
     CASE uni.name
         WHEN null THEN null
-        ELSE [uni.name, studyAt.classYear, uniCity.name]
-    END ) AS unis, friendCity, distance
-
-OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Company {label: "Company"})-[:IS_LOCATED_IN]->(companyCountry:Place {label: "Country"})
+        ELSE list_creation(uni.name, string(studyAt.classYear), uniCity.name)
+    END) AS unis, friendCity, distance
+OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: "Company"})-[:ORG_IS_LOCATED_IN]->(companyCountry:Place {label: "Country"})
 WITH friend, collect(
     CASE company.name
         WHEN null THEN null
-        ELSE [company.name, workAt.workFrom, companyCountry.name]
+        ELSE list_creation(company.name, string(workAt.workFrom), companyCountry.name)
     END ) AS companies, unis, friendCity, distance
-
 RETURN
     friend.id AS friendId,
     friend.lastName AS friendLastName,
@@ -41,5 +35,5 @@ RETURN
 ORDER BY
     distanceFromPerson ASC,
     friendLastName ASC,
-    toInteger(friendId) ASC
-LIMIT 20
+    friendId ASC
+LIMIT 20;

@@ -551,8 +551,9 @@ shared_ptr<Expression> ExpressionBinder::bindIdInCollExpression(const ParsedExpr
 }
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const shared_ptr<Expression>& expression, DataType targetType) {
+    const shared_ptr<Expression>& expression, DataType &targetType) {
     if (targetType.typeID == ANY || expression->dataType == targetType) {
+        targetType = expression->dataType;
         return expression;
     }
     if (expression->dataType.typeID == ANY) {

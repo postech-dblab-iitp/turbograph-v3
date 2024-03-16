@@ -1762,7 +1762,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                  *)(((CScalarConst *)filter_pred_expr->operator[](1)->Pop())
                         ->GetDatum());
         literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
-            CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
+            CMDIdGPDB::CastMdid(datum->MDId())->Oid(), datum->TypeModifier(),
             datum->GetByteArrayValue(), (uint64_t)datum->Size());
     }
 
@@ -4012,7 +4012,7 @@ void Planner::pGenerateFilterExprs(
                  *)(((CScalarConst *)filter_pred_expr->operator[](1)->Pop())
                         ->GetDatum());
         literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
-            CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
+            CMDIdGPDB::CastMdid(datum->MDId())->Oid(), datum->TypeModifier(),
             datum->GetByteArrayValue(), (uint64_t)datum->Size());
 
         unique_ptr<duckdb::Expression> filter_expr;
@@ -4050,7 +4050,7 @@ void Planner::pGenerateFilterExprs(
                  *)(((CScalarConst *)filter_pred_expr->operator[](0)->Pop())
                         ->GetDatum());
         literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
-            CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
+            CMDIdGPDB::CastMdid(datum->MDId())->Oid(), datum->TypeModifier(),
             datum->GetByteArrayValue(), (uint64_t)datum->Size());
 
         unique_ptr<duckdb::Expression> filter_expr;
@@ -4517,8 +4517,8 @@ void Planner::pGetFilterAttrPosAndValue(CExpression *filter_pred_expr,
                                    ->Pop())
                                   ->GetDatum());
     attr_value = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
-        CMDIdGPDB::CastMdid(datum->MDId())->Oid(), datum->GetByteArrayValue(),
-        (uint64_t)datum->Size());
+        CMDIdGPDB::CastMdid(datum->MDId())->Oid(), datum->TypeModifier(),
+        datum->GetByteArrayValue(), (uint64_t)datum->Size());
 }
 
 void Planner::pConvertLocalFilterExprToUnionAllFilterExpr(

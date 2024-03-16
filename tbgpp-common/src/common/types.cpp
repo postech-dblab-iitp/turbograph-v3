@@ -203,7 +203,6 @@ constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
 constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
 constexpr const LogicalTypeId LogicalType::ROWCOL;
-constexpr const LogicalTypeId LogicalType::PATH;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -512,8 +511,7 @@ string LogicalType::ToString() const {
 		if (!type_info_) {
 			return "LIST";
 		}
-		// return ListType::GetChildType(*this).ToString() + "[]";
-		return "ID[]"; // S62 list todo
+		return ListType::GetChildType(*this).ToString() + "[]";
 	}
 	case LogicalTypeId::MAP: {
 		if (!type_info_) {
@@ -996,6 +994,11 @@ const LogicalType &ListType::GetChildType(const LogicalType &type) {
 LogicalType LogicalType::LIST(LogicalType child) {
 	auto info = make_shared<ListTypeInfo>(move(child));
 	return LogicalType(LogicalTypeId::LIST, move(info));
+}
+
+LogicalType LogicalType::PATH(LogicalType child) {
+	auto info = make_shared<ListTypeInfo>(move(child));
+	return LogicalType(LogicalTypeId::PATH, move(info));
 }
 
 //===--------------------------------------------------------------------===//

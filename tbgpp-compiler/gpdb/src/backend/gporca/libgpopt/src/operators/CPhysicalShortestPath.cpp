@@ -235,6 +235,7 @@ CPhysicalShortestPath::FProvidesReqdCols(CExpressionHandle &exprhdl,
 ) const
 {
 	CColRefSet *pcrs = GPOS_NEW(m_mp) CColRefSet(m_mp);
+	pcrs->Union(exprhdl.DeriveOutputColumns(0));
 	pcrs->Union(exprhdl.DeriveDefinedColumns(1));
 
 	BOOL fProvidesCols = pcrs->ContainsAll(pcrsRequired);

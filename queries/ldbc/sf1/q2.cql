@@ -16,6 +16,3 @@ MATCH (:Person {id: 933})<-[:HAS_CREATOR]-(message:Message)
 			person.firstName AS personFirstName,
 			person.lastName AS personLastName
 		ORDER BY messageCreationDate DESC, messageId ASC;
-
-MATCH (message:Comment) RETURN message.id;
-MATCH (message:Message) RETURN message.id;
