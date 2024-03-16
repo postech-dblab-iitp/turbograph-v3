@@ -509,9 +509,11 @@ OperatorResultType PhysicalIdSeek::Execute(
             // }
         }
         // TODO temporary code for deleting the existing iter
-        auto ext_it_exist = state.ext_its.front();
-        state.ext_its.pop();
-        delete ext_it_exist;
+        if (!state.ext_its.empty()) {
+            auto ext_it_exist = state.ext_its.front();
+            state.ext_its.pop();
+            delete ext_it_exist;
+        }
     }
     else {
         for (auto chunk_idx = state.cur_schema_idx; chunk_idx < chunks.size();

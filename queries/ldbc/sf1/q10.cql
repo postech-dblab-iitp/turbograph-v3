@@ -3,7 +3,7 @@ MATCH (countryX:Place {name: "Laos", label: "Country"}),
     (person:Person {id: 17592186055119 })
 WITH person, countryX, countryY
 LIMIT 1
-MATCH (city:Place {label: "City"})-[:IS_PART_OF]->(country: {label: "Country"})
+MATCH (city:Place {label: "City"})-[:IS_PART_OF]->(country:Place {label: "Country"})
 WHERE country._id = countryX._id OR country._id = countryY._id
 WITH person, countryX, countryY, collect(city._id) AS cities
 MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city2:Place)

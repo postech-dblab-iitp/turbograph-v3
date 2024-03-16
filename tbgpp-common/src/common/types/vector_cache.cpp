@@ -23,11 +23,14 @@ public:
 			// memory for the list offsets
 			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			// child data of the list
-			// auto &child_type = ListType::GetChildType(type);
-			auto child_type = LogicalType::ID;
+			if (!type.AuxInfo()) {
+				type = LogicalType::LIST(LogicalType::UBIGINT);
+			}
+			auto &child_type = ListType::GetChildType(type);
 			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type, size));
-			// auto child_vector = make_unique<Vector>(child_type, false, false, size);
-			auto child_vector = make_unique<Vector>(child_type, true, false, size);
+			auto child_vector = make_unique<Vector>(child_type, false, false, size);
+			// TODO correctness check - 240316 we originally use below code
+			// auto child_vector = make_unique<Vector>(child_type, true, false, size);
 			auxiliary = make_unique<VectorListBuffer>(move(child_vector), size);
 			break;
 		}

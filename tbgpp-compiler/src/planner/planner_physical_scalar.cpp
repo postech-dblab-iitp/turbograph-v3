@@ -114,6 +114,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarConst(CExpression * scal
 			// our types
 			duckdb::Value literal_val = DatumSerDes::DeserializeOrcaByteArrayIntoDuckDBValue(
 									CMDIdGPDB::CastMdid(datum->MDId())->Oid(),
+									datum->TypeModifier(),
 									datum->GetByteArrayValue(),
 									(uint64_t) datum->Size());
 			return make_unique<duckdb::BoundConstantExpression>(literal_val);
@@ -324,9 +325,19 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 	// else
 	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), lhs_child_cols, rhs_child_cols));
 
-	// try casting (e_else to e_then)
+	// try casting 
+	// TODO below logic is not correct (MaxLogicalType returns the type with higher typeid) 
+	// e.g. varchar id < ubigint id, which is not the situation we want
 	if (e_then->return_type != e_else->return_type) {
-		e_else = pGenScalarCast(move(e_else), e_then->return_type);
+		duckdb::LogicalType max_type = duckdb::LogicalType::MaxLogicalType(e_then->return_type, e_else->return_type);
+		if (max_type == e_then->return_type) {
+			e_else = pGenScalarCast(move(e_else), e_then->return_type);
+		} else if (max_type == e_else->return_type) {
+			e_then = pGenScalarCast(move(e_then), e_else->return_type);
+		} else {
+			e_then = pGenScalarCast(move(e_then), max_type);
+			e_else = pGenScalarCast(move(e_else), max_type);
+		}
 	}
 
 	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));

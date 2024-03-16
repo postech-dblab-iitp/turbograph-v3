@@ -2598,6 +2598,7 @@ LogicalPlan *Planner::lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, Rel
     CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
     LogicalSchema new_schema;
+    new_schema.appendSchema(prev_plan->getSchema());
 
     string lhs_name = lhs->getUniqueName();
     string rhs_name = rhs->getUniqueName();

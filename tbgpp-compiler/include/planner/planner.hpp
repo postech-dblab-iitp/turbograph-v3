@@ -471,6 +471,14 @@ private:
 				return duckdb::LogicalType::DECIMAL(width, scale);
 			}
 		}
+		else if (type_id == duckdb::LogicalTypeId::LIST) {
+			if (type_mod == -1) {
+				return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
+			}
+			INT child_type_oid = (type_mod & 0xFF) + LOGICAL_TYPE_BASE_ID;
+			INT child_type_mod = (type_mod >> 8);
+			return duckdb::LogicalType::LIST(pConvertTypeOidToLogicalType((OID)child_type_oid, child_type_mod));
+		}
 		else if (type_id == duckdb::LogicalTypeId::PATH) {
 			return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
 		}
@@ -478,6 +486,17 @@ private:
 	}
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+	}
+	inline duckdb::LogicalType pConvertKuzuTypeToLogicalType(DataType type) {
+		switch (type.typeID) {
+		case DataTypeID::PATH:
+			return duckdb::LogicalType::PATH(duckdb::LogicalType::UBIGINT);
+		case DataTypeID::LIST:
+			D_ASSERT(type.childType != nullptr);
+			return duckdb::LogicalType::LIST(pConvertKuzuTypeToLogicalType(*type.childType));
+		default:
+			return duckdb::LogicalType((duckdb::LogicalTypeId)type.typeID);
+		}
 	}
 	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
 	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
