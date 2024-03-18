@@ -1,6 +1,7 @@
 
 #include "execution/physical_operator/physical_shortestpathjoin.hpp"
 #include "typedef.hpp"
+#include "common/output_util.hpp"
 
 namespace duckdb {
 
@@ -40,6 +41,26 @@ public:
 	vector<LogicalType> adj_col_types;	
 };
 
+// TODO remove all getIdRefFromVector
+inline uint64_t &getIdRefFromVector(Vector &vector, idx_t index)
+{
+    switch (vector.GetVectorType()) {
+        case VectorType::DICTIONARY_VECTOR: {
+            return ((uint64_t *)vector.GetData())
+                [DictionaryVector::SelVector(vector).get_index(index)];
+        }
+        case VectorType::FLAT_VECTOR: {
+            return ((uint64_t *)vector.GetData())[index];
+        }
+        case VectorType::CONSTANT_VECTOR: {
+            return ((uint64_t *)ConstantVector::GetData<uintptr_t>(vector))[0];
+        }
+        default: {
+            D_ASSERT(false);
+        }
+    }
+}
+
 //===--------------------------------------------------------------------===//
 // Execute
 //===--------------------------------------------------------------------===//
@@ -64,12 +85,12 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 		D_ASSERT(srtp_state.adj_col_types[0] == LogicalType::FORWARD_ADJLIST);
 	}
 
-	uint64_t *src_id_column = (uint64_t *)input.data[src_id_idx].GetData();
-	uint64_t *dst_id_column = (uint64_t *)input.data[dst_id_idx].GetData();
+	Vector &src_id_vec = input.data[src_id_idx];
+	Vector &dst_id_vec = input.data[dst_id_idx];
 
 	while (srtp_state.input_idx < input.size()) {
-		uint64_t src_id = src_id_column[srtp_state.input_idx];
-		uint64_t dst_id = dst_id_column[srtp_state.input_idx];
+		uint64_t src_id = getIdRefFromVector(src_id_vec, srtp_state.input_idx);
+		uint64_t dst_id = getIdRefFromVector(dst_id_vec, srtp_state.input_idx);
 		std::vector<uint64_t> edges;
 		std::vector<uint64_t> nodes;
 		srtp_state.srtp_iter->initialize(*context.client, src_id, dst_id, srtp_state.adj_col_idxs[0], lower_bound, upper_bound);
@@ -90,6 +111,13 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 		}
 		srtp_state.input_idx++;
 	}
+
+	D_ASSERT(input.ColumnCount() == input_col_map.size());
+	for (idx_t i = 0; i < input.ColumnCount(); i++) {
+		if (input_col_map[i] == std::numeric_limits<uint32_t>::max()) continue;
+		chunk.data[input_col_map[i]].Reference(input.data[i]);
+	}
+
 	chunk.SetCardinality(srtp_state.output_idx);
 	srtp_state.resetForMoreInput();
 	return OperatorResultType::NEED_MORE_INPUT;
