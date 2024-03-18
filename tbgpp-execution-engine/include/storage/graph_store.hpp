@@ -82,7 +82,8 @@ public:
 	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											 vector<vector<idx_t>> &target_seqnos_per_extent, std::unordered_map<idx_t, idx_t> &ps_oid_to_projection_mapping,
-											 vector<idx_t> &mapping_idxs, std::unordered_map<ExtentID, idx_t> &eid_to_mapping_idx);
+											 vector<idx_t> &mapping_idxs, std::unordered_map<ExtentID, idx_t> &eid_to_mapping_idx,
+											 vector<idx_t> &null_tuples_idx);
 	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx);

@@ -1,4 +1,4 @@
-MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
+MATCH (p:Person {id: 30786325583618}), (friend:Person {firstName: 'Chau'})
 WHERE NOT p=friend
 WITH p, friend
 MATCH path = shortestPath((p)-[:KNOWS*]-(friend))
@@ -6,13 +6,13 @@ WITH min(path_length(path)) AS distance, friend
 ORDER BY distance ASC, friend.lastName ASC, friend.id ASC
 LIMIT 20
 MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place {label: "City"})
-OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation {label: "University"})-[:ORG_IS_LOCATED_IN]->(uniCity:Place {label: "City"})
+OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:ORG_IS_LOCATED_IN]->(uniCity:Place)
 WITH friend, collect(
     CASE uni.name
         WHEN null THEN null
         ELSE list_creation(uni.name, string(studyAt.classYear), uniCity.name)
     END) AS unis, friendCity, distance
-OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: "Company"})-[:ORG_IS_LOCATED_IN]->(companyCountry:Place {label: "Country"})
+OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation)-[:ORG_IS_LOCATED_IN]->(companyCountry:Place)
 WITH friend, collect(
     CASE company.name
         WHEN null THEN null

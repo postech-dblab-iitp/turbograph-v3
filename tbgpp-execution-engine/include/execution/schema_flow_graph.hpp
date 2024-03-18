@@ -124,7 +124,20 @@ class SchemaFlowGraph {  // for each pipeline
 
     OperatorType GetOperatorType(idx_t operator_idx)
     {
-        return pipeline_operator_types[operator_idx];
+        if (pipeline_operator_types[operator_idx] == OperatorType::UNARY) {
+            return OperatorType::UNARY;
+        } else if (pipeline_operator_types[operator_idx] ==
+                   OperatorType::BINARY) {
+            D_ASSERT(num_schemas_of_childs[operator_idx].size() == 2);
+            if (num_schemas_of_childs[operator_idx][1] == 1) {
+                return OperatorType::UNARY;
+            } else {
+                D_ASSERT(num_schemas_of_childs[operator_idx][1] >= 2);
+                return OperatorType::BINARY;
+            }
+        } else {
+            D_ASSERT(false);
+        }
     }
 
    private:

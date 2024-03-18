@@ -1203,7 +1203,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 output_projection_mappings_seek /* not used */,
                 outer_col_maps_seek, inner_col_maps_seek,
                 union_inner_col_map_seek, scan_projection_mappings_seek,
-                scan_types_seek, false /* is output UNION Schema */);
+                scan_types_seek, false /* is output UNION Schema */,
+                is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER);
         }
         else {
             // Get filter_exprs
@@ -1218,7 +1219,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
                 outer_col_maps_seek, inner_col_maps_seek,
                 union_inner_col_map_seek, scan_projection_mappings_seek,
                 scan_types_seek, filter_duckdb_exprs,
-                false /* is output UNION Schema */);
+                false /* is output UNION Schema */,
+                is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER);
         }
 
         // Construct schema flow graph
