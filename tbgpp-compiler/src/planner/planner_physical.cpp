@@ -1375,6 +1375,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<uint64_t>> output_projection_mapping;
 
+    duckdb::JoinType join_type = pTranslateJoinType(plan_expr->Pop());
+
     scan_types.push_back(std::vector<duckdb::LogicalType>());
     scan_projection_mapping.push_back(std::vector<uint64_t>());
     output_projection_mapping.push_back(std::vector<uint64_t>());
@@ -1779,14 +1781,15 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, filter_exprs, false);
+                scan_projection_mapping, scan_types, filter_exprs, false,
+                join_type);
             result->push_back(op);
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, false);
+                scan_projection_mapping, scan_types, false, join_type);
             result->push_back(op);
         }
     }
@@ -1795,7 +1798,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
         duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
             tmp_schema, sid_col_idx, oids, output_projection_mapping,
             outer_col_maps, inner_col_maps, union_inner_col_map,
-            scan_projection_mapping, scan_types, false);
+            scan_projection_mapping, scan_types, false, join_type);
         result->push_back(op);
     }
 
@@ -1853,6 +1856,8 @@ void Planner::
     vector<vector<uint64_t>> output_projection_mapping;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<duckdb::LogicalType>> scan_types;
+
+    duckdb::JoinType join_type = pTranslateJoinType(plan_expr->Pop());
 
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         CColRef *col = (*output_cols)[col_idx];
@@ -2087,7 +2092,7 @@ void Planner::
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, true);
+                scan_projection_mapping, scan_types, true, join_type);
             result->push_back(op);
         }
     }
@@ -2123,6 +2128,8 @@ void Planner::
     vector<vector<uint64_t>> output_projection_mapping;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<duckdb::LogicalType>> scan_types;
+
+    duckdb::JoinType join_type = pTranslateJoinType(plan_expr->Pop());
 
     for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
         CColRef *col = (*output_cols)[col_idx];
@@ -2458,14 +2465,14 @@ void Planner::
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, filter_pred_duckdb_exprs,
-                false);
+                false, join_type);
             result->push_back(op);
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, false);
+                scan_projection_mapping, scan_types, false, join_type);
             result->push_back(op);
         }
     }
