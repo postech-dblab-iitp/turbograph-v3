@@ -40,7 +40,9 @@ public:
 	CPhysicalShortestPath(CMemoryPool *mp, const CName *pnameAlias,
 				CTableDescriptorArray *ptabdescArray,
 				CColRef *srccr, 
-				CColRef *destcr);
+				CColRef *destcr,
+				INT path_lower_bound,
+				INT path_upper_bound);
 
 	// dtor
 	virtual ~CPhysicalShortestPath();
@@ -94,6 +96,20 @@ public:
 	PcrDestination() const
 	{
 		return m_destcr;
+	}
+
+	// lower bound
+	INT
+	PathLowerBound() const
+	{
+		return m_path_lower_bound;
+	}
+
+	// upper bound
+	INT
+	PathUpperBound() const
+	{
+		return m_path_upper_bound;
 	}
 
 	//-------------------------------------------------------------------------------------
@@ -229,6 +245,10 @@ private:
 
 	// destination ID column reference
 	CColRef *m_destcr;
+
+	// Bounds
+	INT m_path_lower_bound;
+	INT m_path_upper_bound;
 
 };	// class CPhysicalShortestPath
 

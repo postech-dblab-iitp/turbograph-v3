@@ -184,29 +184,32 @@ ShortestPathIterator::ShortestPathIterator() {
 
 ShortestPathIterator::~ShortestPathIterator() {}
 
-void ShortestPathIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t tgt_id, uint64_t adj_col_idx) {
+void ShortestPathIterator::initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx, Level lower_bound, Level upper_bound) {
     if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
 
     srcId = src_id;
     tgtId = tgt_id;
     adjColIdx = adj_col_idx;
+    lowerBound = lower_bound;
+    upperBound = upper_bound;
     predecessor.clear();
     predecessor[srcId] = {src_id, 0}; // Source node is its own predecessor
     adjlist_iterator = std::make_shared<AdjacencyListIterator>(this->ext_it, this->eid_to_bufptr_idx_map);
 
     // Start the BFS from the source node
-    std::queue<uint64_t> queue;
-    queue.push(srcId);
+    std::queue<std::pair<NodeID, Level>> queue;
+    queue.push(make_pair(srcId, 0));
 
     while (!queue.empty()) {
-        uint64_t current = queue.front();
+        std::pair<NodeID, Level> current = queue.front();
         queue.pop();
-        bool found = enqueueNeighbors(context, current, queue);
+        if (current.second >= upper_bound) { continue; }
+        bool found = enqueueNeighbors(context, current.first, current.second, queue);
         if (found) { break; }
     }
 }
 
-bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t node_id, std::queue<uint64_t>& queue) {
+bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID node_id, Level node_level, std::queue<std::pair<NodeID, Level>>& queue) {
     uint64_t *start_ptr, *end_ptr;
     ExtentID target_eid = node_id >> 32;
     bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
@@ -217,14 +220,14 @@ bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, uint64_t nod
         uint64_t edge_id = *(ptr + 1);
 
         // If found
-        if (neighbor == tgtId) {
+        if (neighbor == tgtId && node_level + 1 >= lowerBound) {
             predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
             return true;
         }
 
         // If the neighbor has not been visited
         if (predecessor.find(neighbor) == predecessor.end()) {
-            queue.push(neighbor);
+            queue.push(make_pair(neighbor, node_level + 1));
             predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
         }
     }

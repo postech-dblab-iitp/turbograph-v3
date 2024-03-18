@@ -2645,7 +2645,7 @@ LogicalPlan *Planner::lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, Rel
     // Create shortest path
     CExpression *shortestpath_expr = 
         GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) 
-            CLogicalShortestPath(mp, &c_path_name, path_table_descs, lhs_col_ref, rhs_col_ref), prev_plan->getPlanExpr(), pexprPrjList);
+            CLogicalShortestPath(mp, &c_path_name, path_table_descs, lhs_col_ref, rhs_col_ref, edge->getLowerBound(), edge->getUpperBound()), prev_plan->getPlanExpr(), pexprPrjList);
 
     // Add new operator
     prev_plan->addUnaryParentOp(shortestpath_expr);
