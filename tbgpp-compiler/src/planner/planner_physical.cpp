@@ -3775,7 +3775,9 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExp
     auto ptabledesc = shrtst_op->PtabdescArray()->operator[](0);
     auto pcr_src = shrtst_op->PcrSource();
     auto pcr_dest = shrtst_op->PcrDestination();
-    
+    auto lower_bound = shrtst_op->PathLowerBound();
+    auto upper_bound = shrtst_op->PathUpperBound();
+
     // DuckDB types
 	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
     vector<duckdb::LogicalType> types;
@@ -3799,7 +3801,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExp
     D_ASSERT(pmdindex != nullptr);
     OID path_index_oid = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
 
-    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalShortestPathJoin(schema, path_index_oid, input_col_map, output_idx, src_id_idx, dest_id_idx);
+    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalShortestPathJoin(schema, path_index_oid, input_col_map, output_idx, src_id_idx, dest_id_idx, lower_bound, upper_bound);
     result->push_back(op);
     pBuildSchemaFlowGraphForUnaryOperator(schema);
 

@@ -34,7 +34,9 @@ CLogicalShortestPath::CLogicalShortestPath(CMemoryPool *mp)
 	  m_pnameAlias(NULL),
 	  m_ptabdescArray(NULL),
 	  m_srccr(NULL),
-	  m_destcr(NULL)
+	  m_destcr(NULL),
+	  m_path_lower_bound(0),
+	  m_path_upper_bound(-1)
 {
 
 }
@@ -50,12 +52,16 @@ CLogicalShortestPath::CLogicalShortestPath(CMemoryPool *mp)
 CLogicalShortestPath::CLogicalShortestPath(CMemoryPool *mp, const CName *pnameAlias,
 				CTableDescriptorArray *ptabdescArray,
 				CColRef *srccr, 
-				CColRef *destcr)
+				CColRef *destcr,
+				INT	lower_bound,
+				INT upper_bound)
 	: CLogicalUnary(mp),
 	  m_pnameAlias(pnameAlias),
 	  m_ptabdescArray(ptabdescArray),
 	  m_srccr(srccr),
-	  m_destcr(destcr)
+	  m_destcr(destcr),
+	  m_path_lower_bound(lower_bound),
+	  m_path_upper_bound(upper_bound)
 {
 	GPOS_ASSERT(NULL != srccr);
 	GPOS_ASSERT(NULL != destcr);

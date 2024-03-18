@@ -45,12 +45,16 @@ CPhysicalShortestPath::CPhysicalShortestPath(CMemoryPool *mp)
 CPhysicalShortestPath::CPhysicalShortestPath(CMemoryPool *mp, const CName *pnameAlias,
 			CTableDescriptorArray *ptabdescArray,
 			CColRef *srccr, 
-			CColRef *destcr)
+			CColRef *destcr,
+			INT path_lower_bound,
+			INT path_upper_bound)
 	: CPhysical(mp),
 	m_pnameAlias(pnameAlias),
 	m_ptabdescArray(ptabdescArray),
 	m_srccr(srccr),
-	m_destcr(destcr)
+	m_destcr(destcr),
+	m_path_lower_bound(path_lower_bound),
+	m_path_upper_bound(path_upper_bound)
 {
 	
 }

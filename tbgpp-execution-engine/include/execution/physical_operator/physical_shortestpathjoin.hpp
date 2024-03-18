@@ -15,13 +15,16 @@ public:
 						uint64_t adjidx_obj_id,
                        vector<uint32_t> &input_col_map,
 					   duckdb::idx_t output_idx,
-					   duckdb::idx_t src_id_idx, duckdb::idx_t dst_id_idx)
+					   duckdb::idx_t src_id_idx, duckdb::idx_t dst_id_idx,
+					   uint64_t lower_bound, uint64_t upper_bound)
 					   : CypherPhysicalOperator(PhysicalOperatorType::SHORTEST_PATH, sch),
 					   adjidx_obj_id(adjidx_obj_id),
 					   input_col_map(input_col_map),
 					   output_idx(output_idx),
 					   src_id_idx(src_id_idx),
-					   dst_id_idx(dst_id_idx) {}
+					   dst_id_idx(dst_id_idx),
+					   lower_bound(lower_bound),
+					   upper_bound(upper_bound) {}
 	
     ~PhysicalShortestPathJoin() {}
 	
@@ -45,6 +48,9 @@ private:
 
 	duckdb::idx_t src_id_idx;
 	duckdb::idx_t dst_id_idx;
+
+	uint64_t lower_bound;
+	uint64_t upper_bound;
 };
 
 } // namespace duckdb
