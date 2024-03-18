@@ -116,7 +116,14 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                         vector<idx_t> &num_tuples_per_chunk) const;
     void referInputChunk(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
+    void referInputChunkLeft(DataChunk &input, DataChunk &chunk,
+                         OperatorState &lstate, idx_t output_idx) const;
     OperatorResultType referInputChunks(DataChunk &input,
+                          vector<unique_ptr<DataChunk>> &chunks,
+                          IdSeekState &state,
+                          vector<idx_t> &num_tuples_per_chunk,
+                          idx_t &output_chunk_idx) const;
+    OperatorResultType referInputChunksLeft(DataChunk &input,
                           vector<unique_ptr<DataChunk>> &chunks,
                           IdSeekState &state,
                           vector<idx_t> &num_tuples_per_chunk,
@@ -138,12 +145,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     mutable vector<vector<LogicalType>> scan_types;  // types scan
     // projection mapping for scan from the storage
     mutable vector<vector<uint64_t>> scan_projection_mapping;
-    mutable vector<vector<uint64_t>> tmp_chunk_mapping;
-
+    
     // filter processing
     bool do_filter_pushdown;
     bool has_unpushdowned_expressions = false;
-    mutable bool is_tmp_chunk_initialized = false;
+    // mutable bool is_tmp_chunk_initialized = false;
     mutable vector<bool> is_tmp_chunk_initialized_per_schema;
     // when negative, no filter pushdown
     mutable int64_t filter_pushdown_key_idx;
@@ -160,7 +166,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     idx_t num_total_schemas = 1;
 
     unique_ptr<Expression> expression;
-    mutable DataChunk tmp_chunk;
+    // mutable DataChunk tmp_chunk;
     vector<unique_ptr<DataChunk>> tmp_chunks;
     mutable ExpressionExecutor executor;
 

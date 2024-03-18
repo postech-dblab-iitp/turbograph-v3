@@ -124,7 +124,7 @@ run_ldbc_s() {
 
 run_ldbc_c1() {
 	# LDBC IC1 Transitive friends with certain name
-	run_query "MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
+	run_query "MATCH (p:Person {id: 30786325583618}), (friend:Person {firstName: 'Chau'})
 		WHERE NOT p=friend
 		WITH p, friend
 		MATCH path = shortestPath((p)-[:KNOWS*]-(friend))
@@ -132,13 +132,13 @@ run_ldbc_c1() {
 		ORDER BY distance ASC, friend.lastName ASC, friend.id ASC
 		LIMIT 20
 		MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place {label: "City"})
-		OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation {label: "University"})-[:ORG_IS_LOCATED_IN]->(uniCity:Place {label: "City"})
+		OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:ORG_IS_LOCATED_IN]->(uniCity:Place)
 		WITH friend, collect(
 			CASE uni.name
 				WHEN null THEN null
 				ELSE list_creation(uni.name, string(studyAt.classYear), uniCity.name)
 			END) AS unis, friendCity, distance
-		OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation {label: "Company"})-[:ORG_IS_LOCATED_IN]->(companyCountry:Place {label: "Country"})
+		OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation)-[:ORG_IS_LOCATED_IN]->(companyCountry:Place)
 		WITH friend, collect(
 			CASE company.name
 				WHEN null THEN null
@@ -320,16 +320,22 @@ run_ldbc_c7() {
 	run_query "MATCH (person:Person {id: 17592186053137})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
 		WITH liker, message, like.creationDate AS likeTime, person
 		ORDER BY likeTime DESC, message.id ASC
-		WITH liker, message, person, likeTime,
-			CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN 0 ELSE 1 END AS isNew
+		WITH
+			liker,
+			first(message.id) AS msg_id,
+			first(likeTime) AS likeCreationDate,
+			first(message.content) AS commentOrPostContent,
+			first(message.creationDate) AS m_creationDate,
+			person
 		RETURN
 			liker.id AS personId,
 			liker.firstName AS personFirstName,
 			liker.lastName AS personLastName,
-			first(message.id) AS msg_id,
-			first(likeTime) AS likeCreationDate,
-			message.content AS commentOrPostContent,
-			isNew
+			msg_id,
+			likeCreationDate,
+			commentOrPostContent,
+			(((likeCreationDate - m_creationDate)/1000.0)/60.0) AS minutesLatency,
+			CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN false ELSE true END AS isNew
 		ORDER BY
 			likeCreationDate DESC,
 			personId ASC
@@ -443,6 +449,7 @@ run_ldbc_c12() {
 			friend.id AS personId,
 			friend.firstName AS personFirstName,
 			friend.lastName AS personLastName,
+			collect(tag.name) AS tagNames,
 			count(comment) AS replyCount
 		ORDER BY
 			replyCount DESC,
