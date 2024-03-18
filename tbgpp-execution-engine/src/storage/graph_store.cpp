@@ -135,21 +135,16 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 }
 
 void
-iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, unordered_map<ExtentID, vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position) {
-	idx_t begin_idx = boundary_position.size() == 0 ? 0 : boundary_position.back() + 1;
-	idx_t end_idx = i - 1;
+iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, unordered_map<ExtentID, vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position, vector<idx_t> &tmp_vec) {
 	auto it = target_seqnos_per_extent_map.find(prev_eid);
 	if (it == target_seqnos_per_extent_map.end()) {
-		vector<idx_t> tmp_vec;
-		for (idx_t j = begin_idx; j <= end_idx; j++)
-			tmp_vec.push_back(j);
 		target_seqnos_per_extent_map.insert({prev_eid, std::move(tmp_vec)});
 	} else {
 		auto &vec = it->second;
-		for (idx_t j = begin_idx; j <= end_idx; j++)
-			vec.push_back(j);
+		for (auto &j : tmp_vec) vec.push_back(j);
 	}
 	boundary_position.push_back(i - 1);
+	tmp_vec.clear();
 }
 
 StoreAPIResult 
@@ -160,55 +155,108 @@ iTbgppGraphStore::InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_it
 {
 	Catalog &cat_instance = client.db->GetCatalog();
 	vector<idx_t> boundary_position;
+	vector<idx_t> tmp_vec;
 	unordered_map<ExtentID, vector<idx_t>> target_seqnos_per_extent_map;
-	ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
+	ExtentID prev_eid = std::numeric_limits<ExtentID>::max();
 	Vector &src_vid_column_vector = input.data[nodeColIdx];
-	target_eids.push_back(prev_eid);
-	switch (src_vid_column_vector.GetVectorType()) {
-		case VectorType::DICTIONARY_VECTOR: {
-			for (size_t i = 0; i < input.size(); i++) {
-				uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[DictionaryVector::SelVector(src_vid_column_vector).get_index(i)];
-				ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
-				if (prev_eid != target_eid) {
-					target_eids.push_back(target_eid);
-					_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position);
+	auto &validity = src_vid_column_vector.GetValidity();
+	// target_eids.push_back(prev_eid);
+	if (validity.AllValid()) {
+		switch (src_vid_column_vector.GetVectorType()) {
+			case VectorType::DICTIONARY_VECTOR: {
+				for (size_t i = 0; i < input.size(); i++) {
+					tmp_vec.push_back(i);
+					uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[DictionaryVector::SelVector(src_vid_column_vector).get_index(i)];
+					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
+					if (i == 0) prev_eid = target_eid;
+					if (prev_eid != target_eid) {
+						target_eids.push_back(target_eid);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+					}
+					prev_eid = target_eid;
 				}
-				prev_eid = target_eid;
+				break;
 			}
-			break;
-		}
-		case VectorType::FLAT_VECTOR: {
-			for (size_t i = 0; i < input.size(); i++) {
-				uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[i];
-				ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
-				if (prev_eid != target_eid) {
-					target_eids.push_back(target_eid);
-					_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position);
+			case VectorType::FLAT_VECTOR: {
+				for (size_t i = 0; i < input.size(); i++) {
+					tmp_vec.push_back(i);
+					uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[i];
+					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
+					if (i == 0) prev_eid = target_eid;
+					if (prev_eid != target_eid) {
+						target_eids.push_back(target_eid);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+					}
+					prev_eid = target_eid;
 				}
-				prev_eid = target_eid;
+				break;
 			}
-			break;
-		}
-		case VectorType::CONSTANT_VECTOR: {
-			for (size_t i = 0; i < input.size(); i++) {
-				uint64_t vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(src_vid_column_vector))[0];
-				ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
-				if (prev_eid != target_eid) {
-					target_eids.push_back(target_eid);
-					_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position);
+			case VectorType::CONSTANT_VECTOR: {
+				for (size_t i = 0; i < input.size(); i++) {
+					tmp_vec.push_back(i);
+					uint64_t vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(src_vid_column_vector))[0];
+					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
+					if (i == 0) prev_eid = target_eid;
+					if (prev_eid != target_eid) {
+						target_eids.push_back(target_eid);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+					}
+					prev_eid = target_eid;
 				}
-				prev_eid = target_eid;
+				break;
 			}
-			break;
+			default: {
+				D_ASSERT(false);
+			}
 		}
-		default: {
-			D_ASSERT(false);
+	} else if (validity.CheckAllInValid()) {
+		return StoreAPIResult::OK;
+	} else {
+		switch (src_vid_column_vector.GetVectorType()) {
+			case VectorType::DICTIONARY_VECTOR: {
+				for (size_t i = 0; i < input.size(); i++) {
+					auto vid_val = src_vid_column_vector.GetValue(i);
+					if (vid_val.IsNull()) continue;
+					tmp_vec.push_back(i);
+					uint64_t vid = vid_val.GetValue<uint64_t>();
+					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
+					if (prev_eid == std::numeric_limits<ExtentID>::max()) prev_eid = target_eid;
+					if (prev_eid != target_eid) {
+						target_eids.push_back(target_eid);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+					}
+					prev_eid = target_eid;
+				}
+			}
+			case VectorType::FLAT_VECTOR: {
+				for (size_t i = 0; i < input.size(); i++) {
+					if (!validity.RowIsValid(i)) continue;
+					tmp_vec.push_back(i);
+					uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[i];
+					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
+					if (prev_eid == std::numeric_limits<ExtentID>::max()) prev_eid = target_eid;
+					if (prev_eid != target_eid) {
+						target_eids.push_back(target_eid);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+					}
+					prev_eid = target_eid;
+				}
+				break;
+			}
+			case VectorType::CONSTANT_VECTOR: {
+				D_ASSERT(false);
+			}
+			default: {
+				D_ASSERT(false);
+			}
 		}
 	}
 
 	// process remaining
-	_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid, target_seqnos_per_extent_map, boundary_position);
-
+	if (tmp_vec.size() > 0) {
+		target_eids.push_back(prev_eid);
+		_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+	}
 
 	// remove redundant eids
 	std::sort(target_eids.begin(), target_eids.end());
@@ -276,6 +324,7 @@ iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataC
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx)
 {
+	if (ext_its.empty()) return StoreAPIResult::DONE;
 	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
