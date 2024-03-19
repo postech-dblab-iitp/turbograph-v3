@@ -11,7 +11,7 @@
 // TODO The hashmap size can affect performance as your data grows. A method for adaptively determining size is needed.
 // #define HASHMAP_SIZE 65536
 // #define HASHMAP_SIZE 262144
-#define HASHMAP_SIZE 1048576
+#define HASHMAP_SIZE 2097152
 // #define MAX_NUM_OBJECTS 100000
 // #define MAX_NUM_OBJECTS 524288
 #define MAX_NUM_OBJECTS 1048576

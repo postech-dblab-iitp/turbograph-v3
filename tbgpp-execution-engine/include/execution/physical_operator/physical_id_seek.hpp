@@ -90,7 +90,6 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     uint64_t id_col_idx;
     mutable vector<uint64_t> oids;
     mutable vector<vector<uint64_t>> projection_mapping;
-    mutable unordered_map<idx_t, idx_t> ps_oid_to_projection_mapping;
 
     // used to initialize output chunks.
     mutable vector<LogicalType> target_types;

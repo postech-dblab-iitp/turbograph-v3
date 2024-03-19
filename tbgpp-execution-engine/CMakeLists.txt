@@ -144,5 +144,6 @@ foreach(test_file ${ENGINE_TEST_SRC})
     tbgpp-graph-store-lib
     tbgpp-execution-engine-lib
     nlohmann_json::nlohmann_json "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
+    tbb
   )
 endforeach(test_file ${TILE_TEST_SRC})

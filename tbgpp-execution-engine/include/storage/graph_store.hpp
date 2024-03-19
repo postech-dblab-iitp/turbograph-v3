@@ -29,6 +29,7 @@ struct RangeFilterValue {
 class ExtentIterator;
 class AdjacencyListIterator;
 class ClientContext;
+class IOCache;
 class GraphStore { 
 
 public:
@@ -77,12 +78,9 @@ public:
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue);
 	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
-											 DataChunk &input, idx_t nodeColIdx, vector<LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-											 vector<idx_t> &boundary_position);
-	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
-											 vector<vector<idx_t>> &target_seqnos_per_extent, std::unordered_map<idx_t, idx_t> &ps_oid_to_projection_mapping,
-											 vector<idx_t> &mapping_idxs, std::unordered_map<ExtentID, idx_t> &eid_to_mapping_idx);
+											 vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &mapping_idxs, 
+											 vector<idx_t> &eid_to_mapping_idx, IOCache* io_cache);
 	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx);
@@ -108,12 +106,14 @@ public:
 	// StoreAPIResult getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase);
 	StoreAPIResult getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, ExtentID &prev_eid, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir);
 
+	void fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>& eid_to_mapping_idx);
+
 	// operator definition for getAdjListRange
 	// StoreAPIResult getAdjListRange(uint64_t vid, uint64_t* start_idx, uint64_t* end_idx);
 	// StoreAPIResult getAdjListFromRange(uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output );
 
 private:
-	void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, unordered_map<ExtentID, vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position);
+	inline void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, vector<vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position);
 
 private:
 	ClientContext &client;

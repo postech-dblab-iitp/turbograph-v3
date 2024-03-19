@@ -1,6 +1,11 @@
 
 #include "typedef.hpp"
 
+// catalog related
+#include "catalog/catalog.hpp"
+#include "main/client_context.hpp"
+#include "main/database.hpp"
+
 #include "common/output_util.hpp"
 #include "common/types/rowcol_type.hpp"
 #include "common/types/schemaless_data_chunk.hpp"
@@ -8,16 +13,21 @@
 #include "extent/extent_iterator.hpp"
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
-
 #include "icecream.hpp"
-
 #include <string>
 
 namespace duckdb {
 
 class IdSeekState : public OperatorState {
    public:
-    explicit IdSeekState() { sel.Initialize(STANDARD_VECTOR_SIZE); }
+    explicit IdSeekState(ClientContext& client, vector<uint64_t> oids) { 
+        sel.Initialize(STANDARD_VECTOR_SIZE); 
+        io_cache.io_buf_ptrs_cache.resize(INITIAL_EXTENT_ID_SPACE);
+        io_cache.io_buf_sizes_cache.resize(INITIAL_EXTENT_ID_SPACE);
+        io_cache.io_cdf_ids_cache.resize(INITIAL_EXTENT_ID_SPACE);
+        io_cache.num_tuples_cache.resize(INITIAL_EXTENT_ID_SPACE);
+        eid_to_schema_idx.resize(INITIAL_EXTENT_ID_SPACE, -1);
+    }
 
    public:
     std::queue<ExtentIterator *> ext_its;
@@ -27,7 +37,8 @@ class IdSeekState : public OperatorState {
     idx_t cur_schema_idx;
     idx_t num_total_schemas;
     vector<SelectionVector> sels;  // TODO do we need this?
-    std::unordered_map<ExtentID, idx_t> cached_eid_to_schema_idx;
+    vector<idx_t> eid_to_schema_idx;
+    IOCache io_cache;
 };
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -55,9 +66,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     }
 
     D_ASSERT(oids.size() == projection_mapping.size());
-    for (auto i = 0; i < oids.size(); i++) {
-        ps_oid_to_projection_mapping.insert({oids[i], i});
-    }
 
     do_filter_pushdown = false;
 
@@ -86,9 +94,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
       is_output_union_schema(is_output_union_schema)
 {
     D_ASSERT(oids.size() == projection_mapping.size());
-    for (auto i = 0; i < oids.size(); i++) {
-        ps_oid_to_projection_mapping.insert({oids[i], i});
-    }
     num_total_schemas =
         this->outer_col_maps.size() * this->inner_col_maps.size();
 
@@ -139,9 +144,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     executor.AddExpression(*expression);
 
     D_ASSERT(oids.size() == projection_mapping.size());
-    for (auto i = 0; i < oids.size(); i++) {
-        ps_oid_to_projection_mapping.insert({oids[i], i});
-    }
 
     do_filter_pushdown = false;
     has_unpushdowned_expressions = true;
@@ -177,9 +179,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
         this->outer_col_maps.size() * this->inner_col_maps.size();
 
     D_ASSERT(oids.size() == projection_mapping.size());
-    for (auto i = 0; i < oids.size(); i++) {
-        ps_oid_to_projection_mapping.insert({oids[i], i});
-    }
 
     do_filter_pushdown = (filter_pushdown_key_idx >= 0);
     has_unpushdowned_expressions = false;
@@ -237,9 +236,6 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     executor.AddExpression(*expression);
 
     D_ASSERT(oids.size() == projection_mapping.size());
-    for (auto i = 0; i < oids.size(); i++) {
-        ps_oid_to_projection_mapping.insert({oids[i], i});
-    }
 
     D_ASSERT(projection_mapping.size() == scan_projection_mapping.size());
     tmp_chunk_mapping.resize(scan_projection_mapping.size());
@@ -271,7 +267,9 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
     ExecutionContext &context) const
 {
-    return make_unique<IdSeekState>();
+    auto state =  make_unique<IdSeekState>(*(context.client), oids);
+    context.client->graph_store->fillEidToMappingIdx(oids, state->eid_to_schema_idx);
+    return state;
 }
 
 void PhysicalIdSeek::InitializeOutputChunks(
@@ -324,8 +322,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
     context.client->graph_store->InitializeVertexIndexSeek(
         state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
-        ps_oid_to_projection_mapping, mapping_idxs,
-        state.cached_eid_to_schema_idx);
+        mapping_idxs, state.eid_to_schema_idx, &state.io_cache);
 
     // TODO
     bool do_unionall = true;
@@ -377,8 +374,7 @@ OperatorResultType PhysicalIdSeek::Execute(
         context.client->graph_store->InitializeVertexIndexSeek(
             state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
             scan_types, target_eids, target_seqnos_per_extent,
-            ps_oid_to_projection_mapping, mapping_idxs,
-            state.cached_eid_to_schema_idx);
+            mapping_idxs, state.eid_to_schema_idx, &state.io_cache);
         state.need_initialize_extit = false;
         state.has_remaining_output = false;
         state.cur_schema_idx = 0;

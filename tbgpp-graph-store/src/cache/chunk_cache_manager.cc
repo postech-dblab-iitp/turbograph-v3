@@ -168,7 +168,7 @@ ReturnStatus ChunkCacheManager::UnPinSegment(ChunkID cid) {
     // throw InvalidInputException("[UnpinSegment] invalid cid");
 
   // Unpin Segment using Lightning Release()
-  client->Release(cid);
+  // client->Release(cid);
   return NOERROR;
 }
 

@@ -100,6 +100,7 @@ typedef idx_t EdgeTypeID;
 
 typedef uint64_t ChunkID;
 
+#define GET_EXTENT_SEQNO_FROM_EID(eid) (eid & 0xFFFF);
 #define GET_EID_FROM_PHYSICAL_ID(pid) (pid >> 32);
 #define GET_SEQNO_FROM_PHYSICAL_ID(pid) (pid & 0x00000000FFFFFFFF);
 
