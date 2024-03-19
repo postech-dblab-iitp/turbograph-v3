@@ -12,6 +12,7 @@
 #include "extent/compression/compression_function.hpp"
 #include "extent/compression/compression_header.hpp"
 #include <limits>
+#include <tuple>
 
 namespace duckdb {
 
@@ -40,9 +41,21 @@ class PropertySchemaCatalogEntry;
 // If possible, change this implementation to support prefetching
 #define MAX_NUM_DATA_CHUNKS 2
 
+typedef vector<uint8_t*> io_buf_ptrs;
+typedef vector<size_t> io_buf_sizes;
+typedef vector<ChunkDefinitionID> io_cdf_ids;
+typedef size_t num_tuple;
+
+typedef struct IOCache {
+    vector<io_buf_ptrs> io_buf_ptrs_cache;
+    vector<io_buf_sizes> io_buf_sizes_cache;
+    vector<io_cdf_ids> io_cdf_ids_cache;
+    vector<num_tuple> num_tuples_cache;
+} IOCache;
+
 class ExtentIterator {
 public:
-    ExtentIterator() {}
+    ExtentIterator(IOCache *io_cache_ = nullptr) : io_cache(io_cache_) {}
     ~ExtentIterator() {}
 
     // Iterate all extents related to the PropertySchemaCatalogEntry
@@ -96,6 +109,11 @@ public:
     //                    idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
     //                    idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized);
+
+    /* Optimization */
+    void IncreaseCacheSize();
+    bool ObtainFromCache(ExtentID &eid, int buf_idx);
+    void PopulateCache(ExtentID &eid, int buf_idx);
 
     bool IsInitialized() {
         return is_initialized;
@@ -184,9 +202,9 @@ private:
 private:
     vector<ExtentID> ext_ids_to_iterate;
     DataChunk* data_chunks[MAX_NUM_DATA_CHUNKS];
-    vector<ChunkDefinitionID> io_requested_cdf_ids[MAX_NUM_DATA_CHUNKS];
-    vector<uint8_t*> io_requested_buf_ptrs[MAX_NUM_DATA_CHUNKS];
-    vector<size_t> io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
+    io_cdf_ids io_requested_cdf_ids[MAX_NUM_DATA_CHUNKS];
+    io_buf_ptrs io_requested_buf_ptrs[MAX_NUM_DATA_CHUNKS];
+    io_buf_sizes io_requested_buf_sizes[MAX_NUM_DATA_CHUNKS];
     size_t num_tuples_in_current_extent[MAX_NUM_DATA_CHUNKS];
     vector<LogicalType> ext_property_type;
     vector<vector<LogicalType>> ext_property_types;
@@ -203,6 +221,9 @@ private:
     bool support_double_buffering;
     bool is_initialized = false;
     PropertySchemaCatalogEntry *ps_cat_entry;
+
+    // Optimization
+    IOCache *io_cache;
 };
 
 } // namespace duckdb

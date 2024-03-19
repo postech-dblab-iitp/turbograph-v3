@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <cstdlib>
 #include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
@@ -23,6 +24,20 @@
 
 const char *name = "lightning";
 static volatile sig_atomic_t got_signal = 0;
+
+inline uint64_t hash_object_id(uint64_t object_id) {
+    // Extracting parts of the object_id and applying modulus operations
+    uint64_t first_part = (object_id >> 48) & 0xFFFF; // Extracts the first 16 bits
+    uint64_t second_part = (object_id >> 32) & 0xFFFF; // Extracts the next 16 bits
+    uint64_t third_part = object_id & 0xFFFFFFFF; // Extracts the last 32 bits
+
+    // Applying modulus operations
+    first_part %= 20;
+    second_part %= 971;
+    third_part %= 52;
+
+    return first_part * 100000 + second_part * 100 + third_part;
+}
 
 void signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
@@ -133,7 +148,7 @@ LightningStore::~LightningStore() {
 
 int64_t LightningStore::find_object(uint64_t object_id) {
   int64_t head_index =
-      store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
+      store_header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
   int64_t current_index = head_index;
 
   while (current_index >= 0) {
@@ -357,7 +372,7 @@ int LightningStore::create_object(uint64_t object_id, sm_offset *offset_ptr,
   new_object->sealed = false;
 
   int64_t head_index =
-      store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list;
+      store_header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
   ObjectEntry *head = &store_header_->object_entries[head_index];
 
   new_object->next = head_index;
@@ -366,7 +381,7 @@ int LightningStore::create_object(uint64_t object_id, sm_offset *offset_ptr,
   if (head_index >= 0) {
     head->prev = new_object_index;
   }
-  store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
+  store_header_->hashmap.hash_entries[hash_object_id(object_id)].object_list =
       new_object_index;
 
   *offset_ptr = object_buffer_offset;
@@ -417,7 +432,7 @@ int LightningStore::delete_object(uint64_t object_id) {
       ObjectEntry *next = &store_header_->object_entries[next_object_index];
       next->prev = -1;
     }
-    store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
+    store_header_->hashmap.hash_entries[hash_object_id(object_id)].object_list =
         next_object_index;
   } else {
     ObjectEntry *prev = &store_header_->object_entries[prev_object_index];

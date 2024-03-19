@@ -15,7 +15,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <thread>
 #include <vector>
 #include <memory>
 #include <string>
