@@ -537,6 +537,7 @@ private:
 	bool pIsAdjIdxJoinInto(CExpression *scalar_expr, CColRefSet *outer_cols, CColRefSet *inner_cols, CExpression *&adjidxjoin_into_expr);
 	CExpression *reBuildFilterExpr(CExpression *filter_expr, CExpression *adjidxjoin_into_expr);
 	CExpression *recursiveBuildFilterExpr(CExpression *scalar_expr, CExpression *adjidxjoin_into_expr);
+	void pGetIdentIndices(unique_ptr<duckdb::Expression> &expr, vector<duckdb::idx_t> &out_idxs);
 
 	// Hash Aggregate Helpers
 	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 

@@ -16,6 +16,7 @@
 #include <queue>
 #include <unordered_map>
 
+#define END_OF_QUEUE nullptr
 
 namespace duckdb {
 
@@ -30,6 +31,7 @@ class ExtentIterator;
 class AdjacencyListIterator;
 class ClientContext;
 class IOCache;
+
 class GraphStore { 
 
 public:
@@ -83,7 +85,8 @@ public:
 											 vector<idx_t> &eid_to_mapping_idx, IOCache* io_cache);
 	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx);
+									 vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &cols_to_include,
+									 idx_t current_pos, vector<idx_t> output_col_idx);
 	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,

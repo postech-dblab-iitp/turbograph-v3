@@ -943,6 +943,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<vector<uint64_t>> output_projection_mappings_seek(1);
     vector<vector<duckdb::LogicalType>> scan_types_seek(1);
     unique_ptr<duckdb::Expression> filter_duckdb_expr;
+    vector<duckdb::idx_t> filter_col_idxs;
     duckdb::Schema schema_adj;
     duckdb::Schema schema_seek;
     duckdb::Schema schema_proj;
@@ -1211,13 +1212,14 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             pGetFilterDuckDBExprs(filter_expr, adj_output_cols, seek_inner_cols,
                                   adj_output_cols->Size(),
                                   filter_duckdb_exprs);
+            pGetIdentIndices(filter_duckdb_exprs[0], filter_col_idxs);
             // Construct IdSeek Operator for filter
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
                 schema_seek, edge_id_col_idx, seek_obj_ids,
                 output_projection_mappings_seek /* not used */,
                 outer_col_maps_seek, inner_col_maps_seek,
                 union_inner_col_map_seek, scan_projection_mappings_seek,
-                scan_types_seek, filter_duckdb_exprs,
+                scan_types_seek, filter_duckdb_exprs, filter_col_idxs,
                 false /* is output UNION Schema */);
         }
 
@@ -1410,6 +1412,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     duckdb::ExpressionType exp_type;
     CColRefArray *filter_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
     vector<unique_ptr<duckdb::Expression>> filter_exprs;
+    vector<duckdb::idx_t> filter_col_idxs;
     size_t num_outer_schemas = pGetNumOuterSchemas();
 
     while (true) {
@@ -1643,6 +1646,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
                 filter_pred_expr, outer_cols, inner_required_cols);
             pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                outer_cols->Size());
+            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
             filter_exprs.push_back(std::move(filter_duckdb_expr));
         }
         else if (inner_root->Pop()->Eopid() ==
@@ -1779,7 +1783,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, filter_exprs, false);
+                scan_projection_mapping, scan_types, filter_exprs, filter_col_idxs, 
+                false);
             result->push_back(op);
         }
         else {
@@ -2153,6 +2158,7 @@ void Planner::
     CExpression *filter_pred_expr = NULL;
     CExpression *idxscan_expr = NULL;
     vector<unique_ptr<duckdb::Expression>> filter_pred_duckdb_exprs;
+    vector<duckdb::idx_t> filter_col_idxs;
     vector<vector<ULONG>> inner_col_ids;
 
     while (true) {
@@ -2405,6 +2411,7 @@ void Planner::
                 filter_pred_expr, outer_cols, idxscan_cols);
             pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                outer_cols->Size());
+            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
             filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
         }
 
@@ -2458,7 +2465,7 @@ void Planner::
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, filter_pred_duckdb_exprs,
-                false);
+                filter_col_idxs, false);
             result->push_back(op);
         }
         else {
@@ -5248,6 +5255,80 @@ void Planner::pGetFilterDuckDBExprs(
         pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                            index_shifting_size);
     out_exprs.push_back(std::move(filter_duckdb_expr));
+}
+
+void Planner::pGetIdentIndices(unique_ptr<duckdb::Expression> &unique_expr,
+                               vector<duckdb::idx_t> &out_idxs)
+{
+    auto expr = unique_expr.get();
+    
+	switch (expr->expression_class) {
+    case duckdb::ExpressionClass::BOUND_BETWEEN:
+    {
+        auto bound_expr = (duckdb::BoundBetweenExpression *)expr;
+        pGetIdentIndices(bound_expr->input, out_idxs);
+        pGetIdentIndices(bound_expr->lower, out_idxs);
+        pGetIdentIndices(bound_expr->upper, out_idxs);
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_REF:
+    {
+        auto bound_ref_expr = (duckdb::BoundReferenceExpression *)expr;
+        out_idxs.push_back(bound_ref_expr->index);
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_CASE:
+    {
+        auto bound_case_expr = (duckdb::BoundCaseExpression *)expr;
+        for (auto &bound_case_check : bound_case_expr->case_checks) {
+            pGetIdentIndices(bound_case_check.when_expr, out_idxs);
+            pGetIdentIndices(bound_case_check.then_expr, out_idxs);
+        }
+        pGetIdentIndices(bound_case_expr->else_expr, out_idxs);
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_CAST:
+    {
+        auto bound_cast_expr = (duckdb::BoundCastExpression *)expr;
+        pGetIdentIndices(bound_cast_expr->child, out_idxs);
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_COMPARISON:
+    {
+        auto bound_cmp_expr = (duckdb::BoundComparisonExpression *)expr;
+        pGetIdentIndices(bound_cmp_expr->left, out_idxs);
+        pGetIdentIndices(bound_cmp_expr->right, out_idxs);
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_CONJUNCTION:
+    {
+        auto bound_conj_expr = (duckdb::BoundConjunctionExpression *)expr;
+        for (auto &child : bound_conj_expr->children) {
+            pGetIdentIndices({child}, out_idxs);
+        }
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_CONSTANT:
+        break;
+    case duckdb::ExpressionClass::BOUND_FUNCTION:
+    {
+        auto bound_func_expr = (duckdb::BoundFunctionExpression *)expr;
+        for (auto &child : bound_func_expr->children) {
+            pGetIdentIndices(child, out_idxs);
+        }
+        break;
+    }
+    case duckdb::ExpressionClass::BOUND_OPERATOR:
+    {
+        auto bound_op_expr = (duckdb::BoundOperatorExpression *)expr;
+        for (auto &child : bound_op_expr->children) {
+            pGetIdentIndices(child, out_idxs);
+        }
+        break;
+    }
+    default:
+        throw NotImplementedException("Attempting to execute expression of unknown type!");
+    }
 }
 
 // void Planner::pSeperatePropertyNonPropertyCols(CColRefArray *input_cols,
