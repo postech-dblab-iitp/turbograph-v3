@@ -407,7 +407,7 @@ bool ExtentIterator::RequestNextIO(ClientContext &context, DataChunk &output, Ex
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, size_t scan_size, bool is_output_chunk_initialized) {
     // We should avoid data copy here.. but copy for demo temporarliy
     // Keep previous values
-    if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
+    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
@@ -510,7 +510,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     // We should avoid data copy here.. but copy for demo temporarliy
     // Keep previous values
     // icecream::ic.enable(); IC(); IC(current_idx, max_idx, current_idx_in_this_extent, scan_size); icecream::ic.disable();
-    if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
+    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
@@ -859,7 +859,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-    if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
+    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
@@ -899,7 +899,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                    int64_t &filterKeyColIdx, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
                                    bool l_inclusive, bool r_inclusive, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-    if (current_idx_in_this_extent == (STORAGE_STANDARD_VECTOR_SIZE / scan_size)) {
+    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
         current_idx++;
         current_idx_in_this_extent = 0;
     }
