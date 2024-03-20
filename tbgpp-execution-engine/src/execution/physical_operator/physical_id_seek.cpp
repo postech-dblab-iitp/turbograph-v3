@@ -72,6 +72,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     do_filter_pushdown = false;
 
+    genNonPredColIdxs();
     generatePartialSchemaInfos();
 }
 
@@ -104,6 +105,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     do_filter_pushdown = false;
 
+    genNonPredColIdxs();
     generatePartialSchemaInfos();
 }
 
@@ -159,6 +161,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     }
     is_tmp_chunk_initialized_per_schema.resize(num_total_schemas, false);
 
+    genNonPredColIdxs();
     generatePartialSchemaInfos();
 }
 
@@ -196,6 +199,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     do_filter_pushdown = (filter_pushdown_key_idx >= 0);
     has_unpushdowned_expressions = false;
 
+    genNonPredColIdxs();
     generatePartialSchemaInfos();
 }
 
@@ -261,12 +265,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     }
     is_tmp_chunk_initialized_per_schema.resize(num_total_schemas, false);
 
-    for (auto i = 0; i < this->inner_col_maps[0].size() + this->outer_col_maps[0].size(); i++) {
-        if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), i) == pred_col_idxs.end()) {
-            non_pred_col_idxs.push_back(i);
-        }
-    }
-
+    genNonPredColIdxs();
     generatePartialSchemaInfos();
 }
 
@@ -626,8 +625,8 @@ void PhysicalIdSeek::doSeekUnionAll(
                 }
                 context.client->graph_store->doVertexIndexSeek(
                     state.ext_its, chunk, input, nodeColIdx, target_types,
-                    target_eids, target_seqnos_per_extent, extentIdx,
-                    output_col_idx);
+                    target_eids, target_seqnos_per_extent, non_pred_col_idxs, 
+                    extentIdx, output_col_idx);
             }
         }
     }
@@ -1304,6 +1303,15 @@ void PhysicalIdSeek::getOutputIdxsForFilteredSeek(
     auto inner_size = inner_col_maps[inner_col_maps_idx].size();
     for (idx_t i = 0; i < inner_size; i++) {
         output_col_idx.push_back(i + outer_size);
+    }
+}
+
+void PhysicalIdSeek::genNonPredColIdxs()
+{
+    for (auto i = 0; i < this->inner_col_maps[0].size() + this->outer_col_maps[0].size(); i++) {
+        if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), i) == pred_col_idxs.end()) {
+            non_pred_col_idxs.push_back(i);
+        }
     }
 }
 
