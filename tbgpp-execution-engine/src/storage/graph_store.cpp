@@ -327,14 +327,13 @@ iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataC
 		output_col_idx, target_seqnos_per_extent[current_pos], cols_to_include);
 
 	if (scan_ongoing) {
-		//output.Reference(*output_);
 		D_ASSERT(current_eid == target_eid);
 		return StoreAPIResult::OK;
 	} else {
 		ext_its.pop();
-		delete ext_it;
-		if (ext_its.size() > 0)
+		if (ext_its.size() > 0) {
 			return StoreAPIResult::OK;
+		}
 		else
 			return StoreAPIResult::DONE;
 	}

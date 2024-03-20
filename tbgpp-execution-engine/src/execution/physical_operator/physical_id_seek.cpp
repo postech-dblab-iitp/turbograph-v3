@@ -612,6 +612,31 @@ void PhysicalIdSeek::doSeekUnionAll(
             tmp_chunk.SetCardinality(input.size());
 
             output_idx = executor.SelectExpression(tmp_chunk, state.sel);
+            
+            state.ext_its.front()->Rewind(); // temporary code for rewind
+            if (non_pred_col_idxs.size() > 0) {
+                vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
+                getFilteredTargetSeqno(
+                    target_seqnos_per_extent, 
+                    state.sel.data(),
+                    output_idx, 
+                    target_seqnos_per_extent_after_filter);
+                // Perform actual scan
+                for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
+                    extentIdx++) {
+                    idx_t chunk_idx =
+                        input.GetSchemaIdx() * this->inner_col_maps.size() +
+                        mapping_idxs[extentIdx];
+                    
+                    auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
+                    vector<idx_t> output_col_idx;
+                    getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
+                    context.client->graph_store->doVertexIndexSeek(
+                        state.ext_its, tmp_chunk, input, nodeColIdx,
+                        target_types, target_eids, target_seqnos_per_extent_after_filter,
+                        non_pred_col_idxs, extentIdx, output_col_idx);
+                }
+            }
         }
         else { // not any filter
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
@@ -774,6 +799,31 @@ void PhysicalIdSeek::doSeekGrouping(
                     tmp_chunk, state.sels[chunk_idx]);
             }
 
+            D_ASSERT(state.ext_its.size() == 1);
+            state.ext_its.front()->Rewind(); // temporary code for rewind
+            if (non_pred_col_idxs.size() > 0) {
+                vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
+                getFilteredTargetSeqno(
+                    target_seqnos_per_extent, 
+                    state.sels[0].data(),
+                    num_tuples_per_chunk[0], 
+                    target_seqnos_per_extent_after_filter);
+                // Perform actual scan
+                for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
+                    extentIdx++) {
+                    idx_t chunk_idx =
+                        input.GetSchemaIdx() * this->inner_col_maps.size() +
+                        mapping_idxs[extentIdx];
+                    
+                    auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
+                    vector<idx_t> output_col_idx;
+                    getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
+                    context.client->graph_store->doVertexIndexSeek(
+                        state.ext_its, tmp_chunk, input, nodeColIdx,
+                        target_types, target_eids, target_seqnos_per_extent_after_filter,
+                        non_pred_col_idxs, extentIdx, output_col_idx);
+                }
+            }
             state.has_remaining_output = true;
         }
         else { // not any filter
@@ -1303,6 +1353,31 @@ void PhysicalIdSeek::getOutputIdxsForFilteredSeek(
     auto inner_size = inner_col_maps[inner_col_maps_idx].size();
     for (idx_t i = 0; i < inner_size; i++) {
         output_col_idx.push_back(i + outer_size);
+    }
+}
+
+void PhysicalIdSeek::getFilteredTargetSeqno(const vector<vector<idx_t>>& target_seqnos_per_extent, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const {
+    out_seqnos.reserve(target_seqnos_per_extent.size());
+
+    for (const auto& vec : target_seqnos_per_extent) {
+        vector<idx_t> selected;
+        size_t sel_idx = 0;
+
+        for (auto val : vec) {
+            while (sel_idx < count && sel_idxs[sel_idx] < val) {
+                ++sel_idx;
+            }
+
+            if (sel_idx >= count) {
+                break;
+            }
+
+            if (sel_idxs[sel_idx] == val) {
+                selected.push_back(val);
+            }
+        }
+
+        out_seqnos.push_back(std::move(selected));
     }
 }
 

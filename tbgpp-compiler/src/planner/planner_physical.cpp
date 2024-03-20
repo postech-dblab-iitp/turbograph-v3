@@ -1651,6 +1651,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
             pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
             pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                outer_cols->Size());
+            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
             filter_exprs.push_back(std::move(filter_duckdb_expr));
         }
         else if (inner_root->Pop()->Eopid() ==
