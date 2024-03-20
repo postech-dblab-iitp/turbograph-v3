@@ -330,7 +330,7 @@ void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk
 		std::cout << "Dump Done!" << std::endl << std::endl;;
 	}
 
-	OutputUtil::PrintQueryOutput(col_names, resultChunks, show_top_10_only);
+	OutputUtil::PrintQueryOutput(col_names, resultChunks, true);
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
@@ -450,12 +450,8 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
 		double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
 
-		if (query_execution_times.size() >= 3) {
-			std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
-			std::cout << "Average Compile Time: " << average_compile_time << " ms" << std::endl; // This is wrong, but I used. Because currently timer contains orca init time	
-		} else {
-			std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
-		}
+		std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
+		std::cout << "Average Compile Time: " << average_compile_time << " ms" << std::endl;
 	} else { // For testing
 		// load plans
 		auto suite = QueryPlanSuite(*client.get());
