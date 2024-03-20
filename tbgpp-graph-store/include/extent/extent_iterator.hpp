@@ -68,6 +68,7 @@ public:
     int RequestNewIO(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_,
                      ExtentID target_eid, ExtentID &evicted_eid);
     bool RequestNextIO(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized);
+    void Rewind();
 
     /* no filter pushdown */
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
@@ -114,6 +115,9 @@ public:
     void IncreaseCacheSize();
     bool ObtainFromCache(ExtentID &eid, int buf_idx);
     void PopulateCache(ExtentID &eid, int buf_idx);
+    bool IsRewinded() {
+        return is_rewinded;
+    }
 
     bool IsInitialized() {
         return is_initialized;
@@ -220,6 +224,7 @@ private:
     int target_idxs_offset = 0;
     bool support_double_buffering;
     bool is_initialized = false;
+    bool is_rewinded = false;
     PropertySchemaCatalogEntry *ps_cat_entry;
 
     // Optimization

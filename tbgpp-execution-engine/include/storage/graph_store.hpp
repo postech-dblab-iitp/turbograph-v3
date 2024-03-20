@@ -16,6 +16,7 @@
 #include <queue>
 #include <unordered_map>
 
+#define END_OF_QUEUE nullptr
 
 namespace duckdb {
 
@@ -30,6 +31,7 @@ class ExtentIterator;
 class AdjacencyListIterator;
 class ClientContext;
 class IOCache;
+
 class GraphStore { 
 
 public:
