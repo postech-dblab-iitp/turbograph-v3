@@ -394,10 +394,15 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		duckdb::OperatorResultType opResult;
 		StartOperator(pipeline->GetIdxOperator(current_idx));
 		if (cur_op_type == OperatorType::UNARY) {
-			D_ASSERT(!pipeline->GetIdxOperator(current_idx)->IsSink());
 			// execute operator
-			opResult = pipeline->GetIdxOperator(current_idx)->Execute(
-				*context, *prev_output_chunk, *current_output_chunk, *local_operator_states[current_idx-1]);
+			if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
+				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+					*context, *prev_output_chunk, *current_output_chunk, *local_operator_states[current_idx-1]);
+			} else {
+				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
+					*context, *prev_output_chunk, *current_output_chunk, *local_operator_states[current_idx-1],
+					*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
+			}
 
 			// register output schema index
 			opOutputSchemaIdx[current_idx] = current_output_schema_idx;

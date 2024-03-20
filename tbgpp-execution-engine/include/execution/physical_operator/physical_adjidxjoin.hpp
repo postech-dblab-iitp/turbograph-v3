@@ -290,6 +290,11 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         uint64_t tgt_vid, uint64_t *&tgt_adj_column, uint64_t *&eid_adj_column,
         ValidityMask *tgt_validity_mask, ValidityMask *eid_validity_mask,
         ExpandDirection &cur_direction) const;
+    inline void AdvanceToNextLHS(AdjIdxJoinState &state, uint64_t *adj_start,
+                                 uint64_t *adj_end, uint64_t *&tgt_adj_column,
+                                 uint64_t *&eid_adj_column,
+                                 ValidityMask *tgt_validity_mask,
+                                 ValidityMask *eid_validity_mask) const;
     void FillLHSOutput(AdjIdxJoinState &state, DataChunk &input,
                        DataChunk &chunk) const;
     void InitializeAdjIdxJoin(AdjIdxJoinState &state, ExecutionContext &context,

@@ -3,19 +3,21 @@
 
 #include "execution/expression_executor.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-
+#include "common/enums/join_type.hpp"
 #include "common/types/value.hpp"
 
 namespace duckdb {
 
 class PartialSchema;
+class IdSeekState;
 class PhysicalIdSeek : public CypherPhysicalOperator {
 
    public:
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
-                   vector<vector<uint32_t>> &inner_col_maps);
+                   vector<vector<uint32_t>> &inner_col_maps,
+                   JoinType join_type = JoinType::INNER);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
@@ -23,19 +25,22 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
-                   bool is_output_union_schema);
+                   bool is_output_union_schema,
+                   JoinType join_type = JoinType::INNER);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
                    vector<vector<uint32_t>> &inner_col_maps,
-                   vector<unique_ptr<Expression>> predicates);
+                   vector<unique_ptr<Expression>> predicates,
+                   JoinType join_type = JoinType::INNER);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
                    vector<vector<uint32_t>> &inner_col_maps,
                    vector<duckdb::LogicalType> scan_type,
                    vector<vector<uint64_t>> scan_projection_mapping,
-                   int64_t filterKeyIndex, duckdb::Value filterValue);
+                   int64_t filterKeyIndex, duckdb::Value filterValue,
+                   JoinType join_type = JoinType::INNER);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
@@ -44,7 +49,9 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
                    vector<unique_ptr<Expression>>& predicates,
-                   bool is_output_union_schema);
+                   vector<idx_t> &pred_col_idxs,
+                   bool is_output_union_schema,
+                   JoinType join_type = JoinType::INNER);
     ~PhysicalIdSeek() {
         for (auto &chunk : tmp_chunks) {
             chunk.reset();
@@ -57,10 +64,24 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     OperatorResultType Execute(ExecutionContext &context, DataChunk &input,
                                DataChunk &chunk,
                                OperatorState &state) const override;
+    OperatorResultType ExecuteInner(ExecutionContext &context, DataChunk &input,
+                               DataChunk &chunk,
+                               OperatorState &state) const;
+    OperatorResultType ExecuteLeft(ExecutionContext &context, DataChunk &input,
+                               DataChunk &chunk,
+                               OperatorState &state) const;
     OperatorResultType Execute(ExecutionContext &context, DataChunk &input,
                                vector<unique_ptr<DataChunk>> &chunks,
                                OperatorState &state,
                                idx_t &output_chunk_idx) const override;
+    OperatorResultType ExecuteInner(ExecutionContext &context, DataChunk &input,
+                               vector<unique_ptr<DataChunk>> &chunks,
+                               OperatorState &state,
+                               idx_t &output_chunk_idx) const;
+    OperatorResultType ExecuteLeft(ExecutionContext &context, DataChunk &input,
+                               vector<unique_ptr<DataChunk>> &chunks,
+                               OperatorState &state,
+                               idx_t &output_chunk_idx) const;
     virtual void InitializeOutputChunks(
         std::vector<unique_ptr<DataChunk>> &output_chunks,
         Schema &output_schema, idx_t idx) override;
@@ -70,6 +91,13 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
 
 
     // internal functions
+    void initializeSeek(ExecutionContext &context, DataChunk &input,
+                        vector<unique_ptr<DataChunk>> &chunks,
+                        IdSeekState &state, idx_t nodeColIdx,
+                        vector<ExtentID> &target_eids,
+                        vector<vector<idx_t>> &target_seqnos_per_extent,
+                        vector<idx_t> &mapping_idxs,
+                        vector<idx_t> &num_tuples_per_chunk) const;
     void doSeekUnionAll(ExecutionContext &context, DataChunk &input,
                         DataChunk &chunk, OperatorState &lstate,
                         vector<ExtentID> &target_eids,
@@ -80,8 +108,27 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                           vector<ExtentID> &target_eids,
                           vector<vector<idx_t>> &target_seqnos_per_extent,
                           vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
+    void doSeekGrouping(ExecutionContext &context, DataChunk &input,
+                        vector<unique_ptr<DataChunk>> &chunks,
+                        IdSeekState &state, idx_t nodeColIdx,
+                        vector<ExtentID> &target_eids,
+                        vector<vector<idx_t>> &target_seqnos_per_extent,
+                        vector<idx_t> &mapping_idxs,
+                        vector<idx_t> &num_tuples_per_chunk) const;
     void referInputChunk(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
+    void referInputChunkLeft(DataChunk &input, DataChunk &chunk,
+                         OperatorState &lstate, idx_t output_idx) const;
+    OperatorResultType referInputChunks(DataChunk &input,
+                          vector<unique_ptr<DataChunk>> &chunks,
+                          IdSeekState &state,
+                          vector<idx_t> &num_tuples_per_chunk,
+                          idx_t &output_chunk_idx) const;
+    OperatorResultType referInputChunksLeft(DataChunk &input,
+                          vector<unique_ptr<DataChunk>> &chunks,
+                          IdSeekState &state,
+                          vector<idx_t> &num_tuples_per_chunk,
+                          idx_t &output_chunk_idx) const;
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
@@ -98,12 +145,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     mutable vector<vector<LogicalType>> scan_types;  // types scan
     // projection mapping for scan from the storage
     mutable vector<vector<uint64_t>> scan_projection_mapping;
-    mutable vector<vector<uint64_t>> tmp_chunk_mapping;
-
+    
     // filter processing
     bool do_filter_pushdown;
     bool has_unpushdowned_expressions = false;
-    mutable bool is_tmp_chunk_initialized = false;
+    // mutable bool is_tmp_chunk_initialized = false;
     mutable vector<bool> is_tmp_chunk_initialized_per_schema;
     // when negative, no filter pushdown
     mutable int64_t filter_pushdown_key_idx;
@@ -120,9 +166,13 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     idx_t num_total_schemas = 1;
 
     unique_ptr<Expression> expression;
-    mutable DataChunk tmp_chunk;
+    vector<idx_t> pred_col_idxs;
+    vector<idx_t> non_pred_col_idxs;
+    // mutable DataChunk tmp_chunk;
     vector<unique_ptr<DataChunk>> tmp_chunks;
     mutable ExpressionExecutor executor;
+
+    JoinType join_type;
 };
 
 }  // namespace duckdb

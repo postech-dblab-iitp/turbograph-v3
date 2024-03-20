@@ -445,7 +445,6 @@ private:
 	void pGenerateTypes(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
 	void pGenerateColumnNames(CColRefArray *columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef *target_col);
-	void pGenerateFilterExprs(CColRefArray *outer_cols, duckdb::ExpressionType &exp_type, CExpression *filter_pred_expr, vector<unique_ptr<duckdb::Expression>> &filter_exprs);
 	void pGenerateSchemaFlowGraph(vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops);
 	void pClearSchemaFlowGraph();
 	void pInitializeSchemaFlowGraph();
@@ -471,6 +470,14 @@ private:
 				return duckdb::LogicalType::DECIMAL(width, scale);
 			}
 		}
+		else if (type_id == duckdb::LogicalTypeId::LIST) {
+			if (type_mod == -1) {
+				return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
+			}
+			INT child_type_oid = (type_mod & 0xFF) + LOGICAL_TYPE_BASE_ID;
+			INT child_type_mod = (type_mod >> 8);
+			return duckdb::LogicalType::LIST(pConvertTypeOidToLogicalType((OID)child_type_oid, child_type_mod));
+		}
 		else if (type_id == duckdb::LogicalTypeId::PATH) {
 			return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
 		}
@@ -478,6 +485,17 @@ private:
 	}
 	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
 		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+	}
+	inline duckdb::LogicalType pConvertKuzuTypeToLogicalType(DataType type) {
+		switch (type.typeID) {
+		case DataTypeID::PATH:
+			return duckdb::LogicalType::PATH(duckdb::LogicalType::UBIGINT);
+		case DataTypeID::LIST:
+			D_ASSERT(type.childType != nullptr);
+			return duckdb::LogicalType::LIST(pConvertKuzuTypeToLogicalType(*type.childType));
+		default:
+			return duckdb::LogicalType((duckdb::LogicalTypeId)type.typeID);
+		}
 	}
 	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
 	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
@@ -537,6 +555,7 @@ private:
 	bool pIsAdjIdxJoinInto(CExpression *scalar_expr, CColRefSet *outer_cols, CColRefSet *inner_cols, CExpression *&adjidxjoin_into_expr);
 	CExpression *reBuildFilterExpr(CExpression *filter_expr, CExpression *adjidxjoin_into_expr);
 	CExpression *recursiveBuildFilterExpr(CExpression *scalar_expr, CExpression *adjidxjoin_into_expr);
+	void pGetIdentIndices(unique_ptr<duckdb::Expression> &expr, vector<duckdb::idx_t> &out_idxs);
 
 	// Hash Aggregate Helpers
 	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 

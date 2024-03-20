@@ -170,6 +170,9 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarLiteralExprDuckDB(
         // TODO: very temporal code
         duckdb_type = duckdb::LogicalType::DECIMAL(12, 2);
     }
+    else if (duckdb_type_id == duckdb::LogicalTypeId::LIST) {
+        duckdb_type = pConvertKuzuTypeToLogicalType(lit_expr->literal->dataType);
+    }
     else {
         duckdb_type = duckdb::LogicalType(duckdb_type_id);
     }
@@ -322,8 +325,10 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarShortestPathExprDuckDB(
     PathExpression *path_expr = (PathExpression *)expression;
     DataType type = path_expr->getDataType();
     duckdb::LogicalTypeId duckdb_type_id = (duckdb::LogicalTypeId)type.typeID;
-    duckdb::LogicalType duckdb_type = duckdb::LogicalType(duckdb_type_id);
     D_ASSERT(duckdb_type_id == duckdb::LogicalTypeId::PATH);
+    // duckdb::LogicalType duckdb_type = duckdb::LogicalType(duckdb_type_id);
+    duckdb::LogicalType duckdb_type = duckdb::LogicalType::PATH(duckdb::LogicalType::UBIGINT);
+    
     return make_unique<duckdb::BoundReferenceExpression>(
         duckdb_type, 0 /* child_idx TODO: give proper value */);
 }

@@ -102,8 +102,7 @@ public:
 
 	// datum mp -> duckdb value
 		// TODO api should not copy return value
-	static duckdb::Value DeserializeOrcaByteArrayIntoDuckDBValue(uint32_t type_id, const void* mem_ptr, uint64_t length) {
-
+	static duckdb::Value DeserializeOrcaByteArrayIntoDuckDBValue(uint32_t type_id, int32_t type_modifier, const void* mem_ptr, uint64_t length) {
 		duckdb::LogicalTypeId duckdb_type = (duckdb::LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 
 		// TODO deallocation is responsible here
@@ -154,9 +153,13 @@ public:
 				}
 			}
 			case duckdb::LogicalTypeId::VARCHAR: {
-				string str_value((char*)mem_ptr);
-				duckdb::string_t value(str_value);
-				return duckdb::Value(value);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::VARCHAR);
+				} else {
+					string str_value((char*)mem_ptr);
+					duckdb::string_t value(str_value);
+					return duckdb::Value(value);
+				}
 			}
 			case duckdb::LogicalTypeId::ID: {
 				D_ASSERT(length == 8 || length == 0);
@@ -181,6 +184,12 @@ public:
 			}
 			case duckdb::LogicalTypeId::PATH: {
 				return duckdb::Value::LIST(duckdb::LogicalTypeId::UBIGINT, {});
+			}
+			case duckdb::LogicalTypeId::LIST: {
+				D_ASSERT(length == 0); // not considered other cases yet
+				D_ASSERT(type_modifier >= std::numeric_limits<uint8_t>::min() && type_modifier <= std::numeric_limits<uint8_t>::max());
+				duckdb::LogicalTypeId child_type_id = (duckdb::LogicalTypeId)type_modifier;
+				return duckdb::Value::LIST(child_type_id, {});
 			}
 			default:
 				D_ASSERT(false);

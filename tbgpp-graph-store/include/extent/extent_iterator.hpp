@@ -93,7 +93,7 @@ public:
                        idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
-                       vector<idx_t> &target_seqnos, bool is_output_chunk_initialized=true);
+                       vector<idx_t> &target_seqnos, vector<idx_t> &cols_to_include, bool is_output_chunk_initialized=true);
     bool GetNextExtentInRowFormat(ClientContext &context, DataChunk &output, ExtentID &output_eid,
                        ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, Vector &rowcol_vec,
                        char *row_major_store, vector<idx_t> &target_seqnos, bool is_output_chunk_initialized=true);

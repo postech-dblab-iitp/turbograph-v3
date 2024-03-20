@@ -124,32 +124,26 @@ run_ldbc_s() {
 
 run_ldbc_c1() {
 	# LDBC IC1 Transitive friends with certain name
-	run_query "MATCH (p:Person {id: 94}), (friend:Person {firstName: 'Jose'})
+	run_query "MATCH (p:Person {id: 30786325583618}), (friend:Person {firstName: 'Chau'})
 		WHERE NOT p=friend
 		WITH p, friend
-		MATCH path = shortestPath((p)-[:KNOWS*1..3]-(friend))
-		WITH min(length(path)) AS distance, friend
-		ORDER BY
-			distance ASC,
-			friend.lastName ASC,
-			toInteger(friend.id) ASC
+		MATCH path = shortestPath((p)-[:KNOWS*]-(friend))
+		WITH min(path_length(path)) AS distance, friend
+		ORDER BY distance ASC, friend.lastName ASC, friend.id ASC
 		LIMIT 20
-
-		MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:City)
-		OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:University)-[:IS_LOCATED_IN]->(uniCity:City)
+		MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place {label: "City"})
+		OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:ORG_IS_LOCATED_IN]->(uniCity:Place)
 		WITH friend, collect(
 			CASE uni.name
 				WHEN null THEN null
-				ELSE [uni.name, studyAt.classYear, uniCity.name]
-			END ) AS unis, friendCity, distance
-
-		OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Company)-[:IS_LOCATED_IN]->(companyCountry:Country)
+				ELSE list_creation(uni.name, string(studyAt.classYear), uniCity.name)
+			END) AS unis, friendCity, distance
+		OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation)-[:ORG_IS_LOCATED_IN]->(companyCountry:Place)
 		WITH friend, collect(
 			CASE company.name
 				WHEN null THEN null
-				ELSE [company.name, workAt.workFrom, companyCountry.name]
+				ELSE list_creation(company.name, string(workAt.workFrom), companyCountry.name)
 			END ) AS companies, unis, friendCity, distance
-
 		RETURN
 			friend.id AS friendId,
 			friend.lastName AS friendLastName,
@@ -167,9 +161,8 @@ run_ldbc_c1() {
 		ORDER BY
 			distanceFromPerson ASC,
 			friendLastName ASC,
-			toInteger(friendId) ASC
-		LIMIT 20" 1
-
+			friendId ASC
+		LIMIT 20;" 1
 }
 
 run_ldbc_c2() {
@@ -327,16 +320,22 @@ run_ldbc_c7() {
 	run_query "MATCH (person:Person {id: 17592186053137})<-[:HAS_CREATOR]-(message:Comment)<-[like:LIKES]-(liker:Person)
 		WITH liker, message, like.creationDate AS likeTime, person
 		ORDER BY likeTime DESC, message.id ASC
-		WITH liker, message, person, likeTime,
-			CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN 0 ELSE 1 END AS isNew
+		WITH
+			liker,
+			first(message.id) AS msg_id,
+			first(likeTime) AS likeCreationDate,
+			first(message.content) AS commentOrPostContent,
+			first(message.creationDate) AS m_creationDate,
+			person
 		RETURN
 			liker.id AS personId,
 			liker.firstName AS personFirstName,
 			liker.lastName AS personLastName,
-			first(message.id) AS msg_id,
-			first(likeTime) AS likeCreationDate,
-			message.content AS commentOrPostContent,
-			isNew
+			msg_id,
+			likeCreationDate,
+			commentOrPostContent,
+			(((likeCreationDate - m_creationDate)/1000.0)/60.0) AS minutesLatency,
+			CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN false ELSE true END AS isNew
 		ORDER BY
 			likeCreationDate DESC,
 			personId ASC
@@ -450,6 +449,7 @@ run_ldbc_c12() {
 			friend.id AS personId,
 			friend.firstName AS personFirstName,
 			friend.lastName AS personLastName,
+			collect(tag.name) AS tagNames,
 			count(comment) AS replyCount
 		ORDER BY
 			replyCount DESC,

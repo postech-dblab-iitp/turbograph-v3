@@ -161,32 +161,40 @@ void OutputUtil::PrintAllTuplesInDataChunk(DataChunk &chunk)
 
 void OutputUtil::PrintTop10TuplesInDataChunk(DataChunk &chunk)
 {
-    tblr::Table t;
-    t.layout(tblr::unicode_box_light_headerline());
+    int num_columns_to_print_at_once = 5;
+    int begin_col_offset = 0;
+    int end_col_offset;
 
-    // print type & vector info
-    for (int i = 0; i < chunk.ColumnCount(); i++) {
-        t << chunk.GetTypes()[i].ToString() + " / " +
-                 VectorTypeToString(chunk.data[i].GetVectorType()) + " / " +
-                 std::to_string(chunk.data[i].GetIsValid());
-    }
-    t << tblr::endr;
-
-    // std::cout << "Schema Info (Type / VectorType / IsValid)" << std::endl;
-    // std::cout << t << std::endl;
-
-    // print tuples
-    idx_t num_tuples_to_print = std::min(10UL, chunk.size());
-    for (int idx = 0; idx < num_tuples_to_print; idx++) {
-        for (int i = 0; i < chunk.ColumnCount(); i++) {
-            t << chunk.GetValue(i, idx).ToString();
+    do {
+        tblr::Table t;
+        t.layout(tblr::unicode_box_light_headerline());
+        end_col_offset =
+            std::min(begin_col_offset + num_columns_to_print_at_once,
+                     (int)chunk.ColumnCount());
+        // print type & vector info
+        for (int i = begin_col_offset; i < end_col_offset; i++) {
+            t << std::to_string(i) + " / " + chunk.GetTypes()[i].ToString() +
+                     " / " + VectorTypeToString(chunk.data[i].GetVectorType()) +
+                     " / " + std::to_string(chunk.data[i].GetIsValid());
         }
         t << tblr::endr;
-    }
-    std::cout << "Top 10 Tuples" << std::endl;
-    std::cout << t << std::endl;
-}
 
+        // std::cout << "Schema Info (Type / VectorType / IsValid)" << std::endl;
+        // std::cout << t << std::endl;
+
+        // print tuples
+        idx_t num_tuples_to_print = std::min(10UL, chunk.size());
+        for (int idx = 0; idx < num_tuples_to_print; idx++) {
+            for (int i = begin_col_offset; i < end_col_offset; i++) {
+                t << chunk.GetValue(i, idx).ToString();
+            }
+            t << tblr::endr;
+        }
+        std::cout << "Top 10 Tuples" << std::endl;
+        std::cout << t << std::endl;
+        begin_col_offset = end_col_offset;
+    } while (end_col_offset < chunk.ColumnCount());
+}
 
 void OutputUtil::PrintLast10TuplesInDataChunk(DataChunk &chunk)
 {
