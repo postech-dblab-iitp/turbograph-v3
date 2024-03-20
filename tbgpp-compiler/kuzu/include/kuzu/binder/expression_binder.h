@@ -81,7 +81,7 @@ private:
     // not specify its child type.
     // For the rest, i.e. set clause binding, we cast with data type. For example, a.list = $1.
     static shared_ptr<Expression> implicitCastIfNecessary(
-        const shared_ptr<Expression>& expression, DataType targetType);
+        const shared_ptr<Expression>& expression, DataType &targetType);
     static shared_ptr<Expression> implicitCastIfNecessary(
         const shared_ptr<Expression>& expression, DataTypeID targetTypeID);
     static void resolveAnyDataType(Expression& expression, DataType targetType);

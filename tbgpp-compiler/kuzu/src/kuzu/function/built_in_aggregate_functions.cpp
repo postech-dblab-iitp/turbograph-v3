@@ -122,7 +122,7 @@ void BuiltInAggregateFunctions::registerAvg() {
 
 void BuiltInAggregateFunctions::registerMin() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, DECIMAL}) {
+    for (auto typeID : vector<DataTypeID>{BOOL, INTEGER, INT64, DOUBLE, DATE, STRING, DECIMAL}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MIN_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,
@@ -180,6 +180,12 @@ void BuiltInAggregateFunctions::registerCollect() {
                 vector<DataTypeID>{typeID}, DataTypeID::LIST,                                             // output type = list(input type)
                 AggregateFunctionUtil::getEmptyFunction(inputType, isDistinct), isDistinct));   // s62 whatever;
         }
+    }
+    for (auto isDistinct : vector<bool>{true, false}) {
+        auto inputType = DataType(DataTypeID::ANY);
+        definitions.push_back(make_unique<AggregateFunctionDefinition>(COLLECT_FUNC_NAME,     // collect()
+                vector<DataTypeID>{DataTypeID::ANY}, DataTypeID::LIST,                                             // output type = list(input type)
+                AggregateFunctionUtil::getEmptyFunction(inputType, isDistinct), isDistinct));   // s62 whatever;
     }
     aggregateFunctions.insert({COLLECT_FUNC_NAME, move(definitions)});
 }

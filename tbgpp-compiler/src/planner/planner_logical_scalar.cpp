@@ -287,40 +287,50 @@ CExpression *Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan 
 	return ident_expr;
 }
 
-CExpression* Planner::lExprScalarLiteralExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
+CExpression *Planner::lExprScalarLiteralExpr(
+    kuzu::binder::Expression *expression, LogicalPlan *prev_plan,
+    DataTypeID required_type)
+{
 
-	CMemoryPool* mp = this->memory_pool;
+    CMemoryPool *mp = this->memory_pool;
 
-	LiteralExpression* lit_expr = (LiteralExpression*) expression;
-	DataType type;
-	if (required_type == DataTypeID::INVALID) {
-		type = lit_expr->literal.get()->dataType;
-	} else {
-		type = DataType(required_type);
-	}
+    LiteralExpression *lit_expr = (LiteralExpression *)expression;
+    DataType type;
+    if (required_type == DataTypeID::INVALID) {
+        type = lit_expr->literal.get()->dataType;
+    }
+    else {
+        type = DataType(required_type);
+    }
 
-	// D_ASSERT( !lit_expr->isNull() && "currently null not supported");
+    CExpression *pexpr = nullptr;
+    uint32_t literal_type_id = LOGICAL_TYPE_BASE_ID + (OID)type.typeID;
+    INT type_modifier = lit_expr->literal->dataType.typeID == DataTypeID::LIST
+                            ? lit_expr->literal->dataType.childType->typeID
+                            : -1;
+    CMDIdGPDB *type_mdid =
+        GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, literal_type_id, 1, 0);
+    type_mdid->AddRef();
 
-	CExpression* pexpr = nullptr;
-	uint32_t literal_type_id = LOGICAL_TYPE_BASE_ID + (OID)type.typeID;
-	CMDIdGPDB* type_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, literal_type_id, 1, 0);
-	type_mdid->AddRef();
-	
-	void* serialized_literal = NULL;
-	uint64_t serialized_literal_length = 0;
-	if( !lit_expr->isNull() ) {
-		DatumSerDes::SerializeKUZULiteralIntoOrcaByteArray(literal_type_id, lit_expr->literal.get(), serialized_literal, serialized_literal_length);
-		D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
-	}
+    void *serialized_literal = NULL;
+    uint64_t serialized_literal_length = 0;
+    if (!lit_expr->isNull()) {
+        DatumSerDes::SerializeKUZULiteralIntoOrcaByteArray(
+            literal_type_id, lit_expr->literal.get(), serialized_literal,
+            serialized_literal_length);
+        D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
+    }
 
-	IDatumGeneric *datum = (IDatumGeneric*) (GPOS_NEW(mp) CDatumGenericGPDB(mp, (IMDId*)type_mdid, 0, serialized_literal, serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0));
-	datum->AddRef();
-	pexpr = GPOS_NEW(mp)
-		CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *) datum));
-	pexpr->AddRef();
+    IDatumGeneric *datum = (IDatumGeneric *)(GPOS_NEW(mp) CDatumGenericGPDB(
+        mp, (IMDId *)type_mdid, type_modifier, serialized_literal,
+        serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0));
+    datum->AddRef();
+    pexpr = GPOS_NEW(mp)
+        CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *)datum));
+    pexpr->AddRef();
 
-	D_ASSERT(pexpr != nullptr);
-	return pexpr;
+    D_ASSERT(pexpr != nullptr);
+    return pexpr;
 }
 
 CExpression *Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
@@ -654,12 +664,16 @@ CExpression *Planner::lExprScalarShortestPathExpr(kuzu::binder::Expression *expr
     return ident_expr;
 }
 
-bool Planner::lIsCastingFunction(std::string& func_name) {
-	if(func_name == CAST_TO_DOUBLE_FUNC_NAME || func_name == CAST_TO_FLOAT_FUNC_NAME || func_name == CAST_TO_INT64_FUNC_NAME) {
-		return true;
-	} else {
-		return false;
-	}
+bool Planner::lIsCastingFunction(std::string &func_name)
+{
+    if (func_name == CAST_TO_DOUBLE_FUNC_NAME ||
+        func_name == CAST_TO_FLOAT_FUNC_NAME ||
+        func_name == CAST_TO_INT64_FUNC_NAME) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 INT Planner::lGetTypeModFromType(duckdb::LogicalType type) {
@@ -668,6 +682,15 @@ INT Planner::lGetTypeModFromType(duckdb::LogicalType type) {
 		uint16_t width_scale = duckdb::DecimalType::GetWidth(type);
 		width_scale = width_scale << 8 | duckdb::DecimalType::GetScale(type);
 		mod = width_scale;
+	} else if (type.id() == duckdb::LogicalTypeId::LIST) {
+		// TODO we cannot handle cases when nesting lv >= 4 yet
+		if (duckdb::ListType::GetChildType(type).id() == duckdb::LogicalTypeId::LIST) {
+			INT child_mod = lGetTypeModFromType(duckdb::ListType::GetChildType(type));
+			mod = (INT)duckdb::LogicalTypeId::LIST | child_mod << 8;
+		} else {
+			// TODO we do not consider LIST(DECIMAL) yet
+			mod = (INT)duckdb::ListType::GetChildType(type).id();
+		}
 	}
 	return mod;
 }

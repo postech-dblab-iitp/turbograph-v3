@@ -1371,7 +1371,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
-                                   vector<idx_t> &target_seqnos, bool is_output_chunk_initialized)
+                                   vector<idx_t> &target_seqnos, vector<idx_t> &cols_to_include, bool is_output_chunk_initialized)
 {
     if (target_eid != current_eid) {
         if (!RequestNextIO(context, output, output_eid, is_output_chunk_initialized)) return false;
@@ -1382,6 +1382,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     auto &cur_ext_property_type = ext_property_types[target_idx_per_eid[current_idx]];
     CompressionHeader comp_header;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
+        // cols to exclude is for filter seek optimization.
+        if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
@@ -1405,18 +1407,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
-                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
                 for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                     idx_t seqno = target_seqnos[seqno_idx];
                     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    // uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    // uint64_t string_offset = offset_arr[target_seqno];
-                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    // strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
-                    // strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
                     strings[seqno] = varchar_arr[target_seqno];
                     validity.SetValid(seqno);
                 }

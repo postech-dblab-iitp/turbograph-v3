@@ -46,6 +46,9 @@ CastToStringVectorOperation::getDefinitions() {
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<DataTypeID>{INTEGER}, STRING,
+        empty_scalar_exec_func()));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{INT64}, STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<int64_t, ku_string_t, operation::CastToString>));

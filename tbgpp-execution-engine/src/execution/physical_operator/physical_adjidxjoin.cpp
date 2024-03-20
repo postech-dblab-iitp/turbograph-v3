@@ -145,49 +145,121 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
     ExpandDirection &cur_direction) const
 {
     Vector &src_vid_column_vector = input.data[sid_col_idx];
+    auto &validity = src_vid_column_vector.GetValidity();
 
     // todo cleaning these codes
-    switch (src_vid_column_vector.GetVectorType()) {
-        case VectorType::DICTIONARY_VECTOR: {
-            auto src_vid_column_data =
-                (uint64_t *)src_vid_column_vector.GetData();
-            auto src_sel_vector =
-                DictionaryVector::SelVector(src_vid_column_vector);
-            while (state.output_idx < STANDARD_VECTOR_SIZE &&
-                   state.lhs_idx < input.size()) {
-                uint64_t src_vid = src_vid_column_data[src_sel_vector.get_index(
-                    state.lhs_idx)];
-                GetAdjListAndFillRHSOutput(
-                    context, state, src_vid, tgt_adj_column, eid_adj_column,
-                    tgt_validity_mask, eid_validity_mask, cur_direction);
+    if (validity.AllValid()) {
+        switch (src_vid_column_vector.GetVectorType()) {
+            case VectorType::DICTIONARY_VECTOR: {
+                auto src_vid_column_data =
+                    (uint64_t *)src_vid_column_vector.GetData();
+                auto src_sel_vector =
+                    DictionaryVector::SelVector(src_vid_column_vector);
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    uint64_t src_vid = src_vid_column_data[src_sel_vector.get_index(
+                        state.lhs_idx)];
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
             }
-            break;
-        }
-        case VectorType::FLAT_VECTOR: {
-            auto src_vid_column_data =
-                (uint64_t *)src_vid_column_vector.GetData();
-            while (state.output_idx < STANDARD_VECTOR_SIZE &&
-                   state.lhs_idx < input.size()) {
-                uint64_t src_vid = src_vid_column_data[state.lhs_idx];
-                GetAdjListAndFillRHSOutput(
-                    context, state, src_vid, tgt_adj_column, eid_adj_column,
-                    tgt_validity_mask, eid_validity_mask, cur_direction);
+            case VectorType::FLAT_VECTOR: {
+                auto src_vid_column_data =
+                    (uint64_t *)src_vid_column_vector.GetData();
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    uint64_t src_vid = src_vid_column_data[state.lhs_idx];
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
             }
-            break;
-        }
-        case VectorType::CONSTANT_VECTOR: {
-            uint64_t src_vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(
-                src_vid_column_vector))[0];
-            while (state.output_idx < STANDARD_VECTOR_SIZE &&
-                   state.lhs_idx < input.size()) {
-                GetAdjListAndFillRHSOutput(
-                    context, state, src_vid, tgt_adj_column, eid_adj_column,
-                    tgt_validity_mask, eid_validity_mask, cur_direction);
+            case VectorType::CONSTANT_VECTOR: {
+                uint64_t src_vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(
+                    src_vid_column_vector))[0];
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
             }
-            break;
+            default: {
+                D_ASSERT(false);
+            }
         }
-        default: {
-            D_ASSERT(false);
+    } else if (validity.CheckAllInValid()) {
+        D_ASSERT(false); // not implemented yet
+    } else {
+        switch (src_vid_column_vector.GetVectorType()) {
+            case VectorType::DICTIONARY_VECTOR: {
+                auto src_vid_column_data =
+                    (uint64_t *)src_vid_column_vector.GetData();
+                auto src_sel_vector =
+                    DictionaryVector::SelVector(src_vid_column_vector);
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    // uint64_t src_vid = src_vid_column_data[src_sel_vector.get_index(
+                    //     state.lhs_idx)];
+                    auto src_vid_val = src_vid_column_vector.GetValue(state.lhs_idx);
+                    if (src_vid_val.IsNull()) {
+                        AdvanceToNextLHS(state, nullptr, nullptr,
+                                         tgt_adj_column, eid_adj_column,
+                                         tgt_validity_mask, eid_validity_mask);
+                        continue;
+                    }
+                    uint64_t src_vid = src_vid_val.GetValue<uint64_t>();
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
+            }
+            case VectorType::FLAT_VECTOR: {
+                auto src_vid_column_data =
+                    (uint64_t *)src_vid_column_vector.GetData();
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    if (!validity.RowIsValid(state.lhs_idx)) {
+                        AdvanceToNextLHS(state, nullptr, nullptr,
+                                         tgt_adj_column, eid_adj_column,
+                                         tgt_validity_mask, eid_validity_mask);
+                        continue;
+                    }
+                    uint64_t src_vid = src_vid_column_data[state.lhs_idx];
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
+            }
+            case VectorType::CONSTANT_VECTOR: {
+                // TODO we can optimize this case
+                auto src_vid_val = src_vid_column_vector.GetValue(state.lhs_idx);
+                if (src_vid_val.IsNull()) {
+                    AdvanceToNextLHS(state, nullptr, nullptr, tgt_adj_column,
+                                     eid_adj_column, tgt_validity_mask,
+                                     eid_validity_mask);
+                    break;
+                }
+                // uint64_t src_vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(
+                //     src_vid_column_vector))[0];
+                uint64_t src_vid = src_vid_val.GetValue<uint64_t>();
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
+            }
+            default: {
+                D_ASSERT(false);
+            }
         }
     }
 }
@@ -393,21 +465,8 @@ inline void PhysicalAdjIdxJoin::GetAdjListAndFillRHSOutput(
 
     // update lhs_idx and adj_idx for next iteration
     if (state.rhs_idx >= adj_size) {
-        // for this (lhs_idx, adj_idx), equi join is done
-        if (state.adj_idx == state.adj_col_idxs.size() - 1) {
-            if ((state.output_idx_before_fetch == state.output_idx) &&
-                (join_type == JoinType::LEFT)) {
-                // produce rhs (update output_idx and rhs_idx)
-                fillFunc(state, adj_start, tgt_adj_column, eid_adj_column,
-                         tgt_validity_mask, eid_validity_mask, 1, true);
-            }
-            state.lhs_idx++;
-            state.adj_idx = 0;
-        }
-        else {
-            state.adj_idx++;
-        }
-        state.rhs_idx = 0;
+        AdvanceToNextLHS(state, adj_start, adj_end, tgt_adj_column,
+                         eid_adj_column, tgt_validity_mask, eid_validity_mask);
     }
 }
 
@@ -464,6 +523,29 @@ inline void PhysicalAdjIdxJoin::GetAdjListAndFillRHSOutputInto(
         }
         state.rhs_idx = 0;
     }
+}
+
+inline void PhysicalAdjIdxJoin::AdvanceToNextLHS(
+    AdjIdxJoinState &state, uint64_t *adj_start, uint64_t *adj_end,
+    uint64_t *&tgt_adj_column, uint64_t *&eid_adj_column,
+    ValidityMask *tgt_validity_mask, ValidityMask *eid_validity_mask) const
+{
+    // for this (lhs_idx, adj_idx), equi join is done
+    if (state.adj_idx == state.adj_col_idxs.size() - 1) {
+        if ((state.output_idx_before_fetch == state.output_idx ||
+             adj_start == nullptr) &&
+            (join_type == JoinType::LEFT)) {
+            // produce rhs (update output_idx and rhs_idx)
+            fillFunc(state, adj_start, tgt_adj_column, eid_adj_column,
+                     tgt_validity_mask, eid_validity_mask, 1, true);
+        }
+        state.lhs_idx++;
+        state.adj_idx = 0;
+    }
+    else {
+        state.adj_idx++;
+    }
+    state.rhs_idx = 0;
 }
 
 OperatorResultType PhysicalAdjIdxJoin::ProcessEquiJoin(ExecutionContext &context,
