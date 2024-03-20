@@ -44,6 +44,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
                    vector<unique_ptr<Expression>>& predicates,
+                   vector<idx_t> &pred_col_idxs,
                    bool is_output_union_schema);
     ~PhysicalIdSeek() {
         for (auto &chunk : tmp_chunks) {
@@ -85,6 +86,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
+    void getFilteredTargetSeqno(const vector<vector<idx_t>>& target_seqnos_per_extent, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const;
+    void genNonPredColIdxs();
 
     // parameters
     uint64_t id_col_idx;
@@ -120,6 +123,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     idx_t num_total_schemas = 1;
 
     unique_ptr<Expression> expression;
+    mutable vector<idx_t> pred_col_idxs;
+    mutable vector<idx_t> non_pred_col_idxs;
     mutable DataChunk tmp_chunk;
     vector<unique_ptr<DataChunk>> tmp_chunks;
     mutable ExpressionExecutor executor;
