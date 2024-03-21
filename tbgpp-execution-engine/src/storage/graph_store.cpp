@@ -135,11 +135,9 @@ iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev
 	if (prev_eid_seqno > target_seqnos_per_extent_map.size()) { target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); }
 	vector<idx_t>& vec = target_seqnos_per_extent_map[prev_eid_seqno];
 	if (vec.size() == 0) {
-		vec.reserve(tmp_vec.size());
 		for (auto &j : tmp_vec) vec.push_back(j);
 	}
 	else {
-		vec.reserve(vec.size() + tmp_vec.size());
 		for (auto &j : tmp_vec) vec.push_back(j);
 	}
 	boundary_position.push_back(i - 1);
@@ -162,6 +160,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	vector<idx_t> tmp_vec;
 	tmp_vec.reserve(input.size());
 	vector<vector<idx_t>> target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE);
+	for (auto &vec: target_seqnos_per_extent_map) { vec.reserve(STANDARD_VECTOR_SIZE); }
 	ExtentID prev_eid = std::numeric_limits<ExtentID>::max();
 	Vector &src_vid_column_vector = input.data[nodeColIdx];
 	auto &validity = src_vid_column_vector.GetValidity();
