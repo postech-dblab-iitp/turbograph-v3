@@ -12,13 +12,6 @@
 #include "cache/common.h"
 #include "cache/disk_aio/disk_aio_factory.hpp"
 
-#define MAX_IO_SIZE_PER_RW (64*1024*1024L)
-
-inline bool check_file_exists (const std::string& name) {
-    struct stat buffer;   
-    return (stat (name.c_str(), &buffer) == 0); 
-}
-
 class Turbo_bin_aio_handler {
   public:
 
