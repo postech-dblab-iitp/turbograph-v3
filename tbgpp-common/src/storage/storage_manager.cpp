@@ -70,7 +70,7 @@ void StorageManager::Initialize() {
 		block_manager = make_unique<InMemoryBlockManager>();
 		// Only load buffermanager and blockamanger
 		std::string temp_directory = "/tmp/.tmp";
-		idx_t maximum_memory = 53687091200; // 50GB
+		idx_t maximum_memory = 107374182400; // 100GB
 		// idx_t maximum_memory = 107374182400; // 100GB
 		// buffer_manager = make_unique<BufferManager>(db, config.temporary_directory, config.maximum_memory);
 		buffer_manager = make_unique<BufferManager>(db, temp_directory, maximum_memory);

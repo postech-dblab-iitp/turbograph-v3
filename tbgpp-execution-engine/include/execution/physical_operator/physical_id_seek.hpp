@@ -132,7 +132,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
-    void getFilteredTargetSeqno(const vector<vector<idx_t>>& target_seqnos_per_extent, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const;
+    void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const;
+    void fillSeqnoToEIDIdx(vector<vector<idx_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
     void genNonPredColIdxs();
 
     // parameters

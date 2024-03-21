@@ -408,15 +408,14 @@ bool ExtentIterator::RequestNextIO(ClientContext &context, DataChunk &output, Ex
             }
             num_tuples_in_current_extent[next_toggle] = extent_cat_entry->GetNumTuplesInExtent();
             PopulateCache(ext_ids_to_iterate[next_idx], next_toggle);
+
+            for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
+                if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
+                ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
+            }
+            current_eid = ext_ids_to_iterate[current_idx];
         }
     }
-
-    // Request chunk cache manager to finalize I/O
-    for (int i = 0; i < io_requested_cdf_ids[toggle].size(); i++) {
-        if (io_requested_cdf_ids[toggle][i] == std::numeric_limits<ChunkDefinitionID>::max()) continue;
-        ChunkCacheManager::ccm->FinalizeIO(io_requested_cdf_ids[toggle][i], true, false);
-    }
-    current_eid = ext_ids_to_iterate[current_idx];
 
     // Initialize output DataChunk & copy each column
     if (!is_output_chunk_initialized) {
@@ -1402,7 +1401,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     CompressionHeader comp_header;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         // cols to exclude is for filter seek optimization.
-        if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
+        // if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
         if (cur_ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
 #ifdef DEBUG_LOAD_COLUMN
