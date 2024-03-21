@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "cache/chunk_cache_manager.h"
+#include "Turbo_bin_io_handler.hpp"
 #include "Turbo_bin_aio_handler.hpp"
 #include "common/exception.hpp"
 #include "common/string_util.hpp"
@@ -21,43 +22,10 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
   client = new LightningClient("/tmp/lightning", "password");
 
   // Initialize file handlers
-  std::string partition_path = std::string(path);
-  for (const auto &partition_entry : std::filesystem::directory_iterator(partition_path)) { // /path/
-    std::string partition_entry_path = std::string(partition_entry.path());
-    std::string partition_entry_name = partition_entry_path.substr(partition_entry_path.find_last_of("/") + 1);
-    if (StringUtil::StartsWith(partition_entry_name, "part_")) {
-      std::string extent_path = partition_entry_path + std::string("/");
-      for (const auto &extent_entry : std::filesystem::directory_iterator(extent_path)) { // /path/part_/
-        std::string extent_entry_path = std::string(extent_entry.path());
-        std::string extent_entry_name = extent_entry_path.substr(extent_entry_path.find_last_of("/") + 1);
-        if (StringUtil::StartsWith(extent_entry_name, "ext_")) {
-          std::string chunk_path = extent_entry_path + std::string("/");
-          for (const auto &chunk_entry : std::filesystem::directory_iterator(chunk_path)) { // /path/part_/ext_/
-            std::string chunk_entry_path = std::string(chunk_entry.path());
-            std::string chunk_entry_name = chunk_entry_path.substr(chunk_entry_path.find_last_of("/") + 1);
-            ChunkDefinitionID chunk_id = (ChunkDefinitionID) std::stoull(chunk_entry_name.substr(chunk_entry_name.find("_") + 1));
-
-            // Open File & Insert into file_handlers
-            D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
-            file_handlers[chunk_id] = new Turbo_bin_aio_handler();
-            ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_entry_path.c_str(), false, true, false, true);
-            D_ASSERT(rs == NOERROR);
-
-            // Read First Block & SetRequestedSize
-            char *first_block;
-            int status = posix_memalign((void **)&first_block, 512, 512);
-            if (status != 0) throw InvalidInputException("posix_memalign fail"); // XXX wrong exception type
-
-            file_handlers[chunk_id]->Read(0, 512, first_block, this, nullptr);
-            file_handlers[chunk_id]->WaitAllPendingDiskIO(true);
-
-            size_t requested_size = ((size_t *)first_block)[0];
-            file_handlers[chunk_id]->SetRequestedSize(requested_size + 8);
-            delete first_block;
-          }
-        }
-      }
-    }
+  if (std::filesystem::exists(std::string(path) + file_meta_info_name)) {
+    InitializeFileHandlersUsingMetaInfo(path);
+  } else {
+    InitializeFileHandlersByIteratingDirectories(path);
   }
 }
 
@@ -99,6 +67,98 @@ void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler
   CacheDataTransformer::Swizzle(ptr);
   file_handler->Close();
   UnPinSegment(cid);
+}
+
+void ChunkCacheManager::InitializeFileHandlersByIteratingDirectories(const char *path)
+{
+  std::string partition_path = std::string(path);
+  for (const auto &partition_entry : std::filesystem::directory_iterator(partition_path)) { // /path/
+    std::string partition_entry_path = std::string(partition_entry.path());
+    std::string partition_entry_name = partition_entry_path.substr(partition_entry_path.find_last_of("/") + 1);
+    if (StringUtil::StartsWith(partition_entry_name, "part_")) {
+      std::string extent_path = partition_entry_path + std::string("/");
+      for (const auto &extent_entry : std::filesystem::directory_iterator(extent_path)) { // /path/part_/
+        std::string extent_entry_path = std::string(extent_entry.path());
+        std::string extent_entry_name = extent_entry_path.substr(extent_entry_path.find_last_of("/") + 1);
+        if (StringUtil::StartsWith(extent_entry_name, "ext_")) {
+          std::string chunk_path = extent_entry_path + std::string("/");
+          for (const auto &chunk_entry : std::filesystem::directory_iterator(chunk_path)) { // /path/part_/ext_/
+            std::string chunk_entry_path = std::string(chunk_entry.path());
+            std::string chunk_entry_name = chunk_entry_path.substr(chunk_entry_path.find_last_of("/") + 1);
+            ChunkDefinitionID chunk_id = (ChunkDefinitionID) std::stoull(chunk_entry_name.substr(chunk_entry_name.find("_") + 1));
+
+            // Open File & Insert into file_handlers
+            D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
+            file_handlers[chunk_id] = new Turbo_bin_aio_handler();
+            ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_entry_path.c_str(), false, true, false, true);
+            D_ASSERT(rs == NOERROR);
+
+            // Read First Block & SetRequestedSize
+            char *first_block;
+            int status = posix_memalign((void **)&first_block, 512, 512);
+            if (status != 0) throw InvalidInputException("posix_memalign fail"); // XXX wrong exception type
+
+            file_handlers[chunk_id]->Read(0, 512, first_block, this, nullptr);
+            file_handlers[chunk_id]->WaitAllPendingDiskIO(true);
+
+            size_t requested_size = ((size_t *)first_block)[0];
+            file_handlers[chunk_id]->SetRequestedSize(requested_size + 8);
+            delete first_block;
+          }
+        }
+      }
+    }
+  }
+}
+
+void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
+{
+  std::string meta_file_path = std::string(path) + "/" + file_meta_info_name;
+  Turbo_bin_io_handler file_meta_info(meta_file_path.c_str(), false, false, false);
+  size_t file_size = file_meta_info.file_size();
+  uint64_t *meta_info = new uint64_t[file_size / sizeof(uint64_t)];
+  file_meta_info.Read(0, file_size, (char *)meta_info);
+  file_meta_info.Close();
+
+  for (size_t i = 0; i < file_size / sizeof(uint64_t); i += 2) {
+    ChunkDefinitionID chunk_id = (ChunkDefinitionID) meta_info[i];
+    size_t requested_size = meta_info[i + 1];
+
+    uint64_t extent_id = chunk_id >> 32;
+    uint64_t partition_id = extent_id >> 16;
+    std::string chunk_path = std::string(path) + "/part_" + std::to_string(partition_id) +
+                             "/ext_" + std::to_string(extent_id) + "/chunk_" +
+                             std::to_string(chunk_id);
+    D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
+    file_handlers[chunk_id] = new Turbo_bin_aio_handler();
+    ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_path.c_str(), false, true, false, true);
+    D_ASSERT(rs == NOERROR);
+    file_handlers[chunk_id]->SetRequestedSize(requested_size);
+  }
+
+  delete meta_info;
+}
+
+void ChunkCacheManager::FlushMetaInfo(const char *path)
+{
+  uint64_t *meta_info;
+  int64_t num_total_files = file_handlers.size();
+  meta_info = new uint64_t[num_total_files * 2];
+
+  int64_t i = 0;
+  for (auto &file_handler: file_handlers) {
+    assert(file_handler.second != nullptr);
+    meta_info[i] = file_handler.first;
+    meta_info[i + 1] = file_handler.second->GetRequestedSize();
+    i += 2;
+  }
+
+  std::string meta_file_path = std::string(path) + "/" + file_meta_info_name;
+  Turbo_bin_io_handler file_meta_info(meta_file_path.c_str(), true, true, true);
+  file_meta_info.Append(num_total_files * 2 * sizeof(uint64_t), (char *)meta_info);
+  file_meta_info.Close(false);
+
+  delete meta_info;
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
