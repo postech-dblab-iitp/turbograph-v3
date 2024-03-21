@@ -557,6 +557,8 @@ int main(int argc, char** argv) {
 			} else if (query_str.compare("analyze") == 0) {
 				HistogramGenerator hist_gen;
 				hist_gen.CreateHistogram(client);
+			} else if (query_str.compare("flush_file_meta") == 0) {
+				ChunkCacheManager::ccm->FlushMetaInfo(DiskAioParameters::WORKSPACE.c_str());
 			} else {
 				if (query_str != prev_query_str) {
 					add_history(query_str.c_str());
