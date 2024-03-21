@@ -15,11 +15,15 @@ namespace duckdb {
 
 class ChunkCacheManager {
 public:
-  static ChunkCacheManager* ccm;
+  static ChunkCacheManager *ccm;
 
 public:
   ChunkCacheManager(const char *path);
   ~ChunkCacheManager();
+
+  void InitializeFileHandlersByIteratingDirectories(const char *path);
+  void InitializeFileHandlersUsingMetaInfo(const char *path);
+  void FlushMetaInfo(const char *path);
 
   // ChunkCacheManager APIs
   ReturnStatus PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async=false, bool is_initial_loading=false);
@@ -51,6 +55,7 @@ public:
   //Turbo_bin_aio_handler* file_handlers[NUM_MAX_SEGMENTS];
   unordered_map<ChunkID, Turbo_bin_aio_handler*> file_handlers;
   //Turbo_bin_aio_handler file_handler;
+  const std::string file_meta_info_name = ".file_meta_info";
 };
 
 #endif // CHUNK_CACHE_MANAGER_H
