@@ -303,7 +303,7 @@ void Planner::_orcaSetTraceFlags()
             gpos::EOptTraceFlag::EopttracePrintOptimizationStatistics);
         GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintRequiredColumns);
         // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceSamplePlans);
-        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoEnforcement);
+        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoEnforcement);
     }
 
     //GPOS_UNSET_TRACE(gpos::EOptTraceFlag::EopttraceEnableLOJInNAryJoin);
