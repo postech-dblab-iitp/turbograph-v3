@@ -135,6 +135,7 @@ iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev
 	if (prev_eid_seqno > target_seqnos_per_extent_map.size()) { target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); }
 	vector<idx_t>& vec = target_seqnos_per_extent_map[prev_eid_seqno];
 	if (vec.size() == 0) {
+		vec.reserve(STANDARD_VECTOR_SIZE);
 		for (auto &j : tmp_vec) vec.push_back(j);
 	}
 	else {
@@ -160,7 +161,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	vector<idx_t> tmp_vec;
 	tmp_vec.reserve(input.size());
 	vector<vector<idx_t>> target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE);
-	for (auto &vec: target_seqnos_per_extent_map) { vec.reserve(STANDARD_VECTOR_SIZE); }
+	vector<uint64_t> src_vids(STANDARD_VECTOR_SIZE);
 	ExtentID prev_eid = std::numeric_limits<ExtentID>::max();
 	Vector &src_vid_column_vector = input.data[nodeColIdx];
 	auto &validity = src_vid_column_vector.GetValidity();
@@ -170,6 +171,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 			case VectorType::DICTIONARY_VECTOR: {
 				for (size_t i = 0; i < input.size(); i++) {
 					uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[DictionaryVector::SelVector(src_vid_column_vector).get_index(i)];
+					src_vids[i] = vid;
 					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
 					if (i == 0) prev_eid = target_eid;
 					if (prev_eid != target_eid) {
@@ -184,6 +186,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 			case VectorType::FLAT_VECTOR: {
 				for (size_t i = 0; i < input.size(); i++) {
 					uint64_t vid = ((uint64_t *)src_vid_column_vector.GetData())[i];
+					src_vids[i] = vid;
 					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
 					if (i == 0) prev_eid = target_eid;
 					if (prev_eid != target_eid) {
@@ -198,6 +201,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 			case VectorType::CONSTANT_VECTOR: {
 				for (size_t i = 0; i < input.size(); i++) {
 					uint64_t vid = ((uint64_t *)ConstantVector::GetData<uintptr_t>(src_vid_column_vector))[0];
+					src_vids[i] = vid;
 					ExtentID target_eid = GET_EID_FROM_PHYSICAL_ID(vid);
 					if (i == 0) prev_eid = target_eid;
 					if (prev_eid != target_eid) {

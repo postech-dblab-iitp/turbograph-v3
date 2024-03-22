@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Example usage: ./run-docker-example.sh /mnt/sde/jhha_ldbc/tbgppv3-data/ /mnt/sde/source-data
+# Example usage: ./run-docker-example.sh /mnt/md0/jhha/data /mnt/md0/jhha/source-data
 
 # Parse user input
 
@@ -10,7 +10,7 @@ IMAGE_TAG="latest"
 CONTAINER_NAME="turbograph-s62-0312"
 
 # TODO override from user input
-SHARED_MEM_SIZE="256g"
+SHARED_MEM_SIZE="360g"
 # TODO add ulimit
 
 CONTAINER_UID=$(id -u)
