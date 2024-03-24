@@ -11,69 +11,80 @@
 
 namespace duckdb {
 
-enum class FilterPushdownType: uint8_t {
-	FP_EQ,
-	FP_RANGE
-};
-
 class PhysicalNodeScan: public CypherPhysicalOperator {
 
 public:
-	
-	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, vector<vector<uint64_t>> scan_projection_mapping);
-
-	// Nonschemaless APIs (TODO: Remove tihs)
+	/**
+	 * Non-schemaless APIs
+	*/
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping);
+	
+	// eq filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
 		int64_t filterKeyIndex, duckdb::Value filterValue);
+
+	// range filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
 		int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive);
-	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping, int64_t filterKeyIndex, duckdb::Value filterValue);
 
-	// Schemaless APIs
+	// complex filter pushdown
+	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
+		vector<unique_ptr<Expression>>& predicates);
+
+	/**
+	 * Schemaless APIs
+	*/
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping);
+
+	// eq filter pushdown
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues);
+
+	// range filter pushdown
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<RangeFilterValue>& rangeFilterValues);
 
 	~PhysicalNodeScan();
 
 public:
-	
+	/**
+	 * Source APIs
+	*/
 	void GetData(ExecutionContext& context, DataChunk &chunk, LocalSourceState &lstate) const override;
 	unique_ptr<LocalSourceState> GetLocalSourceState(ExecutionContext &context) const override;
 	bool IsSource() const override { return true; }
+	bool IsSourceDataRemaining(LocalSourceState &lstate) const override;
 	
+	/**
+	 * ETC APIs
+	*/
 	string ParamsToString() const override;
 	string ToString() const override;
-
-	bool IsSourceDataRemaining(LocalSourceState &lstate) const override;
 
 	// scan parameters
 	mutable vector<idx_t> oids;
 	mutable vector<vector<uint64_t>> projection_mapping;	// projection mapping for operator output
-
 	mutable vector<vector<LogicalType>> scan_types;  		// types scan
 	mutable vector<vector<uint64_t>> scan_projection_mapping;	// projection mapping for scan from the storage
 
 	// filter pushdown
+	bool is_filter_pushdowned = false;
 	mutable FilterPushdownType filter_pushdown_type;
-	mutable RangeFilterValue range_filter_pushdown_value;
+	mutable FilterKeyIdxs filter_pushdown_key_idxs;	// when negative, no filter pushdown
+	mutable EQFilterValues eq_filter_pushdown_values;		// do not use when filter_pushdown_key_idx < 0
+	mutable RangeFilterValues range_filter_pushdown_values;
+	mutable unique_ptr<Expression> filter_expression;
+
+	// filtered chunk buffers
+	mutable FilteredChunkBuffer filtered_chunk_buffer;
 
 	mutable int64_t current_schema_idx;
 	mutable int64_t num_schemas;
-
-	// Schemaless Members
-	mutable vector<int64_t> filter_pushdown_key_idxs;	// when negative, no filter pushdown
-	mutable vector<Value> filter_pushdown_values;		// do not use when filter_pushdown_key_idx < 0
-	mutable vector<RangeFilterValue> range_filter_pushdown_values;
-
-	mutable boost::timer::cpu_timer timers[2];
 };	
 
 }

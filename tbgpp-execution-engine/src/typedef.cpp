@@ -132,4 +132,16 @@ void Schema::removeColumn(uint64_t col_idx)
     }
 }
 
+void FilteredChunkBuffer::Initialize(vector<LogicalType> types)
+{
+    slice_buffer = make_unique<DataChunk>();
+    slice_buffer->Initialize(types, STANDARD_VECTOR_SIZE);
+    for (auto i = 0; i < FILTERED_CHUNK_BUFFER_SIZE; i++) {
+        auto buffer_chunk = std::make_unique<DataChunk>();
+        buffer_chunk->Initialize(types, STANDARD_VECTOR_SIZE);
+        buffer_chunks[i] = std::move(buffer_chunk);
+    }
+    buffer_idx = 0;
+}
+
 }  // namespace duckdb

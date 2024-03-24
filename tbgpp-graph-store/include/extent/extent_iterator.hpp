@@ -1,16 +1,17 @@
 #ifndef EXTENT_ITERATOR_H
 #define EXTENT_ITERATOR_H
 
+#include "typedef.hpp"
 #include "common/common.hpp"
 #include "common/vector.hpp"
 #include "common/unordered_map.hpp"
-
 #include "common/types.hpp"
 #include "common/vector_size.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/types/selection_vector.hpp"
 #include "extent/compression/compression_function.hpp"
 #include "extent/compression/compression_header.hpp"
+#include "planner/expression.hpp"
 #include <limits>
 #include <tuple>
 
@@ -40,6 +41,7 @@ class PropertySchemaCatalogEntry;
 // TODO currently, only support double buffering
 // If possible, change this implementation to support prefetching
 #define MAX_NUM_DATA_CHUNKS 2
+#define FILTER_BUFFERING_THRESHOLD 0.7
 
 typedef vector<uint8_t*> io_buf_ptrs;
 typedef vector<size_t> io_buf_sizes;
@@ -77,13 +79,16 @@ public:
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
 
     /* filter pushdown */
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+    bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
                        vector<duckdb::LogicalType> &scanSchema, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE,
                        bool is_output_chunk_initialized=true);
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+    bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &lfilterValue, Value &rfilterValue, bool l_inclusive, bool r_inclusive,
                        vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
+                       size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
+    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
+                        unique_ptr<Expression>& expr, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
 
     /* IdSeek */
@@ -105,10 +110,6 @@ public:
                        int64_t &filterKeyColIdx, Value &filterValue, ExtentID target_eid, DataChunk &input,
                        idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
                        idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
-    // bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
-    //                    ExpressionExecutor &executor, ExtentID target_eid, DataChunk &input,
-    //                    idx_t nodeColIdx, vector<idx_t> &output_column_idxs, vector<idx_t> &target_seqnos,
-    //                    idx_t &cur_output_idx, SelectionVector &sel, bool is_output_chunk_initialized=true);
     bool GetExtent(data_ptr_t &chunk_ptr, int target_toggle, bool is_initialized);
 
     /* Optimization */
@@ -191,6 +192,7 @@ private:
     void requestIOForDoubleBuffering(ClientContext &context);
     void requestFinalizeIO();
 
+    bool getScanRange(size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
                     size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
@@ -200,8 +202,21 @@ private:
                                 Value &filterValue, vector<idx_t>& matched_row_idxs);
     void findMatchedRowsRangeFilter(CompressionHeader& comp_header, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                 Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, vector<idx_t>& matched_row_idxs);
+    void referenceRows(DataChunk &output, ExtentID output_eid, size_t scan_size, vector<idx_t> &output_column_idxs, idx_t scan_begin_offset, idx_t scan_end_offset);
     void copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output);
     bool inclusiveAwareRangePredicateCheck(Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, Value &filterValue);
+
+    inline bool doFilterBuffer(size_t scan_size, size_t num_filtered_tuples) {
+        return false;
+        // return (double)num_filtered_tuples / scan_size > FILTER_BUFFERING_THRESHOLD;
+    }
+
+    inline size_t getNumReferencedRows(size_t scan_size) {
+        size_t remain_data_size = num_tuples_in_current_extent[toggle] - (current_idx_in_this_extent * scan_size);
+        return std::min((size_t) scan_size, remain_data_size);
+    }
+
+    void sliceFilteredRows(DataChunk& input, DataChunk &output, vector<idx_t> matched_row_idxs);
 
 private:
     vector<ExtentID> ext_ids_to_iterate;
