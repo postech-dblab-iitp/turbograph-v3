@@ -127,6 +127,11 @@ public:
 
     void Initialize(vector<LogicalType> types);
 
+    void Reset() {
+        slice_buffer->Reset();
+        GetNextFilteredChunk()->Reset();
+    }
+
     unique_ptr<DataChunk> &GetSliceBuffer() {
         return slice_buffer;
     }
@@ -135,9 +140,22 @@ public:
         return buffer_chunks[buffer_idx];
     }
 
+    unique_ptr<DataChunk> &GetNextFilteredChunk() {
+        return GetFilteredChunk((buffer_idx + 1) % FILTERED_CHUNK_BUFFER_SIZE);
+    }
+
     unique_ptr<DataChunk> &GetFilteredChunk(uint64_t idx) {
         idx = idx % FILTERED_CHUNK_BUFFER_SIZE;
         return buffer_chunks[idx];
+    }
+
+    void ReferenceAndSwitch(DataChunk& output) {
+        output.Reference(*(GetFilteredChunk().get()));
+        SwitchBuffer();
+    }
+
+    void SwitchBuffer() {
+        buffer_idx = (buffer_idx + 1) % FILTERED_CHUNK_BUFFER_SIZE;
     }
 
 private:

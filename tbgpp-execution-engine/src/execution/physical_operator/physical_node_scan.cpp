@@ -147,6 +147,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		 * continue scanning the next area. 
 		 */
         // filter pushdown applied
+		filtered_chunk_buffer.Reset();
         if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {
 			res = context.client->graph_store->doScan(state.ext_its, chunk, filtered_chunk_buffer, projection_mapping, types, current_schema_idx,
 													filter_pushdown_key_idxs[current_schema_idx], range_filter_pushdown_values[current_schema_idx]);

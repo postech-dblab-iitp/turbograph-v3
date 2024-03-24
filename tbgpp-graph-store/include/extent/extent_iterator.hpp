@@ -203,12 +203,12 @@ private:
     void findMatchedRowsRangeFilter(CompressionHeader& comp_header, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                 Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, vector<idx_t>& matched_row_idxs);
     void referenceRows(DataChunk &output, ExtentID output_eid, size_t scan_size, vector<idx_t> &output_column_idxs, idx_t scan_begin_offset, idx_t scan_end_offset);
+    bool copyMatchedRowsToBuffer(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, FilteredChunkBuffer &output);
     void copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output);
     bool inclusiveAwareRangePredicateCheck(Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, Value &filterValue);
 
     inline bool doFilterBuffer(size_t scan_size, size_t num_filtered_tuples) {
-        return false;
-        // return (double)num_filtered_tuples / scan_size > FILTER_BUFFERING_THRESHOLD;
+        return (double)num_filtered_tuples / scan_size < FILTER_BUFFERING_THRESHOLD;
     }
 
     inline size_t getNumReferencedRows(size_t scan_size) {
@@ -216,7 +216,7 @@ private:
         return std::min((size_t) scan_size, remain_data_size);
     }
 
-    void sliceFilteredRows(DataChunk& input, DataChunk &output, vector<idx_t> matched_row_idxs);
+    void sliceFilteredRows(DataChunk& input, DataChunk &output, idx_t scan_start_offset, vector<idx_t> matched_row_idxs);
 
 private:
     vector<ExtentID> ext_ids_to_iterate;
