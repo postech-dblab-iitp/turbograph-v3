@@ -10,8 +10,7 @@
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/boost_typedefs.hpp"
-//#include "common/types/chunk_collection.hpp"
-
+#include "planner/expression.hpp"
 #include <boost/timer/timer.hpp>
 #include <queue>
 #include <unordered_map>
@@ -19,13 +18,6 @@
 #define END_OF_QUEUE nullptr
 
 namespace duckdb {
-
-struct RangeFilterValue {
-	Value l_value;
-	Value r_value;
-	bool l_inclusive;
-	bool r_inclusive;
-};
 
 class ExtentIterator;
 class AdjacencyListIterator;
@@ -49,14 +41,6 @@ public:
 	StoreAPIResult getAdjListRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t* start_idx, uint64_t* end_idx) { return StoreAPIResult::OK; }
 	StoreAPIResult getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase) { return StoreAPIResult::OK; }
 	StoreAPIResult getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr) { return StoreAPIResult::OK; }
-	// TODO ! Scan with storage predicate
-	// StoreAPIResult doScan(ChunkCollection output, LabelSet labels, LoadAdjListOption loadAdj, PropertyKeys properties);
-
-	// StoreAPIResult getNodeLabelSet(LabelSet& output, VertexID vid);
-	// StoreAPIResult getEdgeLabelSet(LabelSet& output, EdgeID eid, PropertyKeys properties);
-
-	// StoreAPIResult getNodeProperty(duckdb::ChunkCollection& output, PropertyKeys properties);
-	// StoreAPIResult getEdgeProperties(duckdb::ChunkCollection& output, PropertyKeys properties);
 
 };
 
@@ -71,14 +55,20 @@ public:
 
 	//! Initialize Scan Operation
 	StoreAPIResult InitializeScan(std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids, vector<vector<uint64_t>> &projection_mapping, vector<vector<duckdb::LogicalType>> &scanSchemas);
-
+	
+	// Non filter
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, std::vector<duckdb::LogicalType> &scanSchema);
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping,
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, bool is_output_initialized = true);
-	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping,
+
+	// Filter related
+	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping,
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::Value &filterValue);
-	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, vector<vector<uint64_t>> &projection_mapping, 
+	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue);
+	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
+						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, unique_ptr<Expression>& expr);
+
 	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											 vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &mapping_idxs, 
@@ -101,19 +91,12 @@ public:
 									 idx_t &output_idx, SelectionVector &sel, int64_t &filterKeyColIdx, duckdb::Value &filterValue);
 	StoreAPIResult InitializeEdgeIndexSeek(ExtentIterator *&ext_it, duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema);
 	StoreAPIResult InitializeEdgeIndexSeek(ExtentIterator *&ext_it, duckdb::DataChunk& output, DataChunk &input, idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position);
-	// StoreAPIResult doEdgeIndexSeek(ExtentIterator *&ext_it, duckdb::DataChunk& output, uint64_t vid, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema);
 	StoreAPIResult doEdgeIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input, idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids, vector<idx_t> &boundary_position, idx_t current_pos, vector<idx_t> output_col_idx);
 	bool isNodeInLabelset(u_int64_t id, LabelSet labels);
 	void getAdjColIdxs(idx_t index_cat_oid, vector<int> &adjColIdxs, vector<LogicalType> &adjColTypes);
-	// StoreAPIResult getAdjListRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t* start_idx, uint64_t* end_idx);
-	// StoreAPIResult getAdjListFromRange(AdjacencyListIterator &adj_iter, int adjColIdx, uint64_t vid, uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output, idx_t *&adjListBase);
 	StoreAPIResult getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, ExtentID &prev_eid, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir);
 
 	void fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>& eid_to_mapping_idx);
-
-	// operator definition for getAdjListRange
-	// StoreAPIResult getAdjListRange(uint64_t vid, uint64_t* start_idx, uint64_t* end_idx);
-	// StoreAPIResult getAdjListFromRange(uint64_t start_idx, uint64_t end_idx, duckdb::DataChunk& output );
 
 private:
 	inline void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, vector<vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position, vector<idx_t> &tmp_vec);

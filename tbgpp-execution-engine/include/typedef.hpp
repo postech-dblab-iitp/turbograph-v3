@@ -6,6 +6,8 @@
 #include <tuple>
 #include <unordered_set>
 #include <vector>
+#include <memory>
+#include "common/types/data_chunk.hpp"
 
 namespace duckdb {
 
@@ -94,5 +96,58 @@ struct PartialSchema {
     std::vector<int32_t> offset_info;
     uint64_t stored_types_size;
 };
+
+/** Scan Related */
+#define FILTERED_CHUNK_BUFFER_SIZE 2
+
+enum class FilterPushdownType: uint8_t {
+	FP_EQ,
+	FP_RANGE,
+	FP_COMPLEX
+};
+
+struct RangeFilterValue {
+	Value l_value;
+	Value r_value;
+	bool l_inclusive;
+	bool r_inclusive;
+};
+
+class FilteredChunkBuffer {
+public:
+    FilteredChunkBuffer(): buffer_idx(0) {
+        slice_buffer = nullptr;
+        for (auto i = 0; i < FILTERED_CHUNK_BUFFER_SIZE; i++) {
+            buffer_chunks.push_back(nullptr);
+        }
+    }
+
+    bool Append(DataChunk &chunk) {
+    }
+
+    void Initialize(vector<LogicalType> types);
+
+    unique_ptr<DataChunk> &GetSliceBuffer() {
+        return slice_buffer;
+    }
+
+    unique_ptr<DataChunk> &GetFilteredChunk() {
+        return buffer_chunks[buffer_idx];
+    }
+
+    unique_ptr<DataChunk> &GetFilteredChunk(uint64_t idx) {
+        idx = idx % FILTERED_CHUNK_BUFFER_SIZE;
+        return buffer_chunks[idx];
+    }
+
+private:
+    std::unique_ptr<DataChunk> slice_buffer;
+	std::vector<std::unique_ptr<DataChunk>> buffer_chunks;
+	idx_t buffer_idx;
+};
+
+typedef vector<int64_t> FilterKeyIdxs;
+typedef vector<Value> EQFilterValues;
+typedef vector<RangeFilterValue> RangeFilterValues;
 
 }  // namespace duckdb

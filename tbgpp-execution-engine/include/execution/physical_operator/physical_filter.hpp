@@ -5,8 +5,6 @@
 #include "execution/execution_context.hpp"
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
-
-
 #include "common/types/value.hpp"
 
 namespace duckdb {
