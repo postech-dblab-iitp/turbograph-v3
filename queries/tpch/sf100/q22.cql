@@ -10,7 +10,8 @@ WHERE c1.C_ACCTBAL > 0.00
 WITH avg(c1.C_ACCTBAL) as avg_bal
 MATCH (c2:CUSTOMER)
 WHERE NOT EXISTS {
-        MATCH (o:ORDERS)-[:MADE_BY]->(c2)
+        MATCH (o:ORDERS)
+        WHERE o.O_CUSTKEY = c2.C_CUSTKEY
     }
     AND (substring(c2.C_PHONE,1,2) = '34'
         OR substring(c2.C_PHONE,1,2) = '14'
