@@ -503,11 +503,20 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid, 
                                    int64_t &filterKeyColIdx, duckdb::Value &filterValue, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
+    if ((current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) ||
+        (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size))) { // END OF EXTENT
         current_idx++;
         current_idx_in_this_extent = 0;
     }
-    if (current_idx > max_idx) return false;
+    if (current_idx >= max_idx) {
+        if (output_buffer.GetFilteredChunk()->size() > 0) {
+            output_buffer.ReferenceAndSwitch(output);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
     requestIOForDoubleBuffering(context);
     requestFinalizeIO();
@@ -521,25 +530,26 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Fi
         output.Reset();
         output.Initialize(ext_property_type);
     }
-    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
-        return false;
-    }
 
     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-    if (!getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset)) {
-        output.SetCardinality(0);
-    }
-    else {
+    bool found_scan_range = getScanRange(context, filter_cdf_id, filterValue, scan_size, scan_start_offset, scan_end_offset);
+    current_idx_in_this_extent++; // move to next extent for next iteration
+
+    if (found_scan_range) {
         findMatchedRowsEQFilter(comp_header, findColumnIdx(filter_cdf_id), scan_start_offset, scan_end_offset, filterValue, matched_row_idxs);
         if (doFilterBuffer(scan_size, matched_row_idxs.size())) {
-            copyMatchedRows(comp_header, matched_row_idxs, output_column_idxs, output_eid, output); // go to buffer
+            bool is_fully_filled = copyMatchedRowsToBuffer(comp_header, matched_row_idxs, output_column_idxs, output_eid, output_buffer);
+            if (is_fully_filled) output_buffer.ReferenceAndSwitch(output);
+            else {
+                bool end_of_extent = !GetNextExtent(context, output, output_buffer, output_eid, filterKeyColIdx, filterValue, output_column_idxs, scanSchema, scan_size);
+                if(end_of_extent) output_buffer.ReferenceAndSwitch(output);
+            }
         }
         else {
             referenceRows(*(output_buffer.GetSliceBuffer().get()), output_eid, scan_size, output_column_idxs, scan_start_offset, scan_end_offset);
-            sliceFilteredRows(*(output_buffer.GetSliceBuffer().get()), output, matched_row_idxs);
+            sliceFilteredRows(*(output_buffer.GetSliceBuffer().get()), output, scan_start_offset, matched_row_idxs);
         }
     }
-    current_idx_in_this_extent++;
     return true;
 }
 
@@ -549,11 +559,20 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Fi
                                    int64_t &filterKeyColIdx, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
                                    bool l_inclusive, bool r_inclusive, vector<idx_t> &output_column_idxs, 
                                    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size, bool is_output_chunk_initialized) {
-    if (current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) {
+    if ((current_idx_in_this_extent == ((STORAGE_STANDARD_VECTOR_SIZE + scan_size - 1) / scan_size)) ||
+        (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size))) { // END OF EXTENT
         current_idx++;
         current_idx_in_this_extent = 0;
     }
-    if (current_idx > max_idx) return false;
+    if (current_idx >= max_idx) {
+        if (output_buffer.GetFilteredChunk()->size() > 0) {
+            output_buffer.ReferenceAndSwitch(output);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
     requestIOForDoubleBuffering(context);
     requestFinalizeIO();
@@ -567,26 +586,28 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Fi
         output.Reset();
         output.Initialize(scanSchema);
     }
-    if (num_tuples_in_current_extent[toggle] < (current_idx_in_this_extent * scan_size)) {
-        return false;
-    }
 
     auto filter_cdf_id = getFilterCDFID(output_eid, filterKeyColIdx);
-    if (!getScanRange(context, filter_cdf_id, l_filterValue, r_filterValue, l_inclusive, r_inclusive, scan_size, scan_start_offset, scan_end_offset)) {
-        output.SetCardinality(0);
-    }
-    else {
+    bool found_scan_range = getScanRange(context, filter_cdf_id, l_filterValue, r_filterValue, l_inclusive, r_inclusive, scan_size, scan_start_offset, scan_end_offset);
+    current_idx_in_this_extent++;
+
+    if (found_scan_range) {
         findMatchedRowsRangeFilter(comp_header, findColumnIdx(filter_cdf_id), scan_start_offset, scan_end_offset, 
                                 l_filterValue, r_filterValue, l_inclusive, r_inclusive, matched_row_idxs);
         if (doFilterBuffer(scan_size, matched_row_idxs.size())) {
-            copyMatchedRows(comp_header, matched_row_idxs, output_column_idxs, output_eid, output);
+            bool is_fully_filled = copyMatchedRowsToBuffer(comp_header, matched_row_idxs, output_column_idxs, output_eid, output_buffer);
+            if (is_fully_filled) output_buffer.ReferenceAndSwitch(output);
+            else {
+                bool end_of_extent = !GetNextExtent(context, output, output_buffer, output_eid, filterKeyColIdx, l_filterValue, r_filterValue, 
+                                                    l_inclusive, r_inclusive, output_column_idxs, scanSchema, scan_size);
+                if(end_of_extent) output_buffer.ReferenceAndSwitch(output);
+            }
         }
         else {
             referenceRows(*(output_buffer.GetSliceBuffer().get()), output_eid, scan_size, output_column_idxs, scan_start_offset, scan_end_offset);
-            sliceFilteredRows(*(output_buffer.GetSliceBuffer().get()), output, matched_row_idxs);
+            sliceFilteredRows(*(output_buffer.GetSliceBuffer().get()), output, scan_start_offset, matched_row_idxs);
         }
     }
-    current_idx_in_this_extent++;
     return true;
 }
 
@@ -970,9 +991,27 @@ bool ExtentIterator::inclusiveAwareRangePredicateCheck(Value &l_filterValue, Val
     return false;
 }
 
+bool ExtentIterator::copyMatchedRowsToBuffer(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, FilteredChunkBuffer &output) {
+    size_t current_buffer_size = output.GetFilteredChunk()->size();
+    size_t after_copy_size = current_buffer_size + matched_row_idxs.size();
+    if (after_copy_size > STANDARD_VECTOR_SIZE) {
+        vector<idx_t> matched_row_idxs_for_current_buffer(matched_row_idxs.begin(), matched_row_idxs.begin() + (STANDARD_VECTOR_SIZE - current_buffer_size));
+        vector<idx_t> matched_row_idxs_for_next_buffer(matched_row_idxs.begin() + (STANDARD_VECTOR_SIZE - current_buffer_size), matched_row_idxs.end());
+        copyMatchedRows(comp_header, matched_row_idxs_for_current_buffer, output_column_idxs, output_eid, *(output.GetFilteredChunk().get()));
+        copyMatchedRows(comp_header, matched_row_idxs_for_next_buffer, output_column_idxs, output_eid, *(output.GetNextFilteredChunk().get()));
+        return true;
+    }
+    else {
+        copyMatchedRows(comp_header, matched_row_idxs, output_column_idxs, output_eid, *(output.GetFilteredChunk().get()));
+        return false;
+    }
+}
+
+
 void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs,
                                     vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output) {
-    output.SetCardinality(matched_row_idxs.size());
+    size_t current_size = output.size();
+    output.SetCardinality(current_size + matched_row_idxs.size());
     if(matched_row_idxs.size() == 0) return;
 
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
@@ -990,9 +1029,9 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
-                for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
+                for (idx_t idx = 0; idx <  matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
-                    strings[idx] = varchar_arr[seqno];
+                    strings[idx + current_size] = varchar_arr[seqno];
                 }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
@@ -1005,7 +1044,7 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
             idx_t *id_column = (idx_t *)output.data[output_idx].GetData();
             for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                 idx_t seqno = matched_row_idxs[idx];
-                id_column[idx] = physical_id_base + seqno;
+                id_column[idx + current_size] = physical_id_base + seqno;
             }
         } else {
             if (comp_header.comp_type == BITPACKING) {
@@ -1014,7 +1053,7 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
                 size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
                 for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
                     idx_t seqno = matched_row_idxs[idx];
-                    memcpy(output.data[output_idx].GetData() + idx * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
+                    memcpy(output.data[output_idx].GetData() + (idx + current_size) * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
                 }
             }
         }
@@ -1075,10 +1114,11 @@ void ExtentIterator::referenceRows(DataChunk &output, ExtentID output_eid, size_
 }
 
 
-void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, vector<idx_t> matched_row_idxs) {
+void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, idx_t scan_start_offset, vector<idx_t> matched_row_idxs) {
     SelectionVector sel(STANDARD_VECTOR_SIZE); // TODO: remove this redundant selection vector declaration
     for (auto i = 0; i < matched_row_idxs.size(); i++) {
-        sel.set_index(i, matched_row_idxs[i]);
+        D_ASSERT(matched_row_idxs[i] - scan_start_offset < STANDARD_VECTOR_SIZE);
+        sel.set_index(i, matched_row_idxs[i] - scan_start_offset);
     }
     output.Slice(input, sel, matched_row_idxs.size());
 }
