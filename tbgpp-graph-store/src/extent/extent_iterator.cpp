@@ -205,7 +205,7 @@ void ExtentIterator::Initialize(ClientContext &context, vector<LogicalType> &tar
             io_requested_cdf_ids[toggle][i] = cdf_id;
             string file_path = DiskAioParameters::WORKSPACE + std::string("/chunk_") + std::to_string(cdf_id);
             // icecream::ic.enable(); IC(); IC(cdf_id); icecream::ic.disable();
-            ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &io_requested_buf_ptrs[toggle][i], &io_requested_buf_sizes[toggle][i], true);
+            ChunkCacheManager::ccm->PinSegment(cdf_id, file_path, &(io_requested_buf_ptrs[toggle][i]), &(io_requested_buf_sizes[toggle][i]), true);
         }
         num_tuples_in_current_extent[toggle] = extent_cat_entry->GetNumTuplesInExtent();
     }
