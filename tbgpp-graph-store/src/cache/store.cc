@@ -413,7 +413,8 @@ int LightningStore::delete_object(uint64_t object_id) {
   int64_t next_object_index = object_entry->next;
 
   if (prev_object_index < 0) {
-    if (next_object_index > 0) {
+    // if (next_object_index > 0) { // original code
+    if (next_object_index >= 0) {
       ObjectEntry *next = &store_header_->object_entries[next_object_index];
       next->prev = -1;
     }
