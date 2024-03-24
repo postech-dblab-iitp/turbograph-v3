@@ -9,7 +9,7 @@ RETURN
     sum(CASE WHEN o.O_ORDERPRIORITY = '1-URGENT' OR o.O_ORDERPRIORITY = '2-HIGH'
         THEN 1
         ELSE 0 END) as high_line_count,
-    sum(CASE WHEN o.O_ORDERPRIORITY = '3-MEDIUM' OR o.O_ORDERPRIORITY = '4-NOT SPECIFIED' OR o.O_ORDERPRIORITY = '5-LOW'
+    sum(CASE WHEN o.O_ORDERPRIORITY <> '1-URGENT' AND o.O_ORDERPRIORITY <> '2-HIGH'
         THEN 1
         ELSE 0 END) as low_line_count
 ORDER BY l_shipmode;
