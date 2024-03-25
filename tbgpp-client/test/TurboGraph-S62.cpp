@@ -653,7 +653,7 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0; // + (*accum_time);
 		// (*accum_time) += op->op_timer.elapsed().wall / 1000000.0 ;
 		(*content)["Actual Rows"] = op->processed_tuples;
-		(*content)["Actual Loops"] = 1; // meaningless
+		(*content)["Actual Loops"] = op->GetLoopCount(); // meaningless
 	}
 	// output shcma
 	
