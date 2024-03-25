@@ -513,6 +513,11 @@ private:
 	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
 	static duckdb::JoinType pTranslateJoinType(COperator *op);
 	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);
+	static bool pIsCmpTypeRange(IMDType::ECmpType cmp_type);
+	static bool pIsRangeCmpTypeOpposite(IMDType::ECmpType cmp_type, IMDType::ECmpType second_cmp_type);
+	static bool pIsRangeCmpTypeLower(IMDType::ECmpType cmp_type);
+	static bool pIsRangeCmpTypeUpper(IMDType::ECmpType cmp_type);
+	static bool pIsRangeCmpTypeInclusive(IMDType::ECmpType cmp_type);
 
 	// ID Get
 	static OID pGetTypeIdFromScalar(CExpression *expr);

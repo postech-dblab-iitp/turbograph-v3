@@ -7,6 +7,7 @@
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
 #include "planner/expression/bound_comparison_expression.hpp"
+#include "planner/expression/bound_between_expression.hpp"
 #include "planner/expression/bound_operator_expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
@@ -168,11 +169,71 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarBoolOp(CExpression * sca
 		// TODO uncertain if this is right.s
 		return std::move(result);
 	} else if (op_type == duckdb::ExpressionType::CONJUNCTION_AND) {
-		auto conjunction = make_unique<duckdb::BoundConjunctionExpression>(duckdb::ExpressionType::CONJUNCTION_AND);
+		ULONG num_remaining_exprs = scalar_expr->Arity();
+		vector<unique_ptr<duckdb::Expression>> children;
+		vector<bool> child_exprs_already_converted(scalar_expr->Arity(), false);
 		for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
-			conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols)));
+			if (child_exprs_already_converted[child_idx]) continue;
+			CExpression *scalar_child_expr = scalar_expr->operator[](child_idx);
+			
+			// check if expr is ScalarCmp & (Ident, Const)
+			if (scalar_child_expr->Pop()->Eopid() != COperator::EopScalarCmp) continue;
+			if (!((scalar_child_expr->operator[](0)->Pop()->Eopid() == COperator::EopScalarIdent) &&
+				  (scalar_child_expr->operator[](1)->Pop()->Eopid() == COperator::EopScalarConst))) continue;
+
+			// check if cmp type is range (e.g. LT, LE, GT, GE)
+			auto cmp_type = ((CScalarCmp *)scalar_child_expr->Pop())->ParseCmpType();
+			if (!pIsCmpTypeRange(cmp_type)) continue;
+
+			CColRef *target_col = pGetColRefFromScalarIdent(scalar_child_expr->operator[](0));
+			
+			for (ULONG second_child_idx = child_idx + 1; second_child_idx < scalar_expr->Arity(); second_child_idx++) {
+				if (child_exprs_already_converted[second_child_idx]) continue;
+				CExpression *second_scalar_child_expr = scalar_expr->operator[](second_child_idx);
+
+				// check if expr is ScalarCmp & (Ident, Const)
+				if (second_scalar_child_expr->Pop()->Eopid() != COperator::EopScalarCmp) continue;
+				if (!((second_scalar_child_expr->operator[](0)->Pop()->Eopid() == COperator::EopScalarIdent) &&
+					(second_scalar_child_expr->operator[](1)->Pop()->Eopid() == COperator::EopScalarConst))) continue;
+				
+				if (pGetColRefFromScalarIdent(second_scalar_child_expr->operator[](0)) != target_col) continue;
+				
+				auto second_cmp_type = ((CScalarCmp *)second_scalar_child_expr->Pop())->ParseCmpType();
+				if (pIsRangeCmpTypeOpposite(cmp_type, second_cmp_type)) {
+					// we can make boundbetween expression
+					auto input = pTransformScalarIdent(scalar_child_expr->operator[](0), lhs_child_cols, rhs_child_cols);
+                    auto lower = pTransformScalarConst(
+                        pIsRangeCmpTypeLower(cmp_type)
+                            ? scalar_child_expr->operator[](1)
+                            : second_scalar_child_expr->operator[](1),
+                        lhs_child_cols, rhs_child_cols);
+                    auto upper = pTransformScalarConst(
+                        pIsRangeCmpTypeUpper(cmp_type)
+                            ? scalar_child_expr->operator[](1)
+                            : second_scalar_child_expr->operator[](1),
+                        lhs_child_cols, rhs_child_cols);
+                    children.push_back(std::move(make_unique<duckdb::BoundBetweenExpression>(std::move(input), std::move(lower), std::move(upper),
+						pIsRangeCmpTypeLower(cmp_type) ? pIsRangeCmpTypeInclusive(cmp_type) : pIsRangeCmpTypeInclusive(second_cmp_type),
+						pIsRangeCmpTypeUpper(cmp_type) ? pIsRangeCmpTypeInclusive(cmp_type) : pIsRangeCmpTypeInclusive(second_cmp_type))));
+
+					child_exprs_already_converted[child_idx] = true;
+					child_exprs_already_converted[second_child_idx] = true;
+					num_remaining_exprs -= 2;
+					break;
+				}
+			}
 		}
-		return conjunction;
+		if (num_remaining_exprs == 0 && children.size() == 1) {
+			return std::move(children[0]);
+		} else {
+			auto conjunction = make_unique<duckdb::BoundConjunctionExpression>(duckdb::ExpressionType::CONJUNCTION_AND);
+			conjunction->children = std::move(children);
+			for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
+				if (child_exprs_already_converted[child_idx]) continue;
+				conjunction->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](child_idx), lhs_child_cols, rhs_child_cols)));
+			}
+			return conjunction;
+		}
 	} else if (op_type == duckdb::ExpressionType::CONJUNCTION_OR) {
 		auto conjunction = make_unique<duckdb::BoundConjunctionExpression>(duckdb::ExpressionType::CONJUNCTION_OR);
 		for (ULONG child_idx = 0; child_idx < scalar_expr->Arity(); child_idx++) {
@@ -372,6 +433,76 @@ duckdb::ExpressionType Planner::pTranslateCmpType(IMDType::ECmpType cmp_type, bo
         default:
             GPOS_ASSERT(false);
     }
+}
+
+bool Planner::pIsCmpTypeRange(IMDType::ECmpType cmp_type) {
+    switch (cmp_type) {
+        case IMDType::ECmpType::EcmptL:
+        case IMDType::ECmpType::EcmptLEq:
+        case IMDType::ECmpType::EcmptG:
+        case IMDType::ECmpType::EcmptGEq:
+			return true;
+        default:
+            return false;
+    }
+}
+
+bool Planner::pIsRangeCmpTypeOpposite(IMDType::ECmpType cmp_type, IMDType::ECmpType second_cmp_type) {
+    switch (cmp_type) {
+        case IMDType::ECmpType::EcmptL:
+			return second_cmp_type == IMDType::ECmpType::EcmptG || second_cmp_type == IMDType::ECmpType::EcmptGEq;
+        case IMDType::ECmpType::EcmptLEq:
+			return second_cmp_type == IMDType::ECmpType::EcmptG || second_cmp_type == IMDType::ECmpType::EcmptGEq;
+        case IMDType::ECmpType::EcmptG:
+			return second_cmp_type == IMDType::ECmpType::EcmptL || second_cmp_type == IMDType::ECmpType::EcmptLEq;
+        case IMDType::ECmpType::EcmptGEq:
+			return second_cmp_type == IMDType::ECmpType::EcmptL || second_cmp_type == IMDType::ECmpType::EcmptLEq;
+        default:
+            D_ASSERT(false);
+    }
+	return false;
+}
+
+bool Planner::pIsRangeCmpTypeLower(IMDType::ECmpType cmp_type) {
+	switch (cmp_type) {
+		case IMDType::ECmpType::EcmptG:
+		case IMDType::ECmpType::EcmptGEq:
+			return true;
+		case IMDType::ECmpType::EcmptL:
+		case IMDType::ECmpType::EcmptLEq:
+			return false;
+		default:
+			D_ASSERT(false);
+	}
+	return false;
+}
+
+bool Planner::pIsRangeCmpTypeUpper(IMDType::ECmpType cmp_type) {
+	switch (cmp_type) {
+		case IMDType::ECmpType::EcmptL:
+		case IMDType::ECmpType::EcmptLEq:
+			return true;
+		case IMDType::ECmpType::EcmptG:
+		case IMDType::ECmpType::EcmptGEq:
+			return false;
+		default:
+			D_ASSERT(false);
+	}
+	return false;
+}
+
+bool Planner::pIsRangeCmpTypeInclusive(IMDType::ECmpType cmp_type) {
+	switch (cmp_type) {
+		case IMDType::ECmpType::EcmptGEq:
+		case IMDType::ECmpType::EcmptLEq:
+			return true;
+		case IMDType::ECmpType::EcmptG:
+		case IMDType::ECmpType::EcmptL:
+			return false;
+		default:
+			D_ASSERT(false);
+	}
+	return false;
 }
 
 duckdb::ExpressionType Planner::pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type) {
