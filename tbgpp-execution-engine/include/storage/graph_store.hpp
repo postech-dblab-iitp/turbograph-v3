@@ -71,19 +71,19 @@ public:
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, ExpressionExecutor& expr);
 
-	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
+	StoreAPIResult InitializeVertexIndexSeek(ExtentIterator * &ext_it, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
 											 vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &mapping_idxs, 
 											 vector<idx_t> &null_tuples_idx, vector<idx_t> &eid_to_mapping_idx, IOCache* io_cache);
-	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
+	StoreAPIResult doVertexIndexSeek(ExtentIterator * &ext_it, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &cols_to_include,
 									 idx_t current_pos, vector<idx_t> output_col_idx);
-	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
+	StoreAPIResult doVertexIndexSeek(ExtentIterator * &ext_it, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,
 									 char *row_major_store);
-	StoreAPIResult doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input, 
+	StoreAPIResult doVertexIndexSeek(ExtentIterator * &ext_it, DataChunk& output, DataChunk &input, 
 									 idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									 vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
 									 idx_t &num_tuples_per_chunk);

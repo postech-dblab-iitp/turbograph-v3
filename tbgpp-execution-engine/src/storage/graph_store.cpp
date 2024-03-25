@@ -164,7 +164,7 @@ iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev
 }
 
 StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
-    std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids,
+    ExtentIterator *&ext_it, vector<idx_t> &oids,
     vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
     idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas,
     vector<ExtentID> &target_eids,
@@ -326,94 +326,54 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 		);
 	}
 
-	auto ext_it = new ExtentIterator(io_cache);
 	ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);
-	ext_its.push(ext_it);
 
 	return StoreAPIResult::OK;
 }
 
 StoreAPIResult
-iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
+iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &cols_to_include, idx_t current_pos, vector<idx_t> output_col_idx)
 {
-	if (ext_its.empty()) return StoreAPIResult::DONE;
+	if (ext_it == nullptr) return StoreAPIResult::DONE;
 	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
-	auto ext_it = ext_its.front();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	D_ASSERT(current_pos < target_seqnos_per_extent.size());
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, 
+	ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, 
 		output_col_idx, target_seqnos_per_extent[current_pos], cols_to_include);
-
-	if (scan_ongoing) {
-		D_ASSERT(current_eid == target_eid);
-		return StoreAPIResult::OK;
-	} else {
-		ext_its.pop();
-		if (ext_its.size() > 0) {
-			return StoreAPIResult::OK;
-		}
-		else
-			return StoreAPIResult::DONE;
-	}
+	return StoreAPIResult::OK;
 }
 
 StoreAPIResult
-iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
+iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,
 									char *row_major_store)
 {
 	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
-	auto ext_it = ext_its.front();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	D_ASSERT(current_pos < target_seqnos_per_extent.size());
-	bool scan_ongoing = ext_it->GetNextExtentInRowFormat(client, output, current_eid, target_eid, input, nodeColIdx, 
+	ext_it->GetNextExtentInRowFormat(client, output, current_eid, target_eid, input, nodeColIdx, 
 		rowcol_vec, row_major_store, target_seqnos_per_extent[current_pos]);
-
-	if (scan_ongoing) {
-		//output.Reference(*output_);
-		D_ASSERT(current_eid == target_eid);
-		return StoreAPIResult::OK;
-	} else {
-		ext_its.pop();
-		delete ext_it;
-		if (ext_its.size() > 0)
-			return StoreAPIResult::OK;
-		else
-			return StoreAPIResult::DONE;
-	}
+	return StoreAPIResult::OK;
 }
 
 StoreAPIResult
-iTbgppGraphStore::doVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, DataChunk& output, DataChunk &input,
+iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
 									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
 									idx_t &num_tuples_per_chunk)
 {
 	ExtentID target_eid = target_eids[current_pos];
 	ExtentID current_eid;
-	auto ext_it = ext_its.front();
 	D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
 	D_ASSERT(current_pos < target_seqnos_per_extent.size());
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, 
+	ext_it->GetNextExtent(client, output, current_eid, target_eid, input, nodeColIdx, 
 		output_col_idx, target_seqnos_per_extent[current_pos], num_tuples_per_chunk);
-
-	if (scan_ongoing) {
-		//output.Reference(*output_);
-		D_ASSERT(current_eid == target_eid);
-		return StoreAPIResult::OK;
-	} else {
-		ext_its.pop();
-		delete ext_it;
-		if (ext_its.size() > 0)
-			return StoreAPIResult::OK;
-		else
-			return StoreAPIResult::DONE;
-	}
+	return StoreAPIResult::OK;
 }
 
 StoreAPIResult
