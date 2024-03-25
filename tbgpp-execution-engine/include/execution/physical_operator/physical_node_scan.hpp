@@ -3,9 +3,9 @@
 
 #include "storage/graph_store.hpp"
 #include "main/client_context.hpp"
-
 #include "planner/expression.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "execution/expression_executor.hpp"
 
 #include <vector>
 
@@ -33,7 +33,7 @@ public:
 	// complex filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
-		vector<unique_ptr<Expression>>& predicates);
+		vector<unique_ptr<Expression>> predicates);
 
 	/**
 	 * Schemaless APIs
@@ -79,6 +79,7 @@ public:
 	mutable EQFilterValues eq_filter_pushdown_values;		// do not use when filter_pushdown_key_idx < 0
 	mutable RangeFilterValues range_filter_pushdown_values;
 	mutable unique_ptr<Expression> filter_expression;
+	mutable ExpressionExecutor executor;
 
 	// filtered chunk buffers
 	mutable FilteredChunkBuffer filtered_chunk_buffer;

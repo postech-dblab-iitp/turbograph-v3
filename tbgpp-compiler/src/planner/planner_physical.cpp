@@ -229,8 +229,8 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
                 auto scan_p1 = vector<COperator::EOperatorId>(
                     {COperator::EOperatorId::EopPhysicalFilter,
                      COperator::EOperatorId::EopPhysicalTableScan});
-                if (pMatchExprPattern(plan_expr, scan_p1, 0, true) &&
-                    pIsFilterPushdownAbleIntoScan(plan_expr)) {
+                if (pMatchExprPattern(plan_expr, scan_p1, 0, true)
+                    /* && pIsFilterPushdownAbleIntoScan(plan_expr) */) {
                     result = pTransformEopTableScan(plan_expr);
                 }
                 else {
@@ -320,19 +320,16 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
         filter_pred_expr = filter_expr->operator[](1);
         scan_expr = filter_expr->operator[](0);
         scan_op = (CPhysicalTableScan *)scan_expr->Pop();
-        // TODO current assume all predicates are pushdown-able
-        D_ASSERT(filter_pred_expr->Pop()->Eopid() ==
-                 COperator::EOperatorId::EopScalarCmp);
-        D_ASSERT(filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                 COperator::EOperatorId::EopScalarIdent);
-        D_ASSERT(filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                 COperator::EOperatorId::EopScalarConst);
     }
     else {
         scan_expr = plan_expr;
         scan_op = (CPhysicalTableScan *)scan_expr->Pop();
     }
     bool do_filter_pushdown = filter_op != NULL;
+    bool is_simple_filter = do_filter_pushdown;
+    if (do_filter_pushdown) {
+        is_simple_filter = is_simple_filter && pIsFilterPushdownAbleIntoScan(plan_expr);
+    }
 
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
     CTableDescriptor *tab_desc = scan_op->Ptabdesc();
@@ -476,7 +473,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
 
     gpos::ULONG pred_attr_pos;
     duckdb::Value literal_val;
-    if (do_filter_pushdown) {
+    if (do_filter_pushdown && is_simple_filter) {
         pGetFilterAttrPosAndValue(filter_pred_expr, pred_attr_pos, literal_val);
     }
 
@@ -498,44 +495,54 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopTableScan(CExpres
                                           scan_projection_mapping);
     }
     else {
-        if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-            IMDType::ECmpType::EcmptEq) {
-            op = new duckdb::PhysicalNodeScan(
-                tmp_schema, oids, output_projection_mapping, scan_types,
-                scan_projection_mapping, pred_attr_pos, literal_val);
-        }
-        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                 IMDType::ECmpType::EcmptL) {
-            op = new duckdb::PhysicalNodeScan(
-                tmp_schema, oids, output_projection_mapping, scan_types,
-                scan_projection_mapping, pred_attr_pos,
-                duckdb::Value::MinimumValue(literal_val.type()), literal_val,
-                true, false);
-        }
-        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                 IMDType::ECmpType::EcmptLEq) {
-            op = new duckdb::PhysicalNodeScan(
-                tmp_schema, oids, output_projection_mapping, scan_types,
-                scan_projection_mapping, pred_attr_pos,
-                duckdb::Value::MinimumValue(literal_val.type()), literal_val,
-                true, true);
-        }
-        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                 IMDType::ECmpType::EcmptG) {
-            op = new duckdb::PhysicalNodeScan(
-                tmp_schema, oids, output_projection_mapping, scan_types,
-                scan_projection_mapping, pred_attr_pos, literal_val,
-                duckdb::Value::MaximumValue(literal_val.type()), false, true);
-        }
-        else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                 IMDType::ECmpType::EcmptGEq) {
-            op = new duckdb::PhysicalNodeScan(
-                tmp_schema, oids, output_projection_mapping, scan_types,
-                scan_projection_mapping, pred_attr_pos, literal_val,
-                duckdb::Value::MaximumValue(literal_val.type()), true, true);
+        if (is_simple_filter) {
+            if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                IMDType::ECmpType::EcmptEq) {
+                op = new duckdb::PhysicalNodeScan(
+                    tmp_schema, oids, output_projection_mapping, scan_types,
+                    scan_projection_mapping, pred_attr_pos, literal_val);
+            }
+            else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                    IMDType::ECmpType::EcmptL) {
+                op = new duckdb::PhysicalNodeScan(
+                    tmp_schema, oids, output_projection_mapping, scan_types,
+                    scan_projection_mapping, pred_attr_pos,
+                    duckdb::Value::MinimumValue(literal_val.type()), literal_val,
+                    true, false);
+            }
+            else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                    IMDType::ECmpType::EcmptLEq) {
+                op = new duckdb::PhysicalNodeScan(
+                    tmp_schema, oids, output_projection_mapping, scan_types,
+                    scan_projection_mapping, pred_attr_pos,
+                    duckdb::Value::MinimumValue(literal_val.type()), literal_val,
+                    true, true);
+            }
+            else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                    IMDType::ECmpType::EcmptG) {
+                op = new duckdb::PhysicalNodeScan(
+                    tmp_schema, oids, output_projection_mapping, scan_types,
+                    scan_projection_mapping, pred_attr_pos, literal_val,
+                    duckdb::Value::MaximumValue(literal_val.type()), false, true);
+            }
+            else if (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+                    IMDType::ECmpType::EcmptGEq) {
+                op = new duckdb::PhysicalNodeScan(
+                    tmp_schema, oids, output_projection_mapping, scan_types,
+                    scan_projection_mapping, pred_attr_pos, literal_val,
+                    duckdb::Value::MaximumValue(literal_val.type()), true, true);
+            }
+            else {
+                D_ASSERT(false);
+            }
         }
         else {
-            D_ASSERT(false);
+            vector<unique_ptr<duckdb::Expression>> filter_exprs;
+            filter_exprs.push_back(
+                std::move(pTransformScalarExpr(filter_pred_expr, scan_cols->Pdrgpcr(mp), nullptr)));
+            op = new duckdb::PhysicalNodeScan(
+                tmp_schema, oids, output_projection_mapping, scan_types,
+                scan_projection_mapping, move(filter_exprs));
         }
     }
 
