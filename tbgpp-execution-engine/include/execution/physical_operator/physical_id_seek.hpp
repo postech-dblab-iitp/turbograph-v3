@@ -135,6 +135,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const;
     void fillSeqnoToEIDIdx(vector<vector<idx_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
     void genNonPredColIdxs();
+    size_t GetLoopCount() const override { return num_loops; }
 
     // parameters
     uint64_t id_col_idx;
@@ -175,6 +176,10 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     mutable ExpressionExecutor executor;
 
     JoinType join_type;
+
+    // temp
+    mutable size_t num_loops = 0;
+    mutable size_t num_inits = 0;
 };
 
 }  // namespace duckdb

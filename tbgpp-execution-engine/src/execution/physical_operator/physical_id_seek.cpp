@@ -28,10 +28,15 @@ class IdSeekState : public OperatorState {
         io_cache.io_cdf_ids_cache.resize(INITIAL_EXTENT_ID_SPACE);
         io_cache.num_tuples_cache.resize(INITIAL_EXTENT_ID_SPACE);
         eid_to_schema_idx.resize(INITIAL_EXTENT_ID_SPACE, -1);
+
+        for (auto i = 0; i < oids.size(); i++) {
+            auto ext_it = new ExtentIterator(io_cache);
+            ext_its.push(ext_it);
+        }
     }
 
    public:
-    std::queue<ExtentIterator *> ext_its;
+    std::vector<ExtentIterator *> ext_its;
     SelectionVector sel;
     bool need_initialize_extit = true;
     bool has_remaining_output = false;
@@ -310,6 +315,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
                                            DataChunk &input, DataChunk &chunk,
                                            OperatorState &lstate) const
 {
+    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunk, lstate);
     }
@@ -424,6 +430,7 @@ OperatorResultType PhysicalIdSeek::Execute(
     vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
     idx_t &output_chunk_idx) const
 {
+    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunks, lstate, output_chunk_idx);
     }
@@ -551,6 +558,7 @@ void PhysicalIdSeek::initializeSeek(
     vector<vector<idx_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
+    num_inits++;
     state.null_tuples_idx.clear();
     context.client->graph_store->InitializeVertexIndexSeek(
         state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
@@ -670,20 +678,6 @@ void PhysicalIdSeek::doSeekUnionAll(
     }
     else {
         D_ASSERT(false);
-        for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-             extentIdx++) {
-            vector<idx_t> output_col_idx;
-            for (idx_t i = 0;
-                 i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-                output_col_idx.push_back(
-                    inner_col_maps[mapping_idxs[extentIdx]][i]);
-            }
-            context.client->graph_store->doVertexIndexSeek(
-                state.ext_its, chunk, input, nodeColIdx, target_types,
-                target_eids, target_seqnos_per_extent, extentIdx,
-                output_col_idx, output_idx, state.sel, filter_pushdown_key_idx,
-                filter_pushdown_value);
-        }
     }
 }
 
