@@ -12,6 +12,7 @@
 #include "extent/compression/compression_function.hpp"
 #include "extent/compression/compression_header.hpp"
 #include "planner/expression.hpp"
+#include "execution/expression_executor.hpp"
 #include <limits>
 #include <tuple>
 
@@ -87,8 +88,8 @@ public:
                        int64_t &filterKeyColIdx, Value &lfilterValue, Value &rfilterValue, bool l_inclusive, bool r_inclusive,
                        vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
-    bool GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
-                        unique_ptr<Expression>& expr, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
+    bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
+                       ExpressionExecutor& executor, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
 
     /* IdSeek */
@@ -193,10 +194,12 @@ private:
     void requestFinalizeIO();
 
     bool getScanRange(size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
+    bool getScanRange(size_t scan_size, idx_t idx_in_extent, idx_t& scan_start_offset, idx_t& scan_end_offset);
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
                     size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
                     bool l_inclusive, bool r_inclusive, size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
+    void selVectorToRowIdxs(SelectionVector& sel, size_t sel_size, vector<idx_t>& row_idxs, idx_t offset);
     void getValidOutputMask(vector<idx_t> &output_column_idxs, vector<bool>& valid_output_mask);
     void findMatchedRowsEQFilter(CompressionHeader& comp_header, idx_t col_idx, idx_t scan_start_offset, idx_t scan_end_offset,
                                 Value &filterValue, vector<idx_t>& matched_row_idxs);
@@ -217,6 +220,7 @@ private:
     }
 
     void sliceFilteredRows(DataChunk& input, DataChunk &output, idx_t scan_start_offset, vector<idx_t> matched_row_idxs);
+    void sliceFilteredRows(DataChunk& input, DataChunk &output, SelectionVector& sel, size_t sel_size);
 
 private:
     vector<ExtentID> ext_ids_to_iterate;

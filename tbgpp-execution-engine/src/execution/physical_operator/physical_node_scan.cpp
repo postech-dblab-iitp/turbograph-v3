@@ -60,7 +60,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 }
 
 PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>>& predicates) :
+	vector<LogicalType> scan_types_, vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>> predicates) :
 	PhysicalNodeScan(sch, oids, projection_mapping, scan_types_, scan_projection_mapping)
 {
 	is_filter_pushdowned = true;
@@ -75,6 +75,7 @@ PhysicalNodeScan::PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vecto
 	} else {
 		filter_expression = move(predicates[0]);
 	}
+	executor = ExpressionExecutor(*(filter_expression.get()));
 }
 
 PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
@@ -155,7 +156,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 			res = context.client->graph_store->doScan(state.ext_its, chunk, filtered_chunk_buffer, projection_mapping, types, current_schema_idx,
 													filter_pushdown_key_idxs[current_schema_idx], eq_filter_pushdown_values[current_schema_idx]);
 		} else {
-			res = context.client->graph_store->doScan(state.ext_its, chunk, filtered_chunk_buffer, projection_mapping, types, current_schema_idx, filter_expression);
+			res = context.client->graph_store->doScan(state.ext_its, chunk, filtered_chunk_buffer, projection_mapping, types, current_schema_idx, executor);
 		}
 	}
 	

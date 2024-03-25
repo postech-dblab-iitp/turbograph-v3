@@ -9,6 +9,7 @@
 #include "common/vector.hpp"
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
+#include "execution/expression_executor.hpp"
 #include "common/boost_typedefs.hpp"
 #include "planner/expression.hpp"
 #include <boost/timer/timer.hpp>
@@ -67,7 +68,7 @@ public:
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
 						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue);
 	StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
-						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, unique_ptr<Expression>& expr);
+						  std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, ExpressionExecutor& expr);
 
 	StoreAPIResult InitializeVertexIndexSeek(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping, 
 											 DataChunk &input, idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,

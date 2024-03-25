@@ -1021,7 +1021,7 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CCost costLocal(0);
 
 	// inner tuples fit in memory
-	if (dRowsInner * dWidthInner <= dHJSpillingMemThreshold)
+	if (true /*dRowsInner * dWidthInner <= dHJSpillingMemThreshold*/) // in s62, we don't have spill case
 	{
 		// hash join cost contains four parts:
 		// 1. build hash table with inner tuples. This part is correlated with rows and width of
@@ -1675,10 +1675,18 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 
 	// S62 in Adjacency Index case, IndexFilterCostUnit may be 0
 	// CDouble dCostPerIndexRow = ulIndexKeys * 0 + dTableWidth * dIndexScanTupCostUnit;
-	CDouble dCostPerIndexRow = ulIndexKeys * dIndexFilterCostUnit +
+	CDouble dCostPerIndexRow = ulIndexKeys * 0 +
 							   dTableWidth * dIndexScanTupCostUnit;
-	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
+
+	if (CPhysicalIndexScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindFwdAdjlist ||
+		CPhysicalIndexScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindBwdAdjlist) {
+		return CCost(pci->NumRebinds() *
+					(dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
+	}
+	else {
+		return CCost(pci->NumRebinds() *
+					(dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor)); // S62 remove I/O factor
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1757,9 +1765,18 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 		dPartialVisFrac =
 			1 - (CDouble(stats->RelAllVisible()) / CDouble(stats->RelPages()));
 	}
-	return CCost(pci->NumRebinds() *
-				 (dRowsIndex * dCostPerIndexRow/* +
-				  dIndexScanTupRandomFactor * dPartialVisFrac*/)); // S62 remove random I/O factor
+
+	if (CPhysicalIndexOnlyScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindFwdAdjlist ||
+		CPhysicalIndexOnlyScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindBwdAdjlist) {
+		return CCost(pci->NumRebinds() *
+					(dRowsIndex * dCostPerIndexRow/* +
+					dIndexScanTupRandomFactor * dPartialVisFrac*/)); // S62 remove random I/O factor
+	} 
+	else {
+		return CCost(pci->NumRebinds() *
+					(dRowsIndex * dCostPerIndexRow +
+					dIndexScanTupRandomFactor * dPartialVisFrac));
+	}
 }
 
 CCost

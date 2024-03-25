@@ -15,7 +15,6 @@
 #include "common/types/validity_mask.hpp"
 #include "common/types/value.hpp"
 #include "velox/vector/tests/utils/VectorTestBase.h"
-#include "execution/expression_executor.hpp"
 #include <numeric>  // For std::iota
 
 using namespace facebook::velox;
@@ -612,11 +611,43 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Fi
 }
 
 //  Get Next Extent with Complex filter
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid,
-                    unique_ptr<Expression>& filter_expr, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
+bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
+                    ExpressionExecutor& executor, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
                     size_t scan_size , bool is_output_chunk_initialized) {
-	ExpressionExecutor executor;
-    return false;
+    // Do full scan first
+    bool scan_success = GetNextExtent(context, *(output_buffer.GetSliceBuffer().get()), output_eid, output_column_idxs, scan_size, is_output_chunk_initialized);
+    if (!scan_success) {
+        if (output_buffer.GetFilteredChunk()->size() > 0) {
+            output_buffer.ReferenceAndSwitch(output);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    // Then apply filter
+	SelectionVector sel(STANDARD_VECTOR_SIZE);
+    idx_t result_count = executor.SelectExpression(*(output_buffer.GetSliceBuffer().get()), sel);
+
+    // Based on the selecitivy, do filter buffering or passing
+    CompressionHeader comp_header;
+    if (doFilterBuffer(scan_size, result_count)) {
+        vector<idx_t> matched_row_idxs;
+        idx_t prev_scan_start_offset, prev_scan_end_offset;
+        getScanRange(scan_size, current_idx_in_this_extent - 1, prev_scan_start_offset, prev_scan_end_offset);
+        selVectorToRowIdxs(sel, result_count, matched_row_idxs, prev_scan_start_offset);
+        /* This code does copy on io_buffer. May not so efficient. */
+        bool is_fully_filled = copyMatchedRowsToBuffer(comp_header, matched_row_idxs, output_column_idxs, output_eid, output_buffer);
+        if (is_fully_filled) output_buffer.ReferenceAndSwitch(output);
+        else {
+            bool end_of_extent = !GetNextExtent(context, output, output_buffer, output_eid, executor, output_column_idxs, scanSchema, scan_size);
+            if(end_of_extent) output_buffer.ReferenceAndSwitch(output);
+        }
+    }
+    else {
+        sliceFilteredRows(*(output_buffer.GetSliceBuffer().get()), output, sel, result_count);
+    }
+    return true;
 }
 
 /**
@@ -685,6 +716,12 @@ ChunkDefinitionID ExtentIterator::getFilterCDFID(ExtentID output_eid, int64_t fi
     return filter_cdf_id;
 }
 
+
+bool ExtentIterator::getScanRange(size_t scan_size, idx_t idx_in_extent, idx_t& scan_start_offset, idx_t& scan_end_offset) {
+    scan_start_offset = idx_in_extent * scan_size;
+    scan_end_offset = std::min((idx_in_extent + 1) * scan_size, num_tuples_in_current_extent[toggle]);
+    return true;
+}
 
 bool ExtentIterator::getScanRange(size_t scan_size, idx_t& scan_begin_offset, idx_t& scan_end_offset) {
     scan_begin_offset = current_idx_in_this_extent * scan_size;
@@ -994,7 +1031,7 @@ bool ExtentIterator::inclusiveAwareRangePredicateCheck(Value &l_filterValue, Val
 bool ExtentIterator::copyMatchedRowsToBuffer(CompressionHeader& comp_header, vector<idx_t>& matched_row_idxs, vector<idx_t> &output_column_idxs, ExtentID &output_eid, FilteredChunkBuffer &output) {
     size_t current_buffer_size = output.GetFilteredChunk()->size();
     size_t after_copy_size = current_buffer_size + matched_row_idxs.size();
-    if (after_copy_size > STANDARD_VECTOR_SIZE) {
+    if (after_copy_size >= STANDARD_VECTOR_SIZE) {
         vector<idx_t> matched_row_idxs_for_current_buffer(matched_row_idxs.begin(), matched_row_idxs.begin() + (STANDARD_VECTOR_SIZE - current_buffer_size));
         vector<idx_t> matched_row_idxs_for_next_buffer(matched_row_idxs.begin() + (STANDARD_VECTOR_SIZE - current_buffer_size), matched_row_idxs.end());
         copyMatchedRows(comp_header, matched_row_idxs_for_current_buffer, output_column_idxs, output_eid, *(output.GetFilteredChunk().get()));
@@ -1113,6 +1150,12 @@ void ExtentIterator::referenceRows(DataChunk &output, ExtentID output_eid, size_
     output.SetCardinality(getNumReferencedRows(scan_size));
 }
 
+void ExtentIterator::selVectorToRowIdxs(SelectionVector& sel, size_t sel_size, vector<idx_t>& row_idxs, idx_t offset) {
+    row_idxs.reserve(sel_size);
+    for (size_t i = 0; i < sel_size; i++) {
+        row_idxs.push_back(sel.get_index(i) + offset);
+    }
+}
 
 void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, idx_t scan_start_offset, vector<idx_t> matched_row_idxs) {
     SelectionVector sel(STANDARD_VECTOR_SIZE); // TODO: remove this redundant selection vector declaration
@@ -1121,6 +1164,10 @@ void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, idx_
         sel.set_index(i, matched_row_idxs[i] - scan_start_offset);
     }
     output.Slice(input, sel, matched_row_idxs.size());
+}
+
+void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, SelectionVector& sel, size_t sel_size) {
+    output.Slice(input, sel, sel_size);
 }
 
 // For Seek Operator

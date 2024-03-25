@@ -131,10 +131,10 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 
 StoreAPIResult
 iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output, FilteredChunkBuffer &output_buffer, vector<vector<uint64_t>> &projection_mapping, 
-					std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, unique_ptr<Expression>& filter_expr) {
+					std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx, ExpressionExecutor& executor) {
 	ExtentID current_eid;
 	auto ext_it = ext_its.front();
-	bool scan_ongoing = ext_it->GetNextExtent(client, output, current_eid, filter_expr, projection_mapping[current_schema_idx], 
+	bool scan_ongoing = ext_it->GetNextExtent(client, output, output_buffer, current_eid, executor, projection_mapping[current_schema_idx], 
 											scanSchema, EXEC_ENGINE_VECTOR_SIZE); 
 	if (scan_ongoing) {
 		return StoreAPIResult::OK;

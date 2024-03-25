@@ -51,7 +51,7 @@ const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-05; // S62 r
 const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-07; // S62 reduce index scan cost in our case ..
 
 // index scan random IO factor
-const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 6.0;
+const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 3.66e-04;
 
 // filter column cost unit
 const CDouble CCostModelParamsGPDB::DFilterColCostUnitVal = 3.29e-05;
@@ -296,7 +296,7 @@ CCostModelParamsGPDB::CCostModelParamsGPDB(CMemoryPool *mp) : m_mp(mp)
 		DIndexScanTupCostUnitVal - 1.0, DIndexScanTupCostUnitVal + 1.0);
 	m_rgpcp[EcpIndexScanTupRandomFactor] = GPOS_NEW(mp) SCostParam(
 		EcpIndexScanTupRandomFactor, DIndexScanTupRandomFactorVal,
-		DIndexScanTupRandomFactorVal - 1.0, DIndexScanTupRandomFactorVal + 1.0);
+		DIndexScanTupRandomFactorVal - 0.0, DIndexScanTupRandomFactorVal + 0.0);
 	m_rgpcp[EcpFilterColCostUnit] = GPOS_NEW(mp)
 		SCostParam(EcpFilterColCostUnit, DFilterColCostUnitVal,
 				   DFilterColCostUnitVal - 1.0, DFilterColCostUnitVal + 1.0);
