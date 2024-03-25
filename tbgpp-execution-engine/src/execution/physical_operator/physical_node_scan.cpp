@@ -187,7 +187,10 @@ std::string PhysicalNodeScan::ParamsToString() const {
 			params += ", ";
 		}
 	}
-	params += "}";
+	params += "} ";
+	if (filter_expression) {
+		params += filter_expression->ToString();
+	}
 	return params;
 }
 
