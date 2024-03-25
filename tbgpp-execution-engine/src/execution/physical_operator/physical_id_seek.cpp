@@ -28,10 +28,11 @@ class IdSeekState : public OperatorState {
         io_cache.io_cdf_ids_cache.resize(INITIAL_EXTENT_ID_SPACE);
         io_cache.num_tuples_cache.resize(INITIAL_EXTENT_ID_SPACE);
         eid_to_schema_idx.resize(INITIAL_EXTENT_ID_SPACE, -1);
+        ext_it = new ExtentIterator(&io_cache);
     }
 
    public:
-    std::queue<ExtentIterator *> ext_its;
+    ExtentIterator *ext_it;
     SelectionVector sel;
     bool need_initialize_extit = true;
     bool has_remaining_output = false;
@@ -310,6 +311,7 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
                                            DataChunk &input, DataChunk &chunk,
                                            OperatorState &lstate) const
 {
+    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunk, lstate);
     }
@@ -342,7 +344,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     vector<idx_t> mapping_idxs;
 
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
 
@@ -359,11 +361,6 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
         doSeekSchemaless(context, input, chunk, state, target_eids,
                          target_seqnos_per_extent, mapping_idxs, output_idx);
     }
-
-    // TODO temporary code for deleting the existing iter
-    auto ext_it_exist = state.ext_its.front();
-    state.ext_its.pop();
-    delete ext_it_exist;
 
     referInputChunk(input, chunk, state, output_idx);
 
@@ -391,7 +388,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     vector<idx_t> mapping_idxs;
 
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
 
@@ -409,11 +406,6 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
                          target_seqnos_per_extent, mapping_idxs, output_idx);
     }
 
-    // TODO temporary code for deleting the existing iter
-    auto ext_it_exist = state.ext_its.front();
-    state.ext_its.pop();
-    delete ext_it_exist;
-
     referInputChunkLeft(input, chunk, state, output_idx);
 
     return OperatorResultType::NEED_MORE_INPUT;
@@ -424,6 +416,7 @@ OperatorResultType PhysicalIdSeek::Execute(
     vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
     idx_t &output_chunk_idx) const
 {
+    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunks, lstate, output_chunk_idx);
     }
@@ -551,9 +544,10 @@ void PhysicalIdSeek::initializeSeek(
     vector<vector<idx_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
+    num_inits++;
     state.null_tuples_idx.clear();
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_its, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
     state.need_initialize_extit = false;
@@ -612,7 +606,7 @@ void PhysicalIdSeek::doSeekUnionAll(
                 }
                 // do VertexIdSeek (but only scan cols used in filter)
                 context.client->graph_store->doVertexIndexSeek(
-                    state.ext_its, tmp_chunk, input, nodeColIdx,
+                    state.ext_it, tmp_chunk, input, nodeColIdx,
                     target_types, target_eids, target_seqnos_per_extent,
                     pred_col_idxs, extentIdx, output_col_idx);
             }
@@ -626,7 +620,7 @@ void PhysicalIdSeek::doSeekUnionAll(
             output_idx = executor.SelectExpression(tmp_chunk, state.sel);
             
             // Scan for remaining columns
-            state.ext_its.front()->Rewind(); // temporary code for rewind
+            state.ext_it->Rewind(); // temporary code for rewind
             if (non_pred_col_idxs.size() > 0) {
                 vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
                 getFilteredTargetSeqno(
@@ -645,7 +639,7 @@ void PhysicalIdSeek::doSeekUnionAll(
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
                     context.client->graph_store->doVertexIndexSeek(
-                        state.ext_its, tmp_chunk, input, nodeColIdx,
+                        state.ext_it, tmp_chunk, input, nodeColIdx,
                         target_types, target_eids, target_seqnos_per_extent_after_filter,
                         non_pred_col_idxs, extentIdx, output_col_idx);
                 }
@@ -662,7 +656,7 @@ void PhysicalIdSeek::doSeekUnionAll(
                     // TODO we should change this into result sets
                 }
                 context.client->graph_store->doVertexIndexSeek(
-                    state.ext_its, chunk, input, nodeColIdx, target_types,
+                    state.ext_it, chunk, input, nodeColIdx, target_types,
                     target_eids, target_seqnos_per_extent, non_pred_col_idxs, 
                     extentIdx, output_col_idx);
             }
@@ -670,20 +664,6 @@ void PhysicalIdSeek::doSeekUnionAll(
     }
     else {
         D_ASSERT(false);
-        for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-             extentIdx++) {
-            vector<idx_t> output_col_idx;
-            for (idx_t i = 0;
-                 i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-                output_col_idx.push_back(
-                    inner_col_maps[mapping_idxs[extentIdx]][i]);
-            }
-            context.client->graph_store->doVertexIndexSeek(
-                state.ext_its, chunk, input, nodeColIdx, target_types,
-                target_eids, target_seqnos_per_extent, extentIdx,
-                output_col_idx, output_idx, state.sel, filter_pushdown_key_idx,
-                filter_pushdown_value);
-        }
     }
 }
 
@@ -741,7 +721,7 @@ void PhysicalIdSeek::doSeekSchemaless(
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 context.client->graph_store->doVertexIndexSeek(
-                    state.ext_its, chunk, input, nodeColIdx, target_types,
+                    state.ext_it, chunk, input, nodeColIdx, target_types,
                     target_eids, target_seqnos_per_extent, extentIdx, rowcol,
                     chunk.GetRowMajorStore(union_inner_col_map[0]));
             }
@@ -795,7 +775,7 @@ void PhysicalIdSeek::doSeekGrouping(
                 // do VertexIdSeek
                 // TODO in schemaless case, we need to change this API carefully. it should cover both cases
                 context.client->graph_store->doVertexIndexSeek(
-                    state.ext_its, tmp_chunk, input, nodeColIdx,
+                    state.ext_it, tmp_chunk, input, nodeColIdx,
                     target_types, target_eids, target_seqnos_per_extent,
                     pred_col_idxs, extentIdx, output_col_idx);
                 num_tuples_per_chunk[chunk_idx] += target_seqnos_per_extent[extentIdx].size();
@@ -816,8 +796,7 @@ void PhysicalIdSeek::doSeekGrouping(
                     tmp_chunk, state.sels[chunk_idx]);
             }
 
-            D_ASSERT(state.ext_its.size() == 1);
-            state.ext_its.front()->Rewind(); // temporary code for rewind
+            state.ext_it->Rewind(); // temporary code for rewind
             if (non_pred_col_idxs.size() > 0) {
                 vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
                 getFilteredTargetSeqno(
@@ -836,7 +815,7 @@ void PhysicalIdSeek::doSeekGrouping(
                     auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                     auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
                     context.client->graph_store->doVertexIndexSeek(
-                        state.ext_its, tmp_chunk, input, nodeColIdx,
+                        state.ext_it, tmp_chunk, input, nodeColIdx,
                         target_types, target_eids, target_seqnos_per_extent_after_filter,
                         non_pred_col_idxs, extentIdx, output_col_idx);
                 }
@@ -863,7 +842,7 @@ void PhysicalIdSeek::doSeekGrouping(
                     input.GetSchemaIdx() * this->inner_col_maps.size() +
                     mapping_idxs[extentIdx];
                 context.client->graph_store->doVertexIndexSeek(
-                    state.ext_its, *(chunks[chunk_idx].get()), input,
+                    state.ext_it, *(chunks[chunk_idx].get()), input,
                     nodeColIdx, target_types, target_eids,
                     target_seqnos_per_extent, extentIdx, output_col_idx,
                     num_tuples_per_chunk[chunk_idx]);
@@ -893,21 +872,6 @@ void PhysicalIdSeek::doSeekGrouping(
     }
     else {
         D_ASSERT(false);  // not implemented yet
-        // for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-        // 	vector<idx_t> output_col_idx;
-        // 	for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-        // 		output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
-        // 	}
-        // 	context.client->graph_store->doVertexIndexSeek(state.ext_its, chunk, input, nodeColIdx, target_types,
-        // 		target_eids, target_seqnos_per_extent, extentIdx, output_col_idx, output_idx, state.sel, filter_pushdown_key_idx,
-        // 		filter_pushdown_value);
-        // }
-    }
-    // TODO temporary code for deleting the existing iter
-    if (!state.ext_its.empty()) {
-        auto ext_it_exist = state.ext_its.front();
-        state.ext_its.pop();
-        delete ext_it_exist;
     }
 }
 

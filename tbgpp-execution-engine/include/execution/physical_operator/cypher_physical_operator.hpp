@@ -107,6 +107,8 @@ class CypherPhysicalOperator {
 
     idx_t GetOperatorId() const { return operator_id; }
 
+    virtual size_t GetLoopCount() const { return 1; }
+
     // operator metadata
     const PhysicalOperatorType type;
     mutable Schema schema;           // TODO remove mutable
