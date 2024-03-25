@@ -798,6 +798,8 @@ std::string PhysicalAdjIdxJoin::ParamsToString() const
         "outer_col_map.size()=" + std::to_string(outer_col_map.size()) + ", ";
     result +=
         "inner_col_map.size()=" + std::to_string(inner_col_map.size()) + ", ";
+    result += "discard_tgt=" + std::to_string(discard_tgt) + ", ";
+    result += "discard_edge=" + std::to_string(discard_edge);
     return result;
 }
 
