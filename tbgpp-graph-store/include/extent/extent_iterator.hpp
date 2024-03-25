@@ -42,7 +42,7 @@ class PropertySchemaCatalogEntry;
 // TODO currently, only support double buffering
 // If possible, change this implementation to support prefetching
 #define MAX_NUM_DATA_CHUNKS 2
-#define FILTER_BUFFERING_THRESHOLD 0.7
+#define FILTER_BUFFERING_THRESHOLD 0.33
 
 typedef vector<uint8_t*> io_buf_ptrs;
 typedef vector<size_t> io_buf_sizes;

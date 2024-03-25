@@ -392,7 +392,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
 			query_compile_times.push_back(compile_time_ms);
 
-			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
+			// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
 
 	/*
 		EXECUTE QUERY
