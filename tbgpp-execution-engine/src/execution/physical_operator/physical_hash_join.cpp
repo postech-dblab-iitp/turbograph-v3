@@ -232,6 +232,7 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
     // TODO: currently, for debug purpose, we assume the chunk is UNION schema.
     chunk.SetSchemaIdx(0);
 
+    num_loops++;
     if (state.scan_structure) {
         // still have elements remaining from the previous probe (i.e. we got
         // >1024 elements in the previous probe)

@@ -175,6 +175,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<unique_ptr<DataChunk>> tmp_chunks;
     mutable ExpressionExecutor executor;
 
+    mutable vector<ExtentID> target_eids;
+
     JoinType join_type;
 
     // temp
