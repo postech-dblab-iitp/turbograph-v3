@@ -192,6 +192,8 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 		radix_tables[i].Sink(context, *llstate.global_radix_states[i], *llstate.local_radix_states[i], input, aggregate_input_chunk);
 	}
 
+	num_loops++;
+
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
