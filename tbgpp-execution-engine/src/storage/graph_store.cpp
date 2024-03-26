@@ -21,7 +21,9 @@
 namespace duckdb {
 
 iTbgppGraphStore::iTbgppGraphStore(ClientContext &client) : client(client), boundary_position(STANDARD_VECTOR_SIZE), 
-	tmp_vec(STANDARD_VECTOR_SIZE), boundary_position_cursor(0), target_eid_flags(INITIAL_EXTENT_ID_SPACE), tmp_vec_cursor(0) {}
+	tmp_vec(STANDARD_VECTOR_SIZE), boundary_position_cursor(0),
+	target_eid_flags(INITIAL_EXTENT_ID_SPACE), tmp_vec_cursor(0), 
+	target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE, vector<idx_t>(INITIAL_EXTENT_ID_SPACE)), target_seqnos_per_extent_map_cursors(INITIAL_EXTENT_ID_SPACE, 0) {}
 
 StoreAPIResult
 iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
@@ -149,15 +151,16 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 }
 
 inline void
-iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, vector<vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position, vector<idx_t> &tmp_vec) {
+iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid) {
 	auto prev_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
-	if (prev_eid_seqno > target_seqnos_per_extent_map.size()) { target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); }
-	vector<idx_t>& vec = target_seqnos_per_extent_map[prev_eid_seqno];
-	if (vec.size() == 0) {
-		vec.reserve(STANDARD_VECTOR_SIZE);
+	if (prev_eid_seqno > target_seqnos_per_extent_map.size()) {
+		target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); 
+		target_seqnos_per_extent_map_cursors.resize(prev_eid_seqno + 1, 0);
 	}
+	vector<idx_t> &vec = target_seqnos_per_extent_map[prev_eid_seqno];
+	idx_t &cursor = target_seqnos_per_extent_map_cursors[prev_eid_seqno];
 	for (auto i = 0; i < tmp_vec_cursor; i++) {
-		vec.push_back(tmp_vec[i]);
+		vec[cursor++] = tmp_vec[i];
 	}
 	boundary_position[boundary_position_cursor++] = i - 1;
 	tmp_vec_cursor = 0;
@@ -174,10 +177,14 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	vector<idx_t> &eid_to_mapping_idx, IOCache* io_cache)
 {
     Catalog &cat_instance = client.db->GetCatalog();
-	vector<vector<idx_t>> target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE);
 	ExtentID prev_eid = std::numeric_limits<ExtentID>::max();
 	Vector &src_vid_column_vector = input.data[nodeColIdx];
 	target_eid_flags.reset();
+
+	// Cursor initialization
+	for (auto i = 0; i < target_seqnos_per_extent_map_cursors.size(); i++) {
+		target_seqnos_per_extent_map_cursors[i] = 0;
+	}
 	boundary_position_cursor = 0;
 	tmp_vec_cursor = 0;
 	target_eids.clear();
@@ -193,7 +200,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 					if (prev_eid != target_eid) {
 						auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 						target_eid_flags.set(ext_seqno, true);
-						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid);
 					}
 					tmp_vec[tmp_vec_cursor++] = i;
 					prev_eid = target_eid;
@@ -208,7 +215,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 					if (prev_eid != target_eid) {
 						auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 						target_eid_flags.set(ext_seqno, true);
-						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid);
 					}
 					tmp_vec[tmp_vec_cursor++] = i;
 					prev_eid = target_eid;
@@ -223,7 +230,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 					if (prev_eid != target_eid) {
 						auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 						target_eid_flags.set(ext_seqno, true);
-						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid);
 					}
 					tmp_vec[tmp_vec_cursor++] = i;
 					prev_eid = target_eid;
@@ -252,7 +259,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 					if (prev_eid != target_eid) {
 						auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 						target_eid_flags.set(ext_seqno, true);
-						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid);
 					}
 					tmp_vec[tmp_vec_cursor++] = i;
 					prev_eid = target_eid;
@@ -270,7 +277,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 					if (prev_eid != target_eid) {
 						auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 						target_eid_flags.set(ext_seqno, true);
-						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+						_fillTargetSeqnosVecAndBoundaryPosition(i, prev_eid);
 					}
 					tmp_vec[tmp_vec_cursor++] = i;
 					prev_eid = target_eid;
@@ -290,7 +297,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	if (tmp_vec_cursor > 0) {
 		auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
 		target_eid_flags.set(ext_seqno, true);
-		_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid, target_seqnos_per_extent_map, boundary_position, tmp_vec);
+		_fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid);
 	}
 
 	/**
@@ -309,13 +316,16 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	}
 
 	bool is_multi_schema = false;
+	mapping_idxs.reserve(target_eids.size());
 	for (auto i = 0; i < target_eids.size(); i++) {
 		auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(target_eids[i]);
 		idx_t mapping_idx = eid_to_mapping_idx[ext_seqno];
 		D_ASSERT(mapping_idx != -1);
 		mapping_idxs.push_back(mapping_idx);
 		if (mapping_idx != mapping_idxs[0]) is_multi_schema = true;
-		target_seqnos_per_extent.push_back(std::move(target_seqnos_per_extent_map[ext_seqno]));
+		auto &vec = target_seqnos_per_extent_map[ext_seqno];
+		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
+		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
 	}
 
 	// TODO maybe we don't need this..

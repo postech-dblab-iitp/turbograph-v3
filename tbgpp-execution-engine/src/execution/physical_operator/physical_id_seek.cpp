@@ -321,7 +321,6 @@ OperatorResultType PhysicalIdSeek::Execute(ExecutionContext &context,
                                            DataChunk &input, DataChunk &chunk,
                                            OperatorState &lstate) const
 {
-    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunk, lstate);
     }
@@ -422,7 +421,6 @@ OperatorResultType PhysicalIdSeek::Execute(
     vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
     idx_t &output_chunk_idx) const
 {
-    num_loops++;
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunks, lstate, output_chunk_idx);
     }
@@ -546,7 +544,6 @@ void PhysicalIdSeek::initializeSeek(
     vector<vector<idx_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
-    num_inits++;
     state.null_tuples_idx.clear();
     context.client->graph_store->InitializeVertexIndexSeek(
         state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,

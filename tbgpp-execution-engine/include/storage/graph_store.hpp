@@ -97,13 +97,15 @@ public:
 	void fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>& eid_to_mapping_idx);
 
 private:
-	inline void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid, vector<vector<idx_t>> &target_seqnos_per_extent_map, vector<idx_t> &boundary_position, vector<idx_t> &tmp_vec);
+	inline void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid);
 
 private:
 	ClientContext &client;
 	ResizableBoolVector target_eid_flags;
+	vector<vector<idx_t>> target_seqnos_per_extent_map;
 	vector<idx_t> boundary_position;
 	vector<idx_t> tmp_vec;
+	vector<idx_t> target_seqnos_per_extent_map_cursors;
 	idx_t boundary_position_cursor;
 	idx_t tmp_vec_cursor;
 };
