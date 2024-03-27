@@ -1186,12 +1186,13 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
 
     auto &cur_ext_property_type = ext_property_types[(*target_idx_per_eid)[current_idx]];
-    CompressionHeader comp_header;
+    CompressionHeader *comp_header;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         // cols to exclude is for filter seek optimization.
         if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
         if (cur_ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
+            // memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
+            comp_header = (CompressionHeader *)io_requested_buf_ptrs[toggle][i];
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, target_seqnos.size() = %ld, %p -> %p\n", 
                             i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
@@ -1203,64 +1204,157 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
-        if (cur_ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
-            if (comp_header.comp_type == DICTIONARY) {
+        auto comp_header_valid_size = comp_header->GetValidSize();
+        switch(cur_ext_property_type[i].id()) {
+        case LogicalTypeId::VARCHAR: {
+            if (comp_header->comp_type == DICTIONARY) {
                 D_ASSERT(false);
                 PhysicalType p_type = cur_ext_property_type[i].InternalType();
                 DeCompressionFunction decomp_func(DICTIONARY, p_type);
                 decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
+                                       output.data[i], comp_header->data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
-                auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
-                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                    idx_t seqno = target_seqnos[seqno_idx];
-                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    strings[seqno] = varchar_arr[target_seqno];
-                    // validity.SetValid(seqno);
+                switch(vids.GetVectorType()) {
+                    case VectorType::DICTIONARY_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        auto sel_vec = DictionaryVector::SelVector(vids);
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                            strings[seqno] = varchar_arr[target_seqno];
+                        }
+                        break;
+                    }
+                    case VectorType::FLAT_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                            strings[seqno] = varchar_arr[target_seqno];
+                        }
+                        break;
+                    }
+                    case VectorType::CONSTANT_VECTOR: {
+                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                        idx_t seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            strings[seqno] = varchar_arr[target_seqno];
+                        }
+                        break;
+                    }
+                    default: {
+                        D_ASSERT(false);
+                    }
                 }
             }
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::LIST) {
+            break;
+        } 
+        case LogicalTypeId::LIST: {
             size_t type_size = sizeof(list_entry_t);
-            size_t offset_array_size = comp_header.data_len * type_size;
+            size_t offset_array_size = comp_header->data_len * type_size;
 
             D_ASSERT(false); /* zero copy for LIST is not implemented in this function */
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || cur_ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
+            break;
+        } 
+        case LogicalTypeId::FORWARD_ADJLIST:
+        case LogicalTypeId::BACKWARD_ADJLIST: {
             // TODO
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::ID) {
+            break;
+        } 
+        case LogicalTypeId::ID: {
             Vector &vids = input.data[nodeColIdx];
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
-            idx_t output_seqno = 0;
-            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                idx_t seqno = target_seqnos[seqno_idx];
-                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                id_column[seqno] = physical_id_base + target_seqno;
-                D_ASSERT(id_column[seqno] == getIdRefFromVectorTemp(vids, seqno));
-            }
-        } else {
-            if (comp_header.comp_type == BITPACKING) {
-                D_ASSERT(false);
-                PhysicalType p_type = cur_ext_property_type[i].InternalType();
-                DeCompressionFunction decomp_func(BITPACKING, p_type);
-                decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                                       output.data[i], comp_header.data_len);
-            } else {
-                size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
-                Vector &vids = input.data[nodeColIdx];
-                auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
-                auto target_ptr = output.data[output_column_idxs[i]].GetData();
-                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                    idx_t seqno = target_seqnos[seqno_idx];
-                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    memcpy(target_ptr + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
-                    // validity.SetValid(seqno);
+            switch(vids.GetVectorType()) {
+                case VectorType::DICTIONARY_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    auto sel_vec = DictionaryVector::SelVector(vids);
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                        id_column[seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[seqno] == getIdRefFromVectorTemp(vids, seqno));
+                    }
+                    break;
+                }
+                case VectorType::FLAT_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        idx_t seqno = target_seqnos[seqno_idx];
+                        idx_t target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                        id_column[seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[seqno] == getIdRefFromVectorTemp(vids, seqno));
+                    }
+                    break;
+                }
+                case VectorType::CONSTANT_VECTOR: {
+                    uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    idx_t seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        id_column[seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[seqno] == getIdRefFromVectorTemp(vids, seqno));
+                    }
+                    break;
+                }
+                default: {
+                    D_ASSERT(false);
                 }
             }
+            break;
+        }
+        default: {
+            size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
+            Vector &vids = input.data[nodeColIdx];
+            auto target_ptr = output.data[output_column_idxs[i]].GetData();
+            switch(vids.GetVectorType()) {
+                case VectorType::DICTIONARY_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    auto sel_vec = DictionaryVector::SelVector(vids);
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                        memcpy(target_ptr + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                    }
+                    break;
+                }
+                case VectorType::FLAT_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                        memcpy(target_ptr + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                    }
+                    break;
+                }
+                case VectorType::CONSTANT_VECTOR: {
+                    uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    idx_t seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        memcpy(target_ptr + seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                    }
+                    break;
+                }
+                default: {
+                    D_ASSERT(false);
+                }
+            }
+        }
         }
     }
     return true;
@@ -1344,17 +1438,17 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
 
     auto &cur_ext_property_type = ext_property_types[(*target_idx_per_eid)[current_idx]];
-    CompressionHeader comp_header;
+    CompressionHeader *comp_header;
     idx_t begin_seqno = output_seqno;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         output_seqno = begin_seqno;
         D_ASSERT(cur_ext_property_type[i] == output.data[output_column_idxs[i]].GetType());
         if (cur_ext_property_type[i] != LogicalType::ID) {
-            memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
+            comp_header = (CompressionHeader *)io_requested_buf_ptrs[toggle][i];
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld, cdf %ld, size = %ld %ld, io_req = %ld comp_type = %d -> %d, data_len = %ld, target_seqnos.size() = %ld, %p -> %p\n", 
-                            i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header.data_len, 
-                            io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) cur_ext_property_type[i].id(), comp_header.data_len,
+                            i, output_column_idxs[i], io_requested_cdf_ids[toggle][i], output.size(), comp_header->data_len, 
+                            io_requested_buf_sizes[toggle][i], (int)comp_header->comp_type, (int) cur_ext_property_type[i].id(), comp_header->data_len,
                             target_seqnos.size(), io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
         } else {
@@ -1362,97 +1456,166 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
-        if (cur_ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
-            if (comp_header.comp_type == DICTIONARY) {
+        auto comp_header_valid_size = comp_header->GetValidSize();
+        switch(cur_ext_property_type[i].id()) {
+        case LogicalTypeId::VARCHAR: {
+            if (comp_header->comp_type == DICTIONARY) {
                 D_ASSERT(false);
-                // PhysicalType p_type = cur_ext_property_type[i].InternalType();
-                // DeCompressionFunction decomp_func(DICTIONARY, p_type);
-                // decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                //                        output.data[i], comp_header.data_len);
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_column_idxs[i]]);
-                // uint64_t *offset_arr = (uint64_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
-                auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
-                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                    idx_t seqno = target_seqnos[seqno_idx];
-                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    // uint64_t prev_string_offset = target_seqno == 0 ? 0 : offset_arr[target_seqno - 1];
-                    // uint64_t string_offset = offset_arr[target_seqno];
-                    // size_t string_data_offset = CompressionHeader::GetSizeWoBitSet() + comp_header.data_len * sizeof(uint64_t) + prev_string_offset;
-                    // strings[seqno] = StringVector::AddString(output.data[output_column_idxs[i]], (char*)(io_requested_buf_ptrs[toggle][i] + string_data_offset), string_offset - prev_string_offset);
-                    // strings[seqno] = *((string_t*)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * sizeof(string_t)));
-                    strings[output_seqno] = varchar_arr[target_seqno];
-                    // validity.SetValid(output_seqno);
-                    output_seqno++;
+                switch(vids.GetVectorType()) {
+                    case VectorType::DICTIONARY_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        auto sel_vec = DictionaryVector::SelVector(vids);
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                            strings[output_seqno] = varchar_arr[target_seqno];
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    case VectorType::FLAT_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                            strings[output_seqno] = varchar_arr[target_seqno];
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    case VectorType::CONSTANT_VECTOR: {
+                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                        idx_t seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            strings[output_seqno] = varchar_arr[target_seqno];
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    default: {
+                        D_ASSERT(false);
+                    }
                 }
             }
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::LIST) {
+            break;
+        }
+        case LogicalTypeId::LIST: {
             size_t type_size = sizeof(list_entry_t);
-            size_t offset_array_size = comp_header.data_len * type_size;
+            size_t offset_array_size = comp_header->data_len * type_size;
 
             D_ASSERT(false); /* zero copy for LIST is not implemented in this function */
-
-            // Vector &vids = input.data[nodeColIdx];
-            // size_t list_offset = 0;
-            // size_t list_size_to_append = 0;
-            // size_t child_type_size = GetTypeIdSize(ListType::GetChildType(ext_property_type[i]).InternalType());
-            // list_entry_t *list_vec = (list_entry_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
-            // list_entry_t *output_list_vec = (list_entry_t *)output.data[output_column_idxs[i]].GetData();
-            // for (auto seqno_idx = 0; target_seqnos.size(); seqno_idx++) {
-            //     idx_t seqno = target_seqnos[seqno_idx];
-            //     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-            //     output_list_vec[seqno].length = list_vec[target_seqno].length;
-            //     list_size_to_append += (list_vec[target_seqno].length * child_type_size);
-            // }
-
-            // Vector &child_vec = ListVector::GetEntry(output.data[output_column_idxs[i]]);
-            // size_t last_offset = start_seqno == 0 ? 0 : output_list_vec[start_seqno - 1].offset + output_list_vec[start_seqno - 1].length;
-            // ListVector::Reserve(output.data[output_column_idxs[i]], last_offset + list_size_to_append);
-            // for (auto seqno_idx = 0; target_seqnos.size(); seqno_idx++) {
-            //     idx_t seqno = target_seqnos[seqno_idx];
-            //     idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-            //     icecream::ic.enable(); IC(); IC(target_seqno, last_offset, start_seqno, seqno, end_seqno, offset_array_size, list_vec[target_seqno].offset, list_vec[target_seqno].length, child_type_size); icecream::ic.disable();
-            //     memcpy(child_vec.GetData() + last_offset * child_type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + offset_array_size + list_vec[target_seqno].offset * child_type_size, list_vec[target_seqno].length * child_type_size);
-            //     output_list_vec[seqno].offset = last_offset;
-            //     last_offset += list_vec[target_seqno].length;
-            // }
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::FORWARD_ADJLIST || cur_ext_property_type[i].id() == LogicalTypeId::BACKWARD_ADJLIST) {
+            break;
+        }
+        case LogicalTypeId::FORWARD_ADJLIST:
+        case LogicalTypeId::BACKWARD_ADJLIST: {
             // TODO
-        } else if (cur_ext_property_type[i].id() == LogicalTypeId::ID) {
+            break;
+        }
+        case LogicalTypeId::ID: {
             Vector &vids = input.data[nodeColIdx];
             idx_t physical_id_base = (idx_t)output_eid;
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
-            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                idx_t seqno = target_seqnos[seqno_idx];
-                idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                id_column[output_seqno] = physical_id_base + target_seqno;
-                D_ASSERT(id_column[output_seqno] == getIdRefFromVectorTemp(vids, seqno));
-                output_seqno++;
+            switch(vids.GetVectorType()) {
+                case VectorType::DICTIONARY_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    auto sel_vec = DictionaryVector::SelVector(vids);
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                        id_column[output_seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[output_seqno] == getIdRefFromVectorTemp(vids, seqno));
+                        output_seqno++;
+                    }
+                    break;
+                }
+                case VectorType::FLAT_VECTOR: {
+                    uint64_t *vids_data = (uint64_t *)vids.GetData();
+                    idx_t seqno, target_seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        idx_t seqno = target_seqnos[seqno_idx];
+                        idx_t target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                        id_column[output_seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[output_seqno] == getIdRefFromVectorTemp(vids, seqno));
+                        output_seqno++;
+                    }
+                    break;
+                }
+                case VectorType::CONSTANT_VECTOR: {
+                    uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    idx_t seqno;
+                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                        seqno = target_seqnos[seqno_idx];
+                        id_column[output_seqno] = physical_id_base + target_seqno;
+                        D_ASSERT(id_column[output_seqno] == getIdRefFromVectorTemp(vids, seqno));
+                        output_seqno++;
+                    }
+                    break;
+                }
+                default: {
+                    D_ASSERT(false);
+                }
             }
-        } else {
-            if (comp_header.comp_type == BITPACKING) {
+            break;
+        }
+        default: {
+            if (comp_header->comp_type == BITPACKING) {
                 D_ASSERT(false);
-                // PhysicalType p_type = cur_ext_property_type[i].InternalType();
-                // DeCompressionFunction decomp_func(BITPACKING, p_type);
-                // decomp_func.DeCompress(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, io_requested_buf_sizes[toggle][i] -  comp_header_valid_size,
-                //                        output.data[i], comp_header.data_len);
             } else {
                 size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];
-                auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
                 auto target_ptr = output.data[output_column_idxs[i]].GetData();
-                for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                    idx_t seqno = target_seqnos[seqno_idx];
-                    idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
-                    memcpy(target_ptr + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
-                    // validity.SetValid(output_seqno);
-                    output_seqno++;
+                switch(vids.GetVectorType()) {
+                    case VectorType::DICTIONARY_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        auto sel_vec = DictionaryVector::SelVector(vids);
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[sel_vec.get_index(seqno)] & 0x00000000FFFFFFFF;
+                            memcpy(target_ptr + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    case VectorType::FLAT_VECTOR: {
+                        uint64_t *vids_data = (uint64_t *)vids.GetData();
+                        idx_t seqno, target_seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            target_seqno = vids_data[seqno] & 0x00000000FFFFFFFF;
+                            memcpy(target_ptr + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    case VectorType::CONSTANT_VECTOR: {
+                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                        idx_t seqno;
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            seqno = target_seqnos[seqno_idx];
+                            memcpy(target_ptr + output_seqno * type_size, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size + target_seqno * type_size, type_size);
+                            output_seqno++;
+                        }
+                        break;
+                    }
+                    default: {
+                        D_ASSERT(false);
+                    }
                 }
             }
+        }
         }
     }
     output_seqno = begin_seqno + target_seqnos.size();

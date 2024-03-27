@@ -311,6 +311,8 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
     std::string ParamsToString() const override;
     std::string ToString() const override;
 
+    virtual size_t GetLoopCount() const override { return num_loops; }
+
     uint64_t adjidx_obj_id;  // 230303 current single adjidx object
     uint64_t sid_col_idx;    // source id column
 	uint64_t tgt_col_idx;
@@ -341,6 +343,8 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
     uint32_t outer_pos;
     uint32_t inner_pos;
     uint64_t *inner_vec;
+
+    mutable uint64_t num_loops = 0;
 
    private:
     void setFillFuncLoadEID()

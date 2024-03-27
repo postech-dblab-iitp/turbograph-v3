@@ -47,6 +47,7 @@ class PhysicalHashJoin : public PhysicalComparisonJoin {
     vector<LogicalType> build_types;
     //! Duplicate eliminated types; only used for delim_joins (i.e. correlated subqueries)
     vector<LogicalType> delim_types;
+    mutable uint64_t num_loops = 0;
 
    public:
     // Operator Interface
@@ -79,6 +80,7 @@ class PhysicalHashJoin : public PhysicalComparisonJoin {
 
     std::string ParamsToString() const override;
     std::string ToString() const override;
+    virtual size_t GetLoopCount() const override { return num_loops; }
 };
 
 }  // namespace duckdb
