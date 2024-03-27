@@ -765,6 +765,7 @@ OperatorResultType PhysicalAdjIdxJoin::Execute(ExecutionContext &context,
                                                DataChunk &chunk,
                                                OperatorState &lstate) const
 {
+    num_loops++;
     if (!is_adjidxjoin_into) {
         return ExecuteNaiveInput(context, input, chunk, lstate);
     } else {

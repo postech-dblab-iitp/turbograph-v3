@@ -187,6 +187,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	}
 	boundary_position_cursor = 0;
 	tmp_vec_cursor = 0;
+	target_eids.clear();
 
 	auto &validity = src_vid_column_vector.GetValidity();
 	if (validity.AllValid()) {
@@ -305,7 +306,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 	 * Optimize this.
 	*/
 	// remove extent ids to be removed due to filter
-	target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
+	// target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
 	auto partition_id = GET_PARTITION_ID_FROM_EID(prev_eid);
 	for (auto i = 0; i < target_eid_flags.size(); i++) {
 		if (target_eid_flags[i]) {

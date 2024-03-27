@@ -55,6 +55,8 @@ public:
 	//! If this is not toggled the GetData method will destroy the hash table as it is scanning it
 	// static void SetMultiScan(GlobalSinkState &state);
 
+	virtual size_t GetLoopCount() const override { return num_loops; }
+
 	//! The groups
 	vector<unique_ptr<Expression>> groups;
 	//! The grouping sets
@@ -85,6 +87,8 @@ public:
 	unordered_map<Expression *, size_t> filter_indexes;
 
 	vector<uint64_t> output_projection_mapping;
+
+	mutable uint64_t num_loops = 0;
 };
 
 } // namespace duckdb

@@ -77,6 +77,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     genNonPredColIdxs();
     generatePartialSchemaInfos();
+
+    target_eids.reserve(STANDARD_VECTOR_SIZE);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -110,6 +112,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     genNonPredColIdxs();
     generatePartialSchemaInfos();
+
+    target_eids.reserve(STANDARD_VECTOR_SIZE);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -166,6 +170,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     genNonPredColIdxs();
     generatePartialSchemaInfos();
+
+    target_eids.reserve(STANDARD_VECTOR_SIZE);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -204,6 +210,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     genNonPredColIdxs();
     generatePartialSchemaInfos();
+
+    target_eids.reserve(STANDARD_VECTOR_SIZE);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
@@ -270,6 +278,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 
     genNonPredColIdxs();
     generatePartialSchemaInfos();
+
+    target_eids.reserve(STANDARD_VECTOR_SIZE);
 }
 
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
@@ -337,8 +347,6 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     idx_t output_idx = 0;
 
     // initialize indexseek
-    vector<ExtentID> target_eids;     // target extent ids to access
-    vector<idx_t> boundary_position;  // boundary position of the input chunk
     vector<vector<idx_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
 
@@ -381,8 +389,6 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     idx_t output_idx = 0;
 
     // initialize indexseek
-    vector<ExtentID> target_eids;     // target extent ids to access
-    vector<idx_t> boundary_position;  // boundary position of the input chunk
     vector<vector<idx_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
 
@@ -443,8 +449,6 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     D_ASSERT(nodeColIdx < input.ColumnCount());
 
     // initialize indexseek
-    vector<ExtentID> target_eids;     // target extent ids to access
-    vector<idx_t> boundary_position;  // boundary position of the input chunk
     vector<vector<idx_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
     vector<idx_t> num_tuples_per_chunk;
@@ -496,8 +500,6 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(
     D_ASSERT(nodeColIdx < input.ColumnCount());
 
     // initialize indexseek
-    vector<ExtentID> target_eids;     // target extent ids to access
-    vector<idx_t> boundary_position;  // boundary position of the input chunk
     vector<vector<idx_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
     vector<idx_t> num_tuples_per_chunk;

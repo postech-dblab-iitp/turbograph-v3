@@ -513,8 +513,8 @@ void *Planner::_orcaExec(void *planner_ptr)
         }
         auto orca_compile_time_ms =
             orca_compile_timer.elapsed().wall / 1000000.0;
-        std::cout << "\nCompile Time: " << orca_compile_time_ms << " ms"
-                  << std::endl;
+        // std::cout << "\nCompile Time: " << orca_compile_time_ms << " ms"
+        //           << std::endl;
         planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
 
         orca_logical_plan->Release();
