@@ -4246,7 +4246,7 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
 
     auto ok = filter_pred_expr->Pop()->Eopid() ==
                   COperator::EOperatorId::EopScalarCmp &&
-              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+              (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
                   IMDType::ECmpType::EcmptEq ||
                  ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
                      IMDType::ECmpType::EcmptNEq ||
@@ -4257,7 +4257,7 @@ bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
                  ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
                      IMDType::ECmpType::EcmptG ||
                  ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptGEq
+                     IMDType::ECmpType::EcmptGEq)
               && filter_pred_expr->operator[](0)->Pop()->Eopid() ==
                      COperator::EOperatorId::EopScalarIdent &&
               filter_pred_expr->operator[](1)->Pop()->Eopid() ==
