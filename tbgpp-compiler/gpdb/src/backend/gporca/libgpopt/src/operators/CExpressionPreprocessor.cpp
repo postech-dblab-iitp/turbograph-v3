@@ -2861,26 +2861,66 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 			pexprCollapsedSelect->Release();
 			return pexprTransposed;
 		} else {
-			CExpression *pexprTransposed =
-				PexprTransposeSelectAndProjectColumnar(mp, pexpr);
-			return pexprTransposed;
+			// (*(*pexpr)[0])[0]->AddRef();
+			// CExpression *pexprCollapsedSelect = GPOS_NEW(mp)
+			// 	CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), (*(*pexpr)[0])[0],
+			// 				CollapseSelectAndReplaceColrefColumnar(mp, (*pexpr)[1], pcolref,
+			// 											pprojExpr, depth + 1));
+			// CExpression *pexprTransposed =
+			// 	PexprTransposeSelectAndProjectColumnar(mp, pexprCollapsedSelect);
+			// pexprCollapsedSelect->Release();
+			// return pexprTransposed;
+			// CExpression *pexprTransposed =
+			// 	PexprTransposeSelectAndProjectColumnar(mp, pexpr);
+			// return pexprTransposed;
 		}
 	}
 
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
-		CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
+		CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
+		// CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
 	{
 		pprojExpr->AddRef();
 		return pprojExpr;
 	}
 
+	if (pexpr->Pop()->Eopid() == COperator::EopScalarSubqueryNotExists)
+	{
+		// recurse to children
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+		{
+			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
+				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
+		}
+
+		COperator *pop = pexpr->Pop();
+		pop->AddRef();
+		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+	} else {
+		// recurse to children
+		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+		{
+			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
+				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
+		}
+
+		COperator *pop = pexpr->Pop();
+		pop->AddRef();
+		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+	}
+}
+
+CExpression *
+CExpressionPreprocessor::CopyExpressionTree(CMemoryPool *mp, CExpression *pexpr)
+{
 	// recurse to children
 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
 	for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
 	{
-		pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
-			mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
+		pdrgpexprChildren->Append(CopyExpressionTree(mp, (*pexpr)[ul]));
 	}
 
 	COperator *pop = pexpr->Pop();
@@ -3111,10 +3151,6 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 
 		if (can_transpose)
 		{
-			// CWStringDynamic str2(mp, L"Before Collapse\n");
-			// COstreamString oss2(&str2);
-			// pexpr->OsPrint(oss2);
-			// GPOS_TRACE(str2.GetBuffer());
 			for (ULONG ul = 0; ul < pprojectList->Arity(); ul++)
 			{
 				CExpression *pprojexpr =
@@ -3149,11 +3185,21 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 				//
 				//       NB: JoinOnViewWithMixOfPushableAndNonpushablePredicates.mdp
 				CExpression *prevpselectNew = pselectNew;
-				pselectNew = CollapseSelectAndReplaceColrefColumnar(
-					mp, prevpselectNew,
-					CUtils::PNthProjectElement(pproject, ul)->Pcr(),
-					CUtils::PNthProjectElementExpr(pproject, ul),
-					0);
+				// 20240327 tsele - i'm not sure about this logic
+				if (pprojexpr->Pop()->Eopid() == COperator::EopScalarIdent) {
+					CColRef *target_colref = const_cast<CColRef *>(((CScalarIdent *)(pprojexpr->Pop()))->Pcr());
+					pselectNew = CollapseSelectAndReplaceColrefColumnar(
+						mp, prevpselectNew,
+						target_colref,
+						CUtils::PNthProjectElementExpr(pproject, ul),
+						0);
+				} else {
+					pselectNew = CollapseSelectAndReplaceColrefColumnar(
+						mp, prevpselectNew,
+						CUtils::PNthProjectElement(pproject, ul)->Pcr(),
+						CUtils::PNthProjectElementExpr(pproject, ul),
+						0);
+				}
 				if (pexpr != prevpselectNew)
 				{
 					prevpselectNew->Release();
@@ -3173,11 +3219,6 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 			CExpression *result_expr = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), pdrgpexpr);
 
-			// CWStringDynamic str(mp, L"After Collapse\n");
-			// COstreamString oss(&str);
-			// result_expr->OsPrint(oss);
-			// GPOS_TRACE(str.GetBuffer());
-
 			return result_expr;
 		}
 		else
@@ -3194,16 +3235,28 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 			return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 		}
 	} else {
-		// recurse child
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
-		{
-			pdrgpexprChildren->Append(
-				PexprTransposeSelectAndProjectColumnar(mp, (*pexpr)[ul]));
+		if (pexpr->Pop()->Eopid() == COperator::EopScalarSubqueryNotExists) {
+			CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+			for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+			{
+				pdrgpexprChildren->Append(
+					CopyExpressionTree(mp, (*pexpr)[ul]));
+			}
+			COperator *pop = pexpr->Pop();
+			pop->AddRef();
+			return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+		} else {
+			// recurse child
+			CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+			for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
+			{
+				pdrgpexprChildren->Append(
+					PexprTransposeSelectAndProjectColumnar(mp, (*pexpr)[ul]));
+			}
+			COperator *pop = pexpr->Pop();
+			pop->AddRef();
+			return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 		}
-		COperator *pop = pexpr->Pop();
-		pop->AddRef();
-		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 	}
 }
 
