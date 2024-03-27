@@ -12,8 +12,8 @@ WHERE n.N_NAME = 'IRAN' AND
     }
     AND NOT EXISTS {
         MATCH 
-        (l3:LINEITEM)-[:IS_PART_OF]->(o)
-        WHERE 
+        (l3:LINEITEM)
+        WHERE l3.L_ORDERKEY = o.O_ORDERKEY and
         s.S_SUPPKEY <> l3.L_SUPPKEY and
         l3.L_RECEIPTDATE > l3.L_COMMITDATE
     }
