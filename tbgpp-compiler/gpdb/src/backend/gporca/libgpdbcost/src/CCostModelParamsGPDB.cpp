@@ -51,7 +51,8 @@ const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-05; // S62 r
 const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-07; // S62 reduce index scan cost in our case ..
 
 // index scan random IO factor
-const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 3.66e-06;
+// const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 3.66e-06;
+const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 3.0e-04;
 
 // filter column cost unit
 const CDouble CCostModelParamsGPDB::DFilterColCostUnitVal = 3.29e-05;

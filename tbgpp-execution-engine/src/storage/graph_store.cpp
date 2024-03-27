@@ -23,7 +23,7 @@ namespace duckdb {
 iTbgppGraphStore::iTbgppGraphStore(ClientContext &client) : client(client), boundary_position(STANDARD_VECTOR_SIZE), 
 	tmp_vec(STANDARD_VECTOR_SIZE), boundary_position_cursor(0),
 	target_eid_flags(INITIAL_EXTENT_ID_SPACE), tmp_vec_cursor(0), 
-	target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE, vector<idx_t>(INITIAL_EXTENT_ID_SPACE)), target_seqnos_per_extent_map_cursors(INITIAL_EXTENT_ID_SPACE, 0) {}
+	target_seqnos_per_extent_map(INITIAL_EXTENT_ID_SPACE, vector<uint32_t>(INITIAL_EXTENT_ID_SPACE)), target_seqnos_per_extent_map_cursors(INITIAL_EXTENT_ID_SPACE, 0) {}
 
 StoreAPIResult
 iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
@@ -157,7 +157,7 @@ iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev
 		target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); 
 		target_seqnos_per_extent_map_cursors.resize(prev_eid_seqno + 1, 0);
 	}
-	vector<idx_t> &vec = target_seqnos_per_extent_map[prev_eid_seqno];
+	vector<uint32_t> &vec = target_seqnos_per_extent_map[prev_eid_seqno];
 	idx_t &cursor = target_seqnos_per_extent_map_cursors[prev_eid_seqno];
 	for (auto i = 0; i < tmp_vec_cursor; i++) {
 		vec[cursor++] = tmp_vec[i];
@@ -171,7 +171,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
     vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
     idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas,
     vector<ExtentID> &target_eids,
-    vector<vector<idx_t>> &target_seqnos_per_extent,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs,
     vector<idx_t> &null_tuples_idx,
 	vector<idx_t> &eid_to_mapping_idx, IOCache* io_cache)
@@ -345,7 +345,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 StoreAPIResult
 iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									vector<vector<idx_t>> &target_seqnos_per_extent, vector<idx_t> &cols_to_include, idx_t current_pos, vector<idx_t> output_col_idx)
+									vector<vector<uint32_t>> &target_seqnos_per_extent, vector<idx_t> &cols_to_include, idx_t current_pos, vector<idx_t> output_col_idx)
 {
 	if (ext_it == nullptr) return StoreAPIResult::DONE;
 	ExtentID target_eid = target_eids[current_pos];
@@ -360,7 +360,7 @@ iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, 
 StoreAPIResult
 iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,
+									vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos, Vector &rowcol_vec,
 									char *row_major_store)
 {
 	ExtentID target_eid = target_eids[current_pos];
@@ -375,7 +375,7 @@ iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, 
 StoreAPIResult
 iTbgppGraphStore::doVertexIndexSeek(ExtentIterator *&ext_it, DataChunk& output, DataChunk &input,
 									idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
-									vector<vector<idx_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
+									vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos, vector<idx_t> output_col_idx,
 									idx_t &num_tuples_per_chunk)
 {
 	ExtentID target_eid = target_eids[current_pos];
@@ -510,9 +510,9 @@ iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColI
 		} else if (expand_dir == ExpandDirection::INCOMING) {
 			is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::BACKWARD_ADJLIST);
 		}
-		adj_iter.getAdjListPtr(vid, target_eid, start_ptr, end_ptr, is_initialized);
+		adj_iter.getAdjListPtr(vid, target_eid, &start_ptr, &end_ptr, is_initialized);
 	} else {
-		adj_iter.getAdjListPtr(vid, target_eid, start_ptr, end_ptr, is_initialized);
+		adj_iter.getAdjListPtr(vid, target_eid, &start_ptr, &end_ptr, is_initialized);
 	}
 	prev_eid = target_eid;
 	

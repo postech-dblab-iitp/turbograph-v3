@@ -20,7 +20,8 @@ JoinHashTable::JoinHashTable(BufferManager &buffer_manager, const vector<JoinCon
       vfound(Value::BOOLEAN(false)), 
 	  join_type(type), 
 	  finalized(false), 
-	  has_null(false) {
+	  has_null(false),
+	  hashes(LogicalType::HASH) {
 	for (auto &condition : conditions) {
 		D_ASSERT(condition.left->return_type == condition.right->return_type);
 		auto type = condition.left->return_type;
@@ -288,7 +289,7 @@ void JoinHashTable::Finalize() {
 	hash_map = buffer_manager.Allocate(capacity * sizeof(data_ptr_t));
 	memset(hash_map->node->buffer, 0, capacity * sizeof(data_ptr_t));
 
-	Vector hashes(LogicalType::HASH);
+	// Vector hashes(LogicalType::HASH);
 	auto hash_data = FlatVector::GetData<hash_t>(hashes);
 	data_ptr_t key_locations[STANDARD_VECTOR_SIZE];
 	// now construct the actual hash table; scan the nodes
@@ -326,7 +327,11 @@ unique_ptr<ScanStructure> JoinHashTable::Probe(DataChunk &keys) {
 	auto ss = make_unique<ScanStructure>(*this, output_left_projection_map, output_right_projection_map);
 
 	if (join_type != JoinType::INNER) {
-		ss->found_match = unique_ptr<bool[]>(new bool[STANDARD_VECTOR_SIZE]);
+		if (!this->found_match) {
+			this->found_match = shared_ptr<bool[]>(new bool[STANDARD_VECTOR_SIZE]);
+		}
+		// ss->found_match = unique_ptr<bool[]>(new bool[STANDARD_VECTOR_SIZE]);
+		ss->found_match = this->found_match;
 		memset(ss->found_match.get(), 0, sizeof(bool) * STANDARD_VECTOR_SIZE);
 	}
 
@@ -338,7 +343,7 @@ unique_ptr<ScanStructure> JoinHashTable::Probe(DataChunk &keys) {
 	}
 
 	// hash all the keys
-	Vector hashes(LogicalType::HASH);
+	// Vector hashes(LogicalType::HASH);
 	Hash(keys, *current_sel, ss->count, hashes);
 
 	// now initialize the pointers of the scan structure based on the hashes
@@ -359,12 +364,12 @@ unique_ptr<ScanStructure> JoinHashTable::Probe(DataChunk &keys) {
 }
 
 ScanStructure::ScanStructure(JoinHashTable &ht)
-    : pointers(LogicalType::POINTER), sel_vector(STANDARD_VECTOR_SIZE), ht(ht), finished(false) {
+    : pointers(LogicalType::POINTER), sel_vector(STANDARD_VECTOR_SIZE), result_vector(STANDARD_VECTOR_SIZE), ht(ht), finished(false) {
 }
 
 ScanStructure::ScanStructure(JoinHashTable &ht, vector<uint32_t> &left_map, vector<uint32_t> &right_map)
-	: output_left_projection_map(left_map), output_right_projection_map(right_map), pointers(LogicalType::POINTER),
-	  sel_vector(STANDARD_VECTOR_SIZE), ht(ht), finished(false){
+	: output_left_projection_map(&left_map), output_right_projection_map(&right_map), pointers(LogicalType::POINTER),
+	  sel_vector(STANDARD_VECTOR_SIZE), result_vector(STANDARD_VECTOR_SIZE), ht(ht), finished(false){
 }
 
 void ScanStructure::Next(DataChunk &keys, DataChunk &left, DataChunk &result) {
@@ -475,14 +480,14 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
 	}
 
 	// Perform the actual join
-	SelectionVector result_vector(STANDARD_VECTOR_SIZE);
-	idx_t result_count = ScanInnerJoin(keys, result_vector);
+	// SelectionVector result_vector(STANDARD_VECTOR_SIZE);
+	idx_t result_count = ScanInnerJoin(keys, this->result_vector);
 	if (result_count > 0) {
 		if (IsRightOuterJoin(ht.join_type)) {
 			// full/right outer join: mark join matches as FOUND in the HT
 			auto ptrs = FlatVector::GetData<data_ptr_t>(pointers);
 			for (idx_t i = 0; i < result_count; i++) {
-				auto idx = result_vector.get_index(i);
+				auto idx = this->result_vector.get_index(i);
 				// NOTE: threadsan reports this as a data race because this can be set concurrently by separate threads
 				// Technically it is, but it does not matter, since the only value that can be written is "true"
 				Store<bool>(true, ptrs[idx] + ht.tuple_size);
@@ -492,11 +497,11 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
 		// construct the result
 		// on the LHS, we create a slice using the result vector
 		// Left projection mapping
-        for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
-            if (output_left_projection_map[i] !=
+        for (idx_t i = 0; i < output_left_projection_map->size(); i++) {
+            if ((*output_left_projection_map)[i] !=
                 std::numeric_limits<uint32_t>::max()) {
-                result.data[output_left_projection_map[i]].Slice(
-                    left.data[i], result_vector,
+                result.data[(*output_left_projection_map)[i]].Slice(
+                    left.data[i], this->result_vector,
                     result_count);
             }
         }
@@ -504,15 +509,15 @@ void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &r
         // on the RHS, we need to fetch the data from the hash table
 		idx_t i = 0;
         for (idx_t projection_map_idx = 0;
-             projection_map_idx < output_right_projection_map.size();
+             projection_map_idx < output_right_projection_map->size();
              projection_map_idx++) {
-            if (output_right_projection_map[projection_map_idx] !=
+            if ((*output_right_projection_map)[projection_map_idx] !=
                 std::numeric_limits<uint32_t>::max()) {
                 auto &vector =
                     result
-                        .data[output_right_projection_map[projection_map_idx]];
+                        .data[(*output_right_projection_map)[projection_map_idx]];
                 D_ASSERT(vector.GetType() == ht.build_types[i]);
-                GatherResult(vector, result_vector, result_count,
+                GatherResult(vector, this->result_vector, result_count,
                              i + ht.condition_types.size());
                 i++;
             }
@@ -562,10 +567,10 @@ void ScanStructure::NextSemiOrAntiJoin(DataChunk &keys, DataChunk &left, DataChu
 		// we only return the columns on the left side
 		// reference the columns of the left side from the result
 		// result.Slice(left, sel, result_count);
-        for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
-            if (output_left_projection_map[i] !=
+        for (idx_t i = 0; i < output_left_projection_map->size(); i++) {
+            if ((*output_left_projection_map)[i] !=
                 std::numeric_limits<uint32_t>::max()) {
-                result.data[output_left_projection_map[i]].Slice(
+                result.data[(*output_left_projection_map)[i]].Slice(
                     left.data[i], sel, result_count);
             }
         }
@@ -727,10 +732,10 @@ void ScanStructure::NextLeftJoin(DataChunk &keys, DataChunk &left, DataChunk &re
 			// have remaining tuples
 			// slice the left side with tuples that did not find a match
 			result.SetCardinality(remaining_count);
-			for (idx_t i = 0; i < output_left_projection_map.size(); i++) {
-				if (output_left_projection_map[i] !=
+			for (idx_t i = 0; i < output_left_projection_map->size(); i++) {
+				if ((*output_left_projection_map)[i] !=
 					std::numeric_limits<uint32_t>::max()) {
-					result.data[output_left_projection_map[i]].Slice(
+					result.data[(*output_left_projection_map)[i]].Slice(
 						left.data[i], sel,
 						remaining_count);
 				}
@@ -738,11 +743,11 @@ void ScanStructure::NextLeftJoin(DataChunk &keys, DataChunk &left, DataChunk &re
 
 			// now set the right side to NULL
 			for (idx_t projection_map_idx = 0;
-				projection_map_idx < output_right_projection_map.size();
+				projection_map_idx < output_right_projection_map->size();
 				projection_map_idx++) {
-				if (output_right_projection_map[projection_map_idx] !=
+				if ((*output_right_projection_map)[projection_map_idx] !=
 					std::numeric_limits<uint32_t>::max()) {
-					Vector &vec = result.data[output_right_projection_map[projection_map_idx]];
+					Vector &vec = result.data[(*output_right_projection_map)[projection_map_idx]];
 					vec.SetVectorType(VectorType::CONSTANT_VECTOR);
 					ConstantVector::SetNull(vec, true);
 				}

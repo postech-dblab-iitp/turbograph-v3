@@ -90,21 +90,21 @@ void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, u
     // *end_idx = adjListBase[target_seqno];
 }
 
-void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t *&start_ptr, uint64_t *&end_ptr, bool is_initialized) {
+void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t **start_ptr, uint64_t **end_ptr, bool is_initialized) {
     idx_t target_seqno = GET_SEQNO_FROM_PHYSICAL_ID(vid);
     auto target_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(target_eid);
     
     D_ASSERT((*eid_to_bufptr_idx_map)[target_eid_seqno].first != -1);
     auto &bufptr_adjidx_pair = (*eid_to_bufptr_idx_map)[target_eid_seqno];
-    if (bufptr_adjidx_pair.second == nullptr) {
+    if (!bufptr_adjidx_pair.second) {
         ext_it->GetExtent(cur_adj_list, bufptr_adjidx_pair.first, is_initialized);
         bufptr_adjidx_pair.second = cur_adj_list;
         adjListBase = (idx_t *)cur_adj_list;
     } else {
         adjListBase = (idx_t *)bufptr_adjidx_pair.second;
     }
-    start_ptr = adjListBase + (target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1]);
-    end_ptr = adjListBase + adjListBase[target_seqno];
+    *start_ptr = adjListBase + (target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1]);
+    *end_ptr = adjListBase + adjListBase[target_seqno];
 }
 
 void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx) {
@@ -115,8 +115,8 @@ void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t a
     ExtentID target_eid = src_id >> 32;
     bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST); // TODO adjColIdx, adjlist direction
     // fprintf(stdout, "target_eid = %d, initialized = %s\n", target_eid, is_initialized ? "true" : "false");
-    adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, cur_start_end_offsets_per_level[current_lv].first,
-        cur_start_end_offsets_per_level[current_lv].second, is_initialized);
+    adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, &cur_start_end_offsets_per_level[current_lv].first,
+        &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
     for (int lv = 0; lv < cursor_per_level.size(); lv++) cursor_per_level[lv] = 0;
 }
 
@@ -148,8 +148,8 @@ void DFSIterator::changeLevel(ClientContext &context, bool traverse_child, uint6
             initializeDSForNewLv(current_lv);
         }
         bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
-        adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, cur_start_end_offsets_per_level[current_lv].first,
-            cur_start_end_offsets_per_level[current_lv].second, is_initialized);
+        adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, &cur_start_end_offsets_per_level[current_lv].first,
+            &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
     } else {
         current_lv--;
         // if (current_lv < 0) return;
@@ -213,7 +213,7 @@ bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID node_
     uint64_t *start_ptr, *end_ptr;
     ExtentID target_eid = node_id >> 32;
     bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
-    adjlist_iterator->getAdjListPtr(node_id, target_eid, start_ptr, end_ptr, is_initialized);
+    adjlist_iterator->getAdjListPtr(node_id, target_eid, &start_ptr, &end_ptr, is_initialized);
 
     for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
         uint64_t neighbor = *ptr;

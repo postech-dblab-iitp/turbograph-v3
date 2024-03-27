@@ -153,7 +153,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
             case VectorType::DICTIONARY_VECTOR: {
                 auto src_vid_column_data =
                     (uint64_t *)src_vid_column_vector.GetData();
-                auto src_sel_vector =
+                auto &src_sel_vector =
                     DictionaryVector::SelVector(src_vid_column_vector);
                 while (state.output_idx < STANDARD_VECTOR_SIZE &&
                     state.lhs_idx < input.size()) {
@@ -199,7 +199,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
             case VectorType::DICTIONARY_VECTOR: {
                 auto src_vid_column_data =
                     (uint64_t *)src_vid_column_vector.GetData();
-                auto src_sel_vector =
+                auto &src_sel_vector =
                     DictionaryVector::SelVector(src_vid_column_vector);
                 while (state.output_idx < STANDARD_VECTOR_SIZE &&
                     state.lhs_idx < input.size()) {
@@ -277,7 +277,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutputInto(
     if (src_vid_column_vector.GetVectorType() ==
         VectorType::DICTIONARY_VECTOR) {
         auto src_vid_column_data = (uint64_t *)src_vid_column_vector.GetData();
-        auto src_sel_vector =
+        auto &src_sel_vector =
             DictionaryVector::SelVector(src_vid_column_vector);
         if (tgt_vid_column_vector.GetVectorType() ==
             VectorType::DICTIONARY_VECTOR) {

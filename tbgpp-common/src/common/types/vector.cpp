@@ -33,9 +33,10 @@ Vector::Vector(LogicalType type_p, idx_t capacity) : Vector(move(type_p), true, 
 
 Vector::Vector(LogicalType type_p, data_ptr_t dataptr)
     : vector_type(VectorType::FLAT_VECTOR), type(move(type_p)), data(dataptr) {
-	if (dataptr && type.id() == LogicalTypeId::INVALID) {
-		throw InternalException("Cannot create a vector of type INVALID!");
-	}
+	D_ASSERT(!(dataptr && type.id() == LogicalTypeId::INVALID));
+	// if (dataptr && type.id() == LogicalTypeId::INVALID) {
+	// 	throw InternalException("Cannot create a vector of type INVALID!");
+	// }
 }
 
 Vector::Vector(const VectorCache &cache, idx_t capacity) : type(cache.GetType()), capacity(capacity) {
