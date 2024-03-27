@@ -290,6 +290,24 @@ CPredicateUtils::FHasNegatedChild(CExpression *pexpr)
 	return false;
 }
 
+// does the given expression have any OR bool operator?
+BOOL 
+CPredicateUtils::FHasOrOp(CExpression *pexpr)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	const ULONG arity = pexpr->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		if (FOr((*pexpr)[ul]))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // recursively collect conjuncts
 void
 CPredicateUtils::CollectConjuncts(CExpression *pexpr,

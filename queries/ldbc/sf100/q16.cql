@@ -1,8 +1,8 @@
-MATCH (root:Person {id: 13194139542834 })-[:KNOWS*1..2]->(friend:Person)
+MATCH (root:Person {id: 21990232978350 })-[:KNOWS*1..2]->(friend:Person)
 WHERE NOT friend = root
 WITH DISTINCT friend
 MATCH (friend)<-[:HAS_CREATOR]-(message:Comment)
-WHERE message.creationDate < 1324080000000
+WHERE message.creationDate < 1337990400000
 RETURN
     friend.id AS personId,
     friend.firstName AS personFirstName,
@@ -13,4 +13,4 @@ RETURN
 ORDER BY
     commentOrPostCreationDate DESC,
     commentOrPostId ASC
-LIMIT 20;
+LIMIT 20

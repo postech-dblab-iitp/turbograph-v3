@@ -220,7 +220,7 @@ public:
 					CExpressionHandle &	 // exprhdl
 	) const
 	{
-		return 1;
+		return path_join_upper_bound - path_join_lower_bound + 1;
 	}
 
 	//-------------------------------------------------------------------------------------

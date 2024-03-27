@@ -838,6 +838,12 @@ CXformUtils::ImplementHashJoin(CXformContext *pxfctxt, CXformResult *pxfres,
 		return;
 	}
 
+	// if there is a OR condition on predicate, then we cannot use a hash join
+	if (CPredicateUtils::FHasOrOp((*pexpr)[2]))
+	{
+		return;
+	}
+
 	CMemoryPool *mp = pxfctxt->Pmp();
 	CExpressionArray *pdrgpexprOuter = NULL;
 	CExpressionArray *pdrgpexprInner = NULL;

@@ -326,12 +326,13 @@ CLogicalPathGet::PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
 ) const
 {
 	// requesting stats on distribution columns to estimate data skew
-
-	CDouble rows(1.0);
-	rows = CStatistics::DefaultRelationRows;
-
 	IStatistics *pstatsTable =
-		PstatsDeriveDummy(mp, exprhdl, rows);
+		PstatsBaseTable(mp, exprhdl, m_ptabdescArray->operator[](0), m_pcrsDist);
+
+	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, m_pdrgpcrOutput);
+	CUpperBoundNDVs *upper_bound_NDVs =
+		GPOS_NEW(mp) CUpperBoundNDVs(pcrs, pstatsTable->Rows());
+	CStatistics::CastStats(pstatsTable)->AddCardUpperBound(upper_bound_NDVs);
 
 	return pstatsTable;
 }

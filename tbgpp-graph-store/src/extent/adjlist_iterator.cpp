@@ -203,7 +203,6 @@ void ShortestPathIterator::initialize(ClientContext &context, NodeID src_id, Nod
     while (!queue.empty()) {
         std::pair<NodeID, Level> current = queue.front();
         queue.pop();
-        if (current.second >= upper_bound) { continue; }
         bool found = enqueueNeighbors(context, current.first, current.second, queue);
         if (found) { break; }
     }
@@ -223,6 +222,9 @@ bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID node_
         if (neighbor == tgtId && node_level + 1 >= lowerBound) {
             predecessor[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
             return true;
+        }
+        else if (node_level + 1 >= upperBound) { // no need for further search
+            continue;
         }
 
         // If the neighbor has not been visited
@@ -256,5 +258,131 @@ bool ShortestPathIterator::getShortestPath(ClientContext &context, std::vector<u
 
     return true;
 }
+
+/**
+ * New implementation
+*/
+
+
+// ShortestPathAdvancedIterator::ShortestPathAdvancedIterator() {
+//     ext_it_forward = std::make_shared<ExtentIterator>();
+//     eid_to_bufptr_idx_map_forward = std::make_shared<vector<BufPtrAdjIdxPair>>();
+//     eid_to_bufptr_idx_map_forward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
+
+//     ext_it_backward = std::make_shared<ExtentIterator>();
+//     eid_to_bufptr_idx_map_backward = std::make_shared<vector<BufPtrAdjIdxPair>>();
+//     eid_to_bufptr_idx_map_backward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
+// }
+
+// ShortestPathAdvancedIterator::~ShortestPathAdvancedIterator() {}
+
+// void ShortestPathAdvancedIterator::initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_fwd, uint64_t adj_col_idx_bwd, Level lower_bound, Level upper_bound) {
+//     if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
+
+//     this->src_id = src_id;
+//     this->tgt_id = tgt_id;
+//     this->adj_col_idx_fwd = adj_col_idx_fwd;
+//     this->adj_col_idx_bwd = adj_col_idx_bwd;
+//     this->lower_bound = lower_bound;
+//     this->upper_bound = upper_bound;
+
+//     // initialize predecessor
+//     predecessor_forward.clear();
+//     predecessor_backward.clear();
+//     predecessor_forward[srcId] = {srcId, 0};
+//     predecessor_backward[tgtId] = {tgtId, 0};
+
+//     // initialize iterator
+//     adjlist_iterator_forward = std::make_shared<AdjacencyListIterator>(this->ext_it_forward, this->eid_to_bufptr_idx_map_forward);
+//     adjlist_iterator_backward = std::make_shared<AdjacencyListIterator>(this->ext_it_backward, this->eid_to_bufptr_idx_map_backward);
+
+//     biDirectionalSearch(context);
+// }
+
+// bool ShortestPathAdvancedIterator::biDirectionalSearch(ClientContext &context) {
+//     std::queue<std::pair<NodeID, Level>> queue_forward;
+//     std::queue<std::pair<NodeID, Level>> queue_backward;
+
+//     queue_forward.push(make_pair(srcId, 0));
+//     queue_backward.push(make_pair(tgtId, 0));
+
+//     while (!queue_forward.empty() && !queue_backward.empty()) {
+//         if (!queue_forward.empty()) {
+//             auto current_forward = queue_forward.front();
+//             queue_forward.pop();
+//             enqueueNeighbors(context, queue_forward, predecessor_forward, adjlist_iterator_forward, current_forward.first, current_forward.second, true);
+//         }
+
+//         if (!queue_backward.empty()) {
+//             auto current_backward = queue_backward.front();
+//             queue_backward.pop();
+//             enqueueNeighbors(context, queue_backward, predecessor_backward, adjlist_iterator_backward, current_backward.first, current_backward.second, false);
+//         }
+
+//         // Check for intersection
+//         for (auto &entry : predecessor_forward) {
+//             if (predecessor_backward.find(entry.first) != predecessor_backward.end()) {
+//                 return true;
+//             }
+//         }
+//     }
+
+//     return false;
+// }
+
+// void ShortestPathAdvancedIterator:enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>>& queue, bool is_forward) {
+//     // Implement the neighbor enqueueing logic, specific to forward or backward search
+// }
+
+
+// bool ShortestPathAdvancedIterator::getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes) {
+//     if (predecessor_forward.find(tgtId) == predecessor_forward.end() || predecessor_backward.find(srcId) == predecessor_backward.end()) {
+//         return false;
+//     }
+
+//     NodeID meeting_point = srcId; // Placeholder initialization
+//     for (auto &entry : predecessor_forward) {
+//             if (predecessor_backward.find(entry.first) != predecessor_backward.end()) {\
+//                     meeting_point = entry.first;
+//             break;
+//         }
+//     }
+
+//     reconstructPath(edges, nodes, meeting_point);
+//     return true;
+// }
+
+// void ShortestPathAdvancedIterator::reconstructPath(std::vector<EdgeID>& edges, std::vector<NodeID>& nodes, NodeID meeting_point) {
+//     // Reconstruct the path from the source to the meeting point using predecessor_forward
+//     std::vector<NodeID> path_forward;
+//     std::vector<EdgeID> edges_forward;
+//     NodeID current = meeting_point;
+//     while (current != srcId) {
+//         path_forward.push_back(current);
+//         edges_forward.push_back(predecessor_forward[current].second);
+//         current = predecessor_forward[current].first;
+//     }
+//     path_forward.push_back(srcId);
+//     std::reverse(path_forward.begin(), path_forward.end());
+//     std::reverse(edges_forward.begin(), edges_forward.end());
+
+//     // Reconstruct the path from the target to the meeting point using predecessor_backward
+//     std::vector<NodeID> path_backward;
+//     std::vector<EdgeID> edges_backward;
+//     current = meeting_point;
+//     while (current != tgtId) {
+//         path_backward.push_back(predecessor_backward[current].first);
+//         edges_backward.push_back(predecessor_backward[current].second);
+//         current = predecessor_backward[current].first;
+//     }
+
+//     // Concatenate the two paths to form the complete path from source to target
+//     nodes = move(path_forward);
+//     nodes.insert(nodes.end(), path_backward.begin(), path_backward.end());
+
+//     edges = move(edges_forward);
+//     edges.insert(edges.end(), edges_backward.begin(), edges_backward.end());
+// }
+
 
 }
