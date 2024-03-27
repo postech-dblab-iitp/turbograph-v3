@@ -221,6 +221,8 @@ private:
 
 	static CExpression *PexprPruneUnnecessaryTables(CMemoryPool *mp,
 													CExpression *pexpr);
+	
+	static CExpression *CopyExpressionTree(CMemoryPool *mp, CExpression *pexpr);
 
 	// private ctor
 	CExpressionPreprocessor();
