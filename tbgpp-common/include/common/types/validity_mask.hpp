@@ -171,6 +171,9 @@ public:
 		}
 		return validity_mask[entry_idx];
 	}
+	inline V GetValidityEntryUnsafe(idx_t entry_idx) const {
+		return validity_mask[entry_idx];
+	}
 	static inline bool AllValid(V entry) {
 		return entry == ValidityBuffer::MAX_ENTRY;
 	}

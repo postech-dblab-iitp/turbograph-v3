@@ -33,9 +33,10 @@ void DataChunk::InitializeEmpty(const vector<LogicalType> &types, idx_t capacity
 	capacity = capacity_;
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
+	data.reserve(types.size());
 	for (idx_t i = 0; i < types.size(); i++) {
 		data.emplace_back(Vector(types[i], nullptr));
-		if (types[i] == LogicalType::SQLNULL) data[i].is_valid = false;
+		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
 	}
 }
 
@@ -43,11 +44,12 @@ void DataChunk::Initialize(const vector<LogicalType> &types, idx_t capacity_) {
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	capacity = capacity_;
+	data.reserve(types.size());
 	for (idx_t i = 0; i < types.size(); i++) {
 		VectorCache cache(types[i], capacity);
 		data.emplace_back(cache, capacity);
 		vector_caches.push_back(move(cache));
-		if (types[i] == LogicalType::SQLNULL) data[i].is_valid = false;
+		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
 	}
 }
 
@@ -55,9 +57,10 @@ void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> 
 	capacity = capacity_;
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
+	data.reserve(types.size());
 	for (idx_t i = 0; i < types.size(); i++) {
 		data.emplace_back(Vector(types[i], datas[i]));
-		if (types[i] == LogicalType::SQLNULL) data[i].is_valid = false;
+		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
 	}
 }
 

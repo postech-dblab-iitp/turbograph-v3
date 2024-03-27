@@ -37,7 +37,7 @@ class AdjIdxJoinState : public OperatorState {
         // init vectors
         // adj_col_idxs.clear();
         // adj_col_types.clear();
-        std::fill(total_join_size.begin(), total_join_size.end(), 0);
+        // std::fill(total_join_size.begin(), total_join_size.end(), 0);
 
 		if (join_type != JoinType::INNER) {
 			memset(found_match.get(), 0, sizeof(bool) * STANDARD_VECTOR_SIZE);
@@ -359,7 +359,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                               ValidityMask *eid_validity_mask,
                               size_t num_rhs_to_try_fetch, bool fill_null) {
                 D_ASSERT(!load_eid || (eid_adj_column != nullptr));
-                if (fill_null) {
+                if (unlikely (fill_null)) {
                     D_ASSERT(eid_validity_mask != nullptr);
                     auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
@@ -391,7 +391,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                               ValidityMask *eid_validity_mask,
                               size_t num_rhs_to_try_fetch, bool fill_null) {
                 D_ASSERT(!load_eid || (eid_adj_column != nullptr));
-                if (fill_null) {
+                if (unlikely (fill_null)) {
                     D_ASSERT(tgt_validity_mask != nullptr);
                     D_ASSERT(eid_validity_mask != nullptr);
                     auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -431,7 +431,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                                 ValidityMask *tgt_validity_mask,
                                 ValidityMask *eid_validity_mask,
 								size_t num_rhs_to_try_fetch, bool fill_null) {
-				if (fill_null) {
+				if (unlikely (fill_null)) {
                     D_ASSERT(false);
 					// auto tmp_rhs_idx_end =
 					// 	state.rhs_idx + num_rhs_to_try_fetch;
@@ -461,7 +461,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                                 ValidityMask *tgt_validity_mask,
                                 ValidityMask *eid_validity_mask,
 								size_t num_rhs_to_try_fetch, bool fill_null) {
-				if (fill_null) {
+				if (unlikely (fill_null)) {
                     D_ASSERT(tgt_validity_mask != nullptr);
 					auto tmp_rhs_idx_end =
 						state.rhs_idx + num_rhs_to_try_fetch;
@@ -503,7 +503,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 							  uint64_t tgt_vid_into,
                               size_t num_rhs_to_try_fetch, bool fill_null) {
                 D_ASSERT(!load_eid || (eid_adj_column != nullptr));
-                if (fill_null) {
+                if (unlikely (fill_null)) {
                     D_ASSERT(eid_validity_mask != nullptr);
                     auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
                     for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
@@ -538,7 +538,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 							  uint64_t tgt_vid_into,
                               size_t num_rhs_to_try_fetch, bool fill_null) {
                 D_ASSERT(!load_eid || (eid_adj_column != nullptr));
-                if (fill_null) {
+                if (unlikely (fill_null)) {
                     D_ASSERT(tgt_validity_mask != nullptr);
                     D_ASSERT(eid_validity_mask != nullptr);
                     auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
@@ -581,7 +581,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                                 ValidityMask *eid_validity_mask,
 								uint64_t tgt_vid_into,
 								size_t num_rhs_to_try_fetch, bool fill_null) {
-				if (fill_null) {
+				if (unlikely (fill_null)) {
 					auto tmp_rhs_idx_end =
 						state.rhs_idx + num_rhs_to_try_fetch;
 					for (; state.rhs_idx < tmp_rhs_idx_end;
@@ -613,7 +613,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
                                 ValidityMask *eid_validity_mask,
 								uint64_t tgt_vid_into,
 								size_t num_rhs_to_try_fetch, bool fill_null) {
-				if (fill_null) {
+				if (unlikely (fill_null)) {
                     D_ASSERT(tgt_validity_mask != nullptr);
 					auto tmp_rhs_idx_end =
 						state.rhs_idx + num_rhs_to_try_fetch;

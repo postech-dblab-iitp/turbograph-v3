@@ -57,7 +57,7 @@ public:
 		rhs_sel.Initialize(STANDARD_VECTOR_SIZE);
 		src_nullity.resize(STANDARD_VECTOR_SIZE);
 		join_sizes.resize(STANDARD_VECTOR_SIZE);
-		total_join_size.resize(STANDARD_VECTOR_SIZE);
+		// total_join_size.resize(STANDARD_VECTOR_SIZE);
 	}
 	//! Called when starting processing for new chunk
 	inline void resetForNewInput() {
@@ -72,7 +72,7 @@ public:
 		// init vectors
 		// adj_col_idxs.clear();
 		// adj_col_types.clear();
-		std::fill(total_join_size.begin(), total_join_size.end(), 0);
+		// std::fill(total_join_size.begin(), total_join_size.end(), 0);
 	}
 	inline void resetForMoreOutput() {
 		output_idx = 0;

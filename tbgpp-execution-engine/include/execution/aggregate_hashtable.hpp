@@ -147,6 +147,10 @@ private:
 	SelectionVector empty_vector;
 	vector<ExpressionType> predicates;
 
+	Vector hashes;
+	Vector addresses;
+	SelectionVector new_groups;
+
 private:
 	GroupedAggregateHashTable(const GroupedAggregateHashTable &) = delete;
 

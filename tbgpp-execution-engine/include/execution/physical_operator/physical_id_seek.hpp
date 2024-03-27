@@ -95,24 +95,24 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                         vector<unique_ptr<DataChunk>> &chunks,
                         IdSeekState &state, idx_t nodeColIdx,
                         vector<ExtentID> &target_eids,
-                        vector<vector<idx_t>> &target_seqnos_per_extent,
+                        vector<vector<uint32_t>> &target_seqnos_per_extent,
                         vector<idx_t> &mapping_idxs,
                         vector<idx_t> &num_tuples_per_chunk) const;
     void doSeekUnionAll(ExecutionContext &context, DataChunk &input,
                         DataChunk &chunk, OperatorState &lstate,
                         vector<ExtentID> &target_eids,
-                        vector<vector<idx_t>> &target_seqnos_per_extent,
+                        vector<vector<uint32_t>> &target_seqnos_per_extent,
                         vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
     void doSeekSchemaless(ExecutionContext &context, DataChunk &input,
                           DataChunk &chunk, OperatorState &lstate,
                           vector<ExtentID> &target_eids,
-                          vector<vector<idx_t>> &target_seqnos_per_extent,
+                          vector<vector<uint32_t>> &target_seqnos_per_extent,
                           vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
     void doSeekGrouping(ExecutionContext &context, DataChunk &input,
                         vector<unique_ptr<DataChunk>> &chunks,
                         IdSeekState &state, idx_t nodeColIdx,
                         vector<ExtentID> &target_eids,
-                        vector<vector<idx_t>> &target_seqnos_per_extent,
+                        vector<vector<uint32_t>> &target_seqnos_per_extent,
                         vector<idx_t> &mapping_idxs,
                         vector<idx_t> &num_tuples_per_chunk) const;
     void referInputChunk(DataChunk &input, DataChunk &chunk,
@@ -132,8 +132,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
-    void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const;
-    void fillSeqnoToEIDIdx(vector<vector<idx_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
+    void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<uint32_t>>& out_seqnos) const;
+    void fillSeqnoToEIDIdx(vector<vector<uint32_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
     void genNonPredColIdxs();
 
     // parameters

@@ -37,7 +37,8 @@ GroupedAggregateHashTable::GroupedAggregateHashTable(BufferManager &buffer_manag
     : BaseAggregateHashTable(buffer_manager, move(payload_types_p)), entry_type(entry_type), capacity(0), entries(0),
       payload_page_offset(0), is_finalized(false), ht_offsets(LogicalTypeId::BIGINT),
       hash_salts(LogicalTypeId::SMALLINT), group_compare_vector(STANDARD_VECTOR_SIZE),
-      no_match_vector(STANDARD_VECTOR_SIZE), empty_vector(STANDARD_VECTOR_SIZE) {
+      no_match_vector(STANDARD_VECTOR_SIZE), empty_vector(STANDARD_VECTOR_SIZE),
+	  hashes(LogicalType::HASH), addresses(LogicalType::POINTER), new_groups(STANDARD_VECTOR_SIZE) {
 
 	// Append hash column to the end and initialise the row layout
 	group_types_p.emplace_back(LogicalType::HASH);
@@ -250,10 +251,10 @@ void GroupedAggregateHashTable::Resize(idx_t size) {
 }
 
 idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, DataChunk &payload) {
-	Vector hashes(LogicalType::HASH);
-	groups.Hash(hashes);
+	// Vector hashes(LogicalType::HASH);
+	groups.Hash(this->hashes);
 
-	return AddChunk(groups, hashes, payload);
+	return AddChunk(groups, this->hashes, payload);
 }
 
 idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, Vector &group_hashes, DataChunk &payload) {
@@ -263,14 +264,14 @@ idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, Vector &group_hashe
 		return 0;
 	}
 	// dummy
-	SelectionVector new_groups(STANDARD_VECTOR_SIZE);
+	// SelectionVector new_groups(STANDARD_VECTOR_SIZE);
 
 	D_ASSERT(groups.ColumnCount() + 1 == layout.ColumnCount());
 	for (idx_t i = 0; i < groups.ColumnCount(); i++) {
 		D_ASSERT(groups.GetTypes()[i] == layout.GetTypes()[i]);
 	}
 
-	Vector addresses(LogicalType::POINTER);
+	// Vector addresses(LogicalType::POINTER);
 	auto new_group_count = FindOrCreateGroups(groups, group_hashes, addresses, new_groups);
 	VectorOperations::AddInPlace(addresses, layout.GetAggrOffset(), payload.size());
 

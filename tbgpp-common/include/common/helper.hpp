@@ -23,6 +23,13 @@
 
 namespace duckdb {
 
+#ifndef likely
+#define likely(x) __builtin_expect(!!(x), 1)
+#endif
+#ifndef unlikely
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#endif
+
 // explicit fallthrough for switch_statementss
 #ifndef __has_cpp_attribute // For backwards compatibility
 #define __has_cpp_attribute(x) 0

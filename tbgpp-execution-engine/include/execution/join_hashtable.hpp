@@ -60,14 +60,16 @@ public:
 		Vector pointers;
 		idx_t count;
 		SelectionVector sel_vector;
+		SelectionVector result_vector;
 		// whether or not the given tuple has found a match
-		unique_ptr<bool[]> found_match;
+		// unique_ptr<bool[]> found_match;
+		shared_ptr<bool[]> found_match;
 		JoinHashTable &ht;
 		bool finished;
 
 		// projection mapping
-		vector<uint32_t> output_left_projection_map;
-    	vector<uint32_t> output_right_projection_map;
+		vector<uint32_t> *output_left_projection_map;
+    	vector<uint32_t> *output_right_projection_map;
 
 		explicit ScanStructure(JoinHashTable &ht);
 		explicit ScanStructure(JoinHashTable &ht, vector<uint32_t> &left_map, vector<uint32_t> &right_map);
@@ -165,6 +167,9 @@ public:
 	bool has_null;
 	//! Bitmask for getting relevant bits from the hashes to determine the position
 	uint64_t bitmask;
+
+	shared_ptr<bool[]> found_match;
+	Vector hashes;
 
 	struct {
 		mutex mj_lock;

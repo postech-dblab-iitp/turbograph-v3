@@ -347,7 +347,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     idx_t output_idx = 0;
 
     // initialize indexseek
-    vector<vector<idx_t>> target_seqnos_per_extent;
+    vector<vector<uint32_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
 
     context.client->graph_store->InitializeVertexIndexSeek(
@@ -389,7 +389,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     idx_t output_idx = 0;
 
     // initialize indexseek
-    vector<vector<idx_t>> target_seqnos_per_extent;
+    vector<vector<uint32_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
 
     context.client->graph_store->InitializeVertexIndexSeek(
@@ -449,7 +449,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     D_ASSERT(nodeColIdx < input.ColumnCount());
 
     // initialize indexseek
-    vector<vector<idx_t>> target_seqnos_per_extent;
+    vector<vector<uint32_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
     vector<idx_t> num_tuples_per_chunk;
 
@@ -500,7 +500,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(
     D_ASSERT(nodeColIdx < input.ColumnCount());
 
     // initialize indexseek
-    vector<vector<idx_t>> target_seqnos_per_extent;
+    vector<vector<uint32_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
     vector<idx_t> num_tuples_per_chunk;
 
@@ -541,7 +541,7 @@ void PhysicalIdSeek::initializeSeek(
     ExecutionContext &context, DataChunk &input,
     vector<unique_ptr<DataChunk>> &chunks, IdSeekState &state, idx_t nodeColIdx,
     vector<ExtentID> &target_eids,
-    vector<vector<idx_t>> &target_seqnos_per_extent,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
     state.null_tuples_idx.clear();
@@ -569,7 +569,7 @@ void PhysicalIdSeek::initializeSeek(
 void PhysicalIdSeek::doSeekUnionAll(
     ExecutionContext &context, DataChunk &input, DataChunk &chunk,
     OperatorState &lstate, vector<ExtentID> &target_eids,
-    vector<vector<idx_t>> &target_seqnos_per_extent,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, idx_t &output_idx) const
 {
     auto &state = (IdSeekState &)lstate;
@@ -621,7 +621,7 @@ void PhysicalIdSeek::doSeekUnionAll(
             // Scan for remaining columns
             state.ext_it->Rewind(); // temporary code for rewind
             if (non_pred_col_idxs.size() > 0) {
-                vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
+                vector<vector<uint32_t>> target_seqnos_per_extent_after_filter;
                 getFilteredTargetSeqno(
                     state.seqno_to_eid_idx,
                     target_seqnos_per_extent.size(),
@@ -669,7 +669,7 @@ void PhysicalIdSeek::doSeekUnionAll(
 void PhysicalIdSeek::doSeekSchemaless(
     ExecutionContext &context, DataChunk &input, DataChunk &chunk,
     OperatorState &lstate, vector<ExtentID> &target_eids,
-    vector<vector<idx_t>> &target_seqnos_per_extent,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, idx_t &output_idx) const
 {
     auto &state = (IdSeekState &)lstate;
@@ -736,7 +736,7 @@ void PhysicalIdSeek::doSeekGrouping(
     ExecutionContext &context, DataChunk &input,
     vector<unique_ptr<DataChunk>> &chunks, IdSeekState &state, idx_t nodeColIdx,
     vector<ExtentID> &target_eids,
-    vector<vector<idx_t>> &target_seqnos_per_extent,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
     if (!do_filter_pushdown) {
@@ -797,7 +797,7 @@ void PhysicalIdSeek::doSeekGrouping(
 
             state.ext_it->Rewind(); // temporary code for rewind
             if (non_pred_col_idxs.size() > 0) {
-                vector<vector<idx_t>> target_seqnos_per_extent_after_filter;
+                vector<vector<uint32_t>> target_seqnos_per_extent_after_filter;
                 getFilteredTargetSeqno(
                     state.seqno_to_eid_idx,
                     target_seqnos_per_extent.size(),
@@ -1337,7 +1337,7 @@ void PhysicalIdSeek::getOutputIdxsForFilteredSeek(
     }
 }
 
-void PhysicalIdSeek::getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<idx_t>>& out_seqnos) const {
+void PhysicalIdSeek::getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<uint32_t>>& out_seqnos) const {
     out_seqnos.clear(); // Ensure the output is empty before starting.
     out_seqnos.resize(num_extents); // Prepare the output with the correct number of inner vectors.
     for (auto &out_vec: out_seqnos) {
@@ -1360,7 +1360,7 @@ void PhysicalIdSeek::genNonPredColIdxs()
     }
 }
 
-void PhysicalIdSeek::fillSeqnoToEIDIdx(vector<vector<idx_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const
+void PhysicalIdSeek::fillSeqnoToEIDIdx(vector<vector<uint32_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const
 {
     for (auto i = 0; i < target_seqnos_per_extent.size(); i++) {
         auto &vec = target_seqnos_per_extent[i];

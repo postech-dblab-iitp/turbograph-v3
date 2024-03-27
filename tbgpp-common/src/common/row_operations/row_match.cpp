@@ -120,16 +120,13 @@ static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &s
 
 				auto row = ptrs[idx];
 				ValidityBytes row_mask(row);
-				auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
+				auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntryUnsafe(entry_idx), idx_in_entry);
 
 				auto col_idx = col.sel->get_index(idx);
-				auto value = Load<T>(row + col_offset);
-				if (!isnull && OP::template Operation<T>(data[col_idx], value)) {
+				if (!isnull && OP::template Operation<T>(data[col_idx], Load<T>(row + col_offset))) {
 					sel.set_index(match_count++, idx);
-				} else {
-					if (NO_MATCH_SEL) {
-						no_match->set_index(no_match_count++, idx);
-					}
+				} else if (NO_MATCH_SEL) {
+					no_match->set_index(no_match_count++, idx);
 				}
 			}
 		}
