@@ -1,7 +1,7 @@
 MATCH (p:Person {id: 6597069812321}), (friend:Person {firstName: 'John'})
 WHERE NOT p=friend
 WITH p, friend
-MATCH path = shortestPath((p)-[:KNOWS*]-(friend))
+MATCH path = shortestPath((p)-[:KNOWS*1..3]-(friend))
 WITH min(path_length(path)) AS distance, friend
 ORDER BY distance ASC, friend.lastName ASC, friend.id ASC
 LIMIT 20

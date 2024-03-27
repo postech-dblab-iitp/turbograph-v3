@@ -226,6 +226,11 @@ public:
 		CMemoryPool *mp, CExpressionHandle &exprhdl,
 		IStatisticsArray *stats_contexts);
 
+	// derive statistics of (dynamic) index-path-get
+	static IStatistics *DeriveStatsForIndexPathGet(
+		CMemoryPool *mp, CExpressionHandle &exprhdl,
+		IStatisticsArray *stats_contexts);
+
 	// derive statistics of bitmap table-get
 	static IStatistics *DeriveStatsForBitmapTableGet(
 		CMemoryPool *mp, CExpressionHandle &exprhdl,

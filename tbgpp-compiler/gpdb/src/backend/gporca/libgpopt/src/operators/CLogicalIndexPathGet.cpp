@@ -147,10 +147,9 @@ CLogicalIndexPathGet::HashValue() const
 //
 //---------------------------------------------------------------------------
 BOOL
-CLogicalIndexPathGet::Matches(COperator * ) const
+CLogicalIndexPathGet::Matches(COperator *) const
 {
 	return false;
-	//return CUtils::FMatchIndex(this, pop);
 }
 
 //---------------------------------------------------------------------------
@@ -222,12 +221,11 @@ CColRefSet *
 CLogicalIndexPathGet::DeriveOuterReferences(CMemoryPool *mp,
 										CExpressionHandle &exprhdl)
 {
-	// same for index get
 	return PcrsDeriveOuterIndexGet(mp, exprhdl);
 }
 
 CKeyCollection *
-CLogicalIndexPathGet::DeriveKeyCollection(CMemoryPool * ,
+CLogicalIndexPathGet::DeriveKeyCollection(CMemoryPool *,
 									  CExpressionHandle &  // exprhdl
 ) const
 {
@@ -277,15 +275,9 @@ CLogicalIndexPathGet::PxfsCandidates(CMemoryPool *mp) const
 //---------------------------------------------------------------------------
 IStatistics *
 CLogicalIndexPathGet::PstatsDerive(CMemoryPool *mp, CExpressionHandle &exprhdl,
-							   IStatisticsArray * /* not used */) const
+							   IStatisticsArray *stats_ctxt) const
 {
-	CDouble rows(1.0);
-	rows = CStatistics::DefaultRelationRows;
-
-	IStatistics *pstatsTable =
-		PstatsDeriveDummy(mp, exprhdl, rows);
-
-	return pstatsTable;
+	return CStatisticsUtils::DeriveStatsForIndexPathGet(mp, exprhdl, stats_ctxt);
 }
 
 
