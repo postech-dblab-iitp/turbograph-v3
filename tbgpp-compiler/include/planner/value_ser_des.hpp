@@ -94,6 +94,35 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::LIST: {
+				switch (kuzu_literal->dataType.childType->typeID) {
+				case DataTypeID::STRING: {
+					uint32_t num_strings = kuzu_literal->listVal.size();
+					out_length += sizeof(uint32_t);
+					for (auto i = 0; i < num_strings; i++) {
+						out_length += sizeof(uint32_t);
+						out_length += kuzu_literal->listVal[i].strVal.size();
+					}
+					char *mem_ptr = (char *)malloc(out_length);
+
+					uint32_t accm_bytes = 0;
+					memcpy(mem_ptr, &num_strings, sizeof(uint32_t));
+					accm_bytes += sizeof(uint32_t);
+					for (auto i = 0; i < num_strings; i++) {
+						uint32_t str_size = kuzu_literal->listVal[i].strVal.size();
+						memcpy(mem_ptr + accm_bytes, &str_size, sizeof(uint32_t));
+						accm_bytes += sizeof(uint32_t);
+						memcpy(mem_ptr + accm_bytes, (char *)kuzu_literal->listVal[i].strVal.c_str(), str_size);
+						accm_bytes += str_size;
+					}
+					out_mem_ptr = (void *)mem_ptr;
+					break;
+				}
+				default:
+					D_ASSERT(false);
+				}
+				break;
+			}
 			default:
 				D_ASSERT(false);
 		}
@@ -186,10 +215,33 @@ public:
 				return duckdb::Value::LIST(duckdb::LogicalTypeId::UBIGINT, {});
 			}
 			case duckdb::LogicalTypeId::LIST: {
-				D_ASSERT(length == 0); // not considered other cases yet
-				D_ASSERT(type_modifier >= std::numeric_limits<uint8_t>::min() && type_modifier <= std::numeric_limits<uint8_t>::max());
-				duckdb::LogicalTypeId child_type_id = (duckdb::LogicalTypeId)type_modifier;
-				return duckdb::Value::LIST(child_type_id, {});
+				if (length == 0) {
+					D_ASSERT(type_modifier >= std::numeric_limits<uint8_t>::min() && type_modifier <= std::numeric_limits<uint8_t>::max());
+					duckdb::LogicalTypeId child_type_id = (duckdb::LogicalTypeId)type_modifier;
+					return duckdb::Value::LIST(child_type_id, {});
+				} else {
+					D_ASSERT(type_modifier >= std::numeric_limits<uint8_t>::min() && type_modifier <= std::numeric_limits<uint8_t>::max());
+					duckdb::LogicalTypeId child_type_id = (duckdb::LogicalTypeId)type_modifier;
+					char *str_ptr = (char *)mem_ptr;
+					switch(child_type_id) {
+					case duckdb::LogicalTypeId::VARCHAR: {
+						uint32_t num_strings = *((uint32_t *)str_ptr);
+						vector<duckdb::Value> list_values;
+						uint32_t accm_bytes = sizeof(uint32_t);
+						for (auto i = 0; i < num_strings; i++) {
+							uint32_t str_size = *((uint32_t*)(str_ptr + accm_bytes));
+							accm_bytes += sizeof(uint32_t);
+							string str_value((char*)(str_ptr + accm_bytes), str_size);
+							duckdb::string_t value(str_value);
+							list_values.push_back(duckdb::Value(value));
+							accm_bytes += str_size;
+						}
+						return duckdb::Value::LIST(duckdb::LogicalTypeId::VARCHAR, list_values);
+					}
+					default:
+						D_ASSERT(false);
+					}
+				}
 			}
 			default:
 				D_ASSERT(false);

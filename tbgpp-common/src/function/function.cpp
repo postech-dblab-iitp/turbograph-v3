@@ -455,8 +455,11 @@ LogicalTypeComparisonResult RequiresCast(const LogicalType &source_type, const L
 		return LogicalTypeComparisonResult::IDENTICAL_TYPE;
 	}
 	if (source_type.id() == LogicalTypeId::LIST && target_type.id() == LogicalTypeId::LIST) {
-		return RequiresCast(LogicalType::ID, LogicalType::ID);
-		// return RequiresCast(ListType::GetChildType(source_type), ListType::GetChildType(target_type));
+		if (source_type.AuxInfo() && target_type.AuxInfo()) {
+			return RequiresCast(ListType::GetChildType(source_type), ListType::GetChildType(target_type));
+		} else {
+			return RequiresCast(LogicalType::ID, LogicalType::ID);
+		}
 	}
 	return LogicalTypeComparisonResult::DIFFERENT_TYPES;
 }
