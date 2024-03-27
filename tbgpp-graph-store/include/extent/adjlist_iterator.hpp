@@ -55,6 +55,7 @@ public:
     DFSIterator() {
         ext_it = std::make_shared<ExtentIterator>();
         eid_to_bufptr_idx_map = std::make_shared<vector<BufPtrAdjIdxPair>>();
+        eid_to_bufptr_idx_map->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
     }
     ~DFSIterator() {}
 
@@ -104,6 +105,33 @@ private:
     bool enqueueNeighbors(ClientContext &context, NodeID node_id, Level node_level, std::queue<std::pair<NodeID, Level>>& queue);
 };
 
+// class ShortestPathAdvancedIterator {
+// public:
+//     ShortestPathAdvancedIterator();
+//     ~ShortestPathAdvancedIterator();
+
+//     void initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_forward, uint64_t adj_col_idx_backward, Level lower_bound, Level upper_bound);
+//     bool getShortestPath(ClientContext &context, std::vector<EdgeID>& edges, std::vector<NodeID>& nodes);
+
+// private:
+//     NodeID src_id, tgt_id;
+//     uint64_t adj_col_idx_fwd;
+//     uint64_t adj_col_idx_bwd;
+//     Level lower_bound;
+//     Level upper_bound;
+//     std::unordered_map<NodeID, std::pair<NodeID, EdgeID>> predecessor_forward;
+//     std::unordered_map<NodeID, std::pair<NodeID, EdgeID>> predecessor_backward;
+//     std::shared_ptr<AdjacencyListIterator> adjlist_iterator_forward;
+//     std::shared_ptr<AdjacencyListIterator> adjlist_iterator_backward;
+//     std::shared_ptr<ExtentIterator> ext_it_forward = nullptr;
+//     std::shared_ptr<ExtentIterator> ext_it_backward = nullptr;
+//     std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_forward;
+//     std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_backward;
+
+//     bool biDirectionalSearch(ClientContext &context);
+//     void enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>>& queue, bool is_forward);
+//     void reconstructPath(std::vector<EdgeID>& edges, std::vector<NodeID>& nodes, NodeID meeting_point);
+// };
 
 } // namespace duckdb
 

@@ -234,6 +234,9 @@ public:
 	// does the given expression have any NOT children?
 	static BOOL FHasNegatedChild(CExpression *pexpr);
 
+	// does the given expression have any OR bool operator?
+	static BOOL FHasOrOp(CExpression *pexpr);
+
 	// is the given expression an inner join or NAry join
 	static BOOL
 	FInnerOrNAryJoin(CExpression *pexpr)

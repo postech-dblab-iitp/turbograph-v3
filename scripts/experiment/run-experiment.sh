@@ -37,9 +37,8 @@ for query_num in $queries; do
         continue
     fi
     query_str=$(cat "$query_file")
-    warmup_output=$(../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
-    # output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --index-join-only --num-iterations:5 --join-order-optimizer:exhaustive)
-    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
+    warmup_output=$(../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --index-join-only --join-order-optimizer:exhaustive)
+    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --index-join-only --num-iterations:3 --join-order-optimizer:exhaustive)
     exit_status=$?
 
     if [ $exit_status -ne 0 ]; then

@@ -24,6 +24,7 @@
 #include "gpopt/operators/CExpressionUtils.h"
 #include "gpopt/operators/CLogicalDynamicIndexGet.h"
 #include "gpopt/operators/CLogicalIndexGet.h"
+#include "gpopt/operators/CLogicalIndexPathGet.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "naucrates/base/IDatumInt2.h"
@@ -1157,6 +1158,69 @@ CStatisticsUtils::DeriveStatsForIndexGet(CMemoryPool *mp,
 		if (NULL != dynamic_index_get_op->PcrsDist())
 		{
 			used_col_refset->Include(dynamic_index_get_op->PcrsDist());
+		}
+	}
+
+	CExpression *scalar_expr =
+		expr_handle.PexprScalarRepChild(0 /*ulChidIndex*/);
+	CExpression *local_expr = NULL;
+	CExpression *outer_refs_expr = NULL;
+
+	// get outer references from expression handle
+	CColRefSet *outer_col_refset = expr_handle.DeriveOuterReferences();
+
+	CPredicateUtils::SeparateOuterRefs(mp, scalar_expr, outer_col_refset,
+									   &local_expr, &outer_refs_expr);
+
+	used_col_refset->Union(expr_handle.DeriveUsedColumns(0));
+
+	// filter out outer references in used columns
+	used_col_refset->Difference(outer_col_refset);
+
+	IStatistics *base_table_stats = CLogical::PstatsBaseTable(
+		mp, expr_handle, table_descriptor, used_col_refset);
+	used_col_refset->Release();
+
+	IStatistics *stats = CFilterStatsProcessor::MakeStatsFilterForScalarExpr(
+		mp, expr_handle, base_table_stats, local_expr, outer_refs_expr,
+		stats_contexts);
+
+	base_table_stats->Release();
+	local_expr->Release();
+	outer_refs_expr->Release();
+
+	return stats;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CStatisticsUtils::DeriveStatsForIndexPathGet
+//
+//	@doc:
+//		Derive statistics of (dynamic) index path get
+//
+//---------------------------------------------------------------------------
+IStatistics *
+CStatisticsUtils::DeriveStatsForIndexPathGet(CMemoryPool *mp,
+										 CExpressionHandle &expr_handle,
+										 IStatisticsArray *stats_contexts)
+{
+	COperator::EOperatorId operator_id = expr_handle.Pop()->Eopid();
+	GPOS_ASSERT(CLogical::EopLogicalIndexPathGet == operator_id);
+
+	// collect columns used by index conditions and distribution of the table
+	// for statistics
+	CColRefSet *used_col_refset = GPOS_NEW(mp) CColRefSet(mp);
+
+	CTableDescriptor *table_descriptor = NULL;
+	if (CLogical::EopLogicalIndexPathGet == operator_id)
+	{
+		CLogicalIndexPathGet *index_get_op =
+			CLogicalIndexPathGet::PopConvert(expr_handle.Pop());
+		table_descriptor = index_get_op->Ptabdesc()->operator[](0);
+		if (NULL != index_get_op->PcrsDist())
+		{
+			used_col_refset->Include(index_get_op->PcrsDist());
 		}
 	}
 
