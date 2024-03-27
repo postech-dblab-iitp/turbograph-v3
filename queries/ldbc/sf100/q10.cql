@@ -1,6 +1,6 @@
-MATCH (countryX:Place {name: "Honduras", label: "Country"}),
-    (countryY:Place {name: "Hong_Kong", label: "Country"}),
-    (person:Person {id: 28587302374257 })
+MATCH (countryX:Place {name: "Papua_New_Guinea", label: "Country"}),
+    (countryY:Place {name: "Namibia", label: "Country"}),
+    (person:Person {id: 8796093163356 })
 WITH person, countryX, countryY
 LIMIT 1
 MATCH (city:Place {label: "City"})-[:IS_PART_OF]->(country:Place {label: "Country"})
@@ -10,7 +10,7 @@ MATCH (person)-[:KNOWS*1..2]-(friend:Person)-[:IS_LOCATED_IN]->(city2:Place)
 WHERE NOT person=friend AND NOT city2._id in cities
 WITH DISTINCT friend, countryX, countryY, city2.id AS cid
 MATCH (friend)<-[:POST_HAS_CREATOR]-(message:Post)
-WHERE 1301702400000 > message.creationDate AND message.creationDate >= 1298937600000
+WHERE 1311379200000 > message.creationDate AND message.creationDate >= 1306886400000
 WITH friend, countryX, countryY, message
 MATCH (message)-[:POST_IS_LOCATED_IN]->(country2:Place)
 WHERE country2._id = countryX._id OR country2._id = countryY._id

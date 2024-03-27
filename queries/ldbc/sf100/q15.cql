@@ -1,4 +1,4 @@
-MATCH (s:Person {id: 24189255818757})<-[:HAS_CREATOR]-(p:Comment)<-[:REPLY_OF_COMMENT]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
+MATCH (start:Person {id: 30786325602099})<-[:POST_HAS_CREATOR]-(p:Post)<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)
 RETURN
     person.id AS personId,
     person.firstName AS personFirstName,
