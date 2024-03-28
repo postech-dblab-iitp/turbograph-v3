@@ -25,6 +25,24 @@ public:
 					   dst_id_idx(dst_id_idx),
 					   lower_bound(lower_bound),
 					   upper_bound(upper_bound) {}
+
+
+	PhysicalShortestPathJoin(Schema &sch, 
+						uint64_t adjidx_obj_id_fwd,
+						uint64_t adjidx_obj_id_bwd,
+                       vector<uint32_t> &input_col_map,
+					   duckdb::idx_t output_idx,
+					   duckdb::idx_t src_id_idx, duckdb::idx_t dst_id_idx,
+					   uint64_t lower_bound, uint64_t upper_bound)
+					   : CypherPhysicalOperator(PhysicalOperatorType::SHORTEST_PATH, sch),
+					   adjidx_obj_id_fwd(adjidx_obj_id_fwd),
+					   adjidx_obj_id_bwd(adjidx_obj_id_bwd),
+					   input_col_map(input_col_map),
+					   output_idx(output_idx),
+					   src_id_idx(src_id_idx),
+					   dst_id_idx(dst_id_idx),
+					   lower_bound(lower_bound),
+					   upper_bound(upper_bound) {}
 	
     ~PhysicalShortestPathJoin() {}
 	
@@ -45,6 +63,8 @@ private:
 	duckdb::idx_t output_idx;
 
 	uint64_t adjidx_obj_id;
+	uint64_t adjidx_obj_id_fwd;
+	uint64_t adjidx_obj_id_bwd;
 
 	duckdb::idx_t src_id_idx;
 	duckdb::idx_t dst_id_idx;
