@@ -794,14 +794,30 @@ unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());
 }
 
+// unique_ptr<ParsedExpression> Transformer::transformListLiteral(
+//     CypherParser::OC_ListLiteralContext& ctx) {
+//     auto listCreation =
+//         make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+//     for (auto& childExpr : ctx.oC_Expression()) {
+//         listCreation->addChild(transformExpression(*childExpr));
+//     }
+//     return listCreation;
+// }
+
 unique_ptr<ParsedExpression> Transformer::transformListLiteral(
     CypherParser::OC_ListLiteralContext& ctx) {
-    auto listCreation =
-        make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+    // auto listCreation =
+    //     make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
+    vector<Literal> list_literal;
     for (auto& childExpr : ctx.oC_Expression()) {
-        listCreation->addChild(transformExpression(*childExpr));
+        auto child_expr = transformExpression(*childExpr);
+        auto literal_expr = dynamic_cast<ParsedLiteralExpression *>(child_expr.get());
+        list_literal.push_back(*literal_expr->getLiteral());
     }
-    return listCreation;
+    // return listCreation;
+    auto childType = make_unique<DataType>(list_literal[0].dataType);
+    auto literal = make_unique<Literal>(list_literal, DataType(DataTypeID::LIST, std::move(childType)));
+    return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());
 }
 
 unique_ptr<ParsedExpression> Transformer::transformParameterExpression(
