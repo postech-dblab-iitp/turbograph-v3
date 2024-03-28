@@ -89,7 +89,8 @@ duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStat
 	// TODO type checking
 	if (!(type == LogicalType::INTEGER || type == LogicalType::BIGINT ||
 		type == LogicalType::UINTEGER || type == LogicalType::UBIGINT ||
-		type == LogicalType::FLOAT || type == LogicalType::DOUBLE)) {
+		type == LogicalType::FLOAT || type == LogicalType::DOUBLE ||
+		type == LogicalType::DATE)) {
 		// we have no histogram for non-numeric types
 		hist_slot->valuetype = InvalidOid;
 		return;
