@@ -48,7 +48,7 @@ const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-05; // S62 r
 
 // index scan cost unit per tuple per width
 // const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-06;
-const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-07; // S62 reduce index scan cost in our case ..
+const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-10; // S62 reduce index scan cost in our case ..
 
 // index scan random IO factor
 const CDouble CCostModelParamsGPDB::DIndexScanTupRandomFactorVal = 3.66e-04;
@@ -97,13 +97,13 @@ const CDouble CCostModelParamsGPDB::DHJSpillingMemThresholdVal =
 const CDouble CCostModelParamsGPDB::DHJHashTableInitCostFactorVal = 500.0;
 
 // building hash table cost per tuple per column
-const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-05;
+const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-04;
 
 // the unit cost to process each tuple with unit width when building a hash table
-const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 3.0e-06;
+const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 3.0e-03;
 
 // hashing cost per tuple with unit width in hash join
-const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 1.97e-05;
+const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 1.97e-02;
 
 // feeding cost per tuple per column in hash join if spilling
 const CDouble CCostModelParamsGPDB::DHJFeedingTupColumnSpillingCostUnitVal =
@@ -293,7 +293,7 @@ CCostModelParamsGPDB::CCostModelParamsGPDB(CMemoryPool *mp) : m_mp(mp)
 		DIndexFilterCostUnitVal - 1.0, DIndexFilterCostUnitVal + 1.0);
 	m_rgpcp[EcpIndexScanTupCostUnit] = GPOS_NEW(mp) SCostParam(
 		EcpIndexScanTupCostUnit, DIndexScanTupCostUnitVal,
-		DIndexScanTupCostUnitVal - 1.0, DIndexScanTupCostUnitVal + 1.0);
+		DIndexScanTupCostUnitVal, DIndexScanTupCostUnitVal);
 	m_rgpcp[EcpIndexScanTupRandomFactor] = GPOS_NEW(mp) SCostParam(
 		EcpIndexScanTupRandomFactor, DIndexScanTupRandomFactorVal,
 		DIndexScanTupRandomFactorVal - 0.0, DIndexScanTupRandomFactorVal + 0.0);
