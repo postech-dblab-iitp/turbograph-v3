@@ -264,125 +264,144 @@ bool ShortestPathIterator::getShortestPath(ClientContext &context, std::vector<u
 */
 
 
-// ShortestPathAdvancedIterator::ShortestPathAdvancedIterator() {
-//     ext_it_forward = std::make_shared<ExtentIterator>();
-//     eid_to_bufptr_idx_map_forward = std::make_shared<vector<BufPtrAdjIdxPair>>();
-//     eid_to_bufptr_idx_map_forward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
+ShortestPathAdvancedIterator::ShortestPathAdvancedIterator() {
+    ext_it_forward = std::make_shared<ExtentIterator>();
+    eid_to_bufptr_idx_map_forward = std::make_shared<vector<BufPtrAdjIdxPair>>();
+    eid_to_bufptr_idx_map_forward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
 
-//     ext_it_backward = std::make_shared<ExtentIterator>();
-//     eid_to_bufptr_idx_map_backward = std::make_shared<vector<BufPtrAdjIdxPair>>();
-//     eid_to_bufptr_idx_map_backward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
-// }
+    ext_it_backward = std::make_shared<ExtentIterator>();
+    eid_to_bufptr_idx_map_backward = std::make_shared<vector<BufPtrAdjIdxPair>>();
+    eid_to_bufptr_idx_map_backward->resize(INITIAL_EXTENT_ID_SPACE, INVALID_PTR_ADJ_IDX_PAIR);
 
-// ShortestPathAdvancedIterator::~ShortestPathAdvancedIterator() {}
+    meeting_point = INVALID_NODE_ID;
 
-// void ShortestPathAdvancedIterator::initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_fwd, uint64_t adj_col_idx_bwd, Level lower_bound, Level upper_bound) {
-//     if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
+    // initialize iterator
+    adjlist_iterator_forward = std::make_shared<AdjacencyListIterator>(this->ext_it_forward, this->eid_to_bufptr_idx_map_forward);
+    adjlist_iterator_backward = std::make_shared<AdjacencyListIterator>(this->ext_it_backward, this->eid_to_bufptr_idx_map_backward);
+}
 
-//     this->src_id = src_id;
-//     this->tgt_id = tgt_id;
-//     this->adj_col_idx_fwd = adj_col_idx_fwd;
-//     this->adj_col_idx_bwd = adj_col_idx_bwd;
-//     this->lower_bound = lower_bound;
-//     this->upper_bound = upper_bound;
+ShortestPathAdvancedIterator::~ShortestPathAdvancedIterator() {}
 
-//     // initialize predecessor
-//     predecessor_forward.clear();
-//     predecessor_backward.clear();
-//     predecessor_forward[srcId] = {srcId, 0};
-//     predecessor_backward[tgtId] = {tgtId, 0};
+void ShortestPathAdvancedIterator::initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_fwd, uint64_t adj_col_idx_bwd, Level lower_bound, Level upper_bound) {
+    if (src_id == tgt_id) { D_ASSERT(false); }; // Source and target are the same
 
-//     // initialize iterator
-//     adjlist_iterator_forward = std::make_shared<AdjacencyListIterator>(this->ext_it_forward, this->eid_to_bufptr_idx_map_forward);
-//     adjlist_iterator_backward = std::make_shared<AdjacencyListIterator>(this->ext_it_backward, this->eid_to_bufptr_idx_map_backward);
+    this->src_id = src_id;
+    this->tgt_id = tgt_id;
+    this->adj_col_idx_fwd = adj_col_idx_fwd;
+    this->adj_col_idx_bwd = adj_col_idx_bwd;
+    this->lower_bound = lower_bound;
+    this->upper_bound = upper_bound;
+    this->meeting_point = INVALID_NODE_ID;
 
-//     biDirectionalSearch(context);
-// }
+    // initialize predecessor
+    predecessor_forward.clear();
+    predecessor_backward.clear();
+    predecessor_forward[src_id] = {src_id, 0};
+    predecessor_backward[tgt_id] = {tgt_id, 0};
 
-// bool ShortestPathAdvancedIterator::biDirectionalSearch(ClientContext &context) {
-//     std::queue<std::pair<NodeID, Level>> queue_forward;
-//     std::queue<std::pair<NodeID, Level>> queue_backward;
+    biDirectionalSearch(context);
+}
 
-//     queue_forward.push(make_pair(srcId, 0));
-//     queue_backward.push(make_pair(tgtId, 0));
+bool ShortestPathAdvancedIterator::biDirectionalSearch(ClientContext &context) {
+    std::queue<std::pair<NodeID, Level>> queue_forward;
+    std::queue<std::pair<NodeID, Level>> queue_backward;
 
-//     while (!queue_forward.empty() && !queue_backward.empty()) {
-//         if (!queue_forward.empty()) {
-//             auto current_forward = queue_forward.front();
-//             queue_forward.pop();
-//             enqueueNeighbors(context, queue_forward, predecessor_forward, adjlist_iterator_forward, current_forward.first, current_forward.second, true);
-//         }
+    queue_forward.push(make_pair(src_id, 0));
+    queue_backward.push(make_pair(tgt_id, 0));
 
-//         if (!queue_backward.empty()) {
-//             auto current_backward = queue_backward.front();
-//             queue_backward.pop();
-//             enqueueNeighbors(context, queue_backward, predecessor_backward, adjlist_iterator_backward, current_backward.first, current_backward.second, false);
-//         }
+    Level level_forward = 0;
+    Level level_backward = 0;
 
-//         // Check for intersection
-//         for (auto &entry : predecessor_forward) {
-//             if (predecessor_backward.find(entry.first) != predecessor_backward.end()) {
-//                 return true;
-//             }
-//         }
-//     }
+    while (true) {
+        if (!queue_forward.empty()) {
+            auto current_forward = queue_forward.front();
+            queue_forward.pop();
+            bool found = enqueueNeighbors(context, current_forward.first, current_forward.second, queue_forward, true);
+            level_forward++;
+            if (found) { break; }
+        }
 
-//     return false;
-// }
+        if (level_forward + level_backward >= upper_bound) break;
 
-// void ShortestPathAdvancedIterator:enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>>& queue, bool is_forward) {
-//     // Implement the neighbor enqueueing logic, specific to forward or backward search
-// }
+        if (!queue_backward.empty()) {
+            auto current_backward = queue_backward.front();
+            queue_backward.pop();
+            bool found = enqueueNeighbors(context, current_backward.first, current_backward.second, queue_backward, false);
+            level_backward++;
+            if (found) { break; }
+        }
+
+        if (level_forward + level_backward >= upper_bound) break;
+    }
+
+    return false;
+}
+
+bool ShortestPathAdvancedIterator::enqueueNeighbors(ClientContext &context, NodeID node_id, Level node_level, std::queue<std::pair<NodeID, Level>>& queue, bool is_forward) {
+    // FWD BWD Data Structures
+    auto &predecessor_to_insert = is_forward ? predecessor_forward : predecessor_backward;
+    auto &predecessor_to_find = is_forward ? predecessor_backward : predecessor_forward;
+    auto adj_col_idx = is_forward ? adj_col_idx_fwd : adj_col_idx_bwd;
+    auto type = is_forward ? LogicalType::FORWARD_ADJLIST : LogicalType::BACKWARD_ADJLIST;
+    std::shared_ptr<AdjacencyListIterator> &adjlist_iterator = is_forward ? adjlist_iterator_forward : adjlist_iterator_backward;
+    
+    // Intiailize others
+    uint64_t *start_ptr, *end_ptr;
+    ExtentID target_eid = node_id >> 32;
+    bool is_initialized = adjlist_iterator->Initialize(context, adj_col_idx, target_eid, type);
+    adjlist_iterator->getAdjListPtr(node_id, target_eid, &start_ptr, &end_ptr, is_initialized);
+
+    for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
+        uint64_t neighbor = *ptr;
+        uint64_t edge_id = *(ptr + 1);
+
+        // If found
+        if ((predecessor_to_find.find(neighbor) != predecessor_to_find.end())
+            && node_level + 1 >= lower_bound) { // TODO: lower bound checking logic is wrong. We need to consider the level of the meeting point
+            predecessor_to_insert[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
+            meeting_point = neighbor;
+            return true;
+        }
+        else if (node_level + 1 >= upper_bound) { // no need for further search
+            continue;
+        }
+
+        // If the neighbor has not been visited
+        if (predecessor_to_insert.find(neighbor) == predecessor_to_insert.end()) {
+            queue.push(make_pair(neighbor, node_level + 1));
+            predecessor_to_insert[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
+        }
+    }
+
+    return false;
+}
 
 
-// bool ShortestPathAdvancedIterator::getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes) {
-//     if (predecessor_forward.find(tgtId) == predecessor_forward.end() || predecessor_backward.find(srcId) == predecessor_backward.end()) {
-//         return false;
-//     }
+bool ShortestPathAdvancedIterator::getShortestPath(ClientContext &context, std::vector<uint64_t>& edges, std::vector<uint64_t>& nodes) {
+    if (meeting_point == INVALID_NODE_ID) {
+        return false;
+    }
 
-//     NodeID meeting_point = srcId; // Placeholder initialization
-//     for (auto &entry : predecessor_forward) {
-//             if (predecessor_backward.find(entry.first) != predecessor_backward.end()) {\
-//                     meeting_point = entry.first;
-//             break;
-//         }
-//     }
+    // Construct src -> meeting point
+    NodeID current = meeting_point;
+    while (current != src_id) {
+        nodes.push_back(current);
+        edges.push_back(predecessor_forward[current].second);
+        current = predecessor_forward[current].first;
+    }
+    nodes.push_back(src_id);
+    std::reverse(nodes.begin(), nodes.end());
+    std::reverse(edges.begin(), edges.end());
 
-//     reconstructPath(edges, nodes, meeting_point);
-//     return true;
-// }
-
-// void ShortestPathAdvancedIterator::reconstructPath(std::vector<EdgeID>& edges, std::vector<NodeID>& nodes, NodeID meeting_point) {
-//     // Reconstruct the path from the source to the meeting point using predecessor_forward
-//     std::vector<NodeID> path_forward;
-//     std::vector<EdgeID> edges_forward;
-//     NodeID current = meeting_point;
-//     while (current != srcId) {
-//         path_forward.push_back(current);
-//         edges_forward.push_back(predecessor_forward[current].second);
-//         current = predecessor_forward[current].first;
-//     }
-//     path_forward.push_back(srcId);
-//     std::reverse(path_forward.begin(), path_forward.end());
-//     std::reverse(edges_forward.begin(), edges_forward.end());
-
-//     // Reconstruct the path from the target to the meeting point using predecessor_backward
-//     std::vector<NodeID> path_backward;
-//     std::vector<EdgeID> edges_backward;
-//     current = meeting_point;
-//     while (current != tgtId) {
-//         path_backward.push_back(predecessor_backward[current].first);
-//         edges_backward.push_back(predecessor_backward[current].second);
-//         current = predecessor_backward[current].first;
-//     }
-
-//     // Concatenate the two paths to form the complete path from source to target
-//     nodes = move(path_forward);
-//     nodes.insert(nodes.end(), path_backward.begin(), path_backward.end());
-
-//     edges = move(edges_forward);
-//     edges.insert(edges.end(), edges_backward.begin(), edges_backward.end());
-// }
+    // Construct meeting point -> tgt
+    current = meeting_point;
+    while (current != tgt_id) {
+        nodes.push_back(predecessor_backward[current].first);
+        edges.push_back(predecessor_backward[current].second);
+        current = predecessor_backward[current].first;
+    }
+    return true;
+}
 
 
 }
