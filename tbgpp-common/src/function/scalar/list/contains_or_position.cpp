@@ -181,17 +181,29 @@ static unique_ptr<FunctionData> ListContainsOrPositionBind(ClientContext &contex
 		bound_function.return_type = LogicalTypeId::SQLNULL;
 	} else {
 		// TODO: This is a temporary fix to resolve the type of the list
-		// auto const &child_type = ListType::GetChildType(arguments[0]->return_type);
-		auto const &child_type = LogicalType::ID;
-		auto max_child_type = LogicalType::MaxLogicalType(child_type, value);
-		// ExpressionBinder::ResolveParameterType(max_child_type); // TODO
-		auto list_type = LogicalType::LIST(max_child_type);
+		if (arguments[0]->return_type.AuxInfo()) {
+			auto const &child_type = ListType::GetChildType(arguments[0]->return_type);
+			auto max_child_type = LogicalType::MaxLogicalType(child_type, value);
+			// ExpressionBinder::ResolveParameterType(max_child_type); // TODO
+			auto list_type = LogicalType::LIST(max_child_type);
 
-		bound_function.arguments[0] = list_type;
-		bound_function.arguments[1] = value == max_child_type ? value : max_child_type;
+			bound_function.arguments[0] = list_type;
+			bound_function.arguments[1] = value == max_child_type ? value : max_child_type;
 
-		// list_contains and list_position only differ in their return type
-		bound_function.return_type = RETURN_TYPE;
+			// list_contains and list_position only differ in their return type
+			bound_function.return_type = RETURN_TYPE;
+		} else {
+			auto const &child_type = LogicalType::ID;
+			auto max_child_type = LogicalType::MaxLogicalType(child_type, value);
+			// ExpressionBinder::ResolveParameterType(max_child_type); // TODO
+			auto list_type = LogicalType::LIST(max_child_type);
+
+			bound_function.arguments[0] = list_type;
+			bound_function.arguments[1] = value == max_child_type ? value : max_child_type;
+
+			// list_contains and list_position only differ in their return type
+			bound_function.return_type = RETURN_TYPE;
+		}
 	}
 	return make_unique<VariableReturnBindData>(bound_function.return_type);
 }
