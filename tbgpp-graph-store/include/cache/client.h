@@ -42,7 +42,7 @@ public:
 
   int Release(uint64_t object_id);
 
-  int Delete(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
+  int Delete(uint64_t object_id);
 
   int Flush(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
 
@@ -72,7 +72,7 @@ private:
   int clear_dirty_internal(uint64_t object_id);
   int get_dirty_internal(uint64_t object_id, bool& is_dirty);
   int get_refcount_internal(uint64_t object_id);
-  int delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
+  int delete_internal(uint64_t object_id);
   int flush_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
   int subscribe_internal(uint64_t object_id, sem_t **sem, bool *wait);
   void init_mpk();

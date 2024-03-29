@@ -83,7 +83,7 @@ void MemAllocator::add_to_free_list(int index, int64_t mem_entry_index) {
   assert(!entry->in_use);
   assert(1L << index == entry->size);
 
-  if (free_list_->free_list_head[index] > 0) {
+  if (free_list_->free_list_head[index] >= 0) {
     int64_t head_index = free_list_->free_list_head[index];
     MemoryEntry *head = &header_->memory_entries[head_index];
     LOGGED_WRITE(head->prev, mem_entry_index, header_, disk_);
@@ -164,7 +164,7 @@ void MemAllocator::add_to_free_list_nolog(int index, int64_t mem_entry_index) {
   assert(!entry->in_use);
   assert(1L << index == entry->size);
 
-  if (free_list_->free_list_head[index] > 0) {
+  if (free_list_->free_list_head[index] >= 0) {
     int64_t head_index = free_list_->free_list_head[index];
     MemoryEntry *head = &header_->memory_entries[head_index];
     head->prev = mem_entry_index;
@@ -313,6 +313,7 @@ void MemAllocator::remove_block(int index, int64_t mem_entry_index) {
   int64_t head_index = free_list_->free_list_head[index];
   MemoryEntry *head = &header_->memory_entries[head_index];
   MemoryEntry *block = &header_->memory_entries[mem_entry_index];
+  
   if (head_index == mem_entry_index) {
     LOGGED_WRITE(free_list_->free_list_head[index], head->next, header_, disk_);
     // free_list_->free_list_head[index] = head->next;
@@ -341,6 +342,7 @@ void MemAllocator::remove_block(int index, int64_t mem_entry_index) {
 
         LOGGED_WRITE(block->prev, -1, header_, disk_);
         // block->prev = -1;
+
         return;
       }
       cur_index = cur->next;

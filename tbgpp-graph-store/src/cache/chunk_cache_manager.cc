@@ -38,6 +38,7 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
+    std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
@@ -62,7 +63,7 @@ void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler
   */
   PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
   CacheDataTransformer::Unswizzle(ptr);
-  file_handler->FlushAll();
+  file_handler->FlushAllBlocking();
   file_handler->WaitAllPendingDiskIO(false);
   CacheDataTransformer::Swizzle(ptr);
   file_handler->Close();
@@ -271,7 +272,7 @@ ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
   
   // Delete the segment from the buffer using Lightning Delete()
   D_ASSERT(file_handlers.find(cid) != file_handlers.end());
-  client->Delete(cid, file_handlers[cid]);
+  client->Delete(cid);
   file_handlers[cid]->Close();
   file_handlers[cid] = nullptr;
   //AdjustMemoryUsage(-GetSegmentSize(cid)); // need type casting
@@ -280,6 +281,25 @@ ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
 
 ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
   file_handlers[cid]->WaitForMyIoRequests(read, write);
+  return NOERROR;
+}
+
+ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache() {
+  std::cout << "Start to flush file! Total # files = " << file_handlers.size() << std::endl;
+  for (auto &file_handler: file_handlers) {
+    if (file_handler.second == nullptr) continue;
+
+    bool is_dirty;
+    client->GetDirty(file_handler.first, is_dirty);
+    if (!is_dirty) continue;
+
+    std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
+    // TODO we need a write lock
+    UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
+    client->ClearDirty(file_handler.first);
+    client->Delete(file_handler.first);
+  }
+  file_handlers.clear();
   return NOERROR;
 }
 
@@ -332,11 +352,13 @@ Turbo_bin_aio_handler* ChunkCacheManager::GetFileHandler(ChunkID cid) {
 }
 
 void ChunkCacheManager::ReadData(ChunkID cid, std::string file_path, void* ptr, size_t size_to_read, bool read_data_async) {
+  auto file_handler = file_handlers.find(cid);
   if (file_handlers[cid]->GetFileID() == -1) {
     exit(-1);
     //TODO throw exception
-  }
-  file_handlers[cid]->Read(0, (int64_t) size_to_read, (char*) ptr, nullptr, nullptr);
+  }  
+  // file_handlers[cid]->Read(0, (int64_t) size_to_read, (char*) ptr, nullptr, nullptr);
+  file_handlers[cid]->ReadWithSplittedIORequest(0, (int64_t) size_to_read, (char*) ptr, nullptr, nullptr);
   if (!read_data_async) file_handlers[cid]->WaitForMyIoRequests(true, true);
 }
 
