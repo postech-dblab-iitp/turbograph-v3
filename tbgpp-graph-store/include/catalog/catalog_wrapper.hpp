@@ -212,36 +212,42 @@ public:
             (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
-    void GetPropertyKeyToPropertySchemaMap(ClientContext &context, vector<idx_t> &oids, idx_t univ_oid,
-        unordered_map<string, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId> >> &pkey_to_ps_map, vector<string> &universal_schema,
-        PropertyKeyID_vector *&universal_schema_keyids)
+    void GetPropertyKeyToPropertySchemaMap(
+        ClientContext &context, vector<idx_t> &oids,
+        unordered_map<string,
+                      std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>>
+            &pkey_to_ps_map,
+        vector<string> &universal_schema)
     {
         auto &catalog = db.GetCatalog();
 
-        // TODO univ_ps_cat will be deprecated ..
-        PropertySchemaCatalogEntry *univ_ps_cat =
-            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, univ_oid);
-        string_vector *univ_property_keys = univ_ps_cat->GetKeys();
-        universal_schema_keyids = univ_ps_cat->GetPropKeyIDs();
-        for (int i = 0; i < univ_property_keys->size(); i++) {
-            string property_key = std::string((*univ_property_keys)[i]);
-            universal_schema.push_back(property_key);
-            pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{});
-        }
         for (auto &oid : oids) {
-            PropertySchemaCatalogEntry *ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
+            PropertySchemaCatalogEntry *ps_cat =
+                (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                    context, DEFAULT_SCHEMA, oid);
 
             string_vector *property_keys = ps_cat->GetKeys();
             LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
             for (int i = 0; i < property_keys->size(); i++) {
-                if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST || 
-                    (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST) continue;
+                if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
+                    (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
+                    continue;
                 string property_key = std::string((*property_keys)[i]);
                 auto it = pkey_to_ps_map.find(property_key);
                 if (it == pkey_to_ps_map.end()) {
-                    D_ASSERT(false);
-                } else {
-                    it->second.push_back(std::make_tuple(oid, i + 1, (*property_key_types)[i]));
+                    universal_schema.push_back(property_key);
+                    pkey_to_ps_map.emplace(
+                        property_key,
+                        std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
+                            std::make_tuple(oid, i + 1,
+                                            (*property_key_types)[i])});
+                    // pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{});
+                    // it = pkey_to_ps_map.find(property_key);
+                }
+                else {
+                    // D_ASSERT(it != pkey_to_ps_map.end());
+                    it->second.push_back(
+                        std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }
             }
         }
