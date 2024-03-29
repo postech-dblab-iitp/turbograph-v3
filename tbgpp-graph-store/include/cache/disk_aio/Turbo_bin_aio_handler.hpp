@@ -271,6 +271,42 @@ class Turbo_bin_aio_handler {
     Read(offset_to_read, size_to_read, data, caller, func, my_io);
   }
 
+  // TODO - remove buf_to_construct, construct_next, change API to get templated user-defined request
+  void ReadWithSplittedIORequest(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func, diskaio::DiskAioInterface* my_io) {
+    if (is_reserved) return;
+
+    assert (size_to_read > 0);
+    assert (size_to_read % 512 == 0);
+    assert (offset_to_read % 512 == 0);
+    assert (((uintptr_t)data) % 512 == 0);
+    // fprintf(stdout, "Read %ld\n", ((uintptr_t)data) % 512);
+
+    size_t cur_io_size;
+    while (size_to_read != 0) {
+      cur_io_size = size_to_read > MAX_IO_SIZE_PER_RW ? MAX_IO_SIZE_PER_RW : size_to_read;
+
+      AioRequest req;
+      req.buf = data;
+      req.start_pos = offset_to_read;
+      req.io_size = cur_io_size;
+      req.user_info.file_id = file_id;
+      req.user_info.do_user_cb = false;
+      req.user_info.caller = caller;
+      req.user_info.func = func;
+
+      bool success = DiskAioFactory::GetPtr()->ARead(req, my_io);
+      size_to_read -= cur_io_size;
+      offset_to_read += cur_io_size;
+      data += cur_io_size;
+    }
+  }
+    
+  void ReadWithSplittedIORequest(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func) {
+    InitializeIoInterface();
+    diskaio::DiskAioInterface* my_io = GetMyDiskIoInterface(true);
+    ReadWithSplittedIORequest(offset_to_read, size_to_read, data, caller, func, my_io);
+  }
+
   void Write(int64_t offset_to_write, int64_t size_to_write, char* data) {
     InitializeIoInterface();
     assert(size_to_write % 512 == 0);
@@ -316,6 +352,39 @@ class Turbo_bin_aio_handler {
     }
   }
 
+  void FlushAllBlocking() {
+    InitializeIoInterface();
+    assert(file_size() % 512 == 0);
+    assert(((uintptr_t)aligned_data_ptr) % 512 == 0);
+    diskaio::DiskAioInterface *my_io = GetMyDiskIoInterface(false);
+
+    size_t size_to_flush = file_size();
+    size_t cur_io_size;
+    size_t cur_start_pos = 0;
+    
+    while (size_to_flush != 0) {
+      cur_io_size = size_to_flush > MAX_IO_SIZE_PER_RW ? MAX_IO_SIZE_PER_RW : size_to_flush;
+
+      AioRequest req;
+      req.buf = (char *)(aligned_data_ptr + cur_start_pos);
+      req.start_pos = cur_start_pos;
+      req.io_size = cur_io_size;
+      req.user_info.file_id = file_id;
+      //req.user_info.do_user_cb = true;
+      req.user_info.caller = NULL;
+
+      bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
+      WaitAllPendingDiskIO(false);
+
+      size_to_flush -= cur_io_size;
+      cur_start_pos += cur_io_size;
+    }
+
+    if (is_reserved) {
+      is_reserved = false;
+    } else {
+    }
+  }
 
   char* CreateMmap(bool write_enabled) {
     assert (file_mmap == NULL);

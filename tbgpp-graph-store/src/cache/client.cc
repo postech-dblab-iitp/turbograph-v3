@@ -476,11 +476,12 @@ int LightningClient::ClearDirty(uint64_t object_id) {
   return status;
 }
 
-int LightningClient::get_dirty_internal(uint64_t object_id, bool& is_dirty) {
+int LightningClient::get_dirty_internal(uint64_t object_id, bool &is_dirty) {
   int64_t object_index = find_object(object_id);
 
   if (object_index < 0) {
     // object not found
+    is_dirty = false;
     return -1;
   }
 
@@ -600,20 +601,12 @@ int LightningClient::Release(uint64_t object_id) {
   return 0;
 }
 
-int LightningClient::delete_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+int LightningClient::delete_internal(uint64_t object_id) {
   int64_t object_index = find_object(object_id);
   assert(object_index >= 0);
 
   ObjectEntry *object_entry = &header_->object_entries[object_index];
   assert(object_entry->sealed);
-  /*if (object_entry->dirty_bit == 1) { // tslee: We don't need this logic maybe.. 
-    assert(file_handler);
-    if (file_handler->IsReserved())
-      file_handler->Write(0, object_entry->size, (char*) &base_[object_entry->offset]);
-      //file_handler->Append(object_entry->size, (char*) &base_[object_entry->offset], nullptr);
-    else
-      exit(-1);
-  }*/
 
   object_log_->CloseObject(object_id);
   allocator_->FreeShared(object_entry->offset);
@@ -621,7 +614,8 @@ int LightningClient::delete_internal(uint64_t object_id, Turbo_bin_aio_handler* 
   int64_t next_object_index = object_entry->next;
 
   if (prev_object_index < 0) {
-    if (next_object_index > 0) {
+    // if (next_object_index > 0) { // original code
+    if (next_object_index >= 0) {
       ObjectEntry *next = &header_->object_entries[next_object_index];
       LOGGED_WRITE(next->prev, -1, header_, disk_);
       // next->prev = -1;
@@ -650,11 +644,11 @@ int LightningClient::delete_internal(uint64_t object_id, Turbo_bin_aio_handler* 
   return 0;
 }
 
-int LightningClient::Delete(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+int LightningClient::Delete(uint64_t object_id) {
   mpk_unlock();
   LOCK;
   disk_->BeginTx();
-  int status = delete_internal(object_id, file_handler);
+  int status = delete_internal(object_id);
   disk_->CommitTx();
   UNLOCK;
   mpk_lock();
@@ -755,7 +749,7 @@ int LightningClient::MultiUpdate(uint64_t object_id,
   mpk_unlock();
   LOCK;
   disk_->BeginTx();
-  int status = delete_internal(object_id, nullptr);
+  int status = delete_internal(object_id);
   assert(status == 0);
   disk_->CommitTx();
 
@@ -915,7 +909,8 @@ int LightningClient::subscribe_internal(uint64_t object_id, sem_t **sem,
     LOGGED_WRITE(new_object->prev, -1, header_, disk_);
     // new_object->prev = -1;
 
-    if (head_index > 0) {
+    // if (head_index > 0) { // original code
+    if (head_index >= 0) {
       LOGGED_WRITE(head->prev, new_object_index, header_, disk_);
       // head->prev = new_object_index;
     }
