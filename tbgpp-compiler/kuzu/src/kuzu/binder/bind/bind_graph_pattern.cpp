@@ -330,8 +330,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema;
-        duckdb::PropertyKeyID_vector *universal_schema_keyids;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -357,7 +356,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id, universal_schema_keyids->at(i));
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
             queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
         queryRel->setSchemainfoBound(true);
