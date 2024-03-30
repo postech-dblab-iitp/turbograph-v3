@@ -8,6 +8,7 @@ WITH
     first(message.content) AS commentOrPostContent,
     first(message.creationDate) AS m_creationDate,
     person
+OPTIONAL MATCH (liker)-[r:KNOWS]-(person)
 RETURN
     liker.id AS personId,
     liker.firstName AS personFirstName,
@@ -16,7 +17,7 @@ RETURN
     likeCreationDate,
     commentOrPostContent,
     (((likeCreationDate - m_creationDate)/1000.0)/60.0) AS minutesLatency,
-    CASE WHEN EXISTS { MATCH (liker)-[:KNOWS]-(person) } THEN false ELSE true END AS isNew
+    CASE r._id WHEN null THEN true ELSE false END AS isNew
 ORDER BY
     likeCreationDate DESC,
     personId ASC

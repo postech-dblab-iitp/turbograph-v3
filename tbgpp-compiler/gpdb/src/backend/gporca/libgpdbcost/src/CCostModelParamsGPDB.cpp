@@ -97,13 +97,13 @@ const CDouble CCostModelParamsGPDB::DHJSpillingMemThresholdVal =
 const CDouble CCostModelParamsGPDB::DHJHashTableInitCostFactorVal = 500.0;
 
 // building hash table cost per tuple per column
-const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-04;
+const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-02;
 
 // the unit cost to process each tuple with unit width when building a hash table
-const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 3.0e-03;
+const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 3.0e-02;
 
 // hashing cost per tuple with unit width in hash join
-const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 1.97e-02;
+const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 8e-01;
 
 // feeding cost per tuple per column in hash join if spilling
 const CDouble CCostModelParamsGPDB::DHJFeedingTupColumnSpillingCostUnitVal =
