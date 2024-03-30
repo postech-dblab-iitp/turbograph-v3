@@ -2843,7 +2843,8 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 														CExpression *pexpr,
 														CColRef *pcolref,
 														CExpression *pprojExpr,
-														ULONG depth)
+														ULONG depth,
+														BOOL in_subquery)
 {
 	// S62 added
 	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
@@ -2854,7 +2855,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 			CExpression *pexprCollapsedSelect = GPOS_NEW(mp)
 				CExpression(mp, GPOS_NEW(mp) CLogicalSelect(mp), (*(*pexpr)[0])[0],
 							CollapseSelectAndReplaceColrefColumnar(mp, (*pexpr)[1], pcolref,
-														pprojExpr, depth + 1));
+														pprojExpr, depth + 1, in_subquery));
 
 			CExpression *pexprTransposed =
 				PexprTransposeSelectAndProjectColumnar(mp, pexprCollapsedSelect);
@@ -2878,8 +2879,8 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
-		CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
-		// CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))
+		((in_subquery && CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref)) ||
+		 (!in_subquery && CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))))
 	{
 		pprojExpr->AddRef();
 		return pprojExpr;
@@ -2892,7 +2893,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
 		{
 			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
-				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
+				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1, true));
 		}
 
 		COperator *pop = pexpr->Pop();
@@ -2904,7 +2905,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
 		{
 			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
-				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1));
+				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1, in_subquery));
 		}
 
 		COperator *pop = pexpr->Pop();
