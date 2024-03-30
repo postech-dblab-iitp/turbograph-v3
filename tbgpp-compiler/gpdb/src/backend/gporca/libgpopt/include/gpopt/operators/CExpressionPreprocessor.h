@@ -217,7 +217,8 @@ private:
 															   CExpression *expr,
 															   CColRef *pcolref,
 															   CExpression *pprojExpr,
-															   ULONG depth);
+															   ULONG depth,
+															   BOOL in_subquery = false);
 
 	static CExpression *PexprPruneUnnecessaryTables(CMemoryPool *mp,
 													CExpression *pexpr);
