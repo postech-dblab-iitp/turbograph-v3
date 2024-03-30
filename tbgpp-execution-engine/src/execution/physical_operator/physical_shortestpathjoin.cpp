@@ -8,7 +8,7 @@ namespace duckdb {
 class ShortestPathState : public OperatorState {
 public:
 	explicit ShortestPathState() {
-		srtp_iter = new ShortestPathIterator();
+		srtp_iter = new ShortestPathAdvancedIterator();
 		input_idx = 0;
 		output_idx = 0;
 		is_initialized = false;
@@ -28,7 +28,7 @@ public:
 		output_idx = 0;
 	 }
 public:
-    ShortestPathIterator *srtp_iter;
+    ShortestPathAdvancedIterator *srtp_iter;
 
 	idx_t input_idx;
 	idx_t output_idx;
@@ -78,11 +78,13 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 {
 	auto &srtp_state = (ShortestPathState &)state;
 	if(!srtp_state.is_initialized) {
-		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
+		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_fwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
+		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_bwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
 		srtp_state.is_initialized = true;
-		D_ASSERT(srtp_state.adj_col_idxs.size() == 1);
-		D_ASSERT(srtp_state.adj_col_types.size() == 1);
+		D_ASSERT(srtp_state.adj_col_idxs.size() == 2);
+		D_ASSERT(srtp_state.adj_col_types.size() == 2);
 		D_ASSERT(srtp_state.adj_col_types[0] == LogicalType::FORWARD_ADJLIST);
+		D_ASSERT(srtp_state.adj_col_types[1] == LogicalType::BACKWARD_ADJLIST);
 	}
 
 	Vector &src_id_vec = input.data[src_id_idx];
@@ -93,7 +95,8 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 		uint64_t dst_id = getIdRefFromVector(dst_id_vec, srtp_state.input_idx);
 		std::vector<uint64_t> edges;
 		std::vector<uint64_t> nodes;
-		srtp_state.srtp_iter->initialize(*context.client, src_id, dst_id, srtp_state.adj_col_idxs[0], lower_bound, upper_bound);
+		srtp_state.srtp_iter->initialize(*context.client, src_id, dst_id, srtp_state.adj_col_idxs[0], srtp_state.adj_col_idxs[1], 
+										lower_bound, upper_bound);
 		bool found = srtp_state.srtp_iter->getShortestPath(*context.client, edges, nodes);
 		if(found) {
 			D_ASSERT(edges.size() == nodes.size() - 1);
