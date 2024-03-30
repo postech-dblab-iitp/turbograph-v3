@@ -330,7 +330,8 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
+        duckdb::PropertyKeyID_vector *universal_schema_keyids;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
