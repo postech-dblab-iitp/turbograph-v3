@@ -415,7 +415,7 @@ CCostModelGPDB::CostChildren(CMemoryPool *mp, CExpressionHandle &exprhdl,
 			{
 				// Note: We assume that width and rebinds are the same for scan, partition selector and filter
 				dCostChild = dCostChild +
-							 CostScanOutput(mp, dScanRows, pci->GetWidth()[ul],
+							 CostScanOutput(mp, dScanRows, pci->Width(), /* Since we are columar DB, we only read required columns */
 											pci->PdRebinds()[ul], pcp)
 								 .Get();
 			}
@@ -1021,7 +1021,7 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CCost costLocal(0);
 
 	// inner tuples fit in memory
-	if (true /*dRowsInner * dWidthInner <= dHJSpillingMemThreshold*/) // in s62, we don't have spill case
+	if (dRowsInner * dWidthInner <= dHJSpillingMemThreshold) // in s62, we don't have spill case
 	{
 		// hash join cost contains four parts:
 		// 1. build hash table with inner tuples. This part is correlated with rows and width of
@@ -1678,15 +1678,8 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	CDouble dCostPerIndexRow = ulIndexKeys * 0 +
 							   dTableWidth * dIndexScanTupCostUnit;
 
-	if (CPhysicalIndexScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindFwdAdjlist ||
-		CPhysicalIndexScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindBwdAdjlist) {
-		return CCost(pci->NumRebinds() *
-					(dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
-	}
-	else {
-		return CCost(pci->NumRebinds() *
-					(dRowsIndex * dCostPerIndexRow + dIndexScanTupRandomFactor)); // S62 remove I/O factor
-	}
+	return CCost(pci->NumRebinds() *
+			(dRowsIndex * dCostPerIndexRow/* + dIndexScanTupRandomFactor*/)); // S62 remove I/O factor
 }
 
 //---------------------------------------------------------------------------
@@ -1766,17 +1759,9 @@ CCostModelGPDB::CostIndexOnlyScan(CMemoryPool *,				  // mp
 			1 - (CDouble(stats->RelAllVisible()) / CDouble(stats->RelPages()));
 	}
 
-	if (CPhysicalIndexOnlyScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindFwdAdjlist ||
-		CPhysicalIndexOnlyScan::PopConvert(pop)->Pindexdesc()->IndexType() == IMDIndex::EmdindBwdAdjlist) {
-		return CCost(pci->NumRebinds() *
-					(dRowsIndex * dCostPerIndexRow/* +
-					dIndexScanTupRandomFactor * dPartialVisFrac*/)); // S62 remove random I/O factor
-	} 
-	else {
-		return CCost(pci->NumRebinds() *
-					(dRowsIndex * dCostPerIndexRow +
-					dIndexScanTupRandomFactor * dPartialVisFrac));
-	}
+	return CCost(pci->NumRebinds() *
+				(dRowsIndex * dCostPerIndexRow +
+				dIndexScanTupRandomFactor * dPartialVisFrac));
 }
 
 CCost

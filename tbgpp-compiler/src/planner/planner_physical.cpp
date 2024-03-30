@@ -3812,12 +3812,19 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExp
     auto pmdrel = lGetMDAccessor()->RetrieveRel(ptabledesc->MDId());
     D_ASSERT(pmdrel != nullptr);
     D_ASSERT(pmdrel->IndexCount() == 3); // _id, _sid, _tid
+    // for fwd
     auto pmdidIndex = pmdrel->IndexMDidAt(1);
     auto pmdindex = lGetMDAccessor()->RetrieveIndex(pmdidIndex);
     D_ASSERT(pmdindex != nullptr);
-    OID path_index_oid = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
+    OID path_index_oid_fwd = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
+    // for bwd
+    pmdidIndex = pmdrel->IndexMDidAt(2);
+    pmdindex = lGetMDAccessor()->RetrieveIndex(pmdidIndex);
+    D_ASSERT(pmdindex != nullptr);
+    OID path_index_oid_bwd = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
 
-    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalShortestPathJoin(schema, path_index_oid, input_col_map, output_idx, src_id_idx, dest_id_idx, lower_bound, upper_bound);
+    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalShortestPathJoin(schema, path_index_oid_fwd, path_index_oid_bwd, 
+                                                    input_col_map, output_idx, src_id_idx, dest_id_idx, lower_bound, upper_bound);
     result->push_back(op);
     pBuildSchemaFlowGraphForUnaryOperator(schema);
 

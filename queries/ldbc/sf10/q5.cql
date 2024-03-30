@@ -1,4 +1,4 @@
-MATCH (m:Comment {id: 8246343738160})-[r:HAS_CREATOR]->(p:Person)
+MATCH (m:Post {id: 8246343738160})-[r:POST_HAS_CREATOR]->(p:Person)
 		RETURN
 			p.id AS personId,
 			p.firstName AS firstName,
