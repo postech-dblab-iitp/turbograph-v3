@@ -1,7 +1,7 @@
 MATCH (person:Person {id: 6597069812321})-[:KNOWS*2..2]-(friend),
     (friend)-[:IS_LOCATED_IN]->(city:Place {label: "City"})
-WHERE NOT friend=person AND
-    NOT EXISTS { MATCH (friend)-[:KNOWS]-(person) }
+OPTIONAL MATCH (friend)-[r:KNOWS]-(person)
+WHERE NOT friend=person AND r._id = NULL
 WITH person, city, friend
 WHERE (month(friend.birthday)=11 AND day(friend.birthday)>=21) OR
         (month(friend.birthday)=12 AND day(friend.birthday)<22)
