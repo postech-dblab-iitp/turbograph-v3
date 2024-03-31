@@ -47,7 +47,6 @@ const CDouble CCostModelParamsGPDB::DIndexBlockCostUnitVal = 1.27e-06;
 const CDouble CCostModelParamsGPDB::DIndexFilterCostUnitVal = 1.65e-05; // S62 reduce index scan cost in our case ..
 
 // index scan cost unit per tuple per width
-// const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-06;
 const CDouble CCostModelParamsGPDB::DIndexScanTupCostUnitVal = 3.66e-10; // S62 reduce index scan cost in our case ..
 
 // index scan random IO factor
@@ -97,13 +96,13 @@ const CDouble CCostModelParamsGPDB::DHJSpillingMemThresholdVal =
 const CDouble CCostModelParamsGPDB::DHJHashTableInitCostFactorVal = 500.0;
 
 // building hash table cost per tuple per column
-const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-01;
+const CDouble CCostModelParamsGPDB::DHJHashTableColumnCostUnitVal = 5.0e-03;
 
 // the unit cost to process each tuple with unit width when building a hash table
-const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 3.0e-01;
+const CDouble CCostModelParamsGPDB::DHJHashTableWidthCostUnitVal = 6.0e-04;
 
 // hashing cost per tuple with unit width in hash join
-const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 8e-01;
+const CDouble CCostModelParamsGPDB::DHJHashingTupWidthCostUnitVal = 15;
 
 // feeding cost per tuple per column in hash join if spilling
 const CDouble CCostModelParamsGPDB::DHJFeedingTupColumnSpillingCostUnitVal =
@@ -147,7 +146,7 @@ const CDouble CCostModelParamsGPDB::DNetBandwidthVal = 1024.0;
 const CDouble CCostModelParamsGPDB::DSegmentsVal = 4.0;
 
 // nlj factor
-const CDouble CCostModelParamsGPDB::DNLJFactorVal = 1.0;
+const CDouble CCostModelParamsGPDB::DNLJFactorVal = 1000.0;
 
 // hj factor
 const CDouble CCostModelParamsGPDB::DHJFactorVal = 2.5;

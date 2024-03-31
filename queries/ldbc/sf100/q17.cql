@@ -1,7 +1,7 @@
 MATCH (person:Person {id: 65504})-[:KNOWS*2..2]-(friend),
     (friend)-[:IS_LOCATED_IN]->(city:Place {label: "City"})
-WHERE NOT friend=person AND
-    NOT EXISTS { MATCH (friend)-[:KNOWS]-(person) }
+OPTIONAL MATCH (friend)-[r:KNOWS]-(person)
+WHERE NOT friend=person AND r._id = NULL
 WITH person, city, friend
 WHERE (month(friend.birthday)=5 AND day(friend.birthday)>=21) OR
         (month(friend.birthday)=6 AND day(friend.birthday)<22)
@@ -9,28 +9,6 @@ WITH DISTINCT friend, city, person
 OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
 WITH friend, city, person, CASE post._id WHEN null THEN 0 ELSE 1 END AS numpost,
     CASE WHEN EXISTS { MATCH (post)-[:POST_HAS_TAG]->(:Tag)<-[:HAS_INTEREST]-(person2:Person) WHERE person2.id = 65504 } THEN 1 ELSE 0 END AS postCommon	
-WITH friend, city, person, sum(numpost) AS postCount, sum(postCommon) AS commonPostCount
-RETURN friend.id AS personId,
-    friend.firstName AS personFirstName,
-    friend.lastName AS personLastName,
-        commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
-        friend.gender AS personGender, 
-        city.name AS personCityName
-ORDER BY commonInterestScore DESC, personId ASC
-LIMIT 10;
-
-MATCH (person:Person {id: 65504})-[:KNOWS*2..2]-(friend),
-    (friend)-[:IS_LOCATED_IN]->(city:Place {label: "City"})
-WHERE NOT friend=person AND
-    NOT EXISTS { MATCH (friend)-[:KNOWS]-(person) }
-WITH person, city, friend
-WHERE (month(friend.birthday)=5 AND day(friend.birthday)>=21) OR
-        (month(friend.birthday)=6 AND day(friend.birthday)<22)
-WITH DISTINCT friend, city, person
-OPTIONAL MATCH (friend)<-[:POST_HAS_CREATOR]-(post:Post)
-OPTIONAL MATCH (post)-[:POST_HAS_TAG]->(:Tag)<-[r:HAS_INTEREST]-(person2:Person) WHERE person2.id = 65504
-WITH friend, city, person, CASE post._id WHEN null THEN 0 ELSE 1 END AS numpost,
-    CASE r._id WHEN NULL THEN 1 ELSE 0 END AS postCommon
 WITH friend, city, person, sum(numpost) AS postCount, sum(postCommon) AS commonPostCount
 RETURN friend.id AS personId,
     friend.firstName AS personFirstName,

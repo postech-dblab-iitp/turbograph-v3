@@ -410,7 +410,7 @@ CCostModelGPDB::CostChildren(CMemoryPool *mp, CExpressionHandle &exprhdl,
 					dScanRows = pci->Rows();
 				}
 			}
-
+			
 			if (CUtils::FPhysicalScan(scanOp))
 			{
 				// Note: We assume that width and rebinds are the same for scan, partition selector and filter
@@ -1021,7 +1021,7 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CCost costLocal(0);
 
 	// inner tuples fit in memory
-	if (dRowsInner * dWidthInner <= dHJSpillingMemThreshold) // in s62, we don't have spill case
+	if (true) // in s62, we don't have spill case
 	{
 		// hash join cost contains four parts:
 		// 1. build hash table with inner tuples. This part is correlated with rows and width of

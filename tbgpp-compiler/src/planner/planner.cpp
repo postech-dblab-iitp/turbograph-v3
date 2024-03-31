@@ -393,8 +393,12 @@ void *Planner::_orcaExec(void *planner_ptr)
         planner->_orcaSetOptCtxt(mp, &mda, pcm);
 
         /* Optimize */
+        boost::timer::cpu_timer logical_transform_timer;
+        logical_transform_timer.start();
         LogicalPlan *logical_plan = planner->lGetLogicalPlan();
         CExpression *orca_logical_plan = logical_plan->getPlanExpr();
+        auto logical_transform_timer_ms =
+            logical_transform_timer.elapsed().wall / 1000000.0;
 
         {
             if (planner->config.DEBUG_PRINT) {
@@ -405,6 +409,9 @@ void *Planner::_orcaExec(void *planner_ptr)
                 GPOS_TRACE(str.GetBuffer());
             }
         }
+
+        boost::timer::cpu_timer orca_other_time;
+        orca_other_time.start();
         CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();  // temp
         CEngine eng(mp);
         CQueryContext *pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
@@ -457,10 +464,15 @@ void *Planner::_orcaExec(void *planner_ptr)
                 GPOS_TRACE(str.GetBuffer());
             }
         }
+        auto orca_other_time_ms = orca_other_time.elapsed().wall / 1000000.0;
 
 		// exploration, implementation, optimization
+        boost::timer::cpu_timer orca_optimize_time;
+        orca_optimize_time.start();
         eng.Init(pqc, NULL /*search_stage_array*/);
         eng.Optimize();
+        auto orca_optimize_time_ms =
+            orca_optimize_time.elapsed().wall / 1000000.0;
 
 		// iterate possible plans
         if (planner->config.ORCA_DEBUG_PRINT) {
@@ -500,6 +512,9 @@ void *Planner::_orcaExec(void *planner_ptr)
             }
         }
 
+        
+        boost::timer::cpu_timer orca_extract_plan_timer;
+        orca_extract_plan_timer.start();
         CExpression *orca_physical_plan = eng.PexprExtractPlan();  // best plan
         (void)orca_physical_plan->PrppCompute(mp, pqc->Prpp());
         {
@@ -511,11 +526,24 @@ void *Planner::_orcaExec(void *planner_ptr)
                 GPOS_TRACE(str.GetBuffer());
             }
         }
+        auto orca_extract_plan_time_ms =
+            orca_extract_plan_timer.elapsed().wall / 1000000.0;
+
+
+        boost::timer::cpu_timer physical_transform_timer;
+        physical_transform_timer.start();
+        planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
+        auto physical_transform_timer_ms =
+            physical_transform_timer.elapsed().wall / 1000000.0;
         auto orca_compile_time_ms =
             orca_compile_timer.elapsed().wall / 1000000.0;
-        // std::cout << "\nCompile Time: " << orca_compile_time_ms << " ms"
-        //           << std::endl;
-        planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
+        
+        std::cout << "ORCA Compile Time: " << orca_compile_time_ms << " ms" << std::endl;
+        std::cout << "ORCA Optimize Time: " << orca_optimize_time_ms << " ms" << std::endl;
+        std::cout << "ORCA Other Time: " << orca_other_time_ms << " ms" << std::endl;
+        std::cout << "ORCA Extract Plan Time: " << orca_extract_plan_time_ms << " ms" << std::endl;
+        std::cout << "Logical Transform Time: " << logical_transform_timer_ms << " ms" << std::endl;
+        std::cout << "Physical Transform Time: " << physical_transform_timer_ms << " ms" << std::endl;
 
         orca_logical_plan->Release();
         orca_physical_plan->Release();
