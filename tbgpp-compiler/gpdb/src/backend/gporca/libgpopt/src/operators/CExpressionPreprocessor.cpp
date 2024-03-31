@@ -2880,7 +2880,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
 		((in_subquery && CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref)) ||
-		 (!in_subquery && CColRef::EqualsCurIdOnly(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))))
+		 (!in_subquery && CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))))
 	{
 		pprojExpr->AddRef();
 		return pprojExpr;

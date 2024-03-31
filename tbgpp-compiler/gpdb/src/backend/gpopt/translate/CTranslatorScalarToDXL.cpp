@@ -2396,6 +2396,7 @@ CTranslatorScalarToDXL::ExtractLintValueFromDatum(const IMDType *md_type,
 		else
 		{
 			if (mdid->Equals(&CMDIdGPDB::m_mdid_s62_ubigint) ||
+				mdid->Equals(&CMDIdGPDB::m_mdid_s62_bigint) ||
 				mdid->Equals(&CMDIdGPDB::m_mdid_s62_id)) {
 				clib::Memcpy(&lint_value, bytes, length);
 			} else {
