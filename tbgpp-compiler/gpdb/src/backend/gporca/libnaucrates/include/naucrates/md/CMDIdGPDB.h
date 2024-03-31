@@ -236,6 +236,9 @@ public:
 	// s62 ID mdid
 	static CMDIdGPDB m_mdid_s62_id;
 
+	// s62 bigint mdid
+	static CMDIdGPDB m_mdid_s62_bigint;
+
 	// s62 PATH mdid
 	static CMDIdGPDB m_mdid_s62_path;
 

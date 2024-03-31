@@ -8,7 +8,9 @@ WHERE n.N_NAME = 'IRAN' AND
     AND EXISTS {
         MATCH 
         (l2:LINEITEM)-[:IS_PART_OF]->(o)
-        WHERE s.S_SUPPKEY <> l2.L_SUPPKEY
+        WHERE 
+        l2.L_ORDERKEY = o.O_ORDERKEY AND
+        s.S_SUPPKEY <> l2.L_SUPPKEY
     }
     AND NOT EXISTS {
         MATCH 

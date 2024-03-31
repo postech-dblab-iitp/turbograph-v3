@@ -116,6 +116,9 @@ CMDIdGPDB CMDIdGPDB::m_mdid_s62_ubigint(IMDId::EmdidGeneral, 10000031);
 CMDIdGPDB CMDIdGPDB::m_mdid_s62_id(IMDId::EmdidGeneral, 10000108);
 
 // s62 ID mdid
+CMDIdGPDB CMDIdGPDB::m_mdid_s62_bigint(IMDId::EmdidGeneral, 10000014);
+
+// s62 ID mdid
 CMDIdGPDB CMDIdGPDB::m_mdid_s62_path(IMDId::EmdidGeneral, 10000203);
 
 // unknown mdid
