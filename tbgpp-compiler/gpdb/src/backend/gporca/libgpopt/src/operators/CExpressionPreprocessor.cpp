@@ -2879,39 +2879,24 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 
 	// replace reference
 	if (pexpr->Pop()->Eopid() == COperator::EopScalarIdent &&
-		((in_subquery && CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref)) ||
-		 (!in_subquery && CColRef::Equals(CScalarIdent::PopConvert(pexpr->Pop())->Pcr(), pcolref))))
+		(CScalarIdent::PopConvert(pexpr->Pop())->Pcr()->PrevId() == pcolref->Id() ||
+		 CScalarIdent::PopConvert(pexpr->Pop())->Pcr()->Id() == pcolref->Id()))
 	{
 		pprojExpr->AddRef();
 		return pprojExpr;
 	}
 
-	if (pexpr->Pop()->Eopid() == COperator::EopScalarSubqueryNotExists)
+	// recurse to children
+	CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
+	for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
 	{
-		// recurse to children
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
-		{
-			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
-				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1, true));
-		}
-
-		COperator *pop = pexpr->Pop();
-		pop->AddRef();
-		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
-	} else {
-		// recurse to children
-		CExpressionArray *pdrgpexprChildren = GPOS_NEW(mp) CExpressionArray(mp);
-		for (ULONG ul = 0; ul < pexpr->Arity(); ul++)
-		{
-			pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
-				mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1, in_subquery));
-		}
-
-		COperator *pop = pexpr->Pop();
-		pop->AddRef();
-		return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
+		pdrgpexprChildren->Append(CollapseSelectAndReplaceColrefColumnar(
+			mp, (*pexpr)[ul], pcolref, pprojExpr, depth + 1, in_subquery));
 	}
+
+	COperator *pop = pexpr->Pop();
+	pop->AddRef();
+	return GPOS_NEW(mp) CExpression(mp, pop, pdrgpexprChildren);
 }
 
 CExpression *
