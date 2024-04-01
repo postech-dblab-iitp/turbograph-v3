@@ -93,15 +93,47 @@ CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, Lo
 
 }
 
-CExpression* Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
+CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
 
-	CMemoryPool* mp = this->memory_pool;
+	CMemoryPool *mp = this->memory_pool;
 	ScalarFunctionExpression* comp_expr = (ScalarFunctionExpression*) expression;
 	D_ASSERT( comp_expr->getNumChildren() == 2);	// S62 not sure how kuzu generates comparison expression, now assume 2
 	auto children = comp_expr->getChildren();
 	// lhs, rhs
-	CExpression* lhs_scalar_expr = lExprScalarExpression(children[0].get(), prev_plan, required_type);
-	CExpression* rhs_scalar_expr = lExprScalarExpression(children[1].get(), prev_plan, required_type);
+	CExpression *lhs_scalar_expr;
+	CExpression *rhs_scalar_expr;
+    if (children[0]->expressionType == ExpressionType::LITERAL &&
+        children[1]->expressionType != ExpressionType::LITERAL) {
+        rhs_scalar_expr =
+            lExprScalarExpression(children[1].get(), prev_plan, required_type);
+        DataTypeID target_type_id =
+            (DataTypeID)(((CMDIdGPDB *)(CScalar::PopConvert(
+                                            rhs_scalar_expr->Pop())
+                                            ->MdidType()))
+                             ->Oid() -
+                         LOGICAL_TYPE_BASE_ID);
+        lhs_scalar_expr =
+            lExprScalarExpression(children[0].get(), prev_plan, target_type_id);
+    }
+    else if (children[0]->expressionType != ExpressionType::LITERAL &&
+             children[1]->expressionType == ExpressionType::LITERAL) {
+        lhs_scalar_expr =
+            lExprScalarExpression(children[0].get(), prev_plan, required_type);
+        DataTypeID target_type_id =
+            (DataTypeID)(((CMDIdGPDB *)(CScalar::PopConvert(
+                                            lhs_scalar_expr->Pop())
+                                            ->MdidType()))
+                             ->Oid() -
+                         LOGICAL_TYPE_BASE_ID);
+        rhs_scalar_expr =
+            lExprScalarExpression(children[1].get(), prev_plan, target_type_id);
+    }
+    else {
+        lhs_scalar_expr =
+            lExprScalarExpression(children[0].get(), prev_plan, required_type);
+        rhs_scalar_expr =
+            lExprScalarExpression(children[1].get(), prev_plan, required_type);
+    }
 
     CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 
@@ -300,6 +332,7 @@ CExpression *Planner::lExprScalarLiteralExpr(
         type = lit_expr->literal.get()->dataType;
     }
     else {
+		// TODO we need to check if literal type can be casted to required type
         type = DataType(required_type);
     }
 
@@ -321,9 +354,22 @@ CExpression *Planner::lExprScalarLiteralExpr(
         D_ASSERT(serialized_literal != NULL && serialized_literal_length != 0);
     }
 
+	LINT lint_val = 0;
+	CDouble double_val = 0.0;
+	// this should be aligned with CMDTypeGenericGPDB::HasByte2IntMapping
+	if (type.typeID == DataTypeID::NODE_ID) {
+		lint_val = lit_expr->literal.get()->val.uint64Val;
+	} else if (type.typeID == DataTypeID::UBIGINT) {
+		lint_val = lit_expr->literal.get()->val.uint64Val;
+	}
+	
+	// this should be aligned with CMDTypeGenericGPDB::HasByte2DoubleMapping
+	if (type.typeID == DataTypeID::DOUBLE) {
+		double_val = lit_expr->literal.get()->val.doubleVal;
+	}
     IDatumGeneric *datum = (IDatumGeneric *)(GPOS_NEW(mp) CDatumGenericGPDB(
         mp, (IMDId *)type_mdid, type_modifier, serialized_literal,
-        serialized_literal_length, lit_expr->isNull(), (LINT)0, (CDouble)0.0));
+        serialized_literal_length, lit_expr->isNull(), lint_val, double_val));
     datum->AddRef();
     pexpr = GPOS_NEW(mp)
         CExpression(mp, GPOS_NEW(mp) CScalarConst(mp, (IDatum *)datum));
