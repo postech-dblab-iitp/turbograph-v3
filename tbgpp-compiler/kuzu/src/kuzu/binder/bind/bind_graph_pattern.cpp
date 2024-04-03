@@ -21,43 +21,24 @@ Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern)
     auto propertyCollection = make_unique<PropertyKeyValCollection>();  // filters for properties appearing in node/edge pattern (a -> (k,value), ...)
     auto queryGraphCollection = make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
-        // queryGraphCollection->addAndMergeQueryGraphIfConnected(
-        //     bindPatternElement(*patternElement, *propertyCollection));
         queryGraphCollection->addAndMergeQueryGraphIfConnected(
-            bindPatternElementTmp(*patternElement, *propertyCollection));
+            bindPatternElement(*patternElement, *propertyCollection));
     }
     return make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-shared_ptr<QueryGraph> Binder::bindPatternElement(
-    const PatternElement &patternElement, PropertyKeyValCollection &collection) {
-    D_ASSERT(false); // TODO 231120 deprecated
-    auto queryGraph = make_shared<QueryGraph>();
-    // auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
-    // for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
-    //     auto patternElementChain = patternElement.getPatternElementChain(i);
-    //     auto rightNode =
-    //         bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, collection);
-    //     bindQueryRel(
-    //         *patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
-    //     leftNode = rightNode;
-    // }
-    return queryGraph;
-}
-
-// Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-unique_ptr<QueryGraph> Binder::bindPatternElementTmp(
+unique_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement &patternElement, PropertyKeyValCollection &collection) {
     auto queryGraph = make_unique<QueryGraph>();
     queryGraph->setQueryGraphType((QueryGraphType)patternElement.getPatternType());
 
     // bind partition IDs first
-    auto leftNode = bindQueryNodeTmp(*patternElement.getFirstNodePattern(), *queryGraph, collection);
+    auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
-        auto rightNode = bindQueryNodeTmp(*patternElementChain->getNodePattern(), *queryGraph, collection);
-        bindQueryRelTmp(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
+        auto rightNode = bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, collection);
+        bindQueryRel(*patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
         leftNode = rightNode;
     }
 
@@ -172,109 +153,6 @@ static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPr
 void Binder::bindQueryRel(const RelPattern &relPattern, const shared_ptr<NodeExpression> &leftNode,
     const shared_ptr<NodeExpression> &rightNode, QueryGraph &queryGraph,
     PropertyKeyValCollection &collection) {
-    D_ASSERT(false); // TODO 231120 deprecated
-    // auto parsedName = relPattern.getVariableName();
-    // if (variablesInScope.find(parsedName) != variablesInScope.end()) {
-    //     auto prevVariable = variablesInScope.at(parsedName);
-    //     ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
-    //     throw BinderException("Bind relationship " + parsedName +
-    //                           " to relationship with same name is not supported.");
-    // }
-
-    // // bind node to rel
-    // auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    // auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
-    // auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
-    // if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
-    //     throw BinderException("Self-loop rel " + parsedName + " is not supported.");
-    // }
-    // vector<uint64_t> partitionIDs, tableIDs;
-    // bindRelTableIDs(relPattern.getLabelOrTypeNames(), srcNode, dstNode, partitionIDs, tableIDs);
-
-    // // bind variable length
-    // auto boundPair = bindVariableLengthRelBound(relPattern);
-    // auto& lowerBound = boundPair.first;
-    // auto& upperBound = boundPair.second;
-    // bool isVariableLength = lowerBound != upperBound ? true : false;
-    // auto queryRel = make_shared<RelExpression>(
-    //     getUniqueExpressionName(parsedName), partitionIDs, tableIDs, srcNode, dstNode, lowerBound, upperBound);
-    // queryRel->setAlias(parsedName);
-    // if (parsedName == "") {
-    //     // S62 empty rel cannot have raw name
-    //     queryRel->setRawName("annon_" + queryRel->getUniqueName());
-    // } else {
-    //     queryRel->setRawName(parsedName);
-    // }
-    
-    // // we don't support reading property for variable length rel yet.
-    // if (client != nullptr) {
-    //     /* TBGPP MDP */
-    //     // Get unordered map (property key -> corresponding (sub)table ids)
-    //     unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
-    //     vector<string> universal_schema;
-    //     vector<duckdb::PropertyKeyID> universal_schema_keyids;
-    //     client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, tableIDs[0], pkey_to_ps_map, universal_schema, universal_schema_keyids);
-    //     {
-    //         string propertyName = "_id";
-    //         vector<Property> prop_id;
-    //         for (auto &table_id : tableIDs) {
-    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
-    //             // TODO for variable length, id is not nodeid type. it is list!!
-    //         }
-    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-    //         queryRel->addPropertyExpression(propertyName, std::move(prop_idexpr));
-    //     }
-
-    //     // for each property, create property expression
-    //     // for variable length join, cannot create property
-    //     for (uint64_t i = 0; i < universal_schema.size(); i++) {
-    //         auto it = pkey_to_ps_map.find(universal_schema[i]);
-    //         vector<Property> prop_id;
-    //         if (isVariableLength && !(universal_schema[i] == "_sid" || universal_schema[i] == "_tid")) {
-    //             // when variable length, only fetch _sid and _tid, propery cannot be fetched
-    //             continue;
-    //         }
-    //         for (auto &tid_and_cid_pair : it->second) {
-    //             uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
-    //             DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
-    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
-    //         }
-    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryRel, prop_id);
-    //         queryRel->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
-    //     }
-    // } else {
-    //     /* Testing - MemoryMDP */
-    //     assert(false);
-    // }
-
-    // // if (!queryRel->isVariableLength()) {
-    // //     for (auto& propertyPair:
-    // //         getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-    // //         auto& propertyName = propertyPair.first;
-    // //         auto& propertySchemas = propertyPair.second;
-    // //         auto propertyExpression =
-    // //             expressionBinder.createPropertyExpression(*queryRel, propertySchemas);
-    // //         queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
-    // //     }
-    // // }
-
-    // if (!parsedName.empty()) {
-    //     variablesInScope.insert({parsedName, queryRel});
-    // }
-    // for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
-    //     auto propertyName = relPattern.getProperty(i).first;
-    //     auto rhs = relPattern.getProperty(i).second;
-    //     auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
-    //     auto boundRhs = expressionBinder.bindExpression(*rhs);
-    //     boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-    //     collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
-    // }
-    // queryGraph.addQueryRel(queryRel);
-}
-
-void Binder::bindQueryRelTmp(const RelPattern &relPattern, const shared_ptr<NodeExpression> &leftNode,
-    const shared_ptr<NodeExpression> &rightNode, QueryGraph &queryGraph,
-    PropertyKeyValCollection &collection) {
     auto parsedName = relPattern.getVariableName();
     if (variablesInScope.find(parsedName) != variablesInScope.end()) {
         auto prevVariable = variablesInScope.at(parsedName);
@@ -330,8 +208,7 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel, const Re
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
         vector<string> universal_schema;
-        duckdb::PropertyKeyID_vector *universal_schema_keyids;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -387,41 +264,6 @@ pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 
 shared_ptr<NodeExpression> Binder::bindQueryNode(
     const NodePattern &nodePattern, QueryGraph &queryGraph, PropertyKeyValCollection &collection) {
-    D_ASSERT(false); // TODO 231120 deprecated
-    // auto parsedName = nodePattern.getVariableName();
-    shared_ptr<NodeExpression> queryNode;
-//     if (variablesInScope.find(parsedName) != variablesInScope.end()) { // bind to node in scope
-//         auto prevVariable = variablesInScope.at(parsedName);
-//         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
-//         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-//         // E.g. MATCH (a:person) MATCH (a:organisation)
-//         // We bind to single node a with both labels
-//         if (!nodePattern.getLabelOrTypeNames().empty()) {
-// // S62 change table ids to relations
-//             assert(false);  // S62 logic is strange - may crash when considering schema.
-//             // auto otherTableIDs = std::move(bindNodeTableIDs(nodePattern.getLabelOrTypeNames()));
-//             // queryNode->addTableIDs(otherTableIDs);
-//         }
-//     } else {
-//         queryNode = createQueryNode(nodePattern);
-//     }
-
-//     // bind for e.g. (a:P {prop: val}) -> why necessary?
-//     for (auto i = 0u; i < nodePattern.getNumPropertyKeyValPairs(); ++i) {
-//         const auto& propertyName = nodePattern.getProperty(i).first;
-//         const auto& rhs = nodePattern.getProperty(i).second;
-//         // refer binder and bind node property expression
-//         auto boundLhs = expressionBinder.bindNodePropertyExpression(*queryNode, propertyName);
-//         auto boundRhs = expressionBinder.bindExpression(*rhs);
-//         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-//         collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
-//     }
-//     queryGraph.addQueryNode(queryNode);
-    return queryNode;
-}
-
-shared_ptr<NodeExpression> Binder::bindQueryNodeTmp(
-    const NodePattern &nodePattern, QueryGraph &queryGraph, PropertyKeyValCollection &collection) {
     auto parsedName = nodePattern.getVariableName();
     shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.find(parsedName) != variablesInScope.end()) { // bind to node in scope
@@ -437,7 +279,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNodeTmp(
             // queryNode->addTableIDs(otherTableIDs);
         }
     } else {
-        queryNode = createQueryNodeTmp(nodePattern);
+        queryNode = createQueryNode(nodePattern);
     }
 
     queryGraph.addQueryNode(queryNode);
@@ -461,9 +303,8 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
 
         unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
-        vector<string> universal_schema; // TODO temporary
-        duckdb::PropertyKeyID_vector *universal_schema_keyids;
-        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, univTableID, pkey_to_ps_map, universal_schema, universal_schema_keyids);
+        vector<string> universal_schema;
+        client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
         {
             string propertyName = "_id";
             vector<Property> prop_id;
@@ -475,7 +316,6 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         }
 
         // for each property, create property expression
-        D_ASSERT(universal_schema.size() == universal_schema_keyids->size());
         for (uint64_t i = 0; i < universal_schema.size(); i++) {
             auto it = pkey_to_ps_map.find(universal_schema[i]);
             vector<Property> prop_id;
@@ -484,7 +324,7 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                 DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
                 prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
             }
-            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id, universal_schema_keyids->at(i));
+            auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
         }
         queryNode->setSchemainfoBound(true);
@@ -505,74 +345,6 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
 }
 
 shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern &nodePattern) {
-    D_ASSERT(false); // TODO 231120 deprecated
-    // auto parsedName = nodePattern.getVariableName();
-
-    // vector<uint64_t> partitionIDs, tableIDs;
-    // bindNodeTableIDs(nodePattern.getLabelOrTypeNames(), partitionIDs, tableIDs);
-    // auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), partitionIDs, tableIDs);
-    // queryNode->setAlias(parsedName);
-    // if (parsedName == "") {
-    //     // annon node cannot have raw name
-    //     queryNode->setRawName("annon_"+queryNode->getUniqueName());
-    // } else {
-    //     queryNode->setRawName(parsedName);
-    // }
-    // queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
-
-    // // S62 union schema process.
-    // // create properties all properties for given tables
-    // if (client != nullptr) {
-    //     /* TBGPP MDP */
-    //     // S62 fixme
-    //     // Get unordered map (property key -> corresponding (sub)table ids)
-    //     unordered_map<string, vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>> pkey_to_ps_map;
-    //     vector<string> universal_schema; // TODO temporary
-    //     client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(*client, tableIDs, pkey_to_ps_map, universal_schema);
-    //     {
-    //         string propertyName = "_id";
-    //         vector<Property> prop_id;
-    //         for (auto &table_id : tableIDs) {
-    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0, table_id));
-    //         }
-    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-    //         queryNode->addPropertyExpression(propertyName, std::move(prop_idexpr));
-    //     }
-
-    //     // for each property, create property expression
-    //     for (uint64_t i = 0; i < universal_schema.size(); i++) {
-    //         auto it = pkey_to_ps_map.find(universal_schema[i]);
-    //         vector<Property> prop_id;
-    //         for (auto &tid_and_cid_pair : it->second) {
-    //             uint8_t duckdb_typeid = (uint8_t) std::get<2>(tid_and_cid_pair);
-    //             DataTypeID kuzu_typeid = (DataTypeID) duckdb_typeid;
-    //             prop_id.push_back(Property::constructNodeProperty(PropertyNameDataType(universal_schema[i], kuzu_typeid), std::get<1>(tid_and_cid_pair), std::get<0>(tid_and_cid_pair)));
-    //         }
-    //         auto prop_idexpr = expressionBinder.createPropertyExpression(*queryNode, prop_id);
-    //         queryNode->addPropertyExpression(universal_schema[i], std::move(prop_idexpr));
-    //     }
-    // } else {
-    //     /* Test - MemoryMDP*/
-    //     assert(false);
-    // }
-    // // for (auto& propertyPair :
-    // //     getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
-    // //     auto& propertyName = propertyPair.first;            // name
-    // //     auto& propertySchemas  = propertyPair.second;       // properties linked to the names. (e.g. <t1.pid3, t2.pid5, ...>)
-    // //     auto propertyExpression =
-    // //         expressionBinder.createPropertyExpression(*queryNode, propertySchemas);
-
-    // //     // Each distinct (name, type) is returned
-    // //     queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
-    // // }
-
-    // if (!parsedName.empty()) {
-    //     variablesInScope.insert({parsedName, queryNode});
-    // }
-    // return queryNode;
-}
-
-shared_ptr<NodeExpression> Binder::createQueryNodeTmp(const NodePattern &nodePattern) {
     auto parsedName = nodePattern.getVariableName();
 
     vector<uint64_t> partitionIDs, tableIDs;

@@ -28,7 +28,7 @@ using namespace gpopt;
 //
 //---------------------------------------------------------------------------
 CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp)
-	: CLogicalUnion(mp), m_ulScanIdPartialIndex(0), m_allowIndexJoinBelowUnionAll(false)
+	: CLogicalUnion(mp), m_ulScanIdPartialIndex(0), m_allowPushJoinBelowUnionAll(true)
 {
 	m_fPattern = true;
 }
@@ -48,7 +48,7 @@ CLogicalUnionAll::CLogicalUnionAll(CMemoryPool *mp, CColRefArray *pdrgpcrOutput,
 								   )
 	: CLogicalUnion(mp, pdrgpcrOutput, pdrgpdrgpcrInput),
 	  m_ulScanIdPartialIndex(ulScanIdPartialIndex),
-	  m_allowIndexJoinBelowUnionAll(allowIndexJoinBelowUnionAll)	
+	  m_allowPushJoinBelowUnionAll(allowIndexJoinBelowUnionAll)	
 {
 }
 

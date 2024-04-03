@@ -105,6 +105,11 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 		CLogicalUnionAll::PopConvert(pexprUnionAll->Pop());
 	CColRef2dArray *union_input_columns = popUnionAll->PdrgpdrgpcrInput();
 
+	if (!popUnionAll->CanPushJoinBelowUnionAll()) 
+	{
+		return;
+	}
+
 	// used for alternative union all expression
 	CColRef2dArray *input_columns = GPOS_NEW(mp) CColRef2dArray(mp);
 	CExpressionArray *join_array = GPOS_NEW(mp) CExpressionArray(mp);
