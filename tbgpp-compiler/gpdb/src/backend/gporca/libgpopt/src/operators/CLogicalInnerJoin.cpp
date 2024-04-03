@@ -70,11 +70,12 @@ CLogicalInnerJoin::PxfsCandidates(CMemoryPool *mp) const
 
 	(void) xform_set->ExchangeSet(CXform::ExfImplementInnerJoin);
 	(void) xform_set->ExchangeSet(CXform::ExfSubqJoin2Apply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoin2PartialDynamicIndexGetApply);
-	(void) xform_set->ExchangeSet(
-		CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply);
-	(void) xform_set->ExchangeSet(CXform::ExfJoin2BitmapIndexGetApply);
+	// s62 disable useless xforms
+	// (void) xform_set->ExchangeSet(
+	// 	CXform::ExfInnerJoin2PartialDynamicIndexGetApply);
+	// (void) xform_set->ExchangeSet(
+	// 	CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply);
+	// (void) xform_set->ExchangeSet(CXform::ExfJoin2BitmapIndexGetApply);
 	(void) xform_set->ExchangeSet(CXform::ExfJoin2IndexGetApply);
 	// (void) xform_set->ExchangeSet(CXform::ExfPushJoinBelowLeftUnionAll);
 	// (void) xform_set->ExchangeSet(CXform::ExfPushJoinBelowRightUnionAll);

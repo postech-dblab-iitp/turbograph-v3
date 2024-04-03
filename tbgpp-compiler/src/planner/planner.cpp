@@ -309,6 +309,9 @@ void Planner::_orcaSetTraceFlags()
     //GPOS_UNSET_TRACE(gpos::EOptTraceFlag::EopttraceEnableLOJInNAryJoin);
     GPOS_SET_TRACE(
         gpos::EOptTraceFlag::EopttraceDisableOuterJoin2InnerJoinRewrite);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotions);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartPropagation);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartSelection);
 }
 
 gpdbcost::CCostModelGPDB *Planner::_orcaGetCostModel(CMemoryPool *mp)
@@ -421,6 +424,9 @@ void *Planner::_orcaExec(void *planner_ptr)
         std::vector<std::string> output_names;
         logical_plan->getSchema()->getOutputColumns(output_columns);
 
+        output_names.reserve(output_columns.size());
+        planner->logical_plan_output_col_oids.reserve(output_columns.size());
+        
         for (auto &col : output_columns) {
             if (col->GetMdidTable() == NULL) {
 				planner->logical_plan_output_col_oids.push_back(GPDB_UNKNOWN);
@@ -438,20 +444,10 @@ void *Planner::_orcaExec(void *planner_ptr)
             wstring col_name_ws = col->Name().Pstr()->GetBuffer();
             output_names.push_back(
                 std::string(col_name_ws.begin(), col_name_ws.end()));
-
-            // Create OIDS and push
-            if (col->GetMdidTable() == NULL) {
-                planner->logical_plan_output_col_oids.push_back(GPDB_UNKNOWN);
-            }
-            else {
-                planner->logical_plan_output_col_oids.push_back(
-                    CMDIdGPDB::CastMdid(((CColRefTable *)col)->GetMdidTable())
-                        ->Oid());
-            }
         }
         D_ASSERT(output_columns.size() == output_names.size());
-        planner->logical_plan_output_colrefs = output_columns;
-        planner->logical_plan_output_col_names = output_names;
+        planner->logical_plan_output_colrefs = std::move(output_columns);
+        planner->logical_plan_output_col_names = std::move(output_names);
 
         /* LogicalRules */
         CExpression *orca_logical_plan_after_logical_opt = pqc->Pexpr();
