@@ -333,7 +333,7 @@ void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk
 	OutputUtil::PrintQueryOutput(col_names, resultChunks, true);
 }
 
-void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner) {
+void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner, kuzu::binder::Binder &binder) {
 /*
 	COMPILATION
 */
@@ -373,9 +373,8 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			}
 			
 			// Binder
-			auto binder = kuzu::binder::Binder(client.get());
 			auto boundStatement = binder.bind(*statement);
-			kuzu::binder::BoundStatement * bst = boundStatement.get();
+			kuzu::binder::BoundStatement *bst = boundStatement.get();
 
 			if (planner_config.DEBUG_PRINT) {
 				BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
@@ -534,6 +533,7 @@ int main(int argc, char** argv) {
 
 	// Run planner
 	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+	auto binder = kuzu::binder::Binder(client.get());
 	
 	// run queries by query name
 	cstring_uptr input_cmd;
@@ -542,7 +542,7 @@ int main(int argc, char** argv) {
 	string query_str;
 
 	if (is_query_string_given) {
-		CompileAndRun(input_query_string, client, planner);
+		CompileAndRun(input_query_string, client, planner, binder);
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
@@ -563,7 +563,7 @@ int main(int argc, char** argv) {
 
 				try {
 					// protected code
-					CompileAndRun(query_str, client, planner);
+					CompileAndRun(query_str, client, planner, binder);
 				} catch (duckdb::Exception e) {
 					std::cerr << e.what() << std::endl;
 				} catch (std::exception &e1) {

@@ -318,6 +318,8 @@ CXform::PbsJoinOrderOnGreedyXforms(CMemoryPool *mp)
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoinAssociativity));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoinCommutativity));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGreedy));
 
 	return pbs;
 }
