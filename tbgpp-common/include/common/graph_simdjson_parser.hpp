@@ -606,18 +606,18 @@ public:
         }
 
 // #ifdef DYNAMIC_SCHEMA_INSTANTIATION
-        if (num_clusters >= 1) {
-            // create univ ps cat entry for dynamic schema instantiation
-            vector<PropertyKeyID> property_key_ids;
-            string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_univ";
-            CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
-            PropertySchemaCatalogEntry *univ_property_schema_cat = 
-                (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
-            graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
-            univ_property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
-            univ_property_schema_cat->SetFake();
-            partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
-        }
+        // if (num_clusters >= 1) {
+        //     // create univ ps cat entry for dynamic schema instantiation
+        //     vector<PropertyKeyID> property_key_ids;
+        //     string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_univ";
+        //     CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
+        //     PropertySchemaCatalogEntry *univ_property_schema_cat = 
+        //         (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
+        //     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
+        //     univ_property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+        //     univ_property_schema_cat->SetFake();
+        //     partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
+        // }
 // #endif
 
         // Initialize LID_TO_PID_MAP

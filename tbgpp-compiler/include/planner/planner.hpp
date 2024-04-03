@@ -315,22 +315,6 @@ private:
 		string name, vector<uint64_t> &oids,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
-	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> &oids, CColRef2dArray *prev_input_array, CColRefArray *prev_output_array,
-		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
-	);
-	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> &oids, vector<vector<uint64_t>> &table_oids_in_groups,
-		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
-	);
-	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
-		string name, uint64_t partition_oid,
-		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
-	);
-	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdgeForDSI(
-		string name, vector<uint64_t> &oids,
-		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
-	);
 
 	CExpression *lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false,
 		std::vector<uint64_t> *table_oids_in_group = nullptr, string alias = "");
@@ -365,9 +349,6 @@ private:
 	inline const IMDRelation *lGetRelMd(uint64_t obj_id) {
 		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
 	}
-
-	void lRefinePlanForDSI(LogicalPlan *cur_plan);
-	CExpression *lRecurseRefinePlanForDSI(CMemoryPool *mp, CExpression *pexpr);
 
 	// helper functions
 	bool lIsCastingFunction(std::string& func_name);
