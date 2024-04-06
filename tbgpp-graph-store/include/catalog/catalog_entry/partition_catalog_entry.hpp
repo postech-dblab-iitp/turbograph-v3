@@ -43,7 +43,8 @@ public:
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
 	//! PropertyKeyID -> Property schema catalog entries those contains the property
-	PropertyToPropertySchemaVecUnorderedMap property_schema_index;
+	// PropertyToPropertySchemaVecUnorderedMap property_schema_index;
+	PropertyToPropertySchemaPairVecUnorderedMap property_schema_index;
 
 	//! OIDs of property schema catalog entries
 	PropertySchemaID_vector property_schema_array;
@@ -83,6 +84,9 @@ public:
 	//! universal schema names
 	string_vector global_property_key_names;
 
+	//! universal schema property key ids
+	idx_t_vector global_property_key_ids;
+
 	//! # of columns in universal schema
 	idx_t num_columns;
 
@@ -114,7 +118,7 @@ public:
 	welford_t_vector welford_array;
 
 public:
-	void AddPropertySchema(ClientContext &context, PropertySchemaID psid, vector<PropertyKeyID> &property_schemas);
+	void AddPropertySchema(ClientContext &context, idx_t ps_oid, vector<PropertyKeyID> &property_schemas);
 	void SetUnivPropertySchema(idx_t psid);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
@@ -141,6 +145,11 @@ public:
 	idx_t GetDstPartOid()
 	{
 		return dst_part_oid;
+	}
+
+	PropertyToPropertySchemaPairVecUnorderedMap *GetPropertySchemaIndex()
+	{
+		return &property_schema_index;
 	}
 
 	//! Get Property Schema IDs
@@ -177,6 +186,24 @@ public:
 	PropertyToIdxUnorderedMap *GetPropertyToIdxMap()
 	{
 		return &global_property_key_to_location;
+	}
+
+	//! Get universal schema names
+	string_vector *GetUniversalPropertyKeyNames()
+	{
+		return &global_property_key_names;
+	}
+
+	//! Get universal schema key ids
+	idx_t_vector *GetUniversalPropertyKeyIds()
+	{
+		return &global_property_key_ids;
+	}
+
+	//! Get universal schema key ids
+	LogicalTypeId_vector *GetUniversalPropertyTypeIds()
+	{
+		return &global_property_typesid;
 	}
 
 	//! Get offset infos member variable

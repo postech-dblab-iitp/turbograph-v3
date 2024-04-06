@@ -38,37 +38,42 @@ private:
 
 	template <class STATE_TYPE, class INPUT_TYPE, class OP>
 	static inline void UnaryFlatLoop(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
-	                                 STATE_TYPE **__restrict states, ValidityMask &mask, idx_t count) {
-		if (!mask.AllValid()) {
-			idx_t base_idx = 0;
-			auto entry_count = ValidityMask::EntryCount(count);
-			for (idx_t entry_idx = 0; entry_idx < entry_count; entry_idx++) {
-				auto validity_entry = mask.GetValidityEntry(entry_idx);
-				idx_t next = MinValue<idx_t>(base_idx + ValidityMask::BITS_PER_VALUE, count);
-				if (!OP::IgnoreNull() || ValidityMask::AllValid(validity_entry)) {
-					// all valid: perform operation
-					for (; base_idx < next; base_idx++) {
-						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[base_idx], bind_data, idata, mask,
-						                                                   base_idx);
-					}
-				} else if (ValidityMask::NoneValid(validity_entry)) {
-					// nothing valid: skip all
-					base_idx = next;
-					continue;
-				} else {
-					// partially valid: need to check individual elements for validity
-					idx_t start = base_idx;
-					for (; base_idx < next; base_idx++) {
-						if (ValidityMask::RowIsValid(validity_entry, base_idx - start)) {
+	                                 STATE_TYPE **__restrict states, ValidityMask &mask, idx_t count, bool is_input_valid) {
+		if (!is_input_valid) {
+			D_ASSERT(OP::IgnoreNull()); // TODO not implemented yet for not ignoring null case
+			return;
+		} else {
+			if (!mask.AllValid()) {
+				idx_t base_idx = 0;
+				auto entry_count = ValidityMask::EntryCount(count);
+				for (idx_t entry_idx = 0; entry_idx < entry_count; entry_idx++) {
+					auto validity_entry = mask.GetValidityEntry(entry_idx);
+					idx_t next = MinValue<idx_t>(base_idx + ValidityMask::BITS_PER_VALUE, count);
+					if (!OP::IgnoreNull() || ValidityMask::AllValid(validity_entry)) {
+						// all valid: perform operation
+						for (; base_idx < next; base_idx++) {
 							OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[base_idx], bind_data, idata, mask,
-							                                                   base_idx);
+																			base_idx);
+						}
+					} else if (ValidityMask::NoneValid(validity_entry)) {
+						// nothing valid: skip all
+						base_idx = next;
+						continue;
+					} else {
+						// partially valid: need to check individual elements for validity
+						idx_t start = base_idx;
+						for (; base_idx < next; base_idx++) {
+							if (ValidityMask::RowIsValid(validity_entry, base_idx - start)) {
+								OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[base_idx], bind_data, idata, mask,
+																				base_idx);
+							}
 						}
 					}
 				}
-			}
-		} else {
-			for (idx_t i = 0; i < count; i++) {
-				OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[i], bind_data, idata, mask, i);
+			} else {
+				for (idx_t i = 0; i < count; i++) {
+					OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[i], bind_data, idata, mask, i);
+				}
 			}
 		}
 	}
@@ -76,22 +81,28 @@ private:
 	template <class STATE_TYPE, class INPUT_TYPE, class OP>
 	static inline void UnaryScatterLoop(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
 	                                    STATE_TYPE **__restrict states, const SelectionVector &isel,
-	                                    const SelectionVector &ssel, ValidityMask &mask, idx_t count) {
-		if (OP::IgnoreNull() && !mask.AllValid()) {
-			// potential NULL values and NULL values are ignored
-			for (idx_t i = 0; i < count; i++) {
-				auto idx = isel.get_index(i);
-				auto sidx = ssel.get_index(i);
-				if (mask.RowIsValid(idx)) {
+	                                    const SelectionVector &ssel, ValidityMask &mask, idx_t count,
+										bool is_input_valid) {
+		if (!is_input_valid) {
+			D_ASSERT(OP::IgnoreNull()); // TODO
+			return;
+		} else {
+			if (OP::IgnoreNull() && !mask.AllValid()) {
+				// potential NULL values and NULL values are ignored
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = isel.get_index(i);
+					auto sidx = ssel.get_index(i);
+					if (mask.RowIsValid(idx)) {
+						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
+					}
+				}
+			} else {
+				// quick path: no NULL values or NULL values are not ignored
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = isel.get_index(i);
+					auto sidx = ssel.get_index(i);
 					OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
 				}
-			}
-		} else {
-			// quick path: no NULL values or NULL values are not ignored
-			for (idx_t i = 0; i < count; i++) {
-				auto idx = isel.get_index(i);
-				auto sidx = ssel.get_index(i);
-				OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
 			}
 		}
 	}
@@ -224,6 +235,9 @@ public:
 	static void UnaryScatter(Vector &input, Vector &states, FunctionData *bind_data, idx_t count) {
 		if (input.GetVectorType() == VectorType::CONSTANT_VECTOR &&
 		    states.GetVectorType() == VectorType::CONSTANT_VECTOR) {
+			if (OP::IgnoreNull() && !input.GetIsValid()) {
+				return;
+			}
 			if (OP::IgnoreNull() && ConstantVector::IsNull(input)) {
 				// constant NULL input in function that ignores NULL values
 				return;
@@ -237,13 +251,13 @@ public:
 		           states.GetVectorType() == VectorType::FLAT_VECTOR) {
 			auto idata = FlatVector::GetData<INPUT_TYPE>(input);
 			auto sdata = FlatVector::GetData<STATE_TYPE *>(states);
-			UnaryFlatLoop<STATE_TYPE, INPUT_TYPE, OP>(idata, bind_data, sdata, FlatVector::Validity(input), count);
+			UnaryFlatLoop<STATE_TYPE, INPUT_TYPE, OP>(idata, bind_data, sdata, FlatVector::Validity(input), count, input.GetIsValid());
 		} else {
 			VectorData idata, sdata;
 			input.Orrify(count, idata);
 			states.Orrify(count, sdata);
 			UnaryScatterLoop<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
-			                                             *idata.sel, *sdata.sel, idata.validity, count);
+			                                             *idata.sel, *sdata.sel, idata.validity, count, input.GetIsValid());
 		}
 	}
 

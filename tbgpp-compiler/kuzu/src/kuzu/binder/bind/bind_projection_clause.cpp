@@ -72,8 +72,9 @@ expression_vector Binder::bindProjectionExpressions(
 
 expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
     expression_vector result;
-    auto& nodeOrRel = (NodeOrRelExpression&)expression;
-    for (auto& property : nodeOrRel.getPropertyExpressions()) {
+    auto &nodeOrRel = (NodeOrRelExpression &)expression;
+    nodeOrRel.markAllColumnsAsUsed();
+    for (auto &property : nodeOrRel.getPropertyExpressions()) {
         result.push_back(property->copy());
     }
     return result;

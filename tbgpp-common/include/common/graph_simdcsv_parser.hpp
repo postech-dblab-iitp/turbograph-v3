@@ -515,6 +515,7 @@ public:
     try {
       p = get_corpus(csv_file_path, CSV_PADDING);
     } catch (const std::exception &e) { // caught by reference to base
+      std::cerr << e.what();
       throw InvalidInputException("Could not load the file");
     }
     // Read only header.. TODO how to read only few lines or just a line?

@@ -63,6 +63,7 @@ typedef struct AttStatsSlot
 	/* Filled if ATTSTATSSLOT_VALUES is specified: */
 	Oid			valuetype;		/* Actual datatype of the values */
 	Datum	   *values;			/* slot's "values" array, or NULL if none */
+	Datum	   *freq_values;			/* slot's "values" array, or NULL if none */
 	int			nvalues;		/* length of values[], or 0 */
 	/* Filled if ATTSTATSSLOT_NUMBERS is specified: */
 	float4	   *numbers;		/* slot's "numbers" array, or NULL if none */

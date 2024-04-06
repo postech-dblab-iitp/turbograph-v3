@@ -46,10 +46,37 @@ void DataChunk::Initialize(const vector<LogicalType> &types, idx_t capacity_) {
 	capacity = capacity_;
 	data.reserve(types.size());
 	for (idx_t i = 0; i < types.size(); i++) {
-		VectorCache cache(types[i], capacity);
-		data.emplace_back(cache, capacity);
-		vector_caches.push_back(move(cache));
-		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+		if (types[i].id() == LogicalTypeId::SQLNULL) {
+			VectorCache cache;
+			data.emplace_back(Vector(types[i], nullptr));
+			vector_caches.push_back(move(cache));
+			data[i].is_valid = false;
+		} else {
+			VectorCache cache(types[i], capacity);
+			data.emplace_back(cache, capacity);
+			vector_caches.push_back(move(cache));
+		}
+	}
+}
+
+void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint8_t>> &projection_mappings, idx_t capacity_) {
+	D_ASSERT(data.empty());   // can only be initialized once
+	D_ASSERT(!types.empty()); // empty chunk not allowed
+	D_ASSERT(projection_mappings.size() >= 1);
+	capacity = capacity_;
+	data.reserve(types.size());
+	for (idx_t i = 0; i < types.size(); i++) {
+		if (other.data[projection_mappings[0][i]].GetIsValid()) {
+			VectorCache cache(types[i], capacity);
+			data.emplace_back(cache, capacity);
+			vector_caches.push_back(move(cache));
+			if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+		} else {
+			VectorCache cache;
+			data.emplace_back(Vector(types[i], nullptr));
+			vector_caches.push_back(move(cache));
+			data[i].is_valid = false;
+		}
 	}
 }
 
@@ -61,6 +88,18 @@ void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> 
 	for (idx_t i = 0; i < types.size(); i++) {
 		data.emplace_back(Vector(types[i], datas[i]));
 		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+	}
+}
+
+void DataChunk::InitializeValidCols(const vector<LogicalType> &types, idx_t capacity_) {
+	// already initialized
+	D_ASSERT(!types.empty()); // empty chunk not allowed
+	D_ASSERT(data.size() == types.size());
+	D_ASSERT(vector_caches.size() == types.size());
+	
+	for (idx_t i = 0; i < types.size(); i++) {
+		if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+		else data[i].is_valid = true;
 	}
 }
 

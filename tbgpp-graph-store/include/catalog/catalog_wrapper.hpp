@@ -241,16 +241,61 @@ public:
                         std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
                             std::make_tuple(oid, i + 1,
                                             (*property_key_types)[i])});
-                    // pkey_to_ps_map.emplace(property_key, std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{});
-                    // it = pkey_to_ps_map.find(property_key);
                 }
                 else {
-                    // D_ASSERT(it != pkey_to_ps_map.end());
                     it->second.push_back(
                         std::make_tuple(oid, i + 1, (*property_key_types)[i]));
                 }
             }
         }
+    }
+
+    void GetPropertyKeyToPropertySchemaMap(
+        ClientContext &context, vector<idx_t> &oids,
+        PropertyToPropertySchemaPairVecUnorderedMap **property_schema_index,
+        string_vector **universal_schema,
+        idx_t_vector **universal_schema_ids,
+        LogicalTypeId_vector **universal_types_id,
+        vector<idx_t> &part_oids)
+    {
+        auto &catalog = db.GetCatalog();
+
+        // TODO currently, we only support one partition
+        D_ASSERT(part_oids.size() == 1);
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(
+                context, DEFAULT_SCHEMA, part_oids[0]);
+        *universal_schema = part_cat->GetUniversalPropertyKeyNames();
+        *universal_schema_ids = part_cat->GetUniversalPropertyKeyIds();
+        *universal_types_id = part_cat->GetUniversalPropertyTypeIds();
+        *property_schema_index = part_cat->GetPropertySchemaIndex();
+
+        // for (auto &oid : oids) {
+        //     PropertySchemaCatalogEntry *ps_cat =
+        //         (PropertySchemaCatalogEntry *)catalog.GetEntry(
+        //             context, DEFAULT_SCHEMA, oid);
+
+        //     string_vector *property_keys = ps_cat->GetKeys();
+        //     LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
+        //     for (int i = 0; i < property_keys->size(); i++) {
+        //         if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
+        //             (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
+        //             continue;
+        //         string property_key = std::string((*property_keys)[i]);
+        //         auto it = pkey_to_ps_map.find(property_key);
+        //         if (it == pkey_to_ps_map.end()) {
+        //             pkey_to_ps_map.emplace(
+        //                 property_key,
+        //                 std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
+        //                     std::make_tuple(oid, i + 1,
+        //                                     (*property_key_types)[i])});
+        //         }
+        //         else {
+        //             it->second.push_back(
+        //                 std::make_tuple(oid, i + 1, (*property_key_types)[i]));
+        //         }
+        //     }
+        // }
     }
 
     string GetTypeName(idx_t type_id) {

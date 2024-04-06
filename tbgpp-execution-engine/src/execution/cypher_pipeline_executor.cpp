@@ -129,8 +129,11 @@ void CypherPipelineExecutor::ExecutePipeline()
 			 * This is temporal code.
 			 * TODO: need to be refactored.
 			*/
-			source_chunk.Destroy();
-            source_chunk.Initialize(
+			// source_chunk.Destroy();
+            // source_chunk.Initialize(
+            //     sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
+			source_chunk.Reset();
+            source_chunk.InitializeValidCols(
                 sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 			opOutputSchemaIdx[0] = sfg.GetCurSourceIdx();
 		} else {
@@ -225,8 +228,9 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		if (pipeline->pipelineLength == 2) { // nothing passes through pipe.
 			idx_t src_schema_idx = source.GetSchemaIdx();
 			idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 2, src_schema_idx);
-			pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
-			pipeOutputChunk->Reference(source);
+			// pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
+			// pipeOutputChunk->Reference(source);
+			pipeOutputChunk = &source;
 			pipeResult = OperatorResultType::NEED_MORE_INPUT;
 			D_ASSERT(in_process_operators.empty()); // TODO: In this case it should definitely be like this... but check plz
 		} else {

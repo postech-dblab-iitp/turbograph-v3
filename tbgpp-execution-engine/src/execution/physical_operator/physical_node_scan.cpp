@@ -140,7 +140,7 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 		if (projection_mapping.size() == 1) {
 			res = context.client->graph_store->doScan(state.ext_its, chunk, types);
 		} else {
-			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx, false);
+			res = context.client->graph_store->doScan(state.ext_its, chunk, projection_mapping, types, current_schema_idx);
 		}
 	} else {
         /* TODO @jhha - Even if the minmax array does not exist,

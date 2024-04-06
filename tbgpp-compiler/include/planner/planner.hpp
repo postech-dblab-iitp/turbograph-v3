@@ -212,7 +212,7 @@ public:
 		DISABLE_INDEX_JOIN(false),
 		DISABLE_HASH_JOIN(false),
 		DISABLE_MERGE_JOIN(false),
-		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH),
+		JOIN_ORDER_TYPE(JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH),
 		JOIN_ORDER_DP_THRESHOLD_CONFIG(10)
 	{ }
 };
@@ -312,7 +312,7 @@ private:
 
 	/* Helper functions for generating orca logical plans */
 	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> &oids,
+		string name, vector<uint64_t> &oids, vector<int> &used_col_idx,
 		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
 	);
 

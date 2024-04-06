@@ -64,17 +64,24 @@ namespace duckdb {
     typedef boost::interprocess::allocator<vertexlabel_id_map_value_type, segment_manager_t> vertexlabel_id_map_value_type_allocator;
     typedef boost::interprocess::allocator<edgetype_id_map_value_type, segment_manager_t> edgetype_id_map_value_type_allocator;
     typedef boost::interprocess::allocator<idx_t_to_void_ptr_value_type, segment_manager_t> idx_t_to_void_ptr_value_type_allocator;
-    typedef boost::interprocess::allocator<idx_t_to_void_ptr_value_type, segment_manager_t> idx_t_to_idx_t_value_type_allocator;
+    typedef boost::interprocess::allocator<idx_t_to_idx_t_value_type, segment_manager_t> idx_t_to_idx_t_value_type_allocator;
     typedef boost::interprocess::allocator<propertykey_id_map_value_type, segment_manager_t> propertykey_id_map_value_type_allocator;
     typedef boost::interprocess::allocator<type_to_partition_map_value_type, segment_manager_t> type_to_partition_map_value_type_allocator;
     typedef boost::interprocess::allocator<label_to_partitionvec_map_value_type, segment_manager_t> label_to_partitionvec_map_value_type_allocator;
     typedef boost::interprocess::allocator<property_to_propertyschemavec_map_value_type, segment_manager_t> property_to_propertyschemavec_map_value_type_allocator;
     typedef boost::interprocess::allocator<partition_to_partitionvec_map_value_type, segment_manager_t> partition_to_partitionvec_map_value_type_allocator;
     typedef boost::interprocess::allocator<idx_t_to_idx_t_vec_map_value_type, segment_manager_t> idx_t_to_idx_t_vec_map_value_type_allocator;
+    typedef boost::interprocess::vector<idx_t_to_idx_t_value_type, idx_t_to_idx_t_value_type_allocator> idx_t_pair_vector;
+    typedef std::pair<PropertyKeyID, idx_t_pair_vector> property_to_idx_t_pairvec_map_value_type;
+    typedef boost::interprocess::allocator<property_to_idx_t_pairvec_map_value_type, segment_manager_t> property_to_idx_t_pairvec_map_value_type_allocator;
     typedef boost::unordered_map< PropertyKeyID, PropertySchemaID_vector
        	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
 		, property_to_propertyschemavec_map_value_type_allocator>
 	PropertyToPropertySchemaVecUnorderedMap;
+    typedef boost::unordered_map< PropertyKeyID, idx_t_pair_vector
+       	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
+		, property_to_idx_t_pairvec_map_value_type_allocator>
+	PropertyToPropertySchemaPairVecUnorderedMap;
     typedef boost::unordered_map< PropertyKeyID, idx_t
        	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
 		, idx_t_to_idx_t_value_type_allocator>
