@@ -119,10 +119,16 @@ duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStat
 		// get nvalues
 		hist_slot->nvalues = num_buckets;
 
-		// get histogram values
+		// get histogram boundary values
 		hist_slot->values = new Datum[num_buckets];
 		for (auto i = begin_offset; i < end_offset; i++) {
 			hist_slot->values[i - begin_offset] = (Datum)(*boundary_values)[i];
+		}
+
+		// get histogram frequencies
+		hist_slot->freq_values = new Datum[num_buckets];
+		for (auto i = begin_offset; i < end_offset; i++) {
+			hist_slot->freq_values[i - begin_offset] = (Datum)(*frequency_values)[i];
 		}
 	}
 }

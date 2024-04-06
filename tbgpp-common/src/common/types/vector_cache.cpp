@@ -9,6 +9,7 @@ class VectorCacheBuffer : public VectorBuffer {
 public:
 	explicit VectorCacheBuffer(const LogicalType &type_p, size_t size = STANDARD_VECTOR_SIZE)
 	    : VectorBuffer(VectorBufferType::OPAQUE_BUFFER), type(type_p) {
+		if (size == 0) return;
 		auto internal_type = type.InternalType();
 		switch (internal_type) {
 		case PhysicalType::ADJLIST: {

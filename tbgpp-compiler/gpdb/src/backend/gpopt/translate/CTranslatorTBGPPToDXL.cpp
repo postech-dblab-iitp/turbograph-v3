@@ -2660,7 +2660,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 		TransformStatsToDXLBucketArray(
 			mp, att_type, num_distinct, null_freq, NULL /*mcv_slot.values*/,
 			NULL /*mcv_slot.numbers*/, 0 /*ULONG(mcv_slot.nvalues)*/, hist_slot.values,
-			ULONG(hist_slot.nvalues));
+			hist_slot.freq_values, ULONG(hist_slot.nvalues));
 
 	GPOS_ASSERT(NULL != dxl_stats_bucket_array_transformed);
 
@@ -2970,9 +2970,10 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 //---------------------------------------------------------------------------
 CDXLBucketArray *
 CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
-	CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
-	const Datum *mcv_values, const float4 *mcv_frequencies,
-	ULONG num_mcv_values, const Datum *hist_values, ULONG num_hist_values)
+    CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
+    const Datum *mcv_values, const float4 *mcv_frequencies,
+    ULONG num_mcv_values, const Datum *hist_values,
+    const Datum *hist_freq_values, ULONG num_hist_values)
 {
 	CMDIdGPDB *mdid_atttype =
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, att_type);
@@ -3006,7 +3007,7 @@ CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
 	{
 		// histogram from gpdb histogram
 		histogram = TransformHistToOrcaHistogram(
-			mp, md_type, hist_values, num_hist_values, num_distinct, hist_freq);
+			mp, md_type, hist_values, hist_freq_values, num_hist_values, num_distinct, hist_freq);
 		if (0 == histogram->GetNumBuckets())
 		{
 			has_hist = false;
@@ -3108,16 +3109,21 @@ CTranslatorTBGPPToDXL::TransformMcvToOrcaHistogram(
 //		Transform GPDB's hist info to optimizer's histogram
 //
 //---------------------------------------------------------------------------
-CHistogram *
-CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
-	CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
-	ULONG num_hist_values, CDouble num_distinct, CDouble hist_freq)
+CHistogram *CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
+    CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
+    const Datum *hist_freq_values, ULONG num_hist_values, CDouble num_distinct,
+    CDouble hist_freq)
 {
-	GPOS_ASSERT(1 < num_hist_values);
+    GPOS_ASSERT(1 < num_hist_values);
 
 	const ULONG num_buckets = num_hist_values - 1;
 	CDouble distinct_per_bucket = num_distinct / CDouble(num_buckets);
-	CDouble freq_per_bucket = hist_freq / CDouble(num_buckets);
+	// CDouble freq_per_bucket = hist_freq / CDouble(num_buckets);
+	CDouble total_freq(0.0);
+	for (ULONG ul = 0; ul < num_buckets; ul++)
+	{
+		total_freq = total_freq + CDouble(hist_freq_values[ul]);
+	}
 
 	BOOL last_bucket_was_singleton = false;
 	// create buckets
@@ -3129,6 +3135,7 @@ CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
 		IDatum *max_datum = CTranslatorScalarToDXL::CreateIDatumFromGpdbDatum(
 			mp, md_type, false /* is_null */, hist_values[ul + 1]);
 		BOOL is_lower_closed, is_upper_closed;
+		CDouble cur_freq = CDouble(hist_freq_values[ul]) / total_freq;
 
 		if (min_datum->StatsAreEqual(max_datum))
 		{
@@ -3161,7 +3168,7 @@ CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
 		CBucket *bucket = GPOS_NEW(mp)
 			CBucket(GPOS_NEW(mp) CPoint(min_datum),
 					GPOS_NEW(mp) CPoint(max_datum), is_lower_closed,
-					is_upper_closed, freq_per_bucket, distinct_per_bucket);
+					is_upper_closed, cur_freq, distinct_per_bucket);
 		buckets->Append(bucket);
 
 		if (!min_datum->StatsAreComparable(max_datum) ||
@@ -3182,7 +3189,6 @@ CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
 	CHistogram *hist = GPOS_NEW(mp) CHistogram(mp, buckets);
 	return hist;
 }
-
 
 //---------------------------------------------------------------------------
 //	@function:
