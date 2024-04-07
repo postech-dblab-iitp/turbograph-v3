@@ -146,6 +146,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<uint32_t>>& out_seqnos) const;
     void fillSeqnoToEIDIdx(vector<vector<uint32_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
     void genNonPredColIdxs();
+    void getReverseMappingIdxs(size_t num_chunks, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
 
     // parameters
     uint64_t id_col_idx;
