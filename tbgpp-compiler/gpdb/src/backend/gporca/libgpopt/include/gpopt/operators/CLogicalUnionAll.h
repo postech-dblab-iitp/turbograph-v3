@@ -94,6 +94,21 @@ public:
 		return m_allowPushJoinBelowUnionAll;
 	}
 
+	// derive join depth
+	virtual ULONG
+	DeriveJoinDepth(CMemoryPool *,		 // mp
+					CExpressionHandle &	 // exprhdl
+	) const
+	{
+		/**
+		 * jhha: This limits the join depth of
+		 * UNION ALL to 1. In S62, we consider
+		 * tables under the UNION ALL as a
+		 * single get.
+		*/
+		return 1;
+	}
+
 	// return a copy of the operator with remapped columns
 	virtual COperator *PopCopyWithRemappedColumns(
 		CMemoryPool *mp, UlongToColRefMap *colref_mapping, BOOL must_exist);
