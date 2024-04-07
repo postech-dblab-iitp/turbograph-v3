@@ -480,7 +480,7 @@ CMDTypeGenericGPDB::HasByte2IntMapping(const IMDType *mdtype)
 		//    mdid->Equals(&CMDIdGPDB::m_mdid_int8) ||
 		//    mdid->Equals(&CMDIdGPDB::m_mdid_numeric) ||
 		   mdid->Equals(&CMDIdGPDB::m_mdid_s62_ubigint) ||
-		//    mdid->Equals(&CMDIdGPDB::m_mdid_s62_bigint) ||
+		   mdid->Equals(&CMDIdGPDB::m_mdid_s62_bigint) ||
 		   mdid->Equals(&CMDIdGPDB::m_mdid_s62_id) ||
 		   IsTimeRelatedTypeMappableToLint(mdid);
 }
