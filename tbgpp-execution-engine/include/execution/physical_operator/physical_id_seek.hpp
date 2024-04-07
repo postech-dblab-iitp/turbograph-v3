@@ -48,7 +48,18 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
-                   vector<unique_ptr<Expression>>& predicates,
+                   vector<unique_ptr<Expression>> &predicates,
+                   vector<idx_t> &pred_col_idxs,
+                   bool is_output_union_schema,
+                   JoinType join_type = JoinType::INNER);
+    PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
+                   vector<vector<uint64_t>> projection_mapping,
+                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<vector<uint32_t>> &inner_col_maps,
+                   vector<uint32_t> &union_inner_col_map,
+                   vector<vector<uint64_t>> scan_projection_mapping,
+                   vector<vector<duckdb::LogicalType>> scan_types,
+                   vector<vector<unique_ptr<Expression>>> &predicates,
                    vector<idx_t> &pred_col_idxs,
                    bool is_output_union_schema,
                    JoinType join_type = JoinType::INNER);
@@ -168,11 +179,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     bool is_output_union_schema = true;
     idx_t num_total_schemas = 1;
 
-    unique_ptr<Expression> expression;
     mutable vector<idx_t> pred_col_idxs;
     mutable vector<idx_t> non_pred_col_idxs;
     vector<unique_ptr<DataChunk>> tmp_chunks;
-    mutable ExpressionExecutor executor;
+    vector<unique_ptr<Expression>> expressions;
+    mutable vector<ExpressionExecutor> executors;
 
     mutable vector<ExtentID> target_eids;
 

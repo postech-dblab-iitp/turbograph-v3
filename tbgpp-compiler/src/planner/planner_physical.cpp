@@ -2037,7 +2037,6 @@ void Planner::
     CExpression *pexprOuter = (*plan_expr)[0];
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
-    CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
 
@@ -2079,9 +2078,10 @@ void Planner::
     CExpression *filter_expr = NULL;
     CExpression *filter_pred_expr = NULL;
     CExpression *idxscan_expr = NULL;
-    vector<unique_ptr<duckdb::Expression>> filter_pred_duckdb_exprs;
+    vector<vector<unique_ptr<duckdb::Expression>>> filter_pred_duckdb_exprs;
     vector<duckdb::idx_t> filter_col_idxs;
     vector<vector<ULONG>> inner_col_ids;
+    vector<duckdb::LogicalType> scan_type_union;
 
     while (true) {
         if (inner_root->Pop()->Eopid() ==
@@ -2105,6 +2105,44 @@ void Planner::
                 if (inner_root->operator[](i)->operator[](0)->Pop()->Eopid() ==
                     COperator::EOperatorId::EopPhysicalFilter) {
                     has_filter = true;
+                }
+
+                // TODO make only one expr
+                if (has_filter) {
+                    filter_expr = inner_root->operator[](i)->operator[](0);
+                    filter_pred_expr = filter_expr->operator[](1);
+                    CColRefArray *inner_cols = 
+                        inner_root->operator[](i)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+                    CColRefArray *idxscan_cols =
+                        filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+                    // Get filter only columns in idxscan_cols
+                    vector<ULONG> inner_filter_only_cols_idx;
+                    pGetFilterOnlyInnerColsIdx(
+                        filter_pred_expr, idxscan_cols /* all inner cols */,
+                        inner_cols /* output inner cols */, inner_filter_only_cols_idx);
+
+                    // Get required cols for seek (inner cols + filter only cols)
+                    CColRefArray *inner_required_cols = GPOS_NEW(mp) CColRefArray(mp);
+                    for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+                        inner_required_cols->Append(inner_cols->operator[](col_idx));
+                    }
+
+                    for (auto col_idx : inner_filter_only_cols_idx) {
+                        CColRef *col = idxscan_cols->operator[](col_idx);
+                        CColRefTable *colreftbl = (CColRefTable *)col;
+                        // register as required column (since we use in filter)
+                        inner_required_cols->Append(col);
+                    }
+
+                    auto filter_duckdb_expr = pTransformScalarExpr(
+                        filter_pred_expr, outer_cols, inner_required_cols);
+                    pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
+                                                    outer_cols->Size());
+                    pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
+                    vector<unique_ptr<duckdb::Expression>> tmp_vec;
+                    tmp_vec.push_back(std::move(filter_duckdb_expr));
+                    filter_pred_duckdb_exprs.push_back(std::move(tmp_vec));
                 }
 
                 CExpression *unionall_expr = inner_root;
@@ -2323,18 +2361,18 @@ void Planner::
         }
         else if (inner_root->Pop()->Eopid() ==
                  COperator::EOperatorId::EopPhysicalFilter) {
-            has_filter = true;
-            do_filter_pushdown = false;
-            filter_expr = inner_root;
-            filter_pred_expr = filter_expr->operator[](1);
-            CColRefArray *idxscan_cols =
-                filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-            auto filter_duckdb_expr = pTransformScalarExpr(
-                filter_pred_expr, outer_cols, idxscan_cols);
-            pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
-                                               outer_cols->Size());
-            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
-            filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
+            // has_filter = true;
+            // do_filter_pushdown = false;
+            // filter_expr = inner_root;
+            // filter_pred_expr = filter_expr->operator[](1);
+            // CColRefArray *idxscan_cols =
+            //     filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+            // auto filter_duckdb_expr = pTransformScalarExpr(
+            //     filter_pred_expr, outer_cols, idxscan_cols);
+            // pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
+            //                                    outer_cols->Size());
+            // pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
+            // filter_pred_duckdb_exprs.push_back(std::move(filter_duckdb_expr));
         }
 
         // reached to the bottom
