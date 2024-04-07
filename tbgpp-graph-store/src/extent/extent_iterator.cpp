@@ -1651,7 +1651,7 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
-                                   vector<uint32_t> &target_seqnos, idx_t &output_seqno, bool is_output_chunk_initialized)
+                                   vector<uint32_t> &target_seqnos, vector<idx_t> &cols_to_include, idx_t &output_seqno, bool is_output_chunk_initialized)
 {
     
     if (target_eid != current_eid) {
@@ -1684,6 +1684,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     }
     idx_t begin_seqno = output_seqno;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
+        if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
         output_seqno = begin_seqno;
         D_ASSERT(cur_ext_property_type[i] == output.data[output_column_idxs[i]].GetType());
         if (cur_ext_property_type[i] != LogicalType::ID) {
