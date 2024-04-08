@@ -49,7 +49,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
                    vector<unique_ptr<Expression>> &predicates,
-                   vector<idx_t> &pred_col_idxs,
+                   vector<vector<idx_t>> &pred_col_idxs_per_schema,
                    bool is_output_union_schema,
                    JoinType join_type = JoinType::INNER);
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
@@ -60,7 +60,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
                    vector<vector<unique_ptr<Expression>>> &predicates,
-                   vector<idx_t> &pred_col_idxs,
+                   vector<vector<idx_t>> &pred_col_idxs_per_schema,
                    bool is_output_union_schema,
                    JoinType join_type = JoinType::INNER);
     ~PhysicalIdSeek() {
@@ -146,7 +146,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void getFilteredTargetSeqno(vector<idx_t>& seqno_to_eid_idx, size_t num_extents, const sel_t* sel_idxs, size_t count, vector<vector<uint32_t>>& out_seqnos) const;
     void fillSeqnoToEIDIdx(vector<vector<uint32_t>>& target_seqnos_per_extent, vector<idx_t>& seqno_to_eid_idx) const;
     void genNonPredColIdxs();
-    void getReverseMappingIdxs(size_t num_chunks, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
+    void getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_idx, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
+    void remapSeqnoToEidIdx(vector<idx_t>& in_seqno_to_eid_idx, const sel_t* sel_idxs, size_t sel_size, vector<idx_t>& out_seqno_to_eid_idx) const;
 
     // parameters
     uint64_t id_col_idx;
@@ -171,8 +172,6 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     // do not use when filter_pushdown_key_idx < 0
     mutable Value filter_pushdown_value;
 
-    vector<uint32_t> outer_col_map;
-    vector<uint32_t> inner_col_map;
     vector<vector<uint32_t>> outer_col_maps;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
@@ -180,8 +179,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     bool is_output_union_schema = true;
     idx_t num_total_schemas = 1;
 
-    mutable vector<idx_t> pred_col_idxs;
-    mutable vector<idx_t> non_pred_col_idxs;
+    mutable vector<vector<idx_t>> pred_col_idxs_per_schema;
+    mutable vector<vector<idx_t>> non_pred_col_idxs_per_schema;
     vector<unique_ptr<DataChunk>> tmp_chunks;
     vector<unique_ptr<Expression>> expressions;
     mutable vector<ExpressionExecutor> executors;
