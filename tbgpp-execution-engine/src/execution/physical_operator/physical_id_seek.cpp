@@ -55,7 +55,7 @@ class IdSeekState : public OperatorState {
     vector<idx_t> eid_to_schema_idx;
     vector<idx_t> seqno_to_eid_idx;
 
-    // Selection vectors
+    // Selection vectors (TODO: Optimize this using pools)
     // jhha: we cannot avoid filter_sels.
     // Since columns scanned after filter should have
     // difference sel vector than other columns.
@@ -915,7 +915,6 @@ void PhysicalIdSeek::doSeekGrouping(
                     }
                 }
                 tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
-                OutputUtil::PrintTop10TuplesInDataChunk(tmp_chunk);
 
                 // Execute filter (note. this is not efficient if no filter pred on inner cols)
                 size_t num_tuples_before_filter = num_tuples_per_chunk[chunk_idx];
@@ -953,13 +952,8 @@ void PhysicalIdSeek::doSeekGrouping(
                     }
                 }
 
-                // Update sel vector and slice new columns
-                state.sels[chunk_idx].Initialize(state.sels[chunk_idx].Slice(state.filter_sels[chunk_idx], num_tuples_per_chunk[chunk_idx]));
-                for (int i = input.ColumnCount(); i < tmp_chunk.ColumnCount(); i++) {
-                    tmp_chunk.data[i].Slice(state.filter_sels[chunk_idx], num_tuples_per_chunk[chunk_idx]);
-                }
+                tmp_chunk.Slice(state.filter_sels[chunk_idx], num_tuples_per_chunk[chunk_idx]);
                 tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
-                OutputUtil::PrintTop10TuplesInDataChunk(tmp_chunk);
             }
             state.has_remaining_output = true;
         }
@@ -1228,7 +1222,6 @@ OperatorResultType PhysicalIdSeek::referInputChunks(
             auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
             if (num_tuples_per_chunk[chunk_idx] == 0)
                 continue;
-            OutputUtil::PrintTop10TuplesInDataChunk(tmp_chunk);
             for (int i = 0; i < inner_col_maps[inner_col_maps_idx].size();
                  i++) {
                 // Else case means  the filter-only column case.
@@ -1245,7 +1238,6 @@ OperatorResultType PhysicalIdSeek::referInputChunks(
 
         for (auto i = 0; i < chunks.size(); i++) {
             chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
-            OutputUtil::PrintTop10TuplesInDataChunk(*(chunks[i].get()));
         }
 
         if (chunks.size() == 1) {

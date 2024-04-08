@@ -39,8 +39,6 @@ unique_ptr<LocalSinkState> PhysicalTopNSort::GetLocalSinkState(ExecutionContext 
 //===--------------------------------------------------------------------===//
 SinkResultType PhysicalTopNSort::Sink(ExecutionContext &context, DataChunk &input, LocalSinkState &lstate) const {
 	// append to the local sink state
-	std::cout << "SORT IN" << std::endl;
-	OutputUtil::PrintTop10TuplesInDataChunk(input);
 	auto &sink = (TopNSortSinkState &)lstate;
 	sink.heap.Sink(input);
 	sink.heap.Reduce();
