@@ -63,6 +63,7 @@ public:
 	EdgeTypeIDUnorderedMap edgetype_map;
 	PropertyKeyIDUnorderedMap propertykey_map;
 	PropertyKeyIDToTypeIDUnorderedMap propertykey_to_typeid_map;
+	string_vector property_key_id_to_name_vec;
 
 	//unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	EdgeTypeToPartitionUnorderedMap type_to_partition_index;

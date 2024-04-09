@@ -756,36 +756,76 @@ bool ExtentIterator::getScanRange(ClientContext &context, ChunkDefinitionID filt
             (ChunkDefinitionCatalogEntry*) cat_instance.GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, DEFAULT_SCHEMA, "cdf_" + std::to_string(filter_cdf_id));
 
     bool find_block_to_scan = false;
+
+    D_ASSERT(l_filterValue.type() == r_filterValue.type());
+    idx_t l_val, r_val;
+    switch(l_filterValue.type().InternalType()) {
+    case PhysicalType::INT32: {
+        if (l_filterValue.GetValue<int32_t>() < 0) {
+            l_val = 0;
+        } else {
+            l_val = (uint64_t)l_filterValue.GetValue<int32_t>();
+        }
+        r_val = (uint64_t)r_filterValue.GetValue<int32_t>();
+        break;
+    }
+    case PhysicalType::INT64: {
+        if (l_filterValue.GetValue<int64_t>() < 0) {
+            l_val = 0;
+        } else {
+            l_val = (uint64_t)l_filterValue.GetValue<int64_t>();
+        }
+        r_val = (uint64_t)r_filterValue.GetValue<int64_t>();
+        break;
+    }
+    case PhysicalType::UINT32: {
+        l_val = l_filterValue.GetValue<uint32_t>();
+        if (r_filterValue.GetValue<uint64_t>() > std::numeric_limits<uint32_t>::max()) {
+            r_val = std::numeric_limits<uint32_t>::max();
+        } else {
+            r_val = r_filterValue.GetValue<uint32_t>();
+        }
+        break;
+    }
+    case PhysicalType::UINT64: {
+        l_val = l_filterValue.GetValue<uint64_t>();
+        r_val = r_filterValue.GetValue<uint64_t>();
+        break;
+    }
+    default: {
+        throw NotImplementedException("Not implemented filter type");
+    }
+    }
     if (cdf_cat_entry->IsMinMaxArrayExist()) {
         vector<minmax_t> minmax = move(cdf_cat_entry->GetMinMaxArray());
         for (; current_idx_in_this_extent < minmax.size(); current_idx_in_this_extent++) {
             if (l_inclusive && r_inclusive) {
-                if (minmax[current_idx_in_this_extent].min <= r_filterValue.GetValue<idx_t>() 
-                    && minmax[current_idx_in_this_extent].max >= l_filterValue.GetValue<idx_t>()) {
+                if (minmax[current_idx_in_this_extent].min <= r_val 
+                    && minmax[current_idx_in_this_extent].max >= l_val) {
                     scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
                     scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
                     find_block_to_scan = true;
                     break;
                 }
             } else if (l_inclusive && !r_inclusive) {
-                if (minmax[current_idx_in_this_extent].min <= r_filterValue.GetValue<idx_t>() 
-                    && minmax[current_idx_in_this_extent].max > l_filterValue.GetValue<idx_t>()) {
+                if (minmax[current_idx_in_this_extent].min <= r_val 
+                    && minmax[current_idx_in_this_extent].max > l_val) {
                     scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
                     scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
                     find_block_to_scan = true;
                     break;
                 }
             } else if (!l_inclusive && r_inclusive) {
-                if (minmax[current_idx_in_this_extent].min < r_filterValue.GetValue<idx_t>() 
-                    && minmax[current_idx_in_this_extent].max >= l_filterValue.GetValue<idx_t>()) {
+                if (minmax[current_idx_in_this_extent].min < r_val 
+                    && minmax[current_idx_in_this_extent].max >= l_val) {
                     scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
                     scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
                     find_block_to_scan = true;
                     break;
                 }
             } else {
-                if (minmax[current_idx_in_this_extent].min < r_filterValue.GetValue<idx_t>() 
-                    && minmax[current_idx_in_this_extent].max > l_filterValue.GetValue<idx_t>()) {
+                if (minmax[current_idx_in_this_extent].min < r_val 
+                    && minmax[current_idx_in_this_extent].max > l_val) {
                     scan_start_offset = current_idx_in_this_extent * MIN_MAX_ARRAY_SIZE;
                     scan_end_offset = MIN((current_idx_in_this_extent + 1) * MIN_MAX_ARRAY_SIZE, cdf_cat_entry->GetNumEntriesInColumn());
                     find_block_to_scan = true;

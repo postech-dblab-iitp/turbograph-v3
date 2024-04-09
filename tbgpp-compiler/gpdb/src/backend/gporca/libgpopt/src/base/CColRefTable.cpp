@@ -32,7 +32,8 @@ CColRefTable::CColRefTable(const CColumnDescriptor *pcoldesc, ULONG id,
 	: CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname),
 	  m_iAttno(0),
 	  m_ulSourceOpId(ulOpSource),
-	  m_width(pcoldesc->Width())
+	  m_width(pcoldesc->Width()),
+	  m_prop_id(pcoldesc->PropId())
 {
 	GPOS_ASSERT(NULL != pname);
 

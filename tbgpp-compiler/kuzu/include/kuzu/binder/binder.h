@@ -134,7 +134,7 @@ private:
     shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     uint64_t bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode, const NodePattern& nodePattern,
-        QueryGraph& queryGraph, PropertyKeyValCollection& collection);
+        QueryGraph& queryGraph, PropertyKeyValCollection& collection, bool hasEdgeConnection);
     shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
     void bindNodePartitionIDs(const vector<string>& tableNames, vector<uint64_t> &partitionIDs);
     void bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs, vector<uint64_t> &tableIDs, uint64_t &univTableID);

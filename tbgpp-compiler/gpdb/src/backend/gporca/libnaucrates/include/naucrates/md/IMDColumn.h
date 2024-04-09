@@ -60,6 +60,9 @@ public:
 	// length of the column
 	virtual ULONG Length() const = 0;
 
+	// S62 property id of the column
+	virtual ULONG PropId() const = 0;
+
 #ifdef GPOS_DEBUG
 	// debug print of the column
 	virtual void DebugPrint(IOstream &os) const = 0;

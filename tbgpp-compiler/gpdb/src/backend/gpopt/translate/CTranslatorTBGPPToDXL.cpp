@@ -784,7 +784,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, -1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
 					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
-					  dxl_default_col_val /* default value */, col_len);
+					  dxl_default_col_val /* default value */, 0, col_len);
 
 		mdcol_array->Append(md_col);
 	}
@@ -801,6 +801,8 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		// translate the default column value
 		CDXLNode *dxl_default_col_val = NULL;
+
+		ULONG prop_id = rel->GetPropKeyIDs()->at(ul);
 
 		// TODO we don't have default col val..
 		// if (!att->attisdropped)
@@ -858,7 +860,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, type_mod,
 					  true /*!att->attnotnull, is_nullable*/, false /*att->attisdropped*/,
-					  dxl_default_col_val /* default value */, col_len);
+					  dxl_default_col_val /* default value */, prop_id, col_len);
 
 		mdcol_array->Append(md_col);
 	}

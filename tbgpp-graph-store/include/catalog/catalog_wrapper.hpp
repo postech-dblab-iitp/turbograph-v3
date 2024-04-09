@@ -411,107 +411,187 @@ public:
             + (right_type_physical_id);
     }
 
-    void _group_similar_tables(uint64_t num_cols, vector<idx_t> &property_locations, idx_t_vector *num_groups_for_each_column, 
-        idx_t_vector *group_info_for_each_table, idx_t_vector *multipliers, vector<idx_t> &table_oids,
+    void _group_similar_tables(
+        uint64_t num_cols, vector<idx_t> &property_locations,
+        idx_t_vector *num_groups_for_each_column,
+        idx_t_vector *group_info_for_each_table, idx_t_vector *multipliers,
+        idx_t_vector *ps_oids, vector<idx_t> &table_oids,
         std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
     {
-        // refer to group_info_for_each_table, group similar tables
-        unordered_map<idx_t, vector<idx_t>> unique_key_to_oids_group;
+        // TODO we need to develop a better algorithm to group similar tables
+        if (true) {
+            table_oids_in_group.push_back(table_oids);
+        } else {
+            // refer to group_info_for_each_table, group similar tables
+            unordered_map<idx_t, vector<idx_t>> unique_key_to_oids_group;
 
-        D_ASSERT(num_cols == num_groups_for_each_column->size());
-        D_ASSERT(group_info_for_each_table->size() == table_oids.size() * num_groups_for_each_column->size());
-        
-        for (auto i = 0; i < table_oids.size(); i++) {
-            uint64_t unique_key = 0;
-            idx_t base_offset = i * num_cols;
-            for (auto j = 0; j < property_locations.size(); j++) {
-                idx_t col_idx = property_locations[j];
-                unique_key += group_info_for_each_table->at(base_offset + col_idx) * multipliers->at(col_idx);
-            }
-            
-            auto it = unique_key_to_oids_group.find(unique_key);
-            if (it == unique_key_to_oids_group.end()) {
-                vector<idx_t> tmp_vec;
-                tmp_vec.push_back(table_oids[i]);
-                unique_key_to_oids_group.insert({unique_key, std::move(tmp_vec)});
-            } else {
-                it->second.push_back(table_oids[i]);
-            }
-        }
+            D_ASSERT(num_cols == num_groups_for_each_column->size());
+            // D_ASSERT(group_info_for_each_table->size() ==
+            //          table_oids.size() * num_groups_for_each_column->size());
 
-        for (auto &it : unique_key_to_oids_group) {
-            table_oids_in_group.push_back(std::move(it.second));
+            idx_t idx = 0;
+            for (auto i = 0; i < ps_oids->size(); i++) {
+                if ((*ps_oids)[i] != table_oids[idx]) { continue; }
+                uint64_t unique_key = 0;
+                idx_t base_offset = i * num_cols;
+                for (auto j = 0; j < property_locations.size(); j++) {
+                    idx_t col_idx = property_locations[j];
+                    unique_key +=
+                        group_info_for_each_table->at(base_offset + col_idx) *
+                        multipliers->at(col_idx);
+                }
+
+                auto it = unique_key_to_oids_group.find(unique_key);
+                if (it == unique_key_to_oids_group.end()) {
+                    vector<idx_t> tmp_vec;
+                    tmp_vec.push_back(table_oids[idx]);
+                    unique_key_to_oids_group.insert(
+                        {unique_key, std::move(tmp_vec)});
+                }
+                else {
+                    it->second.push_back(table_oids[idx]);
+                }
+                idx++;
+            }
+
+            for (auto &it : unique_key_to_oids_group) {
+                table_oids_in_group.push_back(std::move(it.second));
+            }
         }
     }
 
-    void _create_temporal_table_catalog(ClientContext &context, PartitionCatalogEntry *part_cat,
-        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group, vector<idx_t> &representative_table_oids,
-        PartitionID part_id, idx_t part_oid)
+    void _create_temporal_table_catalog(
+        ClientContext &context, PartitionCatalogEntry *part_cat,
+        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<idx_t> &representative_table_oids, PartitionID part_id,
+        idx_t part_oid, vector<uint64_t> &property_key_ids,
+        vector<vector<uint64_t>> &property_location_in_representative)
     {
         auto &catalog = db.GetCatalog();
         string part_name = part_cat->GetName();
-        GraphCatalogEntry *gcat =
-            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(
+            context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+
+        property_location_in_representative.resize(table_oids_in_group.size());
 
         // create temporal table catalog for each group
         for (auto i = 0; i < table_oids_in_group.size(); i++) {
             auto &table_oids_to_be_merged = table_oids_in_group[i];
             if (table_oids_to_be_merged.size() == 1) {
                 representative_table_oids.push_back(table_oids_to_be_merged[0]);
-            } else {
-                string property_schema_name = part_name + DEFAULT_TEMPORAL_INFIX + std::to_string(part_cat->GetNewTemporalID()); // TODO vpart -> vps
-                std::cout << "temp schema: " << property_schema_name << std::endl;
+            }
+            else {
+                string property_schema_name =
+                    part_name + DEFAULT_TEMPORAL_INFIX +
+                    std::to_string(
+                        part_cat->GetNewTemporalID());  // TODO vpart -> vps
+                std::cout << "temp schema: " << property_schema_name
+                          << std::endl;
                 vector<LogicalType> merged_types;
                 vector<PropertyKeyID> merged_property_key_ids;
                 vector<string> key_names;
 
                 // Create new Property Schema Catalog Entry
-                CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(),
-                                                    part_id, part_oid);
-                PropertySchemaCatalogEntry *temporal_ps_cat = 
-                    (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(context, &propertyschema_info);
-                
-                idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();
-                idx_t_vector *merged_freq_values = temporal_ps_cat->GetFrequencyValues();
+                CreatePropertySchemaInfo propertyschema_info(
+                    DEFAULT_SCHEMA, property_schema_name.c_str(), part_id,
+                    part_oid);
+                PropertySchemaCatalogEntry *temporal_ps_cat =
+                    (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
+                        context, &propertyschema_info);
+
+                idx_t_vector *merged_offset_infos =
+                    temporal_ps_cat->GetOffsetInfos();
+                idx_t_vector *merged_freq_values =
+                    temporal_ps_cat->GetFrequencyValues();
+                uint64_t_vector *merged_ndvs =
+                    temporal_ps_cat->GetNDVs();
+                uint64_t merged_num_tuples = 0;
 
                 // merge histogram & schema
-                _merge_schemas_and_histograms(context, table_oids_to_be_merged, merged_types, merged_property_key_ids,
-                    merged_offset_infos, merged_freq_values);
+                _merge_schemas_and_histograms(
+                    context, table_oids_to_be_merged, merged_types,
+                    merged_property_key_ids, merged_offset_infos,
+                    merged_freq_values, merged_ndvs, merged_num_tuples);
+                
+                // create physical id index catalog
+                CreateIndexInfo idx_info(DEFAULT_SCHEMA,
+                                         property_schema_name + "_id",
+                                         IndexType::PHYSICAL_ID, part_oid,
+                                         temporal_ps_cat->GetOid(), 0, {-1});
+                IndexCatalogEntry *index_cat =
+                    (IndexCatalogEntry *)catalog.CreateIndex(context,
+                                                             &idx_info);
 
-                for (auto j = 0; j < merged_property_key_ids.size(); j++) key_names.push_back("");
+                // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
+                //     key_names.push_back("");
+                // }
+                gcat->GetPropertyNames(context, merged_property_key_ids,
+                                       key_names);
                 temporal_ps_cat->SetFake();
-                temporal_ps_cat->SetSchema(context, key_names, merged_types, merged_property_key_ids);
+                temporal_ps_cat->SetSchema(context, key_names, merged_types,
+                                           merged_property_key_ids);
+                temporal_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
+                temporal_ps_cat->SetNumberOfLastExtentNumTuples(merged_num_tuples);
 
                 representative_table_oids.push_back(temporal_ps_cat->GetOid());
+
+                // update property_location_in_representative - may be inefficient
+                for (auto j = 0; j < property_key_ids.size(); j++) {
+                    auto it = std::find(merged_property_key_ids.begin(),
+                                        merged_property_key_ids.end(),
+                                        property_key_ids[j]);
+                    D_ASSERT(it != merged_property_key_ids.end());
+                    auto idx = std::distance(merged_property_key_ids.begin(), it);
+                    property_location_in_representative[i].push_back(idx);
+                }
             }
         }
     }
 
-    void _merge_schemas_and_histograms(ClientContext &context, vector<idx_t> table_oids_to_be_merged,
-        vector<LogicalType> &merged_types, vector<PropertyKeyID> &merged_property_key_ids,
-        idx_t_vector *merged_offset_infos, idx_t_vector *merged_freq_values)
+    void _merge_schemas_and_histograms(
+        ClientContext &context, vector<idx_t> table_oids_to_be_merged,
+        vector<LogicalType> &merged_types,
+        vector<PropertyKeyID> &merged_property_key_ids,
+        idx_t_vector *merged_offset_infos, idx_t_vector *merged_freq_values,
+        uint64_t_vector *merged_ndvs, uint64_t &merged_num_tuples)
     {
         auto &catalog = db.GetCatalog();
 
         // TODO optimize this function
         unordered_set<PropertyKeyID> merged_schema;
         unordered_map<PropertyKeyID, LogicalTypeId> type_info;
-        unordered_map<PropertyKeyID, vector<idx_t>> intermediate_merged_freq_values;
+        unordered_map<PropertyKeyID, vector<idx_t>>
+            intermediate_merged_freq_values;
+        unordered_map<PropertyKeyID, idx_t> accumulated_ndvs;
+        idx_t accumulated_ndvs_for_physical_id_col = 0;
 
         // merge schemas & histograms
         for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
             idx_t table_oid = table_oids_to_be_merged[i];
 
             PropertySchemaCatalogEntry *ps_cat =
-                (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, table_oid);
-            
+                (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                    context, DEFAULT_SCHEMA, table_oid);
+
             auto *types = ps_cat->GetTypes();
             auto *key_ids = ps_cat->GetKeyIDs();
+            auto *ndvs = ps_cat->GetNDVs();
+            accumulated_ndvs_for_physical_id_col +=
+                ps_cat->GetNumberOfRowsApproximately();
+            merged_num_tuples +=
+                ps_cat->GetNumberOfRowsApproximately();
 
             for (auto j = 0; j < key_ids->size(); j++) {
                 merged_schema.insert(key_ids->at(j));
                 if (type_info.find(key_ids->at(j)) == type_info.end()) {
                     type_info.insert({key_ids->at(j), types->at(j)});
+                }
+                if (accumulated_ndvs.find(key_ids->at(j)) ==
+                    accumulated_ndvs.end()) {
+                    accumulated_ndvs.insert({key_ids->at(j), ndvs->at(j)});
+                }
+                else {
+                    accumulated_ndvs[key_ids->at(j)] += ndvs->at(j);
                 }
             }
 
@@ -527,8 +607,10 @@ public:
                     for (auto k = begin_offset; k < end_offset; k++) {
                         tmp_vec.push_back(freq_values->at(k));
                     }
-                    intermediate_merged_freq_values.insert({key_ids->at(j), std::move(tmp_vec)});
-                } else {
+                    intermediate_merged_freq_values.insert(
+                        {key_ids->at(j), std::move(tmp_vec)});
+                }
+                else {
                     auto &freq_vec = it->second;
                     auto begin_offset = j == 0 ? 0 : offset_infos->at(j - 1);
                     auto end_offset = offset_infos->at(j);
@@ -540,21 +622,31 @@ public:
         }
 
         merged_property_key_ids.reserve(merged_schema.size());
+        merged_ndvs->push_back(accumulated_ndvs_for_physical_id_col);
         for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
-            // TODO https://stackoverflow.com/questions/42519867/efficiently-moving-contents-of-stdunordered-set-to-stdvector bug occur
-            // merged_property_key_ids.push_back(std::move(merged_schema.extract(it).value()));
             merged_property_key_ids.push_back(*it);
-            merged_types.push_back(LogicalType(type_info.at(merged_property_key_ids.back())));
-            auto &freq_vec = intermediate_merged_freq_values.at(*it);
+        }
+        // TODO sort by key ids - always right?
+        // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
+        for (auto i = 0; i < merged_property_key_ids.size(); i++) {
+            idx_t prop_key_id = merged_property_key_ids[i];
+            merged_types.push_back(
+                LogicalType(type_info.at(prop_key_id)));
+            auto &freq_vec = intermediate_merged_freq_values.at(prop_key_id);
             merged_offset_infos->push_back(freq_vec.size());
             for (auto j = 0; j < freq_vec.size(); j++) {
                 merged_freq_values->push_back(freq_vec[j]);
             }
+            auto &ndv = accumulated_ndvs.at(prop_key_id);
+            merged_ndvs->push_back(ndv);
         }
     }
 
-    void ConvertTableOidsIntoRepresentativeOids(ClientContext &context, vector<uint64_t> &property_key_ids, vector<idx_t> &table_oids,
-        vector<idx_t> &representative_table_oids, std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+    void ConvertTableOidsIntoRepresentativeOids(
+        ClientContext &context, vector<uint64_t> &property_key_ids,
+        vector<idx_t> &table_oids, vector<idx_t> &representative_table_oids,
+        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<vector<uint64_t>> &property_location_in_representative)
     {
         // TODO currently, prop_exprs contains all properties for the specific label
         // we cannot prune table_oids that contains used_columns only in this phase
@@ -564,35 +656,48 @@ public:
 
         // Get first property schema cat entry to find partition catalog
         auto &catalog = db.GetCatalog();
-        PropertySchemaCatalogEntry *ps_cat = 
-            (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, table_oids[0]);
+        PropertySchemaCatalogEntry *ps_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                context, DEFAULT_SCHEMA, table_oids[0]);
         auto part_oid = ps_cat->GetPartitionOID();
         auto part_id = ps_cat->GetPartitionID();
 
         // Get partition catalog
         PartitionCatalogEntry *part_cat =
-            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA,
+                                                      part_oid);
 
         // Get property locations using property expressions & prop_to_idx map
         vector<idx_t> property_locations;
         auto *prop_to_idxmap = part_cat->GetPropertyToIdxMap();
         for (auto i = 0; i < property_key_ids.size(); i++) {
-            D_ASSERT(prop_to_idxmap->find(property_key_ids[i]) != prop_to_idxmap->end());
-            property_locations.push_back(prop_to_idxmap->at(property_key_ids[i]));
+            D_ASSERT(prop_to_idxmap->find(property_key_ids[i]) !=
+                     prop_to_idxmap->end());
+            property_locations.push_back(
+                prop_to_idxmap->at(property_key_ids[i]));
         }
-        
-        // TODO partition catalog should store tables groups for each column. Tables in the same group have similar cardinality for the column
-        idx_t_vector *num_groups_for_each_column = part_cat->GetNumberOfGroups();
+
+        // TODO partition catalog should store tables groups for each column.
+        // Tables in the same group have similar cardinality for the column
+        idx_t_vector *num_groups_for_each_column =
+            part_cat->GetNumberOfGroups();
         idx_t_vector *group_info_for_each_table = part_cat->GetGroupInfo();
         idx_t_vector *multipliers = part_cat->GetMultipliers();
+        idx_t_vector *ps_oids = part_cat->GetPropertySchemaIDs();
         uint64_t num_cols = part_cat->GetNumberOfColumns();
-        
-        // grouping similar (which has similar histogram) tables
-        _group_similar_tables(num_cols, property_locations, num_groups_for_each_column, group_info_for_each_table, multipliers,
-            table_oids, table_oids_in_group);
 
-        // create temporal catalog table // TODO check if we already built temporal table for the same groups
-        _create_temporal_table_catalog(context, part_cat, table_oids_in_group, representative_table_oids, part_id, part_oid);
+        // grouping similar (which has similar histogram) tables
+        _group_similar_tables(num_cols, property_locations,
+                              num_groups_for_each_column,
+                              group_info_for_each_table, multipliers, ps_oids,
+                              table_oids, table_oids_in_group);
+
+        // create temporal catalog table
+        // TODO check if we already built temporal table for the same groups
+        _create_temporal_table_catalog(context, part_cat, table_oids_in_group,
+                                       representative_table_oids, part_id,
+                                       part_oid, property_key_ids,
+                                       property_location_in_representative);
     }
 
 private:

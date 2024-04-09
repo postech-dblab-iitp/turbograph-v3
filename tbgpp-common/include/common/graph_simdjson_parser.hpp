@@ -687,7 +687,11 @@ private:
         if (type_id == LogicalTypeId::LIST) {
             types.push_back(LogicalType::LIST(child_type_id));
         } else {
-            types.push_back(LogicalType(type_id));
+            if (keys.back() == NEO4J_VERTEX_ID_NAME) {
+                types.push_back(LogicalType(LogicalTypeId::UBIGINT));
+            } else {
+                types.push_back(LogicalType(type_id));
+            }
         }
 
         if (keys.back() == NEO4J_VERTEX_ID_NAME) return true;

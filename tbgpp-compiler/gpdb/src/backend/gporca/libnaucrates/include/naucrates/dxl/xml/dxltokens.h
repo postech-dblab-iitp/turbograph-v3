@@ -346,6 +346,7 @@ enum Edxltoken
 	EdxltokenTagColType,
 	EdxltokenColId,
 	EdxltokenAttno,
+	EdxltokenColPropId,
 	EdxltokenColDropped,
 	EdxltokenColWidth,
 	EdxltokenColNullFreq,
