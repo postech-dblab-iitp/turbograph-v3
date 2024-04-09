@@ -129,9 +129,6 @@ void CypherPipelineExecutor::ExecutePipeline()
 			 * This is temporal code.
 			 * TODO: need to be refactored.
 			*/
-			// source_chunk.Destroy();
-            // source_chunk.Initialize(
-            //     sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 			source_chunk.Reset();
             source_chunk.InitializeValidCols(
                 sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
@@ -361,10 +358,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			*/
 
 			current_output_chunks = &opOutputChunks[current_idx];
-			// move this logic into operator implementation
-			// for (auto i = 0; i < current_output_chunks->size(); i++) {
-			// 	current_output_chunks->at(i)->SetSchemaIdx(i);
-			// }
 			D_ASSERT(opOutputSchemaIdx[current_idx] < current_output_chunks->size());
 			current_output_chunks->at(opOutputSchemaIdx[current_idx])->Reset();
 		}

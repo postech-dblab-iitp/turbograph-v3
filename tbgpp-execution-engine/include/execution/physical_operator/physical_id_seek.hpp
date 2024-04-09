@@ -109,11 +109,17 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                         vector<vector<uint32_t>> &target_seqnos_per_extent,
                         vector<idx_t> &mapping_idxs,
                         vector<idx_t> &num_tuples_per_chunk) const;
+    void initializeSeek(ExecutionContext &context, DataChunk &input,
+                        DataChunk &chunk,
+                        IdSeekState &state, idx_t nodeColIdx,
+                        vector<ExtentID> &target_eids,
+                        vector<vector<uint32_t>> &target_seqnos_per_extent,
+                        vector<idx_t> &mapping_idxs) const;
     void doSeekUnionAll(ExecutionContext &context, DataChunk &input,
                         DataChunk &chunk, OperatorState &lstate,
                         vector<ExtentID> &target_eids,
                         vector<vector<uint32_t>> &target_seqnos_per_extent,
-                        vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
+                        vector<idx_t> &mapping_idxs, idx_t &output_size) const;
     void doSeekSchemaless(ExecutionContext &context, DataChunk &input,
                           DataChunk &chunk, OperatorState &lstate,
                           vector<ExtentID> &target_eids,
@@ -127,7 +133,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                         vector<idx_t> &mapping_idxs,
                         vector<idx_t> &num_tuples_per_chunk) const;
     void referInputChunk(DataChunk &input, DataChunk &chunk,
-                         OperatorState &lstate, idx_t output_idx) const;
+                         OperatorState &lstate, idx_t output_size) const;
     void referInputChunkLeft(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
     OperatorResultType referInputChunks(DataChunk &input,
