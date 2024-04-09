@@ -123,7 +123,7 @@ public:
 	//! Get the ClientContext from the Catalog
 	DUCKDB_API static Catalog &GetCatalog(ClientContext &context);
 	DUCKDB_API static Catalog &GetCatalog(DatabaseInstance &db);
-	DUCKDB_API void LoadCatalog(fixed_managed_mapped_file *&catalog_segment, vector<vector<string>> &object_names);
+	DUCKDB_API void LoadCatalog(fixed_managed_mapped_file *&catalog_segment, vector<vector<string>> &object_names, string path);
 
 	DUCKDB_API DependencyManager &GetDependencyManager() {
 		return *dependency_manager;
@@ -251,6 +251,8 @@ public:
 private:
 	//! The catalog version, incremented whenever anything changes in the catalog
 	atomic<idx_t> catalog_version;
+
+	std::ofstream *ofs = nullptr;
 
 private:
 	//! A variation of GetEntry that returns an associated schema as well.

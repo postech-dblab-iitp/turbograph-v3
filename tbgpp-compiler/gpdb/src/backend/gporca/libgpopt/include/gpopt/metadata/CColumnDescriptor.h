@@ -56,6 +56,8 @@ private:
 	// is the column a distribution col
 	BOOL m_is_dist_col;
 
+	ULONG m_prop_id;
+
 public:
 	// ctor
 	CColumnDescriptor(CMemoryPool *mp, const IMDType *pmdtype,
@@ -126,6 +128,18 @@ public:
 	SetAsDistCol()
 	{
 		m_is_dist_col = true;
+	}
+
+	void
+	SetPropId(ULONG prop_id)
+	{
+		m_prop_id = prop_id;
+	}
+
+	ULONG
+	PropId() const
+	{
+		return m_prop_id;
 	}
 
 	virtual IOstream &OsPrint(IOstream &os) const;

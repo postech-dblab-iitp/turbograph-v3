@@ -19,12 +19,12 @@ GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
 	vertex_partitions(void_alloc), edge_partitions(void_alloc), vertexlabel_map(void_alloc),
 	edgetype_map(void_alloc), propertykey_map(void_alloc), type_to_partition_index(void_alloc),
 	label_to_partition_index(void_alloc), src_part_to_connected_edge_part_index(void_alloc),
-	propertykey_to_typeid_map(void_alloc)
+	propertykey_to_typeid_map(void_alloc), property_key_id_to_name_vec(void_alloc)
 {
 	this->temporary = info->temporary;
 	vertex_label_id_version = 0;
 	edge_type_id_version = 0;
-	property_key_id_version = 0;
+	property_key_id_version = 1; // reserve 0 for '_id'
 	partition_id_version = 0;
 }
 
@@ -208,6 +208,16 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 	char_string property_schema_(temp_charallocator);
 
 	D_ASSERT(property_names.size() == property_types.size());
+
+	if (property_key_id_to_name_vec.size() == 0) {
+		// reserve 0 for '_id'
+		PropertyKeyID new_pkid = 0;
+		char_string property_sysid(temp_charallocator);
+		property_sysid = std::string("_id").c_str();
+		propertykey_map.insert(std::make_pair(property_sysid, new_pkid));
+		propertykey_to_typeid_map.insert(std::make_pair(new_pkid, (uint8_t)LogicalTypeId::ID));
+		property_key_id_to_name_vec.push_back(property_sysid);
+	}
 	
 	for (int i = 0; i < property_names.size(); i++) {
 		property_schema_ = property_names[i].c_str();
@@ -220,6 +230,7 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 			propertykey_map.insert(std::make_pair(property_schema_, new_pkid));
 			propertykey_to_typeid_map.insert(std::make_pair(new_pkid, type_id));
 			property_key_ids.push_back(new_pkid);
+			property_key_id_to_name_vec.push_back(property_schema_);
 		}
 	}
 }
@@ -227,7 +238,11 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 void GraphCatalogEntry::GetPropertyNames(ClientContext &context, vector<PropertyKeyID> &property_key_ids,
 	vector<string> &property_names)
 {
-
+	property_names.reserve(property_key_ids.size());
+	for (int i = 0; i < property_key_ids.size(); i++) {
+		auto property_name = property_key_id_to_name_vec[property_key_ids[i]];
+		property_names.push_back(property_name);
+	}
 }
 
 void GraphCatalogEntry::GetVertexLabels(vector<string> &label_names) {

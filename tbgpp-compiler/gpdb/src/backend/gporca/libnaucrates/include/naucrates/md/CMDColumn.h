@@ -63,6 +63,9 @@ private:
 	// default value expression
 	gpdxl::CDXLNode *m_dxl_default_val;
 
+	// S62 added property id
+	ULONG m_prop_id;
+
 	// private copy ctor
 	CMDColumn(const CMDColumn &);
 
@@ -71,7 +74,7 @@ public:
 	CMDColumn(CMDName *mdname, INT attrnum, IMDId *mdid_type, INT type_modifier,
 			  BOOL is_nullable, BOOL is_dropped,
 			  gpdxl::CDXLNode *dxl_dafault_value,
-			  ULONG length = gpos::ulong_max);
+			  ULONG prop_id, ULONG length = gpos::ulong_max);
 
 	// dtor
 	virtual ~CMDColumn();
@@ -99,6 +102,12 @@ public:
 	Length() const
 	{
 		return m_length;
+	}
+
+	ULONG
+	PropId() const
+	{
+		return m_prop_id;
 	}
 
 	// is the column nullable

@@ -134,11 +134,13 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	}*/
 
 	storage =
-	//    make_unique<StorageManager>(*this, path ? string(path) : string(), config.access_mode == AccessMode::READ_ONLY);
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
-	catalog_shm = new fixed_managed_mapped_file(boost::interprocess::open_only, (string(path) + "/iTurboGraph_Catalog_SHM").c_str(), (void *) 0x10000000000);
-	// fprintf(stdout, "Open CatalogSHM %s\n",(string(path) + "/iTurboGraph_Catalog_SHM").c_str());
+    catalog_shm = new fixed_managed_mapped_file(
+        boost::interprocess::open_only,
+        (string(path) + "/iTurboGraph_Catalog_SHM").c_str(),
+        (void *)0x10000000000);
+    
 	int64_t num_objects_in_catalog = 0;
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
@@ -201,7 +203,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	} else {
 		// Load the existing catalog
 		catalog = make_unique<Catalog>(*this);
-		catalog->LoadCatalog(catalog_shm, object_names);
+		catalog->LoadCatalog(catalog_shm, object_names, path);
 	}
 	catalog_wrapper = make_unique<CatalogWrapper>(*this);
 	//transaction_manager = make_unique<TransactionManager>(*this);

@@ -92,12 +92,12 @@ public:
 	};
 
 	// ctor
-	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
-			const CName *pname);
-	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id, ULONG colid,
-			const CName *pname);
+    CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+            const CName *pname);
+    CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+            ULONG colid, const CName *pname);
 
-	// dtor
+    // dtor
 	virtual ~CColRef();
 
 	// accessor to type info
@@ -201,7 +201,7 @@ public:
 	// id, serves as hash key
 	const ULONG m_id;
 
-	// S62 added property key id
+	// S62 added prev_id
 	ULONG m_prev_id;
 
 	// invalid key

@@ -148,10 +148,12 @@ public:
 			case duckdb::LogicalTypeId::BIGINT: {
 				D_ASSERT(length == 8 || length == 0);
 				if (length == 0) {
-					return duckdb::Value(duckdb::LogicalType::UBIGINT);	// TODO to BIGINT
+					// return duckdb::Value(duckdb::LogicalType::UBIGINT);	// TODO to BIGINT
+					return duckdb::Value(duckdb::LogicalType::BIGINT);	// TODO to BIGINT
 				} else {
 					int64_t value = *((int64_t*)mem_ptr);
-					return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
+					// return duckdb::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
+					return duckdb::Value::BIGINT((uint64_t)value);	// TODO to BIGINT
 				}
 			}
 			case duckdb::LogicalTypeId::UINTEGER: {

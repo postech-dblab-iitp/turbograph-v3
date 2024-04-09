@@ -218,10 +218,16 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 	return partition_oid;
 }
 
-uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately() {
-	uint64_t num_tuples_except_last_extent = (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
-
-	return num_tuples_except_last_extent + last_extent_num_tuples;
+uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately()
+{
+    if (extent_ids.size() == 0) {
+        return last_extent_num_tuples;
+    }
+    else {
+        uint64_t num_tuples_except_last_extent =
+            (extent_ids.size() - 1) * STORAGE_STANDARD_VECTOR_SIZE;
+        return num_tuples_except_last_extent + last_extent_num_tuples;
+    }
 }
 
 uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
