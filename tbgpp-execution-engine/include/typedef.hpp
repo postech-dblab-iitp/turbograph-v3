@@ -122,15 +122,14 @@ public:
             buffer_chunks.push_back(nullptr);
         }
     }
-
-    bool Append(DataChunk &chunk) {
-    }
-
+    
     void Initialize(vector<LogicalType> types);
 
-    void Reset() {
+    void Reset(vector<LogicalType> types) {
         slice_buffer->Reset();
+        slice_buffer->InitializeValidCols(types);
         GetNextFilteredChunk()->Reset();
+        GetNextFilteredChunk()->InitializeValidCols(types);
     }
 
     unique_ptr<DataChunk> &GetSliceBuffer() {
