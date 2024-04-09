@@ -43,10 +43,7 @@ public:
 		: CXformPushJoinBelowUnionAll(
 
 			  GPOS_NEW(mp) CExpression(
-				//   mp, GPOS_NEW(mp) CLogicalLeftOuterJoin(mp), // TODO original code
-				  mp,
-				  GPOS_NEW(mp) CPatternNode(
-					  mp, CPatternNode::EmtMatchInnerOrLeftOuterJoin),
+				  mp, GPOS_NEW(mp) CLogicalLeftOuterJoin(mp),
 				  GPOS_NEW(mp) CExpression(
 					  mp, GPOS_NEW(mp) CPatternTree(mp)),  // outer child
 				  GPOS_NEW(mp)
