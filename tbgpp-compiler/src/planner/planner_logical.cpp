@@ -1455,7 +1455,8 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr,
                                             pruned_table_oids, is_node);
     }
 #else
-    return lPlanNodeOrRelExprWithoutDSI();
+    return lPlanNodeOrRelExprWithoutDSI(node_expr, prop_exprs,
+                                        pruned_table_oids, is_node);
 #endif
 }
 
