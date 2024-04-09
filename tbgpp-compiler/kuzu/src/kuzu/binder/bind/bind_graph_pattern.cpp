@@ -59,12 +59,12 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
     auto firstQueryNode = queryGraph->getQueryNode(0);
     num_schema_combinations *= bindQueryNodeSchema(
         firstQueryNode, *patternElement.getFirstNodePattern(), *queryGraph,
-        collection);
+        collection, patternElement.getNumPatternElementChains() > 0);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
         num_schema_combinations *= bindQueryNodeSchema(
             queryGraph->getQueryNode(i + 1),
-            *patternElementChain->getNodePattern(), *queryGraph, collection);
+            *patternElementChain->getNodePattern(), *queryGraph, collection, true);
         num_schema_combinations *= bindQueryRelSchema(
             queryGraph->getQueryRel(i), *patternElementChain->getRelPattern(),
             *queryGraph, collection);
@@ -301,8 +301,8 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
                     tid_and_cid_pair.second + 1,
                     tid_and_cid_pair.first));
             }
-            auto prop_idexpr =
-                expressionBinder.createPropertyExpression(*queryRel, prop_id);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(
+                *queryRel, prop_id, property_key_id);
             queryRel->addPropertyExpression(propertyName,
                                             std::move(prop_idexpr));
         }
@@ -369,7 +369,8 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
 uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                                      const NodePattern &nodePattern,
                                      QueryGraph &queryGraph,
-                                     PropertyKeyValCollection &collection)
+                                     PropertyKeyValCollection &collection,
+                                     bool hasEdgeConnection)
 {
 
     if (!queryNode->isSchemainfoBound()) {
@@ -411,7 +412,8 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                 expressionBinder.createPropertyExpression(*queryNode, prop_id);
             queryNode->addPropertyExpression(propertyName,
                                              std::move(prop_idexpr));
-            queryNode->markAllColumnsAsUsed();
+            if (hasEdgeConnection)
+                queryNode->markAllColumnsAsUsed();
         }
 
         // for each property, create property expression
@@ -430,8 +432,8 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                     tid_and_cid_pair.second + 1,
                     tid_and_cid_pair.first));
             }
-            auto prop_idexpr =
-                expressionBinder.createPropertyExpression(*queryNode, prop_id);
+            auto prop_idexpr = expressionBinder.createPropertyExpression(
+                *queryNode, prop_id, property_key_id);
             queryNode->addPropertyExpression(propertyName,
                                              std::move(prop_idexpr));
         }

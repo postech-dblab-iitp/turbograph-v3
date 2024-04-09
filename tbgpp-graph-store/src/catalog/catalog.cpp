@@ -38,6 +38,8 @@
 
 #include <algorithm>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
 
 #include "icecream.hpp"	
 namespace duckdb {
@@ -73,25 +75,21 @@ Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segme
 Catalog::~Catalog() {
 }
 
-void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names) {
-// icecream::ic.enable();
-// IC();
+void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names, string path) {
 	schemas = make_unique<CatalogSet>(*this, catalog_segment_, "schemas", make_unique<DefaultSchemaGenerator>(*this));
 	catalog_segment = catalog_segment_;
-// IC();
+
 	// Load SchemaCatalogEntry
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
 	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
 	entry->SetCatalog(this);
-// IC();
 
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(db.shared_from_this());
 	if (!schemas->CreateEntry(*client.get(), "main", move(entry), dependencies)) {
 		throw CatalogException("Schema with name main already exists!");
 	}
-// IC();
 
 	// Set SHM
 	entry->SetCatalogSegment(catalog_segment_);
@@ -102,12 +100,47 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 	// initialize default functions
 	BuiltinFunctions builtin(*client.get(), *this, true);
 	builtin.Initialize();
-// IC();
-// icecream::ic.disable();
 
-	// Load Other Catalog Entries
-	// Maybe we don't need this..?
-	catalog_version = 10000000; // temporary..
+	if (std::filesystem::exists(path + "/catalog_version")) {
+		string catalog_version_str;
+		std::ifstream ifs;
+		ifs.open(path + "/catalog_version", std::fstream::in);
+        if (ifs.is_open()) {
+            ifs.seekg(-2, std::ios_base::end);  // go to one spot before the EOF
+
+            bool keepLooping = true;
+            while (keepLooping) {
+                char ch;
+                ifs.get(ch);
+
+                if ((int)ifs.tellg() <= 1) {
+                    ifs.seekg(0);
+                    keepLooping = false;
+                }
+                else if (ch == '\n') {
+                    keepLooping = false;
+                }
+                else {
+                    ifs.seekg(-2, std::ios_base::cur);
+                }
+            }
+
+            std::getline(ifs, catalog_version_str);
+            ifs.close();
+        }
+
+        catalog_version = std::stoll(catalog_version_str);
+		std::cout << "catalog_version: " << catalog_version << std::endl;
+
+		ofs = new std::ofstream();
+		ofs->open(path + "/catalog_version", std::ofstream::out | std::ofstream::ate);
+		*ofs << std::to_string(catalog_version) + "\n" << std::flush;
+	} else {
+		catalog_version = 10000000; // temporary..
+		ofs = new std::ofstream();
+		ofs->open(path + "/catalog_version", std::ofstream::out | std::ofstream::trunc);
+		*ofs << std::to_string(catalog_version) + "\n" << std::flush;
+	}
 }
 
 Catalog &Catalog::GetCatalog(ClientContext &context) {
@@ -598,6 +631,10 @@ idx_t Catalog::GetCatalogVersion() {
 }
 
 idx_t Catalog::ModifyCatalog() {
+	if (ofs) {
+		// TODO
+		*ofs << std::to_string(catalog_version + 1) + "\n" << std::flush;
+	}
 	return catalog_version++;
 }
 

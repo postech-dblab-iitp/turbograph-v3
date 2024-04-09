@@ -127,13 +127,13 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
 
     bool isComparsionOnTwoNodeOrEdges = false;
-    if( (expressionType == ExpressionType::EQUALS || expressionType == ExpressionType::NOT_EQUALS) 
-        && (children.size() == 2)
-        && (
-            (children[0].get()->dataType.typeID == NODE && children[1].get()->dataType.typeID == NODE)
-            || (children[0].get()->dataType.typeID == REL && children[1].get()->dataType.typeID == REL)
-        )
-    ) {
+    if ((expressionType == ExpressionType::EQUALS ||
+         expressionType == ExpressionType::NOT_EQUALS) &&
+        (children.size() == 2) &&
+        ((children[0].get()->dataType.typeID == NODE &&
+          children[1].get()->dataType.typeID == NODE) ||
+         (children[0].get()->dataType.typeID == REL &&
+          children[1].get()->dataType.typeID == REL))) {
         isComparsionOnTwoNodeOrEdges = true;
         // change childrenTypes
         auto child = bindInternalIDExpression(*children[0]);
@@ -145,7 +145,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
-        if(isComparsionOnTwoNodeOrEdges) {
+        if (isComparsionOnTwoNodeOrEdges) {
             // rewrite x = y on node or rel as comp on their internal IDs.
             auto child = bindInternalIDExpression(*children[i]);
             childrenAfterCast.push_back(
@@ -153,6 +153,15 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         } else {
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
+            
+            // TODO we need to consider IS (NOT) NULL comparison
+            if (childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY) {
+                auto &property = (PropertyExpression&)*children[i];
+                auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
+                node_expr->setUsedForFilterColumn(property.getPropertyName());
+            } else if (childrenAfterCast[i]->expressionType == ExpressionType::VARIABLE) {
+                D_ASSERT(false); // not implemeneted yet
+            }
         }
     }
     auto uniqueExpressionName =
@@ -245,7 +254,7 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
 }
 
 unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const vector<Property>& properties, uint64_t prop_key_id) {
+    Expression& nodeOrRel, const vector<Property>& properties, uint64_t prop_key_id) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
 

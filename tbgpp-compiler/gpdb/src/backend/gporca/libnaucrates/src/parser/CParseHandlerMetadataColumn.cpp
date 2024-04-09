@@ -109,6 +109,11 @@ CParseHandlerMetadataColumn::StartElement(const XMLCh *const,  // element_uri,
 	m_is_nullable = CDXLOperatorFactory::ExtractConvertAttrValueToBool(
 		m_parse_handler_mgr->GetDXLMemoryManager(), attrs,
 		EdxltokenColumnNullable, EdxltokenMetadataColumn);
+	
+	// parse prop id
+	m_prop_id = CDXLOperatorFactory::ExtractConvertAttrValueToUlong(
+		m_parse_handler_mgr->GetDXLMemoryManager(), attrs,
+		EdxltokenColPropId, EdxltokenMetadataColumn);
 
 	// parse column length from attributes
 	const XMLCh *col_len_xml =
@@ -180,7 +185,8 @@ CParseHandlerMetadataColumn::EndElement(const XMLCh *const,	 // element_uri,
 
 	m_mdcol = GPOS_NEW(m_mp)
 		CMDColumn(m_mdname, m_attno, m_mdid_type, m_type_modifier,
-				  m_is_nullable, m_is_dropped, m_dxl_default_val, m_width);
+				  m_is_nullable, m_is_dropped, m_dxl_default_val,
+				  m_prop_id, m_width);
 
 	// deactivate handler
 	m_parse_handler_mgr->DeactivateHandler();

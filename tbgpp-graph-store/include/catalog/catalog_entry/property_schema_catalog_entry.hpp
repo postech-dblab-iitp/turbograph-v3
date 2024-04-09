@@ -186,6 +186,12 @@ public:
 	uint64_t GetNumberOfRowsApproximately();
 	uint64_t GetNumberOfExtents();
 
+	//! Set the number of tuples in the last extent (used for temporal catalog only)
+	void SetNumberOfLastExtentNumTuples(uint64_t num_tuples)
+	{
+		last_extent_num_tuples = num_tuples;
+	}
+
 	//! Returns the column index of the specified column name.
 	//! If the column does not exist:
 	//! If if_exists is true, returns DConstants::INVALID_INDEX

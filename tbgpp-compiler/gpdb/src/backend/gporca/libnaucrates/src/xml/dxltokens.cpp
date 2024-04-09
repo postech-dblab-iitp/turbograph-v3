@@ -395,6 +395,7 @@ CDXLTokens::Init(CMemoryPool *mp)
 		{EdxltokenTagColType, GPOS_WSZ_LIT("ColType")},
 		{EdxltokenColId, GPOS_WSZ_LIT("ColId")},
 		{EdxltokenAttno, GPOS_WSZ_LIT("Attno")},
+		{EdxltokenColPropId, GPOS_WSZ_LIT("PropId")},
 		{EdxltokenColDropped, GPOS_WSZ_LIT("IsDropped")},
 		{EdxltokenColWidth, GPOS_WSZ_LIT("ColWidth")},
 		{EdxltokenColNullFreq, GPOS_WSZ_LIT("NullFreq")},
