@@ -258,6 +258,12 @@ public:
 		return m_instance_descriptor;
 	}
 
+	IMdIdArray *
+	GetTableIdsInGroup() const
+	{
+		return m_table_ids_in_group;
+	}
+
 	void AddTableInTheGroup(IMDId *table_mdid);
 
 };	// class CTableDescriptor

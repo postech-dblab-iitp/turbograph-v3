@@ -44,6 +44,7 @@ public:
         propertyNameToIdx.insert({propertyName, properties.size()});
         properties.push_back(std::move(property));
         used_columns.push_back(false);
+        used_for_filter_columns.push_back(false);
     }
 
     inline bool hasPropertyExpression(const string& propertyName) const {
@@ -53,10 +54,11 @@ public:
     inline shared_ptr<Expression> getPropertyExpression(const string& propertyName) {
         assert(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end());
         used_columns[propertyNameToIdx.at(propertyName)] = true;
-        return properties[propertyNameToIdx.at(propertyName)]->copy();
+        // return properties[propertyNameToIdx.at(propertyName)]->copy();
+        return properties[propertyNameToIdx.at(propertyName)];
     }
 
-    inline const vector<unique_ptr<Expression>>& getPropertyExpressions() const {
+    inline const vector<shared_ptr<Expression>> &getPropertyExpressions() const {
         return properties;
     }
 
@@ -87,14 +89,30 @@ public:
         return used_columns[col_idx];
     }
 
+    void setUsedForFilterColumn(uint64_t col_idx) {
+        assert(used_for_filter_columns.size() > col_idx);
+        used_for_filter_columns[col_idx] = true;
+    }
+
+    void setUsedForFilterColumn(const string& propertyName) {
+        used_for_filter_columns[propertyNameToIdx.at(propertyName)] = true;
+    }
+
+    bool isUsedForFilterColumn(uint64_t col_idx) {
+        assert(used_for_filter_columns.size() > col_idx);
+        return used_for_filter_columns[col_idx];
+    }
+
 protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
     table_id_t univTableID;
     unordered_map<std::string, size_t> propertyNameToIdx; // TODO map using id -> size_t / not string -> size_t
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
-    vector<unique_ptr<Expression>> properties;
+    // vector<unique_ptr<Expression>> properties;
+    vector<shared_ptr<Expression>> properties;
     vector<bool> used_columns;
+    vector<bool> used_for_filter_columns;
     bool schema_info_bound = false;
     bool dsi_target = false;
 };

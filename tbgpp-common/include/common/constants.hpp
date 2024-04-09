@@ -56,7 +56,7 @@ using std::make_shared;
 #define DEFAULT_CHUNKDEFINITION_PREFIX "cdf_"
 #define DEFAULT_TEMPORAL_INFIX "_temp_"
 
-// #define DYNAMIC_SCHEMA_INSTANTIATION
+#define DYNAMIC_SCHEMA_INSTANTIATION
 
 //! a saner size_t for loop indices etc
 typedef uint64_t idx_t;

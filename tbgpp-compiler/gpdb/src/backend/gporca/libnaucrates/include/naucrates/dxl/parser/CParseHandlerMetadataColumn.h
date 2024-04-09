@@ -61,6 +61,9 @@ private:
 	// width of the column
 	ULONG m_width;
 
+	// S62 added property id
+	ULONG m_prop_id;
+
 	// private copy ctor
 	CParseHandlerMetadataColumn(const CParseHandlerMetadataColumn &);
 

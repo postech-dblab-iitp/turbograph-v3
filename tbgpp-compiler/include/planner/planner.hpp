@@ -311,51 +311,92 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
-	std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
-		string name, vector<uint64_t> &oids, vector<int> &used_col_idx,
-		map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping, bool insert_projection
-	);
+    LogicalPlan *lPlanNodeOrRelExprWithoutDSI(
+        NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
+        std::vector<uint64_t> &pruned_table_oids, bool is_node);
+    LogicalPlan *lPlanNodeOrRelExprWithDSI(
+        NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
+        std::vector<uint64_t> &pruned_table_oids, bool is_node);
+    std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
+        string name, vector<uint64_t> &oids,
+        std::vector<std::vector<uint64_t>> *table_oids_in_groups,
+        vector<int> &used_col_idx,
+        map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping,
+        bool insert_projection);
+    void lBuildSchemaProjectionMapping(
+        std::vector<uint64_t> &table_oids, NodeOrRelExpression *node_expr,
+        const expression_vector &prop_exprs,
+        map<uint64_t, map<uint64_t, uint64_t>> &schema_proj_mapping,
+        vector<int> &used_col_idx, bool is_dsi = false);
+    void lGenerateNodeOrEdgeSchema(NodeOrRelExpression *node_expr,
+                                   const expression_vector &prop_exprs,
+                                   bool is_node, vector<int> &used_col_idx,
+                                   CColRefArray *prop_colrefs,
+                                   LogicalSchema &schema);
 
-	CExpression *lExprLogicalGet(uint64_t obj_id, string rel_name, bool is_instance = false,
-		std::vector<uint64_t> *table_oids_in_group = nullptr, string alias = "");
-	CExpression *lExprLogicalUnionAllWithMapping(CExpression *lhs, CColRefArray *lhs_mapping, CExpression *rhs, CColRefArray *rhs_mapping);
+    CExpression *lExprLogicalGet(
+        uint64_t obj_id, string rel_name, bool is_instance = false,
+        std::vector<uint64_t> *table_oids_in_group = nullptr,
+        string alias = "");
+    CExpression *lExprLogicalUnionAllWithMapping(CExpression *lhs,
+                                                 CColRefArray *lhs_mapping,
+                                                 CExpression *rhs,
+                                                 CColRefArray *rhs_mapping);
 
-	std::pair<CExpression *, CColRefArray *> lExprScalarAddSchemaConformProject(
-		CExpression *relation, vector<uint64_t> &col_ids_to_project,
-		vector<pair<IMDId *, gpos::INT>> *target_schema_types, vector<CColRef *> &union_schema_colrefs
-	);	
-	CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op,
-		CExpression *additional_join_pred);
-	CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, int32_t lower_bound, int32_t upper_bound,
-		 gpopt::COperator::EOperatorId join_op);
+    std::pair<CExpression *, CColRefArray *> lExprScalarAddSchemaConformProject(
+        CExpression *relation, vector<uint64_t> &col_ids_to_project,
+        vector<pair<IMDId *, gpos::INT>> *target_schema_types,
+        vector<CColRef *> &union_schema_colrefs);
+    CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
+                                  CColRef *lhs_colref, CColRef *rhs_colref,
+                                  gpopt::COperator::EOperatorId join_op,
+                                  CExpression *additional_join_pred);
+    CExpression *lExprLogicalPathJoin(CExpression *lhs, CExpression *rhs,
+                                      CColRef *lhs_colref, CColRef *rhs_colref,
+                                      int32_t lower_bound, int32_t upper_bound,
+                                      gpopt::COperator::EOperatorId join_op);
 
-	CExpression *lExprLogicalShortestPathJoin(CExpression *lhs, CExpression *rhs,
-		CColRef *lhs_colref, CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
-	CExpression *lExprLogicalCartProd(CExpression *lhs, CExpression *rhs);
-	
-	CTableDescriptor *lCreateTableDescForRel(CMDIdGPDB *rel_mdid, std::string rel_name="");
-	CTableDescriptor *lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
-						   const CName &nameTable, string rel_name, gpos::BOOL fPartitioned = false);
-	CTableDescriptor *lTabdescPlainWithColNameFormat(
-		CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
-		const CName &nameTable, string rel_name,
-		gpos::BOOL is_nullable  // define nullable columns
-	);
+    CExpression *lExprLogicalShortestPathJoin(
+        CExpression *lhs, CExpression *rhs, CColRef *lhs_colref,
+        CColRef *rhs_colref, gpopt::COperator::EOperatorId join_op);
+    CExpression *lExprLogicalCartProd(CExpression *lhs, CExpression *rhs);
 
-	inline CMDAccessor *lGetMDAccessor() { return COptCtxt::PoctxtFromTLS()->Pmda(); };
-	inline CMDIdGPDB *lGenRelMdid(uint64_t obj_id) { return GPOS_NEW(this->memory_pool) CMDIdGPDB(IMDId::EmdidRel, obj_id, 0, 0); }
-	inline const IMDRelation *lGetRelMd(uint64_t obj_id) {
-		return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
-	}
+    CTableDescriptor *lCreateTableDescForRel(CMDIdGPDB *rel_mdid,
+                                             std::string rel_name = "");
+    CTableDescriptor *lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
+                                       const CName &nameTable, string rel_name,
+                                       gpos::BOOL fPartitioned = false);
+    CTableDescriptor *lTabdescPlainWithColNameFormat(
+        CMemoryPool *mp, IMDId *mdid, const WCHAR *wszColNameFormat,
+        const CName &nameTable, string rel_name,
+        gpos::BOOL is_nullable  // define nullable columns
+    );
 
-	// helper functions
-	bool lIsCastingFunction(std::string& func_name);
-	CColRef *lCreateColRefFromName(std::string& name, const IMDType *mdid_type);
-	CTableDescriptorArray *lGetTableDescriptorArrayFromOids(string& unique_name, vector<uint64_t> &oids);
+    inline CMDAccessor *lGetMDAccessor()
+    {
+        return COptCtxt::PoctxtFromTLS()->Pmda();
+    }
+    inline CMDIdGPDB *lGenRelMdid(uint64_t obj_id)
+    {
+        return GPOS_NEW(this->memory_pool)
+            CMDIdGPDB(IMDId::EmdidRel, obj_id, 0, 0);
+    }
+    inline const IMDRelation *lGetRelMd(uint64_t obj_id)
+    {
+        return lGetMDAccessor()->RetrieveRel(lGenRelMdid(obj_id));
+    }
 
-private:
+    // helper functions
+    bool lIsCastingFunction(std::string &func_name);
+    CColRef *lCreateColRefFromName(std::string &name, const IMDType *mdid_type);
+    CTableDescriptorArray *lGetTableDescriptorArrayFromOids(
+        string &unique_name, vector<uint64_t> &oids);
+    void lPruneUnnecessaryGraphlets(std::vector<uint64_t> &table_oids,
+                                    NodeOrRelExpression *node_expr,
+                                    const expression_vector &prop_exprs,
+                                    std::vector<uint64_t> &pruned_table_oids);
+
+   private:
 	// planner_physical.cpp
 	/* Generating orca physical plan */
 	void pGenPhysicalPlan(CExpression *orca_plan_root);
@@ -365,6 +406,8 @@ private:
 	// scan
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopTableScan(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopNormalTableScan(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopDSITableScan(CExpression *plan_expr);
 
 	// pipelined ops
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopProjectionColumnar(CExpression *plan_expr);
