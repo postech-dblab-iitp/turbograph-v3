@@ -7,4 +7,4 @@ MATCH path = shortestPath((person1)-[:KNOWS*1..3]-(person2))
 RETURN CASE path
         WHEN null THEN 0
         ELSE path_length(path)
-    END AS shortestPathLength
+    END AS shortestPathLength;
