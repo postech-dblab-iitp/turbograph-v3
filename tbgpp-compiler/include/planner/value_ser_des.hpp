@@ -57,6 +57,14 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
+			case DataTypeID::HUGEINT: {
+				// jhha: currently, think hugeint as int64
+				out_length = 8;
+				int64_t* mem_ptr = (int64_t*) malloc(out_length);
+				(*mem_ptr) = kuzu_literal->val.uint64Val;
+				out_mem_ptr = (void*)mem_ptr;
+				break;
+			}
 			case DataTypeID::DOUBLE: {
 				out_length = 8;
 				double* mem_ptr = (double*) malloc(out_length);
@@ -179,6 +187,15 @@ public:
 				} else {
 					double value = *((double*)mem_ptr);
 					return duckdb::Value::DOUBLE(value);
+				}
+			}
+			case duckdb::LogicalTypeId::HUGEINT: {
+				D_ASSERT(length == 8 || length == 0);
+				if (length == 0) {
+					return duckdb::Value(duckdb::LogicalType::HUGEINT);
+				} else {
+					uint64_t value = *((int64_t*)mem_ptr);
+					return duckdb::Value::HUGEINT(value);
 				}
 			}
 			case duckdb::LogicalTypeId::VARCHAR: {
