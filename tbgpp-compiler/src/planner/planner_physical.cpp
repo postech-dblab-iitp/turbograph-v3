@@ -1579,7 +1579,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
     duckdb::ExpressionType exp_type;
     CColRefArray *filter_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
     vector<unique_ptr<duckdb::Expression>> filter_exprs;
-    vector<vector<duckdb::idx_t>> filter_col_idxs;
+    vector<vector<duckdb::idx_t>> filter_col_idxs(1);
     size_t num_outer_schemas = pGetNumOuterSchemas();
 
     while (true) {
