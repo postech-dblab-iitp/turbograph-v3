@@ -47,3 +47,5 @@ test*.cmake
 # Tools
 *.csv
 *.csv.backward
+
+r*hs

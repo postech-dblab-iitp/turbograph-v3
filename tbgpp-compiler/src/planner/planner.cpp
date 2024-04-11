@@ -312,6 +312,7 @@ void Planner::_orcaSetTraceFlags()
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotions);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartPropagation);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartSelection);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceEnableSpacePruning);
 }
 
 gpdbcost::CCostModelGPDB *Planner::_orcaGetCostModel(CMemoryPool *mp)
