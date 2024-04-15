@@ -230,7 +230,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             accumulated_offset += (num_boundaries);
             freq_offset_infos->push_back(accumulated_offset);
             for (auto j = 0; j < num_boundaries - 1; j++) {
-                // std::cout << "[" << boundary_values->at(begin_offset + j) << ", " << boundary_values->at(begin_offset + j + 1) << ") : " << h.at(j) << std::endl;
                 frequency_values->push_back(h.at(j));
                 frequency_values_for_each_column[col_idx].push_back(h.at(j));
             }

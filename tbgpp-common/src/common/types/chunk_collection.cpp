@@ -129,6 +129,74 @@ void ChunkCollection::Append(unique_ptr<DataChunk> new_chunk) {
 	chunks.push_back(move(new_chunk));
 }
 
+void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint8_t>& projection_mapping) {
+	if (new_chunk.size() == 0) {
+		return;
+	}
+	new_chunk.Verify();
+
+	// we have to ensure that every chunk in the ChunkCollection is completely
+	// filled, otherwise our O(1) lookup in GetValue and SetValue does not work
+	// first fill the latest chunk, if it exists
+	count += new_chunk.size();
+
+	idx_t remaining_data = new_chunk.size();
+	idx_t offset = 0;
+	if (chunks.empty()) {
+		// first chunk
+		types = new_chunk.GetTypes();
+	} else {
+		// the types of the new chunk should match the types of the previous one
+		D_ASSERT(types.size() == new_chunk.ColumnCount());
+		auto new_types = new_chunk.GetTypes();
+		for (idx_t i = 0; i < types.size(); i++) {
+			if (new_types[i] != types[i]) {
+				throw TypeMismatchException(new_types[i], types[i], "Type mismatch when combining rows");
+			}
+			if (types[i].InternalType() == PhysicalType::LIST) {
+				// need to check all the chunks because they can have only-null list entries
+				for (auto &chunk : chunks) {
+					auto &chunk_vec = chunk->data[i];
+					auto &new_vec = new_chunk.data[i];
+					auto &chunk_type = chunk_vec.GetType();
+					auto &new_type = new_vec.GetType();
+					if (chunk_type != new_type) {
+						throw TypeMismatchException(chunk_type, new_type, "Type mismatch when combining lists");
+					}
+				}
+			}
+			// TODO check structs, too
+		}
+
+		// first append data to the current chunk
+		DataChunk &last_chunk = *chunks.back();
+		idx_t added_data = MinValue<idx_t>(remaining_data, STANDARD_VECTOR_SIZE - last_chunk.size());
+		if (added_data > 0) {
+			last_chunk.ConvertIsValidToValidityMap(new_chunk, projection_mapping);
+
+			idx_t old_count = new_chunk.size();
+			new_chunk.SetCardinality(added_data);
+
+			last_chunk.Append(new_chunk, projection_mapping);
+			remaining_data -= added_data;
+			// reset the chunk to the old data
+			new_chunk.SetCardinality(old_count);
+			offset = added_data;
+		}
+	}
+
+	if (remaining_data > 0) {
+		// create a new chunk and fill it with the remainder
+		auto chunk = make_unique<DataChunk>();
+		chunk->Initialize(init_types, new_chunk, projection_mapping);
+		for (idx_t i = 0; i < new_chunk.ColumnCount(); i++) {
+			VectorOperations::Copy(new_chunk.data[projection_mapping[i]], chunk->data[i], new_chunk.size(), offset, 0);
+		}
+		chunk->SetCardinality(new_chunk.size() - offset);
+		chunks.push_back(move(chunk));
+	}
+}
+
 void ChunkCollection::Fuse(ChunkCollection &other) {
 	if (count == 0) {
 		chunks.reserve(other.ChunkCount());

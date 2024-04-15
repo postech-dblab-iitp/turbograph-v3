@@ -80,6 +80,26 @@ void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, c
 	}
 }
 
+void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint8_t> &projection_mapping, idx_t capacity_) {
+	D_ASSERT(data.empty());   // can only be initialized once
+	D_ASSERT(!types.empty()); // empty chunk not allowed
+	capacity = capacity_;
+	data.reserve(types.size());
+	for (idx_t i = 0; i < types.size(); i++) {
+		if (other.data[projection_mapping[i]].GetIsValid()) {
+			VectorCache cache(types[i], capacity);
+			data.emplace_back(cache, capacity);
+			vector_caches.push_back(move(cache));
+			if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+		} else {
+			VectorCache cache;
+			data.emplace_back(Vector(types[i], nullptr));
+			vector_caches.push_back(move(cache));
+			data[i].is_valid = false;
+		}
+	}
+}
+
 void DataChunk::Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capacity_) {
 	capacity = capacity_;
 	D_ASSERT(data.empty());   // can only be initialized once
@@ -298,6 +318,37 @@ void DataChunk::Append(const DataChunk &other, bool resize, SelectionVector *sel
 	SetCardinality(new_size);
 }
 
+
+void DataChunk::Append(DataChunk &other, std::vector<uint8_t>& projection_mapping, bool resize, SelectionVector *sel, idx_t sel_count) {
+	idx_t new_size = sel ? size() + sel_count : size() + other.size();
+	if (other.size() == 0) {
+		return;
+	}
+	if (ColumnCount() != other.ColumnCount()) {
+		throw InternalException("Column counts of appending chunk doesn't match!");
+	}
+	if (new_size > capacity) {
+		if (resize) {
+			for (idx_t i = 0; i < ColumnCount(); i++) {
+				data[i].Resize(size(), new_size);
+			}
+			capacity = new_size;
+		} else {
+			throw InternalException("Can't append chunk to other chunk without resizing");
+		}
+	}
+	for (idx_t i = 0; i < ColumnCount(); i++) {
+		D_ASSERT(data[i].GetVectorType() == VectorType::FLAT_VECTOR);
+		Vector &other_vector = other.data[projection_mapping[i]];
+		if (sel) {
+			VectorOperations::Copy(other_vector, data[i], *sel, sel_count, 0, size());
+		} else {
+			VectorOperations::Copy(other_vector, data[i], other.size(), 0, size());
+		}
+	}
+	SetCardinality(new_size);
+}
+
 void DataChunk::Normalify() {
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		data[i].Normalify(size());
@@ -396,6 +447,29 @@ void DataChunk::Hash(Vector &result) {
 	VectorOperations::Hash(data[0], result, size());
 	for (idx_t i = 1; i < ColumnCount(); i++) {
 		VectorOperations::CombineHash(result, data[i], size());
+	}
+}
+
+void DataChunk::ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint8_t>& projection_mapping) {
+	for (idx_t i = 0; i < ColumnCount(); i++) {
+		Vector &source_vector = source_chunk.data[projection_mapping[i]];
+		bool source_is_valid = source_vector.GetIsValid();
+		bool target_is_valid = data[i].GetIsValid();
+		if (!target_is_valid && source_is_valid) {
+			VectorCache cache(data[i].GetType(), capacity);
+			Vector new_vector(cache, capacity);
+			vector_caches[i] = move(cache);
+			data[i].Reference(new_vector);
+			data[i].ResetFromCache(vector_caches[i]);
+			data[i].is_valid = true;
+			data[i].validity.SetAllInvalid(size());
+		}
+		else if (target_is_valid && !source_is_valid) {
+			Vector new_vector(source_vector.GetType(), source_chunk.size());
+			source_vector.Reference(new_vector);
+			source_vector.validity.SetAllInvalid(source_chunk.size());
+			source_vector.SetIsValid(true);
+		}
 	}
 }
 

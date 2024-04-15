@@ -51,6 +51,9 @@ public:
 	//! Append a new DataChunk directly to this ChunkCollection
 	DUCKDB_API void Append(unique_ptr<DataChunk> new_chunk);
 
+	//! Append a new DataChunk directly to this ChunkCollection
+	DUCKDB_API void Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint8_t>& projection_mapping);
+
 	//! Append another ChunkCollection directly to this ChunkCollection
 	DUCKDB_API void Append(ChunkCollection &other);
 
@@ -93,6 +96,10 @@ public:
 
 	DUCKDB_API const vector<unique_ptr<DataChunk>> &Chunks() {
 		return chunks;
+	}
+
+	DUCKDB_API vector<unique_ptr<DataChunk>> *ChunksUnsafe() {
+		return &chunks;
 	}
 
 	DUCKDB_API idx_t ChunkCount() const {

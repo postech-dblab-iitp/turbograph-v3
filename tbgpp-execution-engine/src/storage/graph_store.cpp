@@ -167,8 +167,7 @@ iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev
 }
 
 StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
-    ExtentIterator *&ext_it, vector<idx_t> &oids,
-    vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
+    ExtentIterator *&ext_it, vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
     idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas,
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
@@ -534,7 +533,7 @@ iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColI
 }
 
 
-void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>& eid_to_mapping_idx) {
+void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>& eid_to_mapping_idx, bool union_schema) {
 	Catalog &cat_instance = client.db->GetCatalog();
 
 	for (auto i = 0; i < oids.size(); i++) {
@@ -548,7 +547,7 @@ void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>
 			if (ext_seqno > eid_to_mapping_idx.size()) {
 				eid_to_mapping_idx.resize(ext_seqno + 1, -1);
 			}
-			eid_to_mapping_idx[ext_seqno] = i;
+			eid_to_mapping_idx[ext_seqno] = union_schema ? 0 : i;
 		}
 	}
 }
