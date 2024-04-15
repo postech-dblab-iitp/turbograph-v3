@@ -8,7 +8,7 @@
 #include <string>
 
 #include "common/allocator.hpp"
-
+#include "common/output_util.hpp"
 #include "icecream.hpp"
 
 namespace duckdb {
