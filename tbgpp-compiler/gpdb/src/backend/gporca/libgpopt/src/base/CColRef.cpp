@@ -41,7 +41,8 @@ CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
 	  m_used(EUnknown),
 	  m_mdid_table(NULL),
 	  m_id(id),
-	  m_prev_id(id)
+	  m_prev_id(id),
+	  m_prop_id(-1)
 {
 	GPOS_ASSERT(NULL != pmdtype);
 	GPOS_ASSERT(pmdtype->MDId()->IsValid());
@@ -56,7 +57,40 @@ CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
 	  m_used(EUnknown),
 	  m_mdid_table(NULL),
 	  m_id(id),
-	  m_prev_id(colid)
+	  m_prev_id(colid),
+	  m_prop_id(-1)
+{
+	GPOS_ASSERT(NULL != pmdtype);
+	GPOS_ASSERT(pmdtype->MDId()->IsValid());
+	GPOS_ASSERT(NULL != pname);
+}
+
+CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+				 const CName *pname, ULONG prop_id)
+	: m_pmdtype(pmdtype),
+	  m_type_modifier(type_modifier),
+	  m_pname(pname),
+	  m_used(EUnknown),
+	  m_mdid_table(NULL),
+	  m_id(id),
+	  m_prev_id(id),
+	  m_prop_id(prop_id)
+{
+	GPOS_ASSERT(NULL != pmdtype);
+	GPOS_ASSERT(pmdtype->MDId()->IsValid());
+	GPOS_ASSERT(NULL != pname);
+}
+
+CColRef::CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+				 ULONG colid, const CName *pname, ULONG prop_id)
+	: m_pmdtype(pmdtype),
+	  m_type_modifier(type_modifier),
+	  m_pname(pname),
+	  m_used(EUnknown),
+	  m_mdid_table(NULL),
+	  m_id(id),
+	  m_prev_id(colid),
+	  m_prop_id(prop_id)
 {
 	GPOS_ASSERT(NULL != pmdtype);
 	GPOS_ASSERT(pmdtype->MDId()->IsValid());

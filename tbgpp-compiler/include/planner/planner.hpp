@@ -83,9 +83,9 @@
 // orca physical ops
 #include "gpopt/operators/CPhysicalTableScan.h"
 #include "gpopt/operators/CPhysicalIndexScan.h"
+#include "gpopt/operators/CPhysicalIndexOnlyScan.h"
 #include "gpopt/operators/CPhysicalIndexPathScan.h"
 #include "gpopt/operators/CPhysicalSerialUnionAll.h"
-#include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/operators/CPhysicalFilter.h"
 #include "gpopt/operators/CPhysicalComputeScalarColumnar.h"
 #include "gpopt/operators/CPhysicalInnerIndexNLJoin.h"
@@ -114,6 +114,9 @@
 
 #include "gpopt/operators/CScalarSwitch.h"
 #include "gpopt/operators/CScalarSwitchCase.h"
+
+#include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/metadata/CIndexDescriptor.h"
 
 #include "naucrates/init.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -416,6 +419,8 @@ private:
 	// joins
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression *plan_expr, bool is_left_outer);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_expr);
+	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression *plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
@@ -423,7 +428,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
 	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
-	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result, bool is_dsi = false);
 	void pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 
 	// limit, sort

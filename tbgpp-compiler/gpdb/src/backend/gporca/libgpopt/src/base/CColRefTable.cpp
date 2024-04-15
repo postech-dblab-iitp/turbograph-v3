@@ -29,11 +29,10 @@ using namespace gpmd;
 //---------------------------------------------------------------------------
 CColRefTable::CColRefTable(const CColumnDescriptor *pcoldesc, ULONG id,
 						   const CName *pname, ULONG ulOpSource)
-	: CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname),
+	: CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname, pcoldesc->PropId()),
 	  m_iAttno(0),
 	  m_ulSourceOpId(ulOpSource),
-	  m_width(pcoldesc->Width()),
-	  m_prop_id(pcoldesc->PropId())
+	  m_width(pcoldesc->Width())
 {
 	GPOS_ASSERT(NULL != pname);
 
@@ -53,8 +52,9 @@ CColRefTable::CColRefTable(const CColumnDescriptor *pcoldesc, ULONG id,
 //---------------------------------------------------------------------------
 CColRefTable::CColRefTable(const IMDType *pmdtype, INT type_modifier, INT attno,
 						   BOOL is_nullable, ULONG id, const CName *pname,
-						   ULONG ulOpSource, BOOL is_dist_col, ULONG ulWidth)
-	: CColRef(pmdtype, type_modifier, id, pname),
+						   ULONG ulOpSource, BOOL is_dist_col, ULONG ulWidth,
+						   ULONG prop_id)
+	: CColRef(pmdtype, type_modifier, id, pname, prop_id),
 	  m_iAttno(attno),
 	  m_is_nullable(is_nullable),
 	  m_ulSourceOpId(ulOpSource),

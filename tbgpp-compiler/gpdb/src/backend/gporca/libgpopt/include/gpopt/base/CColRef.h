@@ -96,6 +96,10 @@ public:
             const CName *pname);
     CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
             ULONG colid, const CName *pname);
+	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+            const CName *pname, ULONG prop_id);
+	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
+            ULONG colid, const CName *pname, ULONG prop_id);
 
     // dtor
 	virtual ~CColRef();
@@ -133,6 +137,12 @@ public:
 	PrevId() const
 	{
 		return m_prev_id;
+	}
+
+	ULONG
+	PropId() const
+	{
+		return m_prop_id;
 	}
 
 	// overloaded equality operator
@@ -203,6 +213,9 @@ public:
 
 	// S62 added prev_id
 	ULONG m_prev_id;
+
+	// S62 added prop_id
+	ULONG m_prop_id;
 
 	// invalid key
 	static const ULONG m_ulInvalid;
