@@ -62,6 +62,11 @@ void VectorOperations::Copy(const Vector &source, Vector &target, const Selectio
 	D_ASSERT(source.GetType().InternalType() == target.GetType().InternalType());
 	idx_t copy_count = source_count - source_offset;
 
+	if (!source.GetIsValid()) {
+		target.SetIsValid(false);
+		return;
+	}
+
 	SelectionVector owned_sel;
 	const SelectionVector *sel = &sel_p;
 	switch (source.GetVectorType()) {
@@ -93,11 +98,6 @@ void VectorOperations::Copy(const Vector &source, Vector &target, const Selectio
 	}
 
 	if (copy_count == 0) {
-		return;
-	}
-
-	if (!source.GetIsValid()) {
-		target.SetIsValid(false);
 		return;
 	}
 
