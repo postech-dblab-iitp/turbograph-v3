@@ -1000,12 +1000,6 @@ void PhysicalIdSeek::doSeekGrouping(
                     output_col_idx, extentIdx, output_col_idx,
                     num_tuples_per_chunk[chunk_idx]);
 
-                /**
-                 * Currently, we cannot handle rhs multi-schema case!
-                 * I mean, if there is a null column in a schema, we cannot handle
-                 * this. We need to fix this, but currently, we just skip this case.
-                */
-
                 if (join_type == JoinType::LEFT) {
                     // TODO handling multi-schema case
                     D_ASSERT(chunks.size() == 1);
