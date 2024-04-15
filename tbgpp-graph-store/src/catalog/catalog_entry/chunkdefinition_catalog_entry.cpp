@@ -31,6 +31,7 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 		Value max_val = Value::MinimumValue(LogicalType(data_type_id));
 		for (idx_t j = start_offset; j < end_offset; j++) {
 			Value val = column.GetValue(j);
+			if (val.IsNull()) continue;
 			if (min_val > val) min_val = val;
 			if (max_val < val) max_val = val;
 		}

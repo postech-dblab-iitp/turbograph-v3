@@ -632,6 +632,14 @@ public:
         num_tuples_per_cluster.resize(num_clusters, 0);
         int64_t num_tuples = 0;
 
+        for (size_t cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
+            for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+                validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+            }
+        }
+        
         docs = parser.iterate_many(json); // TODO w/o parse?
         for (auto doc_ : docs) {
             uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
@@ -647,6 +655,11 @@ public:
                 if (load_edge) StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
+                for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                    auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                    validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+                    validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+                }
             }
             num_tuples++;
         }
@@ -1114,16 +1127,19 @@ private:
             case ondemand::number_type::signed_integer: {
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_int64();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
                 uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_uint64();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::floating_point_number: {
                 double *column_ptr = (double *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_double();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             }
@@ -1138,6 +1154,7 @@ private:
             // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
             ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
                                                     (const char*)string_val.data(), string_val.size());
+            FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
             break;
         }
         case ondemand::json_type::boolean: {
