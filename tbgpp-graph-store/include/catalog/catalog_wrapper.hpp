@@ -581,6 +581,11 @@ public:
             merged_num_tuples +=
                 ps_cat->GetNumberOfRowsApproximately();
 
+            /**
+             * TODO: adding NDVs is seems wrong.
+             * We have to do correctly (e.g., setting max NDV)
+            */
+
             for (auto j = 0; j < key_ids->size(); j++) {
                 merged_schema.insert(key_ids->at(j));
                 if (type_info.find(key_ids->at(j)) == type_info.end()) {

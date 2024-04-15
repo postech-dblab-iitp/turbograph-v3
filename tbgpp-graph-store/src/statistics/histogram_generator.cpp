@@ -227,7 +227,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             }
             D_ASSERT(num_boundaries - 1 == num_buckets_for_each_column[col_idx]);
             
-            accumulated_offset += (num_boundaries - 1);
+            accumulated_offset += (num_boundaries);
             freq_offset_infos->push_back(accumulated_offset);
             for (auto j = 0; j < num_boundaries - 1; j++) {
                 // std::cout << "[" << boundary_values->at(begin_offset + j) << ", " << boundary_values->at(begin_offset + j + 1) << ") : " << h.at(j) << std::endl;

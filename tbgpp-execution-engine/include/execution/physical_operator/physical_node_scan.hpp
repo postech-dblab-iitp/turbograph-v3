@@ -49,6 +49,10 @@ public:
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
 		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<RangeFilterValue>& rangeFilterValues);
 
+	// complex filter pushdown
+	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+		vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>> predicates);
+
 	~PhysicalNodeScan();
 
 public:

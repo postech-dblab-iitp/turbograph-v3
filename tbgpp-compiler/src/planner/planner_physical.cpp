@@ -969,25 +969,14 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
             pConvertLocalFilterExprToUnionAllFilterExpr(
                 repr_filter_expr, repr_scan_cols,
                 unionall_output_original_col_ids);
-            auto repr_scan_projection_mapping = scan_projection_mapping[0];
-            auto repr_projection_mapping = projection_mapping[0];
             filter_exprs.push_back(std::move(repr_filter_expr));
 
-            // Create filter + nodeScan operator
-            duckdb::CypherPhysicalOperator *filter_cypher_op =
-                new duckdb::PhysicalFilter(global_schema, move(filter_exprs));
             duckdb::CypherPhysicalOperator *scan_cypher_op =
                 new duckdb::PhysicalNodeScan(local_schemas, global_schema, oids,
                                              projection_mapping,
-                                             scan_projection_mapping);
+                                             scan_projection_mapping,
+                                             move(filter_exprs));
             result->push_back(scan_cypher_op);
-            result->push_back(filter_cypher_op);
-
-            // Update schema flow graph for filter
-            pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-            num_schemas_of_childs.push_back({local_schemas.size()});
-            pipeline_schemas.push_back(local_schemas);
-            pipeline_union_schema.push_back(global_schema);
         }
 
         /* If we don't need filter-only-used column anymore, create projection operator */

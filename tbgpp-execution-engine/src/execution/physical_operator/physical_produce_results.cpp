@@ -68,7 +68,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
     }
 
     auto copyChunk = make_unique<DataChunk>();
-    copyChunk->Initialize(state.result_types, input, projection_mappings);
+    copyChunk->Initialize(state.result_types, input, projection_mappings, input.size());
     if (projection_mapping.size() == 0 &&
         projection_mappings.size() == 0) {  // projection mapping not provided
         input.Copy(*copyChunk, 0);
