@@ -39,13 +39,48 @@ CIndexDescriptor::CIndexDescriptor(
 	  m_pdrgpcoldescKeyCols(pdrgcoldescKeyCols),
 	  m_pdrgpcoldescIncludedCols(pdrgcoldescIncludedCols),
 	  m_clustered(is_clustered),
-	  m_index_type(index_type)
+	  m_index_type(index_type),
+	  m_instance_descriptor(false)
 {
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(pmdidIndex->IsValid());
 	GPOS_ASSERT(NULL != pdrgcoldescKeyCols);
 	GPOS_ASSERT(NULL != pdrgcoldescIncludedCols);
 }
+
+CIndexDescriptor::CIndexDescriptor(
+	CMemoryPool *mp, IMDId *pmdidIndex, const CName &name,
+	CColumnDescriptorArray *pdrgcoldescKeyCols,
+	CColumnDescriptorArray *pdrgcoldescIncludedCols, BOOL is_clustered,
+	IMDIndex::EmdindexType index_type, BOOL is_instance_descriptor,
+	IMdIdArray *table_ids_in_group)
+	: m_pmdidIndex(pmdidIndex),
+	  m_name(mp, name),
+	  m_pdrgpcoldescKeyCols(pdrgcoldescKeyCols),
+	  m_pdrgpcoldescIncludedCols(pdrgcoldescIncludedCols),
+	  m_clustered(is_clustered),
+	  m_index_type(index_type),
+	  m_instance_descriptor(is_instance_descriptor)
+{
+	GPOS_ASSERT(NULL != mp);
+	GPOS_ASSERT(pmdidIndex->IsValid());
+	GPOS_ASSERT(NULL != pdrgcoldescKeyCols);
+	GPOS_ASSERT(NULL != pdrgcoldescIncludedCols);
+
+	if (is_instance_descriptor) {
+		GPOS_ASSERT(NULL != table_ids_in_group);
+		m_table_ids_in_group = GPOS_NEW(mp) IMdIdArray(mp);
+
+		for (ULONG ul = 0; ul < table_ids_in_group->Size(); ul++)
+		{
+			IMDId *table_mdid = (*table_ids_in_group)[ul];
+			GPOS_ASSERT(NULL != table_mdid && table_mdid->IsValid());
+			table_mdid->AddRef();
+			m_table_ids_in_group->Append(table_mdid);
+		}
+	}
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -136,9 +171,17 @@ CIndexDescriptor::Pindexdesc(CMemoryPool *mp, const CTableDescriptor *ptabdesc,
 
 
 	// create the index descriptors
-	CIndexDescriptor *pindexdesc = GPOS_NEW(mp) CIndexDescriptor(
-		mp, pmdindex->MDId(), CName(&strIndexName), pdrgcoldescKey,
-		pdrgcoldescIncluded, pmdindex->IsClustered(), pmdindex->IndexType());
+	CIndexDescriptor *pindexdesc;
+	if (ptabdesc->IsInstanceDescriptor()) {
+		pindexdesc = GPOS_NEW(mp) CIndexDescriptor(
+			mp, pmdindex->MDId(), CName(&strIndexName), pdrgcoldescKey,
+			pdrgcoldescIncluded, pmdindex->IsClustered(), pmdindex->IndexType(),
+			ptabdesc->IsInstanceDescriptor(), ptabdesc->GetTableIdsInGroup());
+	} else {
+		pindexdesc = GPOS_NEW(mp) CIndexDescriptor(
+			mp, pmdindex->MDId(), CName(&strIndexName), pdrgcoldescKey,
+			pdrgcoldescIncluded, pmdindex->IsClustered(), pmdindex->IndexType());
+	}
 	return pindexdesc;
 }
 
