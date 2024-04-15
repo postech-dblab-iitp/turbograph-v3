@@ -609,7 +609,9 @@ public:
                     vector<idx_t> tmp_vec;
                     auto begin_offset = j == 0 ? 0 : offset_infos->at(j - 1);
                     auto end_offset = offset_infos->at(j);
-                    for (auto k = begin_offset; k < end_offset; k++) {
+                    auto freq_begin_offset = j == 0 ? 0 : begin_offset - (j);
+                    auto freq_end_offset = end_offset - (j + 1);
+                    for (auto k = freq_begin_offset; k < freq_end_offset; k++) {
                         tmp_vec.push_back(freq_values->at(k));
                     }
                     intermediate_merged_freq_values.insert(
@@ -619,8 +621,10 @@ public:
                     auto &freq_vec = it->second;
                     auto begin_offset = j == 0 ? 0 : offset_infos->at(j - 1);
                     auto end_offset = offset_infos->at(j);
-                    for (auto k = begin_offset; k < end_offset; k++) {
-                        freq_vec[k - begin_offset] += freq_values->at(k);
+                    auto freq_begin_offset = j == 0 ? 0 : begin_offset - (j);
+                    auto freq_end_offset = end_offset - (j + 1);
+                    for (auto k = freq_begin_offset; k < freq_end_offset; k++) {
+                        freq_vec[k - freq_begin_offset] += freq_values->at(k);
                     }
                 }
             }
@@ -633,12 +637,14 @@ public:
         }
         // TODO sort by key ids - always right?
         // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
+        size_t accumulated_offset = 0;
         for (auto i = 0; i < merged_property_key_ids.size(); i++) {
             idx_t prop_key_id = merged_property_key_ids[i];
             merged_types.push_back(
                 LogicalType(type_info.at(prop_key_id)));
             auto &freq_vec = intermediate_merged_freq_values.at(prop_key_id);
-            merged_offset_infos->push_back(freq_vec.size());
+            accumulated_offset += (freq_vec.size() + 1);
+            merged_offset_infos->push_back(accumulated_offset);
             for (auto j = 0; j < freq_vec.size(); j++) {
                 merged_freq_values->push_back(freq_vec[j]);
             }
