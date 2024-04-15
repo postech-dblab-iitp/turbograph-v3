@@ -39,7 +39,7 @@ struct CompressionHeader {
     void SetCompFuncType(CompressionFunctionType comp_type_) {
         comp_type = comp_type_;
     }
-    void SetNullMask(uint64_t* null_mask_) {
+    void SetNullMask() {
         has_null_bitmap = 1;
     }
     uint8_t HasNullMask() {

@@ -129,7 +129,7 @@ public:
 		for (idx_t entry_idx = 0; entry_idx < entry_count;) {
 			auto entry = GetValidityEntry(entry_idx++);
 			// Handle ragged end
-			if (entry_idx == entry_count) {
+			if (entry_idx == entry_count && count % BITS_PER_VALUE != 0) {
 				idx_t idx_in_entry;
 				GetEntryIndex(count, entry_idx, idx_in_entry);
 				for (idx_t i = 0; i < idx_in_entry; ++i) {

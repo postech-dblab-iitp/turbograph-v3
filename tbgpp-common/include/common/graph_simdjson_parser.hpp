@@ -632,14 +632,19 @@ public:
         num_tuples_per_cluster.resize(num_clusters, 0);
         int64_t num_tuples = 0;
 
+        for (size_t cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
+            for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+                validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+            }
+        }
+        
         docs = parser.iterate_many(json); // TODO w/o parse?
         for (auto doc_ : docs) {
             uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
             D_ASSERT(cluster_id < num_clusters);
 
-            for (auto i = 0; i < datas[cluster_id].size(); i++) {
-                FlatVector::Validity(datas[cluster_id].data[i]).SetAllInvalid(datas[cluster_id].size());
-            }
             recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
             
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
@@ -650,6 +655,11 @@ public:
                 if (load_edge) StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
+                for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                    auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                    validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+                    validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+                }
             }
             num_tuples++;
         }

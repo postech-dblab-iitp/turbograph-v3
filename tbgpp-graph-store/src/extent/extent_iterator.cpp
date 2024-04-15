@@ -1316,15 +1316,15 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                             io_requested_buf_sizes[toggle][i], (int)comp_header.comp_type, (int) cur_ext_property_type[i].id(), comp_header.data_len,
                             target_seqnos.size(), io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
-        } else {
-#ifdef DEBUG_LOAD_COLUMN
-            fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
-#endif
             if (comp_header->HasNullMask()) {
                 has_null = true;
                 size_t bitmap_ptr_offset = comp_header->GetNullBitmapOffset();
                 src_validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
             }
+        } else {
+#ifdef DEBUG_LOAD_COLUMN
+            fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
+#endif
         }
         auto comp_header_valid_size = comp_header->GetSizeWoBitSet();
         auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);

@@ -82,55 +82,51 @@ duckdb::GetScalarFuncIndex(idx_t scalarfunc_oid) {
 
 void
 duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStatsSlot *hist_slot) {
-	auto *offset_infos = rel->GetOffsetInfos();
-	auto *frequency_values = rel->GetFrequencyValues();
-	auto type = LogicalType((*rel->GetTypes())[attno - 1]);
-	// if (!type.IsNumeric()) {
-	// TODO type checking
-	if (!(type == LogicalType::INTEGER || type == LogicalType::BIGINT ||
-		type == LogicalType::UINTEGER || type == LogicalType::UBIGINT ||
-		type == LogicalType::FLOAT || type == LogicalType::DOUBLE ||
-		type == LogicalType::DATE)) {
-		// we have no histogram for non-numeric types
-		hist_slot->valuetype = InvalidOid;
-		return;
-	}
-	if (offset_infos->size() == 0) {
-		// there is no histogram
-		hist_slot->valuetype = InvalidOid;
-		return;
-	} else {
-		idx_t num_buckets = attno == 1 ? (*offset_infos)[0] : (*offset_infos)[attno - 1] - (*offset_infos)[attno - 2];
-		idx_t begin_offset = attno == 1 ? 0 : (*offset_infos)[attno - 2];
-		idx_t end_offset = (*offset_infos)[attno - 1];
-
-		if (num_buckets == 0) {
-			// there is no histogram for this column
-			hist_slot->valuetype = InvalidOid;
-			return;
-		}
-
-		PartitionCatalogEntry *part_cat = GetPartition(rel->GetPartitionOID());
-		auto *boundary_values = part_cat->GetBoundaryValues();
-
-		// get valuetype
-		hist_slot->valuetype = (Oid)((*rel->GetTypes())[attno - 1]) + LOGICAL_TYPE_BASE_ID;
-
-		// get nvalues
-		hist_slot->nvalues = num_buckets;
-
-		// get histogram boundary values
-		hist_slot->values = new Datum[num_buckets];
-		for (auto i = begin_offset; i < end_offset; i++) {
-			hist_slot->values[i - begin_offset] = (Datum)(*boundary_values)[i];
-		}
-
-		// get histogram frequencies
-		hist_slot->freq_values = new Datum[num_buckets];
-		for (auto i = begin_offset; i < end_offset; i++) {
-			hist_slot->freq_values[i - begin_offset] = (Datum)(*frequency_values)[i];
-		}
-	}
+    auto *offset_infos = rel->GetOffsetInfos();
+    auto *frequency_values = rel->GetFrequencyValues();
+    auto type = LogicalType((*rel->GetTypes())[attno - 1]);
+    // if (!type.IsNumeric()) {
+    // TODO type checking
+    if (!(type == LogicalType::INTEGER || type == LogicalType::BIGINT ||
+        type == LogicalType::UINTEGER || type == LogicalType::UBIGINT ||
+        type == LogicalType::FLOAT || type == LogicalType::DOUBLE ||
+        type == LogicalType::DATE)) {
+        // we have no histogram for non-numeric types
+        hist_slot->valuetype = InvalidOid;
+        return;
+    }
+    if (offset_infos->size() == 0) {
+        // there is no histogram
+        hist_slot->valuetype = InvalidOid;
+        return;
+    } else {
+        idx_t num_buckets = attno == 1 ? (*offset_infos)[0] - 1 : (*offset_infos)[attno - 1] - (*offset_infos)[attno - 2] - 1;
+        idx_t begin_offset = attno == 1 ? 0 : (*offset_infos)[attno - 2];
+        idx_t end_offset = (*offset_infos)[attno - 1];
+        idx_t freq_begin_offset = attno == 1 ? 0 : begin_offset - (attno - 1);
+        idx_t freq_end_offset = end_offset - attno;
+        if (num_buckets == 0) {
+            // there is no histogram for this column
+            hist_slot->valuetype = InvalidOid;
+            return;
+        }
+        PartitionCatalogEntry *part_cat = GetPartition(rel->GetPartitionOID());
+        auto *boundary_values = part_cat->GetBoundaryValues();
+        // get valuetype
+        hist_slot->valuetype = (Oid)((*rel->GetTypes())[attno - 1]) + LOGICAL_TYPE_BASE_ID;
+        // get nvalues
+        hist_slot->nvalues = num_buckets;
+        // get histogram boundary values
+        hist_slot->values = new Datum[num_buckets + 1];
+        for (auto i = begin_offset; i < end_offset; i++) {
+            hist_slot->values[i - begin_offset] = (Datum)(*boundary_values)[i];
+        }
+        // get histogram frequencies
+        hist_slot->freq_values = new Datum[num_buckets];
+        for (auto i = freq_begin_offset; i < freq_end_offset; i++) {
+            hist_slot->freq_values[i - freq_begin_offset] = (Datum)(*frequency_values)[i];
+        }
+    }
 }
 
 double
