@@ -637,6 +637,9 @@ public:
             uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
             D_ASSERT(cluster_id < num_clusters);
 
+            for (auto i = 0; i < datas[cluster_id].size(); i++) {
+                FlatVector::Validity(datas[cluster_id].data[i]).SetAllInvalid(datas[cluster_id].size());
+            }
             recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
             
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
@@ -1114,16 +1117,19 @@ private:
             case ondemand::number_type::signed_integer: {
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_int64();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
                 uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_uint64();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::floating_point_number: {
                 double *column_ptr = (double *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_double();
+                FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             }
@@ -1138,6 +1144,7 @@ private:
             // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
             ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
                                                     (const char*)string_val.data(), string_val.size());
+            FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
             break;
         }
         case ondemand::json_type::boolean: {

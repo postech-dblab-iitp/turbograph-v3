@@ -876,6 +876,11 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
     } 
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+    if (comp_header.HasNullMask()) {
+        auto &validity = FlatVector::Validity(column_vec);
+        size_t bitmap_ptr_offset = comp_header.GetNullBitmapOffset();
+        validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + bitmap_ptr_offset));
+    }
     auto value_type = filterValue.type();
 
     if (column_type == LogicalType::BIGINT) {
@@ -925,12 +930,9 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
     else {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
-            LogicalType column_type = ext_property_type[col_idx];
-            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
             for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
                 if (column_vec.GetValue(input_idx) == filterValue) {
                     matched_row_idxs.push_back(input_idx);
@@ -950,6 +952,11 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
     }
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+    if (comp_header.HasNullMask()) {
+        auto &validity = FlatVector::Validity(column_vec);
+        size_t bitmap_ptr_offset = comp_header.GetNullBitmapOffset();
+        validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + bitmap_ptr_offset));
+    }
     auto value_type = l_filterValue.type();
 
     if (column_type == LogicalType::BIGINT) {
@@ -1018,12 +1025,9 @@ void ExtentIterator::findMatchedRowsRangeFilter(CompressionHeader& comp_header, 
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
     }
     else {
-        memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
         if (comp_header.comp_type == BITPACKING) {
             throw NotImplementedException("Range filter predicate on BITPACKING compression is not implemented yet");
         } else {
-            LogicalType column_type = ext_property_type[col_idx];
-            Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
             for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
                 auto value = column_vec.GetValue(input_idx);
                 if (inclusiveAwareRangePredicateCheck(l_filterValue, r_filterValue, l_inclusive, r_inclusive, value))
@@ -1081,26 +1085,45 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
                                     vector<idx_t> &output_column_idxs, ExtentID &output_eid, DataChunk &output) {
     size_t current_size = output.size();
     output.SetCardinality(current_size + matched_row_idxs.size());
-    if(matched_row_idxs.size() == 0) return;
+    if (matched_row_idxs.size() == 0) return;
 
     for (size_t i = 0; i < output_column_idxs.size(); i++) {
+        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) continue;
+
         auto output_idx = output_column_idxs[i];
-        if (ext_property_type[i].id() == LogicalTypeId::SQLNULL) {
-            continue; 
-        } 
+        bool has_null = false;
+        ValidityMask src_validity;
+
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
+            if (comp_header.HasNullMask()) {
+                has_null = true;
+                size_t bitmap_ptr_offset = comp_header.GetNullBitmapOffset();
+                src_validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
+            }
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        auto &validity = FlatVector::Validity(output.data[output_idx]);
+        auto comp_header_valid_size = comp_header.GetSizeWoBitSet();
         if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false); // See previous commits for the implementation
             } else {
                 auto strings = FlatVector::GetData<string_t>(output.data[output_idx]);
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
-                for (idx_t idx = 0; idx <  matched_row_idxs.size(); idx++) {
-                    idx_t seqno = matched_row_idxs[idx];
-                    strings[idx + current_size] = varchar_arr[seqno];
+                if (has_null) {
+                    for (idx_t idx = 0; idx <  matched_row_idxs.size(); idx++) {
+                        idx_t seqno = matched_row_idxs[idx];
+                        if (src_validity.RowIsValid(seqno)) {
+                            strings[idx + current_size] = varchar_arr[seqno];
+                        } else {
+                            validity.SetInvalid(idx + current_size);
+                        }
+                    }
+                } else {
+                    for (idx_t idx = 0; idx <  matched_row_idxs.size(); idx++) {
+                        idx_t seqno = matched_row_idxs[idx];
+                        strings[idx + current_size] = varchar_arr[seqno];
+                    }
                 }
             }
         } else if (ext_property_type[i].id() == LogicalTypeId::LIST) {
@@ -1120,9 +1143,31 @@ void ExtentIterator::copyMatchedRows(CompressionHeader& comp_header, vector<idx_
                 D_ASSERT(false); // See previous commits for the implementation
             } else {
                 size_t type_size = GetTypeIdSize(ext_property_type[i].InternalType());
-                for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
-                    idx_t seqno = matched_row_idxs[idx];
-                    memcpy(output.data[output_idx].GetData() + (idx + current_size) * type_size, io_requested_buf_ptrs[toggle][i] + CompressionHeader::GetSizeWoBitSet() + seqno * type_size, type_size);
+                if (has_null) {
+                    for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
+                        idx_t seqno = matched_row_idxs[idx];
+                        if (src_validity.RowIsValid(seqno)) {
+                            memcpy(output.data[output_idx].GetData() +
+                                       (idx + current_size) * type_size,
+                                   io_requested_buf_ptrs[toggle][i] +
+                                       comp_header_valid_size +
+                                       seqno * type_size,
+                                   type_size);
+                        }
+                        else {
+                            validity.SetInvalid(idx + current_size);
+                        }
+                    }
+                }
+                else {
+                    for (idx_t idx = 0; idx < matched_row_idxs.size(); idx++) {
+                        idx_t seqno = matched_row_idxs[idx];
+                        memcpy(output.data[output_idx].GetData() +
+                                   (idx + current_size) * type_size,
+                               io_requested_buf_ptrs[toggle][i] +
+                                   comp_header_valid_size + seqno * type_size,
+                               type_size);
+                    }
                 }
             }
         }
@@ -1141,8 +1186,14 @@ void ExtentIterator::referenceRows(DataChunk &output, ExtentID output_eid, size_
         }
         if (ext_property_type[i] != LogicalType::ID) {
             memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
+            if (comp_header.HasNullMask()) {
+                auto &validity = FlatVector::Validity(output.data[output_column_idxs[j]]);
+                size_t bitmap_ptr_offset = comp_header.GetNullBitmapOffset() + (scan_begin_offset / 8);
+                validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
+            }
         }
-        auto comp_header_valid_size = comp_header.GetValidSize();
+        
+        auto comp_header_valid_size = comp_header.GetSizeWoBitSet();
         if (ext_property_type[i].id() == LogicalTypeId::VARCHAR) {
             if (comp_header.comp_type == DICTIONARY) {
                 D_ASSERT(false);
@@ -1254,6 +1305,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         // cols to exclude is for filter seek optimization.
         if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
+        bool has_null = false;
+        ValidityMask src_validity;
         if (cur_ext_property_type[i] != LogicalType::ID) {
             // memcpy(&comp_header, io_requested_buf_ptrs[toggle][i], CompressionHeader::GetSizeWoBitSet());
             comp_header = (CompressionHeader *)io_requested_buf_ptrs[toggle][i];
@@ -1267,8 +1320,14 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
+            if (comp_header->HasNullMask()) {
+                has_null = true;
+                size_t bitmap_ptr_offset = comp_header->GetNullBitmapOffset();
+                src_validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
+            }
         }
-        auto comp_header_valid_size = comp_header->GetValidSize();
+        auto comp_header_valid_size = comp_header->GetSizeWoBitSet();
+        auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
         switch(cur_ext_property_type[i].id()) {
         case LogicalTypeId::VARCHAR: {
             if (comp_header->comp_type == DICTIONARY) {
@@ -1282,28 +1341,34 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                strings[target_seqnos[seqno_idx + prefetch_idx]] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
-                            }
-                        }
-                        break;
-                    }
+                    case VectorType::DICTIONARY_VECTOR:
                     case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
+                        if (has_null) {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx += prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
-                            }
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
+                                }
 #endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                strings[target_seqnos[seqno_idx + prefetch_idx]] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    if (src_validity.RowIsValid(src_data_seqnos[seqno_idx + prefetch_idx])) {
+                                        strings[target_seqnos[seqno_idx + prefetch_idx]] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                    } else {
+                                        validity.SetInvalid(target_seqnos[seqno_idx + prefetch_idx]);
+                                    }
+                                }
+                            }
+
+                        } else {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx += prefetch_unit_size) {
+#ifdef DO_PREFETCH_FOR_SEEK
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
+                                }
+#endif
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    strings[target_seqnos[seqno_idx + prefetch_idx]] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                }
                             }
                         }
                         break;
@@ -1312,8 +1377,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                         uint64_t vid = ((uint64_t *)vids.GetData())[0];
                         idx_t target_seqno = vid & 0x00000000FFFFFFFF;
                         idx_t seqno;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            strings[target_seqnos[seqno_idx]] = varchar_arr[target_seqno];
+                        if (has_null) {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                                if (src_validity.RowIsValid(seqno_idx)) {
+                                    strings[target_seqnos[seqno_idx]] = varchar_arr[target_seqno];
+                                } else {
+                                    validity.SetInvalid(target_seqnos[seqno_idx]);
+                                }
+                            }
+                        } else {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                                strings[target_seqnos[seqno_idx]] = varchar_arr[target_seqno];
+                            }
                         }
                         break;
                     }
@@ -1375,10 +1450,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
             Vector &vids = input.data[nodeColIdx];
             auto target_ptr = output.data[output_column_idxs[i]].GetData();
-            switch(type_size) {
-            case 4: {
-                switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
+            switch(vids.GetVectorType()) {
+                case VectorType::DICTIONARY_VECTOR:
+                case VectorType::FLAT_VECTOR: {
+                    if (has_null) {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
                             for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
@@ -1388,31 +1463,20 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                                     type_size));
                             }
 #endif
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // = 16
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m512i src_data_seqnos_vec = _mm512_loadu_si512((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi32(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 4);
-                                __m512i tgt_data_seqnos_vec = _mm512_loadu_si512((char *)(target_seqnos.data() + seqno_idx + prefetch_idx));
-                                _mm512_i32scatter_epi32(target_ptr, tgt_data_seqnos_vec, src_data, 4);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        target_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
+                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                if (src_validity.RowIsValid(src_data_seqnos[seqno_idx + prefetch_idx])) {
+                                    memcpy(target_ptr +
+                                            target_seqnos[seqno_idx + prefetch_idx] * type_size,
+                                        io_requested_buf_ptrs[toggle][i] +
+                                            comp_header_valid_size +
+                                            src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
+                                        type_size);
+                                } else {
+                                    validity.SetInvalid(target_seqnos[seqno_idx + prefetch_idx]);
+                                }
                             }
                         }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
+                    } else {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
                             for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
@@ -1422,20 +1486,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                                     type_size));
                             }
 #endif
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // = 16
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m512i src_data_seqnos_vec = _mm512_loadu_si512((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi32(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 4);
-                                __m512i tgt_data_seqnos_vec = _mm512_loadu_si512((char *)(target_seqnos.data() + seqno_idx + prefetch_idx));
-                                _mm512_i32scatter_epi32(target_ptr, tgt_data_seqnos_vec, src_data, 4);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
                                 memcpy(target_ptr +
                                         target_seqnos[seqno_idx + prefetch_idx] * type_size,
                                     io_requested_buf_ptrs[toggle][i] +
@@ -1444,11 +1495,26 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                     type_size);
                             }
                         }
-                        break;
                     }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    break;
+                }
+                case VectorType::CONSTANT_VECTOR: {
+                    uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    if (has_null) {
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            if (src_validity.RowIsValid(seqno_idx)) {
+                                memcpy(
+                                    target_ptr + target_seqnos[seqno_idx] * type_size,
+                                    io_requested_buf_ptrs[toggle][i] +
+                                        comp_header_valid_size +
+                                        target_seqno * type_size,
+                                    type_size);
+                            } else {
+                                validity.SetInvalid(target_seqnos[seqno_idx]);
+                            }
+                        }
+                    } else {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                             memcpy(
                                 target_ptr + target_seqnos[seqno_idx] * type_size,
@@ -1457,169 +1523,16 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                     target_seqno * type_size,
                                 type_size);
                         }
-                        break;
                     }
-                    default: {
-                        D_ASSERT(false);
-                    }
+                    break;
                 }
-                break;
-            }
-            case 8: {
-                switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // = 8
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m256i src_data_seqnos_vec = _mm256_loadu_epi32((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi64(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 8);
-                                __m256i tgt_data_seqnos_vec = _mm256_loadu_epi32((char *)(target_seqnos.data() + seqno_idx + prefetch_idx));
-                                _mm512_i32scatter_epi64(target_ptr, tgt_data_seqnos_vec, src_data, 8);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        target_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // = 8
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m256i src_data_seqnos_vec = _mm256_loadu_epi32((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi64(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 8);
-                                __m256i tgt_data_seqnos_vec = _mm256_loadu_epi32((char *)(target_seqnos.data() + seqno_idx + prefetch_idx));
-                                _mm512_i32scatter_epi64(target_ptr, tgt_data_seqnos_vec, src_data, 8);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        target_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            memcpy(
-                                target_ptr + target_seqnos[seqno_idx] * type_size,
-                                io_requested_buf_ptrs[toggle][i] +
-                                    comp_header_valid_size +
-                                    target_seqno * type_size,
-                                type_size);
-                        }
-                        break;
-                    }
-                    default: {
-                        D_ASSERT(false);
-                    }
-                }
-                break;
-            }
-            default: {
-                switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        target_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        target_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            memcpy(
-                                target_ptr + target_seqnos[seqno_idx] * type_size,
-                                io_requested_buf_ptrs[toggle][i] +
-                                    comp_header_valid_size +
-                                    target_seqno * type_size,
-                                type_size);
-                        }
-                        break;
-                    }
-                    default: {
-                        D_ASSERT(false);
-                    }
+                default: {
+                    D_ASSERT(false);
                 }
             }
-            }
-        }
-        }
-    }
+        } // default
+        } // switch
+    } // for loop
     return true;
 }
 
@@ -1636,7 +1549,7 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
 
     auto &cur_ext_property_type = ext_property_types[(*target_idx_per_eid)[current_idx]];
     CompressionHeader comp_header;
-    auto comp_header_valid_size = comp_header.GetValidSize();
+    auto comp_header_valid_size = comp_header.GetSizeWoBitSet();
 
     // at this point, rowcol_arr is not a dictionary
     rowcol_t *rowcol_arr = (rowcol_t *)rowcol_vec.GetData();
@@ -1725,8 +1638,12 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
     idx_t begin_seqno = output_seqno;
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         if (std::find(cols_to_include.begin(), cols_to_include.end(), output_column_idxs[i]) == cols_to_include.end()) continue;
-        output_seqno = begin_seqno;
         D_ASSERT(cur_ext_property_type[i] == output.data[output_column_idxs[i]].GetType());
+
+        output_seqno = begin_seqno;
+        bool has_null = false;
+        ValidityMask src_validity;
+
         if (cur_ext_property_type[i] != LogicalType::ID) {
             comp_header = (CompressionHeader *)io_requested_buf_ptrs[toggle][i];
 #ifdef DEBUG_LOAD_COLUMN
@@ -1735,12 +1652,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                             io_requested_buf_sizes[toggle][i], (int)comp_header->comp_type, (int) cur_ext_property_type[i].id(), comp_header->data_len,
                             target_seqnos.size(), io_requested_buf_ptrs[toggle][i], output.data[i].GetData());
 #endif
+            if (comp_header->HasNullMask()) {
+                has_null = true;
+                size_t bitmap_ptr_offset = comp_header->GetNullBitmapOffset();
+                src_validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
+            }
         } else {
 #ifdef DEBUG_LOAD_COLUMN
             fprintf(stdout, "[Seek-Bulk2] Load Column %ld -> %ld\n", i, output_column_idxs[i]);
 #endif
         }
-        auto comp_header_valid_size = comp_header->GetValidSize();
+        auto &validity = FlatVector::Validity(output.data[output_column_idxs[i]]);
+        auto comp_header_valid_size = comp_header->GetSizeWoBitSet();
         switch(cur_ext_property_type[i].id()) {
         case LogicalTypeId::VARCHAR: {
             if (comp_header->comp_type == DICTIONARY) {
@@ -1750,28 +1673,33 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][i] + comp_header_valid_size);
                 Vector &vids = input.data[nodeColIdx];
                 switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                strings[output_seqno++] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
-                            }
-                        }
-                        break;
-                    }
+                    case VectorType::DICTIONARY_VECTOR:
                     case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
+                        if (has_null) {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
-                            }
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
+                                }
 #endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                strings[output_seqno++] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    if (src_validity.RowIsValid(src_data_seqnos[seqno_idx + prefetch_idx])) {
+                                        strings[output_seqno++] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                    } else {
+                                        validity.SetInvalid(output_seqno++);
+                                    }
+                                }
+                            }
+                        } else {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
+#ifdef DO_PREFETCH_FOR_SEEK
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    __builtin_prefetch(&varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]]);
+                                }
+#endif
+                                for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                    strings[output_seqno++] = varchar_arr[src_data_seqnos[seqno_idx + prefetch_idx]];
+                                }
                             }
                         }
                         break;
@@ -1779,8 +1707,18 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                     case VectorType::CONSTANT_VECTOR: {
                         uint64_t vid = ((uint64_t *)vids.GetData())[0];
                         idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            strings[output_seqno++] = varchar_arr[target_seqno];
+                        if (has_null) {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                                if (src_validity.RowIsValid(target_seqno)) {
+                                    strings[output_seqno++] = varchar_arr[target_seqno];
+                                } else {
+                                    validity.SetInvalid(output_seqno++);
+                                }
+                            }
+                        } else {
+                            for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                                strings[output_seqno++] = varchar_arr[target_seqno];
+                            }
                         }
                         break;
                     }
@@ -1809,14 +1747,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
             physical_id_base = physical_id_base << 32;
             idx_t *id_column = (idx_t *)output.data[output_column_idxs[i]].GetData();
             switch(vids.GetVectorType()) {
-                case VectorType::DICTIONARY_VECTOR: {
-                    for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                        id_column[output_seqno] = physical_id_base + src_data_seqnos[seqno_idx];
-                        // D_ASSERT(id_column[output_seqno] == getIdRefFromVectorTemp(vids, seqno));
-                        output_seqno++;
-                    }
-                    break;
-                }
+                case VectorType::DICTIONARY_VECTOR:
                 case VectorType::FLAT_VECTOR: {
                     for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                         id_column[output_seqno] = physical_id_base + src_data_seqnos[seqno_idx];
@@ -1848,10 +1779,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                 size_t type_size = GetTypeIdSize(cur_ext_property_type[i].InternalType());
                 Vector &vids = input.data[nodeColIdx];
                 auto target_ptr = output.data[output_column_idxs[i]].GetData();
-                switch(type_size) {
-                case 4: {
-                    switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
+                switch(vids.GetVectorType()) {
+                case VectorType::DICTIONARY_VECTOR:
+                case VectorType::FLAT_VECTOR: {
+                    if (has_null) {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
                             for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
@@ -1861,33 +1792,21 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                                     type_size));
                             }
 #endif
-
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // register_size_in_bit / (type_size * 8bit) = 16
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m512i src_data_seqnos_vec = _mm512_loadu_si512((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi32(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 4);
-                                _mm512_storeu_si512(target_ptr + (output_seqno * 4), src_data);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                                output_seqno += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        output_seqno * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                                output_seqno++;
+                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                                if (src_validity.RowIsValid(src_data_seqnos[seqno_idx + prefetch_idx])) {
+                                    memcpy(target_ptr +
+                                            output_seqno * type_size,
+                                        io_requested_buf_ptrs[toggle][i] +
+                                            comp_header_valid_size +
+                                            src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
+                                        type_size);
+                                    output_seqno++;
+                                } else {
+                                    validity.SetInvalid(output_seqno++);
+                                }
                             }
                         }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
+                    } else {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
 #ifdef DO_PREFETCH_FOR_SEEK
                             for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
@@ -1897,21 +1816,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                                     type_size));
                             }
 #endif
-
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // register_size_in_bit / (type_size * 8bit) = 16
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m512i src_data_seqnos_vec = _mm512_loadu_si512((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi32(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 4);
-                                _mm512_storeu_si512(target_ptr + (output_seqno * 4), src_data);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                                output_seqno += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
+                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
                                 memcpy(target_ptr +
                                         output_seqno * type_size,
                                     io_requested_buf_ptrs[toggle][i] +
@@ -1921,104 +1826,26 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                 output_seqno++;
                             }
                         }
-                        break;
-                    }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            memcpy(target_ptr + output_seqno * type_size,
-                                io_requested_buf_ptrs[toggle][i] +
-                                    comp_header_valid_size +
-                                    target_seqno * type_size,
-                                type_size);
-                            output_seqno++;
-                        }
-                        break;
-                    }
-                    default: {
-                        D_ASSERT(false);
-                    }
                     }
                     break;
                 }
-                case 8: {
-                    switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // register_size_in_bit / (type_size * 8bit) = 8
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m256i src_data_seqnos_vec = _mm256_loadu_epi32((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi64(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 8);
-                                _mm512_storeu_si512(target_ptr + output_seqno * 8, src_data);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                                output_seqno += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        output_seqno * type_size,
+                case VectorType::CONSTANT_VECTOR: {
+                    uint64_t vid = ((uint64_t *)vids.GetData())[0];
+                    idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    if (has_null) {
+                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
+                            if (src_validity.RowIsValid(target_seqno)) {
+                                memcpy(target_ptr + output_seqno * type_size,
                                     io_requested_buf_ptrs[toggle][i] +
                                         comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
+                                        target_seqno * type_size,
                                     type_size);
                                 output_seqno++;
+                            } else {
+                                validity.SetInvalid(output_seqno++);
                             }
                         }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-
-                            idx_t num_datas_copied_once = 512 / (type_size * 8); // register_size_in_bit / (type_size * 8bit) = 8
-                            idx_t num_loops = std::min(prefetch_unit_size / num_datas_copied_once, (target_seqnos.size() - seqno_idx) / num_datas_copied_once);
-                            idx_t prefetch_idx = 0;
-#ifdef USE_SIMD_FOR_SEEK
-                            while (num_loops > 0) {
-                                __m256i src_data_seqnos_vec = _mm256_loadu_epi32((char *)(src_data_seqnos.data() + seqno_idx + prefetch_idx));
-                                __m512i src_data = _mm512_i32gather_epi64(src_data_seqnos_vec, io_requested_buf_ptrs[toggle][i] + comp_header_valid_size, 8);
-                                _mm512_storeu_si512(target_ptr + output_seqno * 8, src_data);
-                                num_loops--;
-                                prefetch_idx += num_datas_copied_once;
-                                output_seqno += num_datas_copied_once;
-                            }
-#endif
-                            for (; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        output_seqno * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                                output_seqno++;
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
+                    } else {
                         for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
                             memcpy(target_ptr + output_seqno * type_size,
                                 io_requested_buf_ptrs[toggle][i] +
@@ -2027,77 +1854,11 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
                                 type_size);
                             output_seqno++;
                         }
-                        break;
-                    }
-                    default: {
-                        D_ASSERT(false);
-                    }
                     }
                     break;
                 }
                 default: {
-                    switch(vids.GetVectorType()) {
-                    case VectorType::DICTIONARY_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        output_seqno * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                                output_seqno++;
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::FLAT_VECTOR: {
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx+= prefetch_unit_size) {
-#ifdef DO_PREFETCH_FOR_SEEK
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                __builtin_prefetch((char *)(io_requested_buf_ptrs[toggle][i] +
-                                                comp_header_valid_size +
-                                                src_data_seqnos[seqno_idx + prefetch_idx] *
-                                                    type_size));
-                            }
-#endif
-                            for (auto prefetch_idx = 0; prefetch_idx < prefetch_unit_size && seqno_idx + prefetch_idx < target_seqnos.size(); prefetch_idx++) {
-                                memcpy(target_ptr +
-                                        output_seqno * type_size,
-                                    io_requested_buf_ptrs[toggle][i] +
-                                        comp_header_valid_size +
-                                        src_data_seqnos[seqno_idx + prefetch_idx] * type_size,
-                                    type_size);
-                                output_seqno++;
-                            }
-                        }
-                        break;
-                    }
-                    case VectorType::CONSTANT_VECTOR: {
-                        uint64_t vid = ((uint64_t *)vids.GetData())[0];
-                        idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-                        for (auto seqno_idx = 0; seqno_idx < target_seqnos.size(); seqno_idx++) {
-                            memcpy(target_ptr + output_seqno * type_size,
-                                io_requested_buf_ptrs[toggle][i] +
-                                    comp_header_valid_size +
-                                    target_seqno * type_size,
-                                type_size);
-                            output_seqno++;
-                        }
-                        break;
-                    }
-                    default: {
-                        D_ASSERT(false);
-                    }
-                    }
+                    D_ASSERT(false);
                 }
                 }
             }
