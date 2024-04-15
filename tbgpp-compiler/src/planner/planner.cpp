@@ -525,6 +525,13 @@ void *Planner::_orcaExec(void *planner_ptr)
         }
         auto orca_extract_plan_time_ms =
             orca_extract_plan_timer.elapsed().wall / 1000000.0;
+            
+        boost::timer::cpu_timer physical_transform_timer;
+        physical_transform_timer.start();
+        planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
+        auto physical_transform_timer_ms =
+            physical_transform_timer.elapsed().wall / 1000000.0;
+
         auto orca_compile_time_ms =
             orca_compile_timer.elapsed().wall / 1000000.0;
 
@@ -533,13 +540,6 @@ void *Planner::_orcaExec(void *planner_ptr)
         std::cout << "ORCA Other Time: " << orca_other_time_ms << " ms" << std::endl;
         std::cout << "ORCA Extract Plan Time: " << orca_extract_plan_time_ms << " ms" << std::endl;
         std::cout << "Logical Transform Time: " << logical_transform_timer_ms << " ms" << std::endl;
-
-        boost::timer::cpu_timer physical_transform_timer;
-        physical_transform_timer.start();
-        planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
-        auto physical_transform_timer_ms =
-            physical_transform_timer.elapsed().wall / 1000000.0;
-
         std::cout << "Physical Transform Time: " << physical_transform_timer_ms << " ms" << std::endl;
 
         orca_logical_plan->Release();

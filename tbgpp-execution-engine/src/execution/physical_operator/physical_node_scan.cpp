@@ -113,6 +113,26 @@ PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, ve
 	range_filter_pushdown_values = move(rangeFilterValues);
 }
 
+/* Schemaless Complex Filter Pushdown */
+PhysicalNodeScan::PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
+	vector<vector<uint64_t>> scan_projection_mapping, vector<unique_ptr<Expression>> predicates) :
+	PhysicalNodeScan(sch, union_schema, oids, projection_mapping, scan_projection_mapping)
+{
+	is_filter_pushdowned = true;
+	filter_pushdown_type = FilterPushdownType::FP_COMPLEX;
+	D_ASSERT(predicates.size() > 0);
+	if (predicates.size() > 1) {
+		auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+		for (auto &expr : predicates) {
+			conjunction->children.push_back(move(expr));
+		}
+		filter_expression = move(conjunction);
+	} else {
+		filter_expression = move(predicates[0]);
+	}
+	executor = ExpressionExecutor(*(filter_expression.get()));
+}
+
 PhysicalNodeScan::~PhysicalNodeScan() {}
 
 //===--------------------------------------------------------------------===//
