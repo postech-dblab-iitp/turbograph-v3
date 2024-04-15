@@ -348,7 +348,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto idProperty = queryNode->getPropertyExpression("_id");
+        // auto idProperty = queryNode->getPropertyExpression("_id"); // this may add unnessary _id
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to single node a with both labels
         if (!nodePattern.getLabelOrTypeNames().empty()) {

@@ -141,6 +141,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                           IdSeekState &state,
                           vector<idx_t> &num_tuples_per_chunk,
                           idx_t &output_chunk_idx) const;
+    OperatorResultType referInputChunksWithMerge(DataChunk &input,
+                          vector<unique_ptr<DataChunk>> &chunks,
+                          IdSeekState &state,
+                          vector<idx_t> &num_tuples_per_chunk,
+                          idx_t &output_chunk_idx) const;
     OperatorResultType referInputChunksLeft(DataChunk &input,
                           vector<unique_ptr<DataChunk>> &chunks,
                           IdSeekState &state,
@@ -154,6 +159,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void genNonPredColIdxs();
     void getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_idx, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
     void remapSeqnoToEidIdx(vector<idx_t>& in_seqno_to_eid_idx, const sel_t* sel_idxs, size_t sel_size, vector<idx_t>& out_seqno_to_eid_idx) const;
+    bool determineForceUnionAll() const;
 
     // parameters
     uint64_t id_col_idx;

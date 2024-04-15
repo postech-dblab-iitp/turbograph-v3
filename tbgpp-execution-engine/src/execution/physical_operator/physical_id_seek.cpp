@@ -484,7 +484,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     vector<idx_t> mapping_idxs;
 
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
 
@@ -569,8 +569,16 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
         return OperatorResultType::OUTPUT_EMPTY;
     }
 
-    OperatorResultType op_result = referInputChunks(
-        input, chunks, state, num_tuples_per_chunk, output_chunk_idx);
+    bool force_union_all = determineForceUnionAll();
+    OperatorResultType op_result;
+    if (force_union_all) {
+        op_result = referInputChunksWithMerge(
+            input, chunks, state, num_tuples_per_chunk, output_chunk_idx);
+    }
+    else {
+        op_result = referInputChunks(
+            input, chunks, state, num_tuples_per_chunk, output_chunk_idx);
+    }
 
     return op_result;
 }
@@ -638,7 +646,7 @@ void PhysicalIdSeek::initializeSeek(
 {
     state.null_tuples_idx.clear();
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
     state.need_initialize_extit = false;
@@ -661,7 +669,7 @@ void PhysicalIdSeek::initializeSeek(
 {
     state.null_tuples_idx.clear();
     context.client->graph_store->InitializeVertexIndexSeek(
-        state.ext_it, oids, scan_projection_mapping, input, nodeColIdx,
+        state.ext_it, scan_projection_mapping, input, nodeColIdx,
         scan_types, target_eids, target_seqnos_per_extent,
         mapping_idxs, state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
     state.need_initialize_extit = false;
@@ -1255,6 +1263,61 @@ OperatorResultType PhysicalIdSeek::referInputChunks(
     }
 }
 
+OperatorResultType PhysicalIdSeek::referInputChunksWithMerge(
+    DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, IdSeekState &state,
+    vector<idx_t> &num_tuples_per_chunk, idx_t &output_chunk_idx) const
+{
+    // for original ones reference existing columns
+    if (!do_filter_pushdown && !has_unpushdowned_expressions) {
+        idx_t schema_idx = input.GetSchemaIdx();
+        for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
+            auto outer_col_maps_idx = chunk_idx / inner_col_maps.size();
+            if (num_tuples_per_chunk[chunk_idx] == 0)
+                continue;
+            for (int i = 0; i < input.ColumnCount(); i++) {
+                if (outer_col_maps[outer_col_maps_idx][i] !=
+                    std::numeric_limits<uint32_t>::max()) {
+                    D_ASSERT(outer_col_maps[outer_col_maps_idx][i] <
+                            chunks[chunk_idx]->ColumnCount());
+                    chunks[chunk_idx]
+                        ->data[outer_col_maps[outer_col_maps_idx][i]]
+                        .Slice(input.data[i], state.sels[chunk_idx],
+                            num_tuples_per_chunk[chunk_idx]);
+                }
+            }
+        }
+
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(num_tuples_per_chunk[i]);
+        }
+
+        for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
+            if (num_tuples_per_chunk[chunk_idx] == 0)
+                continue;
+            output_chunk_idx = chunk_idx;
+            state.cur_schema_idx = chunk_idx + 1;
+            return OperatorResultType::HAVE_MORE_OUTPUT;
+        }
+        state.has_remaining_output = false;
+        state.need_initialize_extit = true;
+        return OperatorResultType::NEED_MORE_INPUT;
+    }
+    else if (do_filter_pushdown && !has_unpushdowned_expressions) {
+        throw NotImplementedException(
+            "PhysicalIdSeek-Refer do_filter_pushdown && "
+            "!has_unpushdowned_expressions");
+    }
+    else if (!do_filter_pushdown && has_unpushdowned_expressions) {
+        throw NotImplementedException(
+            "PhysicalIdSeek-Refer !do_filter_pushdown && "
+            "has_unpushdowned_expressions");
+    }
+    else {
+        D_ASSERT(false);
+    }
+}
+
+
 OperatorResultType PhysicalIdSeek::referInputChunksLeft(
     DataChunk &input, vector<unique_ptr<DataChunk>> &chunks, IdSeekState &state,
     vector<idx_t> &num_tuples_per_chunk, idx_t &output_chunk_idx) const
@@ -1530,6 +1593,16 @@ void PhysicalIdSeek::getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_i
     reverse_mapping_idxs.resize(num_chunks);
     for (auto i = 0; i < mapping_idxs.size(); i++) {
         reverse_mapping_idxs[base_chunk_idx + mapping_idxs[i]].push_back(i);
+    }
+}
+
+bool PhysicalIdSeek::determineForceUnionAll() const {
+    const size_t MAX_NUM_OUTPUT_SCHEMAS = 3;
+    if (oids.size() > MAX_NUM_OUTPUT_SCHEMAS) {
+        return true;
+    }
+    else {
+        return false;
     }
 }
 

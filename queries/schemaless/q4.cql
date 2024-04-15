@@ -1,6 +1,4 @@
 MATCH (person:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)
-WHERE
-  person.creationDate < 1266606692284
 RETURN 
   person.id AS personId,
   person.creationDate AS personCreationDate,

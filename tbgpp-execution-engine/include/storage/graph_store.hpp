@@ -97,8 +97,7 @@ public:
                        int64_t current_schema_idx, ExpressionExecutor &expr);
 
  StoreAPIResult InitializeVertexIndexSeek(
-     ExtentIterator *&ext_it, vector<idx_t> &oids,
-     vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
+     ExtentIterator *&ext_it, vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
      idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas,
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
@@ -152,7 +151,8 @@ public:
                                   ExpandDirection expand_dir);
 
  void fillEidToMappingIdx(vector<uint64_t> &oids,
-                          vector<idx_t> &eid_to_mapping_idx);
+                          vector<idx_t> &eid_to_mapping_idx,
+                          bool union_schema = false);
 
 private:
 	inline void _fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid);
