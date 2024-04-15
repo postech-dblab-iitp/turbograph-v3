@@ -106,7 +106,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Create Compressionheader, based on nullity
         CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
         if (FlatVector::HasNull(input.data[input_chunk_idx])) {
-            comp_header.SetNullMask(FlatVector::GetNullMask(input.data[input_chunk_idx]));
+            if (input.size() != FlatVector::Validity(input.data[input_chunk_idx]).CountValid(input.size())) {
+                comp_header.SetNullMask();
+            }
         }
         auto comp_header_size = comp_header.GetSizeWoBitSet();
 
@@ -260,7 +262,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         auto append_chunk_end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> chunk_duration = append_chunk_end - append_chunk_start;
-        // fprintf(stdout, "\t\tAppendChunk %ld -> %p size %ld, Total Elapsed: %.6f, Compression Elapsed: %.3f\n", cdf_id, buf_ptr, input.size(), chunk_duration.count(), chunk_compression_duration.count());
     }
 }
 
