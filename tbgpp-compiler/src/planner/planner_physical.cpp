@@ -1106,7 +1106,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<vector<uint64_t>> output_projection_mappings_seek(1);
     vector<vector<duckdb::LogicalType>> scan_types_seek(1);
     unique_ptr<duckdb::Expression> filter_duckdb_expr;
-    vector<duckdb::idx_t> filter_col_idxs;
+    vector<vector<duckdb::idx_t>> filter_col_idxs(1);
     duckdb::Schema schema_adj;
     duckdb::Schema schema_seek;
     duckdb::Schema schema_proj;
@@ -1376,7 +1376,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             pGetFilterDuckDBExprs(filter_expr, adj_output_cols, seek_inner_cols,
                                   adj_output_cols->Size(),
                                   filter_duckdb_exprs);
-            pGetIdentIndices(filter_duckdb_exprs[0], filter_col_idxs);
+            pGetIdentIndices(filter_duckdb_exprs[0], filter_col_idxs[0]);
             // Construct IdSeek Operator for filter
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
                 schema_seek, edge_id_col_idx, seek_obj_ids,
@@ -1626,7 +1626,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
     duckdb::ExpressionType exp_type;
     CColRefArray *filter_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
     vector<unique_ptr<duckdb::Expression>> filter_exprs;
-    vector<duckdb::idx_t> filter_col_idxs;
+    vector<vector<duckdb::idx_t>> filter_col_idxs;
     size_t num_outer_schemas = pGetNumOuterSchemas();
 
     while (true) {
@@ -1858,10 +1858,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
             unique_ptr<duckdb::Expression> filter_duckdb_expr;
             filter_duckdb_expr = pTransformScalarExpr(
                 filter_pred_expr, outer_cols, inner_required_cols);
-            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
             pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                outer_cols->Size());
-            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
+            pGetIdentIndices(filter_duckdb_expr, filter_col_idxs[0]);
             filter_exprs.push_back(std::move(filter_duckdb_expr));
         }
         else if (inner_root->Pop()->Eopid() ==
@@ -2406,7 +2405,7 @@ void Planner::
     CExpression *filter_pred_expr = NULL;
     CExpression *idxscan_expr = NULL;
     vector<vector<unique_ptr<duckdb::Expression>>> filter_pred_duckdb_exprs;
-    vector<duckdb::idx_t> filter_col_idxs;
+    vector<vector<duckdb::idx_t>> filter_col_idxs;
     vector<vector<ULONG>> inner_col_ids;
     vector<duckdb::LogicalType> scan_type_union;
 
@@ -2454,7 +2453,11 @@ void Planner::
                     // Get required cols for seek (inner cols + filter only cols)
                     CColRefArray *inner_required_cols = GPOS_NEW(mp) CColRefArray(mp);
                     for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
-                        inner_required_cols->Append(inner_cols->operator[](col_idx));
+                        CColRef *colref =  inner_cols->operator[](col_idx);
+                        // except const_null columns
+                        if (idxscan_cols->IndexOf(colref) != gpos::ulong_max) {
+                            inner_required_cols->Append(colref);
+                        }
                     }
 
                     for (auto col_idx : inner_filter_only_cols_idx) {
@@ -2464,11 +2467,12 @@ void Planner::
                         inner_required_cols->Append(col);
                     }
 
+                    filter_col_idxs.push_back(vector<duckdb::idx_t>());
                     auto filter_duckdb_expr = pTransformScalarExpr(
                         filter_pred_expr, outer_cols, inner_required_cols);
                     pShiftFilterPredInnerColumnIndices(filter_duckdb_expr,
                                                     outer_cols->Size());
-                    pGetIdentIndices(filter_duckdb_expr, filter_col_idxs);
+                    pGetIdentIndices(filter_duckdb_expr, filter_col_idxs[i]);
                     vector<unique_ptr<duckdb::Expression>> tmp_vec;
                     tmp_vec.push_back(std::move(filter_duckdb_expr));
                     filter_pred_duckdb_exprs.push_back(std::move(tmp_vec));

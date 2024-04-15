@@ -361,6 +361,8 @@ CExpression *Planner::lExprScalarLiteralExpr(
 		lint_val = lit_expr->literal.get()->val.uint64Val;
 	} else if (type.typeID == DataTypeID::UBIGINT) {
 		lint_val = lit_expr->literal.get()->val.uint64Val;
+	} else if (type.typeID == DataTypeID::INT64) {
+		lint_val = lit_expr->literal.get()->val.int64Val;
 	}
 	
 	// this should be aligned with CMDTypeGenericGPDB::HasByte2DoubleMapping
