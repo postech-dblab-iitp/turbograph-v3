@@ -54,9 +54,6 @@ private:
 	// width of the column, for instance  char(10) column has width 10
 	ULONG m_width;
 
-	// S62 added property id
-	ULONG m_prop_id;
-
 public:
 	// ctors
 	CColRefTable(const CColumnDescriptor *pcd, ULONG id, const CName *pname,
@@ -66,6 +63,10 @@ public:
 				 BOOL is_nullable, ULONG id, const CName *pname,
 				 ULONG ulOpSource, BOOL is_dist_col,
 				 ULONG ulWidth = gpos::ulong_max);
+	CColRefTable(const IMDType *pmdtype, INT type_modifier, INT attno,
+				 BOOL is_nullable, ULONG id, const CName *pname,
+				 ULONG ulOpSource, BOOL is_dist_col,
+				 ULONG ulWidth = gpos::ulong_max, ULONG prop_id = gpos::ulong_max);
 
 	// dtor
 	virtual ~CColRefTable();
@@ -119,12 +120,6 @@ public:
 	UlSourceOpId() const
 	{
 		return m_ulSourceOpId;
-	}
-
-	ULONG
-	PropId() const
-	{
-		return m_prop_id;
 	}
 
 	// conversion

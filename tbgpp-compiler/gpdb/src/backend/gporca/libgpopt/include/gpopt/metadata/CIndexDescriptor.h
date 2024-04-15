@@ -55,6 +55,12 @@ private:
 	// index type
 	IMDIndex::EmdindexType m_index_type;
 
+	// S62 added
+	BOOL m_instance_descriptor;
+
+	// table ids in the group
+	IMdIdArray *m_table_ids_in_group;
+
 	// private copy ctor
 	CIndexDescriptor(const CIndexDescriptor &);
 
@@ -64,6 +70,12 @@ public:
 					 CColumnDescriptorArray *pdrgcoldescKeyCols,
 					 CColumnDescriptorArray *pdrgcoldescIncludedCols,
 					 BOOL is_clustered, IMDIndex::EmdindexType emdindt);
+	
+	CIndexDescriptor(CMemoryPool *mp, IMDId *pmdidIndex, const CName &name,
+					 CColumnDescriptorArray *pdrgcoldescKeyCols,
+					 CColumnDescriptorArray *pdrgcoldescIncludedCols,
+					 BOOL is_clustered, IMDIndex::EmdindexType emdindt,
+					 BOOL is_instance_descriptor, IMdIdArray *table_ids_in_group);
 
 	// dtor
 	virtual ~CIndexDescriptor();
@@ -113,6 +125,18 @@ public:
 	IndexType() const
 	{
 		return m_index_type;
+	}
+
+	BOOL
+	IsInstanceDescriptor() const
+	{
+		return m_instance_descriptor;
+	}
+
+	IMdIdArray *
+	GetTableIdsInGroup() const
+	{
+		return m_table_ids_in_group;
 	}
 
 	BOOL SupportsIndexOnlyScan() const;
