@@ -68,6 +68,7 @@ vector<std::tuple<string, string, size_t>> vertex_files;
 vector<std::tuple<string, string, size_t>> edge_files;
 vector<std::tuple<string, string, size_t>> edge_files_backward;
 string output_dir;
+double set_sim_threshold = 0.99;
 
 bool load_edge;
 bool load_backward_edge;
@@ -628,7 +629,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 		fprintf(stdout, "\nStart to load %s, %s\n\n", json_files[idx].first.c_str(), json_files[idx].second.c_str());
 
 		// Load & Parse JSON File
-		GraphSIMDJSONFileParser reader(client, &ext_mng, &cat_instance);
+		GraphSIMDJSONFileParser reader(client, &ext_mng, &cat_instance, set_sim_threshold);
 		if (load_edge) {
 			reader.SetLidToPidMap(&lid_to_pid_map);
 		}
@@ -1246,7 +1247,9 @@ class InputParser{ // TODO use boost options
 				json_file_edges.push_back(edge_label_json_expression_pairs);
 			} else if (std::strncmp(current_str.c_str(), "--output_dir:", 13) == 0) {
 				output_dir = std::string(*itr).substr(13);
-			} 
+			} else if (std::strncmp(current_str.c_str(), "--sim_thr:", 10) == 0) {
+				set_sim_threshold = std::stod(std::string(*itr).substr(10));
+			}
     	}
 
 		// Print Bulkloading Informations
