@@ -348,6 +348,8 @@ bool AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 	merged_tokens.erase(std::unique(merged_tokens.begin(), merged_tokens.end()), merged_tokens.end());
 
 	int min = min_set_size > tokens2.size() ? tokens2.size() : min_set_size;
+
+	// printf("merged_tokens.size() = %ld, min = %ld, SET_SIZE_DIFF_THRESHOLD = %ld\n", merged_tokens.size(), min, SET_SIZE_DIFF_THRESHOLD);
 	
 	return merged_tokens.size() - min <= SET_SIZE_DIFF_THRESHOLD;
 }
@@ -369,25 +371,24 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 		// TODO: This only works for self joins
 		outputempty(record, recind, indexedrecords, candidateSet, Similarity::outputall_le(threshold));
 
-		//Minimum size of records in index
+		// Minimum size of records in index
 		unsigned int minsize = Similarity::minsize(reclen, threshold);
 
 		// Check whether cache is to renew
-		if(lastprobesize != reclen) {
-			lastprobesize = reclen;
-			unsigned int maxel = Index::SELF_JOIN ? reclen : Similarity::maxsize(reclen, threshold);
-			minoverlapcache.resize(maxel + 1);
-			for(unsigned int i = minsize; i <= maxel; ++i) {
-				minoverlapcache[i] = Similarity::minoverlap(reclen, i, threshold);
-			}
-		}
+		// if (lastprobesize < reclen) {
+		// 	lastprobesize = reclen;
+		// 	unsigned int maxel = Index::SELF_JOIN ? reclen : Similarity::maxsize(reclen, threshold);
+		// 	minoverlapcache.resize(maxel + 1);
+		// 	for(unsigned int i = minsize; i <= maxel; ++i) {
+		// 		minoverlapcache[i] = Similarity::minoverlap(reclen, i, threshold);
+		// 	}
+		// }
 
 		// Length of probing prefix
 		unsigned int maxprefix = Similarity::maxprefix(reclen, threshold);
 
 		typename AllPairsIndexingStrategyPolicy::template maxsizechecker<self_type> 
 			maxsizechecker(reclen, threshold);
-
 
 		// foreach elem in probing prefix
 		for (unsigned recpos = 0; recpos < maxprefix; ++recpos) {
@@ -407,17 +408,17 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				IndexedRecord & indexrecord = clusterrecords[ilit->recordid];
 				unsigned int indreclen = indexrecord.tokens.size();
 
+				// printf("Check length filter indreclen %d, minsize %d\n", indreclen, minsize);
 				//Length filter - check whether minsize is satisfied
-				if(ilit.lengthfilter(indreclen, minsize)) {
+				if (ilit.lengthfilter(indreclen, minsize)) {
 					break;
 				}
 				//Note: the iterator is increased by lengthfilter
 			}
 
 			// for each record in inverted list 
-			while(!ilit.end() ) {
-
-				if(!AllPairsIndexingStrategyPolicy::recindchecker::istocheck(recind, ilit->recordid)) {
+			while (!ilit.end()) {
+				if (!AllPairsIndexingStrategyPolicy::recindchecker::istocheck(recind, ilit->recordid)) {
 					break;
 				}
 
@@ -427,7 +428,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				unsigned int indreclen = indexrecord.tokens.size();
 
 				//Length filter 2 - maxlength above tighter length filter (if enabled)
-				if(maxsizechecker.isabove(indreclen)) {
+				if (maxsizechecker.isabove(indreclen)) {
 					break;
 				}
 
@@ -436,7 +437,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				// insert candidate if it was not already seen
 				CandidateData & candidateData = candidateSet.getCandidateData(ilit->recordid);
 
-				if(candidateData.count == 0) {
+				if (candidateData.count == 0) {
 					candidateSet.addRecord(ilit->recordid);
 				}
 				candidateData.count += 1;
@@ -444,9 +445,10 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				ilit.next();
 			}
 		}
+		// printf("candidateSet.size() = %ld\n", candidateSet.size());
 		statistics.candidatesP1.add(candidateSet.size());
 
-		//Now, verify candidates
+		// Now, verify candidates
 		bool find_cluster = false;
 		int best_cluster_id;
 		double best_sim = threshold;
@@ -465,7 +467,9 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 			// printf("Cluster %d (%ld - %ld) > %ld ?\n", indexrecord.recordid, indexrecord.union_set_size, indexrecord.min_set_size, (uint64_t) SET_SIZE_DIFF_THRESHOLD);
 			// if (indexrecord.union_set_size - indexrecord.min_set_size > SET_SIZE_DIFF_THRESHOLD) continue;
 			
-			unsigned int minoverlap = minoverlapcache[indreclen];
+			// unsigned int minoverlap = minoverlapcache[indreclen];
+			unsigned int minoverlap = Similarity::minoverlap(reclen, indreclen, threshold);
+			// printf("minoverlap at minoverlapcache[%d] = %d\n", indreclen, minoverlap);
 
 			//First position after last position by index lookup in indexed record
 			unsigned int lastposind = IndexStructure::verify_indexrecord_start(indexrecord, indreclen, this);
@@ -478,7 +482,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 
 			unsigned int recpos, indrecpos;
 
-			if(recpreftoklast > indrecpreftoklast) {
+			if (recpreftoklast > indrecpreftoklast) {
 
 				recpos = candidateData.count;
 				//first position after minprefix / lastposind
@@ -489,9 +493,10 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				indrecpos = candidateData.count;
 			}
 
-			if(verifypairandgetsim(record.tokens, indexrecord.tokens, minoverlap, cur_sim, recpos, indrecpos, candidateData.count)) {
+			if (verifypairandgetsim(record.tokens, indexrecord.tokens, minoverlap, cur_sim, recpos, indrecpos, candidateData.count)) {
 				// handleoutput->addPair(record, indexrecord);
 				// find_cluster = true;
+				// printf("cur_sim = %.3f, best_sim = %.3f\n", cur_sim, best_sim);
 				if (cur_sim == 1.0) { // find home cluster
 					find_cluster = true; // consider exact match case first
 					best_cluster_id = indexrecord.recordid;
@@ -564,7 +569,16 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				update_index = true;
 			}
 			if (update_index) {
+				// unsigned int minsize_ = Similarity::minsize(rec.tokens.size(), threshold);
 				index.index_record(rec, best_cluster_id, rec.tokens.size(), threshold, false);
+				// if (lastprobesize < rec.tokens.size()) {
+				// 	lastprobesize = rec.tokens.size();
+				// 	unsigned int maxel = Index::SELF_JOIN ? rec.tokens.size() : Similarity::maxsize(rec.tokens.size(), threshold);
+				// 	minoverlapcache.resize(maxel + 1);
+				// 	for (unsigned int i = minsize_; i <= maxel; ++i) {
+				// 		minoverlapcache[i] = Similarity::minoverlap(rec.tokens.size(), i, threshold);
+				// 	}
+				// }
 			}
 
 			// printf("Find best cluster %d for record %d / sim = %.3f\n", best_cluster_id, recind, best_sim);
@@ -585,10 +599,10 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 			rec.min_set_size = rec.tokens.size();
 			rec.union_set_size = rec.tokens.size();
 
-			for (auto i = 0; i < rec.tokens.size(); i++) {
-				printf("%d ", rec.tokens[i]);
-			}
-			printf("\n");
+			// for (auto i = 0; i < rec.tokens.size(); i++) {
+			// 	printf("%d ", rec.tokens[i]);
+			// }
+			// printf("\n");
 
 			// index record
 			index.index_record(rec, new_cluster_id, reclen, threshold);

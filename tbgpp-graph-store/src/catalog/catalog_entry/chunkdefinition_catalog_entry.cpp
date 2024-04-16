@@ -24,6 +24,7 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 	min_max_array.resize(num_entries_in_array);
 
 	for (idx_t i = 0; i < num_entries_in_array; i++) {
+		bool has_nonnull_value = false;
 		idx_t start_offset = i * MIN_MAX_ARRAY_SIZE;
 		idx_t end_offset = (i == num_entries_in_array - 1) ? 
 							num_entries_in_column : (i + 1) * MIN_MAX_ARRAY_SIZE;
@@ -34,10 +35,13 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 			if (val.IsNull()) continue;
 			if (min_val > val) min_val = val;
 			if (max_val < val) max_val = val;
+			has_nonnull_value = true;
 		}
 		// This does automatic type conversion
-		min_max_array[i].min = min_val.GetValue<idx_t>();
-		min_max_array[i].max = max_val.GetValue<idx_t>();
+		if (has_nonnull_value) {
+			min_max_array[i].min = min_val.GetValue<idx_t>();
+			min_max_array[i].max = max_val.GetValue<idx_t>();
+		}
 	}
 	is_min_max_array_exist = true;
 }
