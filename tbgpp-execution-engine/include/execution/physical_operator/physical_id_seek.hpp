@@ -132,16 +132,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                         vector<vector<uint32_t>> &target_seqnos_per_extent,
                         vector<idx_t> &mapping_idxs,
                         vector<idx_t> &num_tuples_per_chunk) const;
-    void referInputChunk(DataChunk &input, DataChunk &chunk,
+    OperatorResultType referInputChunk(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_size) const;
-    void referInputChunkLeft(DataChunk &input, DataChunk &chunk,
+    OperatorResultType referInputChunkLeft(DataChunk &input, DataChunk &chunk,
                          OperatorState &lstate, idx_t output_idx) const;
     OperatorResultType referInputChunks(DataChunk &input,
-                          vector<unique_ptr<DataChunk>> &chunks,
-                          IdSeekState &state,
-                          vector<idx_t> &num_tuples_per_chunk,
-                          idx_t &output_chunk_idx) const;
-    OperatorResultType referInputChunksWithMerge(DataChunk &input,
                           vector<unique_ptr<DataChunk>> &chunks,
                           IdSeekState &state,
                           vector<idx_t> &num_tuples_per_chunk,
@@ -151,6 +146,11 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                           IdSeekState &state,
                           vector<idx_t> &num_tuples_per_chunk,
                           idx_t &output_chunk_idx) const;
+    OperatorResultType moveToNextOutputChunk(vector<unique_ptr<DataChunk>> &chunks, 
+                            OperatorState &lstate, idx_t &output_chunk_idx) const;
+    void markInvalidForUnseekedColumns(
+        DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
+        vector<vector<uint32_t>> &target_seqnos_per_extent, vector<idx_t>& mapping_idxs) const;
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType>& lhs_type, vector<LogicalType>& scan_type,  vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx, vector<idx_t>& output_col_idx) const;
@@ -159,7 +159,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void genNonPredColIdxs();
     void getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_idx, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
     void remapSeqnoToEidIdx(vector<idx_t>& in_seqno_to_eid_idx, const sel_t* sel_idxs, size_t sel_size, vector<idx_t>& out_seqno_to_eid_idx) const;
-    bool determineForceUnionAll() const;
+    bool determineUnifyChunks() const;
+    void getOutputColIdxsForExtent(idx_t extentIdx, vector<idx_t>& mapping_idxs, vector<idx_t>& output_col_idx) const;
 
     // parameters
     uint64_t id_col_idx;
