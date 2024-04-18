@@ -16,7 +16,6 @@ using namespace simdjson;
 
 #define TILE_SIZE 1024 // or 4096
 #define FREQUENCY_THRESHOLD 0.95
-// #define SET_SIM_THRESHOLD 0.7
 #define SET_SIM_THRESHOLD 0.99
 #define NEO4J_VERTEX_ID_NAME "id"
 
@@ -44,6 +43,16 @@ public:
         sch_HT.resize(1000); // TODO appropriate size
 
         cluster_algo = new AllPairsCluster<Jaccard>(SET_SIM_THRESHOLD);
+    }
+
+    GraphSIMDJSONFileParser(std::shared_ptr<ClientContext> client_, ExtentManager *ext_mng_, Catalog *cat_instance_, double set_sim_threshold) {
+        client = client_;
+        ext_mng = ext_mng_;
+        cat_instance = cat_instance_;
+
+        sch_HT.resize(1000); // TODO appropriate size
+
+        cluster_algo = new AllPairsCluster<Jaccard>(set_sim_threshold);
     }
 
     void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
@@ -594,6 +603,7 @@ public:
                     per_cluster_key_column_idxs[i].push_back(token_idx);
                 }
                 property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
+                // property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), tokens[token_idx]});
             }
 
             // Set catalog informations
