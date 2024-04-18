@@ -31,6 +31,7 @@ public:
 private:
 	vector<uint8_t> projection_mapping;
 	vector<vector<uint8_t>> projection_mappings;
+	mutable uint64_t num_nulls = 0;
 };	
 
 }
