@@ -485,8 +485,8 @@ public:
                     part_name + DEFAULT_TEMPORAL_INFIX +
                     std::to_string(
                         part_cat->GetNewTemporalID());  // TODO vpart -> vps
-                std::cout << "temp schema: " << property_schema_name
-                          << std::endl;
+                // std::cout << "temp schema: " << property_schema_name
+                //           << std::endl;
                 vector<LogicalType> merged_types;
                 vector<PropertyKeyID> merged_property_key_ids;
                 vector<string> key_names;

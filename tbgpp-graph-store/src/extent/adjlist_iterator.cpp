@@ -15,9 +15,6 @@ namespace duckdb {
 bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type) {
     if (is_initialized && target_eid == cur_eid) return true;
 
-    vector<LogicalType> target_types { adjlist_type };
-	vector<idx_t> target_idxs { (idx_t)adjColIdx };
-    
     cur_eid = target_eid;
     is_initialized = true;
     auto target_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(target_eid);
@@ -26,7 +23,9 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     }
     
     if (!ext_it ->IsInitialized()) {
-        ext_it->Initialize(context, target_types, target_idxs, target_eid); // TODO
+        vector<LogicalType> target_types { adjlist_type };
+        vector<idx_t> target_idxs { (idx_t)adjColIdx };
+        ext_it->Initialize(context, target_types, target_idxs, target_eid);
         (*eid_to_bufptr_idx_map)[target_eid_seqno] = std::make_pair<idx_t, data_ptr_t>(0, nullptr);
         return false;
     } else {
@@ -37,16 +36,14 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
                 return true;
             } else {
                 // Evicted extent
-                ExtentID evicted_eid;
-                int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
+                int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, adjlist_type);
                 pair.first = bufptr_idx;
                 pair.second = nullptr;
             }
         }
         else {
             // Fail to find
-            ExtentID evicted_eid;
-            int bufptr_idx = ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
+            int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, adjlist_type);
             (*eid_to_bufptr_idx_map)[target_eid_seqno] = std::make_pair<idx_t, data_ptr_t>(bufptr_idx, nullptr);
             return false;
         }
@@ -105,6 +102,14 @@ void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uin
     }
     *start_ptr = adjListBase + (target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1]);
     *end_ptr = adjListBase + adjListBase[target_seqno];
+}
+
+
+int AdjacencyListIterator::requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type) {
+    ExtentID evicted_eid;
+    vector<LogicalType> target_types { adjlist_type };
+    vector<idx_t> target_idxs { (idx_t)adjColIdx };
+    return ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
 }
 
 void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx) {

@@ -148,36 +148,39 @@ void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_typ
 	} else {
 		// the types of the new chunk should match the types of the previous one
 		D_ASSERT(types.size() == new_chunk.ColumnCount());
-		auto new_types = new_chunk.GetTypes();
-		for (idx_t i = 0; i < types.size(); i++) {
-			if (new_types[i] != types[i]) {
-				throw TypeMismatchException(new_types[i], types[i], "Type mismatch when combining rows");
-			}
-			if (types[i].InternalType() == PhysicalType::LIST) {
-				// need to check all the chunks because they can have only-null list entries
-				for (auto &chunk : chunks) {
-					auto &chunk_vec = chunk->data[i];
-					auto &new_vec = new_chunk.data[i];
-					auto &chunk_type = chunk_vec.GetType();
-					auto &new_type = new_vec.GetType();
-					if (chunk_type != new_type) {
-						throw TypeMismatchException(chunk_type, new_type, "Type mismatch when combining lists");
-					}
-				}
-			}
-			// TODO check structs, too
-		}
+		// auto new_types = new_chunk.GetTypes();
+		// for (idx_t i = 0; i < types.size(); i++) {
+		// 	if (new_types[i] != types[i]) {
+		// 		throw TypeMismatchException(new_types[i], types[i], "Type mismatch when combining rows");
+		// 	}
+		// 	if (types[i].InternalType() == PhysicalType::LIST) {
+		// 		// need to check all the chunks because they can have only-null list entries
+		// 		for (auto &chunk : chunks) {
+		// 			auto &chunk_vec = chunk->data[i];
+		// 			auto &new_vec = new_chunk.data[i];
+		// 			auto &chunk_type = chunk_vec.GetType();
+		// 			auto &new_type = new_vec.GetType();
+		// 			if (chunk_type != new_type) {
+		// 				throw TypeMismatchException(chunk_type, new_type, "Type mismatch when combining lists");
+		// 			}
+		// 		}
+		// 	}
+		// 	// TODO check structs, too
+		// }
 
 		// first append data to the current chunk
 		DataChunk &last_chunk = *chunks.back();
 		idx_t added_data = MinValue<idx_t>(remaining_data, STANDARD_VECTOR_SIZE - last_chunk.size());
 		if (added_data > 0) {
-			last_chunk.ConvertIsValidToValidityMap(new_chunk, projection_mapping);
+			// if (last_chunk.GetSchemaIdx() != new_chunk.GetSchemaIdxx()) {
+				last_chunk.ConvertIsValidToValidityMap(new_chunk, projection_mapping);
+				last_chunk.SetSchemaIdx(new_chunk.GetSchemaIdx());
+			// }
 
 			idx_t old_count = new_chunk.size();
 			new_chunk.SetCardinality(added_data);
 
-			last_chunk.Append(new_chunk, projection_mapping);
+			last_chunk.Append(new_chunk, projection_mapping, false);
 			remaining_data -= added_data;
 			// reset the chunk to the old data
 			new_chunk.SetCardinality(old_count);
@@ -193,6 +196,7 @@ void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_typ
 			VectorOperations::Copy(new_chunk.data[projection_mapping[i]], chunk->data[i], new_chunk.size(), offset, 0);
 		}
 		chunk->SetCardinality(new_chunk.size() - offset);
+		chunk->SetSchemaIdx(new_chunk.GetSchemaIdx());
 		chunks.push_back(move(chunk));
 	}
 }

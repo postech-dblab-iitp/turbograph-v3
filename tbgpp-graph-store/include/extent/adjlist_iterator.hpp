@@ -40,6 +40,7 @@ public:
     void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
     void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
     void getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t **start_ptr, uint64_t **end_ptr, bool is_initialized);
+    int requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type);
 
 private:
     bool is_initialized = false;
