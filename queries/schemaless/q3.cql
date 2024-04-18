@@ -1,10 +1,24 @@
-MATCH (person:Person)<-[:HAS_CREATOR]-(comment:Comment)
-WHERE comment.length < 20
-  AND comment.creationDate > 1266606692284
-MATCH (comment)-[:REPLY_OF]->(post:Post)
+MATCH (person:Person)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(post:Post)-[:POST_HAS_CREATOR]->(person2:Person)
 RETURN 
-  person.id AS personId,
+  person.firstName AS personFirstName,
+  person.lastName AS personLastName,
+  person.creationDate AS personCreationDate,
+  person.birthday AS personBirthday,
   person.locationIP AS personLocationIP,
   person.gender AS personGender,
+  comment.creationDate AS commentCreationDate,
+  comment.content AS commentContent,
+  comment.length AS commentLength,
+  comment.browserUsed AS commentBrowserUsed,
+  comment.locationIP AS commentLocationIP,
+  post.imageFile AS postImageFile,
   post.creationDate AS postCreationDate,
-  post.language AS postLanguage
+  post.content AS postContent,
+  post.browserUsed AS postBrowserUsed,
+  post.language AS postLanguage,
+  person2.firstName AS person2FirstName,
+  person2.lastName AS person2LastName,
+  person2.creationDate AS person2CreationDate,
+  person2.birthday AS person2Birthday,
+  person2.locationIP AS person2Location,
+  person2.gender AS person2Gender;

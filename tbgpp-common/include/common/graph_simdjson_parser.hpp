@@ -656,6 +656,7 @@ public:
             D_ASSERT(cluster_id < num_clusters);
 
             recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
+            // printf("%ld-th tuple, cluster %ld, per_cluster_idx %ld\n", num_tuples, cluster_id, num_tuples_per_cluster[cluster_id]);
             
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
@@ -1122,7 +1123,7 @@ private:
                 } else {
                     current_prefix = current_prefix + std::string("_") + key;
                 }
-                // std::cout << "\"" << key << "/" << current_prefix << "\": ";
+                // std::cout << "\"" << key << "/" << current_prefix << "\": " << std::endl;
                 auto key_idx = property_to_id_map_per_cluster[cluster_id].at(current_prefix);
                 recursive_iterate_jsonl(field.value(), current_prefix, in_array, current_idx, key_idx, cluster_id, data);
                 current_prefix = old_prefix;
@@ -1137,18 +1138,21 @@ private:
             case ondemand::number_type::signed_integer: {
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_int64();
+                // std::cout << element.get_int64() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
                 uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_uint64();
+                // std::cout << element.get_uint64() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::floating_point_number: {
                 double *column_ptr = (double *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_double();
+                // std::cout << element.get_double() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
