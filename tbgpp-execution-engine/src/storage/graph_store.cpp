@@ -369,7 +369,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema,
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos,
-    Vector &rowcol_vec, char *row_major_store)
+    idx_t out_id_col_idx, Vector &rowcol_vec, char *row_major_store, idx_t &num_output_tuples)
 {
     ExtentID target_eid = target_eids[current_pos];
     ExtentID current_eid;
@@ -377,7 +377,8 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     D_ASSERT(current_pos < target_seqnos_per_extent.size());
     ext_it->GetNextExtentInRowFormat(
         client, output, current_eid, target_eid, input, nodeColIdx, rowcol_vec,
-        row_major_store, target_seqnos_per_extent[current_pos]);
+        row_major_store, target_seqnos_per_extent[current_pos], out_id_col_idx,
+		num_output_tuples);
     return StoreAPIResult::OK;
 }
 

@@ -5,6 +5,7 @@
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
 #include "extent/extent_iterator.hpp"
 #include "planner/joinside.hpp"
+#include "common/types/rowcol_type.hpp"
 
 #include <string>
 #include "icecream.hpp"
@@ -182,6 +183,26 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
                     src_vid_column_vector))[0];
                 while (state.output_idx < STANDARD_VECTOR_SIZE &&
                     state.lhs_idx < input.size()) {
+                    GetAdjListAndFillRHSOutput(
+                        context, state, src_vid, tgt_adj_column, eid_adj_column,
+                        tgt_validity_mask, eid_validity_mask, cur_direction);
+                }
+                break;
+            }
+            case VectorType::ROW_VECTOR: {
+                rowcol_t *rowcol_arr = FlatVector::GetData<rowcol_t>(src_vid_column_vector);
+                auto rowcol_idx = src_vid_column_vector.GetRowColIdx();
+                char *row_ptr = src_vid_column_vector.GetRowMajorStore();
+                while (state.output_idx < STANDARD_VECTOR_SIZE &&
+                    state.lhs_idx < input.size()) {
+                    // calculate offset
+                    auto base_offset = rowcol_arr[state.lhs_idx].offset;
+		            PartialSchema *schema_ptr = (PartialSchema *)rowcol_arr[state.lhs_idx].schema_ptr;
+			        auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+                    
+                    // get vid
+                    uint64_t src_vid;
+                    memcpy(&src_vid, row_ptr + base_offset + offset, sizeof(uint64_t));
                     GetAdjListAndFillRHSOutput(
                         context, state, src_vid, tgt_adj_column, eid_adj_column,
                         tgt_validity_mask, eid_validity_mask, cur_direction);

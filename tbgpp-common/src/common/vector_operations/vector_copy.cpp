@@ -93,6 +93,9 @@ void VectorOperations::Copy(const Vector &source, Vector &target, const Selectio
 		break; // carry on with below code
 	case VectorType::FLAT_VECTOR:
 		break;
+	case VectorType::ROW_VECTOR:
+		VectorOperations::CopyRowStore(source, target, sel_p, source_count, source_offset, target_offset);
+		return;
 	default:
 		throw NotImplementedException("FIXME unimplemented vector type for VectorOperations::Copy");
 	}
@@ -372,16 +375,27 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 		TemplatedCopyRowStore<interval_t>(source, *sel, target, source_offset, target_offset, copy_count);
 		break;
 	case PhysicalType::VARCHAR: {
-		throw NotImplementedException("CopyRowStore");
-		// auto ldata = FlatVector::GetData<string_t>(source);
-		// auto tdata = FlatVector::GetData<string_t>(target);
-		// for (idx_t i = 0; i < copy_count; i++) {
-		// 	auto source_idx = sel->get_index(source_offset + i);
-		// 	auto target_idx = target_offset + i;
-		// 	if (tmask.RowIsValid(target_idx)) {
-		// 		tdata[target_idx] = StringVector::AddStringOrBlob(target, ldata[source_idx]);
-		// 	}
-		// }
+		// source data
+		auto ldata = FlatVector::GetData<rowcol_t>(source);
+		auto rowcol_idx = source.GetRowColIdx();
+		auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
+		char *row_data = row_buffer->GetRowData();
+
+		// target data
+		auto tdata = FlatVector::GetData<string_t>(target);
+		auto &target_validity = FlatVector::Validity(target);
+
+		for (idx_t i = 0; i < copy_count; i++) {
+			auto source_idx = sel->get_index(source_offset + i);
+			auto base_offset = ldata[source_idx].offset;
+			PartialSchema *schema_ptr = (PartialSchema *)ldata[source_idx].schema_ptr;
+			if (schema_ptr->hasIthCol(rowcol_idx)) {
+				auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+				tdata[target_offset + i] = StringVector::AddStringOrBlob(target, row_data + base_offset + offset);
+			} else {
+				target_validity.SetInvalid(target_offset + i);
+			}
+		}
 		break;
 	}
 	case PhysicalType::STRUCT: {

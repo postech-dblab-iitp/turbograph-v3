@@ -1539,7 +1539,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
                                    ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, Vector &rowcol_vec,
-                                   char *row_major_store, vector<uint32_t> &target_seqnos, bool is_output_chunk_initialized)
+                                   char *row_major_store, vector<uint32_t> &target_seqnos, idx_t out_id_col_idx, 
+                                   idx_t &num_output_tuples, bool is_output_chunk_initialized)
 {
     if (target_eid != current_eid) {
         if (!RequestNextIO(context, output, output_eid, is_output_chunk_initialized)) return false;
@@ -1572,23 +1573,31 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
             switch (cur_ext_property_type[j].id())
             {
             case LogicalTypeId::VARCHAR:
-                throw NotImplementedException("GetNextExtentInRowFormat VARCHAR");
+            {
+                string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][j] + comp_header_valid_size);
+                memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
+                    &varchar_arr[target_seqno],
+                    sizeof(string_t));
+                accumulated_bytes += sizeof(string_t);
                 break;
+            }
             case LogicalTypeId::LIST:
                 throw NotImplementedException("GetNextExtentInRowFormat LIST");
                 break;
             case LogicalTypeId::ID:
             {
-                // 8 = type_size = GetTypeIdSize(PhysicalType::UINT64)
+                // ID column does not have null, thus no need to be row format
+                Vector &out_id_vec = output.data[out_id_col_idx];
+                D_ASSERT(out_id_vec.GetVectorType() == VectorType::FLAT_VECTOR);
+                idx_t *id_column = (idx_t *)out_id_vec.GetData();
                 id_col_value = physical_id_base + target_seqno;
-                memcpy(row_major_store + rowcol_arr[i].offset + accumulated_bytes,
-                    &id_col_value, 8);
-                accumulated_bytes += 8;
+                id_column[seqno] = id_col_value;
+                accumulated_bytes += sizeof(idx_t);
                 break;
             }
             default:
             {
-                memcpy(row_major_store + rowcol_arr[i].offset + accumulated_bytes,
+                memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
                     io_requested_buf_ptrs[toggle][j] + comp_header_valid_size + target_seqno * type_sizes[j],
                     type_sizes[j]);
                 accumulated_bytes += type_sizes[j];
@@ -1596,6 +1605,7 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
             }
             }
         }
+        num_output_tuples++;
     }
     
     return true;
