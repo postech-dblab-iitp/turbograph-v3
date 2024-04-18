@@ -62,6 +62,12 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
 {
     auto &state = (ProduceResultsState &)lstate;
 
+    // // for debugging
+    // for (auto i = 0; i < input.ColumnCount(); i++) {
+    //     auto &validity = FlatVector::Validity(input.data[i]);
+    //     num_nulls += (input.size() - validity.CountValid(input.size()));
+    // }
+
     if (!state.isResultTypeDetermined) {
         state.DetermineResultTypes(input.GetTypes());
     }
@@ -126,6 +132,7 @@ void PhysicalProduceResults::Combine(ExecutionContext &context,
 {
     auto &state = (ProduceResultsState &)lstate;
     context.query_results = ((ProduceResultsState &)lstate).resultCollection.ChunksUnsafe();
+    // printf("num_nulls = %ld\n", num_nulls);
     return;
 }
 
