@@ -603,6 +603,7 @@ public:
                     per_cluster_key_column_idxs[i].push_back(token_idx);
                 }
                 property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
+                // property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), tokens[token_idx]});
             }
 
             // Set catalog informations

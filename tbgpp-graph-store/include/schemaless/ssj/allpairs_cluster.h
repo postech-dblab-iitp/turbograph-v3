@@ -34,7 +34,7 @@
 #include "candidateset.h"
 #include "emptypairs.h"
 
-#define SET_SIZE_DIFF_THRESHOLD 3 // TODO
+#define SET_SIZE_DIFF_THRESHOLD 100000 // TODO
 
 template <typename AllPairsSimilarity/* = Jaccard*/,
 		 typename AllPairsIndexingStrategyPolicy = IndexOnTheFlyPolicy,
@@ -497,15 +497,17 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 				// handleoutput->addPair(record, indexrecord);
 				// find_cluster = true;
 				// printf("cur_sim = %.3f, best_sim = %.3f\n", cur_sim, best_sim);
-				if (cur_sim == 1.0) { // find home cluster
-					find_cluster = true; // consider exact match case first
-					best_cluster_id = indexrecord.recordid;
-					break;
-				} else if (cur_sim >= best_sim) {
-					if (check_can_be_merged(indexrecord, record.tokens, indexrecord.min_set_size)) {
-						find_cluster = true;
+				if (cur_sim > best_sim) {
+					if (cur_sim == 1.0) { // find home cluster
+						find_cluster = true; // consider exact match case first
 						best_cluster_id = indexrecord.recordid;
 						best_sim = cur_sim;
+					} else {
+						if (check_can_be_merged(indexrecord, record.tokens, indexrecord.min_set_size)) {
+							find_cluster = true;
+							best_cluster_id = indexrecord.recordid;
+							best_sim = cur_sim;
+						}
 					}
 				}
 			}
@@ -555,7 +557,7 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 			// index record
 			unsigned int midprefix = Similarity::midprefix(rec.tokens.size(), threshold);
 			if (prev_midprefix == midprefix) {
-				if (cur_sim == 1.0) {
+				if (best_sim == 1.0) {
 					update_index = false;
 				} else {
 					for (auto i = 0; i < midprefix; i++) {

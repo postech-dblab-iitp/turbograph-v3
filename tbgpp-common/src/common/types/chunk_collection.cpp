@@ -174,12 +174,13 @@ void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_typ
 		if (added_data > 0) {
 			if (last_chunk.GetSchemaIdx() != new_chunk.GetSchemaIdx()) {
 				last_chunk.ConvertIsValidToValidityMap(new_chunk, projection_mapping);
+				last_chunk.SetSchemaIdx(new_chunk.GetSchemaIdx());
 			}
 
 			idx_t old_count = new_chunk.size();
 			new_chunk.SetCardinality(added_data);
 
-			last_chunk.Append(new_chunk, projection_mapping);
+			last_chunk.Append(new_chunk, projection_mapping, false);
 			remaining_data -= added_data;
 			// reset the chunk to the old data
 			new_chunk.SetCardinality(old_count);
@@ -195,6 +196,7 @@ void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_typ
 			VectorOperations::Copy(new_chunk.data[projection_mapping[i]], chunk->data[i], new_chunk.size(), offset, 0);
 		}
 		chunk->SetCardinality(new_chunk.size() - offset);
+		chunk->SetSchemaIdx(new_chunk.GetSchemaIdx());
 		chunks.push_back(move(chunk));
 	}
 }
