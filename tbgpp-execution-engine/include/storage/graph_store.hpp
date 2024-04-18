@@ -115,7 +115,8 @@ public:
      idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema,
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos,
-     Vector &rowcol_vec, char *row_major_store);
+     idx_t out_id_col_idx, Vector &rowcol_vec, char *row_major_store, 
+     idx_t &num_output_tuples);
  StoreAPIResult doVertexIndexSeek(
      ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
      idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema,

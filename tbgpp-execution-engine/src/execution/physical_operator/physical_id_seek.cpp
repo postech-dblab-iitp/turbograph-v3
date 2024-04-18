@@ -549,14 +549,19 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     if (determineUnifyChunks()) {
         const idx_t UNIFIED_CHUNK_IDX = 0;
         output_chunk_idx = UNIFIED_CHUNK_IDX;
-
         auto &chunk = *(chunks[output_chunk_idx].get());
-        doSeekUnionAll(context, input, chunk, state, target_eids,
-                       target_seqnos_per_extent, mapping_idxs,
-                       num_tuples_per_chunk[output_chunk_idx]);
-        markInvalidForUnseekedColumns(chunk, state, target_eids,
-                                      target_seqnos_per_extent, mapping_idxs);
 
+        if (determineRowFormat()) {
+            doSeekSchemaless(context, input, chunk, state, target_eids,
+                         target_seqnos_per_extent, mapping_idxs, num_tuples_per_chunk[output_chunk_idx]);
+        }
+        else {
+            doSeekUnionAll(context, input, chunk, state, target_eids,
+                        target_seqnos_per_extent, mapping_idxs,
+                        num_tuples_per_chunk[output_chunk_idx]);
+            markInvalidForUnseekedColumns(chunk, state, target_eids,
+                                        target_seqnos_per_extent, mapping_idxs);
+        }
         return referInputChunk(input, chunk, state, num_tuples_per_chunk[output_chunk_idx]);
     }
     else {
@@ -771,15 +776,14 @@ void PhysicalIdSeek::doSeekSchemaless(
                 "has_unpushdowned_expressions");
         }
         else {
-            // no filter pushdown & has no filter expression
-            // schless_chunk.SetHasRowChunk(true);
             chunk.SetHasRowChunk(true);
-
             // create rowcol_t column for the row chunk
-            // schless_chunk.CreateRowCol(union_inner_col_map, input.size());
-            chunk.InitializeRowColumn(union_inner_col_map, input.size());
-            // Vector &rowcol = schless_chunk.GetRowCol(union_inner_col_map[0]);
-            Vector &rowcol = chunk.data[union_inner_col_map[0]];
+            vector<uint32_t> union_inner_col_map_wo_id; // TODO: calculate this once in constructor
+            idx_t out_id_col_idx;
+            getColMapWithoutID(union_inner_col_map, scan_types[0], out_id_col_idx, union_inner_col_map_wo_id); // TODO: do not use scan_types[0]
+
+            chunk.InitializeRowColumn(union_inner_col_map_wo_id, input.size());
+            Vector &rowcol = chunk.data[union_inner_col_map_wo_id[0]];
             rowcol_t *rowcol_arr = (rowcol_t *)rowcol.GetData();
 
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
@@ -802,14 +806,15 @@ void PhysicalIdSeek::doSeekSchemaless(
                 rowcol_arr[i].offset = accm_offset;
                 accm_offset += total_types_size;
             }
-            chunk.CreateRowMajorStore(union_inner_col_map, accm_offset);
+            chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset);
 
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
+                // Note: Row store is shared accross all column
                 context.client->graph_store->doVertexIndexSeek(
                     state.ext_it, chunk, input, nodeColIdx, target_types,
-                    target_eids, target_seqnos_per_extent, extentIdx, rowcol,
-                    chunk.GetRowMajorStore(union_inner_col_map[0]));
+                    target_eids, target_seqnos_per_extent, extentIdx, out_id_col_idx, 
+                    rowcol, chunk.GetRowMajorStore(union_inner_col_map_wo_id[0]), output_idx);
             }
         }
     }
@@ -1374,6 +1379,42 @@ OperatorResultType PhysicalIdSeek::referInputChunksLeft(
     }
 }
 
+OperatorResultType PhysicalIdSeek::referInputChunkWithSlice(DataChunk &input, DataChunk &chunk,
+                                     OperatorState &lstate,
+                                     idx_t output_size) const
+{
+    auto &state = (IdSeekState &)lstate;
+    // for original ones reference existing columns
+    if (!do_filter_pushdown && !has_unpushdowned_expressions) {
+        idx_t schema_idx = input.GetSchemaIdx();
+        D_ASSERT(schema_idx < outer_col_maps.size());
+        D_ASSERT(input.ColumnCount() == outer_col_maps[schema_idx].size());
+        for (int i = 0; i < input.ColumnCount(); i++) {
+            if (outer_col_maps[schema_idx][i] !=
+                std::numeric_limits<uint32_t>::max()) {
+                D_ASSERT(outer_col_maps[schema_idx][i] < chunk.ColumnCount());
+                chunk.data[outer_col_maps[schema_idx][i]].Slice(
+                    input.data[i], state.sels[0], output_size);
+            }
+        }
+        chunk.SetCardinality(output_size);
+    }
+    else if (do_filter_pushdown && !has_unpushdowned_expressions) {
+        D_ASSERT(false);
+    }
+    else if (!do_filter_pushdown && has_unpushdowned_expressions) {
+        D_ASSERT(false);
+    }
+    else {
+        D_ASSERT(false);
+    }
+
+    state.has_remaining_output = false;
+    state.need_initialize_extit = true;
+
+    return OperatorResultType::NEED_MORE_INPUT;
+}
+
 void PhysicalIdSeek::generatePartialSchemaInfos()
 {
     auto &union_types = this->schema.getStoredTypesRef();
@@ -1383,18 +1424,29 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
         }
     }
     for (auto i = 0; i < inner_col_maps.size(); i++) {
+        // Remove ID column for rowcol_t
+        auto &ith_scan_type = scan_types[i];
+        auto num_id_columns = 0;
+        for (auto j = 0; j < ith_scan_type.size(); j++) {
+            if (ith_scan_type[j].id() == LogicalTypeId::ID) {
+                num_id_columns++;
+            }
+        }
+
         uint64_t accumulated_offset = 0;
         partial_schemas.push_back(PartialSchema());
-        partial_schemas[i].offset_info.resize(union_inner_col_map.size(), -1);
+        partial_schemas[i].offset_info.resize(union_inner_col_map.size() - num_id_columns, -1);
 
         for (auto j = 0; j < inner_col_maps[i].size(); j++) {
             // TODO check if inefficient
             if (inner_col_maps[i][j] == std::numeric_limits<uint32_t>::max()) // this case is not handled well, please fix this
                 continue;
+            if (ith_scan_type[j].id() == LogicalTypeId::ID)
+                continue;
             auto it =
                 std::find(union_inner_col_map.begin(),
                           union_inner_col_map.end(), inner_col_maps[i][j]);
-            auto pos = it - union_inner_col_map.begin();
+            auto pos = it - union_inner_col_map.begin() - num_id_columns;
             partial_schemas[i].offset_info[pos] = accumulated_offset;
             accumulated_offset +=
                 GetTypeIdSize(union_types[inner_col_maps[i][j]].InternalType());
@@ -1513,13 +1565,17 @@ void PhysicalIdSeek::getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_i
 }
 
 bool PhysicalIdSeek::determineUnifyChunks() const {
-    const size_t MAX_NUM_OUTPUT_SCHEMAS = 10;
+    const size_t MAX_NUM_OUTPUT_SCHEMAS = 3;
     if (oids.size() > MAX_NUM_OUTPUT_SCHEMAS) {
         return true;
     }
     else {
         return false;
     }
+}
+
+bool PhysicalIdSeek::determineRowFormat() const {
+    return false;
 }
 
 void PhysicalIdSeek::markInvalidForUnseekedColumns(
@@ -1562,6 +1618,20 @@ OperatorResultType PhysicalIdSeek::moveToNextOutputChunk(
     state.has_remaining_output = false;
     state.need_initialize_extit = true;
     return OperatorResultType::OUTPUT_EMPTY;
+}
+
+void PhysicalIdSeek::getColMapWithoutID(const vector<uint32_t>& col_map, vector<LogicalType>& types, idx_t &out_id_col_idx, vector<uint32_t>& out_col_map) const {
+    if (col_map.size() != types.size()) {
+        throw NotImplementedException("col_map.size() != types.size()");
+    }
+    for (auto i = 0; i < col_map.size(); i++) {
+        if (types[i].id() != LogicalTypeId::ID) {
+            out_col_map.push_back(col_map[i]);
+        }
+        else {
+            out_id_col_idx = col_map[i];
+        }
+    }
 }
 
 void PhysicalIdSeek::getOutputColIdxsForExtent(
