@@ -16,7 +16,6 @@ using namespace simdjson;
 
 #define TILE_SIZE 1024 // or 4096
 #define FREQUENCY_THRESHOLD 0.95
-// #define SET_SIM_THRESHOLD 0.7
 #define SET_SIM_THRESHOLD 0.99
 #define NEO4J_VERTEX_ID_NAME "id"
 
@@ -44,6 +43,16 @@ public:
         sch_HT.resize(1000); // TODO appropriate size
 
         cluster_algo = new AllPairsCluster<Jaccard>(SET_SIM_THRESHOLD);
+    }
+
+    GraphSIMDJSONFileParser(std::shared_ptr<ClientContext> client_, ExtentManager *ext_mng_, Catalog *cat_instance_, double set_sim_threshold) {
+        client = client_;
+        ext_mng = ext_mng_;
+        cat_instance = cat_instance_;
+
+        sch_HT.resize(1000); // TODO appropriate size
+
+        cluster_algo = new AllPairsCluster<Jaccard>(set_sim_threshold);
     }
 
     void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
@@ -594,6 +603,7 @@ public:
                     per_cluster_key_column_idxs[i].push_back(token_idx);
                 }
                 property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
+                // property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), tokens[token_idx]});
             }
 
             // Set catalog informations
@@ -646,6 +656,7 @@ public:
             D_ASSERT(cluster_id < num_clusters);
 
             recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
+            // printf("%ld-th tuple, cluster %ld, per_cluster_idx %ld\n", num_tuples, cluster_id, num_tuples_per_cluster[cluster_id]);
             
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
@@ -1112,7 +1123,7 @@ private:
                 } else {
                     current_prefix = current_prefix + std::string("_") + key;
                 }
-                // std::cout << "\"" << key << "/" << current_prefix << "\": ";
+                // std::cout << "\"" << key << "/" << current_prefix << "\": " << std::endl;
                 auto key_idx = property_to_id_map_per_cluster[cluster_id].at(current_prefix);
                 recursive_iterate_jsonl(field.value(), current_prefix, in_array, current_idx, key_idx, cluster_id, data);
                 current_prefix = old_prefix;
@@ -1127,18 +1138,21 @@ private:
             case ondemand::number_type::signed_integer: {
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_int64();
+                // std::cout << element.get_int64() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
                 uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_uint64();
+                // std::cout << element.get_uint64() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::floating_point_number: {
                 double *column_ptr = (double *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_double();
+                // std::cout << element.get_double() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }

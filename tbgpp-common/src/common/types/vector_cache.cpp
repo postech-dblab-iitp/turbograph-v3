@@ -13,7 +13,7 @@ public:
 		auto internal_type = type.InternalType();
 		switch (internal_type) {
 		case PhysicalType::ADJLIST: {
-			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+			owned_data = shared_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			LogicalType child_type = LogicalType::UBIGINT;
 			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
 			auto child_vector = make_unique<Vector>(child_type, false, false);
@@ -22,7 +22,7 @@ public:
 		}
 		case PhysicalType::LIST: {
 			// memory for the list offsets
-			owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
+			owned_data = shared_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);
 			// child data of the list
 			if (!type.AuxInfo()) {
 				type = LogicalType::LIST(LogicalType::UBIGINT);
@@ -47,14 +47,19 @@ public:
 		}
 		default:
 			if (GetTypeIdSize(internal_type) > 0) {
-				owned_data = unique_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);	
+				owned_data = shared_ptr<data_t[]>(new data_t[size * GetTypeIdSize(internal_type)]);	
 			}
 			break;
 		}
 	}
 
+	VectorCacheBuffer(const VectorCacheBuffer &other)
+	: VectorBuffer(VectorBufferType::OPAQUE_BUFFER), type(other.type), owned_data(other.owned_data), child_caches(other.child_caches), auxiliary(other.auxiliary) {
+	}
+
 	void ResetFromCache(Vector &result, const buffer_ptr<VectorBuffer> &buffer) {
-		D_ASSERT(type == result.GetType());
+		D_ASSERT(GetType() == LogicalType::ROWCOL || 
+				type == result.GetType());
 		auto internal_type = type.InternalType();
 		result.vector_type = VectorType::FLAT_VECTOR;
 		AssignSharedPointer(result.buffer, buffer);
@@ -139,7 +144,7 @@ private:
 	//! The type of the vector cache
 	LogicalType type;
 	//! Owned data
-	unique_ptr<data_t[]> owned_data;
+	shared_ptr<data_t[]> owned_data;
 	//! Child caches (if any). Used for nested types.
 	vector<buffer_ptr<VectorBuffer>> child_caches;
 	//! Aux data for the vector (if any)

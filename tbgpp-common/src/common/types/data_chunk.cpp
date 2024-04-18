@@ -125,13 +125,13 @@ void DataChunk::InitializeValidCols(const vector<LogicalType> &types, idx_t capa
 
 void DataChunk::InitializeRowColumn(const vector<uint32_t> &columns_to_be_grouped, idx_t count) {
 	// create rowcol_t array to be shared by all row columns
-	// TODO is this data removed?
 	VectorCache cache(LogicalType::ROWCOL, count);
-
 	for (idx_t i = 0; i < columns_to_be_grouped.size(); i++) {
+		VectorCache shared_cache(cache);
 		D_ASSERT(columns_to_be_grouped[i] < data.size());
 		data[columns_to_be_grouped[i]].CreateRowColumn(cache, count);
 		data[columns_to_be_grouped[i]].SetVectorType(VectorType::ROW_VECTOR);
+		vector_caches[columns_to_be_grouped[i]] = move(shared_cache);
 	}
 }
 

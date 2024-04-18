@@ -68,11 +68,14 @@ template <typename T>
 bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlapthres, double &similarity, unsigned int posr1=0, unsigned int posr2=0, unsigned int foundoverlap=0) {
 	unsigned int maxr1 = r1.size() - posr1 + foundoverlap;
 	unsigned int maxr2 = r2.size() - posr2 + foundoverlap;
+	unsigned int posr1_old = posr1;
+	unsigned int posr2_old = posr2;
+	unsigned int foundoverlap_old = foundoverlap;
 
 	unsigned int steps = 0;
 
 	bool exact_match = true;
-	// if (r1.size() != r2.size()) exact_match = false;
+	if (r1.size() != r2.size()) exact_match = false;
 	// printf("[verify-before] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
 	// 	r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
 	
@@ -89,7 +92,7 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 	// printf("]\n");
 
 	// while(maxr1 >= overlapthres && maxr2 >= overlapthres && foundoverlap < overlapthres) {
-	while(maxr1 >= overlapthres && maxr2 >= overlapthres && posr1 < r1.size() && posr2 < r2.size()) {
+	while (maxr1 >= overlapthres && maxr2 >= overlapthres && posr1 < r1.size() && posr2 < r2.size()) {
 		steps++;
 		if(r1[posr1] == r2[posr2]) {
 			++posr1;
@@ -107,7 +110,7 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 	// printf("[verify-after] r1.size = %ld, r2.size = %ld, posr1 = %d, posr2 = %d, maxr1 = %d, maxr2 = %d, overlapthres = %d, foundoverlap = %d\n", 
 	// 	r1.size(), r2.size(), posr1, posr2, maxr1, maxr2, overlapthres, foundoverlap);
 	
-	if(foundoverlap >= overlapthres) {
+	if (foundoverlap >= overlapthres) {
 		// extStatistics.verifyTrueSteps.add(steps);
 		// if(steps == 0) {
 		// 	extStatistics.verifyLoop0True.inc();
@@ -115,7 +118,34 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 		// extStatistics.verifyTrueSetSizeSum.add(r1.size() + r2.size());
 		// extStatistics.verifyTrueSetSizeCnt.add(2);
 		
-		similarity = static_cast<double>(foundoverlap) / (r1.size() + r2.size() - foundoverlap); // consider jaccard only
+		unsigned int real_overlap_cnt = foundoverlap - foundoverlap_old;
+		unsigned int i = 0;
+		unsigned int j = 0;
+		while (i < posr1_old && j < posr2_old) {
+			if (r1[i] == r2[j]) {
+				++i;
+				++j;
+				++real_overlap_cnt;
+			} else if (r1[i] < r2[j]) {
+				++i;
+			} else {
+				++j;
+			}
+		}
+		similarity = static_cast<double>(real_overlap_cnt) / (r1.size() + r2.size() - real_overlap_cnt); // consider jaccard only
+
+		// if (similarity == 1.0) {
+		// 	printf("foundoverlap = %d, r1.size() = %ld, r2.size() = %ld\n", real_overlap_cnt, r1.size(), r2.size());
+		// 	printf("Compare: ");
+		// 	for (int i = 0; i < r1.size(); i++) {
+		// 		printf("%d ", r1[i]);
+		// 	}
+		// 	printf(" vs ");
+		// 	for (int i = 0; i < r2.size(); i++) {
+		// 		printf("%d ", r2[i]);
+		// 	}
+		// 	printf("\n");
+		// }
 	} else {
 		// extStatistics.verifyFalseSteps.add(steps);
 		// if(steps == 0) {
@@ -126,7 +156,6 @@ bool inline verifypairandgetsim(const T & r1, const T & r2, unsigned int overlap
 	}
 
 	return foundoverlap >= overlapthres;
-
 }
 
 #else
