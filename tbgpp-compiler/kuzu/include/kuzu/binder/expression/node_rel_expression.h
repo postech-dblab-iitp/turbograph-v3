@@ -95,7 +95,9 @@ public:
     }
 
     void setUsedForFilterColumn(const string& propertyName) {
-        used_for_filter_columns[propertyNameToIdx.at(propertyName)] = true;
+        auto col_idx = propertyNameToIdx.at(propertyName);
+        used_columns[col_idx] = true;
+        used_for_filter_columns[col_idx] = true;
     }
 
     bool isUsedForFilterColumn(uint64_t col_idx) {
