@@ -13,4 +13,4 @@ RETURN
 ORDER BY
     commentOrPostCreationDate DESC,
     commentOrPostId ASC
-LIMIT 20
+LIMIT 20;

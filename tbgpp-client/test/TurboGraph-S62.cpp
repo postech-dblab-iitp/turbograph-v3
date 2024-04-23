@@ -132,6 +132,7 @@ bool is_query_string_given = false;
 bool run_plan_wo_compile = false;
 bool show_top_10_only = false;
 bool dump_output = false;
+bool is_compile_only = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
 bool enable_profile = false;			// passed to client context as config
@@ -245,6 +246,8 @@ class InputParser{
         	load_backward_edge = true;
         } else if (std::strncmp(current_str.c_str(), "--workspace:", 12) == 0) {
 			workspace = std::string(*itr).substr(12);
+		} else if (std::strncmp(current_str.c_str(), "--compile-only", 14) == 0) {
+			is_compile_only = true;
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;
@@ -396,54 +399,57 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	/*
 		EXECUTE QUERY
 	*/
-			auto executors = planner.genPipelineExecutors();
-			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
-			std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
 
-			boost::timer::cpu_timer query_timer;
-			auto &profiler = QueryProfiler::Get(*client.get());
-			// start profiler
-			profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
-			// initialize profiler for tree root
-			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
-			query_timer.start();
-			int idx = 0;
-			for (auto exec : executors) { 
-				if (planner_config.DEBUG_PRINT) {
-					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-					std::cout << exec->pipeline->toString() << std::endl;
+			if (!is_compile_only) {
+				auto executors = planner.genPipelineExecutors();
+				if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
+				std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
+
+				boost::timer::cpu_timer query_timer;
+				auto &profiler = QueryProfiler::Get(*client.get());
+				// start profiler
+				profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
+				// initialize profiler for tree root
+				profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
+				query_timer.start();
+				int idx = 0;
+				for (auto exec : executors) { 
+					if (planner_config.DEBUG_PRINT) {
+						std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+						std::cout << exec->pipeline->toString() << std::endl;
+					}
 				}
-			}
-			idx=0;
-			for (auto exec : executors) { 
-				if (planner_config.DEBUG_PRINT) {
-					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+				idx=0;
+				for (auto exec : executors) { 
+					if (planner_config.DEBUG_PRINT) {
+						std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+					}
+					exec->ExecutePipeline();
+					if (planner_config.DEBUG_PRINT) {
+						std::cout << "done pipeline execution!!" << std::endl;
+					}
 				}
-				exec->ExecutePipeline();
-				if (planner_config.DEBUG_PRINT) {
-					std::cout << "done pipeline execution!!" << std::endl;
+				// end_timer
+				auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+				query_execution_times.push_back(query_exec_time_ms);
+				// end profiler
+				profiler.EndQuery();
+
+			/*
+				DUMP RESULT
+			*/
+
+				D_ASSERT(executors.back()->context->query_results != nullptr);
+				auto &resultChunks = *(executors.back()->context->query_results);
+				auto &schema = executors.back()->pipeline->GetSink()->schema;
+				printOutput(planner, resultChunks, schema);
+				
+				std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+
+				if (planner_config.num_iterations == 1) {
+					// Print result plan
+					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 				}
-			}
-			// end_timer
-			auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
-			query_execution_times.push_back(query_exec_time_ms);
-			// end profiler
-			profiler.EndQuery();
-
-		/*
-			DUMP RESULT
-		*/
-
-			D_ASSERT(executors.back()->context->query_results != nullptr);
-			auto &resultChunks = *(executors.back()->context->query_results);
-			auto &schema = executors.back()->pipeline->GetSink()->schema;
-			printOutput(planner, resultChunks, schema);
-			
-			std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
-
-			if (planner_config.num_iterations == 1) {
-				// Print result plan
-				exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 			}
 		}
 		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();

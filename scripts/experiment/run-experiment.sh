@@ -29,6 +29,10 @@ queries=$(parse_query_numbers $query_numbers)
 # Prepare the output file
 echo "Query number,Compile time,Query execution time" > $output_file
 
+# Run Store
+../../build-release/tbgpp-graph-store/store &
+sleep 5
+
 # Execute queries
 for query_num in $queries; do
     query_file="${queries_path}/q${query_num}.cql"
@@ -37,8 +41,8 @@ for query_num in $queries; do
         continue
     fi
     query_str=$(cat "$query_file")
-    warmup_output=$(../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
-    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive)
+    warmup_output=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive --compile-only)
+    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --compile-only)
     exit_status=$?
 
     if [ $exit_status -ne 0 ]; then
@@ -53,3 +57,6 @@ for query_num in $queries; do
     # Write to output file
     echo "$query_num, $compile_time, $exec_time" >> "$output_file"
 done
+
+pkill -f store
+sleep 3
