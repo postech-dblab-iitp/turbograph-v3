@@ -1,5 +1,4 @@
-MATCH (person:Person)-[r:KNOWS]->(friend:Person)
-RETURN 
+MATCH (person:Person)-[:KNOWS]->(friend:Person)<-[:HAS_CREATOR]-(post:Post)
   person.firstName AS personFirstName,
   person.lastName AS personLastName,
   person.creationDate AS personCreationDate,
@@ -9,4 +8,8 @@ RETURN
   friend.lastName AS friendLastName,
   friend.creationDate AS friendCreationDate,
   friend.birthday AS friendBirthday,
-  friend.locationIP AS friendLocationIP;
+  friend.locationIP AS friendLocationIP,
+  post.creationDate AS postCreationDate,
+  post.browserUsed AS postBrowserUsed,
+  post.language AS postLanguage,
+  post.length AS postLength;
