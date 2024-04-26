@@ -143,9 +143,23 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 	auto graph_cat = s62_get_graph_catalog_entry();
 
 	// Get labels and types
-	vector<string> labels, types;
-	graph_cat->GetVertexLabels(labels);
-	graph_cat->GetEdgeTypes(types);
+	vector<string> labels;
+	idx_t_vector *vertex_partitions = graph_cat->GetVertexPartitionOids();
+	for (int i = 0; i < vertex_partitions->size(); i++) {
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client.get(), DEFAULT_SCHEMA, vertex_partitions->at(i));
+		labels.push_back(part_cat->GetName().substr(6));
+    }
+
+	vector<string> types;
+	idx_t_vector *edge_partitions = graph_cat->GetEdgePartitionOids();
+	for (int i = 0; i < edge_partitions->size(); i++) {
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client.get(), DEFAULT_SCHEMA, edge_partitions->at(i));
+		types.push_back(part_cat->GetName().substr(6));
+    }
 
 	// Create s62_metadata linked list with labels
 	s62_metadata *metadata = NULL;

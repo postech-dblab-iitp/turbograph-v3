@@ -55,8 +55,8 @@ public:
 	//! Create a real GraphCatalogEntry
 	GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc);
 
-	PartitionID_vector vertex_partitions;
-	PartitionID_vector edge_partitions;
+	idx_t_vector vertex_partitions;
+	idx_t_vector edge_partitions;
 
 	// TODO: change map structure into.. what?
 	VertexLabelIDUnorderedMap vertexlabel_map;
@@ -81,6 +81,16 @@ public:
 	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, EdgeTypeID edge_type_id);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, string type);
 	void AddEdgeConnectionInfo(ClientContext &context, idx_t src_part_oid, idx_t edge_part_oid);
+
+	idx_t_vector *GetVertexPartitionOids()
+	{
+		return &vertex_partitions;
+	}
+
+	idx_t_vector *GetEdgePartitionOids()
+	{
+		return &edge_partitions;
+	}
 
 	vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
 	void GetPropertyKeyIDs(ClientContext &context, vector<string> &property_names, vector<LogicalType> &property_types, vector<PropertyKeyID> &property_key_ids);
