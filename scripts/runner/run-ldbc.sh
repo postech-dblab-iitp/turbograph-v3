@@ -1,8 +1,5 @@
 #!/bin/bash
 
-SUFFIX=""
-SF=$1
-
-export SF=${SF}
+db_dir=$1
 ./tbgpp-execution-engine/TurboGraph \
-	--workspace:"/data/ldbc/sf${SF}/"
+	--workspace:${db_dir}
