@@ -1,5 +1,5 @@
 #!/bin/bash
 
 db_dir=$1
-./tbgpp-execution-engine/TurboGraph \
+./tbgpp-client/TurboGraph-S62 \
 	--workspace:${db_dir}

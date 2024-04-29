@@ -145,3 +145,10 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 
 ## Execution Options
 
+- `--workspace: <workspace>`: Specifies the workspace directory.
+- `--query: <query>`: Specifies the query file.
+- `--debug-orca``: Enables debug mode for the Orca optimizer.
+- `--explain`: Prints detailed information about the query execution plan.
+- `--profile`: Prints the query plan profile output.
+- `--dump-output <output path>`: Dumps the query output to the specified path.
+- `--num-iterations: <num iterations>`: Specifies the number of iterations for the query.
