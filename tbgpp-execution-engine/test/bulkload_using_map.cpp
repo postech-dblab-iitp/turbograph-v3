@@ -1078,18 +1078,18 @@ class InputParser{ // TODO use boost options
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(8);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				itr++;
-				std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				// std::get<2>(tuple_to_insert) = 0;
+				// itr++;
+				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				std::get<2>(tuple_to_insert) = 0;
 				vertex_files.push_back(tuple_to_insert);
 			} else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
 				std::tuple<std::string, std::string, size_t> tuple_to_insert;
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(16);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				itr++;
-				std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				// std::get<2>(tuple_to_insert) = 0;
+				// itr++;
+				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				std::get<2>(tuple_to_insert) = 0;
 				edge_files.push_back(tuple_to_insert);
 				load_edge = true;
 			} else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
@@ -1098,9 +1098,9 @@ class InputParser{ // TODO use boost options
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(25);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				itr++;
-				std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				// std::get<2>(tuple_to_insert) = 0;
+				// itr++;
+				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
+				std::get<2>(tuple_to_insert) = 0;
 				edge_files_backward.push_back(tuple_to_insert);
 				load_backward_edge = true;
 			} else if (std::strncmp(current_str.c_str(), "--json:", 7) == 0) {
