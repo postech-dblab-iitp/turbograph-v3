@@ -153,3 +153,5 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 - `--profile`: Prints the query plan profile output.
 - `--dump-output <output path>`: Dumps the query output to the specified path.
 - `--num-iterations: <num iterations>`: Specifies the number of iterations for the query.
+- `--disable-merge-join`: Disables the merge join operator (default optimizer mode)
+- `--join-order-optimizer:<exhaustive, greedy>`: Specifies the join order optimizer mode.
