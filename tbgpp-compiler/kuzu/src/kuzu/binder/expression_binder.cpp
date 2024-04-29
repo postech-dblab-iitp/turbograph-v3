@@ -150,6 +150,10 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             auto child = bindInternalIDExpression(*children[i]);
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(child, function->parameterTypeIDs[i]));
+            
+            D_ASSERT(childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY);
+            auto &node_expr = (NodeOrRelExpression &)*children[i];
+            node_expr.setUsedForFilterColumn(INTERNAL_ID_SUFFIX);
         } else {
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
