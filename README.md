@@ -131,7 +131,8 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     You have to run analyze to make optimizers use statistics.
 
     ```
-    cp scripts/runner/run-ldbc.sh <build dir>
+    cp scripts/runner/run-ldbc.sh build
+    cd build
     bash run-ldbc.sh <db_dir>
     ```
 
