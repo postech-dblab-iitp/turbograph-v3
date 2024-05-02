@@ -1,5 +1,5 @@
-MATCH (m:Comment {id: 57174984696770 })<-[:REPLY_OF_COMMENT]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
-	    OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
+MATCH (m:Post {id: 57174984696770 })<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)
+	    OPTIONAL MATCH (m)-[:POST_HAS_CREATOR]->(a:Person)<-[r:KNOWS]-(p)
 	    RETURN c.id AS commentId,
 			c.content AS commentContent,
 			c.creationDate AS commentCreationDate,
