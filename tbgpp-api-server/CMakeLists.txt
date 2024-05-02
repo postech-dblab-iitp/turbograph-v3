@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 ####################################################
 # PROJECT METADATA 
 ####################################################
-project(tbgpp-client)
+project(tbgpp-api-server)
 
 ####################################################
 # ADD SUBDIRECTORIES
@@ -20,7 +20,8 @@ endif()
 ####################################################
 # DECLARE TARGETS
 ####################################################
-add_library(tbgpp-api-server SHARED)
+add_library(tbgpp-api-server-shared SHARED)
+add_library(tbgpp-api-server STATIC)
 
 ####################################################
 # GLOBAL DEFINITION
@@ -33,17 +34,28 @@ target_include_directories(tbgpp-api-server PUBLIC
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
 )
+target_include_directories(tbgpp-api-server-shared PUBLIC
+	"${PROJECT_SOURCE_DIR}/include"
+	"${PROJECT_SOURCE_DIR}/../tbgpp-common/include"
+)
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-api-server PUBLIC ${SYSTEM_SOURCES})
-target_link_libraries(tbgpp-api-server tbgpp-main)
+target_sources(tbgpp-api-server-shared PUBLIC ${SYSTEM_SOURCES})
+#target_link_libraries(tbgpp-api-server tbgpp-main)
 target_link_libraries(tbgpp-api-server tbgpp-common-lib)
 target_link_libraries(tbgpp-api-server tbgpp-graph-store-lib)
 target_link_libraries(tbgpp-api-server tbgpp-execution-engine-lib)
 target_link_libraries(tbgpp-api-server nlohmann_json::nlohmann_json)
 target_link_libraries(tbgpp-api-server "-lrt -pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem -ltbb -fopenmp -laio -lnuma -lhwloc")
+target_link_libraries(tbgpp-api-server-shared tbgpp-common-lib)
+target_link_libraries(tbgpp-api-server-shared tbgpp-graph-store-lib)
+target_link_libraries(tbgpp-api-server-shared nlohmann_json::nlohmann_json)
+target_link_libraries(tbgpp-api-server-shared "-lrt -pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem -ltbb -fopenmp -laio -lnuma -lhwloc")
 
 target_compile_options(tbgpp-api-server PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-api-server PUBLIC ${CXX_DEFINITION})
+target_compile_options(tbgpp-api-server-shared PUBLIC ${CXX_FLAGS})
+target_compile_definitions(tbgpp-api-server-shared PUBLIC ${CXX_DEFINITION})
 
 ####################################################
 # TESTS
@@ -56,14 +68,7 @@ file(GLOB CLIENT_TEST_SRC
 foreach(test_file ${CLIENT_TEST_SRC})
   get_filename_component(prog_name ${test_file} NAME_WE)
   add_executable(${prog_name} ${test_file} )
-  target_sources( ${prog_name} PUBLIC ${SOURCES} )
-  target_sources( ${prog_name} PUBLIC ${TEST_SOURCES}  ) 
   target_compile_options(${prog_name} PRIVATE ${C_FLAGS})
   target_compile_definitions(${prog_name} PRIVATE ${C_DEFINITION})
-  target_include_directories( ${prog_name} PUBLIC
-	"${PROJECT_SOURCE_DIR}/include"
-  )
-  target_link_libraries(${prog_name} PRIVATE
-	  tbgpp-api-server
-  )
+  target_link_libraries(${prog_name} tbgpp-api-server)
 endforeach(test_file ${CLIENT_TEST_SRC})
