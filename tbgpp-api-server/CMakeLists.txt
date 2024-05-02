@@ -35,12 +35,12 @@ target_include_directories(tbgpp-api-server PUBLIC
 )
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-api-server PUBLIC ${SYSTEM_SOURCES})
-target_link_libraries(tbgpp-api-server "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
+target_link_libraries(tbgpp-api-server tbgpp-main)
 target_link_libraries(tbgpp-api-server tbgpp-common-lib)
 target_link_libraries(tbgpp-api-server tbgpp-graph-store-lib)
 target_link_libraries(tbgpp-api-server tbgpp-execution-engine-lib)
-target_link_libraries(tbgpp-api-server tbgpp-compiler)
 target_link_libraries(tbgpp-api-server nlohmann_json::nlohmann_json)
+target_link_libraries(tbgpp-api-server "-lrt -pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem -ltbb -fopenmp -laio -lnuma -lhwloc")
 
 target_compile_options(tbgpp-api-server PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-api-server PUBLIC ${CXX_DEFINITION})
@@ -49,8 +49,8 @@ target_compile_definitions(tbgpp-api-server PUBLIC ${CXX_DEFINITION})
 # TESTS
 ####################################################
 file(GLOB CLIENT_TEST_SRC
-  # "${PROJECT_SOURCE_DIR}/test/s62-c-api-test.c"
-  # "${PROJECT_SOURCE_DIR}/test/s62-c-api-test-1.c"
+  "${PROJECT_SOURCE_DIR}/test/s62-c-api-test.c"
+  "${PROJECT_SOURCE_DIR}/test/s62-c-api-test-1.cpp"
 )
 
 foreach(test_file ${CLIENT_TEST_SRC})
