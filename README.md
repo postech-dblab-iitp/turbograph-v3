@@ -29,7 +29,7 @@ CSV Format Requirements
 JSON Format Requirements:
 - Files must contain a list of objects. Each object should include consistent labels and possess unique properties.
 
-To experiment with a typical dataset, you can download the LDBC SF1 dataset from the following [link](https://drive.google.com/file/d/1PTb3f6-5tUUz8bWkgx0AVfhTkg3mSBQj/view?usp=drive_link).
+To experiment with a typical dataset, you can download the LDBC SF1 dataset from the following [link](https://drive.google.com/file/d/1PqXw_Fdp9CDVwbUqTQy0ET--mgakGmOA/view?usp=drive_link).
 
 ### Docker Setting
 
