@@ -314,36 +314,63 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
 			std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset, ((uint64_t *)data_ptr)[current_index]); break;
 		case LogicalTypeId::HUGEINT:
 			throw NotImplementedException("Do not support HugeInt"); break;
-		case LogicalTypeId::DECIMAL:
-			uint8_t width, scale;
+    case LogicalTypeId::DECIMAL:
+      uint8_t width, scale;
       type.GetDecimalProperties(width, scale);
-      switch(type.InternalType()) {
-        case PhysicalType::INT16: {
-          int16_t val_before_decimal_point, val_after_decimal_point;
-          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
-          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
-          ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
-          break;
+      switch (type.InternalType()) {
+      case PhysicalType::INT16: {
+        int16_t val_before_decimal_point = 0, val_after_decimal_point = 0;
+        const char* start = (const char*)p.data() + start_offset;
+        const char* end = (const char*)p.data() + end_offset;
+        const char* dot_pos = std::find(start, end, '.');
+        
+        if (dot_pos != end) { // '.' found
+          std::from_chars(start, dot_pos, val_before_decimal_point);
+          std::from_chars(dot_pos + 1, end, val_after_decimal_point);
+        } else { // no '.' found
+          std::from_chars(start, end, val_before_decimal_point);
         }
-        case PhysicalType::INT32: {
-          int32_t val_before_decimal_point, val_after_decimal_point;
-          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
-          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
-          ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
-          break;
+        
+        ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        break;
+      }
+      case PhysicalType::INT32: {
+        int32_t val_before_decimal_point = 0, val_after_decimal_point = 0;
+        const char* start = (const char*)p.data() + start_offset;
+        const char* end = (const char*)p.data() + end_offset;
+        const char* dot_pos = std::find(start, end, '.');
+
+        if (dot_pos != end) { // '.' found
+          std::from_chars(start, dot_pos, val_before_decimal_point);
+          std::from_chars(dot_pos + 1, end, val_after_decimal_point);
+        } else { // no '.' found
+          std::from_chars(start, end, val_before_decimal_point);
         }
-        case PhysicalType::INT64: {
-          int64_t val_before_decimal_point, val_after_decimal_point;
-          std::from_chars((const char*)p.data() + start_offset, (const char*)p.data() + end_offset - (scale - 1), val_before_decimal_point);
-          std::from_chars((const char*)p.data() + (end_offset - scale), (const char*)p.data() + end_offset, val_after_decimal_point);
-          ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
-          break;
+        
+        ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        break;
+      }
+      case PhysicalType::INT64: {
+        int64_t val_before_decimal_point = 0, val_after_decimal_point = 0;
+        const char* start = (const char*)p.data() + start_offset;
+        const char* end = (const char*)p.data() + end_offset;
+        const char* dot_pos = std::find(start, end, '.');
+
+        if (dot_pos != end) { // '.' found
+          std::from_chars(start, dot_pos, val_before_decimal_point);
+          std::from_chars(dot_pos + 1, end, val_after_decimal_point);
+        } else { // no '.' found
+          std::from_chars(start, end, val_before_decimal_point);
         }
-        case PhysicalType::INT128:
-          hugeint_t val;
-          throw NotImplementedException("Hugeint type for Decimal");
-        default:
-          throw InvalidInputException("Unsupported type for Decimal");
+        
+        ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        break;
+      }
+      case PhysicalType::INT128:
+        hugeint_t val;
+        throw NotImplementedException("Hugeint type for Decimal");
+      default:
+        throw InvalidInputException("Unsupported type for Decimal");
       }
       break;
 		case LogicalTypeId::FLOAT:
