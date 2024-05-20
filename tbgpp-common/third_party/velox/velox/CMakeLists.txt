@@ -16,61 +16,20 @@
 include_directories(external/xxhash)
 add_subdirectory(buffer)
 add_subdirectory(common)
-add_subdirectory(core)
-add_subdirectory(serializers)
 add_subdirectory(type)
 add_subdirectory(vector)
-add_subdirectory(row)
 add_subdirectory(flag_definitions)
 add_subdirectory(external/date)
-add_subdirectory(external/md5)
-#
-
-# examples depend on expression
-if(${VELOX_ENABLE_EXAMPLES} AND ${VELOX_ENABLE_EXPRESSION})
-  add_subdirectory(examples)
-endif()
-
-if(${VELOX_ENABLE_BENCHMARKS} OR ${VELOX_ENABLE_BENCHMARKS_BASIC})
-  add_subdirectory(benchmarks)
-endif()
-
-if(${VELOX_ENABLE_EXPRESSION})
-  add_subdirectory(expression)
-endif()
-
-if(${VELOX_ENABLE_PARSE})
-  add_subdirectory(parse)
-endif()
 
 # hive connector depends on dwio
 if(${VELOX_ENABLE_HIVE_CONNECTOR})
   add_subdirectory(dwio)
 endif()
 
-if(${VELOX_ENABLE_TPCH_CONNECTOR})
-  add_subdirectory(tpch/gen)
-endif()
+# add_subdirectory(functions) # depends on md5 (postgresql)
+# add_subdirectory(connectors)
 
-add_subdirectory(functions) # depends on md5 (postgresql)
-add_subdirectory(connectors)
-
-# exec depends on codegen
-if(${VELOX_ENABLE_EXEC})
-  add_subdirectory(exec)
-  add_subdirectory(codegen)
-endif()
-
-if(${VELOX_ENABLE_DUCKDB})
-  add_subdirectory(duckdb)
-  add_subdirectory(external/duckdb)
-endif()
-
-if(${VELOX_CODEGEN_SUPPORT})
-  add_subdirectory(experimental/codegen)
-endif()
-
-# substrait converter
-if(${VELOX_ENABLE_SUBSTRAIT})
-  add_subdirectory(substrait)
-endif()
+# # exec depends on codegen
+# if(${VELOX_ENABLE_EXEC})
+#   add_subdirectory(exec)
+# endif()
