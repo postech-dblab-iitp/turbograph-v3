@@ -133,7 +133,7 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     ```
     cp scripts/runner/run-ldbc.sh build
     cd build
-    bash run-ldbc.sh --workspace:<db_dir> --join-order-optimizer:exhaustive --disable-merge-join
+    bash run-ldbc.sh <db_dir>
     ```
 
     You will see `Turbograph-S62 >> ` prompt. You can execute queries here.
