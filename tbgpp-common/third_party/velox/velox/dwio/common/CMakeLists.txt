@@ -15,12 +15,6 @@ add_subdirectory(compression)
 add_subdirectory(encryption)
 add_subdirectory(exception)
 
-if(${VELOX_BUILD_TESTING})
-  add_subdirectory(tests)
-elseif(${VELOX_BUILD_TEST_UTILS})
-  add_subdirectory(tests/utils)
-endif()
-
 add_library(
   velox_dwio_common
   BitConcatenation.cpp
@@ -61,7 +55,6 @@ target_link_libraries(
   velox_dwio_common_encryption
   velox_dwio_common_exception
   velox_exception
-  velox_expression
   velox_memory
   Boost::regex
   Folly::folly

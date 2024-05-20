@@ -16,7 +16,6 @@ if(${VELOX_BUILD_TESTING})
 endif()
 
 add_subdirectory(tz)
-add_subdirectory(fbhive)
 
 add_library(
   velox_type

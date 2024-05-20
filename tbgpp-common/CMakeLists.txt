@@ -9,7 +9,6 @@ project(tbgpp-common)
 # ADD SUBDIRECTORIES
 ####################################################
 add_subdirectory(third_party)
-#add_subdirectory(src/common/vector_operations)
 
 ####################################################
 # COMPILATION FLAGS

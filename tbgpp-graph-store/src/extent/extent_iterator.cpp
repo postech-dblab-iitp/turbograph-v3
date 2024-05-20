@@ -10,11 +10,10 @@
 
 /* velox related headers */
 #include "velox/type/Filter.h"
-#include "velox/common/base/Nulls.h"
 #include "velox/dwio/common/DecoderUtil.h"
+#include "velox/vector/TypeAliases.h"
 #include "common/types/validity_mask.hpp"
 #include "common/types/value.hpp"
-#include "velox/vector/tests/utils/VectorTestBase.h"
 #include <numeric>  // For std::iota
 
 using namespace facebook::velox;
