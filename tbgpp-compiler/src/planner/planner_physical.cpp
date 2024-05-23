@@ -3596,25 +3596,7 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
             throw duckdb::InvalidInputException("Projection column not found");
         }
     }
-
-    // output_column_names.resize(output_cols->Size());
-    // proj_exprs.resize(output_cols->Size());
-    // types.resize(output_cols->Size());
-
-    // for (auto i = 0; i < output_cols->Size(); i++) {
-    //     CExpression *pexprProjElem =
-    //         pexprProjList->operator[](i);  // CScalarProjectElement
-    //     CExpression *pexprScalarExpr =
-    //         pexprProjElem->operator[](0);  // CScalar... - expr tree root
-    //     D_ASSERT(pexprScalarExpr->Pop()->Eopid() == COperator::EopScalarIdent);
-
-    //     output_column_names[i] = std::move(pGetColNameFromColRef(
-    //         ((CScalarProjectElement *)pexprProjElem->Pop())->Pcr()));
-    //     proj_exprs[i] =
-    //         std::move(pTransformScalarExpr(pexprScalarExpr, child_cols));
-    //     types[i] = proj_exprs[i]->return_type;
-    // }
-
+    
     for (auto &elem_idx : indices_to_project) {
         CExpression *pexprProjElem =
             pexprProjList->operator[](elem_idx);  // CScalarProjectElement
@@ -3626,6 +3608,11 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
         proj_exprs.push_back(
             std::move(pTransformScalarExpr(pexprScalarExpr, child_cols)));
         types.push_back(proj_exprs.back()->return_type);
+    }
+
+    // All column dropped case (ISSUE #108)
+    if (types.empty()) {
+        return result;
     }
 
     // may be less, since we project duplicate projetions only once
