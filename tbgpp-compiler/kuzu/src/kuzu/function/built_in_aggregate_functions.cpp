@@ -134,7 +134,7 @@ void BuiltInAggregateFunctions::registerMin() {
 
 void BuiltInAggregateFunctions::registerMax() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING, DECIMAL}) {
+    for (auto typeID : vector<DataTypeID>{BOOL, INTEGER, INT64, DOUBLE, DATE, STRING, DECIMAL}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MAX_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,
