@@ -25,11 +25,3 @@ add_subdirectory(external/date)
 if(${VELOX_ENABLE_HIVE_CONNECTOR})
   add_subdirectory(dwio)
 endif()
-
-# add_subdirectory(functions) # depends on md5 (postgresql)
-# add_subdirectory(connectors)
-
-# # exec depends on codegen
-# if(${VELOX_ENABLE_EXEC})
-#   add_subdirectory(exec)
-# endif()
