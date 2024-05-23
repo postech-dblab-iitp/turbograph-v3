@@ -1,7 +1,0 @@
-lineitem_part
-lineitem_supp
-lineitem_orders
-orders_customer
-customer_nation
-supplier_nation
-nation_region
