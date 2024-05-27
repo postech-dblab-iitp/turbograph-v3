@@ -8,9 +8,18 @@
 
 namespace duckdb {
 
+typedef double NullRatio;
+
 class PartialSchema;
 class IdSeekState;
 class PhysicalIdSeek : public CypherPhysicalOperator {
+   private:
+
+    enum class OutputFormat {
+        GROUPING = 0,
+        UNIONALL = 1,
+        ROW = 2
+    };
 
    public:
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
@@ -161,8 +170,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void genNonPredColIdxs();
     void getReverseMappingIdxs(size_t num_chunks, idx_t base_chunk_idx, vector<idx_t>& mapping_idxs, vector<vector<idx_t>>& reverse_mapping_idxs) const;
     void remapSeqnoToEidIdx(vector<idx_t>& in_seqno_to_eid_idx, const sel_t* sel_idxs, size_t sel_size, vector<idx_t>& out_seqno_to_eid_idx) const;
-    bool determineUnifyChunks() const;
-    bool determineRowFormat() const;
+    NullRatio calculateNullRatio(DataChunk &chunk, vector<unique_ptr<DataChunk>> &chunks, vector<ExtentID> &target_eids, vector<vector<uint32_t>> &target_seqnos_per_extent, vector<idx_t> &mapping_idxs) const;
+    OutputFormat determineFormat(bool sort_order_enforced, size_t num_schemas, double null_ratio) const;
     void getOutputColIdxsForExtent(idx_t extentIdx, vector<idx_t>& mapping_idxs, vector<idx_t>& output_col_idx) const;
     void getColMapWithoutID(const vector<uint32_t>& col_map, vector<LogicalType>& types, idx_t &out_id_col_idx, vector<uint32_t>& out_col_map) const;
 
