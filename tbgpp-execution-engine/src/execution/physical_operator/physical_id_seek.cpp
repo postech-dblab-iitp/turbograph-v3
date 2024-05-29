@@ -1,6 +1,8 @@
 
-#include "typedef.hpp"
+#include <algorithm>
+#include <cmath>
 #include <numeric>
+#include "typedef.hpp"
 
 // catalog related
 #include "catalog/catalog.hpp"
@@ -552,9 +554,11 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     const idx_t UNIFIED_CHUNK_IDX = 0;
     auto &unified_chunk = *(chunks[UNIFIED_CHUNK_IDX].get());
     auto null_ratio =
-        calculateNullRatio(unified_chunk, chunks, target_eids,
-                           target_seqnos_per_extent, mapping_idxs);
-    auto format = determineFormat(false, oids.size(), null_ratio);
+        calculateNullRatio(unified_chunk, chunks, input.GetSchemaIdx(),
+                           target_eids, target_seqnos_per_extent, mapping_idxs);
+    auto skewness = calculateSkewness(target_eids, target_seqnos_per_extent,
+                                      mapping_idxs);
+    auto format = determineFormat(false, oids.size(), null_ratio, skewness);
 
     // Format-based Execution
     if (format == OutputFormat::GROUPING) {
@@ -577,9 +581,9 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
             doSeekUnionAll(context, input, unified_chunk, state, target_eids,
                            target_seqnos_per_extent, mapping_idxs,
                            num_tuples_per_chunk[output_chunk_idx]);
-            markInvalidForUnseekedColumns(unified_chunk, state, target_eids,
-                                          target_seqnos_per_extent,
-                                          mapping_idxs);
+            markInvalidForUnseekedColumns(
+                unified_chunk, input.GetSchemaIdx(), state, target_eids,
+                target_seqnos_per_extent, mapping_idxs);
         }
         return referInputChunk(input, unified_chunk, state,
                                num_tuples_per_chunk[output_chunk_idx]);
@@ -756,8 +760,8 @@ void PhysicalIdSeek::doSeekUnionAll(
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 vector<idx_t> output_col_idx;
-                getOutputColIdxsForExtent(extentIdx, mapping_idxs,
-                                          output_col_idx);
+                getOutputColIdxsForInner(extentIdx, mapping_idxs,
+                                         output_col_idx);
                 auto &non_pred_col_idxs =
                     non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
                 context.client->graph_store->doVertexIndexSeek(
@@ -1011,8 +1015,8 @@ void PhysicalIdSeek::doSeekGrouping(
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 vector<idx_t> output_col_idx;
-                getOutputColIdxsForExtent(extentIdx, mapping_idxs,
-                                          output_col_idx);
+                getOutputColIdxsForInner(extentIdx, mapping_idxs,
+                                         output_col_idx);
 
                 idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
                 auto &non_pred_col_idxs =
@@ -1624,31 +1628,47 @@ void PhysicalIdSeek::getReverseMappingIdxs(
 }
 
 // Since the difference comes from the null vector, we only consider the ratio of null values, not actual bytes.
-NullRatio PhysicalIdSeek::calculateNullRatio(DataChunk &chunk,
-                             vector<unique_ptr<DataChunk>> &chunks,
-                             vector<ExtentID> &target_eids,
-                             vector<vector<uint32_t>> &target_seqnos_per_extent,
-                             vector<idx_t> &mapping_idxs) const
+NullRatio PhysicalIdSeek::calculateNullRatio(
+    DataChunk &unified_chunk, vector<unique_ptr<DataChunk>> &chunks,
+    idx_t inner_schema_idx, vector<ExtentID> &target_eids,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
+    vector<idx_t> &mapping_idxs) const
 {
     vector<size_t> size_per_extent(target_eids.size(), 0);
     vector<size_t> num_nulls_per_extent(target_eids.size(), 0);
     size_t total_extent_size = 0;
 
+    // Get outer cols that are in the output
+    vector<idx_t> outer_output_col_idxs;
+    getOutputColIdxsForOuter(inner_schema_idx, outer_output_col_idxs);
+    size_t num_outer_output_cols = outer_output_col_idxs.size();
+
     for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
          extent_idx++) {
-        // Fill size_per_extent 
+        // Fill size_per_extent
         size_t extent_size = target_seqnos_per_extent[extent_idx].size();
         size_per_extent[extent_idx] = extent_size;
         total_extent_size += extent_size;
 
         // Fill num_nulls_per_extent
         size_t num_nulls = 0;
-        vector<idx_t> output_col_idx;
-        getOutputColIdxsForExtent(extent_idx, mapping_idxs, output_col_idx);
+        vector<idx_t> inner_output_col_idxs;
+        getOutputColIdxsForInner(extent_idx, mapping_idxs,
+                                 inner_output_col_idxs);
 
-        for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
-            if (std::find(output_col_idx.begin(), output_col_idx.end(),
-                          columnIdx) == output_col_idx.end()) {
+        for (auto columnIdx = 0; columnIdx < unified_chunk.ColumnCount();
+             columnIdx++) {
+            // Inner column only
+            if (std::find(outer_output_col_idxs.begin(),
+                          outer_output_col_idxs.end(),
+                          columnIdx) != outer_output_col_idxs.end()) {
+                continue;
+            }
+
+            // If the column is not in the output, it is a null column
+            if (std::find(inner_output_col_idxs.begin(),
+                          inner_output_col_idxs.end(),
+                          columnIdx) == inner_output_col_idxs.end()) {
                 num_nulls += extent_size;
             }
         }
@@ -1657,18 +1677,80 @@ NullRatio PhysicalIdSeek::calculateNullRatio(DataChunk &chunk,
     }
 
     // Calculate ratio
-    size_t total_size = total_extent_size * chunk.ColumnCount();
+    size_t num_inner_output_cols =
+        unified_chunk.ColumnCount() - num_outer_output_cols;
+    size_t total_size = total_extent_size * num_inner_output_cols;
     size_t total_nulls = std::accumulate(num_nulls_per_extent.begin(),
                                          num_nulls_per_extent.end(), 0);
 
-    return (NullRatio) total_nulls / (NullRatio) total_size;
+    return (NullRatio)total_nulls / (NullRatio)total_size;
+}
+
+double PhysicalIdSeek::calculateSkewness(
+    std::vector<ExtentID> &target_eids,
+    std::vector<std::vector<uint32_t>> &target_seqnos_per_extent,
+    std::vector<idx_t> &mapping_idxs) const
+{
+    std::vector<size_t> size_per_schema(target_eids.size(), 0);
+    for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
+         extent_idx++) {
+        auto mapping_idx = mapping_idxs[extent_idx];
+        size_per_schema[mapping_idx] +=
+            target_seqnos_per_extent[extent_idx].size();
+    }
+
+    // Remove zero values
+    std::vector<size_t> non_zero_sizes;
+    for (size_t size : size_per_schema) {
+        if (size > 0) {
+            non_zero_sizes.push_back(size);
+        }
+    }
+
+    if (non_zero_sizes.empty()) {
+        return 0.0;  // Handle case where there are no non-zero sizes
+    }
+
+    // Calculate mean
+    double sum = 0;
+    for (size_t value : non_zero_sizes) {
+        sum += value;
+    }
+    double mean = sum / non_zero_sizes.size();
+
+    // Calculate median
+    std::sort(non_zero_sizes.begin(), non_zero_sizes.end());
+    size_t n = non_zero_sizes.size();
+    double median;
+    if (n % 2 == 0) {
+        median = (non_zero_sizes[n / 2 - 1] + non_zero_sizes[n / 2]) / 2.0;
+    }
+    else {
+        median = non_zero_sizes[n / 2];
+    }
+
+    // Calculate standard deviation
+    double sum_of_squares = 0;
+    for (size_t value : non_zero_sizes) {
+        sum_of_squares += std::pow(value - mean, 2);
+    }
+    double standard_deviation =
+        std::sqrt(sum_of_squares / non_zero_sizes.size());
+
+    if (standard_deviation == 0) {
+        return 0.0;  // Handle case where standard deviation is zero to avoid division by zero
+    }
+
+    // Calculate Pearson's second skewness coefficient
+    double skewness = 3 * (mean - median) / standard_deviation;
+    return skewness;
 }
 
 PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormat(
-    bool sort_order_enforced, size_t num_schemas, double null_ratio) const
+    bool sort_order_enforced, size_t num_schemas, NullRatio null_ratio, Skewness skewness) const
 {
     const size_t GROUPING_NUM_SCHEMA_THRESHOLD = 3;
-    const double ROW_NULL_RATIO_THRESHOLD = 0.3;
+    const double ROW_NULL_RATIO_THRESHOLD = 0.7;
 
     if (sort_order_enforced) {
         if (null_ratio > ROW_NULL_RATIO_THRESHOLD) {
@@ -1683,29 +1765,45 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormat(
             return OutputFormat::GROUPING;
         }
         else {
-            if (null_ratio > ROW_NULL_RATIO_THRESHOLD) {
-                return OutputFormat::ROW;
+            if (skewness <= 0.5 && skewness >= -0.5) {
+                return OutputFormat::GROUPING;
             }
             else {
-                return OutputFormat::UNIONALL;
+                if (null_ratio > ROW_NULL_RATIO_THRESHOLD) {
+                    return OutputFormat::ROW;
+                }
+                else {
+                    return OutputFormat::UNIONALL;
+                }
             }
         }
     }
 }
 
 void PhysicalIdSeek::markInvalidForUnseekedColumns(
-    DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
+    DataChunk &chunk, idx_t outer_schema_idx, IdSeekState &state,
+    vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
+    vector<idx_t> outer_output_col_idx;
+    getOutputColIdxsForOuter(outer_schema_idx, outer_output_col_idx);
+
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
-        vector<idx_t> output_col_idx;
-        getOutputColIdxsForExtent(extentIdx, mapping_idxs, output_col_idx);
+        vector<idx_t> inner_output_col_idx;
+        getOutputColIdxsForInner(extentIdx, mapping_idxs, inner_output_col_idx);
         auto &target_seqnos = target_seqnos_per_extent[extentIdx];
 
         for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
-            if (std::find(output_col_idx.begin(), output_col_idx.end(),
-                          columnIdx) == output_col_idx.end()) {
+            // Two cases, 1) outer column, 2) inner column, but not in the output
+            if (std::find(outer_output_col_idx.begin(),
+                          outer_output_col_idx.end(),
+                          columnIdx) != outer_output_col_idx.end()) {
+                continue;
+            }
+            if (std::find(inner_output_col_idx.begin(),
+                          inner_output_col_idx.end(),
+                          columnIdx) == inner_output_col_idx.end()) {
                 auto &vec = chunk.data[columnIdx];
                 vec.SetIsValid(true);
                 auto &validity = FlatVector::Validity(vec);
@@ -1754,12 +1852,27 @@ void PhysicalIdSeek::getColMapWithoutID(const vector<uint32_t> &col_map,
     }
 }
 
-void PhysicalIdSeek::getOutputColIdxsForExtent(
+void PhysicalIdSeek::getOutputColIdxsForInner(
     idx_t extentIdx, vector<idx_t> &mapping_idxs,
     vector<idx_t> &output_col_idx) const
 {
     for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-        output_col_idx.push_back(inner_col_maps[mapping_idxs[extentIdx]][i]);
+        if (inner_col_maps[mapping_idxs[extentIdx]][i] !=
+            std::numeric_limits<uint32_t>::max()) {
+            output_col_idx.push_back(
+                inner_col_maps[mapping_idxs[extentIdx]][i]);
+        }
+    }
+}
+
+void PhysicalIdSeek::getOutputColIdxsForOuter(
+    idx_t outer_schema_idx, vector<idx_t> &output_col_idx) const
+{
+    for (idx_t i = 0; i < outer_col_maps[outer_schema_idx].size(); i++) {
+        if (outer_col_maps[outer_schema_idx][i] !=
+            std::numeric_limits<uint32_t>::max()) {
+            output_col_idx.push_back(outer_col_maps[outer_schema_idx][i]);
+        }
     }
 }
 
