@@ -110,7 +110,7 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     ```
     # Terminal 1 (runs storage server)
     cd build
-    ./tbgpp-graph-store/store
+    ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100G)>
 
     # Terminal 2 (runs catalog server)
     cd build
