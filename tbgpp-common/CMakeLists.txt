@@ -79,6 +79,8 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
 	"${PROJECT_SOURCE_DIR}/third_party/velox"
 	"${PROJECT_SOURCE_DIR}/third_party/range-v3"
+	"${PROJECT_SOURCE_DIR}/third_party/Eigen"
+	"${PROJECT_SOURCE_DIR}/third_party/fplus"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client

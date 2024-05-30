@@ -13,8 +13,8 @@
 using namespace std;
 
 // typedef vector<uint64_t> SchemaKeyIDs;
-typedef unordered_set<uint64_t> SchemaKeyIDs;
-typedef vector<uint64_t> SchemaKeyIDsVec;
+typedef unordered_set<uint32_t> SchemaKeyIDs;
+typedef vector<uint32_t> SchemaKeyIDsVec;
 
 struct TupleGroup {
     int64_t tuple_group_id;
@@ -119,7 +119,7 @@ public:
             return; 
         } else { 
             uint64_t hashValue = hashFunction(schema_key_ids);
-            std::unordered_set<uint64_t> tmp_set;
+            std::unordered_set<uint32_t> tmp_set;
             std::copy(schema_key_ids.begin(), schema_key_ids.end(),
                       std::inserter(tmp_set, tmp_set.end()));
             table[hashValue].push_back({group_id, tmp_set}); 
