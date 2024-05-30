@@ -3,6 +3,8 @@
 #include <iostream>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
+#include <unordered_set>
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
@@ -11,6 +13,9 @@
 #include "simdjson.h"
 #include "fptree.hpp"
 #include "icecream.hpp"
+#include "Dense"
+#include "clustering/dbscan.h"
+#include "clustering/optics.hpp"
 
 using namespace simdjson;
 
@@ -18,6 +23,14 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define NEO4J_VERTEX_ID_NAME "id"
+#define COST_MAX 10000000000.00
+
+#define AGG_COST_MODEL1
+// #define AGG_COST_MODEL2
+// #define AGG_COST_MODEL3
+#define SORT_LAYER_DESCENDING
+// #define SORT_LAYER_ASCENDING
+// #define NO_SORT_LAYER
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -29,7 +42,29 @@ namespace duckdb {
 typedef std::pair<idx_t, idx_t> LidPair;
 #endif
 
+class CostCompareGreat {
+public:
+    bool operator()(std::pair<double, uint64_t> a, std::pair<double, uint64_t> b) {
+        return a.first > b.first;
+    }
+};
+
+class CostCompareLess {
+public:
+    bool operator()(std::pair<double, uint64_t> a, std::pair<double, uint64_t> b) {
+        return a.first < b.first;
+    }
+};
+
 class GraphSIMDJSONFileParser {
+public:
+    enum class ClusterAlgorithmType {
+        ALLPAIRS,
+        DBSCAN,
+        OPTICS,
+        DENCLUE,
+        AGGLOMERATIVE,
+    };
 
 public:
     GraphSIMDJSONFileParser() {}
@@ -96,19 +131,75 @@ public:
     }
 
     void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
+        cluster_algo_type = ClusterAlgorithmType::OPTICS;
+
+        boost::timer::cpu_timer clustering_timer;
         if (jftype == JsonFileType::JSON) {
             // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
         } else if (jftype == JsonFileType::JSONL) {
-            // Extract Schema & Preprocessing
-            _ExtractSchema(gctype);
-            _PreprocessSchemaForClustering();
+            switch (cluster_algo_type) {
+            case ClusterAlgorithmType::ALLPAIRS: {
+                // Extract Schema & Preprocessing
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering();
 
-            // Clustering
-            _ClusterSchema();
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchema();
+                clustering_timer.stop();
 
-            // Create Extents
-            _CreateExtents(gctype, graph_cat, label_name, label_set);
-            // _IterateJsonL(data, gctype);
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::DBSCAN: {
+                // Extract Schema (bag semantic) & Preprocessing (calculate distance matrix)
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchemaDBScan();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::OPTICS: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchemaOptics();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::DENCLUE: {
+                break;
+            }
+            case ClusterAlgorithmType::AGGLOMERATIVE: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchemaAgglomerative();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            default:
+                break;
+            }
+            auto cluster_time_ms = clustering_timer.elapsed().wall / 1000000.0;
+            std::cout << "\nCluster Time: "  << cluster_time_ms << " ms" << std::endl;
         }
     }
 
@@ -421,7 +512,7 @@ public:
             // TODO check; always same order?
             for (auto doc_ : docs) { // iterate each jsonl document; one for each vertex
                 // properties object has vertex properties; assume Neo4J dump file format
-                std::vector<uint64_t> tmp_vec;
+                std::vector<uint32_t> tmp_vec;
 
                 string current_prefix = "";
                 recursive_collect_key_paths_jsonl(doc_["properties"], current_prefix, true, tmp_vec, num_tuples);
@@ -433,43 +524,35 @@ public:
                 // }
                 // fprintf(stdout, ": %ld\n", schema_id);
                 if (schema_id == INVALID_TUPLE_GROUP_ID) { // not found
-                    schema_id = schema_groups.size();
+                    schema_id = schema_groups_with_num_tuples.size();
                     sch_HT.insert(tmp_vec, schema_id);
-                    schema_groups.push_back(tmp_vec);
+                    schema_groups_with_num_tuples.push_back(std::make_pair(std::move(tmp_vec), 1));
                     corresponding_schemaID.push_back(schema_id);
                 } else {
                     corresponding_schemaID.push_back(schema_id);
+                    schema_groups_with_num_tuples[schema_id].second++;
                 }
                 num_tuples++;
             }
             schema_property_freq_vec.resize(property_freq_vec.size(), 0);
-            for (size_t i = 0; i < schema_groups.size(); i++) {
-                for (size_t j = 0; j < schema_groups[i].size(); j++) {
-                    schema_property_freq_vec[schema_groups[i][j]]++;
+            for (size_t i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+                for (size_t j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
+                    schema_property_freq_vec[schema_groups_with_num_tuples[i].first[j]]++;
                 }
             }
-            printf("schema_groups.size = %ld\n", schema_groups.size());
+            printf("schema_groups.size = %ld\n", schema_groups_with_num_tuples.size());
+
+            for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+                fprintf(stdout, "Schema %ld: ", i);
+                for (auto j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
+                    fprintf(stdout, "%ld ", schema_groups_with_num_tuples[i].first[j]);
+                }
+                fprintf(stdout, ": %ld\n", schema_groups_with_num_tuples[i].second);
+            }
 
             return;
-
-            // data.Initialize(most_common_schema, STORAGE_STANDARD_VECTOR_SIZE);
-
-            // // Iterate from the beginning
-            // for (auto doc_ : docs) {
-            //     // icecream::ic.enable(); IC(num_tuples); icecream::ic.disable();
-            //     recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples, 0, data);
-            //     num_tuples++;
-            //     if (num_tuples == STORAGE_STANDARD_VECTOR_SIZE) {
-            //         // Do something
-            //         fprintf(stderr, "CreateExtent\n");
-            //         num_tuples = 0;
-            //         data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
-            //     }
-            // }
-            // if (num_tuples > 0) {
-            //     fprintf(stderr, "CreateExtent\n");
-            // }
         } else if (gctype == GraphComponentType::EDGE) {
+            D_ASSERT(false); // not implemented yet
             for (auto doc_ : docs) {
                 std::string_view type = doc_["type"].get_string();
 
@@ -482,34 +565,71 @@ public:
         }
     }
 
-    void _PreprocessSchemaForClustering() {
+    void _ExtractSchemaBagSemantic(GraphComponentType gctype) {
+        D_ASSERT(false);
+        // if (gctype == GraphComponentType::INVALID) {
+        //     D_ASSERT(false); // deactivate temporarily
+        // } else if (gctype == GraphComponentType::VERTEX) {
+        //     int num_tuples = 0;
+        //     // TODO check; always same order?
+        //     for (auto doc_ : docs) { // iterate each jsonl document; one for each vertex
+        //         // properties object has vertex properties; assume Neo4j dump file format
+        //         std::vector<uint64_t> tmp_vec;
+
+        //         string current_prefix = "";
+        //         recursive_collect_key_paths_jsonl(doc_["properties"], current_prefix, true, tmp_vec, num_tuples);
+
+        //         int64_t schema_id;
+        //         schema_id = schema_groups.size();
+        //         schema_groups.push_back(tmp_vec);
+        //         corresponding_schemaID.push_back(schema_id);
+        //         num_tuples++;
+        //     }
+        //     schema_property_freq_vec.resize(property_freq_vec.size(), 0);
+        //     for (size_t i = 0; i < schema_groups.size(); i++) {
+        //         for (size_t j = 0; j < schema_groups[i].size(); j++) {
+        //             schema_property_freq_vec[schema_groups[i][j]]++;
+        //         }
+        //     }
+        //     printf("schema_groups.size = %ld\n", schema_groups.size());
+
+        //     return;
+        // } else if (gctype == GraphComponentType::EDGE) {
+        //     D_ASSERT(false); // not implemented yet
+        // }
+    }
+
+    void _PreprocessSchemaForClustering(bool use_setsim_algo = true) {
         // Sort tokens by frequency
-        printf("Schema Freq vec\n");
-        for (int i = 0; i < schema_property_freq_vec.size(); i++) {
-            printf("%d-th (%s) freq: %ld, ", i, id_to_property_vec[i].c_str(), schema_property_freq_vec[i]);
-        }
-        printf("\n");
+        // printf("Schema Freq vec\n");
+        // for (int i = 0; i < schema_property_freq_vec.size(); i++) {
+        //     printf("%d-th (%s) freq: %ld, ", i, id_to_property_vec[i].c_str(), schema_property_freq_vec[i]);
+        // }
+        // printf("\n");
         order.resize(schema_property_freq_vec.size());
         std::iota(order.begin(), order.end(), 0);
         std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
             return schema_property_freq_vec[a] < schema_property_freq_vec[b];
         });
+
+        if (!use_setsim_algo) return;
+
         vector<uint64_t> inv_order(order.size());
         for (size_t i = 0; i < order.size(); i++) {
             inv_order[order[i]] = i;
         }
-        for (int i = 0; i < order.size(); i++) {
-            printf("%ld - freq %ld, ", order[i], schema_property_freq_vec[order[i]]);
-        }
-        printf("\n");
+        // for (int i = 0; i < order.size(); i++) {
+        //     printf("%ld - freq %ld, ", order[i], schema_property_freq_vec[order[i]]);
+        // }
+        // printf("\n");
 
         // TODO sort schema groups by their size
         // TODO? do not use addrecord to avoid copy?
-        for (size_t i = 0; i < schema_groups.size(); i++) {
+        for (size_t i = 0; i < schema_groups_with_num_tuples.size(); i++) {
             IntRecord rec;
             // rec.recordid = i;
-            for (size_t j = 0; j < schema_groups[i].size(); j++) {
-                rec.tokens.push_back(inv_order[schema_groups[i][j]]);
+            for (size_t j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
+                rec.tokens.push_back(inv_order[schema_groups_with_num_tuples[i].first[j]]);
             }
             std::sort(rec.tokens.begin(), rec.tokens.end(), [&](size_t a, size_t b) {
                 return a < b;
@@ -522,12 +642,376 @@ public:
         }
     }
 
+    void _GenerateDistanceMatrix() {
+        // distance_matrix = Eigen::MatrixXd::Zero(schema_groups.size(), schema_groups.size());
+        
+        // for (auto i = 0; i < schema_groups.size(); i++) {
+        //     std::sort(schema_groups[i].begin(), schema_groups[i].end());
+        // }
+
+        // double min_distance = std::numeric_limits<double>::max();
+        // for (auto i = 0; i < schema_groups.size(); i++) {
+        //     for (auto j = i + 1; j < schema_groups.size(); j++) {
+        //         double distance = _ComputeDistance(i, j);
+        //         distance_matrix(i, j) = distance;
+        //         distance_matrix(j, i) = distance;
+
+        //         if (distance < min_distance) {
+        //             min_distance = distance;
+        //         }
+        //     }
+        // }
+
+        // if (min_distance < 0) {
+        //     min_distance = -min_distance;
+        //     for (auto i = 0; i < schema_groups.size(); i++) {
+        //         for (auto j = i + 1; j < schema_groups.size(); j++) {
+        //             distance_matrix(i, j) += (min_distance + 1.0);
+        //             distance_matrix(j, i) += (min_distance + 1.0);
+        //         }
+        //     }
+        // }
+
+        // std::cout << "Generate Distance Matrix Done!\n";
+        // std::cout << distance_matrix << std::endl;
+    }
+
+    double _ComputeDistance(size_t rowid1, size_t rowid2) {
+        double cost_schema = -CostSchemaVal;
+        double cost_null = CostNullVal;
+        double cost_vectorization = CostVectorizationVal;
+
+        int64_t num_nulls1 = 0;
+        int64_t num_nulls2 = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+        while (i < schema_groups_with_num_tuples[rowid1].first.size() && j < schema_groups_with_num_tuples[rowid2].first.size()) {
+            if (schema_groups_with_num_tuples[rowid1].first[i] == schema_groups_with_num_tuples[rowid2].first[j]) {
+                i++;
+                j++;
+            } else if (schema_groups_with_num_tuples[rowid1].first[i] < schema_groups_with_num_tuples[rowid2].first[j]) {
+                num_nulls1++;
+                i++;
+            } else {
+                num_nulls2++;
+                j++;
+            }
+        }
+        while (i < schema_groups_with_num_tuples[rowid1].first.size()) {
+            num_nulls1++;
+            i++;
+        }
+        while (j < schema_groups_with_num_tuples[rowid2].first.size()) {
+            num_nulls2++;
+            j++;
+        }
+
+        cost_null *= (num_nulls1 * schema_groups_with_num_tuples[rowid1].second + num_nulls2 * schema_groups_with_num_tuples[rowid2].second);
+        if (schema_groups_with_num_tuples[rowid1].second < 1024 ||
+            schema_groups_with_num_tuples[rowid2].second < 1024) {
+            cost_vectorization *=
+                (_ComputeVecOvh(schema_groups_with_num_tuples[rowid1].second +
+                                schema_groups_with_num_tuples[rowid2].second) -
+                 _ComputeVecOvh(schema_groups_with_num_tuples[rowid1].second) -
+                 _ComputeVecOvh(schema_groups_with_num_tuples[rowid2].second));
+        }
+        else {
+            cost_vectorization = 0;
+        }
+
+        double distance = cost_schema + cost_null + cost_vectorization;
+        return distance;
+    }
+
+    double _ComputeCostMergingSchemaGroups(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        double cost_schema = -CostSchemaVal;
+        double cost_null = CostNullVal;
+        double cost_vectorization = CostVectorizationVal;
+
+        int64_t num_nulls1 = 0;
+        int64_t num_nulls2 = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                num_nulls1++;
+                i++;
+            } else {
+                num_nulls2++;
+                j++;
+            }
+        }
+        while (i < schema_group1.first.size()) {
+            num_nulls1++;
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            num_nulls2++;
+            j++;
+        }
+
+        cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
+        cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
+            - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
+        // if (schema_group1.second < 1024 ||
+        //     schema_group2.second < 1024) {
+        //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
+        //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
+        // } else {
+        //     cost_vectorization = 0.0;
+        // }
+        double distance = cost_schema + cost_null + cost_vectorization;
+        // if (distance >= 0) {
+            // std::cout << "Distance: " << distance
+            //         << ", Cost Schema: " << cost_schema
+            //         << ", Cost Null: " << cost_null
+            //         << ", Cost Vectorization: " << cost_vectorization
+            //         << std::endl;
+            // std::cout << "Schema Group 1 (" << schema_group1.second << "): ";
+            // for (auto idx1 = 0; idx1 < schema_group1.first.size(); idx1++) {
+            //     std::cout << schema_group1.first[idx1] << " ";
+            // }
+            // std::cout << "Schema Group 2 (" << schema_group2.second << "): ";
+            // for (auto idx2 = 0; idx2 < schema_group2.first.size(); idx2++) {
+            //     std::cout << schema_group2.first[idx2] << " ";
+            // }
+            // std::cout << std::endl;
+            // std::cout << "Num Nulls 1: " << num_nulls1
+            //         << ", Num Nulls 2: " << num_nulls2 << std::endl;
+        // }
+        return distance;
+    }
+
+    double _ComputeCostMergingSchemaGroups2(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        int64_t num_nulls1 = 0;
+        int64_t num_nulls2 = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                num_nulls1++;
+                i++;
+            } else {
+                num_nulls2++;
+                j++;
+            }
+        }
+        while (i < schema_group1.first.size()) {
+            num_nulls1++;
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            num_nulls2++;
+            j++;
+        }
+
+        double distance = num_nulls1 + num_nulls2;
+        return distance;
+    }
+
+    double _ComputeCostMergingSchemaGroups3(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        int64_t num_nulls1 = 0;
+        int64_t num_nulls2 = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                num_nulls1++;
+                i++;
+            } else {
+                num_nulls2++;
+                j++;
+            }
+        }
+        while (i < schema_group1.first.size()) {
+            num_nulls1++;
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            num_nulls2++;
+            j++;
+        }
+
+        int64_t num_common = (schema_group1.first.size() + schema_group2.first.size() - num_nulls1 - num_nulls2) / 2;
+
+        double distance = num_common / (double) (schema_group1.first.size() + schema_group2.first.size() - num_common);
+        return distance;
+    }
+
+    double _ComputeDistanceMergingSchemaGroups(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        double cost_schema = -CostSchemaVal;
+        double cost_null = CostNullVal;
+        double cost_vectorization = CostVectorizationVal;
+
+        int64_t num_nulls1 = 0;
+        int64_t num_nulls2 = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                num_nulls1++;
+                i++;
+            } else {
+                num_nulls2++;
+                j++;
+            }
+        }
+        while (i < schema_group1.first.size()) {
+            num_nulls1++;
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            num_nulls2++;
+            j++;
+        }
+
+        cost_null *= (num_nulls1 * schema_group1.second + num_nulls2 * schema_group2.second);
+        if (schema_group1.second < 1024 ||
+            schema_group2.second < 1024) {
+            cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
+                - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
+        } else {
+            cost_vectorization = 0.0;
+        }
+        double distance = cost_schema + cost_null + cost_vectorization;
+        return distance;
+    }
+
+    double _ComputeVecOvh(size_t num_tuples) {
+        D_ASSERT(num_tuples >= 1);
+        if (num_tuples > 1024) return 1;
+        else return (double) 1024 / num_tuples;
+    }
+
+    void _ComputeCoordinateMatrix() {
+        // Mij = ((D1j)^2 + (Di1)^2 - (Dij)^2) / 2
+        // Eigen::MatrixXd gram_matrix =
+        //     Eigen::MatrixXd::Zero(schema_groups.size(), schema_groups.size());
+        // for (auto i = 0; i < schema_groups.size(); i++) {
+        //     for (auto j = 0; j < schema_groups.size(); j++) {
+        //         // TODO efficient way?
+        //         gram_matrix(i, j) =
+        //             0.5 * (distance_matrix(0, j) * distance_matrix(0, j) +
+        //                    distance_matrix(i, 0) * distance_matrix(i, 0) -
+        //                    distance_matrix(i, j) * distance_matrix(i, j));
+        //     }
+        // }
+
+        // std::cout << "Generate Gram Matrix Done!\n";
+        // std::cout << gram_matrix << std::endl;
+        // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(gram_matrix);
+        // if (eigensolver.info() != Eigen::Success) {
+        //     throw InternalException("Failed to compute eigenvalues");
+        // }
+
+        // std::cout << "Eigen decomposition results\n";
+        // // std::cout << "The eigenvalues of A are:\n" << eigensolver.eigenvalues() << std::endl;
+        // // std::cout << "Here's a matrix whose columns are eigenvectors of A \n"
+        // //     << "corresponding to these eigenvalues:\n"
+        // //     << eigensolver.eigenvectors() << std::endl;
+        // std::cout << eigensolver.eigenvectors() << std::endl;
+        // std::cout << eigensolver.eigenvalues() << std::endl;
+        // std::cout << eigensolver.eigenvalues().array().sqrt().matrix() << std::endl;
+        // std::cout << eigensolver.eigenvectors() * eigensolver.eigenvalues().array().sqrt().matrix().asDiagonal() << std::endl;
+    }
+
+    void GenerateCostMatrix(
+        vector<std::pair<std::vector<uint32_t>, uint64_t>>
+            &schema_groups_with_num_tuples,
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output,
+        uint32_t num_tuples_total, vector<double> &cost_matrix)
+    {
+        // uint32_t begin_idx = current_layer == 0 ? 0 : layer_boundaries[current_layer - 1];
+        for (auto i = 0; i < num_tuples_total; i++) {
+            for (auto j = i + 1; j < num_tuples_total; j++) {
+
+                uint32_t schema_group1_idx = temp_output[i].first;
+                uint32_t schema_group2_idx = temp_output[j].first;
+                // auto &schema_group1 =
+                //     i > num_tuples_in_current_layer
+                //         ? temp_output[i - num_tuples_in_current_layer]
+                //         : schema_groups_with_num_tuples
+                //               [num_tuples_order[begin_idx + i]];
+                // auto &schema_group2 =
+                //     j > num_tuples_in_current_layer
+                //         ? temp_output[j - num_tuples_in_current_layer]
+                //         : schema_groups_with_num_tuples
+                //               [num_tuples_order[begin_idx + j]];
+
+                double cost;
+                if (schema_group1_idx == std::numeric_limits<uint32_t>::max() ||
+                    schema_group2_idx == std::numeric_limits<uint32_t>::max()) {
+                    cost = COST_MAX;
+                }
+                else {
+                    auto &schema_group1 =
+                        schema_groups_with_num_tuples[schema_group1_idx];
+                    auto &schema_group2 =
+                        schema_groups_with_num_tuples[schema_group2_idx];
+#ifdef AGG_COST_MODEL1
+                    cost = _ComputeCostMergingSchemaGroups(schema_group1,
+                                                           schema_group2);
+#endif
+#ifdef AGG_COST_MODEL2
+                    cost = _ComputeCostMergingSchemaGroups2(schema_group1,
+                                                            schema_group2);
+#endif
+#ifdef AGG_COST_MODEL3
+                    cost = _ComputeCostMergingSchemaGroups3(schema_group1,
+                                                            schema_group2);
+#endif
+                }
+
+                // j > i
+                uint32_t matrix_idx =
+                    i * num_tuples_total + j - (((i + 1) * (i + 2)) / 2);
+                cost_matrix[matrix_idx] = cost;
+
+                // fprintf(stdout,
+                //         "i = %d, j = %d, schema_group1_idx = %d, "
+                //         "schema_group2_idx = %d, matrix_idx = %d, cost = %lf\n",
+                //         i, j, schema_group1_idx, schema_group2_idx, matrix_idx,
+                //         cost);
+            }
+        }
+
+        // // print cost matrix
+        // for (auto i = 0; i < cost_matrix.size(); i++) {
+        //     std::cout << cost_matrix[i] << ", ";
+        // }
+        // std::cout << std::endl;
+    }
+
     void _ClusterSchema() {
         cluster_algo->doindex();
         cluster_algo->docluster();
 
         auto &cluster_to_rid_lists = cluster_algo->getctorlists();
-        sg_to_cluster_vec.resize(schema_groups.size(), -1);
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size(), -1);
         for (size_t i = 0; i < cluster_to_rid_lists.size(); i++) {
             for (size_t j = 0; j < cluster_to_rid_lists[i].size(); j++) {
                 D_ASSERT(sg_to_cluster_vec.size() > cluster_to_rid_lists[i][j]);
@@ -538,6 +1022,487 @@ public:
         num_clusters = cluster_to_rid_lists.size();
 
         // TODO phase 2
+    }
+
+    void _ClusterSchemaDBScan() {
+        // sort schema
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                      schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // run dbscan
+        auto dbscan = DBSCAN<std::pair<std::vector<uint32_t>, uint64_t>, double>();
+        dbscan.Run(&schema_groups_with_num_tuples, 1, 2.0f, 50,
+                   [&](const std::pair<std::vector<uint32_t>, uint64_t> &a,
+                       const std::pair<std::vector<uint32_t>, uint64_t> &b) {
+                       double cost_current = 2 * CostSchemaVal +
+                                             _ComputeVecOvh(a.second) +
+                                             _ComputeVecOvh(b.second);
+
+                       int64_t num_nulls1 = 0;
+                       int64_t num_nulls2 = 0;
+                       idx_t i = 0;
+                       idx_t j = 0;
+                       while (i < a.first.size() && j < b.first.size()) {
+                           if (a.first[i] == b.first[j]) {
+                               i++;
+                               j++;
+                           }
+                           else if (a.first[i] < b.first[j]) {
+                               num_nulls1++;
+                               i++;
+                           }
+                           else {
+                               num_nulls2++;
+                               j++;
+                           }
+                       }
+                       while (i < a.first.size()) {
+                           num_nulls1++;
+                           i++;
+                       }
+                       while (j < b.first.size()) {
+                           num_nulls2++;
+                           j++;
+                       }
+
+                       double cost_after =
+                           CostSchemaVal +
+                           CostNullVal *
+                               (num_nulls1 * a.second + num_nulls2 * b.second) +
+                           _ComputeVecOvh(a.second + b.second);
+                       double distance = cost_after / cost_current;
+                    //    std::cout << "num_nulls1: " << num_nulls1
+                    //     << ", a.second: " << a.second
+                    //     << ", num_nulls2: " << num_nulls2
+                    //     << ", b.second: " << b.second
+                    //     << ", cost_after: " << cost_after
+                    //     << ", cost_current: " << cost_current
+                    //     << ", distance: " << distance << std::endl;
+                       return distance;
+                   });
+
+        auto &clusters = dbscan.Clusters;
+        auto &noise = dbscan.Noise;
+
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
+        num_clusters = clusters.size() + noise.size();
+        cluster_tokens.reserve(num_clusters);
+        
+        for (auto i = 0; i < clusters.size(); i++) {
+            std::unordered_set<uint32_t> cluster_tokens_set;
+            std::cout << "Cluster " << i << ": ";
+            for (auto j = 0; j < clusters[i].size(); j++) {
+                std::cout << clusters[i][j] << ", ";
+                sg_to_cluster_vec[clusters[i][j]] = i;
+                cluster_tokens_set.insert(
+                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
+                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
+            }
+            std::cout << std::endl;
+
+            cluster_tokens.push_back(std::vector<uint32_t>());
+            cluster_tokens.back().insert(
+                std::end(cluster_tokens.back()), std::begin(cluster_tokens_set),
+                std::end(cluster_tokens_set));
+        }
+
+        size_t num_clusters_before = clusters.size();
+        for (auto i = 0; i < noise.size(); i++) {
+            std::cout << noise[i] << ", ";
+            sg_to_cluster_vec[noise[i]] = num_clusters_before + i;
+            cluster_tokens.push_back(
+                std::move(schema_groups_with_num_tuples[noise[i]].first));
+        }
+        std::cout << std::endl;
+    }
+
+    void _ClusterSchemaOptics()
+    {
+        // sort schema
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                      schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // optics clustering
+        auto reach_dists = optics::compute_reachability_dists<
+            std::pair<std::vector<uint32_t>, uint64_t>>(
+            schema_groups_with_num_tuples, 12, 0.5f,
+            [&](const std::pair<std::vector<uint32_t>, uint64_t> &a,
+                const std::pair<std::vector<uint32_t>, uint64_t> &b) {
+                double cost_current = 2 * CostSchemaVal +
+                                      _ComputeVecOvh(a.second) +
+                                      _ComputeVecOvh(b.second);
+
+                int64_t num_nulls1 = 0;
+                int64_t num_nulls2 = 0;
+                idx_t i = 0;
+                idx_t j = 0;
+                while (i < a.first.size() && j < b.first.size()) {
+                    if (a.first[i] == b.first[j]) {
+                        i++;
+                        j++;
+                    }
+                    else if (a.first[i] < b.first[j]) {
+                        num_nulls1++;
+                        i++;
+                    }
+                    else {
+                        num_nulls2++;
+                        j++;
+                    }
+                }
+                while (i < a.first.size()) {
+                    num_nulls1++;
+                    i++;
+                }
+                while (j < b.first.size()) {
+                    num_nulls2++;
+                    j++;
+                }
+
+                double cost_after = CostSchemaVal +
+                                    CostNullVal * (num_nulls1 * a.second +
+                                                   num_nulls2 * b.second) +
+                                    _ComputeVecOvh(a.second + b.second);
+                double distance = cost_after / cost_current;
+                return distance;
+            });
+
+        // get chi clusters?
+
+        // get cluster indices
+        auto clusters = optics::get_cluster_indices(reach_dists, 10);
+
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
+        num_clusters = clusters.size();
+        cluster_tokens.reserve(num_clusters);
+
+        for (auto i = 0; i < clusters.size(); i++) {
+            std::unordered_set<uint32_t> cluster_tokens_set;
+            std::cout << "Cluster " << i << ": ";
+            for (auto j = 0; j < clusters[i].size(); j++) {
+                std::cout << clusters[i][j] << ", ";
+                sg_to_cluster_vec[clusters[i][j]] = i;
+                cluster_tokens_set.insert(
+                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
+                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
+            }
+            std::cout << std::endl;
+
+            cluster_tokens.push_back(std::vector<uint32_t>());
+            cluster_tokens.back().insert(
+                std::end(cluster_tokens.back()), std::begin(cluster_tokens_set),
+                std::end(cluster_tokens_set));
+        }
+    }
+
+    void _ClusterSchemaAgglomerative() {
+        // sort schema
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                      schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // layered approach
+        vector<uint32_t> num_tuples_order;
+        num_tuples_order.resize(schema_groups_with_num_tuples.size());
+        std::iota(num_tuples_order.begin(), num_tuples_order.end(), 0);
+#ifdef SORT_LAYER_ASCENDING
+        std::sort(num_tuples_order.begin(), num_tuples_order.end(),
+                  [&](size_t a, size_t b) {
+                      return schema_groups_with_num_tuples[a].second <
+                             schema_groups_with_num_tuples[b].second;
+                  });
+#endif
+#ifdef SORT_LAYER_DESCENDING
+        std::sort(num_tuples_order.begin(), num_tuples_order.end(),
+                  [&](size_t a, size_t b) {
+                      return schema_groups_with_num_tuples[a].second >
+                             schema_groups_with_num_tuples[b].second;
+                  });
+#endif
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
+        
+        int num_layers = 0;
+        vector<uint32_t> layer_boundaries;
+        SplitIntoMultipleLayers(schema_groups_with_num_tuples, num_tuples_order,
+                                num_layers, layer_boundaries);
+
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> temp_output;
+        for (uint32_t i = 0; i < num_layers; i++) {
+            size_t size_to_reserve = i == 0 ? layer_boundaries[i]
+                                            : temp_output.size() +
+                                                  layer_boundaries[i] -
+                                                  layer_boundaries[i - 1];
+            temp_output.reserve(size_to_reserve);
+            for (uint32_t j = i == 0 ? 0 : layer_boundaries[i - 1];
+                 j < layer_boundaries[i]; j++) {
+                std::vector<uint32_t> temp_vec;
+                temp_vec.push_back(num_tuples_order[j]);
+                temp_output.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
+            }
+            ClusterSchemasInCurrentLayer(schema_groups_with_num_tuples,
+                                         num_tuples_order, layer_boundaries,
+                                         i, temp_output);
+            
+            // remove nullptrs
+            temp_output.erase(
+                std::remove_if(begin(temp_output), end(temp_output),
+                               [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
+                end(temp_output));
+            
+            // for (auto i = 0; i < temp_output.size(); i++) {
+            //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+
+            //     std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
+            //     for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
+            //         std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+            //     }
+            //     std::cout << std::endl;
+
+            //     std::cout << "\t";
+            //     for (auto j = 0; j < temp_output[i].second.size(); j++) {
+            //         std::cout << temp_output[i].second[j] << ", ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+        }
+
+        num_clusters = temp_output.size();
+        cluster_tokens.reserve(temp_output.size());
+        for (auto i = 0; i < temp_output.size(); i++) {
+            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+
+            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
+            for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
+                std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+            }
+            std::cout << std::endl;
+
+            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
+            std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
+
+            std::cout << "\t";
+            for (auto j = 0; j < temp_output[i].second.size(); j++) {
+                std::cout << temp_output[i].second[j] << ", ";
+            }
+            std::cout << std::endl;
+
+            for (auto j = 0; j < temp_output[i].second.size(); j++) {
+                sg_to_cluster_vec[temp_output[i].second[j]] = i;
+            }
+        }
+    }
+
+    void SplitIntoMultipleLayers(
+        const vector<std::pair<std::vector<uint32_t>, uint64_t>>
+            &schema_groups_with_num_tuples,
+        const vector<uint32_t> &num_tuples_order, int &num_layers,
+        vector<uint32_t> &layer_boundaries)
+    {
+        uint64_t num_tuples_sum = 0;
+        uint64_t num_schemas_sum = 0;
+#ifdef SORT_LAYER_ASCENDING
+        for (auto i = 0; i < num_tuples_order.size(); i++) {
+            num_tuples_sum +=
+                schema_groups_with_num_tuples[num_tuples_order[i]].second;
+            num_schemas_sum++;
+            double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
+            if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
+                avg_num_tuples * 1.5) {
+                layer_boundaries.push_back(i);
+                num_tuples_sum = 0;
+                num_schemas_sum = 0;
+            }
+        }
+        if (layer_boundaries.back() != num_tuples_order.size()) {
+            layer_boundaries.push_back(num_tuples_order.size());
+        }
+#endif
+#ifdef SORT_LAYER_DESCENDING
+        layer_boundaries.push_back(num_tuples_order.size());
+        for (int64_t i = num_tuples_order.size() - 1; i >= 0; i--) {
+            num_tuples_sum +=
+                schema_groups_with_num_tuples[num_tuples_order[i]].second;
+            num_schemas_sum++;
+            double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
+            // std::cout << "num_tuples_sum: " << num_tuples_sum 
+            //     << ", num_schemas_sum: " << num_schemas_sum << std::endl;
+            // std::cout << "avg_num_tuples: " << avg_num_tuples << std::endl;
+            // std::cout << "schema_groups_with_num_tuples[num_tuples_order[i]].second: " 
+            //     << schema_groups_with_num_tuples[num_tuples_order[i]].second << std::endl;
+            if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
+                avg_num_tuples * 1.5) {
+                layer_boundaries.push_back(i);
+                num_tuples_sum = 0;
+                num_schemas_sum = 0;
+            }
+        }
+        std::reverse(layer_boundaries.begin(), layer_boundaries.end());
+#endif
+#ifdef NO_SORT_LAYER
+        layer_boundaries.push_back(num_tuples_order.size());
+#endif
+
+        num_layers = layer_boundaries.size();
+
+        for (auto i = 0; i < layer_boundaries.size(); i++) {
+            std::cout << "Layer " << i << " boundary: " << layer_boundaries[i] << std::endl;
+        }
+
+        // num_layers = 2;
+        // layer_boundaries.push_back(num_tuples_order.size() / 2);
+        // layer_boundaries.push_back(num_tuples_order.size());
+    }
+
+    void ClusterSchemasInCurrentLayer(
+        vector<std::pair<std::vector<uint32_t>, uint64_t>>
+            &schema_groups_with_num_tuples,
+        const vector<uint32_t> &num_tuples_order,
+        const vector<uint32_t> &layer_boundaries,
+        uint32_t current_layer,
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output)
+    {
+        uint32_t merged_count;
+        uint32_t iteration = 0;
+        uint32_t num_tuples_total = temp_output.size();
+        do {
+            std::cout << "Iteration " << iteration << " start" << std::endl;
+            merged_count = 0;
+
+            uint32_t num_tuples_in_cost_matrix = (num_tuples_total * (num_tuples_total - 1)) / 2;
+            std::vector<double> cost_matrix(num_tuples_in_cost_matrix, COST_MAX);
+            std::cout << "Layer " << current_layer 
+                << ", num_tuples: " << num_tuples_total 
+                << ", num_tuples_in_cost_matrix: " << num_tuples_in_cost_matrix << std::endl;
+
+            GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix);
+
+#ifdef AGG_COST_MODEL3
+            std::priority_queue<std::pair<double, uint64_t>,
+                                std::vector<std::pair<double, uint64_t>>,
+                                CostCompareLess>
+                cost_pq;
+#else
+            std::priority_queue<std::pair<double, uint64_t>,
+                                std::vector<std::pair<double, uint64_t>>,
+                                CostCompareGreat>
+                cost_pq;
+#endif
+            std::vector<bool> visited(num_tuples_total, false);
+
+            for (auto i = 0; i < cost_matrix.size(); i++) {
+#ifdef AGG_COST_MODEL1
+                if (cost_matrix[i] > 0) continue;
+#endif
+                cost_pq.push({cost_matrix[i], i});
+                // std::cout << "Insert " << cost_matrix[i] << ", " << i << std::endl;
+            }
+
+            uint32_t num_tuples_added = 0;
+            if (!cost_pq.empty()) {
+                do {
+                    std::pair<double, uint64_t> min_cost = cost_pq.top();
+                    cost_pq.pop();
+
+#ifdef AGG_COST_MODEL1
+                    // cost model 1
+                    if (min_cost.first > 0) {
+                        break;
+                    }
+#endif              
+
+#ifdef AGG_COST_MODEL2
+                    // cost model 2
+                    if (min_cost.first > 2) {
+                        break;
+                    }
+#endif
+
+#ifdef AGG_COST_MODEL3
+                    // cost model 3
+                    if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                        break;
+                    }
+#endif
+
+                    // row_idx, col_idx
+                    uint32_t idx1, idx2;
+                    
+                    // ((2n - 1) - ((2n - 1)^2 - 8k)^0.5) / 2
+                    idx1 = ((2 * num_tuples_total - 1) -
+                            (std::sqrt((2 * num_tuples_total - 1) *
+                                        (2 * num_tuples_total - 1) -
+                                    8 * min_cost.second))) /
+                        2;
+                    
+                    idx1 = std::max((uint32_t)0, std::min(idx1, num_tuples_total - 2));
+                    idx2 = min_cost.second -
+                        ((idx1 * (2 * num_tuples_total - idx1 - 1)) / 2) +
+                        idx1 + 1;
+                    
+                    // std::cout << "cost: " << min_cost.first << ", idx: " << min_cost.second << std::endl;
+                    // std::cout << "idx1: " << idx1 << ", idx2: " << idx2 << std::endl;
+
+                    if (visited[idx1] || visited[idx2]) {
+                        continue;
+                    }
+
+                    visited[idx1] = true;
+                    visited[idx2] = true;
+
+                    // merge idx1 and idx2
+                    MergeVertexlets(idx1, idx2, temp_output);
+                    num_tuples_added++;
+                    merged_count++;
+                } while (!cost_pq.empty());
+            }
+            
+            num_tuples_total += num_tuples_added;
+            iteration++;
+        } while (merged_count > 0);
+
+        std::cout << "Layer " << current_layer << " temp_output size: " << temp_output.size() << std::endl;
+    }
+
+    void MergeVertexlets(uint32_t idx1, uint32_t idx2, vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
+        auto &schema_group1 = schema_groups_with_num_tuples[temp_output[idx1].first];
+        auto &schema_group2 = schema_groups_with_num_tuples[temp_output[idx2].first];
+
+        std::vector<uint32_t> merged_schema;
+        merged_schema.reserve(schema_group1.first.size() + schema_group2.first.size());
+        std::merge(schema_group1.first.begin(), schema_group1.first.end(),
+                   schema_group2.first.begin(), schema_group2.first.end(),
+                   std::back_inserter(merged_schema));
+        merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
+
+        uint64_t merged_num_tuples = schema_group1.second + schema_group2.second;
+        schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
+        std::vector<uint32_t> merged_indices;
+        merged_indices.reserve(temp_output[idx1].second.size() + temp_output[idx2].second.size());
+        merged_indices.insert(merged_indices.end(), temp_output[idx1].second.begin(), temp_output[idx1].second.end());
+        merged_indices.insert(merged_indices.end(), temp_output[idx2].second.begin(), temp_output[idx2].second.end());
+        temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
+
+        temp_output[idx1].first = std::numeric_limits<uint32_t>::max();
+        temp_output[idx2].first = std::numeric_limits<uint32_t>::max();
+    }
+
+    vector<unsigned int> &GetClusterTokens(size_t cluster_idx) {
+        switch(cluster_algo_type) {
+            case ClusterAlgorithmType::ALLPAIRS:
+                return cluster_algo->getclustertokens(cluster_idx);
+            case ClusterAlgorithmType::OPTICS:
+            case ClusterAlgorithmType::DBSCAN:
+            case ClusterAlgorithmType::AGGLOMERATIVE:
+                return cluster_tokens[cluster_idx];
+            default:
+                D_ASSERT(false);
+        }
+        return cluster_tokens[cluster_idx];
     }
 
     void _CreateExtents(GraphComponentType gctype, GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
@@ -595,9 +1560,14 @@ public:
             vector<LogicalType> cur_cluster_schema_types;
             vector<string> cur_cluster_schema_names;
 
-            vector<unsigned int> &tokens = cluster_algo->getclustertokens(i);
+            vector<unsigned int> &tokens = GetClusterTokens(i);
             for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
-                auto original_idx = order[tokens[token_idx]];
+                uint64_t original_idx;
+                if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
+                    original_idx = order[tokens[token_idx]];
+                } else {
+                    original_idx = tokens[token_idx];
+                }
                 
                 if (get_key_and_type(id_to_property_vec[original_idx], cur_cluster_schema_names, cur_cluster_schema_types)) {
                     per_cluster_key_column_idxs[i].push_back(token_idx);
@@ -722,7 +1692,7 @@ private:
         else return false;
     }
 
-    void recursive_collect_key_paths_jsonl(ondemand::value element, std::string &current_prefix, bool in_array, vector<uint64_t> &schema, int current_idx) {
+    void recursive_collect_key_paths_jsonl(ondemand::value element, std::string &current_prefix, bool in_array, vector<uint32_t> &schema, int current_idx) {
         switch (element.type()) {
         case ondemand::json_type::array: {
             // for (auto child : element.get_array()) {
@@ -1515,7 +2485,9 @@ private:
     vector<vector<Item>> transactions;
 
     vector<uint64_t> corresponding_schemaID;
-    vector<vector<uint64_t>> schema_groups;
+    // vector<vector<uint64_t>> schema_groups;
+    // vector<uint64_t> num_tuples_per_schema_group;
+    vector<std::pair<vector<uint32_t>, uint64_t>> schema_groups_with_num_tuples;
     vector<int32_t> sg_to_cluster_vec;
     vector<string> id_to_property_vec;
     vector<uint64_t> property_freq_vec;
@@ -1527,6 +2499,8 @@ private:
     SchemaHashTable sch_HT;
     Algorithm *cluster_algo;
     size_t num_clusters;
+    ClusterAlgorithmType cluster_algo_type;
+    vector<vector<uint32_t>> cluster_tokens;
 
     vector<LogicalType> most_common_schema;
     vector<string> most_common_key_paths;
@@ -1540,6 +2514,14 @@ private:
     vector<idx_t> key_column_idxs;
     unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
+
+    Eigen::MatrixXd distance_matrix;
+    Eigen::MatrixXd coordinate_matrix;
+    const double CostSchemaVal = 0.0001;
+    // const double CostNullVal = 0.001;
+    const double CostNullVal = 0.00001;
+    const double CostVectorizationVal = 0.2;
+    // const double CostVectorizationVal = 5.0;
 };
 
 } // namespace duckdb

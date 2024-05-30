@@ -565,6 +565,8 @@ public:
         unordered_map<PropertyKeyID, idx_t> accumulated_ndvs;
         idx_t accumulated_ndvs_for_physical_id_col = 0;
 
+        bool has_histogram = true;
+
         // merge schemas & histograms
         for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
             idx_t table_oid = table_oids_to_be_merged[i];
@@ -581,6 +583,8 @@ public:
             merged_num_tuples +=
                 ps_cat->GetNumberOfRowsApproximately();
 
+            has_histogram = has_histogram && ndvs->size() > 0;
+
             /**
              * TODO: adding NDVs is seems wrong.
              * We have to do correctly (e.g., setting max NDV)
@@ -591,14 +595,18 @@ public:
                 if (type_info.find(key_ids->at(j)) == type_info.end()) {
                     type_info.insert({key_ids->at(j), types->at(j)});
                 }
-                if (accumulated_ndvs.find(key_ids->at(j)) ==
-                    accumulated_ndvs.end()) {
-                    accumulated_ndvs.insert({key_ids->at(j), ndvs->at(j)});
-                }
-                else {
-                    accumulated_ndvs[key_ids->at(j)] += ndvs->at(j);
+                if (has_histogram) {
+                    if (accumulated_ndvs.find(key_ids->at(j)) ==
+                        accumulated_ndvs.end()) {
+                        accumulated_ndvs.insert({key_ids->at(j), ndvs->at(j)});
+                    }
+                    else {
+                        accumulated_ndvs[key_ids->at(j)] += ndvs->at(j);
+                    }
                 }
             }
+
+            if (!has_histogram) continue;
 
             auto *offset_infos = ps_cat->GetOffsetInfos();
             auto *freq_values = ps_cat->GetFrequencyValues();
@@ -631,7 +639,9 @@ public:
         }
 
         merged_property_key_ids.reserve(merged_schema.size());
-        merged_ndvs->push_back(accumulated_ndvs_for_physical_id_col);
+        if (has_histogram) {
+            merged_ndvs->push_back(accumulated_ndvs_for_physical_id_col);
+        }
         for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
             merged_property_key_ids.push_back(*it);
         }
@@ -642,6 +652,7 @@ public:
             idx_t prop_key_id = merged_property_key_ids[i];
             merged_types.push_back(
                 LogicalType(type_info.at(prop_key_id)));
+            if (!has_histogram) continue;
             auto &freq_vec = intermediate_merged_freq_values.at(prop_key_id);
             accumulated_offset += (freq_vec.size() + 1);
             merged_offset_infos->push_back(accumulated_offset);
