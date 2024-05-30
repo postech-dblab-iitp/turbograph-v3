@@ -182,24 +182,23 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void remapSeqnoToEidIdx(vector<idx_t> &in_seqno_to_eid_idx,
                             const sel_t *sel_idxs, size_t sel_size,
                             vector<idx_t> &out_seqno_to_eid_idx) const;
-    NullRatio calculateNullRatio(
+    size_t calculateTotalNulls(
         DataChunk &chunk, vector<unique_ptr<DataChunk>> &chunks,
         idx_t inner_schema_idx, vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
-    Skewness calculateSkewness(
-        vector<ExtentID> &target_eids,
-        vector<vector<uint32_t>> &target_seqnos_per_extent,
-         vector<idx_t> &mapping_idxs
-    ) const;
-    OutputFormat determineFormat(bool sort_order_enforced, size_t num_schemas,
-                                 NullRatio null_ratio, Skewness skewness) const;
+    OutputFormat determineFormatByCostModel(bool sort_order_enforced, vector<size_t> &num_tuples_per_schema,
+                                 size_t total_nulls) const;
     void getOutputColIdxsForOuter(idx_t outer_schema_idx, vector<idx_t> &output_col_idx) const;
     void getOutputColIdxsForInner(idx_t extentIdx, vector<idx_t> &mapping_idxs,
                                    vector<idx_t> &output_col_idx) const;
     void getColMapWithoutID(const vector<uint32_t> &col_map,
                             vector<LogicalType> &types, idx_t &out_id_col_idx,
                             vector<uint32_t> &out_col_map) const;
+    void getOutSizePerSchema(vector<ExtentID> &target_eids,
+        vector<vector<uint32_t>> &target_seqnos_per_extent,
+        vector<idx_t> &mapping_idxs, vector<size_t> &num_tuples_per_schema) const;
+    void getUnionScanTypes();
 
     // parameters
     uint64_t id_col_idx;

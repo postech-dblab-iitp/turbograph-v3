@@ -233,6 +233,7 @@ void Vector::CreateRowColumn(const VectorCache &cache, idx_t capacity)
 {
 	this->capacity = capacity;
 	this->is_rowcol = true;
+	this->is_valid = true;
 	cache.ResetFromCacheForRowCol(*this);
 }
 
