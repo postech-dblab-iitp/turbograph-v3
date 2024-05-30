@@ -1,38 +1,53 @@
-#include <assert.h>
-#include <cstring>
-#include <dirent.h>
-#include <fcntl.h>
 #include <iostream>
-#include <signal.h>
-#include <stdlib.h>
-#include <string>
-#include <sys/mman.h>
-#include <sys/socket.h>
-#include <sys/poll.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <thread>
-#include <unistd.h>
-#include <unordered_set>
-#include <vector>
 #include <memory>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#include <cctype>
 
 #include "log_disk.h"
 #include "object_log.h"
 #include "store.h"
 
-#include <memory>
+long parseSize(const std::string& sizeStr) {
+    std::istringstream iss(sizeStr);
+    long size;
+    std::string unit;
+    iss >> size >> unit;
 
-int main() {
-  // if (signal(SIGINT, signal_handler) == SIG_ERR) {
-  //   std::cerr << "cannot register signal handler!" << std::endl;
-  //   exit(-1);
-  // }
+    if (unit == "B" || unit == "b") {
+        return size;
+    } else if (unit == "KB" || unit == "kb" || unit == "Kb") {
+        return size * 1024L;
+    } else if (unit == "MB" || unit == "mb" || unit == "Mb") {
+        return size * 1024L * 1024L;
+    } else if (unit == "GB" || unit == "gb" || unit == "Gb") {
+        return size * 1024L * 1024L * 1024L;
+    } else if (unit == "TB" || unit == "tb" || unit == "Tb") {
+        return size * 1024L * 1024L * 1024L * 1024L;
+    } else {
+        throw std::invalid_argument("Unknown unit: " + unit);
+    }
+}
 
-  std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>(
-      "/tmp/lightning", 360 * 1024 * 1024 * 1024L);
-  store->Run();
+int main(int argc, char* argv[]) {
+    const long DEFAULT_SIZE = 10L * 1024L * 1024L * 1024L; // 10GB
 
-  return 0;
+    long size;
+    if (argc == 2) {
+        std::string sizeStr(argv[1]);
+        try {
+            size = parseSize(sizeStr);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
+    } else {
+        size = DEFAULT_SIZE;
+    }
+
+    std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", size);
+    store->Run();
+
+    return 0;
 }

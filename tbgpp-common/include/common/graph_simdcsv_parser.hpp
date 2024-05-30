@@ -331,7 +331,12 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
           std::from_chars(start, end, val_before_decimal_point);
         }
         
-        ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        if (val_before_decimal_point >= 0) {
+          ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        }
+        else {
+          ((int16_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) - val_after_decimal_point;
+        }
         break;
       }
       case PhysicalType::INT32: {
@@ -346,8 +351,13 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
         } else { // no '.' found
           std::from_chars(start, end, val_before_decimal_point);
         }
-        
-        ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+
+        if (val_before_decimal_point >= 0) {
+          ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        }
+        else {
+          ((int32_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) - val_after_decimal_point;
+        }
         break;
       }
       case PhysicalType::INT64: {
@@ -363,7 +373,12 @@ inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t
           std::from_chars(start, end, val_before_decimal_point);
         }
         
-        ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        if (val_before_decimal_point >= 0) {
+          ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) + val_after_decimal_point;
+        }
+        else {
+          ((int64_t *)data_ptr)[current_index] = (val_before_decimal_point * std::pow(10, scale)) - val_after_decimal_point;
+        }
         break;
       }
       case PhysicalType::INT128:
