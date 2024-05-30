@@ -155,3 +155,9 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 - `--num-iterations: <num iterations>`: Specifies the number of iterations for the query.
 - `--disable-merge-join`: Disables the merge join operator (default optimizer mode)
 - `--join-order-optimizer:<exhaustive, exhaustive2, query, greedy>`: Specifies the join order optimizer mode.
+
+## Execution Commands
+
+- ':exit': Exits the client.
+- ':analyze': Update the statistics
+- 'flush_file_meta': increase client initialization speed by flushing file metadata
