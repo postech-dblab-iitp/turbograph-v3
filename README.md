@@ -158,6 +158,6 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 
 ## Execution Commands
 
-- ':exit': Exits the client.
-- ':analyze': Update the statistics
-- 'flush_file_meta': increase client initialization speed by flushing file metadata
+- `:exit`: Exits the client.
+- `:analyze`: Update the statistics
+- `flush_file_meta`: increase client initialization speed by flushing file metadata
