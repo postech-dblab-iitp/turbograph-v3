@@ -590,6 +590,7 @@ private:
 	CExpression *reBuildFilterExpr(CExpression *filter_expr, CExpression *adjidxjoin_into_expr);
 	CExpression *recursiveBuildFilterExpr(CExpression *scalar_expr, CExpression *adjidxjoin_into_expr);
 	void pGetIdentIndices(unique_ptr<duckdb::Expression> &expr, vector<duckdb::idx_t> &out_idxs);
+	duckdb::AdjIdxIdIdxs pGetAdjIdxIdIdxs(CColRefArray *inner_cols);
 
 	// Hash Aggregate Helpers
 	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 

@@ -15,6 +15,11 @@
 namespace duckdb {
 struct LogicalType;
 
+typedef idx_t EdgeIdIdx;
+typedef idx_t SrcIdIdx;
+typedef idx_t TgtIdIdx;
+typedef std::tuple<EdgeIdIdx, SrcIdIdx, TgtIdIdx> AdjIdxIdIdxs;
+
 class CypherPhysicalOperator {
 
    public:

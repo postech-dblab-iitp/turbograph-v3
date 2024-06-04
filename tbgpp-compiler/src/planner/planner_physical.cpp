@@ -1103,7 +1103,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
     // Flags
     bool is_edge_prop_in_output = pIsPropertyInCols(inner_cols);
-    bool is_edge_id_in_inner_cols = pIsIDColInCols(inner_cols);
     bool is_filter_exist = pIsFilterExist(plan_expr->operator[](1));
     bool is_adjidxjoin_into = false;
 
@@ -1176,8 +1175,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
             D_ASSERT(false);
             D_ASSERT(filter_expr != NULL);
             adj_output_cols->AppendArray(outer_cols);
-            // pSeperatePropertyNonPropertyCols(inner_cols, seek_inner_cols,
-            //                                 adj_inner_cols);
             adj_output_cols->AppendArray(adj_inner_cols);
             pAppendFilterOnlyCols(filter_expr, idxscan_cols, inner_cols,
                                 adj_inner_cols);
@@ -1256,15 +1253,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     adjidx_obj_id = index_mdid->Oid();
 
     // Construct adjacency index
-    bool load_eid = generate_seek || is_edge_id_in_inner_cols;
-    bool load_eid_temp = load_eid && !is_edge_id_in_inner_cols;
+    auto adjidx_idx_idxs = pGetAdjIdxIdIdxs(adj_inner_cols);
     duckdb::CypherPhysicalOperator *duckdb_adjidx_op =
         new duckdb::PhysicalAdjIdxJoin(
             schema_adj, adjidx_obj_id,
             is_left_outer ? duckdb::JoinType::LEFT : duckdb::JoinType::INNER,
             is_adjidxjoin_into, outer_join_key_col_idx, tgt_key_col_idx,
-            load_eid, outer_col_maps_adj[0], inner_col_maps_adj[0],
-            0 /* unused outer_pos */, 0 /* unused inner_pos */, load_eid_temp);
+            outer_col_maps_adj[0], inner_col_maps_adj[0], adjidx_idx_idxs);
 
     /**
      * TOOD: this code assumes that the edge table is single schema.
@@ -5973,6 +5968,37 @@ CExpression *Planner::recursiveBuildFilterExpr(
 		default:
 			GPOS_ASSERT(false); // NOT implemented yet
 	}
+}
+
+duckdb::AdjIdxIdIdxs Planner::pGetAdjIdxIdIdxs(CColRefArray *inner_cols) {
+    duckdb::idx_t edge_id_idx = -1;
+    duckdb::idx_t src_id_idx = -1;
+    duckdb::idx_t tgt_id_idx = -1;
+
+    for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
+        CColRef *colref = inner_cols->operator[](col_idx);
+        CColRefTable *colref_table = (CColRefTable *)colref;
+        const CName &col_name = colref_table->Name();
+        wchar_t *full_col_name, *col_only_name, *pt;
+        full_col_name = new wchar_t[std::wcslen(col_name.Pstr()->GetBuffer()) + 1];
+        std::wcscpy(full_col_name, col_name.Pstr()->GetBuffer());
+        col_only_name = std::wcstok(full_col_name, L".", &pt);
+        col_only_name = std::wcstok(NULL, L".", &pt);
+
+        if (col_only_name != NULL) {
+            if (std::wcsncmp(col_only_name, L"_id", 4) == 0) {
+                edge_id_idx = col_idx;
+            }
+            else if (std::wcsncmp(col_only_name, L"_sid", 4) == 0) {
+                src_id_idx = col_idx;
+            }
+            else if (std::wcsncmp(col_only_name, L"_tid", 4) == 0) {
+                tgt_id_idx = col_idx;
+            }
+        }
+    }
+
+    return {edge_id_idx, src_id_idx, tgt_id_idx};
 }
 
 }  // namespace s62
