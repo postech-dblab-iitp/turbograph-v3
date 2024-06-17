@@ -65,6 +65,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
                 leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
         }
     }
+
     // // date - date → integer
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
     //     std::vector<DataTypeID>{DATE, DATE}, INT64,
@@ -89,6 +90,12 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
     //     std::vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
     //     BinaryExecFunction<interval_t, interval_t, interval_t, operation::Subtract>));
+
+    // Issue #111 (Handle NEDAGE function)
+    for (auto& typeID : DataType::getNumericalTypeIDs()) {
+        result.push_back(getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, typeID, typeID));
+    }
+    
     return result;
 }
 
