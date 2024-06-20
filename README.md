@@ -161,3 +161,10 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 - `:exit`: Exits the client.
 - `analyze`: Update the statistics
 - `flush_file_meta`: increase client initialization speed by flushing file metadata
+
+## Query Support
+
+- COUNT
+    - COUNT(): Not Supported
+    - COUNT(*): Not Supported
+    - COUNT(column_name): Supported

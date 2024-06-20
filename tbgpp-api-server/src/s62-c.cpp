@@ -867,7 +867,7 @@ hugeint_t s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset
         return 0;
     }
     else {
-		return HugeIntValue::Get(((string_t*)vec->GetData())[local_cursor]);
+		return HugeIntValue::Get(Value::HUGEINT(((hugeint_t*)vec->GetData())[local_cursor]));
     }
 }
 
