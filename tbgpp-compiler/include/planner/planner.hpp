@@ -128,7 +128,6 @@
 #include "naucrates/base/CDatumGenericGPDB.h"
 #include "naucrates/base/CDatumBoolGPDB.h"
 
-
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
@@ -156,16 +155,15 @@
 #include "common/enums/order_type.hpp"
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
-
-
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
 #include "planner/value_ser_des.hpp"
-
 #include "mdprovider/MDProviderTBGPP.h"
 
 using namespace kuzu::binder;
 using namespace gpopt;
+
+#define USE_INVERTED_INDEX
 
 namespace s62 {
 
@@ -396,6 +394,9 @@ private:
         string &unique_name, vector<uint64_t> &oids);
     void lPruneUnnecessaryGraphlets(std::vector<uint64_t> &table_oids,
                                     NodeOrRelExpression *node_expr,
+                                    const expression_vector &prop_exprs,
+                                    std::vector<uint64_t> &pruned_table_oids);
+	void lPruneUnnecessaryColumns(NodeOrRelExpression *node_expr,
                                     const expression_vector &prop_exprs,
                                     std::vector<uint64_t> &pruned_table_oids);
 
