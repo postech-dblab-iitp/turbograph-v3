@@ -31,6 +31,12 @@ duckdb::SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWr
 	catalog_wrapper = catalog_wrapper_;
 }
 
+void 
+duckdb::ReleaseClientWrapper() {
+	client_wrapper.reset();
+	catalog_wrapper.reset();
+}
+
 IndexType
 duckdb::GetLogicalIndexType(Oid index_oid)
 {

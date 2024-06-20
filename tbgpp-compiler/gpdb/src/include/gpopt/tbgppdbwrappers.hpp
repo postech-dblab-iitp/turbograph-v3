@@ -20,6 +20,7 @@ class ClientContext;
 class CatalogWrapper;
 
 void SetClientWrapper(shared_ptr<ClientContext> client_, shared_ptr<CatalogWrapper> catalog_wrapper_);
+void ReleaseClientWrapper();
 
 // return the logical index type for a given logical index oid
 IndexType GetLogicalIndexType(Oid index_oid);
