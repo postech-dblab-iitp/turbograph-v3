@@ -84,6 +84,11 @@ public:
         }
     }
 
+    void setUnusedColumn(uint64_t col_idx) {
+        assert(used_columns.size() > col_idx);
+        used_columns[col_idx] = false;
+    }
+
     bool isUsedColumn(uint64_t col_idx) {
         assert(used_columns.size() > col_idx);
         return used_columns[col_idx];
