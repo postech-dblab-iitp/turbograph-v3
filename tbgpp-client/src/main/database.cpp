@@ -33,6 +33,8 @@ DatabaseInstance::DatabaseInstance() {
 }
 
 DatabaseInstance::~DatabaseInstance() {
+	delete catalog_shm;
+
 	if (Exception::UncaughtException()) {
 		return;
 	}
@@ -236,6 +238,7 @@ DuckDB::DuckDB(const char *path) : instance(make_shared<DatabaseInstance>()) {
 }
 
 DuckDB::~DuckDB() {
+	instance.reset();
 }
 
 StorageManager &DatabaseInstance::GetStorageManager() {

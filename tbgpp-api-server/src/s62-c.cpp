@@ -25,7 +25,8 @@ using namespace gpopt;
 // Database
 static std::unique_ptr<DuckDB> database;
 static std::shared_ptr<ClientContext> client;
-static s62::Planner* planner;
+static std::unique_ptr<s62::Planner> planner;
+static std::unique_ptr<DiskAioFactory> disk_aio_factory;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -55,7 +56,7 @@ s62_state s62_connect(const char *dbname) {
 
         // create disk aio factory
         int res;
-        DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
+        disk_aio_factory = std::make_unique<DiskAioFactory>(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
         core_id::set_core_ids(config.NUM_THREADS);
 
         // create db
@@ -64,7 +65,7 @@ s62_state s62_connect(const char *dbname) {
         // create cache manager
         ChunkCacheManager::ccm = new ChunkCacheManager(config.WORKSPACE.c_str());
 
-        // craet client
+        // create client
         client = std::make_shared<ClientContext>(database->instance->shared_from_this());
         duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 
@@ -73,7 +74,10 @@ s62_state s62_connect(const char *dbname) {
         planner_config.INDEX_JOIN_ONLY = true;
 		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
 		planner_config.DEBUG_PRINT = false;
-        planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+		if (planner == nullptr) {
+			// reuse the planner
+			planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
+		}
 
         // Print done
         std::cout << "Database Connected" << std::endl;
@@ -91,10 +95,11 @@ s62_state s62_connect(const char *dbname) {
 }
 
 void s62_disconnect() {
-    delete ChunkCacheManager::ccm;
-    delete planner;
-    database.reset();
+	duckdb::ReleaseClientWrapper();
     client.reset();
+    delete ChunkCacheManager::ccm;
+    database.reset();
+	disk_aio_factory.reset();
     std::cout << "Database Disconnected" << std::endl;
 }
 
