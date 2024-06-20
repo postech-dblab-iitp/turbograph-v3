@@ -358,7 +358,6 @@ static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_
 		}
 	}
 
-	std::cout << "????" << std::endl;
 	new_property->label_name = NULL;
 	new_property->label_type = S62_METADATA_TYPE::S62_OTHER;
 	return;
