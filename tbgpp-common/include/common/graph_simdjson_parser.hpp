@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
+#include <Python.h>
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
@@ -13,9 +14,9 @@
 #include "simdjson.h"
 #include "fptree.hpp"
 #include "icecream.hpp"
-#include "Dense"
 #include "clustering/dbscan.h"
 #include "clustering/optics.hpp"
+
 
 using namespace simdjson;
 
@@ -27,7 +28,8 @@ using namespace simdjson;
 
 #define AGG_COST_MODEL1
 // #define AGG_COST_MODEL2
-// #define AGG_COST_MODEL3
+// #define AGG_COST_MODEL3 // Jaccard
+// #define AGG_COST_MODEL4 // Weighted Jaccard
 #define SORT_LAYER_DESCENDING
 // #define SORT_LAYER_ASCENDING
 // #define NO_SORT_LAYER
@@ -64,11 +66,13 @@ public:
         OPTICS,
         DENCLUE,
         AGGLOMERATIVE,
+        GMM
     };
 
 public:
     GraphSIMDJSONFileParser() {}
-    ~GraphSIMDJSONFileParser() {}
+    ~GraphSIMDJSONFileParser() {
+    }
 
     GraphSIMDJSONFileParser(std::shared_ptr<ClientContext> client_, ExtentManager *ext_mng_, Catalog *cat_instance_) {
         client = client_;
@@ -131,7 +135,7 @@ public:
     }
 
     void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
-        cluster_algo_type = ClusterAlgorithmType::OPTICS;
+        cluster_algo_type = ClusterAlgorithmType::GMM;
 
         boost::timer::cpu_timer clustering_timer;
         if (jftype == JsonFileType::JSON) {
@@ -189,6 +193,19 @@ public:
                 clustering_timer.start();
                 // Clustering
                 _ClusterSchemaAgglomerative();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::GMM: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchemaGMM();
                 clustering_timer.stop();
 
                 // Create Extents
@@ -856,6 +873,66 @@ public:
         return distance;
     }
 
+    double _ComputeCostMergingSchemaGroups4(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        // Step 0: Get maximum property id
+        uint32_t max_property_id = schema_group1.first.back();
+        if (schema_group2.first.back() > max_property_id) {
+            max_property_id = schema_group2.first.back();
+        }
+
+        // Step 1: Calculate frequencies
+        vector<uint64_t> property_frequencies(max_property_id + 1, 0); // Is it + 1 or not? 
+        for (const auto &property : schema_group1.first) {
+            property_frequencies[property] += schema_group1.second;
+        }
+        for (const auto &property : schema_group2.first) {
+            property_frequencies[property] += schema_group2.second;
+        }
+
+        // Step 2: Calculate weights
+        vector<double> weights(max_property_id + 1, 0.0);
+        for (int i = 0; i < property_frequencies.size(); i++) {
+            weights[i] = 1.0 / sqrt(static_cast<double>(property_frequencies[i]));
+        }
+
+        // Step 3: Compute weighted Jaccard similarity
+        double intersection_weight = 0.0;
+        double union_weight = 0.0;
+
+        idx_t i = 0, j = 0;
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                intersection_weight += weights[schema_group1.first[i]];
+                union_weight += weights[schema_group1.first[i]];
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                union_weight += weights[schema_group1.first[i]];
+                i++;
+            } else {
+                union_weight += weights[schema_group2.first[j]];
+                j++;
+            }
+        }
+
+        // Handle remaining elements
+        while (i < schema_group1.first.size()) {
+            union_weight += weights[schema_group1.first[i]];
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            union_weight += weights[schema_group2.first[j]];
+            j++;
+        }
+
+        // Calculate and return the weighted Jaccard similarity
+        double weighted_jaccard = intersection_weight / union_weight;
+        return weighted_jaccard;
+    }
+
     double _ComputeDistanceMergingSchemaGroups(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
@@ -982,6 +1059,10 @@ public:
 #endif
 #ifdef AGG_COST_MODEL3
                     cost = _ComputeCostMergingSchemaGroups3(schema_group1,
+                                                            schema_group2);
+#endif
+#ifdef AGG_COST_MODEL4
+                    cost = _ComputeCostMergingSchemaGroups4(schema_group1,
                                                             schema_group2);
 #endif
                 }
@@ -1175,28 +1256,7 @@ public:
 
         // get cluster indices
         auto clusters = optics::get_cluster_indices(reach_dists, 10);
-
-        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
-        num_clusters = clusters.size();
-        cluster_tokens.reserve(num_clusters);
-
-        for (auto i = 0; i < clusters.size(); i++) {
-            std::unordered_set<uint32_t> cluster_tokens_set;
-            std::cout << "Cluster " << i << ": ";
-            for (auto j = 0; j < clusters[i].size(); j++) {
-                std::cout << clusters[i][j] << ", ";
-                sg_to_cluster_vec[clusters[i][j]] = i;
-                cluster_tokens_set.insert(
-                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
-                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
-            }
-            std::cout << std::endl;
-
-            cluster_tokens.push_back(std::vector<uint32_t>());
-            cluster_tokens.back().insert(
-                std::end(cluster_tokens.back()), std::begin(cluster_tokens_set),
-                std::end(cluster_tokens_set));
-        }
+        _PopulateCluteringResults(clusters);
     }
 
     void _ClusterSchemaAgglomerative() {
@@ -1297,6 +1357,320 @@ public:
         }
     }
 
+    void _ClusterSchemaGMM() {
+        // sort schema
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                      schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // Initialize
+        std::vector<std::vector<std::size_t>> clusters;
+        std::vector<size_t> schemas_in_cluster(schema_groups_with_num_tuples.size());
+        std::iota(schemas_in_cluster.begin(), schemas_in_cluster.end(), 0);
+
+        // Initialize Python interpreter
+        if (p_sklearn_module == nullptr) {
+            PyObject* p_name = PyUnicode_DecodeFSDefault("sklearn.mixture");
+            p_sklearn_module = PyImport_Import(p_name);
+            Py_DECREF(p_name);
+        }
+
+        // Run GMM Clustering
+        _GMMClustering(clusters, schemas_in_cluster);
+        _PopulateCluteringResults(clusters);
+    }
+
+    void _GMMClustering(std::vector<std::vector<std::size_t>>& clusters,
+                        std::vector<size_t>& schemas_in_cluster) {
+        D_ASSERT(schemas_in_cluster.size() > 0);
+
+        if (schemas_in_cluster.size() == 1) {
+            clusters.push_back(schemas_in_cluster);
+            return;
+        }
+
+        vector<std::pair<vector<uint32_t>, uint64_t>*> _schema_groups_with_num_tuples;
+        _GetSchemaGroupsWithNumTuplesInCluster(schemas_in_cluster, _schema_groups_with_num_tuples);
+
+        D_ASSERT(_schema_groups_with_num_tuples.size() == schemas_in_cluster.size());
+
+        vector<uint32_t> reference_schema_group;
+        _GetReferenceSchemaGroup(_schema_groups_with_num_tuples, reference_schema_group);
+
+        D_ASSERT(reference_schema_group.size() == 1); // 1-most frequent property id
+
+        vector<float> similarities;
+        _ComputeSimilarities(_schema_groups_with_num_tuples, reference_schema_group, similarities);
+
+        D_ASSERT(similarities.size() == _schema_groups_with_num_tuples.size());
+
+        vector<vector<float>> feature_vector;
+        _ComputeFeatureVector(_schema_groups_with_num_tuples, similarities, feature_vector);
+
+        vector<uint32_t> per_tuple_predictions;
+        _FitPredictGMM(feature_vector, per_tuple_predictions);
+
+        vector<uint32_t> per_schema_predictions;
+        _GetPerSchemaPredictions(per_tuple_predictions, _schema_groups_with_num_tuples, per_schema_predictions);
+
+        D_ASSERT(per_schema_predictions.size() == _schema_groups_with_num_tuples.size());
+
+        if (_IsClusteringEnded(per_schema_predictions)) {
+            clusters.push_back(schemas_in_cluster);
+            return;
+        }
+        else {
+            std::vector<size_t> cluster_1_schemas;
+            std::vector<size_t> cluster_2_schemas;
+            _SplitSchemasBasedOnPrediction(per_schema_predictions, schemas_in_cluster, cluster_1_schemas, cluster_2_schemas);
+            _GMMClustering(clusters, cluster_1_schemas);
+            _GMMClustering(clusters, cluster_2_schemas);
+            return;
+        }
+    }
+
+    void _GetSchemaGroupsWithNumTuplesInCluster(std::vector<size_t>& schemas_in_cluster, 
+        vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples) {
+        _schema_groups_with_num_tuples.reserve(schemas_in_cluster.size());
+        for (auto i = 0; i < schemas_in_cluster.size(); i++) {
+            _schema_groups_with_num_tuples.push_back(&schema_groups_with_num_tuples[schemas_in_cluster[i]]);
+        }
+    }
+
+    void _GetPerSchemaPredictions(vector<uint32_t>& per_tuple_predictions, 
+                                    vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples,
+                                    vector<uint32_t>& per_schema_predictions) {
+        size_t offset = 0;
+        per_schema_predictions.reserve(_schema_groups_with_num_tuples.size());
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            uint32_t num_tuples = _schema_groups_with_num_tuples[i]->second;
+            per_schema_predictions.push_back(per_tuple_predictions[offset]);
+            offset += num_tuples;
+        }
+    }
+
+    void _SplitSchemasBasedOnPrediction(vector<uint32_t> &predictions,
+                                        std::vector<size_t> &schemas_in_cluster,
+                                        std::vector<size_t> &cluster_1_schemas,
+                                        std::vector<size_t> &cluster_2_schemas)
+    {
+        for (auto i = 0; i < predictions.size(); i++) {
+            if (predictions[i] == 0) {
+                cluster_1_schemas.push_back(schemas_in_cluster[i]);
+            }
+            else {
+                cluster_2_schemas.push_back(schemas_in_cluster[i]);
+            }
+        }
+
+        D_ASSERT(cluster_1_schemas.size() + cluster_2_schemas.size() ==
+                 schemas_in_cluster.size());
+        D_ASSERT(cluster_1_schemas.size() > 0);
+        D_ASSERT(cluster_2_schemas.size() > 0);
+    }
+
+    void _PopulateCluteringResults(std::vector<std::vector<std::size_t>>& clusters) {
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
+        num_clusters = clusters.size();
+        cluster_tokens.reserve(num_clusters);
+
+        for (auto i = 0; i < clusters.size(); i++) {
+            std::unordered_set<uint32_t> cluster_tokens_set;
+            std::cout << "Cluster " << i << ": ";
+            for (auto j = 0; j < clusters[i].size(); j++) {
+                std::cout << clusters[i][j] << ", ";
+                sg_to_cluster_vec[clusters[i][j]] = i;
+                cluster_tokens_set.insert(
+                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
+                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
+            }
+            std::cout << std::endl;
+
+            cluster_tokens.push_back(std::vector<uint32_t>());
+            cluster_tokens.back().insert(
+                std::end(cluster_tokens.back()), std::begin(cluster_tokens_set),
+                std::end(cluster_tokens_set));
+        }
+    }
+
+    bool _IsClusteringEnded(vector<uint32_t>& predictions) {
+        for (auto i = 1; i < predictions.size(); i++) {
+            if (predictions[i] != predictions[0]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void _GetReferenceSchemaGroup(vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples, 
+                        vector<uint32_t>& reference_schema_group) {
+        // Get maximum property id
+        uint32_t max_property_id = 0;
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            if (_schema_groups_with_num_tuples[i]->first.back() > max_property_id) {
+                max_property_id = _schema_groups_with_num_tuples[i]->first.back();
+            }
+        }
+
+        // Count per property occurence
+        vector<uint32_t> property_occurence(max_property_id + 1, 0);
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            for (auto j = 0; j < _schema_groups_with_num_tuples[i]->first.size(); j++) {
+                property_occurence[_schema_groups_with_num_tuples[i]->first[j]]++;
+            }
+        }
+
+        // Get the most frequent property id
+        uint32_t most_frequent_property_id = 0;
+        uint32_t most_frequent_property_occurence = 0;
+        for (auto i = 0; i < property_occurence.size(); i++) {
+            if (property_occurence[i] > most_frequent_property_occurence) {
+                most_frequent_property_id = i;
+                most_frequent_property_occurence = property_occurence[i];
+            }
+        }
+
+        // Get the schema group with the most frequent property id
+        reference_schema_group.push_back(most_frequent_property_id);
+    }
+
+    void _ComputeSimilarities(vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples,
+                    vector<uint32_t>& reference_schema_group, vector<float> &similarities) {
+        similarities.reserve(_schema_groups_with_num_tuples.size());
+        
+        // Calculate dice coefficient
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            float similarity = 0.0;
+            uint32_t intersection = 0;
+            uint32_t union_size = reference_schema_group.size() + _schema_groups_with_num_tuples[i]->first.size();
+            for (auto j = 0; j < reference_schema_group.size(); j++) {
+                for (auto k = 0; k < _schema_groups_with_num_tuples[i]->first.size(); k++) {
+                    if (reference_schema_group[j] == _schema_groups_with_num_tuples[i]->first[k]) {
+                        intersection++;
+                        break;
+                    }
+                }
+            }
+            union_size -= intersection;
+            similarity = 2.0 * intersection / (union_size + intersection);
+            similarities.push_back(similarity);
+        }
+    }
+
+    void _vectorToPyList(const std::vector<std::vector<float>>& vec, PyObject* pyList) {
+        for (size_t i = 0; i < vec.size(); ++i) {
+            PyObject* innerList = PyList_New(vec[i].size());
+            for (size_t j = 0; j < vec[i].size(); ++j) {
+                PyObject* num = PyFloat_FromDouble(vec[i][j]);
+                PyList_SetItem(innerList, j, num); // PyList_SetItem steals the reference to num
+            }
+            PyList_SetItem(pyList, i, innerList); // PyList_SetItem steals the reference to innerList
+        }
+    }
+
+    void _pyListToVector(PyObject* pyList, std::vector<uint32_t>& vec) {
+        if (PyList_Check(pyList)) {
+            size_t size = PyList_Size(pyList);
+            vec.resize(size);
+            for (size_t i = 0; i < size; ++i) {
+                PyObject* item = PyList_GetItem(pyList, i); // Borrowed reference
+                vec[i] = static_cast<uint32_t>(PyLong_AsUnsignedLong(item));
+            }
+        }
+    }
+
+    void _FitPredictGMM(std::vector<std::vector<float>>& feature_vector, std::vector<uint32_t>& predictions) {
+        try {
+            // Convert C++ vector to Python list of lists
+            PyObject* py_feature_vector = PyList_New(feature_vector.size());
+            _vectorToPyList(feature_vector, py_feature_vector);
+
+            if (p_sklearn_module != NULL) {
+                // Get the BayesianGaussianMixture class
+                PyObject* pClass = PyObject_GetAttrString(p_sklearn_module, "BayesianGaussianMixture");
+
+                if (pClass && PyCallable_Check(pClass)) {
+                    // Create an instance of BayesianGaussianMixture with keyword arguments
+                    PyObject* pKwargs = PyDict_New();
+                    PyDict_SetItemString(pKwargs, "n_components", PyLong_FromLong(2));
+                    PyDict_SetItemString(pKwargs, "tol", PyFloat_FromDouble(1.0));
+                    PyDict_SetItemString(pKwargs, "max_iter", PyLong_FromLong(10));
+
+                    PyObject* pInstance = PyObject_Call(pClass, PyTuple_New(0), pKwargs);
+                    Py_DECREF(pKwargs);
+
+                    if (pInstance != NULL) {
+                        // Prepare arguments for the fit method
+                        PyObject* pFitArgs = PyTuple_New(1);
+                        PyTuple_SetItem(pFitArgs, 0, py_feature_vector);
+                        Py_INCREF(py_feature_vector); // Increment ref count because SetItem steals a reference
+
+                        // Call the fit method
+                        PyObject* pFitResult = PyObject_CallMethod(pInstance, "fit", "(O)", py_feature_vector);
+                        Py_DECREF(pFitArgs);
+
+                        if (pFitResult != NULL) {
+                            Py_DECREF(pFitResult);
+
+                            // Call the predict method
+                            PyObject* pPredictResult = PyObject_CallMethod(pInstance, "predict", "(O)", py_feature_vector);
+
+                            if (pPredictResult != NULL) {
+                                // Convert the NumPy array to a Python list
+                                PyObject* pPredictList = PyObject_CallMethod(pPredictResult, "tolist", NULL);
+                                Py_DECREF(pPredictResult);
+
+                                if (pPredictList != NULL && PyList_Check(pPredictList)) {
+                                    // Convert Python list of predictions to C++ vector
+                                    _pyListToVector(pPredictList, predictions);
+                                    Py_DECREF(pPredictList);
+                                } else {
+                                    PyErr_Print();
+                                }
+                            } else {
+                                PyErr_Print();
+                            }
+                        } else {
+                            PyErr_Print();
+                        }
+
+                        Py_DECREF(pInstance);
+                    } else {
+                        PyErr_Print();
+                    }
+
+                    Py_DECREF(pClass);
+                } else {
+                    PyErr_Print();
+                }
+            } else {
+                PyErr_Print();
+            }
+
+            Py_DECREF(py_feature_vector);
+        } catch (...) {
+            PyErr_Print();
+        }
+    }
+
+    void _ComputeFeatureVector(vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples,
+            vector<float> &similarities, vector<vector<float>> &feature_vector) {
+        // Calculate total number of tuples
+        uint64_t total_num_tuples = 0;
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            total_num_tuples += _schema_groups_with_num_tuples[i]->second;
+        }
+        feature_vector.reserve(total_num_tuples);
+
+        // Calculate feature vector (pump each similarity value to the mulitple of instances)
+        for (auto i = 0; i < _schema_groups_with_num_tuples.size(); i++) {
+            for (auto j = 0; j < _schema_groups_with_num_tuples[i]->second; j++) {
+                feature_vector.push_back({similarities[i]});
+            }
+        }
+    }
+
     void SplitIntoMultipleLayers(
         const vector<std::pair<std::vector<uint32_t>, uint64_t>>
             &schema_groups_with_num_tuples,
@@ -1386,6 +1760,11 @@ public:
                                 std::vector<std::pair<double, uint64_t>>,
                                 CostCompareLess>
                 cost_pq;
+#elif defined(AGG_COST_MODEL4)
+            std::priority_queue<std::pair<double, uint64_t>,
+                                std::vector<std::pair<double, uint64_t>>,
+                                CostCompareLess>
+                cost_pq;
 #else
             std::priority_queue<std::pair<double, uint64_t>,
                                 std::vector<std::pair<double, uint64_t>>,
@@ -1423,6 +1802,13 @@ public:
 #endif
 
 #ifdef AGG_COST_MODEL3
+                    // cost model 3
+                    if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                        break;
+                    }
+#endif
+
+#ifdef AGG_COST_MODEL4
                     // cost model 3
                     if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
                         break;
@@ -1498,6 +1884,7 @@ public:
             case ClusterAlgorithmType::OPTICS:
             case ClusterAlgorithmType::DBSCAN:
             case ClusterAlgorithmType::AGGLOMERATIVE:
+            case ClusterAlgorithmType::GMM:
                 return cluster_tokens[cluster_idx];
             default:
                 D_ASSERT(false);
@@ -2514,9 +2901,8 @@ private:
     vector<idx_t> key_column_idxs;
     unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
+    PyObject* p_sklearn_module = nullptr;
 
-    Eigen::MatrixXd distance_matrix;
-    Eigen::MatrixXd coordinate_matrix;
     const double CostSchemaVal = 0.0001;
     // const double CostNullVal = 0.001;
     const double CostNullVal = 0.00001;
