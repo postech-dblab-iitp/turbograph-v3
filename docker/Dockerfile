@@ -123,7 +123,8 @@ RUN apt-get install -y \
     flex \
     libfl-dev \
     tzdata \
-    wget
+    wget \
+    libmlpack-dev
 
 # Install pip3
 RUN apt-get install -y python3-pip
