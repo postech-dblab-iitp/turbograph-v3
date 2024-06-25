@@ -124,6 +124,12 @@ RUN apt-get install -y \
     libfl-dev \
     tzdata \
     wget
+
+# Install pip3
+RUN apt-get install -y python3-pip
+
+# Install scikit-learn
+RUN pip3 install scikit-learn
     
 # Install SparseHash
 RUN git clone https://github.com/sparsehash/sparsehash.git && \

@@ -24,6 +24,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ####################################################
 # FIND PACKAGES
 ####################################################
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
 ####################################################
 # DECLARE TARGETS
@@ -79,7 +80,6 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
 	"${PROJECT_SOURCE_DIR}/third_party/velox"
 	"${PROJECT_SOURCE_DIR}/third_party/range-v3"
-	"${PROJECT_SOURCE_DIR}/third_party/Eigen"
 	"${PROJECT_SOURCE_DIR}/third_party/fplus"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
@@ -87,6 +87,8 @@ target_include_directories(tbgpp-common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/../tbgpp-client/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/"
 	"${PROJECT_SOURCE_DIR}/../tbgpp-graph-store/include/"
+	# python
+	${Python3_INCLUDE_DIRS}
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
@@ -107,6 +109,7 @@ target_link_libraries(tbgpp-common-lib
 	velox_link_libs
 	velox_dwio_dwrf_reader
 	velox_dwio_dwrf_writer)
+target_link_libraries(tbgpp-common-lib ${Python3_LIBRARIES})
 target_compile_options(tbgpp-common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-common-lib PUBLIC ${CXX_DEFINITION})
 
