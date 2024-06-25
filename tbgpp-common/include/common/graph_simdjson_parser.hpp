@@ -6,10 +6,6 @@
 #include <cmath>
 #include <unordered_set>
 #include <Python.h>
-#include <mlpack.hpp>
-#include <mlpack/core.hpp>
-#include <mlpack/methods/gmm/gmm.hpp>
-#include <armadillo>
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
@@ -1412,7 +1408,7 @@ public:
         _ComputeFeatureVector(_schema_groups_with_num_tuples, similarities, feature_vector);
 
         vector<uint32_t> per_tuple_predictions;
-        _FitPredictGMMCPP(feature_vector, per_tuple_predictions);
+        _FitPredictGMMPython(feature_vector, per_tuple_predictions);
 
         vector<uint32_t> per_schema_predictions;
         _GetPerSchemaPredictions(per_tuple_predictions, _schema_groups_with_num_tuples, per_schema_predictions);
@@ -1655,43 +1651,6 @@ public:
         } catch (...) {
             PyErr_Print();
         }
-    }
-
-    void _FitPredictGMMCPP(std::vector<std::vector<float>>& feature_vector, std::vector<uint32_t>& predictions) {
-        // Check if the feature vector contains more than one element
-        if (feature_vector.size() <= 1) {
-            std::cerr << "Not enough data points to fit a Gaussian Mixture Model." << std::endl;
-            return;
-        }
-
-        // Convert std::vector to arma::mat
-        size_t num_points = feature_vector.size();
-        size_t num_features = feature_vector[0].size();
-        arma::mat data(num_features, num_points); // Note: dimensions should be (num_features, num_points) for mlpack
-
-        for (size_t i = 0; i < num_points; ++i) {
-            for (size_t j = 0; j < num_features; ++j) {
-                data(j, i) = feature_vector[i][j]; // Transpose the data for mlpack
-            }
-        }
-
-        // Initialize GMM with 2 components and the number of dimensions of the data
-        mlpack::gmm::GMM gmm(2, num_features);
-
-        // Train the GMM using the EM algorithm
-        mlpack::gmm::EMFit<> fitter;
-        size_t default_iterations = 10;
-        size_t max_iterations = std::min(num_points, default_iterations);
-        double logLikelihood = gmm.Train(data, max_iterations, false, fitter); // Set false to reinitialize parameters
-
-        std::cout << "Log Likelihood: " << logLikelihood << std::endl;
-
-        // Predict the component for each data point
-        arma::Row<size_t> labels;
-        gmm.Classify(data, labels);
-
-        // Convert predictions from arma::Row<size_t> to std::vector<uint32_t>
-        predictions.assign(labels.begin(), labels.end());
     }
 
     void _ComputeFeatureVector(vector<std::pair<vector<uint32_t>, uint64_t>*>& _schema_groups_with_num_tuples,
