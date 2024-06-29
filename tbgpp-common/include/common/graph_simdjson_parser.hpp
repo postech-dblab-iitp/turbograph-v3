@@ -20,10 +20,18 @@
 using namespace simdjson;
 
 #define TILE_SIZE 1024 // or 4096
-#define FREQUENCY_THRESHOLD 0.95
-#define SET_SIM_THRESHOLD 0.99
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
+
+// Thresholds
+#define FREQUENCY_THRESHOLD 0.95
+#define SET_SIM_THRESHOLD 0.99
+#define SET_EDIT_THRESHOLD 2
+#define JACCARD_THRESHOLD 0.75
+#define WEIGHTED_JACCARD_THRESHOLD 0.75
+#define COSINE_THRESHOLD 0.75
+#define DICE_THRESHOLD 0.75
+#define OVERLAP_THRESHOLD 0.75
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -64,12 +72,12 @@ public:
 
     enum class CostModel {
         OURS,
-        OVERLAP,
+        SETEDIT,
         JACCARD,
         WEIGHTED_JACCARD,
         COSINE,
         DICE,
-        SETEDIT
+        OVERLAP
     };
     
     enum class LayeringOrder {
@@ -818,7 +826,7 @@ public:
         return distance;
     }
 
-    double _ComputeCostMergingSchemaGroups2(
+    double _ComputeCostMergingSchemaSetEdit(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
     {
@@ -851,7 +859,7 @@ public:
         return distance;
     }
 
-    double _ComputeCostMergingSchemaGroups3(
+    double _ComputeCostMergingSchemaGroupsJaccard(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
     {
@@ -886,7 +894,7 @@ public:
         return distance;
     }
 
-    double _ComputeCostMergingSchemaGroups4(
+    double _ComputeCostMergingSchemaGroupsWeightedJaccard(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
     {
@@ -946,7 +954,101 @@ public:
         return weighted_jaccard;
     }
 
-    double _ComputeDistanceMergingSchemaGroups(
+    double _ComputeCostMergingSchemaGroupsCosine(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        double dot_product = 0.0;
+        double magnitude1 = 0.0;
+        double magnitude2 = 0.0;
+        idx_t i = 0;
+        idx_t j = 0;
+
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                dot_product += schema_group1.first[i] * schema_group2.first[j];
+                magnitude1 += schema_group1.first[i] * schema_group1.first[i];
+                magnitude2 += schema_group2.first[j] * schema_group2.first[j];
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                magnitude1 += schema_group1.first[i] * schema_group1.first[i];
+                i++;
+            } else {
+                magnitude2 += schema_group2.first[j] * schema_group2.first[j];
+                j++;
+            }
+        }
+
+        while (i < schema_group1.first.size()) {
+            magnitude1 += schema_group1.first[i] * schema_group1.first[i];
+            i++;
+        }
+        while (j < schema_group2.first.size()) {
+            magnitude2 += schema_group2.first[j] * schema_group2.first[j];
+            j++;
+        }
+
+        double cosine_similarity = dot_product / (sqrt(magnitude1) * sqrt(magnitude2));
+        return cosine_similarity;
+    }
+
+    double _ComputeCostMergingSchemaGroupsDice(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        int64_t num_common = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                num_common++;
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+
+        int64_t size1 = schema_group1.first.size();
+        int64_t size2 = schema_group2.first.size();
+
+        double dice_similarity = (2.0 * num_common) / (size1 + size2);
+        return dice_similarity;
+    }
+
+    double _ComputeCostMergingSchemaGroupsOverlap(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+    {
+        int64_t num_common = 0;
+        idx_t i = 0;
+        idx_t j = 0;
+
+        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+            if (schema_group1.first[i] == schema_group2.first[j]) {
+                num_common++;
+                i++;
+                j++;
+            } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                i++;
+            } else {
+                j++;
+            }
+        }
+
+        int64_t size1 = schema_group1.first.size();
+        int64_t size2 = schema_group2.first.size();
+        int64_t min_size = std::min(size1, size2);
+
+        double overlap_similarity = num_common / (double)min_size;
+        return overlap_similarity;
+    }
+
+    double _ComputeDistanceMergingSchemaOurs(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
     {
@@ -1065,20 +1167,35 @@ public:
 
                     /* START_OF_COST_MODEL_BASED */
                     if (cost_model == CostModel::OURS) {
-                        cost = _ComputeDistanceMergingSchemaGroups(schema_group1,
+                        cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
                                                                 schema_group2);
                     }
                     else if (cost_model == CostModel::SETEDIT) {
-                        cost = _ComputeCostMergingSchemaGroups2(schema_group1,
+                        cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
                                                                 schema_group2);
                     }
                     else if (cost_model == CostModel::JACCARD) {
-                        cost = _ComputeCostMergingSchemaGroups3(schema_group1,
+                        cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
                                                                 schema_group2);
                     }
                     else if (cost_model == CostModel::WEIGHTED_JACCARD) {
-                        cost = _ComputeCostMergingSchemaGroups4(schema_group1,
+                        cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
                                                                 schema_group2);
+                    }
+                    else if (cost_model == CostModel::COSINE) {
+                        cost = _ComputeCostMergingSchemaGroupsCosine(schema_group1,
+                                                                schema_group2);
+                    }
+                    else if (cost_model == CostModel::DICE) {
+                        cost = _ComputeCostMergingSchemaGroupsDice(schema_group1,
+                                                                schema_group2);
+                    }
+                    else if (cost_model == CostModel::OVERLAP) {
+                        cost = _ComputeCostMergingSchemaGroupsOverlap(schema_group1,
+                                                                schema_group2);
+                    }
+                    else {
+                        D_ASSERT(false);
                     }
                     /* END_OF_COST_MODEL_BASED */
                 }
@@ -1777,7 +1894,7 @@ public:
                                                 std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>> cost_pq_ptr;
 
             // Initialize the appropriate priority queue based on the cost model
-            if (cost_model == CostModel::OURS) {
+            if (cost_model == CostModel::OURS || cost_model == CostModel::SETEDIT) {
                 cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
                                                             std::vector<std::pair<double, uint64_t>>,
                                                             std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareGreat());
@@ -1812,17 +1929,32 @@ public:
                         }
                     }
                     else if (cost_model == CostModel::SETEDIT) {
-                        if (min_cost.first > 2) {
+                        if (min_cost.first > SET_EDIT_THRESHOLD) {
                             break;
                         }
                     }
                     else if (cost_model == CostModel::JACCARD) {
-                        if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= JACCARD_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
                     else if (cost_model == CostModel::WEIGHTED_JACCARD) {
-                        if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= WEIGHTED_JACCARD_THRESHOLD || min_cost.first == COST_MAX) {
+                            break;
+                        }
+                    }
+                    else if (cost_model == CostModel::COSINE) {
+                        if (min_cost.first <= COSINE_THRESHOLD || min_cost.first == COST_MAX) {
+                            break;
+                        }
+                    }
+                    else if (cost_model == CostModel::DICE) {
+                        if (min_cost.first <= DICE_THRESHOLD || min_cost.first == COST_MAX) {
+                            break;
+                        }
+                    }
+                    else if (cost_model == CostModel::OVERLAP) {
+                        if (min_cost.first <= OVERLAP_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
