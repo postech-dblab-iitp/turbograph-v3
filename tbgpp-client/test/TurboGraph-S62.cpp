@@ -442,7 +442,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				D_ASSERT(executors.back()->context->query_results != nullptr);
 				auto &resultChunks = *(executors.back()->context->query_results);
 				auto &schema = executors.back()->pipeline->GetSink()->schema;
-				printOutput(planner, resultChunks, schema);
+				// printOutput(planner, resultChunks, schema);
 				
 				std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
