@@ -14,11 +14,3 @@
 
 add_subdirectory(common)
 add_subdirectory(proto)
-add_subdirectory(reader)
-if(${VELOX_BUILD_TESTING})
-  add_subdirectory(test)
-elseif(${VELOX_BUILD_TEST_UTILS})
-  add_subdirectory(test/utils)
-endif()
-add_subdirectory(utils)
-add_subdirectory(writer)

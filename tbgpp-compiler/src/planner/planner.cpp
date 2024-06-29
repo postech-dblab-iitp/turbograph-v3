@@ -40,7 +40,6 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type,
 
 Planner::~Planner()
 {
-
     CMDCache::Shutdown();
 
     // Destroy memory pool for orca

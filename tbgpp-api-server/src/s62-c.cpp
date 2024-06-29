@@ -25,7 +25,8 @@ using namespace gpopt;
 // Database
 static std::unique_ptr<DuckDB> database;
 static std::shared_ptr<ClientContext> client;
-static s62::Planner* planner;
+static std::unique_ptr<s62::Planner> planner;
+static std::unique_ptr<DiskAioFactory> disk_aio_factory;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -55,7 +56,7 @@ s62_state s62_connect(const char *dbname) {
 
         // create disk aio factory
         int res;
-        DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
+        disk_aio_factory = std::make_unique<DiskAioFactory>(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
         core_id::set_core_ids(config.NUM_THREADS);
 
         // create db
@@ -64,7 +65,7 @@ s62_state s62_connect(const char *dbname) {
         // create cache manager
         ChunkCacheManager::ccm = new ChunkCacheManager(config.WORKSPACE.c_str());
 
-        // craet client
+        // create client
         client = std::make_shared<ClientContext>(database->instance->shared_from_this());
         duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 
@@ -73,7 +74,10 @@ s62_state s62_connect(const char *dbname) {
         planner_config.INDEX_JOIN_ONLY = true;
 		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_IN_QUERY;
 		planner_config.DEBUG_PRINT = false;
-        planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+		if (planner == nullptr) {
+			// reuse the planner
+			planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
+		}
 
         // Print done
         std::cout << "Database Connected" << std::endl;
@@ -91,10 +95,11 @@ s62_state s62_connect(const char *dbname) {
 }
 
 void s62_disconnect() {
-    delete ChunkCacheManager::ccm;
-    delete planner;
-    database.reset();
+	duckdb::ReleaseClientWrapper();
     client.reset();
+    delete ChunkCacheManager::ccm;
+    database.reset();
+	disk_aio_factory.reset();
     std::cout << "Database Disconnected" << std::endl;
 }
 
@@ -143,9 +148,23 @@ s62_num_metadata s62_get_metadata_from_catalog(s62_label_name label, bool like_f
 	auto graph_cat = s62_get_graph_catalog_entry();
 
 	// Get labels and types
-	vector<string> labels, types;
-	graph_cat->GetVertexLabels(labels);
-	graph_cat->GetEdgeTypes(types);
+	vector<string> labels;
+	idx_t_vector *vertex_partitions = graph_cat->GetVertexPartitionOids();
+	for (int i = 0; i < vertex_partitions->size(); i++) {
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client.get(), DEFAULT_SCHEMA, vertex_partitions->at(i));
+		labels.push_back(part_cat->GetName().substr(6));
+    }
+
+	vector<string> types;
+	idx_t_vector *edge_partitions = graph_cat->GetEdgePartitionOids();
+	for (int i = 0; i < edge_partitions->size(); i++) {
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client.get(), DEFAULT_SCHEMA, edge_partitions->at(i));
+		types.push_back(part_cat->GetName().substr(6));
+    }
 
 	// Create s62_metadata linked list with labels
 	s62_metadata *metadata = NULL;
@@ -339,7 +358,6 @@ static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_
 		}
 	}
 
-	std::cout << "????" << std::endl;
 	new_property->label_name = NULL;
 	new_property->label_type = S62_METADATA_TYPE::S62_OTHER;
 	return;
@@ -757,6 +775,102 @@ string s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(s62_resultset_wrapp
     }
 }
 
+template <>
+int16_t s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	if (result_set_wrp == NULL) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return 0;
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == NULL) { return 0; }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+        last_error_message = INVALID_RESULT_SET_MSG;
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return 0;
+    }
+    else {
+		return SmallIntValue::Get(((int16_t*)vec->GetData())[local_cursor]);
+    }
+}
+
+template <>
+int32_t s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	if (result_set_wrp == NULL) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return 0;
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == NULL) { return 0; }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+        last_error_message = INVALID_RESULT_SET_MSG;
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return 0;
+    }
+    else {
+		return IntegerValue::Get(((int32_t*)vec->GetData())[local_cursor]);
+    }
+}
+
+template <>
+int64_t s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	if (result_set_wrp == NULL) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return 0;
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == NULL) { return 0; }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+        last_error_message = INVALID_RESULT_SET_MSG;
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return 0;
+    }
+    else {
+		return BigIntValue::Get(((int64_t*)vec->GetData())[local_cursor]);
+    }
+}
+
+template <>
+hugeint_t s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+	if (result_set_wrp == NULL) {
+		last_error_message = INVALID_RESULT_SET_MSG;
+		last_error_code = S62_ERROR_INVALID_RESULT_SET;
+		return hugeint_t();
+	}
+
+    size_t local_cursor;
+    auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
+    if (result == NULL) { return hugeint_t(); }
+
+	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+
+    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+        last_error_message = INVALID_RESULT_SET_MSG;
+        last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
+        return 0;
+    }
+    else {
+		return HugeIntValue::Get(Value::HUGEINT(((hugeint_t*)vec->GetData())[local_cursor]));
+    }
+}
+
 bool s62_get_bool(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
     return s62_get_value<bool, duckdb::LogicalTypeId::BOOLEAN>(result_set_wrp, col_idx);
 }
@@ -790,11 +904,11 @@ uint8_t s62_get_uint8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 }
 
 uint16_t s62_get_uint16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint16_t, duckdb::LogicalTypeId::SMALLINT>(result_set_wrp, col_idx);
+	return s62_get_value<uint16_t, duckdb::LogicalTypeId::USMALLINT>(result_set_wrp, col_idx);
 }
 
 uint32_t s62_get_uint32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint32_t, duckdb::LogicalTypeId::INTEGER>(result_set_wrp, col_idx);
+	return s62_get_value<uint32_t, duckdb::LogicalTypeId::UINTEGER>(result_set_wrp, col_idx);
 }
 
 uint64_t s62_get_uint64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
@@ -857,14 +971,14 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 	auto scale = duckdb::DecimalType::GetScale(data_type);
 	switch (data_type.InternalType()) {
 		case duckdb::PhysicalType::INT16:
-			return s62_decimal{width,scale,{s62_get_int16(result_set_wrp, col_idx),0}};
+			return s62_decimal{width,scale,{s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
 		case duckdb::PhysicalType::INT32:
-			return s62_decimal{width,scale,{s62_get_int32(result_set_wrp, col_idx),0}};
+			return s62_decimal{width,scale,{s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
 		case duckdb::PhysicalType::INT64:
-			return s62_decimal{width,scale,{s62_get_int64(result_set_wrp, col_idx),0}};
+			return s62_decimal{width,scale,{s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
 		case duckdb::PhysicalType::INT128:
 		{
-			auto int128_val = s62_get_hugeint(result_set_wrp, col_idx);
+			auto int128_val = s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx);
 			return s62_decimal{width,scale,{int128_val.lower,int128_val.upper}};
 			break;
 		}

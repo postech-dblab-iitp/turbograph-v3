@@ -9,7 +9,6 @@ project(tbgpp-common)
 # ADD SUBDIRECTORIES
 ####################################################
 add_subdirectory(third_party)
-#add_subdirectory(src/common/vector_operations)
 
 ####################################################
 # COMPILATION FLAGS
@@ -96,15 +95,7 @@ target_sources(tbgpp-common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
 target_link_libraries(tbgpp-common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(tbgpp-common-lib duckdb_fastpforlib)
 target_link_libraries(tbgpp-common-lib turbograph_simdcsv)
-target_link_libraries(tbgpp-common-lib
-	velox_functions_prestosql
-	velox_functions_prestosql_impl
-	velox_aggregates
-	velox_vector_test_lib
-	velox_exec
-	velox_link_libs
-	velox_dwio_dwrf_reader
-	velox_dwio_dwrf_writer)
+target_link_libraries(tbgpp-common-lib velox_link_libs)
 target_compile_options(tbgpp-common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(tbgpp-common-lib PUBLIC ${CXX_DEFINITION})
 

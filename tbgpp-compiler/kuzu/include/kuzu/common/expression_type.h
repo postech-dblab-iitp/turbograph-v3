@@ -38,6 +38,7 @@ const string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
 const string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
 const string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
 const string CAST_TO_INT64_FUNC_NAME = "TO_INTEGER";
+const string CAST_TO_DECIMAL_FUNC_NAME = "TO_DECIMAL";
 
 // list
 const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
@@ -108,7 +109,7 @@ const string LN_FUNC_NAME = "LN";
 const string LOG_FUNC_NAME = "LOG";
 const string LOG2_FUNC_NAME = "LOG2";
 const string LOG10_FUNC_NAME = "LOG10";
-const string NEGATE_FUNC_NAME = "NEGATE";
+const string NEGATE_FUNC_NAME = "-";
 const string PI_FUNC_NAME = "PI";
 const string POW_FUNC_NAME = "POW";
 const string RADIANS_FUNC_NAME = "RADIANS";
