@@ -144,6 +144,9 @@ duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno, AttStat
 double
 duckdb::GetNDV(PropertySchemaCatalogEntry *rel, int16_t attno) {
 	auto *ndvs = rel->GetNDVs();
+	if (ndvs->size() == 0) {
+		return 0.0;
+	}
 	if (attno < 0) {
 		// load ID col ndv
 		return (*ndvs)[0];

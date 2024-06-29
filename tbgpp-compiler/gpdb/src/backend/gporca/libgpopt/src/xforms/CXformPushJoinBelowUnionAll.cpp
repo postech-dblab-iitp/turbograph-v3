@@ -76,11 +76,11 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 	// S62 Specific: We don't need, since we should handle left right UNION ALL case.
 	// If both children are union alls, return
 	// // We only perform transform when only one child is union all
-	// if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid() &&
-	// 	COperator::EopLogicalUnionAll == pexprRight->Pop()->Eopid())
-	// {
-	// 	return;
-	// }
+	if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid() &&
+		COperator::EopLogicalUnionAll == pexprRight->Pop()->Eopid())
+	{
+		return;
+	}
 
 	CExpression *pexprUnionAll, *pexprOther;
 

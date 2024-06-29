@@ -23,6 +23,7 @@
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
+#include <Python.h>
 
 #include <nlohmann/json.hpp>	// TODO remove json and use that of boost
 using json = nlohmann::json;
@@ -1274,6 +1275,9 @@ class InputParser{ // TODO use boost options
 };
 
 int main(int argc, char** argv) {
+	// Intialize Python
+	Py_Initialize();
+
 	// Parse Command Option
 	InputParser input(argc, argv);
 	input.ParseCmdOption();
@@ -1331,5 +1335,6 @@ int main(int argc, char** argv) {
 
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
+	Py_Finalize();
 	return 0;
 }
