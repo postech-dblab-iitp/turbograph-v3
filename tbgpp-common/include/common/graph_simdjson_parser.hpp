@@ -25,14 +25,6 @@ using namespace simdjson;
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
 
-#define AGG_COST_MODEL1
-// #define AGG_COST_MODEL2
-// #define AGG_COST_MODEL3 // Jaccard
-// #define AGG_COST_MODEL4 // Weighted Jaccard
-#define SORT_LAYER_DESCENDING
-// #define SORT_LAYER_ASCENDING
-// #define NO_SORT_LAYER
-
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
 
@@ -58,6 +50,8 @@ public:
 };
 
 class GraphSIMDJSONFileParser {
+
+/** CONFIGURATIONS **/
 public:
     enum class ClusterAlgorithmType {
         ALLPAIRS,
@@ -67,6 +61,28 @@ public:
         AGGLOMERATIVE,
         GMM
     };
+
+    enum class CostModel {
+        OURS,
+        OVERLAP,
+        JACCARD,
+        WEIGHTED_JACCARD,
+        COSINE,
+        DICE,
+        SETEDIT
+    };
+    
+    enum class LayeringOrder {
+        ASCENDING,
+        DESCENDING,
+        NO_SORT
+    };
+
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const CostModel cost_model = CostModel::OURS;
+    const LayeringOrder layering_order = LayeringOrder::DESCENDING;
+/*******************/
+
 
 public:
     GraphSIMDJSONFileParser() {}
@@ -134,8 +150,6 @@ public:
     }
 
     void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
-        cluster_algo_type = ClusterAlgorithmType::GMM;
-
         boost::timer::cpu_timer clustering_timer;
         if (jftype == JsonFileType::JSON) {
             // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
@@ -1048,22 +1062,25 @@ public:
                         schema_groups_with_num_tuples[schema_group1_idx];
                     auto &schema_group2 =
                         schema_groups_with_num_tuples[schema_group2_idx];
-#ifdef AGG_COST_MODEL1
-                    cost = _ComputeCostMergingSchemaGroups(schema_group1,
-                                                           schema_group2);
-#endif
-#ifdef AGG_COST_MODEL2
-                    cost = _ComputeCostMergingSchemaGroups2(schema_group1,
-                                                            schema_group2);
-#endif
-#ifdef AGG_COST_MODEL3
-                    cost = _ComputeCostMergingSchemaGroups3(schema_group1,
-                                                            schema_group2);
-#endif
-#ifdef AGG_COST_MODEL4
-                    cost = _ComputeCostMergingSchemaGroups4(schema_group1,
-                                                            schema_group2);
-#endif
+
+                    /* START_OF_COST_MODEL_BASED */
+                    if (cost_model == CostModel::OURS) {
+                        cost = _ComputeDistanceMergingSchemaGroups(schema_group1,
+                                                                schema_group2);
+                    }
+                    else if (cost_model == CostModel::SETEDIT) {
+                        cost = _ComputeCostMergingSchemaGroups2(schema_group1,
+                                                                schema_group2);
+                    }
+                    else if (cost_model == CostModel::JACCARD) {
+                        cost = _ComputeCostMergingSchemaGroups3(schema_group1,
+                                                                schema_group2);
+                    }
+                    else if (cost_model == CostModel::WEIGHTED_JACCARD) {
+                        cost = _ComputeCostMergingSchemaGroups4(schema_group1,
+                                                                schema_group2);
+                    }
+                    /* END_OF_COST_MODEL_BASED */
                 }
 
                 // j > i
@@ -1269,20 +1286,20 @@ public:
         vector<uint32_t> num_tuples_order;
         num_tuples_order.resize(schema_groups_with_num_tuples.size());
         std::iota(num_tuples_order.begin(), num_tuples_order.end(), 0);
-#ifdef SORT_LAYER_ASCENDING
-        std::sort(num_tuples_order.begin(), num_tuples_order.end(),
-                  [&](size_t a, size_t b) {
-                      return schema_groups_with_num_tuples[a].second <
-                             schema_groups_with_num_tuples[b].second;
-                  });
-#endif
-#ifdef SORT_LAYER_DESCENDING
-        std::sort(num_tuples_order.begin(), num_tuples_order.end(),
-                  [&](size_t a, size_t b) {
-                      return schema_groups_with_num_tuples[a].second >
-                             schema_groups_with_num_tuples[b].second;
-                  });
-#endif
+        if (layering_order == LayeringOrder::ASCENDING) {
+            std::sort(num_tuples_order.begin(), num_tuples_order.end(),
+                    [&](size_t a, size_t b) {
+                        return schema_groups_with_num_tuples[a].second <
+                                schema_groups_with_num_tuples[b].second;
+                    });
+        }
+        else if (layering_order == LayeringOrder::DESCENDING) {
+            std::sort(num_tuples_order.begin(), num_tuples_order.end(),
+                    [&](size_t a, size_t b) {
+                        return schema_groups_with_num_tuples[a].second >
+                                schema_groups_with_num_tuples[b].second;
+                    });
+        }
         sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
         
         int num_layers = 0;
@@ -1678,47 +1695,47 @@ public:
     {
         uint64_t num_tuples_sum = 0;
         uint64_t num_schemas_sum = 0;
-#ifdef SORT_LAYER_ASCENDING
-        for (auto i = 0; i < num_tuples_order.size(); i++) {
-            num_tuples_sum +=
-                schema_groups_with_num_tuples[num_tuples_order[i]].second;
-            num_schemas_sum++;
-            double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
-            if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
-                avg_num_tuples * 1.5) {
-                layer_boundaries.push_back(i);
-                num_tuples_sum = 0;
-                num_schemas_sum = 0;
+        if (layering_order == LayeringOrder::ASCENDING) {
+            for (auto i = 0; i < num_tuples_order.size(); i++) {
+                num_tuples_sum +=
+                    schema_groups_with_num_tuples[num_tuples_order[i]].second;
+                num_schemas_sum++;
+                double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
+                if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
+                    avg_num_tuples * 1.5) {
+                    layer_boundaries.push_back(i);
+                    num_tuples_sum = 0;
+                    num_schemas_sum = 0;
+                }
+            }
+            if (layer_boundaries.back() != num_tuples_order.size()) {
+                layer_boundaries.push_back(num_tuples_order.size());
             }
         }
-        if (layer_boundaries.back() != num_tuples_order.size()) {
+        else if (layering_order == LayeringOrder::DESCENDING) {
+            layer_boundaries.push_back(num_tuples_order.size());
+            for (int64_t i = num_tuples_order.size() - 1; i >= 0; i--) {
+                num_tuples_sum +=
+                    schema_groups_with_num_tuples[num_tuples_order[i]].second;
+                num_schemas_sum++;
+                double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
+                // std::cout << "num_tuples_sum: " << num_tuples_sum 
+                //     << ", num_schemas_sum: " << num_schemas_sum << std::endl;
+                // std::cout << "avg_num_tuples: " << avg_num_tuples << std::endl;
+                // std::cout << "schema_groups_with_num_tuples[num_tuples_order[i]].second: " 
+                //     << schema_groups_with_num_tuples[num_tuples_order[i]].second << std::endl;
+                if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
+                    avg_num_tuples * 1.5) {
+                    layer_boundaries.push_back(i);
+                    num_tuples_sum = 0;
+                    num_schemas_sum = 0;
+                }
+            }
+            std::reverse(layer_boundaries.begin(), layer_boundaries.end());
+        }
+        else {
             layer_boundaries.push_back(num_tuples_order.size());
         }
-#endif
-#ifdef SORT_LAYER_DESCENDING
-        layer_boundaries.push_back(num_tuples_order.size());
-        for (int64_t i = num_tuples_order.size() - 1; i >= 0; i--) {
-            num_tuples_sum +=
-                schema_groups_with_num_tuples[num_tuples_order[i]].second;
-            num_schemas_sum++;
-            double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
-            // std::cout << "num_tuples_sum: " << num_tuples_sum 
-            //     << ", num_schemas_sum: " << num_schemas_sum << std::endl;
-            // std::cout << "avg_num_tuples: " << avg_num_tuples << std::endl;
-            // std::cout << "schema_groups_with_num_tuples[num_tuples_order[i]].second: " 
-            //     << schema_groups_with_num_tuples[num_tuples_order[i]].second << std::endl;
-            if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
-                avg_num_tuples * 1.5) {
-                layer_boundaries.push_back(i);
-                num_tuples_sum = 0;
-                num_schemas_sum = 0;
-            }
-        }
-        std::reverse(layer_boundaries.begin(), layer_boundaries.end());
-#endif
-#ifdef NO_SORT_LAYER
-        layer_boundaries.push_back(num_tuples_order.size());
-#endif
 
         num_layers = layer_boundaries.size();
 
@@ -1754,28 +1771,30 @@ public:
 
             GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix);
 
-#ifdef AGG_COST_MODEL3
-            std::priority_queue<std::pair<double, uint64_t>,
-                                std::vector<std::pair<double, uint64_t>>,
-                                CostCompareLess>
-                cost_pq;
-#elif defined(AGG_COST_MODEL4)
-            std::priority_queue<std::pair<double, uint64_t>,
-                                std::vector<std::pair<double, uint64_t>>,
-                                CostCompareLess>
-                cost_pq;
-#else
-            std::priority_queue<std::pair<double, uint64_t>,
-                                std::vector<std::pair<double, uint64_t>>,
-                                CostCompareGreat>
-                cost_pq;
-#endif
+            /* START_OF_COST_MODEL_BASED */
+            std::unique_ptr<std::priority_queue<std::pair<double, uint64_t>,
+                                                std::vector<std::pair<double, uint64_t>>,
+                                                std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>> cost_pq_ptr;
+
+            // Initialize the appropriate priority queue based on the cost model
+            if (cost_model == CostModel::OURS) {
+                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
+                                                            std::vector<std::pair<double, uint64_t>>,
+                                                            std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareGreat());
+            } else {
+                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
+                                                            std::vector<std::pair<double, uint64_t>>,
+                                                            std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareLess());
+            }
+            auto cost_pq = *cost_pq_ptr;
+            /* END_OF_COST_MODEL_BASED */
+
             std::vector<bool> visited(num_tuples_total, false);
 
             for (auto i = 0; i < cost_matrix.size(); i++) {
-#ifdef AGG_COST_MODEL1
-                if (cost_matrix[i] > 0) continue;
-#endif
+                if (cost_model == CostModel::OURS) {
+                    if (cost_matrix[i] > 0) continue;
+                }
                 cost_pq.push({cost_matrix[i], i});
                 // std::cout << "Insert " << cost_matrix[i] << ", " << i << std::endl;
             }
@@ -1786,33 +1805,28 @@ public:
                     std::pair<double, uint64_t> min_cost = cost_pq.top();
                     cost_pq.pop();
 
-#ifdef AGG_COST_MODEL1
-                    // cost model 1
-                    if (min_cost.first > 0) {
-                        break;
+                    /* START_OF_COST_MODEL_BASED */
+                    if (cost_model == CostModel::OURS) {
+                        if (min_cost.first > 0) {
+                            break;
+                        }
                     }
-#endif              
-
-#ifdef AGG_COST_MODEL2
-                    // cost model 2
-                    if (min_cost.first > 2) {
-                        break;
+                    else if (cost_model == CostModel::SETEDIT) {
+                        if (min_cost.first > 2) {
+                            break;
+                        }
                     }
-#endif
-
-#ifdef AGG_COST_MODEL3
-                    // cost model 3
-                    if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
-                        break;
+                    else if (cost_model == CostModel::JACCARD) {
+                        if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                            break;
+                        }
                     }
-#endif
-
-#ifdef AGG_COST_MODEL4
-                    // cost model 3
-                    if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
-                        break;
+                    else if (cost_model == CostModel::WEIGHTED_JACCARD) {
+                        if (min_cost.first <= 0.75 || min_cost.first == COST_MAX) {
+                            break;
+                        }
                     }
-#endif
+                    /* END_OF_COST_MODEL_BASED */
 
                     // row_idx, col_idx
                     uint32_t idx1, idx2;
@@ -2885,7 +2899,6 @@ private:
     SchemaHashTable sch_HT;
     Algorithm *cluster_algo;
     size_t num_clusters;
-    ClusterAlgorithmType cluster_algo_type;
     vector<vector<uint32_t>> cluster_tokens;
 
     vector<LogicalType> most_common_schema;
