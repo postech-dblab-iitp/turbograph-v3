@@ -121,6 +121,25 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
     auto builtInFunctions = binder->builtInVectorOperations.get();
     auto functionName = expressionTypeToString(expressionType);
+
+    // Issue 111 (DOUBLE to DECIMAL Casting)
+    for (auto i = 0u; i < children.size(); ++i) {
+        if (isExpressionLiteral(children[i]->expressionType)) {
+            // Explicit casting for double to decimal cases
+            auto &other_child = children[(i + 1) % 2];
+            auto &current_child = children[i];
+            if (other_child->dataType.typeID == DECIMAL &&
+                current_child->dataType.typeID == DOUBLE) {
+                // Assumption: DECIMAL type is always (15,2)
+                std::cout << "CAUTION: Casting DOUBLE to DECIMAL with scale 2" << std::endl;
+                auto &literal = ((LiteralExpression *)current_child.get())->literal;
+                auto double_val = literal->val.doubleVal;
+                literal->val.int64Val = static_cast<int64_t>(std::round(double_val * 100));
+                ((LiteralExpression *)current_child.get())->setDataTypeForced(DataType(DECIMAL));
+            }
+        }
+    }
+
     vector<DataType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
@@ -150,10 +169,14 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             auto child = bindInternalIDExpression(*children[i]);
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(child, function->parameterTypeIDs[i]));
+            
+            D_ASSERT(childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY);
+            auto &node_expr = (NodeOrRelExpression &)*children[i];
+            node_expr.setUsedForFilterColumn(INTERNAL_ID_SUFFIX);
         } else {
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
-            
+
             // TODO we need to consider IS (NOT) NULL comparison
             if (childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY) {
                 auto &property = (PropertyExpression&)*children[i];
@@ -582,6 +605,10 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
+        expression->dataType.typeID = DECIMAL; // TODO temporary..
+        return expression;
+    }
+    if (targetType.typeID == DECIMAL && expression->dataType.typeID == DOUBLE) {
         expression->dataType.typeID = DECIMAL; // TODO temporary..
         return expression;
     }

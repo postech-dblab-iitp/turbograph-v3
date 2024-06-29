@@ -32,6 +32,11 @@ public:
         literal->dataType = targetType;
     }
 
+    inline void setDataTypeForced(const DataType& targetType) {
+        dataType = targetType;
+        literal->dataType = targetType;
+    }
+
 public:
     unique_ptr<Literal> literal;
 };

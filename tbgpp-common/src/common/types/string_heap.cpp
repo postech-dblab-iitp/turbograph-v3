@@ -45,7 +45,6 @@ string_t StringHeap::AddBlob(const char *data, idx_t len) {
 string_t StringHeap::EmptyString(idx_t len) {
 	D_ASSERT(len >= string_t::INLINE_LENGTH);
 	if (!chunk || chunk->current_position + len >= chunk->maximum_size) {
-		//fprintf(stdout, "????1 %ld\n", len);
 		// have to make a new entry
 		auto new_chunk = make_unique<StringChunk>(MaxValue<idx_t>(len, MINIMUM_HEAP_SIZE));
 		new_chunk->prev = move(chunk);

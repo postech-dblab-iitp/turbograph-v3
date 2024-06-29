@@ -128,48 +128,42 @@ CXformPushJoinBelowUnionAll::Transform(CXformContext *pxfctxt,
 		CExpression *pexprLeftChild, *pexprRightChild, *pexprRemappedScalar,
 			*pexprRemappedOther, *join_expr;
 
-		if (0 == ul)
-		{
-			// The 1st child is special
-			// The join table and condition can be readily used
-			// and doesn't require remapping
-			pexprRemappedScalar = pexprScalar;
-			pexprRemappedOther = pexprOther;
-			pexprRemappedScalar->AddRef();
-			pexprRemappedOther->AddRef();
-
-			// We append the output columns from the 1st union all child,
-			// and from the other table, and use them as the source
-			// of column remapping
-			colref_array_from->AppendArray(child_colref_array);
-			colref_array_from->AppendArray(other_colref_array);
-			input_columns->Append(colref_array_from);
-		}
-		else
-		{
-			CColRefArray *colref_array_to = GPOS_NEW(mp) CColRefArray(mp);
-			CColRefArray *other_colref_array_copy =
-				CUtils::PdrgpcrCopy(mp, other_colref_array);
-			// We append the output columns from the 2nd (and onward)
-			// union all child, and a copy of the other table's output
-			// columns, and use them as the destination of column
-			// remapping
-			colref_array_to->AppendArray(child_colref_array);
-			colref_array_to->AppendArray(other_colref_array_copy);
-			input_columns->Append(colref_array_to);
-
-			UlongToColRefMap *colref_mapping =
-				CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
-
-			// Create a copy of the join condition with remapped columns,
-			// and a copy of the other expression with remapped columns
-			pexprRemappedScalar = pexprScalar->PexprCopyWithRemappedColumns(
-				mp, colref_mapping, true /*must_exist*/);
-			pexprRemappedOther = pexprOther->PexprCopyWithRemappedColumns(
-				mp, colref_mapping, true);
-			other_colref_array_copy->Release();
-			colref_mapping->Release();
-		}
+        if (ul == 0)
+        {
+            // The 1st child is special
+            // The join table and condition can be readily used
+            // and doesn't require remapping
+            pexprRemappedScalar = pexprScalar;
+            pexprRemappedOther = pexprOther;
+            pexprRemappedScalar->AddRef();
+            pexprRemappedOther->AddRef();
+            // We append the output columns from the 1st union all child,
+            // and from the other table, and use them as the source
+            // of column remapping
+            colref_array_from->AppendArray(child_colref_array);
+            colref_array_from->AppendArray(other_colref_array);
+            input_columns->Append(colref_array_from);
+        }
+        else
+        {
+            CColRefArray *colref_array_to = GPOS_NEW(mp) CColRefArray(mp);
+            // We append the output columns from the 2nd (and onward)
+            // union all child, and a copy of the other table's output
+            // columns, and use them as the destination of column
+            // remapping
+            colref_array_to->AppendArray(child_colref_array);
+            colref_array_to->AppendArray(other_colref_array);
+            input_columns->Append(colref_array_to);
+            UlongToColRefMap *colref_mapping =
+                CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
+            // Create a copy of the join condition with remapped columns,
+            // and a copy of the other expression with remapped columns
+            pexprRemappedScalar = pexprScalar->PexprCopyWithRemappedColumns(
+                mp, colref_mapping, true /*must_exist*/);
+            pexprRemappedOther = pexprOther;
+            pexprRemappedOther->AddRef();
+            colref_mapping->Release();
+        }
 
 		// Preserve the join order
 		if (isLeftChildUnion)

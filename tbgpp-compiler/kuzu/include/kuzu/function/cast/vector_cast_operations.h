@@ -50,7 +50,5 @@ struct CastToInt64VectorFunction : public VectorCastOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-
-
 } // namespace function
 } // namespace kuzu

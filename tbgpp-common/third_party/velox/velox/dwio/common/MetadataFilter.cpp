@@ -156,9 +156,9 @@ const core::FieldAccessTypedExpr* asField(
       expr->inputs()[index].get());
 }
 
-const core::CallTypedExpr* asCall(const core::ITypedExpr* expr) {
-  return dynamic_cast<const core::CallTypedExpr*>(expr);
-}
+// const core::CallTypedExpr* asCall(const core::ITypedExpr* expr) {
+//   return dynamic_cast<const core::CallTypedExpr*>(expr);
+// }
 
 } // namespace
 
@@ -166,42 +166,43 @@ std::unique_ptr<MetadataFilter::Node> MetadataFilter::Node::fromExpression(
     const core::ITypedExpr& expr,
     core::ExpressionEvaluator* evaluator,
     bool negated) {
-  auto* call = asCall(&expr);
-  if (!call) {
-    return nullptr;
-  }
-  if (call->name() == "and") {
-    auto lhs = fromExpression(*call->inputs()[0], evaluator, negated);
-    auto rhs = fromExpression(*call->inputs()[1], evaluator, negated);
-    return negated ? OrNode::create(std::move(lhs), std::move(rhs))
-                   : AndNode::create(std::move(lhs), std::move(rhs));
-  }
-  if (call->name() == "or") {
-    auto lhs = fromExpression(*call->inputs()[0], evaluator, negated);
-    auto rhs = fromExpression(*call->inputs()[1], evaluator, negated);
-    return negated ? AndNode::create(std::move(lhs), std::move(rhs))
-                   : OrNode::create(std::move(lhs), std::move(rhs));
-  }
-  if (call->name() == "not") {
-    return fromExpression(*call->inputs()[0], evaluator, !negated);
-  }
-  try {
-    Subfield subfield;
-    auto filter =
-        exec::leafCallToSubfieldFilter(*call, subfield, evaluator, negated);
-    if (!filter) {
-      return nullptr;
-    }
-    VELOX_CHECK(
-        subfield.valid(),
-        "Invalid subfield from expression: {}",
-        expr.toString());
-    return std::make_unique<LeafNode>(std::move(subfield), std::move(filter));
-  } catch (const VeloxException&) {
-    LOG(WARNING) << "Fail to convert expression to metadata filter: "
-                 << expr.toString();
-    return nullptr;
-  }
+  return nullptr;
+  // auto* call = asCall(&expr);
+  // if (!call) {
+  //   return nullptr;
+  // }
+  // if (call->name() == "and") {
+  //   auto lhs = fromExpression(*call->inputs()[0], evaluator, negated);
+  //   auto rhs = fromExpression(*call->inputs()[1], evaluator, negated);
+  //   return negated ? OrNode::create(std::move(lhs), std::move(rhs))
+  //                  : AndNode::create(std::move(lhs), std::move(rhs));
+  // }
+  // if (call->name() == "or") {
+  //   auto lhs = fromExpression(*call->inputs()[0], evaluator, negated);
+  //   auto rhs = fromExpression(*call->inputs()[1], evaluator, negated);
+  //   return negated ? AndNode::create(std::move(lhs), std::move(rhs))
+  //                  : OrNode::create(std::move(lhs), std::move(rhs));
+  // }
+  // if (call->name() == "not") {
+  //   return fromExpression(*call->inputs()[0], evaluator, !negated);
+  // }
+  // try {
+  //   Subfield subfield;
+  //   auto filter = nullptr;
+  //       // exec::leafCallToSubfieldFilter(*call, subfield, evaluator, negated);
+  //   // if (!filter) {
+  //   //   return nullptr;
+  //   // }
+  //   VELOX_CHECK(
+  //       subfield.valid(),
+  //       "Invalid subfield from expression: {}",
+  //       expr.toString());
+  //   return std::make_unique<LeafNode>(std::move(subfield), std::move(filter));
+  // } catch (const VeloxException&) {
+  //   LOG(WARNING) << "Fail to convert expression to metadata filter: "
+  //                << expr.toString();
+  //   return nullptr;
+  // }
 }
 
 MetadataFilter::MetadataFilter(

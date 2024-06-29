@@ -1,8 +1,7 @@
 #!/bin/bash
 
-SUFFIX=""
-SF=$1
-
-export SF=${SF}
-./tbgpp-execution-engine/TurboGraph \
-	--workspace:"/data/ldbc/sf${SF}/"
+db_dir=$1
+./tbgpp-client/TurboGraph-S62 \
+	--workspace:${db_dir} \
+	--disable-merge-join \
+	--join-order-optimizer:exhaustive

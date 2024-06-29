@@ -71,12 +71,12 @@ inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
 //     }
 // };
 
-// struct Negate {
-//     template<class T>
-//     static inline void operation(T& input, T& result) {
-//         result = -input;
-//     }
-// };
+struct Negate {
+    template<class T>
+    static inline void operation(T& input, T& result) {
+        result = -input;
+    }
+};
 
 // struct Abs {
 //     template<class T>
