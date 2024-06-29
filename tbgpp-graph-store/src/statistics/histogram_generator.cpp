@@ -219,28 +219,28 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             auto begin_offset = target_col_idx == 0 ? 0 : offset_infos->at(target_col_idx - 1);
             auto end_offset = offset_infos->at(target_col_idx);
             auto num_boundaries = target_col_idx == 0 ? offset_infos->at(0) : offset_infos->at(target_col_idx) - offset_infos->at(target_col_idx - 1);
-            while (col_idx < target_col_idx) {
-                for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
-                    frequency_values_for_each_column[col_idx].push_back(0);
-                }
-                col_idx++;
-            }
+            // while (col_idx < target_col_idx) {
+            //     for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
+            //         frequency_values_for_each_column[col_idx].push_back(0);
+            //     }
+            //     col_idx++;
+            // }
             D_ASSERT(num_boundaries - 1 == num_buckets_for_each_column[col_idx]);
             
             accumulated_offset += (num_boundaries);
             freq_offset_infos->push_back(accumulated_offset);
             for (auto j = 0; j < num_boundaries - 1; j++) {
                 frequency_values->push_back(h.at(j));
-                frequency_values_for_each_column[col_idx].push_back(h.at(j));
+                frequency_values_for_each_column[target_col_idx].push_back(h.at(j));
             }
-            col_idx++;
+            // col_idx++;
         }
-        while (col_idx < universal_schema.size()) {
-            for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
-                frequency_values_for_each_column[col_idx].push_back(0);
-            }
-            col_idx++;
-        }
+        // while (col_idx < universal_schema.size()) {
+        //     for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
+        //         frequency_values_for_each_column[col_idx].push_back(0);
+        //     }
+        //     col_idx++;
+        // }
     }
 
     // generate group info

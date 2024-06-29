@@ -68,6 +68,9 @@ private:
     template <typename T>
     void _cluster_column(size_t num_histograms, uint64_t& num_buckets, vector<uint64_t>& frequency_values, uint64_t& num_groups, vector<uint64_t>& group_info) {
         T clustering;
+        if (frequency_values.empty()) {
+            frequency_values.push_back(0);
+        }
         clustering.run(num_histograms, num_buckets, frequency_values);
         num_groups = clustering.num_groups;
         group_info = std::move(clustering.group_info);

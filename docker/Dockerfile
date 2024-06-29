@@ -123,7 +123,14 @@ RUN apt-get install -y \
     flex \
     libfl-dev \
     tzdata \
-    wget
+    wget \
+    libmlpack-dev
+
+# Install pip3
+RUN apt-get install -y python3-pip
+
+# Install scikit-learn
+RUN pip3 install scikit-learn
     
 # Install SparseHash
 RUN git clone https://github.com/sparsehash/sparsehash.git && \

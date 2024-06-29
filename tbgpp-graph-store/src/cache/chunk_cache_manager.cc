@@ -38,7 +38,7 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
+    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
@@ -293,7 +293,7 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
+    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
