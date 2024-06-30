@@ -52,7 +52,7 @@ public:
 	DUCKDB_API void Append(unique_ptr<DataChunk> new_chunk);
 
 	//! Append a new DataChunk directly to this ChunkCollection
-	DUCKDB_API void Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint8_t>& projection_mapping);
+	DUCKDB_API void Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint64_t>& projection_mapping);
 
 	//! Append another ChunkCollection directly to this ChunkCollection
 	DUCKDB_API void Append(ChunkCollection &other);
