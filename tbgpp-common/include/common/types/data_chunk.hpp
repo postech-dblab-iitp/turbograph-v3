@@ -86,8 +86,8 @@ public:
 	//! types list. The vector will be referencing vector to the data owned by
 	//! the DataChunk.
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
-	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint8_t>> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
-	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint8_t> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint64_t>> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint64_t> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void InitializeValidCols(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	//! Initializes an empty DataChunk with the given types. The vectors will *not* have any data allocated for them.
@@ -103,7 +103,7 @@ public:
 	//! is not enough space in the chunk and resize is not allowed.
 	DUCKDB_API void Append(const DataChunk &other, bool resize = false, SelectionVector *sel = nullptr,
 	                       idx_t count = 0);
-	DUCKDB_API void Append(DataChunk &other, std::vector<uint8_t>& projection_mapping,
+	DUCKDB_API void Append(DataChunk &other, std::vector<uint64_t>& projection_mapping,
 							bool resize = false, SelectionVector *sel = nullptr, idx_t count = 0);
 
 	//! Destroy all data and columns owned by this DataChunk
@@ -162,7 +162,7 @@ public:
 	//! export data chunk as a arrow struct array that can be imported as arrow record batch
 	//DUCKDB_API void ToArrowArray(ArrowArray *out_array);
 
-	DUCKDB_API void ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint8_t>& projection_mapping);
+	DUCKDB_API void ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint64_t>& projection_mapping);
 
 private:
 	//! The amount of tuples stored in the data chunk
