@@ -129,7 +129,7 @@ void ChunkCollection::Append(unique_ptr<DataChunk> new_chunk) {
 	chunks.push_back(move(new_chunk));
 }
 
-void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint8_t>& projection_mapping) {
+void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_types, std::vector<uint64_t>& projection_mapping) {
 	if (new_chunk.size() == 0) {
 		return;
 	}

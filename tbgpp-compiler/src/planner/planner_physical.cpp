@@ -52,13 +52,13 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
     duckdb::CypherPhysicalOperator *op;
 
     // calculate mapping for produceresults
-    vector<uint8_t> projection_mapping;
-    vector<vector<uint8_t>> projection_mappings;
+    vector<uint64_t> projection_mapping;
+    vector<vector<uint64_t>> projection_mappings;
     // TODO strange code..
     if (!generate_sfg) {
-        for (uint8_t log_idx = 0; log_idx < logical_plan_output_colrefs.size();
+        for (uint64_t log_idx = 0; log_idx < logical_plan_output_colrefs.size();
              log_idx++) {
-            for (uint8_t phy_idx = 0;
+            for (uint64_t phy_idx = 0;
                  phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
                 if (logical_plan_output_colrefs[log_idx]->Id() ==
                     physical_plan_output_colrefs[phy_idx]->Id()) {
@@ -72,10 +72,10 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
                                                 projection_mapping);
     }
     else {
-        projection_mappings.push_back(std::vector<uint8_t>());
-        for (uint8_t log_idx = 0; log_idx < logical_plan_output_colrefs.size();
+        projection_mappings.push_back(std::vector<uint64_t>());
+        for (uint64_t log_idx = 0; log_idx < logical_plan_output_colrefs.size();
              log_idx++) {
-            for (uint8_t phy_idx = 0;
+            for (uint64_t phy_idx = 0;
                  phy_idx < physical_plan_output_colrefs.size(); phy_idx++) {
                 if (logical_plan_output_colrefs[log_idx]->Id() ==
                     physical_plan_output_colrefs[phy_idx]->Id()) {

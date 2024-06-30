@@ -11,7 +11,7 @@ namespace duckdb {
 
 class ProduceResultsState : public LocalSinkState {
    public:
-    explicit ProduceResultsState(std::vector<uint8_t> projection_mapping, std::vector<std::vector<uint8_t>> projection_mappings)
+    explicit ProduceResultsState(std::vector<uint64_t> projection_mapping, std::vector<std::vector<uint64_t>> projection_mappings)
         : projection_mapping(projection_mapping), projection_mappings(projection_mappings)
     {
         isResultTypeDetermined = false;
@@ -45,8 +45,8 @@ class ProduceResultsState : public LocalSinkState {
     ChunkCollection resultCollection;
 
     bool isResultTypeDetermined;
-    std::vector<uint8_t> projection_mapping;
-    std::vector<std::vector<uint8_t>> projection_mappings;
+    std::vector<uint64_t> projection_mapping;
+    std::vector<std::vector<uint64_t>> projection_mappings;
     std::vector<duckdb::LogicalType> result_types;
 };
 
