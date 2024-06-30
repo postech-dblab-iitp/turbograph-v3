@@ -59,7 +59,7 @@ void DataChunk::Initialize(const vector<LogicalType> &types, idx_t capacity_) {
 	}
 }
 
-void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint8_t>> &projection_mappings, idx_t capacity_) {
+void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint64_t>> &projection_mappings, idx_t capacity_) {
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	D_ASSERT(projection_mappings.size() >= 1);
@@ -80,7 +80,7 @@ void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, c
 	}
 }
 
-void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint8_t> &projection_mapping, idx_t capacity_) {
+void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint64_t> &projection_mapping, idx_t capacity_) {
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	capacity = capacity_;
@@ -319,7 +319,7 @@ void DataChunk::Append(const DataChunk &other, bool resize, SelectionVector *sel
 }
 
 
-void DataChunk::Append(DataChunk &other, std::vector<uint8_t>& projection_mapping, bool resize, SelectionVector *sel, idx_t sel_count) {
+void DataChunk::Append(DataChunk &other, std::vector<uint64_t>& projection_mapping, bool resize, SelectionVector *sel, idx_t sel_count) {
 	idx_t new_size = sel ? size() + sel_count : size() + other.size();
 	if (other.size() == 0) {
 		return;
@@ -450,7 +450,7 @@ void DataChunk::Hash(Vector &result) {
 	}
 }
 
-void DataChunk::ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint8_t>& projection_mapping) {
+void DataChunk::ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint64_t>& projection_mapping) {
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		Vector &source_vector = source_chunk.data[projection_mapping[i]];
 		bool source_is_valid = source_vector.GetIsValid();
