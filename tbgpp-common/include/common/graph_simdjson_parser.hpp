@@ -27,11 +27,11 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.75
-#define WEIGHTED_JACCARD_THRESHOLD 0.75
-#define COSINE_THRESHOLD 0.75
-#define DICE_THRESHOLD 0.75
-#define OVERLAP_THRESHOLD 0.75
+#define JACCARD_THRESHOLD 0.6
+#define WEIGHTED_JACCARD_THRESHOLD 0.6
+#define COSINE_THRESHOLD 0.8
+#define DICE_THRESHOLD 0.5
+#define OVERLAP_THRESHOLD 0.5
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
