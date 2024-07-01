@@ -233,6 +233,7 @@ void Vector::CreateRowColumn(const VectorCache &cache, idx_t capacity)
 {
 	this->capacity = capacity;
 	this->is_rowcol = true;
+	this->is_valid = true;
 	cache.ResetFromCacheForRowCol(*this);
 }
 
@@ -680,8 +681,6 @@ Value Vector::GetRowColValue(idx_t index) const {
 
 	if (schema_ptr->hasIthCol(rowcol_idx)) {
 		auto offset = schema_ptr->getIthColOffset(rowcol_idx);
-		// LogicalType col_type = sch_chunk.GetTypes()[rowcol_idx];
-		// LogicalType col_type;
 		switch(type.id()) {
 			case LogicalTypeId::BOOLEAN:
 				return Value::BOOLEAN(*(bool *)(row_data + base_offset + offset));
@@ -697,9 +696,8 @@ Value Vector::GetRowColValue(idx_t index) const {
 				return Value::FLOAT(*(float *)(row_data + base_offset + offset));
 			case LogicalTypeId::DOUBLE:
 				return Value::DOUBLE(*(double *)(row_data + base_offset + offset));
-			// case LogicalTypeId::VARCHAR:
-			//     t << std::string(row_major_data + base_offset + offset);
-			//     break;
+			case LogicalTypeId::VARCHAR:
+				return Value(*(string_t *)(row_data + base_offset + offset));
 			default:
 				throw NotImplementedException("GetRowColValue - Unimplemented type for value access");
 		}
