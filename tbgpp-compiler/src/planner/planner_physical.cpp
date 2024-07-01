@@ -1253,7 +1253,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     adjidx_obj_id = index_mdid->Oid();
 
     // Construct adjacency index
-    auto adjidx_idx_idxs = pGetAdjIdxIdIdxs(adj_inner_cols);
+    auto adjidx_idx_idxs = pGetAdjIdxIdIdxs(adj_inner_cols, idxscan_op->Pindexdesc()->IndexType());
     duckdb::CypherPhysicalOperator *duckdb_adjidx_op =
         new duckdb::PhysicalAdjIdxJoin(
             schema_adj, adjidx_obj_id,
@@ -5970,7 +5970,7 @@ CExpression *Planner::recursiveBuildFilterExpr(
 	}
 }
 
-duckdb::AdjIdxIdIdxs Planner::pGetAdjIdxIdIdxs(CColRefArray *inner_cols) {
+duckdb::AdjIdxIdIdxs Planner::pGetAdjIdxIdIdxs(CColRefArray *inner_cols, IMDIndex::EmdindexType index_type) {
     duckdb::idx_t edge_id_idx = -1;
     duckdb::idx_t src_id_idx = -1;
     duckdb::idx_t tgt_id_idx = -1;
@@ -5998,7 +5998,12 @@ duckdb::AdjIdxIdIdxs Planner::pGetAdjIdxIdIdxs(CColRefArray *inner_cols) {
         }
     }
 
-    return {edge_id_idx, src_id_idx, tgt_id_idx};
+    if (index_type == gpmd::IMDIndex::EmdindFwdAdjlist) {
+        return {edge_id_idx, src_id_idx, tgt_id_idx};
+    }
+    else {
+        return {edge_id_idx, tgt_id_idx, src_id_idx};
+    }
 }
 
 }  // namespace s62

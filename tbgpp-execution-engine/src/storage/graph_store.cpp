@@ -350,7 +350,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &cols_to_include, idx_t current_pos,
-    vector<idx_t> output_col_idx)
+    vector<idx_t> &output_col_idx)
 {
     if (ext_it == nullptr)
         return StoreAPIResult::DONE;
@@ -388,7 +388,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &cols_to_include, idx_t current_pos,
-    vector<idx_t> output_col_idx, idx_t &num_tuples_per_chunk)
+    vector<idx_t> &output_col_idx, idx_t &num_tuples_per_chunk)
 {
     ExtentID target_eid = target_eids[current_pos];
     ExtentID current_eid;

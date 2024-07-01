@@ -109,7 +109,7 @@ public:
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
      vector<idx_t> &cols_to_include, idx_t current_pos,
-     vector<idx_t> output_col_idx);
+     vector<idx_t> &output_col_idx);
  StoreAPIResult doVertexIndexSeek(
      ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
      idx_t nodeColIdx, std::vector<duckdb::LogicalType> &scanSchema,
@@ -123,7 +123,7 @@ public:
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
      vector<idx_t> &cols_to_include, idx_t current_pos,
-     vector<idx_t> output_col_idx, idx_t &num_tuples_per_chunk);
+     vector<idx_t> &output_col_idx, idx_t &num_tuples_per_chunk);
  StoreAPIResult InitializeEdgeIndexSeek(
      ExtentIterator *&ext_it, duckdb::DataChunk &output, uint64_t vid,
      LabelSet labels, std::vector<LabelSet> &edgeLabels,
