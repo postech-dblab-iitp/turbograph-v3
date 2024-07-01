@@ -5,7 +5,7 @@ RETURN
   person.creationDate AS personCreationDate,
   person.birthday AS personBirthday,
   person.locationIP AS personLocationIP,
-  comment.creationDate+1 AS commentCreationDate,
-  comment.length+1 AS commentLength,
+  comment.creationDate AS commentCreationDate,
+  comment.length AS commentLength,
   comment.browserUsed AS commentBrowserUsed,
   comment.locationIP AS commentLocationIP;
