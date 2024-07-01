@@ -141,7 +141,11 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
                 boundary_values->push_back(0);
             } else {
                 auto boundary_value = quantile(*accms[i], quantile_probability = probs[j]);
-                boundary_values->push_back(boundary_value);
+                if (boundary_value <= 0.0) {
+                    boundary_values->push_back(0);
+                } else {
+                    boundary_values->push_back(boundary_value);
+                }
             }
         }
         num_buckets_for_each_column.push_back(probs.size() - 1);
@@ -166,6 +170,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         for (auto j = 0; j < prop_key_ids->size(); j++) {
             target_cols_in_univ_schema.push_back(property_to_idx_map->at(prop_key_ids->at(j)));
         }
+        
         for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
             auto target_col_idx = target_cols_in_univ_schema[i];
             auto begin_offset = target_col_idx == 0 ? 0 : offset_infos->at(target_col_idx - 1);
@@ -184,6 +189,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
                     }
                 }
             }
+            
             auto v = boost::histogram::axis::variable<>(boundaries.begin(), boundaries.end());
             auto h = boost::histogram::make_histogram(v);
             histograms.emplace_back(std::move(h));
