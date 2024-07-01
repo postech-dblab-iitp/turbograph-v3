@@ -28,7 +28,7 @@ using namespace simdjson;
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
 #define JACCARD_THRESHOLD 0.6
-#define WEIGHTED_JACCARD_THRESHOLD 0.6
+#define WEIGHTEDJACCARD_THRESHOLD 0.6
 #define COSINE_THRESHOLD 0.8
 #define DICE_THRESHOLD 0.5
 #define OVERLAP_THRESHOLD 0.5
@@ -74,7 +74,7 @@ public:
         OURS,
         SETEDIT,
         JACCARD,
-        WEIGHTED_JACCARD,
+        WEIGHTEDJACCARD,
         COSINE,
         DICE,
         OVERLAP
@@ -950,8 +950,8 @@ public:
         }
 
         // Calculate and return the weighted Jaccard similarity
-        double weighted_jaccard = intersection_weight / union_weight;
-        return weighted_jaccard;
+        double WEIGHTEDJACCARD = intersection_weight / union_weight;
+        return WEIGHTEDJACCARD;
     }
 
     double _ComputeCostMergingSchemaGroupsCosine(
@@ -1178,7 +1178,7 @@ public:
                         cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::WEIGHTED_JACCARD) {
+                    else if (cost_model == CostModel::WEIGHTEDJACCARD) {
                         cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
                                                                 schema_group2);
                     }
@@ -1938,8 +1938,8 @@ public:
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::WEIGHTED_JACCARD) {
-                        if (min_cost.first <= WEIGHTED_JACCARD_THRESHOLD || min_cost.first == COST_MAX) {
+                    else if (cost_model == CostModel::WEIGHTEDJACCARD) {
+                        if (min_cost.first <= WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
