@@ -1,15 +1,11 @@
-MATCH (person:Person)-[:KNOWS]->(friend:Person)<-[:HAS_CREATOR]-(post:Post)
+MATCH (person:Person)<-[:HAS_CREATOR]-(comment:Comment)
+RETURN 
   person.firstName AS personFirstName,
   person.lastName AS personLastName,
   person.creationDate AS personCreationDate,
   person.birthday AS personBirthday,
   person.locationIP AS personLocationIP,
-  friend.firstName AS friendFirstName,
-  friend.lastName AS friendLastName,
-  friend.creationDate AS friendCreationDate,
-  friend.birthday AS friendBirthday,
-  friend.locationIP AS friendLocationIP,
-  post.creationDate AS postCreationDate,
-  post.browserUsed AS postBrowserUsed,
-  post.language AS postLanguage,
-  post.length AS postLength;
+  comment.creationDate+1 AS commentCreationDate,
+  comment.length+1 AS commentLength,
+  comment.browserUsed AS commentBrowserUsed,
+  comment.locationIP AS commentLocationIP;
