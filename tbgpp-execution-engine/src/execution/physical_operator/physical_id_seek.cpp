@@ -1716,13 +1716,13 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
         row_cost = row_processing_cost;
 
         if (grouping_cost < union_cost && grouping_cost < row_cost) {
-            return OutputFormat::UNIONALL;
+            return OutputFormat::GROUPING;
         }
         else if (union_cost < grouping_cost && union_cost < row_cost) {
             return OutputFormat::UNIONALL;
         }
         else {
-            return OutputFormat::UNIONALL;
+            return OutputFormat::ROW;
         }
     }
 }
