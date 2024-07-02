@@ -1356,11 +1356,11 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         }
         else {
             // Get filter_exprs
-            vector<unique_ptr<duckdb::Expression>> filter_duckdb_exprs;
+            vector<vector<unique_ptr<duckdb::Expression>>> filter_duckdb_exprs(1);
             pGetFilterDuckDBExprs(filter_expr, adj_output_cols, seek_inner_cols,
                                   adj_output_cols->Size(),
-                                  filter_duckdb_exprs);
-            pGetIdentIndices(filter_duckdb_exprs[0], filter_col_idxs[0]);
+                                  filter_duckdb_exprs[0]);
+            pGetIdentIndices(filter_duckdb_exprs[0][0], filter_col_idxs[0]);
             // Construct IdSeek Operator for filter
             duckdb_idseek_op = new duckdb::PhysicalIdSeek(
                 schema_seek, edge_id_col_idx, seek_obj_ids,
@@ -1609,7 +1609,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
     CExpression *idxscan_expr = NULL;
     duckdb::ExpressionType exp_type;
     CColRefArray *filter_pred_cols = GPOS_NEW(mp) CColRefArray(mp);
-    vector<unique_ptr<duckdb::Expression>> filter_exprs;
+    vector<vector<unique_ptr<duckdb::Expression>>> per_schema_filter_exprs(1);
+    auto &filter_exprs = per_schema_filter_exprs[0];
     vector<vector<duckdb::idx_t>> filter_col_idxs(1);
     size_t num_outer_schemas = pGetNumOuterSchemas();
 
@@ -1981,7 +1982,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
                 outer_col_maps, inner_col_maps, union_inner_col_map,
-                scan_projection_mapping, scan_types, filter_exprs, filter_col_idxs,
+                scan_projection_mapping, scan_types, per_schema_filter_exprs, filter_col_idxs,
                 false, join_type);
             result->push_back(op);
         }
