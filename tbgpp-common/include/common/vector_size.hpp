@@ -29,7 +29,7 @@ namespace duckdb {
 #endif
 
 #ifndef INITIAL_EXTENT_ID_SPACE
-#define INITIAL_EXTENT_ID_SPACE 1024
+#define INITIAL_EXTENT_ID_SPACE 64
 #endif
 
 #if ((STANDARD_VECTOR_SIZE & (STANDARD_VECTOR_SIZE - 1)) != 0)

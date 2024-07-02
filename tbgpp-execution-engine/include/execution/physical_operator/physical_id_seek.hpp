@@ -18,34 +18,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     enum class OutputFormat { GROUPING = 0, UNIONALL = 1, ROW = 2 };
 
    public:
-    PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
-                   vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
-                   vector<vector<uint32_t>> &inner_col_maps,
-                   JoinType join_type = JoinType::INNER);
-    PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
-                   vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
-                   vector<vector<uint32_t>> &inner_col_maps,
-                   vector<uint32_t> &union_inner_col_map,
-                   vector<vector<uint64_t>> scan_projection_mapping,
-                   vector<vector<duckdb::LogicalType>> scan_types,
-                   bool is_output_union_schema,
-                   JoinType join_type = JoinType::INNER);
-    PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
-                   vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
-                   vector<vector<uint32_t>> &inner_col_maps,
-                   vector<unique_ptr<Expression>> predicates,
-                   JoinType join_type = JoinType::INNER);
-    PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
-                   vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
-                   vector<vector<uint32_t>> &inner_col_maps,
-                   vector<duckdb::LogicalType> scan_type,
-                   vector<vector<uint64_t>> scan_projection_mapping,
-                   int64_t filterKeyIndex, duckdb::Value filterValue,
-                   JoinType join_type = JoinType::INNER);
+    // Constructor without filter pushdown
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
@@ -53,10 +26,10 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
                    vector<vector<duckdb::LogicalType>> scan_types,
-                   vector<unique_ptr<Expression>> &predicates,
-                   vector<vector<idx_t>> &pred_col_idxs_per_schema,
-                   bool is_output_union_schema,
+                   bool force_output_union,
                    JoinType join_type = JoinType::INNER);
+
+    // Constructor with filter pushdown
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
                    vector<vector<uint32_t>> &outer_col_maps,
@@ -66,7 +39,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                    vector<vector<duckdb::LogicalType>> scan_types,
                    vector<vector<unique_ptr<Expression>>> &predicates,
                    vector<vector<idx_t>> &pred_col_idxs_per_schema,
-                   bool is_output_union_schema,
+                   bool force_output_union,
                    JoinType join_type = JoinType::INNER);
     ~PhysicalIdSeek()
     {
@@ -99,9 +72,6 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                                    vector<unique_ptr<DataChunk>> &chunks,
                                    OperatorState &state,
                                    idx_t &output_chunk_idx) const;
-    virtual void InitializeOutputChunks(
-        std::vector<unique_ptr<DataChunk>> &output_chunks,
-        Schema &output_schema, idx_t idx) override;
 
     std::string ParamsToString() const override;
     std::string ToString() const override;
@@ -151,16 +121,13 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
         DataChunk &input, vector<unique_ptr<DataChunk>> &chunks,
         IdSeekState &state, vector<idx_t> &num_tuples_per_chunk,
         idx_t &output_chunk_idx) const;
-    OperatorResultType referInputChunkWithSlice(DataChunk &input,
-                                                DataChunk &chunk,
-                                                OperatorState &lstate,
-                                                idx_t output_size) const;
+
+   private:
     OperatorResultType moveToNextOutputChunk(
         vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
         idx_t &output_chunk_idx) const;
     void markInvalidForUnseekedColumns(
-        DataChunk &chunk, idx_t outer_schema_idx, IdSeekState &state,
-        vector<ExtentID> &target_eids,
+        DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
     void generatePartialSchemaInfos();
@@ -184,59 +151,51 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                             vector<idx_t> &out_seqno_to_eid_idx) const;
     size_t calculateTotalNulls(
         DataChunk &chunk, vector<unique_ptr<DataChunk>> &chunks,
-        idx_t inner_schema_idx, vector<ExtentID> &target_eids,
+        vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
-    OutputFormat determineFormatByCostModel(bool sort_order_enforced, vector<size_t> &num_tuples_per_schema,
-                                 size_t total_nulls) const;
-    void getOutputColIdxsForOuter(idx_t outer_schema_idx, vector<idx_t> &output_col_idx) const;
+    OutputFormat determineFormatByCostModel(
+        bool sort_order_enforced, vector<size_t> &num_tuples_per_schema,
+        size_t total_nulls) const;
+    void getOutputColIdxsForOuter(vector<idx_t> &output_col_idx) const;
     void getOutputColIdxsForInner(idx_t extentIdx, vector<idx_t> &mapping_idxs,
-                                   vector<idx_t> &output_col_idx) const;
+                                  vector<idx_t> &output_col_idx) const;
     void getColMapWithoutID(const vector<uint32_t> &col_map,
                             vector<LogicalType> &types, idx_t &out_id_col_idx,
                             vector<uint32_t> &out_col_map) const;
     void getOutSizePerSchema(vector<ExtentID> &target_eids,
-        vector<vector<uint32_t>> &target_seqnos_per_extent,
-        vector<idx_t> &mapping_idxs, vector<size_t> &num_tuples_per_schema) const;
+                             vector<vector<uint32_t>> &target_seqnos_per_extent,
+                             vector<idx_t> &mapping_idxs,
+                             vector<size_t> &num_tuples_per_schema) const;
     void getUnionScanTypes();
+    void buildExpressionExecutors(vector<vector<unique_ptr<Expression>>> &predicates);
 
     // parameters
     uint64_t id_col_idx;
     mutable vector<uint64_t> oids;
-    mutable vector<vector<uint64_t>> projection_mapping;
-
-    // used to initialize output chunks.
-    mutable vector<LogicalType> target_types;
-
-    mutable vector<LogicalType> scan_type;           // types scan
+    mutable vector<LogicalType> union_scan_type;
     mutable vector<vector<LogicalType>> scan_types;  // types scan
-    // projection mapping for scan from the storage
+    mutable vector<vector<uint64_t>> projection_mapping;
     mutable vector<vector<uint64_t>> scan_projection_mapping;
 
-    // filter processing
-    bool do_filter_pushdown;
-    bool has_unpushdowned_expressions = false;
-    // mutable bool is_tmp_chunk_initialized = false;
-    mutable vector<bool> is_tmp_chunk_initialized_per_schema;
-    // when negative, no filter pushdown
-    mutable int64_t filter_pushdown_key_idx;
-    // do not use when filter_pushdown_key_idx < 0
-    mutable Value filter_pushdown_value;
-
-    vector<vector<uint32_t>> outer_col_maps;
+    vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
     vector<PartialSchema> partial_schemas;
-    bool is_output_union_schema = true;
+    mutable vector<ExtentID> target_eids;
+    bool force_output_union = true;
+    idx_t num_outer_schemas = 1;
+    idx_t num_inner_schemas = 1;
     idx_t num_total_schemas = 1;
 
-    mutable vector<vector<idx_t>> pred_col_idxs_per_schema;
-    mutable vector<vector<idx_t>> non_pred_col_idxs_per_schema;
-    vector<unique_ptr<DataChunk>> tmp_chunks;
+    // filter processing
+    bool do_filter_pushdown;
     vector<unique_ptr<Expression>> expressions;
     mutable vector<ExpressionExecutor> executors;
-
-    mutable vector<ExtentID> target_eids;
+    vector<unique_ptr<DataChunk>> tmp_chunks;
+    mutable vector<bool> is_tmp_chunk_initialized_per_schema;
+    mutable vector<vector<idx_t>> pred_col_idxs_per_schema;
+    mutable vector<vector<idx_t>> non_pred_col_idxs_per_schema;
 
     JoinType join_type;
 };
