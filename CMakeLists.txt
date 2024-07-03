@@ -21,6 +21,10 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -march=native -mavx2 -mavx -fPIE -DTBB_ENABLE_IP
 # set S62 Debug type and Orca Debug type same
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
+    # Compilation flags for sanitizers
+    set(SANITIZER_FLAGS "-fsanitize=address,undefined,leak")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
 endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
