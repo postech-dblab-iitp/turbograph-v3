@@ -39,7 +39,7 @@ int DiskAioThread::WaitKernel(struct timespec* to, int num) {
 
 	// fprintf(stdout, "io_getevents %d, %p, %ld, %lu, %p\n",
 	// 	ret, ep->data, ep->res, ep->res2, ep->obj->data);
-	if (((signed long)(ep->res2)) < 0) assert(false);
+	if (((long long)(ep->res2)) < 0) assert(false);
 
 	if (ret < 0) assert(false);
 

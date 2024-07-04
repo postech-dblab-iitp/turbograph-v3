@@ -1,1 +1,3 @@
 //#define USE_MPK
+
+#define LIGHTNING_MMAP_ADDR 0x30007fff8000

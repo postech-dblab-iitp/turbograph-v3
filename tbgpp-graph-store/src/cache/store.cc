@@ -96,7 +96,7 @@ LightningStore::LightningStore(const std::string &unix_socket, size_t size)
     exit(-1);
   }
   store_header_ =
-      (LightningStoreHeader *)mmap((void *)0xabcd000, size, PROT_WRITE,
+      (LightningStoreHeader *)mmap((void *)LIGHTNING_MMAP_ADDR, size, PROT_WRITE,
                                    MAP_SHARED | MAP_FIXED, store_fd_, 0);
   if (store_header_ == (LightningStoreHeader *)-1) {
     perror("mmap failed");
