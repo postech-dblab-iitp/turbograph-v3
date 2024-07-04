@@ -347,7 +347,6 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
 
   int64_t head_index =
       header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
-  if (head_index == -1) head_index = MAX_NUM_OBJECTS - 1;
   ObjectEntry *head = &header_->object_entries[head_index];
 
   LOGGED_WRITE(new_object->next, head_index, header_, disk_);
