@@ -430,6 +430,33 @@ void PhysicalIdSeek::initializeSeek(
     fillSeqnoToEIDIdx(target_seqnos_per_extent, state.seqno_to_eid_idx);
 }
 
+
+void PhysicalIdSeek::InitializeOutputChunks(
+    std::vector<unique_ptr<DataChunk>> &output_chunks, Schema &output_schema,
+    idx_t idx)
+{
+    idx_t inner_idx = idx % inner_col_maps.size();
+    D_ASSERT(inner_idx < inner_col_maps.size());
+
+    auto opOutputChunk = std::make_unique<DataChunk>();
+    opOutputChunk->Initialize(output_schema.getStoredTypes());
+
+    if (!force_output_union) {
+        for (auto i = 0; i < union_inner_col_map.size(); i++) {
+            if (union_inner_col_map[i] < opOutputChunk->ColumnCount()) {
+                opOutputChunk->data[union_inner_col_map[i]].SetIsValid(false);
+            }
+        }
+        for (auto i = 0; i < inner_col_maps[inner_idx].size(); i++) {
+            if (inner_col_maps[inner_idx][i] < opOutputChunk->ColumnCount()) {
+                opOutputChunk->data[inner_col_maps[inner_idx][i]].SetIsValid(
+                    true);
+            }
+        }
+    }
+    output_chunks.push_back(std::move(opOutputChunk));
+}
+
 void PhysicalIdSeek::doSeekUnionAll(
     ExecutionContext &context, DataChunk &input, DataChunk &chunk,
     OperatorState &lstate, vector<ExtentID> &target_eids,
