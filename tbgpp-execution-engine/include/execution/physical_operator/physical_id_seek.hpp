@@ -158,18 +158,16 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
     OutputFormat determineFormatByCostModel(
-        bool sort_order_enforced, vector<size_t> &num_tuples_per_schema,
-        size_t total_nulls) const;
+        bool sort_order_enforced, size_t total_nulls) const;
     void getOutputColIdxsForOuter(vector<idx_t> &output_col_idx) const;
     void getOutputColIdxsForInner(idx_t extentIdx, vector<idx_t> &mapping_idxs,
                                   vector<idx_t> &output_col_idx) const;
     void getColMapWithoutID(const vector<uint32_t> &col_map,
                             vector<LogicalType> &types, idx_t &out_id_col_idx,
                             vector<uint32_t> &out_col_map) const;
-    void getOutSizePerSchema(vector<ExtentID> &target_eids,
+    void fillOutSizePerSchema(vector<ExtentID> &target_eids,
                              vector<vector<uint32_t>> &target_seqnos_per_extent,
-                             vector<idx_t> &mapping_idxs,
-                             vector<size_t> &num_tuples_per_schema) const;
+                             vector<idx_t> &mapping_idxs) const;
     void getUnionScanTypes();
     void buildExpressionExecutors(vector<vector<unique_ptr<Expression>>> &predicates);
 
@@ -181,6 +179,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     mutable vector<vector<uint64_t>> projection_mapping;
     mutable vector<vector<uint64_t>> scan_projection_mapping;
 
+    mutable vector<idx_t> num_tuples_per_schema;
     vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
