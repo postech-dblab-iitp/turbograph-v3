@@ -391,7 +391,8 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 			PartialSchema *schema_ptr = (PartialSchema *)ldata[source_idx].schema_ptr;
 			if (schema_ptr->hasIthCol(rowcol_idx)) {
 				auto offset = schema_ptr->getIthColOffset(rowcol_idx);
-				tdata[target_offset + i] = StringVector::AddStringOrBlob(target, row_data + base_offset + offset);
+				string_t str = *((string_t *)(row_data + base_offset + offset));
+				tdata[target_offset + i] = StringVector::AddStringOrBlob(target, str);
 			} else {
 				target_validity.SetInvalid(target_offset + i);
 			}
