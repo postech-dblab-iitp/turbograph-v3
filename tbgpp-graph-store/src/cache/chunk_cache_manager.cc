@@ -104,7 +104,7 @@ void ChunkCacheManager::InitializeFileHandlersByIteratingDirectories(const char 
 
             size_t requested_size = ((size_t *)first_block)[0];
             file_handlers[chunk_id]->SetRequestedSize(requested_size + 8);
-            delete first_block;
+            free(first_block);
           }
         }
       }
@@ -137,7 +137,7 @@ void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
     file_handlers[chunk_id]->SetRequestedSize(requested_size);
   }
 
-  delete meta_info;
+  delete[] meta_info;
 }
 
 void ChunkCacheManager::FlushMetaInfo(const char *path)
@@ -159,7 +159,7 @@ void ChunkCacheManager::FlushMetaInfo(const char *path)
   file_meta_info.Append(num_total_files * 2 * sizeof(uint64_t), (char *)meta_info);
   file_meta_info.Close(false);
 
-  delete meta_info;
+  delete[] meta_info;
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {

@@ -250,6 +250,12 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         }
         if (comp_header.HasNullMask()) {
             auto *validity_data = (char *)(FlatVector::Validity(input.data[input_chunk_idx]).GetData());
+            if(validity_data == NULL) {
+                std::cout << "Input chunk idx: " << input_chunk_idx << std::endl;
+                std::cout << "file_path_prefix: " << file_path_prefix << std::endl;
+                std::cout << "buf_ptr: " << (void *)buf_ptr << std::endl;
+                std::cout << "buf_size: " << buf_size << std::endl;
+            }
             memcpy(buf_ptr + alloc_buf_size, validity_data, bitmap_size);
         }
         auto chunk_compression_end = std::chrono::high_resolution_clock::now();
