@@ -196,8 +196,8 @@ gpmd::MDProviderTBGPP *Planner::_orcaGetProviderTBGPP()
 void Planner::_orcaInitXForm()
 {
     // TODO i want to remove this.
-    CXformFactory::Pxff()->Shutdown();  // for allowing scan
-    GPOS_RESULT eres = CXformFactory::Init();
+    // CXformFactory::Pxff()->Shutdown();  // for allowing scan
+    // GPOS_RESULT eres = CXformFactory::Init();
 }
 
 void Planner::_orcaSetTraceFlags()
@@ -310,9 +310,16 @@ void Planner::_orcaSetTraceFlags()
     GPOS_SET_TRACE(
         gpos::EOptTraceFlag::EopttraceDisableOuterJoin2InnerJoinRewrite);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotions);
+    // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotionBroadcast);
+    // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotionGather);
+    // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotionHashDistribute);
+    // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotionRandom);
+    // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableMotionRountedDistribute);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisableSpool);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartPropagation);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDisablePartSelection);
     GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceEnableSpacePruning);
+    GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttraceDonotDeriveStatsForAllGroups);
 }
 
 gpdbcost::CCostModelGPDB *Planner::_orcaGetCostModel(CMemoryPool *mp)
