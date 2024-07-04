@@ -81,7 +81,7 @@ RUN apt-get install -y \
 RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
 
 # install xerces for installing orca
-RUN git clone https://github.com/greenplum-db/gp-xerces.git && \
+RUN git clone https://github.com/greenplum-db/gp-xerces-archive.git gp-xerces && \
     cd gp-xerces && \
     mkdir build && cd build && \
     ../configure --prefix=/usr/local && \
@@ -124,7 +124,8 @@ RUN apt-get install -y \
     libfl-dev \
     tzdata \
     wget \
-    libmlpack-dev
+    libmlpack-dev \
+    libgoogle-perftools-dev
 
 # Install pip3
 RUN apt-get install -y python3-pip
