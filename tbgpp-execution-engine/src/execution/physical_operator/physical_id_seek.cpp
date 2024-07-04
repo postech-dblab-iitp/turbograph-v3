@@ -102,6 +102,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     getUnionScanTypes();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
+    num_tuples_per_schema.resize(num_total_schemas, 0);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(
@@ -148,6 +149,7 @@ PhysicalIdSeek::PhysicalIdSeek(
     generatePartialSchemaInfos();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
+    num_tuples_per_schema.resize(num_total_schemas, 0);
 }
 
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
@@ -307,11 +309,8 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     auto total_nulls =
         calculateTotalNulls(unified_chunk, chunks, target_eids,
                             target_seqnos_per_extent, mapping_idxs);
-    vector<size_t> num_tuples_per_schema;
-    getOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs,
-                        num_tuples_per_schema);
-    auto format =
-        determineFormatByCostModel(false, num_tuples_per_schema, total_nulls);
+    fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
+    auto format = determineFormatByCostModel(false, total_nulls);
     format = OutputFormat::GROUPING;
 
     // Format-based Execution
@@ -429,7 +428,6 @@ void PhysicalIdSeek::initializeSeek(
     chunk.Reset();
     fillSeqnoToEIDIdx(target_seqnos_per_extent, state.seqno_to_eid_idx);
 }
-
 
 void PhysicalIdSeek::InitializeOutputChunks(
     std::vector<unique_ptr<DataChunk>> &output_chunks, Schema &output_schema,
@@ -1279,7 +1277,7 @@ size_t PhysicalIdSeek::calculateTotalNulls(
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
-{ 
+{
     vector<size_t> size_per_extent(target_eids.size(), 0);
     vector<size_t> num_nulls_per_extent(target_eids.size(), 0);
 
@@ -1326,8 +1324,7 @@ size_t PhysicalIdSeek::calculateTotalNulls(
 }
 
 PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
-    bool sort_order_enforced, vector<size_t> &num_tuples_per_schema,
-    size_t total_nulls) const
+    bool sort_order_enforced, size_t total_nulls) const
 {
     const double COLUMNAR_PROCESSING_UNIT_COST = 0.8;
     const double ROW_PROCESSING_UNIT_COST = 2.4;
@@ -1376,12 +1373,13 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
     }
 }
 
-void PhysicalIdSeek::getOutSizePerSchema(
+void PhysicalIdSeek::fillOutSizePerSchema(
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
-    vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_schema) const
+    vector<idx_t> &mapping_idxs) const
 {
-    num_tuples_per_schema.resize(target_eids.size(), 0);
+    D_ASSERT(num_tuples_per_schema.size() == num_total_schemas);
+    std::fill(num_tuples_per_schema.begin(), num_tuples_per_schema.end(), 0);
     for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
          extent_idx++) {
         auto mapping_idx = mapping_idxs[extent_idx];
@@ -1508,7 +1506,9 @@ void PhysicalIdSeek::getUnionScanTypes()
     }
 }
 
-void PhysicalIdSeek::buildExpressionExecutors(vector<vector<unique_ptr<Expression>>> &predicates){
+void PhysicalIdSeek::buildExpressionExecutors(
+    vector<vector<unique_ptr<Expression>>> &predicates)
+{
     executors.resize(predicates.size());
     for (auto i = 0; i < predicates.size(); i++) {
         if (predicates[i].size() > 1) {
