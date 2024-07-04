@@ -49,6 +49,9 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     }
 
    public:
+    virtual void InitializeOutputChunks(
+        std::vector<unique_ptr<DataChunk>> &output_chunks,
+        Schema &output_schema, idx_t idx) override;
     unique_ptr<OperatorState> GetOperatorState(
         ExecutionContext &context) const override;
     OperatorResultType Execute(ExecutionContext &context, DataChunk &input,
