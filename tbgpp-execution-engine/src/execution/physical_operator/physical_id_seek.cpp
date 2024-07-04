@@ -311,7 +311,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
                             target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
-    format = OutputFormat::GROUPING;
+    format = OutputFormat::ROW;
 
     // Format-based Execution
     if (format == OutputFormat::GROUPING) {

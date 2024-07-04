@@ -18,8 +18,8 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     cur_eid = target_eid;
     is_initialized = true;
     auto target_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(target_eid);
-    if (target_eid_seqno > eid_to_bufptr_idx_map->size()) {
-        eid_to_bufptr_idx_map->resize(target_eid_seqno + 1, INVALID_PTR_ADJ_IDX_PAIR);
+    while (target_eid_seqno >= eid_to_bufptr_idx_map->size()) {
+        eid_to_bufptr_idx_map->resize(eid_to_bufptr_idx_map->size() * 2, INVALID_PTR_ADJ_IDX_PAIR);
     }
     
     if (!ext_it ->IsInitialized()) {

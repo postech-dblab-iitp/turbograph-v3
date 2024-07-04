@@ -153,9 +153,9 @@ iTbgppGraphStore::doScan(std::queue<ExtentIterator *> &ext_its, duckdb::DataChun
 inline void
 iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(idx_t i, ExtentID prev_eid) {
 	auto prev_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
-	if (prev_eid_seqno > target_seqnos_per_extent_map.size()) {
-		target_seqnos_per_extent_map.resize(prev_eid_seqno + 1); 
-		target_seqnos_per_extent_map_cursors.resize(prev_eid_seqno + 1, 0);
+	while (prev_eid_seqno >= target_seqnos_per_extent_map.size()) {
+		target_seqnos_per_extent_map.resize(target_seqnos_per_extent_map.size() * 2, vector<uint32_t>(STANDARD_VECTOR_SIZE)); 
+		target_seqnos_per_extent_map_cursors.resize(target_seqnos_per_extent_map_cursors.size() * 2, 0);
 	}
 	vector<uint32_t> &vec = target_seqnos_per_extent_map[prev_eid_seqno];
 	idx_t &cursor = target_seqnos_per_extent_map_cursors[prev_eid_seqno];
@@ -545,8 +545,8 @@ void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t>& oids, vector<idx_t>
 
 		for (auto eid: extent_ids) {
 			auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(eid);
-			if (ext_seqno > eid_to_mapping_idx.size()) {
-				eid_to_mapping_idx.resize(ext_seqno + 1, -1);
+			if (ext_seqno >= eid_to_mapping_idx.size()) {
+				eid_to_mapping_idx.resize(eid_to_mapping_idx.size() * 2, -1);
 			}
 			eid_to_mapping_idx[ext_seqno] = union_schema ? 0 : i;
 		}

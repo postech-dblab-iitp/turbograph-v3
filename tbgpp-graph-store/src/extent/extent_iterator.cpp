@@ -1915,7 +1915,7 @@ bool ExtentIterator::ObtainFromCache(ExtentID &eid, int buf_idx) {
     uint16_t seq_no = GET_EXTENT_SEQNO_FROM_EID(eid);
     
     // double the size of the cache
-    if (seq_no > io_cache->io_buf_ptrs_cache.size()) {
+    if (seq_no >= io_cache->io_buf_ptrs_cache.size()) {
         IncreaseCacheSize();
         return false;
     }
@@ -1937,7 +1937,7 @@ void ExtentIterator::PopulateCache(ExtentID &eid, int buf_idx) {
     uint16_t seq_no = GET_EXTENT_SEQNO_FROM_EID(eid);
 
     // double the size of the cache
-    if (seq_no > io_cache->io_buf_ptrs_cache.size()) {
+    while (seq_no >= io_cache->io_buf_ptrs_cache.size()) {
         IncreaseCacheSize();
     }
     // copy the current buffer to the cache
