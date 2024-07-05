@@ -1482,8 +1482,14 @@ void PhysicalIdSeek::getOutputColIdxsForOuter(
     }
 }
 
+/**
+ * @brief This code is very error prone
+ * Check the algorithm and fix the code @jhha
+ */
 void PhysicalIdSeek::getUnionScanTypes()
 {
+    if(num_total_schemas == 1) return;
+    
     union_scan_type.resize(union_inner_col_map.size(), LogicalTypeId::INVALID);
     for (auto i = 0; i < inner_col_maps.size(); i++) {
         auto &per_schema_scan_type = scan_types[i];
