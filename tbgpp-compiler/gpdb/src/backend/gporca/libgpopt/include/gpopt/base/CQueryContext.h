@@ -82,7 +82,7 @@ public:
 	// ctor
 	CQueryContext(CMemoryPool *mp, CExpression *pexpr, CReqdPropPlan *prpp,
 				  CColRefArray *colref_array, CMDNameArray *pdrgpmdname,
-				  BOOL fDeriveStats);
+				  BOOL fDeriveStats, BOOL is_simple_query = false);
 
 	// dtor
 	virtual ~CQueryContext();
