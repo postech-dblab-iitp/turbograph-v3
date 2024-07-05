@@ -5,9 +5,9 @@
 # Parse user input
 
 # Target image
-IMAGE_NAME="turbograph-s62-0312"
+IMAGE_NAME="turbograph-image"
 IMAGE_TAG="latest"
-CONTAINER_NAME="turbograph-s62-0312"
+CONTAINER_NAME="turbograph-s62"
 
 # TODO override from user input
 SHARED_MEM_SIZE="360g"

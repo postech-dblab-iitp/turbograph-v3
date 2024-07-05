@@ -85,8 +85,7 @@ public:
 			AssignSharedPointer(result.auxiliary, auxiliary);
 			// propagate through child
 			auto &list_buffer = (VectorListBuffer &)*result.auxiliary;
-			// list_buffer.capacity = STANDARD_VECTOR_SIZE; // TODO is it OK?
-			// list_buffer.capacity = STANDARD_VECTOR_SIZE;
+			list_buffer.capacity = STANDARD_VECTOR_SIZE;
 			list_buffer.size = 0;
 
 			auto &list_child = list_buffer.GetChild();
