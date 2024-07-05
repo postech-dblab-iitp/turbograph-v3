@@ -87,7 +87,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::OURS;
+    const CostModel cost_model = CostModel::DICE;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
@@ -1050,9 +1050,11 @@ public:
 
     double _ComputeDistanceMergingSchemaOurs(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
-        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2)
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2,
+        size_t num_schemas)
     {
-        double cost_schema = -CostSchemaVal;
+        double cost_schema = -CostSchemaVal * log(num_schemas);
+        // double cost_schema = -CostSchemaVal;
         double cost_null = CostNullVal;
         double cost_vectorization = CostVectorizationVal;
 
@@ -1138,6 +1140,7 @@ public:
         uint32_t num_tuples_total, vector<double> &cost_matrix)
     {
         // uint32_t begin_idx = current_layer == 0 ? 0 : layer_boundaries[current_layer - 1];
+        size_t num_schemas = schema_groups_with_num_tuples.size();
         for (auto i = 0; i < num_tuples_total; i++) {
             for (auto j = i + 1; j < num_tuples_total; j++) {
 
@@ -1168,7 +1171,7 @@ public:
                     /* START_OF_COST_MODEL_BASED */
                     if (cost_model == CostModel::OURS) {
                         cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
-                                                                schema_group2);
+                                                                schema_group2, num_schemas);
                     }
                     else if (cost_model == CostModel::SETEDIT) {
                         cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
@@ -3047,7 +3050,7 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
-    const double CostSchemaVal = 0.0001;
+    const double CostSchemaVal = 0.1;
     // const double CostNullVal = 0.001;
     const double CostNullVal = 0.00001;
     const double CostVectorizationVal = 0.2;
