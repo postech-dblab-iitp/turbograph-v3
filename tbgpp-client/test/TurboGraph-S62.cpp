@@ -371,7 +371,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			if (planner_config.DEBUG_PRINT) {
 				std::cout << "Transformation Done" << std::endl;
 			}
-			
+
 			// Binder
 			auto boundStatement = binder.bind(*statement);
 			kuzu::binder::BoundStatement *bst = boundStatement.get();
@@ -383,20 +383,16 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				std::cout << std::endl;
 			}
 
-			boost::timer::cpu_timer orca_compile_timer;
-			orca_compile_timer.start();
 			planner.execute(bst);
 
-			auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
-			auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
-			query_compile_times.push_back(compile_time_ms);
+			auto executors = planner.genPipelineExecutors();
 
-			// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
+			auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+			query_compile_times.push_back(compile_time_ms);
 
 	/*
 		EXECUTE QUERY
 	*/
-			auto executors = planner.genPipelineExecutors();
 			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
 			std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
 

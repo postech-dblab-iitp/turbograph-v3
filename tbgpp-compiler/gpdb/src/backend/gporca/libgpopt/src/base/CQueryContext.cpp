@@ -34,7 +34,8 @@ FORCE_GENERATE_DBGSTR(CQueryContext);
 //---------------------------------------------------------------------------
 CQueryContext::CQueryContext(CMemoryPool *mp, CExpression *pexpr,
 							 CReqdPropPlan *prpp, CColRefArray *colref_array,
-							 CMDNameArray *pdrgpmdname, BOOL fDeriveStats)
+							 CMDNameArray *pdrgpmdname, BOOL fDeriveStats,
+							 BOOL is_simple_query)
 	: m_prpp(prpp),
 	  m_pdrgpcr(colref_array),
 	  m_pdrgpcrSystemCols(NULL),
@@ -63,7 +64,7 @@ CQueryContext::CQueryContext(CMemoryPool *mp, CExpression *pexpr,
 	pcrsOrderSpec->Release();
 
 	m_pexpr = CExpressionPreprocessor::PexprPreprocess(
-		mp, pexpr, pcrsOutputAndOrderingCols);
+		mp, pexpr, pcrsOutputAndOrderingCols, is_simple_query);
 
 	pcrsOutputAndOrderingCols->Release();
 	GPOS_ASSERT(m_pdrgpcr->Size() == ulReqdColumns);
