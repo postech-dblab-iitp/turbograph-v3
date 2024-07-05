@@ -732,7 +732,7 @@ void PhysicalAdjIdxJoin::InitializeInfosForProcessing(
 {
     D_ASSERT(sid_col_idx < input.ColumnCount());
 
-    D_ASSERT(discard_tgt || tgtColIdx < chunk.ColumnCount());
+    D_ASSERT(!load_tid || (load_tid && tgtColIdx < chunk.ColumnCount()));
     if (load_eid) {
         D_ASSERT(edgeColIdx >= 0 && edgeColIdx < chunk.ColumnCount());
         // always flatvector[ID]. so ok to access directly
@@ -743,9 +743,8 @@ void PhysicalAdjIdxJoin::InitializeInfosForProcessing(
         D_ASSERT(srcColIdx >= 0 && srcColIdx < chunk.ColumnCount());
         src_adj_column = (uint64_t *)chunk.data[srcColIdx].GetData();
     }
-    if (!discard_tgt) {
+    if (load_tid) {
         D_ASSERT(tgtColIdx >= 0 && tgtColIdx < chunk.ColumnCount());
-        // always flatvector[ID]. so ok to access directly
         tgt_adj_column = (uint64_t *)chunk.data[tgtColIdx].GetData();
         tgt_validity_mask = &FlatVector::Validity(chunk.data[tgtColIdx]);
     }

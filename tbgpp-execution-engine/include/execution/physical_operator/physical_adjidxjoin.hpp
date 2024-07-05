@@ -120,7 +120,6 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         }
         if (load_tid) {
             tgtColIdx = this->inner_col_map[tgt_id_inner_map_idx];
-            discard_tgt = tgtColIdx == std::numeric_limits<uint32_t>::max();
         }
 
         if (!is_adjidxjoin_into) {
@@ -243,9 +242,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
    private:
     void setFillFuncLoadEID()
     {
-        // load eid & tgt
-        if (discard_tgt) {
-            // discard_tgt
+        if (!load_tid) {
             fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
                               uint64_t *tgt_adj_column,
                               uint64_t *eid_adj_column,
@@ -277,7 +274,6 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
             };
         }
         else {
-            // do not discard tgt
             fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
                               uint64_t *tgt_adj_column,
                               uint64_t *eid_adj_column,
@@ -317,64 +313,61 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 
     void setFillFuncLoadTGTOnly()
     {
-        // load tgt only
-        if (discard_tgt) {
-            fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
-                              uint64_t *tgt_adj_column,
-                              uint64_t *eid_adj_column,
-                              ValidityMask *tgt_validity_mask,
-                              ValidityMask *eid_validity_mask,
-                              size_t num_rhs_to_try_fetch, bool fill_null) {
-                if (unlikely(fill_null)) {
-                    D_ASSERT(false);
+        fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
+                            uint64_t *tgt_adj_column,
+                            uint64_t *eid_adj_column,
+                            ValidityMask *tgt_validity_mask,
+                            ValidityMask *eid_validity_mask,
+                            size_t num_rhs_to_try_fetch, bool fill_null) {
+            if (unlikely(fill_null)) {
+                D_ASSERT(tgt_validity_mask != nullptr);
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    state.rhs_sel.set_index(state.output_idx,
+                                            state.lhs_idx);
+                    tgt_adj_column[state.output_idx] = 0;
+                    tgt_validity_mask->SetInvalid(state.output_idx);
+                    state.output_idx++;
                 }
-                else {
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        state.rhs_sel.set_index(state.output_idx,
-                                                state.lhs_idx);
-                        state.output_idx++;
-                    }
+            }
+            else {
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    state.rhs_sel.set_index(state.output_idx,
+                                            state.lhs_idx);
+                    tgt_adj_column[state.output_idx] =
+                        adj_start[state.rhs_idx * 2];
+                    state.output_idx++;
                 }
-            };
-        }
-        else {
-            fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
-                              uint64_t *tgt_adj_column,
-                              uint64_t *eid_adj_column,
-                              ValidityMask *tgt_validity_mask,
-                              ValidityMask *eid_validity_mask,
-                              size_t num_rhs_to_try_fetch, bool fill_null) {
-                if (unlikely(fill_null)) {
-                    D_ASSERT(tgt_validity_mask != nullptr);
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        state.rhs_sel.set_index(state.output_idx,
-                                                state.lhs_idx);
-                        tgt_adj_column[state.output_idx] = 0;
-                        tgt_validity_mask->SetInvalid(state.output_idx);
-                        state.output_idx++;
-                    }
+            }
+        };
+    }
+
+    void setFillFuncSelOnly()
+    {
+        fillFunc = [this](AdjIdxJoinState &state, uint64_t *adj_start,
+                            uint64_t *tgt_adj_column,
+                            uint64_t *eid_adj_column,
+                            ValidityMask *tgt_validity_mask,
+                            ValidityMask *eid_validity_mask,
+                            size_t num_rhs_to_try_fetch, bool fill_null) {
+            if (unlikely(fill_null)) {
+                D_ASSERT(false);
+            }
+            else {
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    state.rhs_sel.set_index(state.output_idx,
+                                            state.lhs_idx);
+                    state.output_idx++;
                 }
-                else {
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        state.rhs_sel.set_index(state.output_idx,
-                                                state.lhs_idx);
-                        tgt_adj_column[state.output_idx] =
-                            adj_start[state.rhs_idx * 2];
-                        state.output_idx++;
-                    }
-                }
-            };
-        }
+            }
+        };
     }
 
     void setFillFuncIntoLoadEID()
     {
-        // load eid & tgt
-        if (discard_tgt) {
-            // discard_tgt
+        if (!load_tid) {
             fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
                                   uint64_t *tgt_adj_column,
                                   uint64_t *eid_adj_column,
@@ -409,7 +402,6 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
             };
         }
         else {
-            // do not discard tgt
             fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
                                   uint64_t *tgt_adj_column,
                                   uint64_t *eid_adj_column,
@@ -452,68 +444,67 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
 
     void setFillFuncIntoLoadTGTOnly()
     {
-        // load tgt only
-        if (discard_tgt) {
-            fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
-                                  uint64_t *tgt_adj_column,
-                                  uint64_t *eid_adj_column,
-                                  ValidityMask *tgt_validity_mask,
-                                  ValidityMask *eid_validity_mask,
-                                  uint64_t tgt_vid_into,
-                                  size_t num_rhs_to_try_fetch, bool fill_null) {
-                if (unlikely(fill_null)) {
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+        fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
+                                uint64_t *tgt_adj_column,
+                                uint64_t *eid_adj_column,
+                                ValidityMask *tgt_validity_mask,
+                                ValidityMask *eid_validity_mask,
+                                uint64_t tgt_vid_into,
+                                size_t num_rhs_to_try_fetch, bool fill_null) {
+            if (unlikely(fill_null)) {
+                D_ASSERT(tgt_validity_mask != nullptr);
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    state.rhs_sel.set_index(state.output_idx,
+                                            state.lhs_idx);
+                    tgt_adj_column[state.output_idx] = 0;
+                    tgt_validity_mask->SetInvalid(state.output_idx);
+                    state.output_idx++;
+                }
+            }
+            else {
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    if (adj_start[state.rhs_idx * 2] == tgt_vid_into) {
+                        state.rhs_sel.set_index(state.output_idx,
+                                                state.lhs_idx);
+                        tgt_adj_column[state.output_idx] =
+                            adj_start[state.rhs_idx * 2];
+                        state.output_idx++;
+                    }
+                }
+            }
+        };
+    }
+
+    void setFillFuncIntoSelOnly() 
+    {
+        fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
+                                uint64_t *tgt_adj_column,
+                                uint64_t *eid_adj_column,
+                                ValidityMask *tgt_validity_mask,
+                                ValidityMask *eid_validity_mask,
+                                uint64_t tgt_vid_into,
+                                size_t num_rhs_to_try_fetch, bool fill_null) {
+            if (unlikely(fill_null)) {
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    state.rhs_sel.set_index(state.output_idx,
+                                            state.lhs_idx);
+                    state.output_idx++;
+                }
+            }
+            else {
+                auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
+                for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
+                    if (adj_start[state.rhs_idx * 2] == tgt_vid_into) {
                         state.rhs_sel.set_index(state.output_idx,
                                                 state.lhs_idx);
                         state.output_idx++;
                     }
                 }
-                else {
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        if (adj_start[state.rhs_idx * 2] == tgt_vid_into) {
-                            state.rhs_sel.set_index(state.output_idx,
-                                                    state.lhs_idx);
-                            state.output_idx++;
-                        }
-                    }
-                }
-            };
-        }
-        else {
-            fillFuncInto = [this](AdjIdxJoinState &state, uint64_t *adj_start,
-                                  uint64_t *tgt_adj_column,
-                                  uint64_t *eid_adj_column,
-                                  ValidityMask *tgt_validity_mask,
-                                  ValidityMask *eid_validity_mask,
-                                  uint64_t tgt_vid_into,
-                                  size_t num_rhs_to_try_fetch, bool fill_null) {
-                if (unlikely(fill_null)) {
-                    D_ASSERT(tgt_validity_mask != nullptr);
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        state.rhs_sel.set_index(state.output_idx,
-                                                state.lhs_idx);
-                        tgt_adj_column[state.output_idx] = 0;
-                        tgt_validity_mask->SetInvalid(state.output_idx);
-                        state.output_idx++;
-                    }
-                }
-                else {
-                    auto tmp_rhs_idx_end = state.rhs_idx + num_rhs_to_try_fetch;
-                    for (; state.rhs_idx < tmp_rhs_idx_end; state.rhs_idx++) {
-                        if (adj_start[state.rhs_idx * 2] == tgt_vid_into) {
-                            state.rhs_sel.set_index(state.output_idx,
-                                                    state.lhs_idx);
-                            tgt_adj_column[state.output_idx] =
-                                adj_start[state.rhs_idx * 2];
-                            state.output_idx++;
-                        }
-                    }
-                }
-            };
-        }
+            }
+        };
     }
 
     void setFillFunc()
@@ -521,8 +512,11 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         if (load_eid) {
             setFillFuncLoadEID();
         }
-        else {
+        else if (load_tid) {
             setFillFuncLoadTGTOnly();
+        }
+        else {
+            setFillFuncSelOnly();
         }
     }
 
@@ -531,8 +525,11 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         if (load_eid) {
             setFillFuncIntoLoadEID();
         }
-        else {
+        else if (load_tid) {
             setFillFuncIntoLoadTGTOnly();
+        }
+        else {
+            setFillFuncIntoSelOnly();
         }
     }
 };
