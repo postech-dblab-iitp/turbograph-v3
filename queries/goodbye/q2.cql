@@ -1,0 +1,1 @@
+MATCH (n)-[:CAN_TRANSFORM_INTO]->(m) WHERE n.type = "A" RETURN m;

@@ -3,7 +3,7 @@ WHERE NOT person = friend
 WITH DISTINCT friend
 MATCH (friend)<-[membership:HAS_MEMBER]-(forum:Forum)
 WHERE
-    membership.joinDate > 1344704000000
+    membership.joinDate > 1343088000000
 WITH
     forum,
     friend
