@@ -252,10 +252,6 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
             queryRel->getLowerBound() != queryRel->getUpperBound() ? true
                                                                    : false;
 
-        // unordered_map<string,
-        //               vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>>
-        //     pkey_to_ps_map;
-        // vector<string> universal_schema;
         duckdb::string_vector *universal_schema;
         duckdb::idx_t_vector *universal_schema_ids;
         duckdb::LogicalTypeId_vector *universal_types_id;

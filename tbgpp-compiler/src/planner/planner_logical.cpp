@@ -1444,6 +1444,10 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr,
     lPruneUnnecessaryGraphlets(table_oids, node_expr, prop_exprs,
                                pruned_table_oids);
 
+    // prune useless columns (e.g., MATCH (n) WHERE n.C_ACCTBAL > 100 RETURN n
+    // query should not return columns from the tables not having C_ACCTBAL)
+    lPruneUnnecessaryColumns(node_expr, prop_exprs, pruned_table_oids);
+
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
     // group table_oids
     if (node_expr->isDSITarget() && pruned_table_oids.size() > 1) {
@@ -2197,6 +2201,14 @@ void Planner::lPruneUnnecessaryGraphlets(
     const expression_vector &prop_exprs,
     std::vector<uint64_t> &pruned_table_oids)
 {
+#ifndef USE_INVERTED_INDEX
+    std::unordered_map<duckdb::idx_t, std::vector<duckdb::idx_t>> oids_schemas;
+    if (without_inverted_index) {
+        auto catalog_wrapper = context->db->GetCatalogWrapper();
+        catalog_wrapper.GetSchemas(*context, oids_schemas, duckdb::GraphComponentType::VERTEX);
+    }
+#endif
+
     std::unordered_map<uint64_t, int> necessary_table_oids_map;
     for (auto i = 0; i < table_oids.size(); i++) {
         necessary_table_oids_map.insert({table_oids[i], 0});
@@ -2209,6 +2221,7 @@ void Planner::lPruneUnnecessaryGraphlets(
         PropertyExpression *expr =
             static_cast<PropertyExpression *>(_prop_expr.get());
         num_filter_cols++;
+#ifdef USE_INVERTED_INDEX
         auto *propIdPerTable = expr->getPropertyIDPerTable();
         for (auto &it : *propIdPerTable) {
             if (necessary_table_oids_map.find(it.first) !=
@@ -2219,6 +2232,21 @@ void Planner::lPruneUnnecessaryGraphlets(
                 D_ASSERT(false);
             }
         }
+#else
+        for (auto &it : oids_schemas) {
+            if (it.second.size() == 0) {
+                D_ASSERT(false);
+            }
+            else {
+                for (auto &schema_property_id : it.second) {
+                    if (schema_property_id == expr->getPropertyID()) {
+                        necessary_table_oids_map[it.first]++;
+                        break;
+                    }
+                }
+            }
+        }
+#endif
     }
 
     for (auto &it : necessary_table_oids_map) {
@@ -2228,6 +2256,27 @@ void Planner::lPruneUnnecessaryGraphlets(
     }
 
     std::sort(pruned_table_oids.begin(), pruned_table_oids.end());
+}
+
+void Planner::lPruneUnnecessaryColumns(NodeOrRelExpression *node_expr,
+                                const expression_vector &prop_exprs,
+                                std::vector<uint64_t> &pruned_table_oids)
+{
+    for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+        auto &_prop_expr = prop_exprs[col_idx];
+        PropertyExpression *expr =
+            static_cast<PropertyExpression *>(_prop_expr.get());
+        auto *propIdPerTable = expr->getPropertyIDPerTable();
+
+        for (auto &it : *propIdPerTable) {
+            if (std::find(pruned_table_oids.begin(), pruned_table_oids.end(),
+                          it.first) == pruned_table_oids.end()) {
+                node_expr->setUnusedColumn(col_idx);
+                continue;
+            }
+        }
+    }
+    return;
 }
 
 }  // namespace s62
