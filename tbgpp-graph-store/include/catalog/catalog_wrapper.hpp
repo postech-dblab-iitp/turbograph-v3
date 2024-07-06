@@ -11,6 +11,7 @@
 #include "icecream.hpp"
 
 #include <tuple>
+#include <unordered_map>
 
 namespace duckdb {
 
@@ -32,6 +33,33 @@ public:
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             srcPartitionIDs.push_back(p_cat->GetSrcPartOid());
             dstPartitionIDs.push_back(p_cat->GetDstPartOid());
+        }
+    }
+
+    void GetSchemas(ClientContext &context, unordered_map<idx_t, vector<PropertyKeyID>>& TableOidsSchemas, GraphComponentType g_type) {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat =
+            (GraphCatalogEntry *)catalog.GetEntry(context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        vector<string> labelset_names;
+        gcat->GetVertexLabels(labelset_names);
+
+        for (auto &labelset_name : labelset_names) {
+            vector<uint64_t> partitionIDs;
+            vector<idx_t> oids;
+            vector<string> partition_labelset_names = {labelset_name};
+            partitionIDs = std::move(gcat->LookupPartition(context, partition_labelset_names, g_type));
+            for (auto &pid : partitionIDs) {
+                PartitionCatalogEntry *p_cat =
+                    (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
+                p_cat->GetPropertySchemaIDs(oids);
+                for (auto &oid : oids) {
+                    PropertySchemaCatalogEntry *ps_cat =
+                    (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
+                    auto key_ids_ptr = ps_cat->GetKeyIDs();
+                    vector<PropertyKeyID> key_ids(key_ids_ptr->begin(), key_ids_ptr->end());
+                    TableOidsSchemas.insert({oid, key_ids});
+                }
+            }
         }
     }
 
@@ -259,43 +287,42 @@ public:
         vector<idx_t> &part_oids)
     {
         auto &catalog = db.GetCatalog();
+        const void_allocator void_alloc = catalog.catalog_segment->get_segment_manager();
 
-        // TODO currently, we only support one partition
-        D_ASSERT(part_oids.size() == 1);
-        PartitionCatalogEntry *part_cat =
-            (PartitionCatalogEntry *)catalog.GetEntry(
-                context, DEFAULT_SCHEMA, part_oids[0]);
-        *universal_schema = part_cat->GetUniversalPropertyKeyNames();
-        *universal_schema_ids = part_cat->GetUniversalPropertyKeyIds();
-        *universal_types_id = part_cat->GetUniversalPropertyTypeIds();
-        *property_schema_index = part_cat->GetPropertySchemaIndex();
+        // Allocate
+        *property_schema_index = new PropertyToPropertySchemaPairVecUnorderedMap(void_alloc);
+        *universal_schema = new string_vector(void_alloc);
+        *universal_schema_ids = new idx_t_vector(void_alloc);
+        *universal_types_id = new LogicalTypeId_vector(void_alloc);
 
-        // for (auto &oid : oids) {
-        //     PropertySchemaCatalogEntry *ps_cat =
-        //         (PropertySchemaCatalogEntry *)catalog.GetEntry(
-        //             context, DEFAULT_SCHEMA, oid);
+        // Concat all property keys and types
+        for (auto &part_oid: part_oids) {
+            PartitionCatalogEntry *part_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(
+                    context, DEFAULT_SCHEMA, part_oid);
+        
+            auto part_universal_schema = part_cat->GetUniversalPropertyKeyNames();
+            auto part_universal_schema_ids = part_cat->GetUniversalPropertyKeyIds();
+            auto part_universal_types_id = part_cat->GetUniversalPropertyTypeIds();
+            auto part_property_schema_index = part_cat->GetPropertySchemaIndex();
 
-        //     string_vector *property_keys = ps_cat->GetKeys();
-        //     LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
-        //     for (int i = 0; i < property_keys->size(); i++) {
-        //         if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
-        //             (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
-        //             continue;
-        //         string property_key = std::string((*property_keys)[i]);
-        //         auto it = pkey_to_ps_map.find(property_key);
-        //         if (it == pkey_to_ps_map.end()) {
-        //             pkey_to_ps_map.emplace(
-        //                 property_key,
-        //                 std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
-        //                     std::make_tuple(oid, i + 1,
-        //                                     (*property_key_types)[i])});
-        //         }
-        //         else {
-        //             it->second.push_back(
-        //                 std::make_tuple(oid, i + 1, (*property_key_types)[i]));
-        //         }
-        //     }
-        // }
+            // Merge
+            for (auto i = 0; i < part_universal_schema->size(); i++) {
+                duckdb::idx_t property_key_id = part_universal_schema_ids->at(i);
+                auto it = (*property_schema_index)->find(property_key_id);
+                if (it == (*property_schema_index)->end()) {
+                    (*universal_schema)->push_back(part_universal_schema->at(i));
+                    (*universal_schema_ids)->push_back(part_universal_schema_ids->at(i));
+                    (*universal_types_id)->push_back(part_universal_types_id->at(i));
+                    (*property_schema_index)->emplace(
+                        property_key_id,
+                        part_property_schema_index->find(property_key_id)->second);
+                }
+                else {
+                    D_ASSERT("Same Column Name for Different Table is Not Implemented Yet");
+                }
+            }
+        }
     }
 
     string GetTypeName(idx_t type_id) {
