@@ -2201,14 +2201,6 @@ void Planner::lPruneUnnecessaryGraphlets(
     const expression_vector &prop_exprs,
     std::vector<uint64_t> &pruned_table_oids)
 {
-#ifndef USE_INVERTED_INDEX
-    std::unordered_map<duckdb::idx_t, std::vector<duckdb::idx_t>> oids_schemas;
-    if (without_inverted_index) {
-        auto catalog_wrapper = context->db->GetCatalogWrapper();
-        catalog_wrapper.GetSchemas(*context, oids_schemas, duckdb::GraphComponentType::VERTEX);
-    }
-#endif
-
     std::unordered_map<uint64_t, int> necessary_table_oids_map;
     for (auto i = 0; i < table_oids.size(); i++) {
         necessary_table_oids_map.insert({table_oids[i], 0});
@@ -2221,7 +2213,6 @@ void Planner::lPruneUnnecessaryGraphlets(
         PropertyExpression *expr =
             static_cast<PropertyExpression *>(_prop_expr.get());
         num_filter_cols++;
-#ifdef USE_INVERTED_INDEX
         auto *propIdPerTable = expr->getPropertyIDPerTable();
         for (auto &it : *propIdPerTable) {
             if (necessary_table_oids_map.find(it.first) !=
@@ -2232,21 +2223,6 @@ void Planner::lPruneUnnecessaryGraphlets(
                 D_ASSERT(false);
             }
         }
-#else
-        for (auto &it : oids_schemas) {
-            if (it.second.size() == 0) {
-                D_ASSERT(false);
-            }
-            else {
-                for (auto &schema_property_id : it.second) {
-                    if (schema_property_id == expr->getPropertyID()) {
-                        necessary_table_oids_map[it.first]++;
-                        break;
-                    }
-                }
-            }
-        }
-#endif
     }
 
     for (auto &it : necessary_table_oids_map) {

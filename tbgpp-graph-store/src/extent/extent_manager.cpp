@@ -105,17 +105,29 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // Create Compressionheader, based on nullity
         CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
+        size_t size_without_null = 0;
         if (FlatVector::HasNull(input.data[input_chunk_idx])) {
             if (input.size() != FlatVector::Validity(input.data[input_chunk_idx]).CountValid(input.size())) {
                 comp_header.SetNullMask();
+                for (size_t i = 0; i < input.size(); i++) {
+                    if (!FlatVector::IsNull(input.data[input_chunk_idx], i)) {
+                        size_without_null++;
+                    }
+                }
             }
         }
+        if (size_without_null == 0) size_without_null = input.size();
         auto comp_header_size = comp_header.GetSizeWoBitSet();
 
-        uint8_t *buf_ptr;
-        size_t buf_size;
-        size_t alloc_buf_size;
+        uint8_t *buf_ptr = nullptr;
+        size_t buf_size = 0;
+        size_t alloc_buf_size = 0;
         size_t bitmap_size = 0;
+
+        /**
+         * TODO: check null is correctly handled for LIST types
+         * If there is null, we cannot use the size of the input vector to calculate the size of the buffer
+         */
 
         // Calculate the size of the buffer to allocate
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
@@ -127,8 +139,10 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             string_t *string_buffer = (string_t*)input.data[input_chunk_idx].GetData();
 
              // Accumulate the length of all non-inlined strings
-            for (size_t i = 0; i < input.size(); i++)
+            for (size_t i = 0; i < input.size(); i++) {
+                if(FlatVector::IsNull(input.data[input_chunk_idx], i)) continue;
                 string_len_total += string_buffer[i].IsInlined() ? 0 : string_buffer[i].GetSize();
+            }
 
             // Accumulate the string_t array length
             if (best_compression_function == DICTIONARY)
@@ -153,7 +167,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             alloc_buf_size = list_len_total + comp_header_size;
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
-            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
+            alloc_buf_size = size_without_null * GetTypeIdSize(p_type) + comp_header_size;
         }
 
         // Check null mask
@@ -183,9 +197,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 comp_func.Compress(buf_ptr + comp_header_size, buf_size - comp_header_size, data_to_compress, input_size);
             } else {
                 // Copy CompressionHeader
-                size_t input_size = input.size();
                 size_t string_t_offset = comp_header_size;
-                size_t string_data_offset = comp_header_size + input_size * sizeof(string_t);
+                size_t string_data_offset = comp_header_size + size_without_null * sizeof(string_t);
                 comp_header.SetSwizzlingType(SwizzlingType::SWIZZLE_VARCHAR);
                 memcpy(buf_ptr, &comp_header, comp_header_size);
 
@@ -193,6 +206,8 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 string_t *string_buffer = (string_t *)input.data[input_chunk_idx].GetData();
                 uint64_t accumulated_string_len = 0;
                 for (size_t i = 0; i < input.size(); i++) {
+                    if(FlatVector::IsNull(input.data[input_chunk_idx], i)) continue;
+
                     string_t& str = string_buffer[i];
                     if (str.IsInlined()) {
                         memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
@@ -236,6 +251,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             // Copy Data Into Cache
             // TODO type support check should be done by CompressionFunction
             if (best_compression_function == BITPACKING && BitpackingPrimitives::TypeIsSupported(p_type)) {
+                D_ASSERT(false);
                 // Set Compression Function
                 CompressionFunction comp_func(best_compression_function, p_type); // best_compression_function = BITPACKING
                 // Compress
@@ -250,12 +266,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         }
         if (comp_header.HasNullMask()) {
             auto *validity_data = (char *)(FlatVector::Validity(input.data[input_chunk_idx]).GetData());
-            if(validity_data == NULL) {
-                std::cout << "Input chunk idx: " << input_chunk_idx << std::endl;
-                std::cout << "file_path_prefix: " << file_path_prefix << std::endl;
-                std::cout << "buf_ptr: " << (void *)buf_ptr << std::endl;
-                std::cout << "buf_size: " << buf_size << std::endl;
-            }
             memcpy(buf_ptr + alloc_buf_size, validity_data, bitmap_size);
         }
         auto chunk_compression_end = std::chrono::high_resolution_clock::now();

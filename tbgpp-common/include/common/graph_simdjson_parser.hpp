@@ -65,9 +65,9 @@ public:
         ALLPAIRS,
         DBSCAN,
         OPTICS,
-        DENCLUE,
         AGGLOMERATIVE,
-        GMM
+        GMM,
+        PGSE
     };
 
     enum class CostModel {
@@ -86,8 +86,8 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::DICE;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
@@ -204,9 +204,6 @@ public:
                 _CreateExtents(gctype, graph_cat, label_name, label_set);
                 break;
             }
-            case ClusterAlgorithmType::DENCLUE: {
-                break;
-            }
             case ClusterAlgorithmType::AGGLOMERATIVE: {
                 _ExtractSchema(gctype);
                 _PreprocessSchemaForClustering(false);
@@ -214,6 +211,19 @@ public:
                 clustering_timer.start();
                 // Clustering
                 _ClusterSchemaAgglomerative();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::PGSE: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterSchemaPGSE();
                 clustering_timer.stop();
 
                 // Create Extents
@@ -1137,7 +1147,8 @@ public:
         vector<std::pair<std::vector<uint32_t>, uint64_t>>
             &schema_groups_with_num_tuples,
         vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output,
-        uint32_t num_tuples_total, vector<double> &cost_matrix)
+        uint32_t num_tuples_total, vector<double> &cost_matrix,
+        const CostModel _cost_model)
     {
         // uint32_t begin_idx = current_layer == 0 ? 0 : layer_boundaries[current_layer - 1];
         size_t num_schemas = schema_groups_with_num_tuples.size();
@@ -1169,31 +1180,31 @@ public:
                         schema_groups_with_num_tuples[schema_group2_idx];
 
                     /* START_OF_COST_MODEL_BASED */
-                    if (cost_model == CostModel::OURS) {
+                    if (_cost_model == CostModel::OURS) {
                         cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
                                                                 schema_group2, num_schemas);
                     }
-                    else if (cost_model == CostModel::SETEDIT) {
+                    else if (_cost_model == CostModel::SETEDIT) {
                         cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::JACCARD) {
+                    else if (_cost_model == CostModel::JACCARD) {
                         cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::WEIGHTEDJACCARD) {
+                    else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
                         cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::COSINE) {
+                    else if (_cost_model == CostModel::COSINE) {
                         cost = _ComputeCostMergingSchemaGroupsCosine(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::DICE) {
+                    else if (_cost_model == CostModel::DICE) {
                         cost = _ComputeCostMergingSchemaGroupsDice(schema_group1,
                                                                 schema_group2);
                     }
-                    else if (cost_model == CostModel::OVERLAP) {
+                    else if (_cost_model == CostModel::OVERLAP) {
                         cost = _ComputeCostMergingSchemaGroupsOverlap(schema_group1,
                                                                 schema_group2);
                     }
@@ -1442,7 +1453,7 @@ public:
             }
             ClusterSchemasInCurrentLayer(schema_groups_with_num_tuples,
                                          num_tuples_order, layer_boundaries,
-                                         i, temp_output);
+                                         i, temp_output, cost_model);
             
             // remove nullptrs
             temp_output.erase(
@@ -1465,6 +1476,75 @@ public:
             //     }
             //     std::cout << std::endl;
             // }
+        }
+
+        num_clusters = temp_output.size();
+        cluster_tokens.reserve(temp_output.size());
+        for (auto i = 0; i < temp_output.size(); i++) {
+            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+
+            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
+            for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
+                std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+            }
+            std::cout << std::endl;
+
+            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
+            std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
+
+            std::cout << "\t";
+            for (auto j = 0; j < temp_output[i].second.size(); j++) {
+                std::cout << temp_output[i].second[j] << ", ";
+            }
+            std::cout << std::endl;
+
+            for (auto j = 0; j < temp_output[i].second.size(); j++) {
+                sg_to_cluster_vec[temp_output[i].second[j]] = i;
+            }
+        }
+    }
+
+    void _ClusterSchemaPGSE() {
+
+        // sort schema
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                      schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // layered approach
+        vector<uint32_t> num_tuples_order;
+        num_tuples_order.resize(schema_groups_with_num_tuples.size());
+        std::iota(num_tuples_order.begin(), num_tuples_order.end(), 0);
+        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
+        
+        int num_layers = 0;
+        vector<uint32_t> layer_boundaries;
+        layer_boundaries.push_back(num_tuples_order.size());
+        num_layers = layer_boundaries.size();
+
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> temp_output;
+        for (uint32_t i = 0; i < num_layers; i++) {
+            size_t size_to_reserve = i == 0 ? layer_boundaries[i]
+                                            : temp_output.size() +
+                                                  layer_boundaries[i] -
+                                                  layer_boundaries[i - 1];
+            temp_output.reserve(size_to_reserve);
+            for (uint32_t j = i == 0 ? 0 : layer_boundaries[i - 1];
+                 j < layer_boundaries[i]; j++) {
+                std::vector<uint32_t> temp_vec;
+                temp_vec.push_back(num_tuples_order[j]);
+                temp_output.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
+            }
+            ClusterSchemasInCurrentLayer(schema_groups_with_num_tuples,
+                                         num_tuples_order, layer_boundaries,
+                                         i, temp_output, CostModel::WEIGHTEDJACCARD);
+            
+            // remove nullptrs
+            temp_output.erase(
+                std::remove_if(begin(temp_output), end(temp_output),
+                               [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
+                end(temp_output));
         }
 
         num_clusters = temp_output.size();
@@ -1874,7 +1954,8 @@ public:
         const vector<uint32_t> &num_tuples_order,
         const vector<uint32_t> &layer_boundaries,
         uint32_t current_layer,
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output)
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output,
+        const CostModel _cost_model)
     {
         uint32_t merged_count;
         uint32_t iteration = 0;
@@ -1889,7 +1970,7 @@ public:
                 << ", num_tuples: " << num_tuples_total 
                 << ", num_tuples_in_cost_matrix: " << num_tuples_in_cost_matrix << std::endl;
 
-            GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix);
+            GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix, _cost_model);
 
             /* START_OF_COST_MODEL_BASED */
             std::unique_ptr<std::priority_queue<std::pair<double, uint64_t>,
@@ -1897,7 +1978,7 @@ public:
                                                 std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>> cost_pq_ptr;
 
             // Initialize the appropriate priority queue based on the cost model
-            if (cost_model == CostModel::OURS || cost_model == CostModel::SETEDIT) {
+            if (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT) {
                 cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
                                                             std::vector<std::pair<double, uint64_t>>,
                                                             std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareGreat());
@@ -1912,7 +1993,7 @@ public:
             std::vector<bool> visited(num_tuples_total, false);
 
             for (auto i = 0; i < cost_matrix.size(); i++) {
-                if (cost_model == CostModel::OURS) {
+                if (_cost_model == CostModel::OURS) {
                     if (cost_matrix[i] > 0) continue;
                 }
                 cost_pq.push({cost_matrix[i], i});
@@ -1926,37 +2007,37 @@ public:
                     cost_pq.pop();
 
                     /* START_OF_COST_MODEL_BASED */
-                    if (cost_model == CostModel::OURS) {
+                    if (_cost_model == CostModel::OURS) {
                         if (min_cost.first > 0) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::SETEDIT) {
+                    else if (_cost_model == CostModel::SETEDIT) {
                         if (min_cost.first > SET_EDIT_THRESHOLD) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::JACCARD) {
+                    else if (_cost_model == CostModel::JACCARD) {
                         if (min_cost.first <= JACCARD_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::WEIGHTEDJACCARD) {
+                    else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
                         if (min_cost.first <= WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::COSINE) {
+                    else if (_cost_model == CostModel::COSINE) {
                         if (min_cost.first <= COSINE_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::DICE) {
+                    else if (_cost_model == CostModel::DICE) {
                         if (min_cost.first <= DICE_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
                     }
-                    else if (cost_model == CostModel::OVERLAP) {
+                    else if (_cost_model == CostModel::OVERLAP) {
                         if (min_cost.first <= OVERLAP_THRESHOLD || min_cost.first == COST_MAX) {
                             break;
                         }
