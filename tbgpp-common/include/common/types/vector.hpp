@@ -112,6 +112,8 @@ public:
 	//! Assign row major store
 	DUCKDB_API void AssignRowMajorStore(buffer_ptr<VectorBuffer> buffer);
 	//! Get row major store
+	DUCKDB_API buffer_ptr<VectorBuffer> GetRowMajorStoreBufferPtr();
+	//! Get row major store
 	DUCKDB_API char *GetRowMajorStore();
 
 	//! Converts this Vector to a printable string representation
@@ -219,7 +221,6 @@ protected:
 	buffer_ptr<VectorBuffer> auxiliary;
 	idx_t capacity;
 	bool is_valid = true;
-	bool is_rowcol = false; // TODO maybe useless
 	int rowcol_idx = -1;
 };
 
