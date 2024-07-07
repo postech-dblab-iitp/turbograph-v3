@@ -31,7 +31,7 @@ long parseSize(const std::string& sizeStr) {
 }
 
 int main(int argc, char* argv[]) {
-    const long DEFAULT_SIZE = 10L * 1024L * 1024L * 1024L; // 10GB
+    const long DEFAULT_SIZE = 100L * 1024L * 1024L * 1024L; // 100GB
 
     long size;
     if (argc == 2) {

@@ -1,1 +1,1 @@
-MATCH (n)-[:CAN_TRANSFORM_INTO]->(m) WHERE m.type = "A" RETURN n;
+MATCH (n)-[:OBJECT_CAN_TRANSFORM_INTO_OBJECT]->(m) WHERE m.type = "A" RETURN n;
