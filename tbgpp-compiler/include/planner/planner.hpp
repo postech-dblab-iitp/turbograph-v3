@@ -619,6 +619,9 @@ private:
 	duckdb::ClientContext *context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool *memory_pool;
 
+	// logical plnaning
+	vector<duckdb::PropertyKeyID> pruned_key_ids;
+
 	// used and initialized in each execution
 	BoundStatement *bound_statement;											// input parse statemnt
 	vector<duckdb::CypherPipeline *> pipelines;									// output plan pipelines

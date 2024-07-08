@@ -319,7 +319,16 @@ public:
                         part_property_schema_index->find(property_key_id)->second);
                 }
                 else {
-                    D_ASSERT("Same Column Name for Different Table is Not Implemented Yet");
+                    idx_t_pair_vector merged_pair_vector(void_alloc);
+                    auto &original_pair_vector = it->second;
+                    auto &new_pair_vector = part_property_schema_index->find(property_key_id)->second;
+                    for (auto &pair : original_pair_vector) {
+                        merged_pair_vector.push_back(pair);
+                    }
+                    for (auto &pair : new_pair_vector) {
+                        merged_pair_vector.push_back(pair);
+                    }
+                    it->second = merged_pair_vector;
                 }
             }
         }
@@ -703,50 +712,70 @@ public:
 
         D_ASSERT(table_oids.size() > 0);
 
-        // Get first property schema cat entry to find partition catalog
+        // get distinct partition IDs and OIDs
         auto &catalog = db.GetCatalog();
-        PropertySchemaCatalogEntry *ps_cat =
-            (PropertySchemaCatalogEntry *)catalog.GetEntry(
-                context, DEFAULT_SCHEMA, table_oids[0]);
-        auto part_oid = ps_cat->GetPartitionOID();
-        auto part_id = ps_cat->GetPartitionID();
-
-        // Get partition catalog
-        PartitionCatalogEntry *part_cat =
-            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA,
-                                                      part_oid);
-
-        // Get property locations using property expressions & prop_to_idx map
-        vector<idx_t> property_locations;
-        auto *prop_to_idxmap = part_cat->GetPropertyToIdxMap();
-        for (auto i = 0; i < property_key_ids.size(); i++) {
-            D_ASSERT(prop_to_idxmap->find(property_key_ids[i]) !=
-                     prop_to_idxmap->end());
-            property_locations.push_back(
-                prop_to_idxmap->at(property_key_ids[i]));
+        vector<PartitionID> part_ids;
+        vector<idx_t> part_oids;
+        for (auto &table_oid : table_oids) {
+            PropertySchemaCatalogEntry *ps_cat =
+                (PropertySchemaCatalogEntry *)db.GetCatalog().GetEntry(
+                    context, DEFAULT_SCHEMA, table_oid);
+            auto part_id = ps_cat->GetPartitionID();
+            auto part_oid = ps_cat->GetPartitionOID();
+            if (std::find(part_ids.begin(), part_ids.end(), part_id) ==
+                part_ids.end()) {
+                part_ids.push_back(part_id);
+                part_oids.push_back(part_oid);
+            }
         }
 
-        // TODO partition catalog should store tables groups for each column.
-        // Tables in the same group have similar cardinality for the column
-        idx_t_vector *num_groups_for_each_column =
-            part_cat->GetNumberOfGroups();
-        idx_t_vector *group_info_for_each_table = part_cat->GetGroupInfo();
-        idx_t_vector *multipliers = part_cat->GetMultipliers();
-        idx_t_vector *ps_oids = part_cat->GetPropertySchemaIDs();
-        uint64_t num_cols = part_cat->GetNumberOfColumns();
+        table_oids_in_group.push_back(table_oids);
 
-        // grouping similar (which has similar histogram) tables
-        _group_similar_tables(num_cols, property_locations,
-                              num_groups_for_each_column,
-                              group_info_for_each_table, multipliers, ps_oids,
-                              table_oids, table_oids_in_group);
+        /**
+         * Revive this code when we need coalescing.
+         * Currently, we don't need grouping
+        */
+        // // Get property locations using property expressions & prop_to_idx map
+        // vector<idx_t> property_locations;
+        // auto *prop_to_idxmap = part_cat->GetPropertyToIdxMap();
+        // for (auto i = 0; i < property_key_ids.size(); i++) {
+        //     D_ASSERT(prop_to_idxmap->find(property_key_ids[i]) !=
+        //              prop_to_idxmap->end());
+        //     property_locations.push_back(
+        //         prop_to_idxmap->at(property_key_ids[i]));
+        // }
+
+        // // TODO partition catalog should store tables groups for each column.
+        // // Tables in the same group have similar cardinality for the column
+        // idx_t_vector *num_groups_for_each_column =
+        //     part_cat->GetNumberOfGroups();
+        // idx_t_vector *group_info_for_each_table = part_cat->GetGroupInfo();
+        // idx_t_vector *multipliers = part_cat->GetMultipliers();
+        // idx_t_vector *ps_oids = part_cat->GetPropertySchemaIDs();
+        // uint64_t num_cols = part_cat->GetNumberOfColumns();
+
+        // // grouping similar (which has similar histogram) tables
+        // _group_similar_tables(num_cols, property_locations,
+        //                       num_groups_for_each_column,
+        //                       group_info_for_each_table, multipliers, ps_oids,
+        //                       table_oids, table_oids_in_group);
 
         // create temporal catalog table
         // TODO check if we already built temporal table for the same groups
-        _create_temporal_table_catalog(context, part_cat, table_oids_in_group,
-                                       representative_table_oids, part_id,
-                                       part_oid, property_key_ids,
-                                       property_location_in_representative);
+        if (part_ids.size() == 1) {        // Get partition catalog
+            auto part_oid = part_oids[0];
+            auto part_id = part_ids[0];
+            PartitionCatalogEntry *part_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA,
+                                                        part_oid);
+            _create_temporal_table_catalog(context, part_cat, table_oids_in_group,
+                                        representative_table_oids, part_id,
+                                        part_oid, property_key_ids,
+                                        property_location_in_representative);
+        }
+        else {
+            D_ASSERT("Multiple partitions are not supported yet");
+        }
     }
 
 private:

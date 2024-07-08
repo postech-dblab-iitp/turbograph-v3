@@ -1,2 +1,2 @@
-MATCH (n)-[outgoing]->(m)
-RETURN n, COUNT(outgoing) AS total_outgoing_arcs;
+MATCH (n)-[outgoing:OBJECT_CAN_TRANSFORM_INTO_OBJECT]->(m)
+RETURN n.id, COUNT(outgoing) AS total_outgoing_arcs;

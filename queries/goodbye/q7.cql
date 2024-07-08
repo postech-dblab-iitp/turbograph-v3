@@ -1,1 +1,1 @@
-MATCH (n) WHERE n.sparse_71 = "B" RETURN n;
+MATCH (n) WHERE n.sparse_35 = "A" RETURN n;

@@ -87,6 +87,10 @@ namespace duckdb {
        	, boost::hash<PropertyKeyID>, std::equal_to<PropertyKeyID>
 		, idx_t_to_idx_t_value_type_allocator>
 	PropertyToIdxUnorderedMap;
+    typedef boost::unordered_map< char_string, idx_t
+       	, boost::hash<char_string>, std::equal_to<char_string>
+        , string_allocator>
+    PropertyNameToColumnIdxUnorderedMap;
 	typedef boost::interprocess::allocator<minmax_t, segment_manager_t> minmax_allocator;
 	typedef boost::interprocess::vector<minmax_t, minmax_allocator> minmax_t_vector;
     typedef boost::interprocess::allocator<welford_t, segment_manager_t> welford_allocator;

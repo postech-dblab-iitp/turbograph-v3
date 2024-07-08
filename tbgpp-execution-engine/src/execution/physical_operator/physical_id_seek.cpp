@@ -102,6 +102,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     getUnionScanTypes();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
+    num_tuples_per_schema.resize(num_total_schemas, 0);
 }
 
 PhysicalIdSeek::PhysicalIdSeek(
@@ -149,6 +150,7 @@ PhysicalIdSeek::PhysicalIdSeek(
     getUnionScanTypes();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
+    num_tuples_per_schema.resize(num_total_schemas, 0);
 }
 
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
@@ -200,14 +202,11 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     }
 
     // Calculate Format
-    const idx_t UNIFIED_CHUNK_IDX = 0;
-    auto &unified_chunk = chunk;
-    // auto total_nulls =
-    //     calculateTotalNulls(unified_chunk, chunks, target_eids,
-    //                         target_seqnos_per_extent, mapping_idxs);
-    // fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
-    // auto format = determineFormatByCostModel(false, total_nulls);
-    auto format = OutputFormat::ROW;
+    auto total_nulls =
+        calculateTotalNulls(chunk, target_eids,
+                            target_seqnos_per_extent, mapping_idxs);
+    fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
+    auto format = determineFormatByCostModel(false, total_nulls);
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
@@ -215,7 +214,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     } else if (format == OutputFormat::UNIONALL) {
         doSeekUnionAll(context, input, chunk, state, target_eids,
                        target_seqnos_per_extent, mapping_idxs, output_size);
-        markInvalidForUnseekedColumns(unified_chunk, state, target_eids,
+        markInvalidForUnseekedColumns(chunk, state, target_eids,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
@@ -315,7 +314,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     const idx_t UNIFIED_CHUNK_IDX = 0;
     auto &unified_chunk = *(chunks[UNIFIED_CHUNK_IDX].get());
     auto total_nulls =
-        calculateTotalNulls(unified_chunk, chunks, target_eids,
+        calculateTotalNulls(unified_chunk, target_eids,
                             target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
@@ -1276,7 +1275,7 @@ void PhysicalIdSeek::getReverseMappingIdxs(
 
 // Since the difference comes from the null vector, we only consider the ratio of null values, not actual bytes.
 size_t PhysicalIdSeek::calculateTotalNulls(
-    DataChunk &unified_chunk, vector<unique_ptr<DataChunk>> &chunks,
+    DataChunk &unified_chunk,
     vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
@@ -1343,31 +1342,22 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
          * Per schema processing cost is modeled as C1*log(x+1), where x is number of tuples belong to a schema
          * Null processing cost is modeled as C2*y, where y is the number of null values 
         */
-        double grouping_cost, union_cost, row_cost;
+        double union_cost, row_cost;
 
         // calculate per schema processing cost
-        double grouping_processing_cost, union_processing_cost,
-            row_processing_cost;
+        double union_processing_cost, row_processing_cost;
         size_t total_tuples = std::accumulate(num_tuples_per_schema.begin(),
                                               num_tuples_per_schema.end(), 0);
-        for (auto i = 0; i < num_tuples_per_schema.size(); i++) {
-            grouping_processing_cost += COLUMNAR_PROCESSING_UNIT_COST *
-                                        log2(num_tuples_per_schema[i] + 1);
-        }
         union_processing_cost =
             COLUMNAR_PROCESSING_UNIT_COST * log2(total_tuples + 1);
         row_processing_cost = ROW_PROCESSING_UNIT_COST * log2(total_tuples + 1);
 
         // calculate cost
-        grouping_cost = grouping_processing_cost;
         union_cost =
             union_processing_cost + NULL_PROCESSING_UNIT_COST * total_nulls;
         row_cost = row_processing_cost;
 
-        if (grouping_cost < union_cost && grouping_cost < row_cost) {
-            return OutputFormat::GROUPING;
-        }
-        else if (union_cost < grouping_cost && union_cost < row_cost) {
+        if (union_cost < row_cost) {
             return OutputFormat::UNIONALL;
         }
         else {
@@ -1381,7 +1371,6 @@ void PhysicalIdSeek::fillOutSizePerSchema(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
-    D_ASSERT(false); // deprecated
     D_ASSERT(num_tuples_per_schema.size() == num_total_schemas);
     std::fill(num_tuples_per_schema.begin(), num_tuples_per_schema.end(), 0);
     for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
@@ -1489,6 +1478,10 @@ void PhysicalIdSeek::getUnionScanTypes()
             }
         }
         if (found) break;
+    }
+
+    if(!found) {
+        out_id_col_idx = -1;
     }
 
     union_inner_col_map_wo_id.reserve(union_inner_col_map.size());

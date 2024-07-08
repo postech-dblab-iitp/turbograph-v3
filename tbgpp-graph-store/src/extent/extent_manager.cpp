@@ -105,18 +105,11 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // Create Compressionheader, based on nullity
         CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
-        size_t size_without_null = 0;
         if (FlatVector::HasNull(input.data[input_chunk_idx])) {
             if (input.size() != FlatVector::Validity(input.data[input_chunk_idx]).CountValid(input.size())) {
                 comp_header.SetNullMask();
-                for (size_t i = 0; i < input.size(); i++) {
-                    if (!FlatVector::IsNull(input.data[input_chunk_idx], i)) {
-                        size_without_null++;
-                    }
-                }
             }
         }
-        if (size_without_null == 0) size_without_null = input.size();
         auto comp_header_size = comp_header.GetSizeWoBitSet();
 
         uint8_t *buf_ptr = nullptr;
@@ -167,7 +160,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             alloc_buf_size = list_len_total + comp_header_size;
         } else {
             D_ASSERT(TypeIsConstantSize(p_type));
-            alloc_buf_size = size_without_null * GetTypeIdSize(p_type) + comp_header_size;
+            alloc_buf_size = input.size() * GetTypeIdSize(p_type) + comp_header_size;
         }
 
         // Check null mask
@@ -197,8 +190,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 comp_func.Compress(buf_ptr + comp_header_size, buf_size - comp_header_size, data_to_compress, input_size);
             } else {
                 // Copy CompressionHeader
+                size_t input_size = input.size();
                 size_t string_t_offset = comp_header_size;
-                size_t string_data_offset = comp_header_size + size_without_null * sizeof(string_t);
+                size_t string_data_offset = comp_header_size + input_size * sizeof(string_t);
                 comp_header.SetSwizzlingType(SwizzlingType::SWIZZLE_VARCHAR);
                 memcpy(buf_ptr, &comp_header, comp_header_size);
 
@@ -206,19 +200,19 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 string_t *string_buffer = (string_t *)input.data[input_chunk_idx].GetData();
                 uint64_t accumulated_string_len = 0;
                 for (size_t i = 0; i < input.size(); i++) {
-                    if(FlatVector::IsNull(input.data[input_chunk_idx], i)) continue;
-
-                    string_t& str = string_buffer[i];
-                    if (str.IsInlined()) {
-                        memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
-                    } else {
-                        // Calculate pointer address
-                        uint8_t *swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
-                        string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
-                        memcpy(buf_ptr + string_t_offset, &swizzled_str, sizeof(string_t));
-                        // Copy actual string
-                        memcpy(buf_ptr + string_data_offset + accumulated_string_len, str.GetDataUnsafe(), str.GetSize());
-                        accumulated_string_len += str.GetSize();
+                    if(!FlatVector::IsNull(input.data[input_chunk_idx], i)) {
+                        string_t& str = string_buffer[i];
+                        if (str.IsInlined()) {
+                            memcpy(buf_ptr + string_t_offset, &str, sizeof(string_t));
+                        } else {
+                            // Copy actual string
+                            memcpy(buf_ptr + string_data_offset + accumulated_string_len, str.GetDataUnsafe(), str.GetSize());
+                            // Calculate pointer address
+                            uint8_t *swizzled_pointer = buf_ptr + string_data_offset + accumulated_string_len;
+                            string_t swizzled_str(reinterpret_cast<char *>(swizzled_pointer), str.GetSize());
+                            memcpy(buf_ptr + string_t_offset, &swizzled_str, sizeof(string_t));
+                            accumulated_string_len += str.GetSize();
+                        }
                     }
                     string_t_offset += sizeof(string_t);
                 }
