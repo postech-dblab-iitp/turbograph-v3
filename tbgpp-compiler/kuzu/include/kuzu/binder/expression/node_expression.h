@@ -17,8 +17,9 @@ public:
     inline void setInternalIDProperty(unique_ptr<Expression> expression) {
         internalIDExpression = std::move(expression);
     }
-    inline shared_ptr<Expression> getInternalIDProperty() const {
+    inline shared_ptr<Expression> getInternalIDProperty() {
         assert(internalIDExpression != nullptr);
+        used_columns[0] = true;
         return internalIDExpression->copy();
     }
     inline string getInternalIDPropertyName() const {

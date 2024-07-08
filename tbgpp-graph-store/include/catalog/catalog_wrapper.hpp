@@ -5,6 +5,7 @@
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
+#include "parser/parsed_data/create_partition_info.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "function/function.hpp"
 
@@ -584,6 +585,125 @@ public:
         }
     }
 
+    void _create_temporal_partition_catalog(
+        ClientContext &context, 
+        vector<PartitionID>& part_ids,
+        vector<idx_t>& part_oids,
+        vector<idx_t> &table_oids,
+        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<idx_t> &representative_table_oids, vector<uint64_t> &property_key_ids,
+        vector<vector<uint64_t>> &property_location_in_representative)
+    {
+        auto &catalog = db.GetCatalog();
+        GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(
+            context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        
+        // Create new catalog
+        PartitionID new_pid = gcat->GetNewPartitionID();
+        string new_partition_name = DEFAULT_VERTEX_PARTITION_PREFIX;
+        for (auto part_oid: part_oids) {
+            PartitionCatalogEntry *part_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+            std::string part_name = part_cat->GetName();
+            const std::string prefix = DEFAULT_VERTEX_PARTITION_PREFIX;
+            if (part_name.compare(0, prefix.size(), prefix) == 0) {
+                part_name = part_name.substr(prefix.size());
+            }
+            new_partition_name += part_name;
+        }
+        CreatePartitionInfo partition_info(DEFAULT_SCHEMA, new_partition_name.c_str(), new_pid);
+        PartitionCatalogEntry *new_part_cat = (PartitionCatalogEntry *)catalog.CreatePartition(context, &partition_info);
+        auto new_part_oid = new_part_cat->GetOid();
+        vector<string> new_label_set = { "TEMP_" + new_partition_name };
+        gcat->AddVertexPartition(context, new_pid, new_part_cat->GetOid(), new_label_set);
+        new_part_cat->SetPartitionID(new_pid);
+
+        // Create merged infos
+        property_location_in_representative.resize(table_oids_in_group.size());
+        for (auto i = 0; i < table_oids_in_group.size(); i++) {
+            auto &table_oids_to_be_merged = table_oids_in_group[i];
+            if (table_oids_to_be_merged.size() == 1) {
+                representative_table_oids.push_back(table_oids_to_be_merged[0]);
+            }
+            else {
+                string property_schema_name =
+                    new_partition_name + DEFAULT_TEMPORAL_INFIX +
+                    std::to_string(
+                        new_part_cat->GetNewTemporalID());  // TODO vpart -> vps
+                vector<LogicalType> merged_types;
+                vector<PropertyKeyID> merged_property_key_ids;
+                vector<string> key_names;
+
+                // Create new Property Schema Catalog Entry
+                CreatePropertySchemaInfo propertyschema_info(
+                    DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid,
+                    new_part_oid);
+                PropertySchemaCatalogEntry *temporal_ps_cat =
+                    (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
+                        context, &propertyschema_info);
+
+                // TODO optimize this function
+                unordered_set<PropertyKeyID> merged_schema;
+                unordered_map<PropertyKeyID, LogicalTypeId> type_info;
+                uint64_t merged_num_tuples = 0;
+
+                // merge schemas & histograms
+                for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
+                    idx_t table_oid = table_oids_to_be_merged[i];
+
+                    PropertySchemaCatalogEntry *ps_cat =
+                        (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                            context, DEFAULT_SCHEMA, table_oid);
+
+                    auto *types = ps_cat->GetTypes();
+                    auto *key_ids = ps_cat->GetKeyIDs();
+                    merged_num_tuples +=
+                        ps_cat->GetNumberOfRowsApproximately();
+                }
+
+                merged_property_key_ids.reserve(merged_schema.size());
+                for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
+                    merged_property_key_ids.push_back(*it);
+                }
+                // TODO sort by key ids - always right?
+                // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
+                for (auto i = 0; i < merged_property_key_ids.size(); i++) {
+                    idx_t prop_key_id = merged_property_key_ids[i];
+                    merged_types.push_back(
+                        LogicalType(type_info.at(prop_key_id)));
+                }
+                
+                // create physical id index catalog
+                CreateIndexInfo idx_info(DEFAULT_SCHEMA,
+                                         property_schema_name + "_id",
+                                         IndexType::PHYSICAL_ID, new_part_oid,
+                                         temporal_ps_cat->GetOid(), 0, {-1});
+
+                // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
+                //     key_names.push_back("");
+                // }
+                gcat->GetPropertyNames(context, merged_property_key_ids,
+                                       key_names);
+                temporal_ps_cat->SetFake();
+                temporal_ps_cat->SetSchema(context, key_names, merged_types,
+                                           merged_property_key_ids);
+                temporal_ps_cat->SetNumberOfLastExtentNumTuples(merged_num_tuples);
+
+                representative_table_oids.push_back(temporal_ps_cat->GetOid());
+
+                // update property_location_in_representative - may be inefficient
+                for (auto j = 0; j < property_key_ids.size(); j++) {
+                    auto it = std::find(merged_property_key_ids.begin(),
+                                        merged_property_key_ids.end(),
+                                        property_key_ids[j]);
+                    D_ASSERT(it != merged_property_key_ids.end());
+                    auto idx = std::distance(merged_property_key_ids.begin(), it);
+                    property_location_in_representative[i].push_back(idx);
+                }
+            }
+        }
+    }
+
     void _merge_schemas_and_histograms(
         ClientContext &context, vector<idx_t> table_oids_to_be_merged,
         vector<LogicalType> &merged_types,
@@ -774,7 +894,9 @@ public:
                                         property_location_in_representative);
         }
         else {
-            D_ASSERT("Multiple partitions are not supported yet");
+            _create_temporal_partition_catalog(context, part_ids, part_oids, table_oids, table_oids_in_group,
+                                            representative_table_oids, property_key_ids,
+                                            property_location_in_representative);
         }
     }
 
