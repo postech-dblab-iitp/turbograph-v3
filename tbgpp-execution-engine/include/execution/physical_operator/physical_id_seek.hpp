@@ -21,7 +21,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     // Constructor without filter pushdown
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<uint32_t> &outer_col_map,
                    vector<vector<uint32_t>> &inner_col_maps,
                    vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
@@ -32,7 +32,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     // Constructor with filter pushdown
     PhysicalIdSeek(Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
                    vector<vector<uint64_t>> projection_mapping,
-                   vector<vector<uint32_t>> &outer_col_maps,
+                   vector<uint32_t> &outer_col_map,
                    vector<vector<uint32_t>> &inner_col_maps,
                    vector<uint32_t> &union_inner_col_map,
                    vector<vector<uint64_t>> scan_projection_mapping,
@@ -183,12 +183,14 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
+    vector<uint32_t> union_inner_col_map_wo_id;
     vector<PartialSchema> partial_schemas;
     mutable vector<ExtentID> target_eids;
     bool force_output_union = true;
     idx_t num_outer_schemas = 1;
     idx_t num_inner_schemas = 1;
     idx_t num_total_schemas = 1;
+    idx_t out_id_col_idx;
 
     // filter processing
     bool do_filter_pushdown;

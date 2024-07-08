@@ -99,8 +99,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		// we maintain only one chunk for source node (union schema)
-		// TODO flow_graph[i] or flow_graph[i+1]?
-        size_t num_datachunks = i == 0 ? 1 : flow_graph[i].size();
+        // size_t num_datachunks = i == 0 ? 1 : flow_graph[i].size();
+		size_t num_datachunks = 1;
         for (int j = 0; j < num_datachunks; j++) {
             pipeline->GetIdxOperator(i)->InitializeOutputChunks(
                 opOutputChunks[i], output_schema, j);
@@ -129,9 +129,12 @@ void CypherPipelineExecutor::ExecutePipeline()
 			 * This is temporal code.
 			 * TODO: need to be refactored.
 			*/
+			if (sfg.IsSchemaChanged()) {
+				// fprintf(stdout, "%s\n", sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).printStoredTypes().c_str());
+				source_chunk.InitializeValidCols(
+                	sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
+			}
 			source_chunk.Reset();
-            source_chunk.InitializeValidCols(
-                sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 			opOutputSchemaIdx[0] = sfg.GetCurSourceIdx();
 		} else {
 			source_chunk.Destroy();
@@ -224,7 +227,8 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		OperatorResultType pipeResult;
 		if (pipeline->pipelineLength == 2) { // nothing passes through pipe.
 			idx_t src_schema_idx = source.GetSchemaIdx();
-			idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 2, src_schema_idx);
+			idx_t output_schema_idx = 0;
+			// idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 2, src_schema_idx);
 			// pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
 			// pipeOutputChunk->Reference(source);
 			pipeOutputChunk = &source;
@@ -300,6 +304,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		D_ASSERT(prev_output_chunk != nullptr);
 		auto prev_output_schema_idx = prev_output_chunk->GetSchemaIdx();
 		OperatorType cur_op_type = sfg.GetOperatorType(current_idx);
+		cur_op_type = OperatorType::UNARY;
 		idx_t current_output_schema_idx;
 
 		/**
@@ -324,7 +329,8 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			 * If not, OP3 can have invalid input.
 			*/
 			// D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
-			current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+			// current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
+			current_output_schema_idx = 0;
 			current_output_chunk = opOutputChunks[current_idx][current_output_schema_idx].get();
 			current_output_chunk->Reset(); 
 			current_output_chunk->SetSchemaIdx(current_output_schema_idx);

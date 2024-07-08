@@ -80,6 +80,31 @@ void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, c
 	}
 }
 
+void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint64_t>> &projection_mappings, const vector<bool> &rowvec_column, idx_t capacity_) {
+	D_ASSERT(data.empty());   // can only be initialized once
+	D_ASSERT(!types.empty()); // empty chunk not allowed
+	D_ASSERT(projection_mappings.size() >= 1);
+	capacity = capacity_;
+	data.reserve(types.size());
+	for (idx_t i = 0; i < types.size(); i++) {
+		if (other.data[projection_mappings[0][i]].GetIsValid() && !rowvec_column[i]) {
+			// valid && not rowvec case
+			VectorCache cache(types[i], capacity);
+			data.emplace_back(cache, capacity);
+			vector_caches.push_back(move(cache));
+			if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
+		} else {
+			// invalid || rowvec case
+			VectorCache cache;
+			data.emplace_back(Vector(types[i], nullptr));
+			vector_caches.push_back(move(cache));
+			if (!rowvec_column[i]) { // invalid
+				data[i].is_valid = false;
+			}
+		}
+	}
+}
+
 void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint64_t> &projection_mapping, idx_t capacity_) {
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
@@ -131,8 +156,9 @@ void DataChunk::InitializeRowColumn(const vector<uint32_t> &columns_to_be_groupe
 		D_ASSERT(columns_to_be_grouped[i] < data.size());
 		data[columns_to_be_grouped[i]].CreateRowColumn(cache, count);
 		data[columns_to_be_grouped[i]].SetVectorType(VectorType::ROW_VECTOR);
-		vector_caches[columns_to_be_grouped[i]] = move(shared_cache);
+		// vector_caches[columns_to_be_grouped[i]] = move(shared_cache);
 	}
+	row_vector_caches.push_back(move(cache));
 }
 
 void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size) {
@@ -144,6 +170,16 @@ void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_groupe
 		data[columns_to_be_grouped[i]].AssignRowMajorStore(row_store);
 		data[columns_to_be_grouped[i]].SetRowColIdx(i);
 	}
+}
+
+void DataChunk::AssignRowMajorStore(
+    const vector<uint32_t> &columns_to_be_grouped,
+    buffer_ptr<VectorBuffer> buffer)
+{
+    for (idx_t i = 0; i < columns_to_be_grouped.size(); i++) {
+        D_ASSERT(columns_to_be_grouped[i] < data.size());
+        data[columns_to_be_grouped[i]].AssignRowMajorStore(buffer);
+    }
 }
 
 char *DataChunk::GetRowMajorStore(idx_t col_idx) {
@@ -161,6 +197,7 @@ void DataChunk::Reset() {
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		data[i].ResetFromCache(vector_caches[i]);
 	}
+	row_vector_caches.clear(); // TODO do we need explicit deallocation?
 	capacity = STANDARD_VECTOR_SIZE;
 	SetCardinality(0);
 }

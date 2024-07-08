@@ -232,7 +232,6 @@ void Vector::Initialize(bool zero_data, idx_t capacity) {
 void Vector::CreateRowColumn(const VectorCache &cache, idx_t capacity)
 {
 	this->capacity = capacity;
-	this->is_rowcol = true;
 	this->is_valid = true;
 	cache.ResetFromCacheForRowCol(*this);
 }
@@ -240,6 +239,12 @@ void Vector::CreateRowColumn(const VectorCache &cache, idx_t capacity)
 void Vector::AssignRowMajorStore(buffer_ptr<VectorBuffer> buffer)
 {
 	AssignSharedPointer(auxiliary, buffer);
+}
+
+buffer_ptr<VectorBuffer> Vector::GetRowMajorStoreBufferPtr()
+{
+	D_ASSERT(auxiliary->GetBufferType() == VectorBufferType::ROWSTORE_BUFFER);
+	return auxiliary;
 }
 
 char *Vector::GetRowMajorStore()
@@ -692,6 +697,10 @@ Value Vector::GetRowColValue(idx_t index) const {
 				return Value::INTEGER(*(int32_t *)(row_data + base_offset + offset));
 			case LogicalTypeId::BIGINT:
 				return Value::BIGINT(*(int64_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::UINTEGER:
+				return Value::UINTEGER(*(uint32_t *)(row_data + base_offset + offset));
+			case LogicalTypeId::UBIGINT:
+				return Value::UBIGINT(*(uint64_t *)(row_data + base_offset + offset));
 			case LogicalTypeId::FLOAT:
 				return Value::FLOAT(*(float *)(row_data + base_offset + offset));
 			case LogicalTypeId::DOUBLE:

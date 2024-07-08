@@ -104,6 +104,15 @@ class SchemaFlowGraph {  // for each pipeline
 
     bool IsSFGExists() { return is_sfg_exists; }
 
+    bool IsSchemaChanged()
+    {
+        if (is_schema_changed_flag) {
+            is_schema_changed_flag = false;
+            return true;
+        }
+        return false;
+    }
+
     bool AdvanceCurSourceIdx()
     {
         if (!is_sfg_exists)
@@ -112,6 +121,7 @@ class SchemaFlowGraph {  // for each pipeline
             return false;
 
         cur_source_idx++;
+        is_schema_changed_flag = true;
         return true;
     }
 
@@ -148,6 +158,7 @@ class SchemaFlowGraph {  // for each pipeline
     vector<vector<Schema>> schema_per_operator;
     vector<Schema> union_schema_per_operator;
     bool is_sfg_exists = false;
+    bool is_schema_changed_flag = true;
     idx_t cur_source_idx = 0;
 };
 
