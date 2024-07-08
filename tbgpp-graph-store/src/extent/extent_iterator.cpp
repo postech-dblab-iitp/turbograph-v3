@@ -933,6 +933,7 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
             for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
+                if (FlatVector::IsNull(column_vec, input_idx)) continue;
                 if (column_vec.GetValue(input_idx) == filterValue) {
                     matched_row_idxs.push_back(input_idx);
                 }

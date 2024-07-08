@@ -147,9 +147,10 @@ void PhysicalNodeScan::GetData(ExecutionContext& context, DataChunk &chunk, Loca
 	// If first time here, call doScan and get iterator from iTbgppGraphStore
 	if (!state.iter_inited) {
 		state.iter_inited = true;
+		bool enable_filter_buffer = projection_mapping.size() == 1; // enable buffering only in non-schemaless
 
 		auto initializeAPIResult =
-			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, scan_types);
+			context.client->graph_store->InitializeScan(state.ext_its, oids, scan_projection_mapping, scan_types, enable_filter_buffer);
 		D_ASSERT(initializeAPIResult == StoreAPIResult::OK);
 	}
 	D_ASSERT(state.ext_its.size() > 0);

@@ -55,13 +55,15 @@ public:
  StoreAPIResult InitializeScan(
      std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids,
      vector<vector<uint64_t>> &projection_mapping,
-     vector<vector<duckdb::LogicalType>> &scanSchemas);
+     vector<vector<duckdb::LogicalType>> &scanSchemas,
+     bool enable_filter_buffering = true);
 
  //! Initialize Scan Operation
  StoreAPIResult InitializeScan(
      std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids,
      vector<vector<uint64_t>> &projection_mapping,
-     vector<vector<duckdb::LogicalType>> &scanSchemas);
+     vector<vector<duckdb::LogicalType>> &scanSchemas,
+     bool enable_filter_buffering = true);
 
  // Non filter
  StoreAPIResult doScan(std::queue<ExtentIterator *> &ext_its,

@@ -124,6 +124,14 @@ public:
         return is_initialized;
     }
 
+    /* Filter Buffering */
+    inline void enableFilterBuffering() {
+        is_filter_buffering_enabled = true;
+    }
+    inline void disableFilterBuffering() {
+        is_filter_buffering_enabled = false;
+    }
+
 private:
     bool _CheckIsMemoryEnough();
 
@@ -154,7 +162,12 @@ private:
     bool inclusiveAwareRangePredicateCheck(Value &l_filterValue, Value &r_filterValue, bool l_inclusive, bool r_inclusive, Value &filterValue);
 
     inline bool doFilterBuffer(size_t scan_size, size_t num_filtered_tuples) {
-        return (double)num_filtered_tuples / scan_size < FILTER_BUFFERING_THRESHOLD;
+        if (!is_filter_buffering_enabled) {
+            return false;
+        }
+        else {
+            return (double)num_filtered_tuples / scan_size < FILTER_BUFFERING_THRESHOLD;
+        }
     }
 
     inline size_t getNumReferencedRows(size_t scan_size) {
@@ -188,6 +201,7 @@ private:
     bool support_double_buffering;
     bool is_initialized = false;
     bool is_rewinded = false;
+    bool is_filter_buffering_enabled = true;
     PropertySchemaCatalogEntry *ps_cat_entry;
 
     // Optimization
