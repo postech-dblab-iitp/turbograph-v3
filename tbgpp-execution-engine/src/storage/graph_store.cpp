@@ -27,7 +27,7 @@ iTbgppGraphStore::iTbgppGraphStore(ClientContext &client) : client(client), boun
 
 StoreAPIResult
 iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids, vector<vector<uint64_t>> &projection_mapping,
-	vector<vector<duckdb::LogicalType>> &scanSchemas) {
+	vector<vector<duckdb::LogicalType>> &scanSchemas, bool enable_filter_buffering) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(oids.size() == projection_mapping.size());
 	
@@ -38,6 +38,8 @@ iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<i
 		
 		auto ext_it = new ExtentIterator();
 		ext_it->Initialize(client, ps_cat_entry, scanSchemas[i], projection_mapping[i]);
+		if(enable_filter_buffering) ext_it->enableFilterBuffering();
+		else ext_it->disableFilterBuffering();
 		ext_its.push(ext_it);
 	}
 	
@@ -46,7 +48,7 @@ iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, vector<i
 
 StoreAPIResult
 iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids, vector<vector<uint64_t>> &projection_mapping,
-	vector<vector<duckdb::LogicalType>> &scanSchemas) {
+	vector<vector<duckdb::LogicalType>> &scanSchemas, bool enable_filter_buffering) {
 	Catalog &cat_instance = client.db->GetCatalog();
 	D_ASSERT(oids->size() == projection_mapping.size());
 	
@@ -57,6 +59,8 @@ iTbgppGraphStore::InitializeScan(std::queue<ExtentIterator *> &ext_its, Property
 		
 		auto ext_it = new ExtentIterator();
 		ext_it->Initialize(client, ps_cat_entry, scanSchemas[i], projection_mapping[i]);
+		if(enable_filter_buffering) ext_it->enableFilterBuffering();
+		else ext_it->disableFilterBuffering();
 		ext_its.push(ext_it);
 	}
 	
