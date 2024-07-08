@@ -659,8 +659,15 @@ public:
                     auto *key_ids = ps_cat->GetKeyIDs();
                     merged_num_tuples +=
                         ps_cat->GetNumberOfRowsApproximately();
-                }
 
+                    for (auto j = 0; j < key_ids->size(); j++) {
+                        merged_schema.insert(key_ids->at(j));
+                        if (type_info.find(key_ids->at(j)) == type_info.end()) {
+                            type_info.insert({key_ids->at(j), types->at(j)});
+                        }
+                    }
+                }
+                
                 merged_property_key_ids.reserve(merged_schema.size());
                 for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
                     merged_property_key_ids.push_back(*it);
