@@ -824,6 +824,12 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		//    length.
 		// 4. Otherwise, assign it to default column width which is 8.
 		col_len = rel->GetTypeSize(ul);
+		if(rel->is_fake) {
+			// TODO: change hard coded value
+			// 1000 means the number of schemas.
+			// This is for scaling the width for the temporal table
+			col_len = col_len / 500;
+		}
 		// if (HeapTupleIsValid(stats_tup))
 		// {
 		// 	Form_pg_statistic form_pg_stats =
@@ -2542,6 +2548,12 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// column width
 	idx_t width_penalty = 1;//rel->GetName().rfind("vps", 0) == 0 ? 1 : 100L; // S62 TODO.. avoid edge table scan
 	CDouble width = CDouble(width_penalty * duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
+	if(rel->is_fake) {
+		// TODO: change hard coded value
+		// 500 means the number of schemas.
+		// This is for scaling the width for the temporal table
+		width = width / 500;
+	}
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);
@@ -2646,6 +2658,12 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 		mdid_col_stats->AddRef();
 
 		CDouble col_width = CStatistics::DefaultColumnWidth;
+		if(rel->is_fake) {
+			// TODO: change hard coded value
+			// 500 means the number of schemas.
+			// This is for scaling the width for the temporal table
+			col_width = col_width / 500;
+		}
 		// gpdb::FreeHeapTuple(stats_tup);
 		return CDXLColStats::CreateDXLDummyColStats(mp, mdid_col_stats,
 													md_colname, col_width);

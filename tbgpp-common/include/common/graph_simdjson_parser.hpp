@@ -86,7 +86,7 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
@@ -1546,11 +1546,31 @@ public:
                                [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
                 end(temp_output));
         }
+        
+        // Step 1: Compute the number of tuples for each cluster
+        std::vector<std::pair<std::size_t, uint64_t>> cluster_tuples_count;
+        for (std::size_t i = 0; i < temp_output.size(); i++) {
+            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+                continue;
+            }
+            uint64_t tuple_count = schema_groups_with_num_tuples[temp_output[i].first].second;
+            cluster_tuples_count.push_back({i, tuple_count});
+        }
 
+        // Step 2: Sort the clusters based on the number of tuples in descending order
+        std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
+                [](const std::pair<std::size_t, uint64_t>& a, const std::pair<std::size_t, uint64_t>& b) {
+                    return b.second < a.second; // sort in descending order
+                });
+
+        // Step 3: Populate cluster_tokens in sorted order
         num_clusters = temp_output.size();
         cluster_tokens.reserve(temp_output.size());
-        for (auto i = 0; i < temp_output.size(); i++) {
-            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+        for (const auto& cluster_info : cluster_tuples_count) {
+            std::size_t i = cluster_info.first;
+            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+                continue;
+            }
 
             std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
             for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
@@ -1686,20 +1706,39 @@ public:
         D_ASSERT(cluster_2_schemas.size() > 0);
     }
 
+
     void _PopulateCluteringResults(std::vector<std::vector<std::size_t>>& clusters) {
         sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
         num_clusters = clusters.size();
         cluster_tokens.reserve(num_clusters);
 
-        for (auto i = 0; i < clusters.size(); i++) {
+        // Step 1: Compute the number of tuples for each cluster
+        std::vector<std::pair<std::size_t, std::size_t>> cluster_tuples_count;
+        for (std::size_t i = 0; i < clusters.size(); i++) {
+            std::size_t tuple_count = 0;
+            for (auto j : clusters[i]) {
+                tuple_count += schema_groups_with_num_tuples[j].second;
+            }
+            cluster_tuples_count.push_back({i, tuple_count});
+        }
+
+        // Step 2: Sort the clusters based on the number of tuples in descending order
+        std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
+                [](const std::pair<std::size_t, std::size_t>& a, const std::pair<std::size_t, std::size_t>& b) {
+                    return a.second > b.second;
+                });
+
+        // Step 3: Populate cluster_tokens in sorted order
+        for (const auto& cluster_info : cluster_tuples_count) {
+            std::size_t cluster_idx = cluster_info.first;
             std::unordered_set<uint32_t> cluster_tokens_set;
-            std::cout << "Cluster " << i << ": ";
-            for (auto j = 0; j < clusters[i].size(); j++) {
-                std::cout << clusters[i][j] << ", ";
-                sg_to_cluster_vec[clusters[i][j]] = i;
+            std::cout << "Cluster " << cluster_idx << ": ";
+            for (auto j : clusters[cluster_idx]) {
+                std::cout << j << ", ";
+                sg_to_cluster_vec[j] = cluster_idx;
                 cluster_tokens_set.insert(
-                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
-                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
+                    std::begin(schema_groups_with_num_tuples[j].first),
+                    std::end(schema_groups_with_num_tuples[j].first));
             }
             std::cout << std::endl;
 
@@ -3131,10 +3170,10 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
-    const double CostSchemaVal = 0.1;
+    const double CostSchemaVal = 1;
     // const double CostNullVal = 0.001;
-    const double CostNullVal = 0.00001;
-    const double CostVectorizationVal = 0.2;
+    const double CostNullVal = 0.001;
+    const double CostVectorizationVal = 1;
     // const double CostVectorizationVal = 5.0;
 };
 

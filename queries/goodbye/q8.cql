@@ -1,1 +1,1 @@
-MATCH (n {id: 0}), (m {id: 100}), p = shortestPath((n)-[*]-(m)) RETURN p;
+MATCH (n {num: 0}), (m {num: 100}), p = shortestPath((n)-[*]-(m)) RETURN p;

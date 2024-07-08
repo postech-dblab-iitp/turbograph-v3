@@ -153,7 +153,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                             const sel_t *sel_idxs, size_t sel_size,
                             vector<idx_t> &out_seqno_to_eid_idx) const;
     size_t calculateTotalNulls(
-        DataChunk &chunk, vector<unique_ptr<DataChunk>> &chunks,
+        DataChunk &chunk,
         vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;

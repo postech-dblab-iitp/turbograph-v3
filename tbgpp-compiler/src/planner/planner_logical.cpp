@@ -873,6 +873,17 @@ LogicalPlan *Planner::lPlanProjection(const expression_vector &expressions,
         kuzu::binder::Expression *proj_expr = proj_expr_ptr.get();
         if (proj_expr->expressionType !=
             kuzu::common::ExpressionType::VARIABLE) {
+            // Handle pruned case for DSI (TODO: Adopt more good design)
+            // For example. MATCH (n) WHERE n.type = "A" RETURN n
+            // n should not contain properties from the removed tables
+            if (proj_expr->expressionType == PROPERTY) {
+                auto prop_key_id = ((PropertyExpression *)proj_expr)->getPropertyID();
+                if (std::find(pruned_key_ids.begin(), pruned_key_ids.end(), prop_key_id) != pruned_key_ids.end()) {
+                    continue;
+                }
+            }
+
+            // Process expr
             CExpression *expr = lExprScalarExpression(proj_expr, prev_plan);
             D_ASSERT(expr->Pop()->FScalar());
             string col_name = proj_expr->hasAlias()
@@ -2244,12 +2255,17 @@ void Planner::lPruneUnnecessaryColumns(NodeOrRelExpression *node_expr,
             static_cast<PropertyExpression *>(_prop_expr.get());
         auto *propIdPerTable = expr->getPropertyIDPerTable();
 
+        bool is_used = false;
         for (auto &it : *propIdPerTable) {
             if (std::find(pruned_table_oids.begin(), pruned_table_oids.end(),
-                          it.first) == pruned_table_oids.end()) {
-                node_expr->setUnusedColumn(col_idx);
-                continue;
+                          it.first) != pruned_table_oids.end()) {
+                is_used = true;
+                break;
             }
+        }
+        if (!is_used) {
+            node_expr->setUnusedColumn(col_idx);
+            pruned_key_ids.push_back(expr->getPropertyID());
         }
     }
     return;
