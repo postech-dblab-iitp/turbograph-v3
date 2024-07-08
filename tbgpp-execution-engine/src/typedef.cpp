@@ -94,6 +94,7 @@ std::string Schema::printStoredTypes()
     for (auto i = 0; i < stored_types.size(); i++) {
         if (i != 0)
             result += ", ";
+        result += std::to_string(i) + ":";
         result += stored_types[i].ToString();
     }
     result += ")";

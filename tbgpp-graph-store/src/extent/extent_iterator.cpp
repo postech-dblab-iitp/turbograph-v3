@@ -1574,6 +1574,9 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
             case LogicalTypeId::VARCHAR:
             {
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][j] + comp_header_valid_size);
+                // if (!varchar_arr[target_seqno].IsInlined()) {
+                //     std::cout << "length: " << varchar_arr[target_seqno].GetSize() << std::endl;
+                // }
                 memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
                     &varchar_arr[target_seqno],
                     sizeof(string_t));
@@ -1585,13 +1588,13 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
                 break;
             case LogicalTypeId::ID:
             {
-                // ID column does not have null, thus no need to be row format
-                Vector &out_id_vec = output.data[out_id_col_idx];
-                D_ASSERT(out_id_vec.GetVectorType() == VectorType::FLAT_VECTOR);
-                idx_t *id_column = (idx_t *)out_id_vec.GetData();
-                id_col_value = physical_id_base + target_seqno;
-                id_column[seqno] = id_col_value;
-                accumulated_bytes += sizeof(idx_t);
+                // // ID column does not have null, thus no need to be row format
+                // Vector &out_id_vec = output.data[out_id_col_idx];
+                // D_ASSERT(out_id_vec.GetVectorType() == VectorType::FLAT_VECTOR);
+                // idx_t *id_column = (idx_t *)out_id_vec.GetData();
+                // id_col_value = physical_id_base + target_seqno;
+                // id_column[seqno] = id_col_value;
+                // accumulated_bytes += sizeof(idx_t);
                 break;
             }
             default:

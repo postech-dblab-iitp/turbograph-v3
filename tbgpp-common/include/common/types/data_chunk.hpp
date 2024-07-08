@@ -87,6 +87,7 @@ public:
 	//! the DataChunk.
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint64_t>> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
+	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<vector<uint64_t>> &projection_mappings, const vector<bool> &rowvec_column, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, DataChunk &other, const vector<uint64_t> &projection_mappings, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void Initialize(const vector<LogicalType> &types, vector<data_ptr_t> &datas, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	DUCKDB_API void InitializeValidCols(const vector<LogicalType> &types, idx_t capacity_ = STANDARD_VECTOR_SIZE);
@@ -96,6 +97,8 @@ public:
 	DUCKDB_API void InitializeRowColumn(const vector<uint32_t> &columns_to_be_grouped, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	//! Initializes row major store
 	DUCKDB_API void CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size);
+	//! Assign row major store
+	DUCKDB_API void AssignRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, buffer_ptr<VectorBuffer> buffer);
 	//! Get row major store
 	DUCKDB_API char *GetRowMajorStore(idx_t col_idx);
 	//! Append the other DataChunk to this one. The column count and types of
@@ -171,6 +174,8 @@ private:
 	idx_t capacity;
 	//! Vector caches, used to store data when ::Initialize is called
 	vector<VectorCache> vector_caches;
+	//! Vector caches, used to store data when ::CreateRowCol is called
+    vector<VectorCache> row_vector_caches;
 	bool has_row_chunk = false;
 	idx_t schema_idx;
 };

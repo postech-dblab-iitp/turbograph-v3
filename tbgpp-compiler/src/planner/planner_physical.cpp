@@ -1088,7 +1088,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     vector<vector<uint32_t>> inner_col_maps_adj(1);
     vector<vector<uint32_t>> outer_col_maps_adj(1);
     vector<vector<uint32_t>> inner_col_maps_seek(1);
-    vector<vector<uint32_t>> outer_col_maps_seek(1);
+    vector<uint32_t> outer_col_maps_seek;
     vector<duckdb::LogicalType> output_types_adj;
     vector<duckdb::LogicalType> output_types_seek;
     vector<vector<uint64_t>> scan_projection_mappings_seek(1);
@@ -1318,8 +1318,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
 
         // Construct outer col map
         pConstructColMapping(adj_output_cols, seek_output_cols,
-                             outer_col_maps_seek[0]);
-        D_ASSERT(outer_col_maps_seek[0].size() > 0);
+                             outer_col_maps_seek);
+        D_ASSERT(outer_col_maps_seek.size() > 0);
 
         // Construct scan_projection_mappings_seek and output_projection_mappings_seek and scan_types
         for (ULONG col_idx = 0; col_idx < seek_inner_cols->Size(); col_idx++) {
@@ -1568,7 +1568,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
 
     unordered_map<ULONG, uint64_t> id_map;
     vector<vector<duckdb::LogicalType>> scan_types;
-    vector<vector<uint32_t>> outer_col_maps;
+    vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<vector<uint64_t>> scan_projection_mapping;
     vector<vector<uint64_t>> output_projection_mapping;
@@ -1883,23 +1883,21 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
             }
 
             // Construct outer mapping info
-            for (auto i = 0; i < num_outer_schemas; i++) {
-                outer_col_maps.push_back(std::vector<uint32_t>());
-                for (ULONG col_idx = 0; col_idx < outer_cols->Size();
-                     col_idx++) {
-                    CColRef *col = outer_cols->operator[](col_idx);
-                    ULONG col_id = col->Id();
-                    // construct outer_col_map
-                    auto it_ = id_map.find(col_id);
-                    if (it_ == id_map.end()) {
-                        outer_col_maps[i].push_back(
-                            std::numeric_limits<uint32_t>::max());
-                    }
-                    else {
-                        auto id_idx = id_map.at(
-                            col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                        outer_col_maps[i].push_back(id_idx);
-                    }
+            outer_col_map.reserve(outer_cols->Size());
+            for (ULONG col_idx = 0; col_idx < outer_cols->Size();
+                    col_idx++) {
+                CColRef *col = outer_cols->operator[](col_idx);
+                ULONG col_id = col->Id();
+                // construct outer_col_map
+                auto it_ = id_map.find(col_id);
+                if (it_ == id_map.end()) {
+                    outer_col_map.push_back(
+                        std::numeric_limits<uint32_t>::max());
+                }
+                else {
+                    auto id_idx = id_map.at(
+                        col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                    outer_col_map.push_back(id_idx);
                 }
             }
         }
@@ -1981,7 +1979,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
         if (has_filter) {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, union_inner_col_map,
+                outer_col_map, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, per_schema_filter_exprs, filter_col_idxs,
                 false, join_type);
             result->push_back(op);
@@ -1989,7 +1987,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, union_inner_col_map,
+                outer_col_map, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, false, join_type);
             result->push_back(op);
         }
@@ -1998,7 +1996,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
         D_ASSERT(false);
         duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
             tmp_schema, sid_col_idx, oids, output_projection_mapping,
-            outer_col_maps, inner_col_maps, union_inner_col_map,
+            outer_col_map, inner_col_maps, union_inner_col_map,
             scan_projection_mapping, scan_types, false, join_type);
         result->push_back(op);
     }
@@ -2081,7 +2079,7 @@ void Planner::
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
 
     unordered_map<ULONG, uint64_t> id_map;
-    vector<vector<uint32_t>> outer_col_maps;
+    vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
     vector<vector<uint64_t>> output_projection_mapping;
@@ -2180,7 +2178,6 @@ void Planner::
                 bool load_system_col = false;
                 bool sid_col_idx_found = false;
 
-                outer_col_maps.push_back(std::vector<uint32_t>());
                 inner_col_maps.push_back(std::vector<uint32_t>());
 
                 if (i == 0) {
@@ -2264,31 +2261,33 @@ void Planner::
                 scan_types.push_back(std::move(scan_type));
 
                 // Construct outer mapping info
-                for (ULONG col_idx = 0; col_idx < outer_cols->Size();
-                     col_idx++) {
-                    CColRef *col = outer_cols->operator[](col_idx);
-                    ULONG col_id = col->Id();
-                    // match _tid
-                    auto it = std::find(sccmp_colids.begin(),
-                                        sccmp_colids.end(), col_id);
-                    if (it != sccmp_colids.end()) {
-                        D_ASSERT(!sid_col_idx_found);
-                        sid_col_idx = col_idx;
-                        sid_col_idx_found = true;
+                if (i == 0) {
+                    for (ULONG col_idx = 0; col_idx < outer_cols->Size();
+                        col_idx++) {
+                        CColRef *col = outer_cols->operator[](col_idx);
+                        ULONG col_id = col->Id();
+                        // match _tid
+                        auto it = std::find(sccmp_colids.begin(),
+                                            sccmp_colids.end(), col_id);
+                        if (it != sccmp_colids.end()) {
+                            D_ASSERT(!sid_col_idx_found);
+                            sid_col_idx = col_idx;
+                            sid_col_idx_found = true;
+                        }
+                        // construct outer_col_map
+                        auto it_ = id_map.find(col_id);
+                        if (it_ == id_map.end()) {
+                            outer_col_map.push_back(
+                                std::numeric_limits<uint32_t>::max());
+                        }
+                        else {
+                            auto id_idx = id_map.at(
+                                col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                            outer_col_map.push_back(id_idx);
+                        }
                     }
-                    // construct outer_col_map
-                    auto it_ = id_map.find(col_id);
-                    if (it_ == id_map.end()) {
-                        outer_col_maps[i].push_back(
-                            std::numeric_limits<uint32_t>::max());
-                    }
-                    else {
-                        auto id_idx = id_map.at(
-                            col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                        outer_col_maps[i].push_back(id_idx);
-                    }
+                    D_ASSERT(sid_col_idx_found);
                 }
-                D_ASSERT(sid_col_idx_found);
             }
         }
 
@@ -2322,7 +2321,7 @@ void Planner::
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, union_inner_col_map,
+                outer_col_map, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, true, join_type);
             result->push_back(op);
         }
@@ -2352,7 +2351,7 @@ void Planner::
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
 
     unordered_map<ULONG, uint64_t> id_map;
-    vector<vector<uint32_t>> outer_col_maps;
+    vector<uint32_t> outer_col_map;
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
     vector<vector<uint64_t>> output_projection_mapping;
@@ -2642,39 +2641,31 @@ void Planner::
             }
 
             // Construct outer mapping info
-            auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-            duckdb::idx_t num_outer_schemas = 1;
-            for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-                num_outer_schemas *= num_schemas_of_childs_prev[i];
-            }
-            for (auto i = 0; i < num_outer_schemas; i++) {
-                outer_col_maps.push_back(std::vector<uint32_t>());
-                bool sid_col_idx_found = false;
-                for (ULONG col_idx = 0; col_idx < outer_cols->Size();
-                     col_idx++) {
-                    CColRef *col = outer_cols->operator[](col_idx);
-                    ULONG col_id = col->Id();
-                    // match _tid
-                    auto it = std::find(sccmp_colids.begin(),
-                                        sccmp_colids.end(), col_id);
-                    if (it != sccmp_colids.end()) {
-                        D_ASSERT(!sid_col_idx_found);
-                        sid_col_idx = col_idx;
-                        sid_col_idx_found = true;
-                    }
-                    // construct outer_col_map
-                    auto it_ = id_map.find(col_id);
-                    if (it_ == id_map.end()) {
-                        outer_col_maps[i].push_back(
-                            std::numeric_limits<uint32_t>::max());
-                    }
-                    else {
-                        auto id_idx = id_map.at(
-                            col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                        outer_col_maps[i].push_back(id_idx);
-                    }
+            outer_col_map.reserve(outer_cols->Size());
+            bool sid_col_idx_found = false;
+            for (ULONG col_idx = 0; col_idx < outer_cols->Size();
+                    col_idx++) {
+                CColRef *col = outer_cols->operator[](col_idx);
+                ULONG col_id = col->Id();
+                // match _tid
+                auto it = std::find(sccmp_colids.begin(),
+                                    sccmp_colids.end(), col_id);
+                if (it != sccmp_colids.end()) {
+                    D_ASSERT(!sid_col_idx_found);
+                    sid_col_idx = col_idx;
+                    sid_col_idx_found = true;
                 }
-                D_ASSERT(sid_col_idx_found);
+                // construct outer_col_map
+                auto it_ = id_map.find(col_id);
+                if (it_ == id_map.end()) {
+                    outer_col_map.push_back(
+                        std::numeric_limits<uint32_t>::max());
+                }
+                else {
+                    auto id_idx = id_map.at(
+                        col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                    outer_col_map.push_back(id_idx);
+                }
             }
         }
         else if (inner_root->Pop()->Eopid() ==
@@ -2874,40 +2865,33 @@ void Planner::
             }
 
             // Construct outer mapping info
-            auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-            duckdb::idx_t num_outer_schemas = 1;
-            for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-                num_outer_schemas *= num_schemas_of_childs_prev[i];
-            }
-            for (auto i = 0; i < num_outer_schemas; i++) {
-                outer_col_maps.push_back(std::vector<uint32_t>());
-                bool sid_col_idx_found = false;
-                for (ULONG col_idx = 0; col_idx < outer_cols->Size();
-                     col_idx++) {
-                    CColRef *col = outer_cols->operator[](col_idx);
-                    ULONG col_id = col->Id();
-                    // match _tid
-                    auto it = std::find(sccmp_colids.begin(),
-                                        sccmp_colids.end(), col_id);
-                    if (it != sccmp_colids.end()) {
-                        D_ASSERT(!sid_col_idx_found);
-                        sid_col_idx = col_idx;
-                        sid_col_idx_found = true;
-                    }
-                    // construct outer_col_map
-                    auto it_ = id_map.find(col_id);
-                    if (it_ == id_map.end()) {
-                        outer_col_maps[i].push_back(
-                            std::numeric_limits<uint32_t>::max());
-                    }
-                    else {
-                        auto id_idx = id_map.at(
-                            col_id);  // std::out_of_range exception if col_id does not exist in id_map
-                        outer_col_maps[i].push_back(id_idx);
-                    }
+            outer_col_map.reserve(outer_cols->Size());
+            bool sid_col_idx_found = false;
+            for (ULONG col_idx = 0; col_idx < outer_cols->Size();
+                    col_idx++) {
+                CColRef *col = outer_cols->operator[](col_idx);
+                ULONG col_id = col->Id();
+                // match _tid
+                auto it = std::find(sccmp_colids.begin(),
+                                    sccmp_colids.end(), col_id);
+                if (it != sccmp_colids.end()) {
+                    D_ASSERT(!sid_col_idx_found);
+                    sid_col_idx = col_idx;
+                    sid_col_idx_found = true;
                 }
-                D_ASSERT(sid_col_idx_found);
+                // construct outer_col_map
+                auto it_ = id_map.find(col_id);
+                if (it_ == id_map.end()) {
+                    outer_col_map.push_back(
+                        std::numeric_limits<uint32_t>::max());
+                }
+                else {
+                    auto id_idx = id_map.at(
+                        col_id);  // std::out_of_range exception if col_id does not exist in id_map
+                    outer_col_map.push_back(id_idx);
+                }
             }
+            D_ASSERT(sid_col_idx_found);
         }
         else if (inner_root->Pop()->Eopid() ==
             COperator::EOperatorId::EopPhysicalIndexOnlyScan && is_dsi)
@@ -2980,7 +2964,7 @@ void Planner::
         if (has_filter) {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, union_inner_col_map,
+                outer_col_map, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, filter_pred_duckdb_exprs, 
                 filter_col_idxs, false, join_type);
             result->push_back(op);
@@ -2988,7 +2972,7 @@ void Planner::
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
                 tmp_schema, sid_col_idx, oids, output_projection_mapping,
-                outer_col_maps, inner_col_maps, union_inner_col_map,
+                outer_col_map, inner_col_maps, union_inner_col_map,
                 scan_projection_mapping, scan_types, false, join_type);
             result->push_back(op);
         }
@@ -4513,9 +4497,11 @@ void Planner::pGenerateSchemaFlowGraph(
         for (auto j = 0; j < num_schemas_of_childs_[i].size(); j++) {
             num_total_child_schemas *= num_schemas_of_childs_[i][j];
         }
-        flow_graph[i].resize(num_total_child_schemas);
-        for (auto j = 0; j < flow_graph[i].size(); j++) {
-            flow_graph[i][j] = j;  // TODO
+        if (i == 0) {
+            flow_graph[i].resize(num_total_child_schemas);
+            for (auto j = 0; j < flow_graph[i].size(); j++) {
+                flow_graph[i][j] = j;  // TODO
+            }
         }
     }
 
