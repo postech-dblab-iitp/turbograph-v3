@@ -1386,6 +1386,10 @@ CCostModelGPDB::CostNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	// b. extract matched inner side tuples
 	// with the cardinality of outer tuples, rows and width of the materialized inner side.
 	// 3. output tuples. This part is correlated with outer rows and width of the join result.
+	CDouble dVectorizationPenalization = CDouble(1.0);
+	if (num_rows_outer <= 1024) {
+		dVectorizationPenalization = dVectorizationPenalization * CDouble(1024 / num_rows_outer);
+	}
 	CCost costLocal = CCost(
 		10.0 * pci->NumRebinds() * // S62 penalize 10.0
 		(
@@ -1394,7 +1398,7 @@ CCostModelGPDB::CostNLJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 			dWidthOuter * num_rows_outer * dJoinFeedingTupWidthCostUnit +
 			// cost of repetitive table scan of inner side
 			dInitScan +
-			num_rows_outer * (
+			dVectorizationPenalization * num_rows_outer * (
 								 // cost of scan of inner side
 								 dRowsInner * dWidthInner * dTableScanCostUnit +
 								 // cost of filter of inner side
