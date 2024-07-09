@@ -489,9 +489,12 @@ void Binder::bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
                                             uint64_t &univTableID)
 {
     D_ASSERT(client != nullptr);
+    vector<uint64_t> all_table_ids;
     client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(
-        *client, partitionIDs, tableIDs, univTableID,
+        *client, partitionIDs, all_table_ids, univTableID,
         duckdb::GraphComponentType::VERTEX);
+    client->db->GetCatalogWrapper().RemoveFakePropertySchemas(
+        *client, all_table_ids, tableIDs);
 }
 
 // S62 access catalog and  change to mdids

@@ -95,6 +95,17 @@ public:
         }
     }
 
+    void RemoveFakePropertySchemas(ClientContext &context, vector<idx_t> &oids, vector<idx_t> &out_oids) {
+        auto &catalog = db.GetCatalog();
+        for (auto &oid : oids) {
+            PropertySchemaCatalogEntry *ps_cat =
+                (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
+            if (!ps_cat->is_fake) {
+                out_oids.push_back(oid);
+            }
+        }
+    }
+
     void GetConnectedEdgeSubPartitionIDs(ClientContext &context, vector<idx_t> &src_oids, vector<uint64_t> &partitionIDs, vector<uint64_t> &dstPartitionIDs) {
         auto &catalog = db.GetCatalog();
         GraphCatalogEntry *gcat =
@@ -599,7 +610,6 @@ public:
             context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
         
         // Create new catalog
-        PartitionID new_pid = gcat->GetNewPartitionID();
         string new_partition_name = DEFAULT_VERTEX_PARTITION_PREFIX;
         for (auto part_oid: part_oids) {
             PartitionCatalogEntry *part_cat =
@@ -609,16 +619,18 @@ public:
             if (part_name.compare(0, prefix.size(), prefix) == 0) {
                 part_name = part_name.substr(prefix.size());
             }
-            new_partition_name += part_name;
+            new_partition_name += part_name + "_" + std::to_string(part_cat->GetNewTemporalID());
         }
-        CreatePartitionInfo partition_info(DEFAULT_SCHEMA, new_partition_name.c_str(), new_pid);
+        CreatePartitionInfo partition_info(DEFAULT_SCHEMA, new_partition_name.c_str());
         PartitionCatalogEntry *new_part_cat = (PartitionCatalogEntry *)catalog.CreatePartition(context, &partition_info);
+	    PartitionID new_pid = gcat->GetNewPartitionID();
         auto new_part_oid = new_part_cat->GetOid();
         vector<string> new_label_set = { "TEMP_" + new_partition_name };
         gcat->AddVertexPartition(context, new_pid, new_part_cat->GetOid(), new_label_set);
         new_part_cat->SetPartitionID(new_pid);
 
         // Create merged infos
+        D_ASSERT(table_oids_in_group.size() == 1);
         property_location_in_representative.resize(table_oids_in_group.size());
         for (auto i = 0; i < table_oids_in_group.size(); i++) {
             auto &table_oids_to_be_merged = table_oids_in_group[i];
@@ -672,6 +684,17 @@ public:
                 for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
                     merged_property_key_ids.push_back(*it);
                 }
+
+                // create physical id index catalog
+                CreateIndexInfo idx_info(DEFAULT_SCHEMA,
+                                         property_schema_name + "_id",
+                                         IndexType::PHYSICAL_ID, new_part_oid,
+                                         temporal_ps_cat->GetOid(), 0, {-1});
+                IndexCatalogEntry *index_cat =
+                    (IndexCatalogEntry *)catalog.CreateIndex(context,
+                                                             &idx_info);
+                auto found_index_cat = GetIndex(context, index_cat->GetOid());  
+
                 // TODO sort by key ids - always right?
                 // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
                 for (auto i = 0; i < merged_property_key_ids.size(); i++) {
@@ -679,21 +702,18 @@ public:
                     merged_types.push_back(
                         LogicalType(type_info.at(prop_key_id)));
                 }
-                
-                // create physical id index catalog
-                CreateIndexInfo idx_info(DEFAULT_SCHEMA,
-                                         property_schema_name + "_id",
-                                         IndexType::PHYSICAL_ID, new_part_oid,
-                                         temporal_ps_cat->GetOid(), 0, {-1});
 
                 // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
                 //     key_names.push_back("");
                 // }
                 gcat->GetPropertyNames(context, merged_property_key_ids,
                                        key_names);
+                new_part_cat->SetSchema(context, key_names, merged_types, merged_property_key_ids);
+                new_part_cat->AddPropertySchema(context, temporal_ps_cat->GetOid(), merged_property_key_ids);
                 temporal_ps_cat->SetFake();
                 temporal_ps_cat->SetSchema(context, key_names, merged_types,
                                            merged_property_key_ids);
+                temporal_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
                 temporal_ps_cat->SetNumberOfLastExtentNumTuples(merged_num_tuples);
 
                 representative_table_oids.push_back(temporal_ps_cat->GetOid());
