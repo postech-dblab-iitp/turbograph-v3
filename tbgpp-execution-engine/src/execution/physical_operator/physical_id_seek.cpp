@@ -207,6 +207,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                             target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
+    format = OutputFormat::UNIONALL;
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
@@ -318,7 +319,6 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
                             target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
-    format = OutputFormat::ROW;
 
     // Format-based Execution
     if (format == OutputFormat::GROUPING) {
@@ -1389,27 +1389,31 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
     vector<idx_t> outer_output_col_idx;
     getOutputColIdxsForOuter(outer_output_col_idx);
 
+    // Make all invalid first
+    for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
+        if (std::find(outer_output_col_idx.begin(), outer_output_col_idx.end(),
+                      columnIdx) == outer_output_col_idx.end()) {
+            auto &vec = chunk.data[columnIdx];
+            vec.SetIsValid(true);
+            auto &validity = FlatVector::Validity(vec);
+            if(validity.GetData() == nullptr) {
+                validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+            }
+            validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+        }
+    }
+
+    // Selectively Mark invalid
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
         vector<idx_t> inner_output_col_idx;
         getOutputColIdxsForInner(extentIdx, mapping_idxs, inner_output_col_idx);
         auto &target_seqnos = target_seqnos_per_extent[extentIdx];
 
-        for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
-            // Two cases, 1) outer column, 2) inner column, but not in the output
-            if (std::find(outer_output_col_idx.begin(),
-                          outer_output_col_idx.end(),
-                          columnIdx) != outer_output_col_idx.end()) {
-                continue;
-            }
-            if (std::find(inner_output_col_idx.begin(),
-                          inner_output_col_idx.end(),
-                          columnIdx) == inner_output_col_idx.end()) {
-                auto &vec = chunk.data[columnIdx];
-                vec.SetIsValid(true);
-                auto &validity = FlatVector::Validity(vec);
-                for (auto seqno : target_seqnos) {
-                    validity.SetInvalid(seqno);
-                }
+        for (auto columnIdx: inner_output_col_idx) {
+            auto &vec = chunk.data[columnIdx];
+            auto &validity = FlatVector::Validity(vec);
+            for (auto seqno : target_seqnos) {
+                validity.SetValid(seqno);
             }
         }
     }

@@ -11,3 +11,5 @@
 # bash run-experiment.sh /data/ldbc-coalesce/schema-4/ ../../queries/ldbc/sf1 '1-20' ../../results/ldbc-coalesce-4-no-dsi.csv
 # bash run-experiment.sh /data/ldbc-coalesce/schema-8/ ../../queries/ldbc/sf1 '1-20' ../../results/ldbc-coalesce-8-no-dsi.csv
 # bash run-experiment.sh /data/ldbc-coalesce/schema-16/ ../../queries/ldbc/sf1 '1-20' ../../results/ldbc-coalesce-16.csv
+
+bash run-experiment.sh /data/goodbye/sf10 ../../queries/goodbye/ '1-8' ../../results/goodbye.csv
