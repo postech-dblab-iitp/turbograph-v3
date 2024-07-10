@@ -1,0 +1,1 @@
+MATCH (n) WHERE n.sparse_1 = "H" RETURN n;
