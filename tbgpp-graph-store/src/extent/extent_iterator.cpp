@@ -1590,11 +1590,11 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
             case LogicalTypeId::ID:
             {
                 // // ID column does not have null, thus no need to be row format
-                // Vector &out_id_vec = output.data[out_id_col_idx];
-                // D_ASSERT(out_id_vec.GetVectorType() == VectorType::FLAT_VECTOR);
-                // idx_t *id_column = (idx_t *)out_id_vec.GetData();
-                // id_col_value = physical_id_base + target_seqno;
-                // id_column[seqno] = id_col_value;
+                Vector &out_id_vec = output.data[out_id_col_idx];
+                D_ASSERT(out_id_vec.GetVectorType() == VectorType::FLAT_VECTOR);
+                idx_t *id_column = (idx_t *)out_id_vec.GetData();
+                id_col_value = physical_id_base + target_seqno;
+                id_column[seqno] = id_col_value;
                 // accumulated_bytes += sizeof(idx_t);
                 break;
             }
