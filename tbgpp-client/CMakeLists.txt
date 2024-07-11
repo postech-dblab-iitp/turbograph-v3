@@ -75,7 +75,7 @@ target_include_directories(tbgpp-main PUBLIC
 )
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-main PUBLIC ${SYSTEM_SOURCES})
-target_link_libraries(tbgpp-main "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc -ltcmalloc")
+target_link_libraries(tbgpp-main "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 target_link_libraries(tbgpp-main tbgpp-common-lib)
 target_link_libraries(tbgpp-main tbgpp-graph-store-lib)
 target_link_libraries(tbgpp-main tbgpp-execution-engine-lib)
