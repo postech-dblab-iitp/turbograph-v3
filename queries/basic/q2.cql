@@ -1,0 +1,1 @@
+MATCH (n:Object) RETURN n.sparse_22, n.sparse_88;

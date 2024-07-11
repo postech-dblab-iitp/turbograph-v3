@@ -872,16 +872,16 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
         throw InvalidInputException("Filter predicate on ADJLIST column");
     } else if (column_type == LogicalType::ID) {
         throw InvalidInputException("Filter predicate on PID column");
-    } 
+    }
     Vector column_vec(column_type, (data_ptr_t)(io_requested_buf_ptrs[toggle][col_idx] + CompressionHeader::GetSizeWoBitSet()));
     memcpy(&comp_header, io_requested_buf_ptrs[toggle][col_idx], CompressionHeader::GetSizeWoBitSet());
+    ValidityMask src_validity;
     if (comp_header.HasNullMask()) {
-        auto &validity = FlatVector::Validity(column_vec);
+        // auto &validity = FlatVector::Validity(column_vec);
         size_t bitmap_ptr_offset = comp_header.GetNullBitmapOffset();
-        validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + bitmap_ptr_offset));
+        src_validity = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][col_idx] + bitmap_ptr_offset));
     }
     auto value_type = filterValue.type();
-
     if (column_type == LogicalType::BIGINT) {
         auto bigint_value = filterValue.GetValue<int64_t>();
         auto filter = std::make_unique<common::BigintRange>(bigint_value, bigint_value, false);
@@ -891,7 +891,7 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
         auto int_value = filterValue.GetValue<int32_t>();
         auto filter = std::make_unique<common::BigintRange>(static_cast<int64_t>(int_value), static_cast<int64_t>(int_value), false);
         evalEQPredicateSIMD<int32_t, common::BigintRange>(column_vec, comp_header.data_len, filter, scan_start_offset, scan_end_offset, matched_row_idxs);
-    } 
+    }
     else if (column_type == LogicalType::HUGEINT) {
         D_ASSERT(false); //AVX2 not supported for Hugeint
     }
@@ -933,7 +933,8 @@ void ExtentIterator::findMatchedRowsEQFilter(CompressionHeader& comp_header, idx
             throw NotImplementedException("Filter predicate on BITPACKING compression is not implemented yet");
         } else {
             for (idx_t input_idx = scan_start_offset; input_idx < scan_end_offset; input_idx++) {
-                if (FlatVector::IsNull(column_vec, input_idx)) continue;
+                // if (FlatVector::IsNull(column_vec, input_idx)) continue;
+                if (!src_validity.RowIsValid(input_idx)) continue;
                 if (column_vec.GetValue(input_idx) == filterValue) {
                     matched_row_idxs.push_back(input_idx);
                 }
