@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include "typedef.hpp"
+#include <queue>
 
 // catalog related
 #include "catalog/catalog.hpp"
@@ -1137,12 +1138,16 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
         // Remove ID column for rowcol_t
         auto &ith_scan_type = scan_types[i];
         auto num_id_columns = 0;
+        std::queue<idx_t> id_col_queue;
         for (auto j = 0; j < ith_scan_type.size(); j++) {
             if (ith_scan_type[j].id() == LogicalTypeId::ID) {
                 num_id_columns++;
+                id_col_queue.push(j);
             }
         }
 
+
+        idx_t idx_shift_for_non_id_columns = 0;
         uint64_t accumulated_offset = 0;
         partial_schemas.push_back(PartialSchema());
         partial_schemas[i].offset_info.resize(
@@ -1156,10 +1161,18 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
                 continue;
             if (ith_scan_type[j].id() == LogicalTypeId::ID)
                 continue;
+
+            // Check if current index is greater than the front of the queue
+            if (!id_col_queue.empty() && j >= id_col_queue.front()) {
+                // Increment the shift and pop the queue
+                idx_shift_for_non_id_columns++;
+                id_col_queue.pop();
+            }
+
             auto it =
                 std::find(union_inner_col_map.begin(),
                           union_inner_col_map.end(), inner_col_maps[i][j]);
-            auto pos = it - union_inner_col_map.begin() - num_id_columns;
+            auto pos = it - union_inner_col_map.begin() - idx_shift_for_non_id_columns;
             partial_schemas[i].offset_info[pos] = accumulated_offset;
             accumulated_offset +=
                 GetTypeIdSize(union_types[inner_col_maps[i][j]].InternalType());
