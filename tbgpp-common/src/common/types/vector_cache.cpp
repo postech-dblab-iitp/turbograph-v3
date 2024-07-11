@@ -28,11 +28,11 @@ public:
 				type = LogicalType::LIST(LogicalType::UBIGINT);
 			}
 			auto &child_type = ListType::GetChildType(type);
-			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type, size));
-			auto child_vector = make_unique<Vector>(child_type, false, false, size);
+			child_caches.push_back(make_buffer<VectorCacheBuffer>(child_type));
+			auto child_vector = make_unique<Vector>(child_type, false, false);
 			// TODO correctness check - 240316 we originally use below code
 			// auto child_vector = make_unique<Vector>(child_type, true, false, size);
-			auxiliary = make_unique<VectorListBuffer>(move(child_vector), size);
+			auxiliary = make_unique<VectorListBuffer>(move(child_vector));
 			break;
 		}
 		case PhysicalType::STRUCT: {
