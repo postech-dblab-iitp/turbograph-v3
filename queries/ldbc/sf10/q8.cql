@@ -30,6 +30,7 @@ RETURN
     friend.email AS friendEmails,
     friend.speaks AS friendLanguages,
     friendCity.name AS friendCityName,
+    unis AS friendUniversities,
     companies AS friendCompanies
 ORDER BY
     distanceFromPerson ASC,
