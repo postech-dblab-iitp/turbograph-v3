@@ -1,0 +1,1 @@
+MATCH (n:Object) WHERE n.sparse_88 = "H" RETURN n;

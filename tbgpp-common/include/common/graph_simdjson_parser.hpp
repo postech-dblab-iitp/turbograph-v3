@@ -3170,9 +3170,9 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
-    const double CostSchemaVal = 350;
+    const double CostSchemaVal = 300;
     // const double CostNullVal = 0.001;
-    const double CostNullVal = 0.02;
+    const double CostNullVal = 0.08;
     const double CostVectorizationVal = 10;
     // const double CostVectorizationVal = 5.0;
 };
