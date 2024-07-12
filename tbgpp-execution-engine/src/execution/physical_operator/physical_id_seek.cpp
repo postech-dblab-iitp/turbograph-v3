@@ -1241,18 +1241,16 @@ void PhysicalIdSeek::genNonPredColIdxs()
     for (auto i = 0; i < this->inner_col_maps.size(); i++) {
         auto &inner_col_map = this->inner_col_maps[i];
         if (!do_filter_pushdown) {
-            for (auto j = 0;
-                 j < inner_col_map.size() + this->outer_col_map.size(); j++) {
-                non_pred_col_idxs_per_schema[i].push_back(j);
+            for (auto j = 0; j < inner_col_map.size(); j++) {
+                non_pred_col_idxs_per_schema[i].push_back(inner_col_map[j]);
             }
         }
         else {
             auto &pred_col_idxs = this->pred_col_idxs_per_schema[i];
-            for (auto j = 0;
-                 j < inner_col_map.size() + this->outer_col_map.size(); j++) {
-                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), j) ==
+            for (auto j = 0; j < inner_col_map.size(); j++) {
+                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), inner_col_map[j]) ==
                     pred_col_idxs.end()) {
-                    non_pred_col_idxs_per_schema[i].push_back(j);
+                    non_pred_col_idxs_per_schema[i].push_back(inner_col_map[j]);
                 }
             }
         }
@@ -1429,7 +1427,7 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
                 auto &vec = chunk.data[columnIdx];
                 vec.SetIsValid(true);
                 auto &validity = FlatVector::Validity(vec);
-                if(validity.GetData() == nullptr) {
+                if (validity.GetData() == nullptr) {
                     validity.Initialize(STANDARD_VECTOR_SIZE);
                 }
                 for (auto seqno : target_seqnos) {
