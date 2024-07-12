@@ -87,8 +87,8 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::OURS;
-    const LayeringOrder layering_order = LayeringOrder::DESCENDING;
+    const CostModel cost_model = CostModel::DICE;
+    const LayeringOrder layering_order = LayeringOrder::ASCENDING;
 /*******************/
 
 
@@ -1949,7 +1949,7 @@ public:
                     num_schemas_sum = 0;
                 }
             }
-            if (layer_boundaries.back() != num_tuples_order.size()) {
+            if (layer_boundaries.size() == 0 || layer_boundaries.back() != num_tuples_order.size()) {
                 layer_boundaries.push_back(num_tuples_order.size());
             }
         }
