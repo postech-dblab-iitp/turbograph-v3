@@ -138,7 +138,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                                        vector<LogicalType> &scan_type,
                                        vector<LogicalType> &out_type) const;
     void getOutputIdxsForFilteredSeek(idx_t chunk_idx,
-                                      vector<idx_t> &output_col_idx) const;
+                                      vector<uint32_t> &output_col_idx) const;
     void getFilteredTargetSeqno(vector<idx_t> &seqno_to_eid_idx,
                                 size_t num_extents, const sel_t *sel_idxs,
                                 size_t count,
@@ -159,6 +159,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
         vector<idx_t> &mapping_idxs) const;
     OutputFormat determineFormatByCostModel(
         bool sort_order_enforced, size_t total_nulls) const;
+    void generateOutputColIdxsForOuter();
+    void generateOutputColIdxsForInner();
     void getOutputColIdxsForOuter(vector<idx_t> &output_col_idx) const;
     void getOutputColIdxsForInner(idx_t extentIdx, vector<idx_t> &mapping_idxs,
                                   vector<idx_t> &output_col_idx) const;
@@ -184,6 +186,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<vector<uint32_t>> inner_col_maps;
     vector<uint32_t> union_inner_col_map;
     vector<uint32_t> union_inner_col_map_wo_id;
+    vector<idx_t> outer_output_col_idxs;
+    vector<vector<uint32_t>> inner_output_col_idxs;
     vector<PartialSchema> partial_schemas;
     mutable vector<ExtentID> target_eids;
     bool force_output_union = true;
