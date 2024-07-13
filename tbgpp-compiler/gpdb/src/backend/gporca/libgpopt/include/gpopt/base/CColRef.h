@@ -97,9 +97,9 @@ public:
     CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
             ULONG colid, const CName *pname);
 	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
-            const CName *pname, ULONG prop_id);
+            const CName *pname, ULONG prop_id, ULONG node_id);
 	CColRef(const IMDType *pmdtype, const INT type_modifier, ULONG id,
-            ULONG colid, const CName *pname, ULONG prop_id);
+            ULONG colid, const CName *pname, ULONG prop_id, ULONG node_Id);
 
     // dtor
 	virtual ~CColRef();
@@ -143,6 +143,12 @@ public:
 	PropId() const
 	{
 		return m_prop_id;
+	}
+
+	ULONG
+	NodeId() const
+	{
+		return m_node_id;
 	}
 
 	// overloaded equality operator
@@ -217,6 +223,9 @@ public:
 	// S62 added prop_id
 	ULONG m_prop_id;
 
+	// S62 added subordinated node id
+	ULONG m_node_id;
+
 	// invalid key
 	static const ULONG m_ulInvalid;
 
@@ -269,6 +278,12 @@ public:
 	SetPrevId(ULONG prev_id)
 	{
 		m_prev_id = prev_id;
+	}
+
+	void
+	SetNodeId(ULONG node_id)
+	{
+		m_node_id = node_id;
 	}
 
 };	// class CColRef

@@ -82,6 +82,7 @@ public:
         for (auto i = 0; i < used_columns.size(); i++) {
             used_columns[i] = true;
         }
+        is_whold_node_required = true;
     }
 
     void setUnusedColumn(uint64_t col_idx) {
@@ -110,6 +111,10 @@ public:
         return used_for_filter_columns[col_idx];
     }
 
+    bool isWholeNodeRequired() {
+        return is_whold_node_required;
+    }
+
 protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
@@ -122,6 +127,7 @@ protected:
     vector<bool> used_for_filter_columns;
     bool schema_info_bound = false;
     bool dsi_target = false;
+    bool is_whold_node_required = false;
 };
 
 } // namespace binder

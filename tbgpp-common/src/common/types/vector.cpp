@@ -905,6 +905,15 @@ void Vector::Normalify(idx_t count) {
 		VectorOperations::GenerateSequence(*this, count, start, increment);
 		break;
 	}
+	case VectorType::ROW_VECTOR: {
+		// create a new flat vector of this type
+		Vector other(GetType());
+		// now copy the data of this vector to the other vector, removing the selection vector in the process
+		VectorOperations::Copy(*this, other, count, 0, 0);
+		// create a reference to the data in the other vector
+		this->Reference(other);
+		break;
+	}
 	default:
 		throw InternalException("Unimplemented type for normalify");
 	}

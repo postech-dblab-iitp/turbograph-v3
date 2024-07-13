@@ -91,7 +91,8 @@ public:
 	CColRef *PcrCreate(const IMDType *pmdtype, INT type_modifier,
 					   IMDId *mdid_table, INT attno, BOOL is_nullable, ULONG id,
 					   const CName &name, ULONG ulOpSource, BOOL isDistCol,
-					   ULONG ulWidth = gpos::ulong_max, ULONG prop_id = gpos::ulong_max);
+					   ULONG ulWidth = gpos::ulong_max, ULONG prop_id = gpos::ulong_max,
+					   ULONG node_id = gpos::ulong_max);
 
 	// create a column reference with the same type as passed column reference
 	CColRef *

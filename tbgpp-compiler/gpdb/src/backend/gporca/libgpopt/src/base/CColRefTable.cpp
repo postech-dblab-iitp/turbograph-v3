@@ -28,17 +28,18 @@ using namespace gpmd;
 //
 //---------------------------------------------------------------------------
 CColRefTable::CColRefTable(const CColumnDescriptor *pcoldesc, ULONG id,
-						   const CName *pname, ULONG ulOpSource)
-	: CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname, pcoldesc->PropId()),
-	  m_iAttno(0),
-	  m_ulSourceOpId(ulOpSource),
-	  m_width(pcoldesc->Width())
+                           const CName *pname, ULONG ulOpSource)
+    : CColRef(pcoldesc->RetrieveType(), pcoldesc->TypeModifier(), id, pname,
+              pcoldesc->PropId(), pcoldesc->NodeId()),
+      m_iAttno(0),
+      m_ulSourceOpId(ulOpSource),
+      m_width(pcoldesc->Width())
 {
-	GPOS_ASSERT(NULL != pname);
+    GPOS_ASSERT(NULL != pname);
 
-	m_iAttno = pcoldesc->AttrNum();
-	m_is_nullable = pcoldesc->IsNullable();
-	m_is_dist_col = pcoldesc->IsDistCol();
+    m_iAttno = pcoldesc->AttrNum();
+    m_is_nullable = pcoldesc->IsNullable();
+    m_is_dist_col = pcoldesc->IsDistCol();
 }
 
 //---------------------------------------------------------------------------
@@ -53,8 +54,8 @@ CColRefTable::CColRefTable(const CColumnDescriptor *pcoldesc, ULONG id,
 CColRefTable::CColRefTable(const IMDType *pmdtype, INT type_modifier, INT attno,
 						   BOOL is_nullable, ULONG id, const CName *pname,
 						   ULONG ulOpSource, BOOL is_dist_col, ULONG ulWidth,
-						   ULONG prop_id)
-	: CColRef(pmdtype, type_modifier, id, pname, prop_id),
+						   ULONG prop_id, ULONG node_id)
+	: CColRef(pmdtype, type_modifier, id, pname, prop_id, node_id),
 	  m_iAttno(attno),
 	  m_is_nullable(is_nullable),
 	  m_ulSourceOpId(ulOpSource),

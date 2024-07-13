@@ -487,6 +487,17 @@ void DataChunk::Hash(Vector &result) {
 	}
 }
 
+void DataChunk::Hash(Vector &result, const vector<uint32_t> &target_cols) {
+	D_ASSERT(result.GetType().id() == LogicalTypeId::HASH);
+	D_ASSERT(target_cols.size() > 0);
+	D_ASSERT(target_cols[0] < ColumnCount());
+	VectorOperations::Hash(data[target_cols[0]], result, size());
+	for (idx_t i = 1; i < target_cols.size(); i++) {
+		D_ASSERT(target_cols[i] < ColumnCount());
+		VectorOperations::CombineHash(result, data[target_cols[i]], size());
+	}
+}
+
 void DataChunk::ConvertIsValidToValidityMap(DataChunk& source_chunk, std::vector<uint64_t>& projection_mapping) {
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		Vector &source_vector = source_chunk.data[projection_mapping[i]];

@@ -1489,9 +1489,9 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithoutDSI(
     lBuildSchemaProjectionMapping(pruned_table_oids, node_expr, prop_exprs,
                                   schema_proj_mapping, used_col_idx);
 
-    planned_expr = std::move(
-        lExprLogicalGetNodeOrEdge(node_name_print, pruned_table_oids, nullptr,
-                                  used_col_idx, &schema_proj_mapping, true));
+    planned_expr = std::move(lExprLogicalGetNodeOrEdge(
+        node_name_print, pruned_table_oids, nullptr, used_col_idx,
+        &schema_proj_mapping, true, node_expr->isWholeNodeRequired()));
     CExpression *plan_expr = planned_expr.first;
     D_ASSERT(used_col_idx.size() == planned_expr.second->Size());
 
@@ -1561,7 +1561,8 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
 
     planned_expr = std::move(lExprLogicalGetNodeOrEdge(
         node_name_print, representative_table_oids, &table_oids_in_groups,
-        used_col_idx, &schema_proj_mapping, true));
+        used_col_idx, &schema_proj_mapping, true,
+        node_expr->isWholeNodeRequired()));
     CExpression *plan_expr = planned_expr.first;
     D_ASSERT(used_col_idx.size() == planned_expr.second->Size());
 
@@ -1580,7 +1581,7 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(
     std::vector<std::vector<uint64_t>> *table_oids_in_groups,
     vector<int> &used_col_idx,
     map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping,
-    bool insert_projection)
+    bool insert_projection, bool whole_node_required)
 {
     CMemoryPool *mp = this->memory_pool;
     CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
@@ -1636,7 +1637,8 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(
         expr = lExprLogicalGet(oid, name, table_oids_in_groups != nullptr,
                                table_oids_in_groups == nullptr
                                    ? nullptr
-                                   : &(*table_oids_in_groups)[idx]);
+                                   : &(*table_oids_in_groups)[idx],
+                               whole_node_required);
 
         // conform schema if necessary
         CColRefArray *output_array;
@@ -1756,7 +1758,8 @@ void Planner::lGenerateNodeOrEdgeSchema(NodeOrRelExpression *node_expr,
 
 CExpression *Planner::lExprLogicalGet(
     uint64_t obj_id, string rel_name, bool is_instance,
-    std::vector<uint64_t> *table_oids_in_group, string alias)
+    std::vector<uint64_t> *table_oids_in_group, bool whole_node_required,
+    string alias)
 {
     CMemoryPool *mp = this->memory_pool;
 
@@ -1785,9 +1788,15 @@ CExpression *Planner::lExprLogicalGet(
 
     CExpression *scan_expr = GPOS_NEW(mp) CExpression(mp, pop);
     CColRefArray *arr = pop->PdrgpcrOutput();
+    ULONG node_id = -1; // colref id of _id
+    if (whole_node_required) {
+        CColRef *pid_ref = (*arr)[0];
+        node_id = pid_ref->Id();
+    }
     for (ULONG ul = 0; ul < arr->Size(); ul++) {
         CColRef *ref = (*arr)[ul];
         ref->MarkAsUnknown();
+        ref->SetNodeId(node_id);
     }
     return scan_expr;
 }

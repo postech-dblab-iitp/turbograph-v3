@@ -65,12 +65,16 @@ static void TemplatedScatter(VectorData &col, Vector &rows, const SelectionVecto
 static void ComputeStringEntrySizes(const VectorData &col, idx_t entry_sizes[], const SelectionVector &sel,
                                     const idx_t count, const idx_t offset = 0) {
 	auto data = (const string_t *)col.data;
-	for (idx_t i = 0; i < count; i++) {
-		auto idx = sel.get_index(i);
-		auto col_idx = col.sel->get_index(idx) + offset;
-		const auto &str = data[col_idx];
-		if (col.validity.RowIsValid(col_idx) && col.is_valid && !str.IsInlined()) {
-			entry_sizes[i] += str.GetSize();
+	if (!col.is_valid) {
+		return;
+	} else {
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto col_idx = col.sel->get_index(idx) + offset;
+			const auto &str = data[col_idx];
+			if (col.validity.RowIsValid(col_idx) && col.is_valid && !str.IsInlined()) {
+				entry_sizes[i] += str.GetSize();
+			}
 		}
 	}
 }
@@ -80,23 +84,33 @@ static void ScatterStringVector(VectorData &col, Vector &rows, data_ptr_t str_lo
 	auto string_data = (string_t *)col.data;
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 
-	for (idx_t i = 0; i < count; i++) {
-		auto idx = sel.get_index(i);
-		auto col_idx = col.sel->get_index(idx);
-		auto row = ptrs[idx];
-		if (!col.validity.RowIsValid(col_idx) || !col.is_valid) {
+	if (!col.is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto row = ptrs[idx];
 			ValidityBytes col_mask(row);
 			col_mask.SetInvalidUnsafe(col_no);
 			Store<string_t>(NullValue<string_t>(), row + col_offset);
-		} else if (string_data[col_idx].IsInlined()) {
-			Store<string_t>(string_data[col_idx], row + col_offset);
-		} else {
-			const auto &str = string_data[col_idx];
-			string_t inserted((const char *)str_locations[i], str.GetSize());
-			memcpy(inserted.GetDataWriteable(), str.GetDataUnsafe(), str.GetSize());
-			str_locations[i] += str.GetSize();
-			inserted.Finalize();
-			Store<string_t>(inserted, row + col_offset);
+		}
+	} else {
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto col_idx = col.sel->get_index(idx);
+			auto row = ptrs[idx];
+			if (!col.validity.RowIsValid(col_idx) || !col.is_valid) {
+				ValidityBytes col_mask(row);
+				col_mask.SetInvalidUnsafe(col_no);
+				Store<string_t>(NullValue<string_t>(), row + col_offset);
+			} else if (string_data[col_idx].IsInlined()) {
+				Store<string_t>(string_data[col_idx], row + col_offset);
+			} else {
+				const auto &str = string_data[col_idx];
+				string_t inserted((const char *)str_locations[i], str.GetSize());
+				memcpy(inserted.GetDataWriteable(), str.GetDataUnsafe(), str.GetSize());
+				str_locations[i] += str.GetSize();
+				inserted.Finalize();
+				Store<string_t>(inserted, row + col_offset);
+			}
 		}
 	}
 }

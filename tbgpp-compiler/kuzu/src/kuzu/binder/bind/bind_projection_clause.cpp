@@ -32,8 +32,11 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
     for (auto& expression : boundProjectionExpressions) {
         auto dataType = expression->getDataType();
         if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
-            statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
-        } 
+            // statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
+            statementResult->addColumn(expression, expression_vector{expression});
+            auto &nodeOrRel = (NodeOrRelExpression &)(*expression);
+            nodeOrRel.markAllColumnsAsUsed();
+        }
         else if (dataType.typeID == common::PATH ) {
             statementResult->addColumn(expression, rewritePathExpression(*expression));
         }

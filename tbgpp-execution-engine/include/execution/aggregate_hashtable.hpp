@@ -69,6 +69,7 @@ public:
 	//! data in the group chunk. When resize = true, aggregates will not be
 	//! computed but instead just assigned.
 	idx_t AddChunk(DataChunk &groups, DataChunk &payload);
+	idx_t AddChunk(DataChunk &groups, DataChunk &payload, const vector<uint32_t> &grouping_key_idxs);
 	idx_t AddChunk(DataChunk &groups, Vector &group_hashes, DataChunk &payload);
 
 	//! Scan the HT starting from the scan_position until the result and group

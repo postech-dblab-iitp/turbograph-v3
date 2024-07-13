@@ -251,8 +251,14 @@ void GroupedAggregateHashTable::Resize(idx_t size) {
 }
 
 idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, DataChunk &payload) {
-	// Vector hashes(LogicalType::HASH);
 	groups.Hash(this->hashes);
+
+	return AddChunk(groups, this->hashes, payload);
+}
+
+idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, DataChunk &payload, const vector<uint32_t> &grouping_key_idxs) {
+	// Vector hashes(LogicalType::HASH);
+	groups.Hash(this->hashes, grouping_key_idxs);
 
 	return AddChunk(groups, this->hashes, payload);
 }
