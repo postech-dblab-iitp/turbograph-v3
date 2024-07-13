@@ -32,6 +32,7 @@ using namespace simdjson;
 #define COSINE_THRESHOLD 0.6
 #define DICE_THRESHOLD 0.6
 #define OVERLAP_THRESHOLD 0.6
+#define VEC_OVHD_THRESHOLD 1024
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -87,8 +88,8 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::DICE;
-    const LayeringOrder layering_order = LayeringOrder::ASCENDING;
+    const CostModel cost_model = CostModel::OURS;
+    const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
 
@@ -591,9 +592,9 @@ public:
             printf("schema_groups.size = %ld\n", schema_groups_with_num_tuples.size());
 
             for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
-                fprintf(stdout, "Schema %ld: ", i);
+                fprintf(stdout, "Schema %d: ", i);
                 for (auto j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
-                    fprintf(stdout, "%ld ", schema_groups_with_num_tuples[i].first[j]);
+                    fprintf(stdout, "%d ", schema_groups_with_num_tuples[i].first[j]);
                 }
                 fprintf(stdout, ": %ld\n", schema_groups_with_num_tuples[i].second);
             }
@@ -755,8 +756,8 @@ public:
         }
 
         cost_null *= (num_nulls1 * schema_groups_with_num_tuples[rowid1].second + num_nulls2 * schema_groups_with_num_tuples[rowid2].second);
-        if (schema_groups_with_num_tuples[rowid1].second < 1024 ||
-            schema_groups_with_num_tuples[rowid2].second < 1024) {
+        if (schema_groups_with_num_tuples[rowid1].second < VEC_OVHD_THRESHOLD ||
+            schema_groups_with_num_tuples[rowid2].second < VEC_OVHD_THRESHOLD) {
             cost_vectorization *=
                 (_ComputeVecOvh(schema_groups_with_num_tuples[rowid1].second +
                                 schema_groups_with_num_tuples[rowid2].second) -
@@ -807,8 +808,8 @@ public:
         cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
         cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
             - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // if (schema_group1.second < 1024 ||
-        //     schema_group2.second < 1024) {
+        // if (schema_group1.second < VEC_OVHD_THRESHOLD ||
+        //     schema_group2.second < VEC_OVHD_THRESHOLD) {
         //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
         //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
         // } else {
@@ -1094,8 +1095,8 @@ public:
         }
 
         cost_null *= (num_nulls1 * schema_group1.second + num_nulls2 * schema_group2.second);
-        if (schema_group1.second < 1024 ||
-            schema_group2.second < 1024) {
+        if (schema_group1.second < VEC_OVHD_THRESHOLD ||
+            schema_group2.second < VEC_OVHD_THRESHOLD) {
             cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
                 - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
         } else {
@@ -1107,8 +1108,8 @@ public:
 
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
-        if (num_tuples > 1024) return 1;
-        else return (double) 1024 / num_tuples;
+        if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
+        else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
     void _ComputeCoordinateMatrix() {
