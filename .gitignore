@@ -49,3 +49,5 @@ test*.cmake
 *.csv.backward
 
 r*hs
+
+*.txt

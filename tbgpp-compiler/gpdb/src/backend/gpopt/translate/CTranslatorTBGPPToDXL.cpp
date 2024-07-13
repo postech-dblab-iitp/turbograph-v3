@@ -824,7 +824,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		//    length.
 		// 4. Otherwise, assign it to default column width which is 8.
 		col_len = rel->GetTypeSize(ul);
-		if(rel->is_fake) {
+		if (rel->is_fake) {
 			// TODO: change hard coded value
 			// 1000 means the number of schemas.
 			// This is for scaling the width for the temporal table

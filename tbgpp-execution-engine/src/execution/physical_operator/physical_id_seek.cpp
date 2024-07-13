@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include "typedef.hpp"
+#include <queue>
 
 // catalog related
 #include "catalog/catalog.hpp"
@@ -67,7 +68,6 @@ class IdSeekState : public OperatorState {
     IOCache io_cache;
 };
 
-// TODO: (jhha) change outer_col_maps to outer_col_map
 PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<uint64_t> oids,
                                vector<vector<uint64_t>> projection_mapping,
@@ -100,6 +100,8 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     genNonPredColIdxs();
     generatePartialSchemaInfos();
     getUnionScanTypes();
+    generateOutputColIdxsForOuter();
+    generateOutputColIdxsForInner();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
     num_tuples_per_schema.resize(num_total_schemas, 0);
@@ -148,6 +150,8 @@ PhysicalIdSeek::PhysicalIdSeek(
     genNonPredColIdxs();
     generatePartialSchemaInfos();
     getUnionScanTypes();
+    generateOutputColIdxsForOuter();
+    generateOutputColIdxsForInner();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
     num_tuples_per_schema.resize(num_total_schemas, 0);
@@ -471,10 +475,11 @@ void PhysicalIdSeek::doSeekUnionAll(
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
     if (!do_filter_pushdown) {
+        // fprintf(stdout, "target_eids.size() = %ld\n", target_eids.size());
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
-            vector<idx_t> output_col_idx;
-            getOutputColIdxsForInner(extentIdx, mapping_idxs, output_col_idx);
+            const vector<uint32_t> &output_col_idx =
+                inner_output_col_idxs[mapping_idxs[extentIdx]];
             auto &non_pred_col_idxs =
                 non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
             context.client->graph_store->doVertexIndexSeek(
@@ -487,7 +492,8 @@ void PhysicalIdSeek::doSeekUnionAll(
     else {
         idx_t chunk_idx = input.GetSchemaIdx();
         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
-        vector<vector<idx_t>> chunk_idx_to_output_cols_idx(1);
+        vector<vector<uint32_t>> chunk_idx_to_output_cols_idx(1);
+        getOutputIdxsForFilteredSeek(chunk_idx, chunk_idx_to_output_cols_idx[0]);
 
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
@@ -506,10 +512,7 @@ void PhysicalIdSeek::doSeekUnionAll(
             }
 
             // Get output col idx
-            auto &output_col_idx = chunk_idx_to_output_cols_idx[0];
-            if (output_col_idx.size() == 0) {
-                getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
-            }
+            const auto &output_col_idx = chunk_idx_to_output_cols_idx[0];
             auto &pred_col_idxs =
                 pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
             // do VertexIdSeek (but only scan cols used in filter)
@@ -623,184 +626,185 @@ void PhysicalIdSeek::doSeekGrouping(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
-    idx_t base_chunk_idx = input.GetSchemaIdx() * this->inner_col_maps.size();
+    D_ASSERT(false); // deprecated
+    // idx_t base_chunk_idx = input.GetSchemaIdx() * this->inner_col_maps.size();
 
-    if (!do_filter_pushdown) {
-        /**
-         * In InitializeVertexIndexSeek, we sort src vids by target extent id.
-         * So, we can access the same extent id in a row.
-        */
+    // if (!do_filter_pushdown) {
+    //     /**
+    //      * In InitializeVertexIndexSeek, we sort src vids by target extent id.
+    //      * So, we can access the same extent id in a row.
+    //     */
 
-        for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-             extentIdx++) {
-            vector<idx_t> output_col_idx;
-            getOutputColIdxsForInner(extentIdx, mapping_idxs, output_col_idx);
+    //     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
+    //          extentIdx++) {
+    //         const auto &output_col_idx = inner_output_col_idxs[mapping_idxs[extentIdx]];
+    //         // getOutputColIdxsForInner(extentIdx, mapping_idxs, output_col_idx);
 
-            idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
-            auto &non_pred_col_idxs =
-                non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
-            context.client->graph_store->doVertexIndexSeek(
-                state.ext_it, *(chunks[chunk_idx].get()), input, nodeColIdx,
-                target_eids, target_seqnos_per_extent, non_pred_col_idxs,
-                extentIdx, output_col_idx, num_tuples_per_chunk[chunk_idx]);
+    //         idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
+    //         auto &non_pred_col_idxs =
+    //             non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
+    //         context.client->graph_store->doVertexIndexSeek(
+    //             state.ext_it, *(chunks[chunk_idx].get()), input, nodeColIdx,
+    //             target_eids, target_seqnos_per_extent, non_pred_col_idxs,
+    //             extentIdx, output_col_idx, num_tuples_per_chunk[chunk_idx]);
 
-            if (join_type == JoinType::LEFT) {
-                // TODO handling multi-schema case
-                D_ASSERT(chunks.size() == 1);
-            }
-            else if (join_type == JoinType::INNER) {
-                for (auto i = 0; i < target_seqnos_per_extent[extentIdx].size();
-                     i++) {
-                    state.sels[chunk_idx].set_index(
-                        num_tuples_per_chunk[chunk_idx] -
-                            target_seqnos_per_extent[extentIdx].size() + i,
-                        target_seqnos_per_extent[extentIdx][i]);
-                }
-            }
-        }
+    //         if (join_type == JoinType::LEFT) {
+    //             // TODO handling multi-schema case
+    //             D_ASSERT(chunks.size() == 1);
+    //         }
+    //         else if (join_type == JoinType::INNER) {
+    //             for (auto i = 0; i < target_seqnos_per_extent[extentIdx].size();
+    //                  i++) {
+    //                 state.sels[chunk_idx].set_index(
+    //                     num_tuples_per_chunk[chunk_idx] -
+    //                         target_seqnos_per_extent[extentIdx].size() + i,
+    //                     target_seqnos_per_extent[extentIdx][i]);
+    //             }
+    //         }
+    //     }
 
-        state.has_remaining_output = true;
-    }
-    else {
-        // D_ASSERT(chunks.size() == 1); // TODO handling multi-schema case
-        vector<vector<idx_t>> chunk_idx_to_output_cols_idx;
-        chunk_idx_to_output_cols_idx.resize(chunks.size());
-        vector<vector<idx_t>> reverse_mapping_idxs;
-        getReverseMappingIdxs(chunks.size(), base_chunk_idx, mapping_idxs,
-                              reverse_mapping_idxs);
-        for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-             extentIdx++) {
-            // get chunk index
-            idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
+    //     state.has_remaining_output = true;
+    // }
+    // else {
+    //     // D_ASSERT(chunks.size() == 1); // TODO handling multi-schema case
+    //     vector<vector<idx_t>> chunk_idx_to_output_cols_idx;
+    //     chunk_idx_to_output_cols_idx.resize(chunks.size());
+    //     vector<vector<idx_t>> reverse_mapping_idxs;
+    //     getReverseMappingIdxs(chunks.size(), base_chunk_idx, mapping_idxs,
+    //                           reverse_mapping_idxs);
+    //     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
+    //          extentIdx++) {
+    //         // get chunk index
+    //         idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
 
-            // get pred col idxs
-            auto &pred_col_idxs =
-                pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
+    //         // get pred col idxs
+    //         auto &pred_col_idxs =
+    //             pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
 
-            // init intermediate chunk
-            auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
-            if (!is_tmp_chunk_initialized_per_schema[chunk_idx]) {
-                vector<LogicalType> tmp_chunk_type;
-                auto lhs_type = input.GetTypes();
-                getOutputTypesForFilteredSeek(
-                    lhs_type, scan_types[mapping_idxs[extentIdx]],
-                    tmp_chunk_type);
-                tmp_chunk.Initialize(tmp_chunk_type);
-                is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
-            }
-            else {
-                tmp_chunk.Reset();
-            }
+    //         // init intermediate chunk
+    //         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
+    //         if (!is_tmp_chunk_initialized_per_schema[chunk_idx]) {
+    //             vector<LogicalType> tmp_chunk_type;
+    //             auto lhs_type = input.GetTypes();
+    //             getOutputTypesForFilteredSeek(
+    //                 lhs_type, scan_types[mapping_idxs[extentIdx]],
+    //                 tmp_chunk_type);
+    //             tmp_chunk.Initialize(tmp_chunk_type);
+    //             is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
+    //         }
+    //         else {
+    //             tmp_chunk.Reset();
+    //         }
 
-            // Get output col idx
-            auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
-            if (output_col_idx.size() == 0) {
-                getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
-            }
-            // do VertexIdSeek
-            // TODO in schemaless case, we need to change this API carefully. it should cover both cases
-            if (chunks.size() == 1) {
-                context.client->graph_store->doVertexIndexSeek(
-                    state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
-                    target_seqnos_per_extent, pred_col_idxs, extentIdx,
-                    output_col_idx);
-                num_tuples_per_chunk[chunk_idx] +=
-                    target_seqnos_per_extent[extentIdx].size();
-            }
-            else {
-                context.client->graph_store->doVertexIndexSeek(
-                    state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
-                    target_seqnos_per_extent, pred_col_idxs, extentIdx,
-                    output_col_idx, num_tuples_per_chunk[chunk_idx]);
-                if (join_type == JoinType::LEFT) {
-                    // TODO handling multi-schema case
-                    D_ASSERT(false);
-                }
-                else if (join_type == JoinType::INNER) {
-                    for (auto i = 0;
-                         i < target_seqnos_per_extent[extentIdx].size(); i++) {
-                        state.sels[chunk_idx].set_index(
-                            num_tuples_per_chunk[chunk_idx] -
-                                target_seqnos_per_extent[extentIdx].size() + i,
-                            target_seqnos_per_extent[extentIdx][i]);
-                    }
-                }
-            }
-        }
+    //         // Get output col idx
+    //         auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
+    //         if (output_col_idx.size() == 0) {
+    //             getOutputIdxsForFilteredSeek(chunk_idx, output_col_idx);
+    //         }
+    //         // do VertexIdSeek
+    //         // TODO in schemaless case, we need to change this API carefully. it should cover both cases
+    //         if (chunks.size() == 1) {
+    //             context.client->graph_store->doVertexIndexSeek(
+    //                 state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
+    //                 target_seqnos_per_extent, pred_col_idxs, extentIdx,
+    //                 output_col_idx);
+    //             num_tuples_per_chunk[chunk_idx] +=
+    //                 target_seqnos_per_extent[extentIdx].size();
+    //         }
+    //         else {
+    //             context.client->graph_store->doVertexIndexSeek(
+    //                 state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
+    //                 target_seqnos_per_extent, pred_col_idxs, extentIdx,
+    //                 output_col_idx, num_tuples_per_chunk[chunk_idx]);
+    //             if (join_type == JoinType::LEFT) {
+    //                 // TODO handling multi-schema case
+    //                 D_ASSERT(false);
+    //             }
+    //             else if (join_type == JoinType::INNER) {
+    //                 for (auto i = 0;
+    //                      i < target_seqnos_per_extent[extentIdx].size(); i++) {
+    //                     state.sels[chunk_idx].set_index(
+    //                         num_tuples_per_chunk[chunk_idx] -
+    //                             target_seqnos_per_extent[extentIdx].size() + i,
+    //                         target_seqnos_per_extent[extentIdx][i]);
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        state.ext_it->Rewind();
-        for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
-            if (num_tuples_per_chunk[chunk_idx] == 0)
-                continue;
-            auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
-            auto inner_schema_idx = chunk_idx % this->inner_col_maps.size();
-            auto &pred_col_idxs = pred_col_idxs_per_schema[inner_schema_idx];
-            auto &non_pred_col_idxs =
-                non_pred_col_idxs_per_schema[inner_schema_idx];
+    //     state.ext_it->Rewind();
+    //     for (auto chunk_idx = 0; chunk_idx < chunks.size(); chunk_idx++) {
+    //         if (num_tuples_per_chunk[chunk_idx] == 0)
+    //             continue;
+    //         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
+    //         auto inner_schema_idx = chunk_idx % this->inner_col_maps.size();
+    //         auto &pred_col_idxs = pred_col_idxs_per_schema[inner_schema_idx];
+    //         auto &non_pred_col_idxs =
+    //             non_pred_col_idxs_per_schema[inner_schema_idx];
 
-            // Filter may have column on lhs. Make tmp_chunk reference it
-            if (chunks.size() == 1) {
-                for (int i = 0; i < input.ColumnCount(); i++) {
-                    tmp_chunk.data[i].Reference(input.data[i]);
-                }
-            }
-            else {
-                for (int i = 0; i < input.ColumnCount(); i++) {
-                    tmp_chunk.data[i].Slice(input.data[i],
-                                            state.sels[chunk_idx],
-                                            num_tuples_per_chunk[chunk_idx]);
-                }
-            }
-            tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
+    //         // Filter may have column on lhs. Make tmp_chunk reference it
+    //         if (chunks.size() == 1) {
+    //             for (int i = 0; i < input.ColumnCount(); i++) {
+    //                 tmp_chunk.data[i].Reference(input.data[i]);
+    //             }
+    //         }
+    //         else {
+    //             for (int i = 0; i < input.ColumnCount(); i++) {
+    //                 tmp_chunk.data[i].Slice(input.data[i],
+    //                                         state.sels[chunk_idx],
+    //                                         num_tuples_per_chunk[chunk_idx]);
+    //             }
+    //         }
+    //         tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
 
-            // Execute filter (note. this is not efficient if no filter pred on inner cols)
-            size_t num_tuples_before_filter = num_tuples_per_chunk[chunk_idx];
-            num_tuples_per_chunk[chunk_idx] =
-                executors[inner_schema_idx].SelectExpression(
-                    tmp_chunk, state.filter_sels[chunk_idx]);
+    //         // Execute filter (note. this is not efficient if no filter pred on inner cols)
+    //         size_t num_tuples_before_filter = num_tuples_per_chunk[chunk_idx];
+    //         num_tuples_per_chunk[chunk_idx] =
+    //             executors[inner_schema_idx].SelectExpression(
+    //                 tmp_chunk, state.filter_sels[chunk_idx]);
 
-            // Perform actual scan
-            if (non_pred_col_idxs.size() > 0) {
-                // Since we do filter on sliced columns, we need to remap seqno to eid idx
-                vector<idx_t> remapped_seqno_to_eid_idx;
-                remapSeqnoToEidIdx(
-                    state.seqno_to_eid_idx, state.sels[chunk_idx].data(),
-                    num_tuples_before_filter, remapped_seqno_to_eid_idx);
-                vector<vector<uint32_t>> target_seqnos_per_extent_after_filter;
-                getFilteredTargetSeqno(remapped_seqno_to_eid_idx,
-                                       target_seqnos_per_extent.size(),
-                                       state.filter_sels[chunk_idx].data(),
-                                       num_tuples_per_chunk[chunk_idx],
-                                       target_seqnos_per_extent_after_filter);
+    //         // Perform actual scan
+    //         if (non_pred_col_idxs.size() > 0) {
+    //             // Since we do filter on sliced columns, we need to remap seqno to eid idx
+    //             vector<idx_t> remapped_seqno_to_eid_idx;
+    //             remapSeqnoToEidIdx(
+    //                 state.seqno_to_eid_idx, state.sels[chunk_idx].data(),
+    //                 num_tuples_before_filter, remapped_seqno_to_eid_idx);
+    //             vector<vector<uint32_t>> target_seqnos_per_extent_after_filter;
+    //             getFilteredTargetSeqno(remapped_seqno_to_eid_idx,
+    //                                    target_seqnos_per_extent.size(),
+    //                                    state.filter_sels[chunk_idx].data(),
+    //                                    num_tuples_per_chunk[chunk_idx],
+    //                                    target_seqnos_per_extent_after_filter);
 
-                vector<idx_t> &extent_idxs_for_chunk =
-                    reverse_mapping_idxs[chunk_idx];
-                auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
-                auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
-                for (auto extent_idx : extent_idxs_for_chunk) {
-                    /* 
-                    Q. Why use tmp_chunk instead of input? 
-                    A. Since the chunk is sliced, the vid vector in 
-                    the input should also be sliced, as seen in GetNextExtent. 
-                    There are several approaches we could take, such as 
-                    copying and slicing the input, creating a sliced vids 
-                    vector. We ustmp_chunk because its left part is a sliced portion 
-                    of the input, allowing us to simply pass it along.
-                    */
-                    context.client->graph_store->doVertexIndexSeek(
-                        state.ext_it, tmp_chunk, tmp_chunk /* input */,
-                        nodeColIdx, target_eids,
-                        target_seqnos_per_extent_after_filter,
-                        non_pred_col_idxs, extent_idx, output_col_idx);
-                }
-            }
+    //             vector<idx_t> &extent_idxs_for_chunk =
+    //                 reverse_mapping_idxs[chunk_idx];
+    //             auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
+    //             auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
+    //             for (auto extent_idx : extent_idxs_for_chunk) {
+    //                 /* 
+    //                 Q. Why use tmp_chunk instead of input? 
+    //                 A. Since the chunk is sliced, the vid vector in 
+    //                 the input should also be sliced, as seen in GetNextExtent. 
+    //                 There are several approaches we could take, such as 
+    //                 copying and slicing the input, creating a sliced vids 
+    //                 vector. We ustmp_chunk because its left part is a sliced portion 
+    //                 of the input, allowing us to simply pass it along.
+    //                 */
+    //                 context.client->graph_store->doVertexIndexSeek(
+    //                     state.ext_it, tmp_chunk, tmp_chunk /* input */,
+    //                     nodeColIdx, target_eids,
+    //                     target_seqnos_per_extent_after_filter,
+    //                     non_pred_col_idxs, extent_idx, output_col_idx);
+    //             }
+    //         }
 
-            tmp_chunk.Slice(state.filter_sels[chunk_idx],
-                            num_tuples_per_chunk[chunk_idx]);
-            tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
-        }
-        state.has_remaining_output = true;
-    }
+    //         tmp_chunk.Slice(state.filter_sels[chunk_idx],
+    //                         num_tuples_per_chunk[chunk_idx]);
+    //         tmp_chunk.SetCardinality(num_tuples_per_chunk[chunk_idx]);
+    //     }
+    //     state.has_remaining_output = true;
+    // }
 }
 
 OperatorResultType PhysicalIdSeek::referInputChunk(DataChunk &input,
@@ -1137,12 +1141,16 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
         // Remove ID column for rowcol_t
         auto &ith_scan_type = scan_types[i];
         auto num_id_columns = 0;
+        std::queue<idx_t> id_col_queue;
         for (auto j = 0; j < ith_scan_type.size(); j++) {
             if (ith_scan_type[j].id() == LogicalTypeId::ID) {
                 num_id_columns++;
+                id_col_queue.push(j);
             }
         }
 
+
+        idx_t idx_shift_for_non_id_columns = 0;
         uint64_t accumulated_offset = 0;
         partial_schemas.push_back(PartialSchema());
         partial_schemas[i].offset_info.resize(
@@ -1156,10 +1164,18 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
                 continue;
             if (ith_scan_type[j].id() == LogicalTypeId::ID)
                 continue;
+
+            // Check if current index is greater than the front of the queue
+            if (!id_col_queue.empty() && j >= id_col_queue.front()) {
+                // Increment the shift and pop the queue
+                idx_shift_for_non_id_columns++;
+                id_col_queue.pop();
+            }
+
             auto it =
                 std::find(union_inner_col_map.begin(),
                           union_inner_col_map.end(), inner_col_maps[i][j]);
-            auto pos = it - union_inner_col_map.begin() - num_id_columns;
+            auto pos = it - union_inner_col_map.begin() - idx_shift_for_non_id_columns;
             partial_schemas[i].offset_info[pos] = accumulated_offset;
             accumulated_offset +=
                 GetTypeIdSize(union_types[inner_col_maps[i][j]].InternalType());
@@ -1179,7 +1195,7 @@ void PhysicalIdSeek::getOutputTypesForFilteredSeek(
 }
 
 void PhysicalIdSeek::getOutputIdxsForFilteredSeek(
-    idx_t chunk_idx, vector<idx_t> &output_col_idx) const
+    idx_t chunk_idx, vector<uint32_t> &output_col_idx) const
 {
     /**
      * In filtered seek, we do seek on outer cols + inner cols chunk
@@ -1225,18 +1241,16 @@ void PhysicalIdSeek::genNonPredColIdxs()
     for (auto i = 0; i < this->inner_col_maps.size(); i++) {
         auto &inner_col_map = this->inner_col_maps[i];
         if (!do_filter_pushdown) {
-            for (auto j = 0;
-                 j < inner_col_map.size() + this->outer_col_map.size(); j++) {
-                non_pred_col_idxs_per_schema[i].push_back(j);
+            for (auto j = 0; j < inner_col_map.size(); j++) {
+                non_pred_col_idxs_per_schema[i].push_back(inner_col_map[j]);
             }
         }
         else {
             auto &pred_col_idxs = this->pred_col_idxs_per_schema[i];
-            for (auto j = 0;
-                 j < inner_col_map.size() + this->outer_col_map.size(); j++) {
-                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), j) ==
+            for (auto j = 0; j < inner_col_map.size(); j++) {
+                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), inner_col_map[j]) ==
                     pred_col_idxs.end()) {
-                    non_pred_col_idxs_per_schema[i].push_back(j);
+                    non_pred_col_idxs_per_schema[i].push_back(inner_col_map[j]);
                 }
             }
         }
@@ -1290,8 +1304,8 @@ size_t PhysicalIdSeek::calculateTotalNulls(
     vector<size_t> num_nulls_per_extent(target_eids.size(), 0);
 
     // Get outer cols that are in the output
-    vector<idx_t> outer_output_col_idxs;
-    getOutputColIdxsForOuter(outer_output_col_idxs);
+    // vector<idx_t> outer_output_col_idxs;
+    // getOutputColIdxsForOuter(outer_output_col_idxs);
     size_t num_outer_output_cols = outer_output_col_idxs.size();
 
     for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
@@ -1392,8 +1406,8 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
-    vector<idx_t> outer_output_col_idx;
-    getOutputColIdxsForOuter(outer_output_col_idx);
+    // vector<idx_t> outer_output_col_idx;
+    // getOutputColIdxsForOuter(outer_output_col_idx);
 
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
         vector<idx_t> inner_output_col_idx;
@@ -1402,9 +1416,9 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
 
         for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
             // Two cases, 1) outer column, 2) inner column, but not in the output
-            if (std::find(outer_output_col_idx.begin(),
-                          outer_output_col_idx.end(),
-                          columnIdx) != outer_output_col_idx.end()) {
+            if (std::find(outer_output_col_idxs.begin(),
+                          outer_output_col_idxs.end(),
+                          columnIdx) != outer_output_col_idxs.end()) {
                 continue;
             }
             if (std::find(inner_output_col_idx.begin(),
@@ -1413,7 +1427,7 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
                 auto &vec = chunk.data[columnIdx];
                 vec.SetIsValid(true);
                 auto &validity = FlatVector::Validity(vec);
-                if(validity.GetData() == nullptr) {
+                if (validity.GetData() == nullptr) {
                     validity.Initialize(STANDARD_VECTOR_SIZE);
                 }
                 for (auto seqno : target_seqnos) {
@@ -1463,6 +1477,28 @@ void PhysicalIdSeek::getOutputColIdxsForOuter(
     for (idx_t i = 0; i < outer_col_map.size(); i++) {
         if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
             output_col_idx.push_back(outer_col_map[i]);
+        }
+    }
+}
+
+void PhysicalIdSeek::generateOutputColIdxsForOuter()
+{
+    for (idx_t i = 0; i < outer_col_map.size(); i++) {
+        if (outer_col_map[i] != std::numeric_limits<uint32_t>::max()) {
+            outer_output_col_idxs.push_back(outer_col_map[i]);
+        }
+    }
+}
+
+void PhysicalIdSeek::generateOutputColIdxsForInner()
+{
+    inner_output_col_idxs.resize(inner_col_maps.size());
+    for (idx_t i = 0; i < inner_col_maps.size(); i++) {
+        inner_output_col_idxs[i].reserve(inner_col_maps[i].size());
+        for (idx_t j = 0; j < inner_col_maps[i].size(); j++) {
+            if (inner_col_maps[i][j] != std::numeric_limits<uint32_t>::max()) {
+                inner_output_col_idxs[i].push_back(inner_col_maps[i][j]);
+            }
         }
     }
 }

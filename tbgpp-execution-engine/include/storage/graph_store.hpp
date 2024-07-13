@@ -111,7 +111,7 @@ public:
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
      vector<idx_t> &cols_to_include, idx_t current_pos,
-     vector<idx_t> &output_col_idx);
+     const vector<uint32_t> &output_col_idx);
  StoreAPIResult doVertexIndexSeek(
      ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
      idx_t nodeColIdx, 
@@ -125,7 +125,7 @@ public:
      vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
      vector<idx_t> &cols_to_include, idx_t current_pos,
-     vector<idx_t> &output_col_idx, idx_t &num_tuples_per_chunk);
+     const vector<uint32_t> &output_col_idx, idx_t &num_tuples_per_chunk);
  StoreAPIResult InitializeEdgeIndexSeek(
      ExtentIterator *&ext_it, duckdb::DataChunk &output, uint64_t vid,
      LabelSet labels, std::vector<LabelSet> &edgeLabels,
@@ -137,13 +137,6 @@ public:
      LoadAdjListOption loadAdj, PropertyKeys properties,
      std::vector<duckdb::LogicalType> &scanSchema,
      vector<ExtentID> &target_eids, vector<idx_t> &boundary_position);
- StoreAPIResult doEdgeIndexSeek(
-     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
-     idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels,
-     LoadAdjListOption loadAdj, PropertyKeys properties,
-     std::vector<duckdb::LogicalType> &scanSchema,
-     vector<ExtentID> &target_eids, vector<idx_t> &boundary_position,
-     idx_t current_pos, vector<idx_t> output_col_idx);
  bool isNodeInLabelset(u_int64_t id, LabelSet labels);
  void getAdjColIdxs(idx_t index_cat_oid, vector<int> &adjColIdxs,
                     vector<LogicalType> &adjColTypes);

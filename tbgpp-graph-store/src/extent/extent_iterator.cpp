@@ -1255,23 +1255,23 @@ void ExtentIterator::sliceFilteredRows(DataChunk& input, DataChunk &output, Sele
 }
 
 // For Seek Operator
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
-    D_ASSERT(false);
-    return true;
-}
+// bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, ExtentID target_eid, idx_t target_seqno, bool is_output_chunk_initialized) {
+//     D_ASSERT(false);
+//     return true;
+// }
 
 // For Seek Operator - Bulk Mode
-bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
-                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
-                                   idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized)
-{
-    D_ASSERT(false); // deprecated
-    return true;
-}
+// bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
+//                                    ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<uint32_t> &output_column_idxs,
+//                                    idx_t start_seqno, idx_t end_seqno, bool is_output_chunk_initialized)
+// {
+//     D_ASSERT(false); // deprecated
+//     return true;
+// }
 
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
-                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
+                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, const vector<uint32_t> &output_column_idxs,
                                    vector<uint32_t> &target_seqnos, vector<idx_t> &cols_to_include, bool is_output_chunk_initialized)
 {
     if (target_eid != current_eid) {
@@ -1617,7 +1617,7 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
 
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
-                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, vector<idx_t> &output_column_idxs,
+                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, const vector<uint32_t> &output_column_idxs,
                                    vector<uint32_t> &target_seqnos, vector<idx_t> &cols_to_include, idx_t &output_seqno, bool is_output_chunk_initialized)
 {
     

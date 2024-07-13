@@ -167,6 +167,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         if (comp_header.HasNullMask()) {
             bitmap_size = (input.size() + 7) / 8;
             // alloc_buf_size += bitmap_size;
+            comp_header.SetNullBitmapOffset(alloc_buf_size);
         }
 
         // Get Buffer from Cache Manager. Cache Object ID: 64bit = ChunkDefinitionID
