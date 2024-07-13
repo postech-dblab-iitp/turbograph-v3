@@ -32,6 +32,7 @@ using namespace simdjson;
 #define COSINE_THRESHOLD 0.6
 #define DICE_THRESHOLD 0.6
 #define OVERLAP_THRESHOLD 0.6
+#define VEC_OVHD_THRESHOLD 1024
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -591,9 +592,9 @@ public:
             printf("schema_groups.size = %ld\n", schema_groups_with_num_tuples.size());
 
             for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
-                fprintf(stdout, "Schema %ld: ", i);
+                fprintf(stdout, "Schema %d: ", i);
                 for (auto j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
-                    fprintf(stdout, "%ld ", schema_groups_with_num_tuples[i].first[j]);
+                    fprintf(stdout, "%d ", schema_groups_with_num_tuples[i].first[j]);
                 }
                 fprintf(stdout, ": %ld\n", schema_groups_with_num_tuples[i].second);
             }
@@ -755,8 +756,8 @@ public:
         }
 
         cost_null *= (num_nulls1 * schema_groups_with_num_tuples[rowid1].second + num_nulls2 * schema_groups_with_num_tuples[rowid2].second);
-        if (schema_groups_with_num_tuples[rowid1].second < 1024 ||
-            schema_groups_with_num_tuples[rowid2].second < 1024) {
+        if (schema_groups_with_num_tuples[rowid1].second < VEC_OVHD_THRESHOLD ||
+            schema_groups_with_num_tuples[rowid2].second < VEC_OVHD_THRESHOLD) {
             cost_vectorization *=
                 (_ComputeVecOvh(schema_groups_with_num_tuples[rowid1].second +
                                 schema_groups_with_num_tuples[rowid2].second) -
@@ -807,8 +808,8 @@ public:
         cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
         cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
             - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // if (schema_group1.second < 1024 ||
-        //     schema_group2.second < 1024) {
+        // if (schema_group1.second < VEC_OVHD_THRESHOLD ||
+        //     schema_group2.second < VEC_OVHD_THRESHOLD) {
         //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
         //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
         // } else {
@@ -1094,8 +1095,8 @@ public:
         }
 
         cost_null *= (num_nulls1 * schema_group1.second + num_nulls2 * schema_group2.second);
-        if (schema_group1.second < 1024 ||
-            schema_group2.second < 1024) {
+        if (schema_group1.second < VEC_OVHD_THRESHOLD ||
+            schema_group2.second < VEC_OVHD_THRESHOLD) {
             cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
                 - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
         } else {
@@ -1107,8 +1108,8 @@ public:
 
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
-        if (num_tuples > 1024) return 1;
-        else return (double) 1024 / num_tuples;
+        if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
+        else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
     void _ComputeCoordinateMatrix() {
@@ -1403,7 +1404,7 @@ public:
 
         // get cluster indices
         auto clusters = optics::get_cluster_indices(reach_dists, 10);
-        _PopulateCluteringResults(clusters);
+        _PopulateClusteringResults(clusters);
     }
 
     void _ClusterSchemaAgglomerative() {
@@ -1548,29 +1549,30 @@ public:
         }
         
         // Step 1: Compute the number of tuples for each cluster
-        std::vector<std::pair<std::size_t, uint64_t>> cluster_tuples_count;
-        for (std::size_t i = 0; i < temp_output.size(); i++) {
-            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-                continue;
-            }
-            uint64_t tuple_count = schema_groups_with_num_tuples[temp_output[i].first].second;
-            cluster_tuples_count.push_back({i, tuple_count});
-        }
+        // std::vector<std::pair<std::size_t, uint64_t>> cluster_tuples_count;
+        // for (std::size_t i = 0; i < temp_output.size(); i++) {
+        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+        //         continue;
+        //     }
+        //     uint64_t tuple_count = schema_groups_with_num_tuples[temp_output[i].first].second;
+        //     cluster_tuples_count.push_back({i, tuple_count});
+        // }
 
         // Step 2: Sort the clusters based on the number of tuples in descending order
-        std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
-                [](const std::pair<std::size_t, uint64_t>& a, const std::pair<std::size_t, uint64_t>& b) {
-                    return b.second < a.second; // sort in descending order
-                });
+        // std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
+        //         [](const std::pair<std::size_t, uint64_t>& a, const std::pair<std::size_t, uint64_t>& b) {
+        //             return b.second < a.second; // sort in descending order
+        //         });
 
         // Step 3: Populate cluster_tokens in sorted order
         num_clusters = temp_output.size();
         cluster_tokens.reserve(temp_output.size());
-        for (const auto& cluster_info : cluster_tuples_count) {
-            std::size_t i = cluster_info.first;
-            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-                continue;
-            }
+        // for (const auto& cluster_info : cluster_tuples_count) {
+        //     std::size_t i = cluster_info.first;
+        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+        //         continue;
+        //     }
+        for (auto i = 0; i < temp_output.size(); i++) {
 
             std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
             for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
@@ -1614,7 +1616,7 @@ public:
 
         // Run GMM Clustering
         _GMMClustering(clusters, schemas_in_cluster);
-        _PopulateCluteringResults(clusters);
+        _PopulateClusteringResults(clusters);
     }
 
     void _GMMClustering(std::vector<std::vector<std::size_t>>& clusters,
@@ -1707,38 +1709,39 @@ public:
     }
 
 
-    void _PopulateCluteringResults(std::vector<std::vector<std::size_t>>& clusters) {
+    void _PopulateClusteringResults(std::vector<std::vector<std::size_t>>& clusters) {
         sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size());
         num_clusters = clusters.size();
         cluster_tokens.reserve(num_clusters);
 
         // Step 1: Compute the number of tuples for each cluster
-        std::vector<std::pair<std::size_t, std::size_t>> cluster_tuples_count;
-        for (std::size_t i = 0; i < clusters.size(); i++) {
-            std::size_t tuple_count = 0;
-            for (auto j : clusters[i]) {
-                tuple_count += schema_groups_with_num_tuples[j].second;
-            }
-            cluster_tuples_count.push_back({i, tuple_count});
-        }
+        // std::vector<std::pair<std::size_t, std::size_t>> cluster_tuples_count;
+        // for (std::size_t i = 0; i < clusters.size(); i++) {
+        //     std::size_t tuple_count = 0;
+        //     for (auto j : clusters[i]) {
+        //         tuple_count += schema_groups_with_num_tuples[j].second;
+        //     }
+        //     cluster_tuples_count.push_back({i, tuple_count});
+        // }
 
         // Step 2: Sort the clusters based on the number of tuples in descending order
-        std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
-                [](const std::pair<std::size_t, std::size_t>& a, const std::pair<std::size_t, std::size_t>& b) {
-                    return a.second > b.second;
-                });
+        // std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
+        //         [](const std::pair<std::size_t, std::size_t>& a, const std::pair<std::size_t, std::size_t>& b) {
+        //             return a.second > b.second;
+        //         });
 
         // Step 3: Populate cluster_tokens in sorted order
-        for (const auto& cluster_info : cluster_tuples_count) {
-            std::size_t cluster_idx = cluster_info.first;
+        // for (const auto& cluster_info : cluster_tuples_count) {
+        for (auto i = 0; i < clusters.size(); i++) {
+            // std::size_t cluster_idx = cluster_info.first;
             std::unordered_set<uint32_t> cluster_tokens_set;
-            std::cout << "Cluster " << cluster_idx << ": ";
-            for (auto j : clusters[cluster_idx]) {
-                std::cout << j << ", ";
-                sg_to_cluster_vec[j] = cluster_idx;
+            std::cout << "Cluster " << i << ": ";
+            for (auto j = 0; j < clusters[i].size(); j++) {
+                std::cout << clusters[i][j] << ", ";
+                sg_to_cluster_vec[clusters[i][j]] = i;
                 cluster_tokens_set.insert(
-                    std::begin(schema_groups_with_num_tuples[j].first),
-                    std::end(schema_groups_with_num_tuples[j].first));
+                    std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
+                    std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
             }
             std::cout << std::endl;
 
@@ -1947,7 +1950,7 @@ public:
                     num_schemas_sum = 0;
                 }
             }
-            if (layer_boundaries.back() != num_tuples_order.size()) {
+            if (layer_boundaries.size() == 0 || layer_boundaries.back() != num_tuples_order.size()) {
                 layer_boundaries.push_back(num_tuples_order.size());
             }
         }

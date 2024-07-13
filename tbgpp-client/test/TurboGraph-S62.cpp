@@ -133,6 +133,7 @@ bool run_plan_wo_compile = false;
 bool show_top_10_only = false;
 bool dump_output = false;
 bool is_compile_only = false;
+bool warmup = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
 bool enable_profile = false;			// passed to client context as config
@@ -276,6 +277,8 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--num-iterations:", 17) == 0) {
 			std::string num_iter = std::string(*itr).substr(17);
 			planner_config.num_iterations = std::stoi(num_iter);
+		} else if (std::strncmp(current_str.c_str(), "--warmup", 8) == 0) {
+			warmup = true;
 		} else if (std::strncmp(current_str.c_str(), "--join-order-optimizer:", 23) == 0) {
 			std::string optimizer_join_order = std::string(*itr).substr(23);
 			if (optimizer_join_order == "query") {
@@ -429,6 +432,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 						std::cout << "done pipeline execution!!" << std::endl;
 					}
 				}
+
 				// end_timer
 				auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
 				query_execution_times.push_back(query_exec_time_ms);
@@ -450,7 +454,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 					// Print result plan
 					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 				}
+				sleep(2);
 			}
+		}
+		if(warmup) {
+			query_execution_times.erase(query_execution_times.begin());
+			query_compile_times.erase(query_compile_times.begin());
 		}
 		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
 		double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
@@ -548,7 +557,14 @@ int main(int argc, char** argv) {
 	string query_str;
 
 	if (is_query_string_given) {
-		CompileAndRun(input_query_string, client, planner, binder);
+		if (input_query_string.compare("analyze") == 0) {
+			HistogramGenerator hist_gen;
+			hist_gen.CreateHistogram(client);
+		} else if (input_query_string.compare("flush_file_meta") == 0) {
+			ChunkCacheManager::ccm->FlushMetaInfo(DiskAioParameters::WORKSPACE.c_str());
+		} else {
+			CompileAndRun(input_query_string, client, planner, binder);
+		}
 	} else {
 		while(true) {
 			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
