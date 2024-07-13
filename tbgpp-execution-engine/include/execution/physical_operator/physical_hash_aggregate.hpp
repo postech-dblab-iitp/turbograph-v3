@@ -25,14 +25,20 @@ class BufferManager;
 //! a hash table to perform the grouping
 class PhysicalHashAggregate : public CypherPhysicalOperator {
 public:
-	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions);
-	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
-	                      vector<unique_ptr<Expression>> groups);
-	PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
-	                      vector<unique_ptr<Expression>> groups,
-						  vector<GroupingSet> grouping_sets,
-	                      vector<vector<idx_t>> grouping_functions);
-	~PhysicalHashAggregate() {};
+ PhysicalHashAggregate(Schema &sch, vector<uint64_t> &output_projection_mapping,
+                       vector<unique_ptr<Expression>> expressions,
+                       vector<uint32_t> &grouping_key_idxs_p);
+ PhysicalHashAggregate(Schema &sch, vector<uint64_t> &output_projection_mapping,
+                       vector<unique_ptr<Expression>> expressions,
+                       vector<unique_ptr<Expression>> groups,
+                       vector<uint32_t> &grouping_key_idxs_p);
+ PhysicalHashAggregate(Schema &sch, vector<uint64_t> &output_projection_mapping,
+                       vector<unique_ptr<Expression>> expressions,
+                       vector<unique_ptr<Expression>> groups,
+                       vector<GroupingSet> grouping_sets,
+                       vector<vector<idx_t>> grouping_functions,
+                       vector<uint32_t> &grouping_key_idxs_p);
+ ~PhysicalHashAggregate(){};
 
 public:
 	unique_ptr<LocalSinkState> GetLocalSinkState(ExecutionContext &context) const override;
@@ -67,6 +73,8 @@ public:
 	vector<vector<idx_t>> grouping_functions;
 	//! Whether or not all aggregates are combinable
 	bool all_combinable;
+
+	vector<uint32_t> grouping_key_idxs;
 
 	//! Whether or not any aggregation is DISTINCT
 	bool any_distinct;

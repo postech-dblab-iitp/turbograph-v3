@@ -2347,6 +2347,7 @@ void Planner::
     CExpression *pexprOuter = (*plan_expr)[0];
     CColRefArray *outer_cols = pexprOuter->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CExpression *pexprInner = (*plan_expr)[1];
+    CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
     CColRefArray *filter_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
@@ -2384,6 +2385,7 @@ void Planner::
     bool do_filter_pushdown = false;
     bool has_filter = false;
     bool has_filter_only_column = false;
+    bool skip_seek = false; // when only scan _id column
     size_t num_filter_only_col = 0;
 
     CExpression *filter_expr = NULL;
@@ -2688,6 +2690,19 @@ void Planner::
 
             bool load_system_col = false;
             CExpression *projectlist_expr = inner_root->operator[](1);
+
+            // first, check if we can skip seek
+            if (projectlist_expr->Arity() == 1) {
+                CScalarProjectElement *proj_elem =
+                    (CScalarProjectElement
+                         *)(projectlist_expr->operator[](0)->Pop());
+                CColRefTable *proj_col = (CColRefTable *)proj_elem->Pcr();
+                if (proj_col->AttrNum() == INT(-1)) {
+                    skip_seek = true;
+                }
+            }
+            if (skip_seek) break;
+            
             for (uint32_t j = 0; j < projectlist_expr->Arity(); j++) {
                 D_ASSERT(
                     projectlist_expr->operator[](j)->Pop()->Eopid() ==
@@ -2914,6 +2929,11 @@ void Planner::
             inner_root =
                 inner_root->operator[](0);  // pass first child in linear plan
         }
+    }
+
+    if (skip_seek) {
+        // check if we need to put projection operator
+        return;
     }
 
     gpos::ULONG pred_attr_pos, pred_pos;
@@ -3814,10 +3834,13 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     vector<unique_ptr<duckdb::Expression>> agg_groups;
     vector<string> output_column_names;
     vector<string> output_column_names_proj;
-    // vector<duckdb::LogicalType> groups_type;
-    // vector<ULONG> groups_idx;
-    // vector<ULONG> proj_mapping;
     vector<uint64_t> output_projection_mapping;
+    vector<unique_ptr<duckdb::Expression>> proj_exprs; // used for pre-projection
+    vector<unique_ptr<duckdb::Expression>> post_proj_exprs; // used for post-projection
+    bool has_node_grouping_key = false; // e.g. RETURN n, COUNT(neighbors)
+    vector<uint32_t> node_pid_idxs;
+    
+    // ORCA data structures
     CPhysicalAgg *agg_op = (CPhysicalAgg *)plan_expr->Pop();
     CExpression *pexprProjRelational = (*plan_expr)[0];  // Prev op
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -3829,20 +3852,29 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     const CColRefArray *grouping_cols = agg_op->PdrgpcrGroupingCols();
     CColRefSet *grouping_col_set = GPOS_NEW(mp) CColRefSet(mp, grouping_cols);
     CColRefArray *grouping_cols_sorted = grouping_col_set->Pdrgpcr(mp);
-    // used for pre-projection
-    vector<unique_ptr<duckdb::Expression>> proj_exprs;
-    // used for post-projection
-    vector<unique_ptr<duckdb::Expression>> post_proj_exprs;
+
     // get agg groups
     uint64_t num_outputs_in_grouping_col = 0;
     for (ULONG group_col_idx = 0; group_col_idx < grouping_cols_sorted->Size();
          group_col_idx++) {
         CColRef *col = grouping_cols_sorted->operator[](group_col_idx);
+
+        bool is_subordinated_col = false;
+        if (col->NodeId() != gpos::ulong_max) {
+            has_node_grouping_key = true;
+            if (col->NodeId() != col->Id()) {
+                is_subordinated_col = true;
+            } else {
+                node_pid_idxs.push_back(group_col_idx);
+            }
+        }
+
         OID type_oid = CMDIdGPDB::CastMdid(col->RetrieveType()->MDId())->Oid();
         INT type_mod = col->TypeModifier();
         duckdb::LogicalType col_type =
             pConvertTypeOidToLogicalType(type_oid, type_mod);
         ULONG child_idx = child_cols->IndexOf(col);
+
         agg_groups.push_back(make_unique<duckdb::BoundReferenceExpression>(
             col_type, child_idx));
         proj_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
@@ -3964,11 +3996,14 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
     duckdb::CypherPhysicalOperator *op;
     if (agg_groups.empty()) {
-        op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs));
+        op = new duckdb::PhysicalHashAggregate(
+            tmp_schema, output_projection_mapping, move(agg_exprs),
+            node_pid_idxs);
     }
     else {
-        op = new duckdb::PhysicalHashAggregate(tmp_schema, output_projection_mapping, move(agg_exprs),
-                                               move(agg_groups));
+        op = new duckdb::PhysicalHashAggregate(
+            tmp_schema, output_projection_mapping, move(agg_exprs),
+            move(agg_groups), node_pid_idxs);
     }
     result->push_back(op);
     pGenerateSchemaFlowGraph(*result);

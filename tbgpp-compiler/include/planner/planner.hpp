@@ -323,7 +323,7 @@ private:
         std::vector<std::vector<uint64_t>> *table_oids_in_groups,
         vector<int> &used_col_idx,
         map<uint64_t, map<uint64_t, uint64_t>> *schema_proj_mapping,
-        bool insert_projection);
+        bool insert_projection, bool whole_node_required);
     void lBuildSchemaProjectionMapping(
         std::vector<uint64_t> &table_oids, NodeOrRelExpression *node_expr,
         const expression_vector &prop_exprs,
@@ -338,7 +338,7 @@ private:
     CExpression *lExprLogicalGet(
         uint64_t obj_id, string rel_name, bool is_instance = false,
         std::vector<uint64_t> *table_oids_in_group = nullptr,
-        string alias = "");
+        bool whole_node_required = false, string alias = "");
     CExpression *lExprLogicalUnionAllWithMapping(CExpression *lhs,
                                                  CColRefArray *lhs_mapping,
                                                  CExpression *rhs,

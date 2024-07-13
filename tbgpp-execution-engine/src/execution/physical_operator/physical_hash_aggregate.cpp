@@ -22,90 +22,106 @@
 
 namespace duckdb {
 
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions)
-	: PhysicalHashAggregate(sch, output_projection_mapping, move(expressions), {}) {
+PhysicalHashAggregate::PhysicalHashAggregate(
+    Schema &sch, vector<uint64_t> &output_projection_mapping,
+    vector<unique_ptr<Expression>> expressions,
+    vector<uint32_t> &grouping_key_idxs_p)
+    : PhysicalHashAggregate(sch, output_projection_mapping, move(expressions),
+                            {}, grouping_key_idxs_p)
+{}
+PhysicalHashAggregate::PhysicalHashAggregate(
+    Schema &sch, vector<uint64_t> &output_projection_mapping,
+    vector<unique_ptr<Expression>> expressions,
+    vector<unique_ptr<Expression>> groups_p,
+    vector<uint32_t> &grouping_key_idxs_p)
+    : PhysicalHashAggregate(sch, output_projection_mapping, move(expressions),
+                            move(groups_p), {}, {}, grouping_key_idxs_p)
+{}
+PhysicalHashAggregate::PhysicalHashAggregate(
+    Schema &sch, vector<uint64_t> &output_projection_mapping,
+    vector<unique_ptr<Expression>> expressions,
+    vector<unique_ptr<Expression>> groups_p,
+    vector<GroupingSet> grouping_sets_p,
+    vector<vector<idx_t>> grouping_functions_p,
+    vector<uint32_t> &grouping_key_idxs_p)
+    : CypherPhysicalOperator(PhysicalOperatorType::HASH_AGGREGATE, sch),
+      groups(move(groups_p)),
+      grouping_sets(move(grouping_sets_p)),
+      grouping_functions(move(grouping_functions_p)),
+      all_combinable(true),
+      any_distinct(false),
+      output_projection_mapping(output_projection_mapping),
+      grouping_key_idxs(move(grouping_key_idxs_p))
+{
+    // TODO no support for custom grouping sets and grouping functions
+    D_ASSERT(grouping_sets.size() == 0);
+    D_ASSERT(grouping_functions.size() == 0);
+
+    // get a list of all aggregates to be computed
+    for (auto &expr : groups) {
+        group_types.push_back(expr->return_type);
+    }
+    if (grouping_sets.empty()) {
+        GroupingSet set;
+        for (idx_t i = 0; i < group_types.size(); i++) {
+            set.insert(i);
+        }
+        grouping_sets.push_back(move(set));
+    }
+
+    vector<LogicalType> payload_types_filters;
+    for (auto &expr : expressions) {
+        D_ASSERT(expr->expression_class == ExpressionClass::BOUND_AGGREGATE);
+        D_ASSERT(expr->IsAggregate());
+        auto &aggr = (BoundAggregateExpression &)*expr;
+        bindings.push_back(&aggr);
+
+        if (aggr.distinct) {
+            any_distinct = true;
+        }
+
+        aggregate_return_types.push_back(aggr.return_type);
+        for (auto &child : aggr.children) {
+            payload_types.push_back(child->return_type);
+        }
+        if (aggr.filter) {
+            payload_types_filters.push_back(aggr.filter->return_type);
+        }
+        if (!aggr.function.combine) {
+            all_combinable = false;
+        }
+        aggregates.push_back(move(expr));
+    }
+
+    for (const auto &pay_filters : payload_types_filters) {
+        payload_types.push_back(pay_filters);
+    }
+
+    // filter_indexes must be pre-built, not lazily instantiated in parallel...
+    idx_t aggregate_input_idx = 0;
+    for (auto &aggregate : aggregates) {
+        auto &aggr = (BoundAggregateExpression &)*aggregate;
+        aggregate_input_idx += aggr.children.size();
+    }
+    for (auto &aggregate : aggregates) {
+        auto &aggr = (BoundAggregateExpression &)*aggregate;
+        if (aggr.filter) {
+            auto &bound_ref_expr = (BoundReferenceExpression &)*aggr.filter;
+            auto it = filter_indexes.find(aggr.filter.get());
+            if (it == filter_indexes.end()) {
+                filter_indexes[aggr.filter.get()] = bound_ref_expr.index;
+                bound_ref_expr.index = aggregate_input_idx++;
+            }
+            else {
+                ++aggregate_input_idx;
+            }
+        }
+    }
+
+    for (auto &grouping_set : grouping_sets) {
+        radix_tables.emplace_back(grouping_set, *this);
+    }
 }
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping, vector<unique_ptr<Expression>> expressions,
-						vector<unique_ptr<Expression>> groups_p)
-	: PhysicalHashAggregate(sch, output_projection_mapping, move(expressions), move(groups_p), {}, {}) {
-}
-PhysicalHashAggregate::PhysicalHashAggregate(Schema& sch, vector<uint64_t> &output_projection_mapping,
-						vector<unique_ptr<Expression>> expressions,
-						vector<unique_ptr<Expression>> groups_p,
-						vector<GroupingSet> grouping_sets_p,
-						vector<vector<idx_t>> grouping_functions_p)
-	: CypherPhysicalOperator(PhysicalOperatorType::HASH_AGGREGATE, sch), groups(move(groups_p)),
-      grouping_sets(move(grouping_sets_p)), grouping_functions(move(grouping_functions_p)), all_combinable(true),	
-      any_distinct(false), output_projection_mapping(output_projection_mapping) {
-	// TODO no support for custom grouping sets and grouping functions
-	D_ASSERT(grouping_sets.size() == 0 );
-	D_ASSERT(grouping_functions.size() == 0 );
-
-	// get a list of all aggregates to be computed
-	for (auto &expr : groups) {
-		group_types.push_back(expr->return_type);
-	}
-	if (grouping_sets.empty()) {
-		GroupingSet set;
-		for (idx_t i = 0; i < group_types.size(); i++) {
-			set.insert(i);
-		}
-		grouping_sets.push_back(move(set));
-	}
-
-	vector<LogicalType> payload_types_filters;
-	for (auto &expr : expressions) {
-		D_ASSERT(expr->expression_class == ExpressionClass::BOUND_AGGREGATE);
-		D_ASSERT(expr->IsAggregate());
-		auto &aggr = (BoundAggregateExpression &)*expr;
-		bindings.push_back(&aggr);
-
-		if (aggr.distinct) {
-			any_distinct = true;
-		}
-
-		aggregate_return_types.push_back(aggr.return_type);
-		for (auto &child : aggr.children) {
-			payload_types.push_back(child->return_type);
-		}
-		if (aggr.filter) {
-			payload_types_filters.push_back(aggr.filter->return_type);
-		}
-		if (!aggr.function.combine) {
-			all_combinable = false;
-		}
-		aggregates.push_back(move(expr));
-	}
-
-	for (const auto &pay_filters : payload_types_filters) {
-		payload_types.push_back(pay_filters);
-	}
-
-	// filter_indexes must be pre-built, not lazily instantiated in parallel...
-	idx_t aggregate_input_idx = 0;
-	for (auto &aggregate : aggregates) {
-		auto &aggr = (BoundAggregateExpression &)*aggregate;
-		aggregate_input_idx += aggr.children.size();
-	}
-	for (auto &aggregate : aggregates) {
-		auto &aggr = (BoundAggregateExpression &)*aggregate;
-		if (aggr.filter) {
-			auto &bound_ref_expr = (BoundReferenceExpression &)*aggr.filter;
-			auto it = filter_indexes.find(aggr.filter.get());
-			if (it == filter_indexes.end()) {
-				filter_indexes[aggr.filter.get()] = bound_ref_expr.index;
-				bound_ref_expr.index = aggregate_input_idx++;
-			} else {
-				++aggregate_input_idx;
-			}
-		}
-	}
-
-	for (auto &grouping_set : grouping_sets) {
-		radix_tables.emplace_back(grouping_set, *this);
-	}
-}
-
 
 //===--------------------------------------------------------------------===//
 // Sink
@@ -188,11 +204,13 @@ SinkResultType PhysicalHashAggregate::Sink(ExecutionContext &context, DataChunk 
 	aggregate_input_chunk.SetCardinality(input.size());
 	aggregate_input_chunk.Verify();
 
-	for (idx_t i = 0; i < radix_tables.size(); i++) {
-		radix_tables[i].Sink(context, *llstate.global_radix_states[i], *llstate.local_radix_states[i], input, aggregate_input_chunk);
-	}
+    for (idx_t i = 0; i < radix_tables.size(); i++) {
+        radix_tables[i].Sink(context, *llstate.global_radix_states[i],
+                             *llstate.local_radix_states[i], input,
+                             aggregate_input_chunk);
+    }
 
-	num_loops++;
+    num_loops++;
 
 	return SinkResultType::NEED_MORE_INPUT;
 }

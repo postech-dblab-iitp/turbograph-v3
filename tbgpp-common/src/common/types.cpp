@@ -203,6 +203,8 @@ constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
 constexpr const LogicalTypeId LogicalType::ADJLISTCOLUMN;
 constexpr const LogicalTypeId LogicalType::ROWCOL;
+constexpr const LogicalTypeId LogicalType::NODE;
+constexpr const LogicalTypeId LogicalType::REL;
 
 constexpr const LogicalTypeId LogicalType::ANY;
 
@@ -484,6 +486,10 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 		return "ADJLISTCOLUMN";
 	case LogicalTypeId::ROWCOL:
 		return "ROWCOL";
+	case LogicalTypeId::NODE:
+		return "NODE";
+	case LogicalTypeId::REL:
+		return "REL";
 	case LogicalTypeId::PATH:
 		return "PATH";
 	}

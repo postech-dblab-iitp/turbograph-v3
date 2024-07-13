@@ -58,6 +58,8 @@ private:
 
 	ULONG m_prop_id;
 
+	ULONG m_node_id;
+
 public:
 	// ctor
 	CColumnDescriptor(CMemoryPool *mp, const IMDType *pmdtype,
@@ -140,6 +142,18 @@ public:
 	PropId() const
 	{
 		return m_prop_id;
+	}
+
+	void
+	SetNodeId(ULONG node_id)
+	{
+		m_node_id = node_id;
+	}
+
+	ULONG
+	NodeId() const
+	{
+		return m_node_id;
 	}
 
 	virtual IOstream &OsPrint(IOstream &os) const;
