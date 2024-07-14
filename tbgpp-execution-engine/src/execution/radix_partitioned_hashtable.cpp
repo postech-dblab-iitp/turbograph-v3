@@ -137,7 +137,12 @@ void RadixPartitionedHashTable::Sink(ExecutionContext &context, GlobalSinkState 
 		}
 		D_ASSERT(gstate.finalized_hts.size() == 1);
 		D_ASSERT(gstate.finalized_hts[0]);
-		gstate.total_groups += gstate.finalized_hts[0]->AddChunk(group_chunk, aggregate_input_chunk, op.grouping_key_idxs);
+		if(op.grouping_key_idxs.size() > 0) {
+			gstate.total_groups += gstate.finalized_hts[0]->AddChunk(group_chunk, aggregate_input_chunk, op.grouping_key_idxs);
+		}
+		else {
+			gstate.total_groups += gstate.finalized_hts[0]->AddChunk(group_chunk, aggregate_input_chunk);
+		}
 		return;
 	}
 

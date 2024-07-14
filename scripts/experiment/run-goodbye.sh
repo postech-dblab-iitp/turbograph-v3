@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
+cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 layering_orders=("ASCENDING")
 distributions=("0" "1" "2")
 
@@ -45,7 +45,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             for i in "${distributions[@]}"; do
                 for query_num in $queries; do
-                    query_file="${queries_path}/q${query_num}.cql"
+                    query_file="${queries_path}/zipf-${i}/q${query_num}.cql"
                     if [ ! -f "$query_file" ]; then
                         echo "Query file $query_file not found!"
                         continue

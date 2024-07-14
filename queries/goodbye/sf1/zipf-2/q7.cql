@@ -1,0 +1,1 @@
+MATCH (n) WHERE n.sparse_34 = "J" RETURN n;
