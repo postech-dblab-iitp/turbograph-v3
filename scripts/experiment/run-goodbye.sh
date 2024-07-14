@@ -16,7 +16,7 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/sf1"
+queries_path="/turbograph-v3/queries/goodbye/sf10"
 query_numbers="1-8"
 
 # Function to parse query numbers

@@ -196,7 +196,7 @@ std::vector<uint> DBSCAN<T, Float>::regionQuery(const uint pid) const
 
 #if BRUTEFORCE  //brute force  O(n^2)
     for (uint i = 0; i < this->_data->size(); ++i)
-        if (i != pid && this->_disfunc((*this->_data)[pid], (*this->_data)[i]) <
+        if (i != pid && this->_disfunc((*this->_data)[pid], (*this->_data)[i]) >
                             this->_epsilon)
             neighbors.push_back(i);
 #else  //kdtree
