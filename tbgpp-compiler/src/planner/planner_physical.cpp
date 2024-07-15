@@ -4591,20 +4591,11 @@ void Planner::pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id,
 void Planner::pBuildSchemaFlowGraphForUnaryOperator(
     duckdb::Schema &output_schema)
 {
+    // Due to unified header implementation, we can fix the num schemas to 1
     if (!generate_sfg)
         return;
-    vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
-    auto &num_schemas_of_childs_prev = num_schemas_of_childs.back();
-    duckdb::idx_t num_total_schemas_prev = 1;
-    for (auto i = 0; i < num_schemas_of_childs_prev.size(); i++) {
-        num_total_schemas_prev *= num_schemas_of_childs_prev[i];
-    }
-    // if (num_schemas_of_childs_prev.size() == 1) {
-    //     D_ASSERT(num_total_schemas_prev == prev_local_schemas.size());
-    // }
     pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-    num_schemas_of_childs.push_back({num_total_schemas_prev});
-    pipeline_schemas.push_back(prev_local_schemas);  // TODO useless..
+    num_schemas_of_childs.push_back({1});
     pipeline_union_schema.push_back(output_schema);
 }
 
@@ -5138,19 +5129,12 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
     pipelines.push_back(pipeline);
 
     // Step 1. schema flow graph
-    size_t rhs_num_schemas = 0;
     vector<duckdb::Schema> rhs_schemas;  // We need to change this.
     if (generate_sfg) {
-        // Store previous schema flow graph data structures for lhs build
-        rhs_num_schemas = pipeline_schemas.back().size();
-        rhs_schemas = pipeline_schemas.back();
         // Generate rhs schema flow graph
-        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
         duckdb::Schema prev_union_schema = pipeline_union_schema.back();
-        rhs_num_schemas = prev_local_schemas.size();
         pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-        num_schemas_of_childs.push_back({prev_local_schemas.size()});
-        pipeline_schemas.push_back(prev_local_schemas);
+        num_schemas_of_childs.push_back({1});
         pipeline_union_schema.push_back(prev_union_schema);
         pGenerateSchemaFlowGraph(*rhs_result);
         pClearSchemaFlowGraph();  // Step 2
@@ -5163,14 +5147,8 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
 
     // Step 3. schema flow graph
     if (generate_sfg) {
-        vector<duckdb::Schema> prev_local_schemas = pipeline_schemas.back();
         pipeline_operator_types.push_back(duckdb::OperatorType::BINARY);
-        num_schemas_of_childs.push_back(
-            {prev_local_schemas.size(), rhs_num_schemas});
-        vector<duckdb::Schema> out_schemas;
-        pGenerateCartesianProductSchema(prev_local_schemas, rhs_schemas,
-                                        out_schemas);
-        pipeline_schemas.push_back(out_schemas);
+        num_schemas_of_childs.push_back({1, 1});
         pipeline_union_schema.push_back(output_schema);
     }
 

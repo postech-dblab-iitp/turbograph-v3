@@ -7,7 +7,7 @@
 # distributions=("beta" "exponential" "lognormal" "pareto" "weibull" "zipf")
 cluster_algorithms=("DBSCAN" "GMM")
 cost_models=("OURS")
-layering_orders=("ASCENDING")
+layering_orders=("DESCENDING")
 distributions=("0" "1" "2")
 
 # File path to the configuration header
