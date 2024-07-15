@@ -331,16 +331,12 @@ public:
                         part_property_schema_index->find(property_key_id)->second);
                 }
                 else {
-                    idx_t_pair_vector merged_pair_vector(void_alloc);
                     auto &original_pair_vector = it->second;
                     auto &new_pair_vector = part_property_schema_index->find(property_key_id)->second;
-                    for (auto &pair : original_pair_vector) {
-                        merged_pair_vector.push_back(pair);
-                    }
-                    for (auto &pair : new_pair_vector) {
-                        merged_pair_vector.push_back(pair);
-                    }
-                    it->second = merged_pair_vector;
+                    original_pair_vector.insert(
+                        original_pair_vector.end(),
+                        new_pair_vector.begin(),
+                        new_pair_vector.end());
                 }
             }
         }

@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("DBSCAN" "GMM")
+cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("0" "1" "2")
+distributions=("1" "2")
 
 # Define target and log directories
 scale_factor=1
-target_dir_base="/data/goodbye/sf${scale_factor}/"
+target_dir_base="/data/goodbye/clustering/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory
@@ -63,7 +63,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
                     # Reun query
                     timeout 3600s \
-                        /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --warmup \
+                        /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:2 --join-order-optimizer:exhaustive --warmup \
                         >> ${log_file}
 
                     pkill -f store
