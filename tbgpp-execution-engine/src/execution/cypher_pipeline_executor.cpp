@@ -99,7 +99,6 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		// we maintain only one chunk for source node (union schema)
-        // size_t num_datachunks = i == 0 ? 1 : flow_graph[i].size();
 		size_t num_datachunks = 1;
         for (int j = 0; j < num_datachunks; j++) {
             pipeline->GetIdxOperator(i)->InitializeOutputChunks(

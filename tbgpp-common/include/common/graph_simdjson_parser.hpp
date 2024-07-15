@@ -87,8 +87,8 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::DICE;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
@@ -1265,51 +1265,35 @@ public:
         dbscan.Run(&schema_groups_with_num_tuples, 1, 2.0f, 50,
                    [&](const std::pair<std::vector<uint32_t>, uint64_t> &a,
                        const std::pair<std::vector<uint32_t>, uint64_t> &b) {
-                       double cost_current = 2 * CostSchemaVal +
-                                             _ComputeVecOvh(a.second) +
-                                             _ComputeVecOvh(b.second);
+                        int64_t num_nulls1 = 0;
+                        int64_t num_nulls2 = 0;
+                        idx_t i = 0;
+                        idx_t j = 0;
+                        while (i < a.first.size() && j < b.first.size()) {
+                            if (a.first[i] == b.first[j]) {
+                                i++;
+                                j++;
+                            } else if (a.first[i] < b.first[j]) {
+                                num_nulls1++;
+                                i++;
+                            } else {
+                                num_nulls2++;
+                                j++;
+                            }
+                        }
+                        while (i < a.first.size()) {
+                            num_nulls1++;
+                            i++;
+                        }
+                        while (j < b.first.size()) {
+                            num_nulls2++;
+                            j++;
+                        }
 
-                       int64_t num_nulls1 = 0;
-                       int64_t num_nulls2 = 0;
-                       idx_t i = 0;
-                       idx_t j = 0;
-                       while (i < a.first.size() && j < b.first.size()) {
-                           if (a.first[i] == b.first[j]) {
-                               i++;
-                               j++;
-                           }
-                           else if (a.first[i] < b.first[j]) {
-                               num_nulls1++;
-                               i++;
-                           }
-                           else {
-                               num_nulls2++;
-                               j++;
-                           }
-                       }
-                       while (i < a.first.size()) {
-                           num_nulls1++;
-                           i++;
-                       }
-                       while (j < b.first.size()) {
-                           num_nulls2++;
-                           j++;
-                       }
+                        int64_t num_common = (a.first.size() + b.first.size() - num_nulls1 - num_nulls2) / 2;
 
-                       double cost_after =
-                           CostSchemaVal +
-                           CostNullVal *
-                               (num_nulls1 * a.second + num_nulls2 * b.second) +
-                           _ComputeVecOvh(a.second + b.second);
-                       double distance = cost_after / cost_current;
-                    //    std::cout << "num_nulls1: " << num_nulls1
-                    //     << ", a.second: " << a.second
-                    //     << ", num_nulls2: " << num_nulls2
-                    //     << ", b.second: " << b.second
-                    //     << ", cost_after: " << cost_after
-                    //     << ", cost_current: " << cost_current
-                    //     << ", distance: " << distance << std::endl;
-                       return distance;
+                        double distance = num_common / (double) (a.first.size() + b.first.size() - num_common);
+                        return distance;
                    });
 
         auto &clusters = dbscan.Clusters;
@@ -3173,7 +3157,7 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
-    const double CostSchemaVal = 300;
+    const double CostSchemaVal = 100;
     // const double CostNullVal = 0.001;
     const double CostNullVal = 0.08;
     const double CostVectorizationVal = 10;
