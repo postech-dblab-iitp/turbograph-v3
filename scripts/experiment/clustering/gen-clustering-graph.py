@@ -54,7 +54,7 @@ def calculate_geomean_speedups(data, mode):
 
     elif mode == 'algorithm':
         baseline_algorithm = 'AGGLOMERATIVE'
-        algorithms = ['AGGLOMERATIVE', 'GMM', 'DBSCAN', 'OPTICS']
+        algorithms = ['AGGLOMERATIVE', 'GMM', 'DBSCAN']
         baseline_times = df[df['Algorithm'] == baseline_algorithm].groupby(['Distribution', 'Query'])['TotalTime'].mean()
         speedups = defaultdict(lambda: defaultdict(list))
         for algorithm in algorithms:
@@ -139,7 +139,7 @@ def main(folder, mode, sf_number):
     # Define custom labels for X-axis
     custom_labels_dict = {
         'measure': ['Ours', 'Overlap', 'Jaccard', 'Weighted Jaccard', 'Cosine', 'Dice'],
-        'algorithm': ['Ours', 'GMM', 'DBSCAN', 'OPTICS'],
+        'algorithm': ['Ours', 'GMM', 'DBSCAN'],
         'layering': ['Descending', 'Ascending', 'No Sort']
     }
     custom_labels = custom_labels_dict[mode]
