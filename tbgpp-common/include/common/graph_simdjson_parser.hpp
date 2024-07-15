@@ -27,11 +27,11 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.9
-#define WEIGHTEDJACCARD_THRESHOLD 0.9
-#define COSINE_THRESHOLD 0.9
-#define DICE_THRESHOLD 0.9
-#define OVERLAP_THRESHOLD 0.9
+#define JACCARD_THRESHOLD 0.75
+#define WEIGHTEDJACCARD_THRESHOLD 0.75
+#define COSINE_THRESHOLD 0.75
+#define DICE_THRESHOLD 0.75
+#define OVERLAP_THRESHOLD 0.75
 #define VEC_OVHD_THRESHOLD 1024
 
 // static variable
@@ -87,7 +87,7 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
@@ -1265,51 +1265,35 @@ public:
         dbscan.Run(&schema_groups_with_num_tuples, 1, 2.0f, 50,
                    [&](const std::pair<std::vector<uint32_t>, uint64_t> &a,
                        const std::pair<std::vector<uint32_t>, uint64_t> &b) {
-                       double cost_current = 2 * CostSchemaVal +
-                                             _ComputeVecOvh(a.second) +
-                                             _ComputeVecOvh(b.second);
+                        int64_t num_nulls1 = 0;
+                        int64_t num_nulls2 = 0;
+                        idx_t i = 0;
+                        idx_t j = 0;
+                        while (i < a.first.size() && j < b.first.size()) {
+                            if (a.first[i] == b.first[j]) {
+                                i++;
+                                j++;
+                            } else if (a.first[i] < b.first[j]) {
+                                num_nulls1++;
+                                i++;
+                            } else {
+                                num_nulls2++;
+                                j++;
+                            }
+                        }
+                        while (i < a.first.size()) {
+                            num_nulls1++;
+                            i++;
+                        }
+                        while (j < b.first.size()) {
+                            num_nulls2++;
+                            j++;
+                        }
 
-                       int64_t num_nulls1 = 0;
-                       int64_t num_nulls2 = 0;
-                       idx_t i = 0;
-                       idx_t j = 0;
-                       while (i < a.first.size() && j < b.first.size()) {
-                           if (a.first[i] == b.first[j]) {
-                               i++;
-                               j++;
-                           }
-                           else if (a.first[i] < b.first[j]) {
-                               num_nulls1++;
-                               i++;
-                           }
-                           else {
-                               num_nulls2++;
-                               j++;
-                           }
-                       }
-                       while (i < a.first.size()) {
-                           num_nulls1++;
-                           i++;
-                       }
-                       while (j < b.first.size()) {
-                           num_nulls2++;
-                           j++;
-                       }
+                        int64_t num_common = (a.first.size() + b.first.size() - num_nulls1 - num_nulls2) / 2;
 
-                       double cost_after =
-                           CostSchemaVal +
-                           CostNullVal *
-                               (num_nulls1 * a.second + num_nulls2 * b.second) +
-                           _ComputeVecOvh(a.second + b.second);
-                       double distance = cost_after / cost_current;
-                    //    std::cout << "num_nulls1: " << num_nulls1
-                    //     << ", a.second: " << a.second
-                    //     << ", num_nulls2: " << num_nulls2
-                    //     << ", b.second: " << b.second
-                    //     << ", cost_after: " << cost_after
-                    //     << ", cost_current: " << cost_current
-                    //     << ", distance: " << distance << std::endl;
-                       return distance;
+                        double distance = num_common / (double) (a.first.size() + b.first.size() - num_common);
+                        return distance;
                    });
 
         auto &clusters = dbscan.Clusters;
