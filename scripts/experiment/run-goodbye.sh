@@ -3,7 +3,7 @@
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
-layering_orders=("ASCENDING")
+layering_orders=("DESCENDING")
 distributions=("0" "1" "2")
 
 # Define target and log directories
