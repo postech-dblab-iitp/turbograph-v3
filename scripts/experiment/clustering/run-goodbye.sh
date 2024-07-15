@@ -7,7 +7,8 @@ layering_orders=("DESCENDING")
 distributions=("0" "1" "2")
 
 # Define target and log directories
-target_dir_base="/data/goodbye/"
+scale_factor=1
+target_dir_base="/data/goodbye/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory
@@ -16,7 +17,7 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/sf10"
+queries_path="/turbograph-v3/queries/goodbye/sf${scale_factor}"
 query_numbers="1-8"
 
 # Function to parse query numbers

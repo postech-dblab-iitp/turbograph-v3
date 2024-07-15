@@ -14,8 +14,9 @@ distributions=("0" "1" "2")
 config_file_path="/turbograph-v3/tbgpp-common/include/common/graph_simdjson_parser.hpp"
 
 # Define source, target, and log directories
-source_dir_base="/source-data/goodbye/sf1/"
-target_dir_base="/data/goodbye/"
+scale_factor=1
+source_dir_base="/source-data/goodbye/sf${scale_factor}/"
+target_dir_base="/data/goodbye/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
 # Function to update the configuration file with new values
