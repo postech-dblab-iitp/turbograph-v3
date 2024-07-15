@@ -4,11 +4,11 @@
 cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("1" "2")
+distributions=("0" "1" "2")
 
 # Define target and log directories
-scale_factor=1
-target_dir_base="/data/goodbye/clustering/sf${scale_factor}/"
+scale_factor=10
+target_dir_base="/data/goodbye/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory
@@ -61,10 +61,18 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     /turbograph-v3/build-release/tbgpp-graph-store/store 200GB&
                     sleep 5
 
-                    # Reun query
-                    timeout 3600s \
-                        /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:2 --join-order-optimizer:exhaustive --warmup \
-                        >> ${log_file}
+                    # Run query
+                    # if query_num is 6, then run with query mode
+                    if [ $query_num -eq 6 ]; 
+                    then
+                        timeout 3600s \
+                            /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:query --warmup \
+                            >> ${log_file}
+                    else
+                        timeout 3600s \
+                            /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --warmup \
+                            >> ${log_file}
+                    fi
 
                     pkill -f store
                     sleep 5

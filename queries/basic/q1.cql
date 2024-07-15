@@ -1,1 +1,0 @@
-MATCH (n:Object) RETURN n;

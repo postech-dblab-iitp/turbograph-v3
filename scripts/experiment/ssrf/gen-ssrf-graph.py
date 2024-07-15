@@ -49,7 +49,7 @@ def main(folder_path, scale_factor):
     geomean_slowdowns = {query: gmean(slowdowns[query]) for query in queries}
 
     # Plotting
-    formats = ['SSRF', 'UNION']
+    formats = ['SSRF', 'US']
     y_values = [1, np.mean(list(geomean_slowdowns.values()))]  # SSRF is the baseline (1), UNION is geomean slowdown
     colors = ['black', 'gray']  # Configurable colors
     font_size = 12  # Configurable font size
