@@ -5,10 +5,10 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE" "SETEDIT")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 # distributions=("beta" "exponential" "lognormal" "pareto" "weibull" "zipf")
-cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OVERLAP" "JACCARD")
+cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("0" "1" "2")
+distributions=("1" "2")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/tbgpp-common/include/common/graph_simdjson_parser.hpp"
