@@ -194,9 +194,9 @@ bool PhysicalProduceResults::IdentifyIfBaseVectorTypeIsRowVector(
             auto &child = DictionaryVector::Child(vector);
             return IdentifyIfBaseVectorTypeIsRowVector(child, ++depth);
         }
-        // case VectorType::CONSTANT_VECTOR: {
-        // 	break;
-        // }
+        case VectorType::CONSTANT_VECTOR: {
+            return false;
+        }
         case VectorType::FLAT_VECTOR: {
             return false;
         }

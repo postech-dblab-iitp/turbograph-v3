@@ -88,7 +88,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::COSINE;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
@@ -1624,7 +1624,7 @@ public:
 
         vector<float> similarities;
         _ComputeSimilarities(_schema_groups_with_num_tuples, reference_schema_group, similarities);
-
+        
         D_ASSERT(similarities.size() == _schema_groups_with_num_tuples.size());
 
         vector<vector<float>> feature_vector;
@@ -3157,7 +3157,7 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
-    const double CostSchemaVal = 100;
+    const double CostSchemaVal = 300;
     // const double CostNullVal = 0.001;
     const double CostNullVal = 0.08;
     const double CostVectorizationVal = 10;
