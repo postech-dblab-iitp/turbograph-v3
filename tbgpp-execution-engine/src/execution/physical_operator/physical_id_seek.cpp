@@ -20,6 +20,8 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
+static bool unionall_forced = true;
+
 namespace duckdb {
 
 class IdSeekState : public OperatorState {
@@ -211,7 +213,6 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                             target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
-    // format = OutputFormat::ROW;
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
@@ -1354,6 +1355,9 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
     if (sort_order_enforced) {
         throw NotImplementedException(
             "PhysicalIdSeek::determineFormatByCostModel - sort_order_enforced");
+    }
+    else if (unionall_forced) {
+        return OutputFormat::UNIONALL;
     }
     else {
         /**
