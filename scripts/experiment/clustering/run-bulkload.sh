@@ -5,7 +5,7 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE" "SETEDIT")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 # distributions=("beta" "exponential" "lognormal" "pareto" "weibull" "zipf")
-cluster_algorithms=("AGGLOMERATIVE")
+cluster_algorithms=("DBSCAN" "GMM")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
 distributions=("0" "1" "2")

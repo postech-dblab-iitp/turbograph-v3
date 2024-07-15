@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE")
+cluster_algorithms=("DBSCAN" "GMM")
 cost_models=("OURS")
-layering_orders=("DESCENDING" "ASCENDING" "NO_SORT")
+layering_orders=("DESCENDING")
 distributions=("0" "1" "2")
 
 # Define target and log directories
