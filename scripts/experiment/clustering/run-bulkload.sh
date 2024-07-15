@@ -8,7 +8,7 @@
 cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("1" "2")
+distributions=("0" "1" "2")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/tbgpp-common/include/common/graph_simdjson_parser.hpp"
