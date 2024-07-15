@@ -2,8 +2,8 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
-layering_orders=("ASCENDING")
+cost_models=("OURS")
+layering_orders=("DESCENDING" "ASCENDING" "NO_SORT")
 distributions=("0" "1" "2")
 
 # Define target and log directories
@@ -16,7 +16,7 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/sf1"
+queries_path="/turbograph-v3/queries/goodbye/sf10"
 query_numbers="1-8"
 
 # Function to parse query numbers
