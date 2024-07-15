@@ -87,7 +87,7 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/

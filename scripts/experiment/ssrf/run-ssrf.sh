@@ -6,11 +6,12 @@ distributions=("0" "1" "2")
 config_file_path="/turbograph-v3/tbgpp-execution-engine/src/execution/physical_operator/physical_id_seek.cpp"
 
 # Define source, target, and log directories
-target_dir_base="/data/goodbye/"
+scale_factor=10
+target_dir_base="/data/goodbye/sf${scale_factor}"
 log_dir_base="/turbograph-v3/logs"
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/sf10"
+queries_path="/turbograph-v3/queries/goodbye/sf${scale_factor}"
 query_numbers="1-8"
 
 # Function to update the configuration file with new values
