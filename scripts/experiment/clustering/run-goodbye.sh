@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
+cluster_algorithms=("GMM" "DBSCAN")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("1" "2")
+distributions=("0" "1" "2")
 
 # Define target and log directories
 scale_factor=1
@@ -17,7 +17,7 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/sf${scale_factor}"
+queries_path="/turbograph-v3/queries/goodbye/clustering/sf${scale_factor}"
 query_numbers="1-8"
 
 # Function to parse query numbers
@@ -46,7 +46,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             for i in "${distributions[@]}"; do
                 for query_num in $queries; do
-                    query_file="${queries_path}/zipf-${i}/q${query_num}.cql"
+                    query_file="${queries_path}/q${query_num}.cql"
                     if [ ! -f "$query_file" ]; then
                         echo "Query file $query_file not found!"
                         continue
