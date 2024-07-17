@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
+cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("0" "1" "2")
+distributions=("0")
 
 # Define target and log directories
-scale_factor=10
+scale_factor=100
 target_dir_base="/data/goodbye/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
@@ -58,7 +58,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     log_file="${log_dir}/goodbye_zipf_${i}_Q${query_num}_${cluster_algo}_${cost_model}_${layering_order}.txt"
 
                     # Run store
-                    /turbograph-v3/build-release/tbgpp-graph-store/store 200GB&
+                    /turbograph-v3/build-release/tbgpp-graph-store/store 365GB&
                     sleep 5
 
                     # Run query
