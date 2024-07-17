@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = false;
+static bool unionall_forced = true;
 
 namespace duckdb {
 
@@ -1410,9 +1410,7 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
-    // vector<idx_t> outer_output_col_idx;
-    // getOutputColIdxsForOuter(outer_output_col_idx);
-
+    static size_t num_nulls_added = 0;
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
         vector<idx_t> inner_output_col_idx;
         getOutputColIdxsForInner(extentIdx, mapping_idxs, inner_output_col_idx);
@@ -1435,11 +1433,13 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
                     validity.Initialize(STANDARD_VECTOR_SIZE);
                 }
                 for (auto seqno : target_seqnos) {
+                    num_nulls_added++;
                     validity.SetInvalid(seqno);
                 }
             }
         }
     }
+    std::cout << "num_nulls_added: " << num_nulls_added << std::endl;
 }
 
 
