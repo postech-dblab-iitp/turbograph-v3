@@ -5,10 +5,10 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE" "SETEDIT")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 # distributions=("beta" "exponential" "lognormal" "pareto" "weibull" "zipf")
-cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
+cluster_algorithms=("GMM")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-distributions=("0" "1" "2")
+distributions=("0")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/tbgpp-common/include/common/graph_simdjson_parser.hpp"
@@ -54,7 +54,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 rm -rf ${target_dir}
                 mkdir -p ${target_dir}
                 
-                /turbograph-v3/build-release/tbgpp-graph-store/store 200GB &
+                /turbograph-v3/build-release/tbgpp-graph-store/store 365GB &
                 /turbograph-v3/build-release/tbgpp-graph-store/catalog_test_catalog_server ${target_dir} &
                 sleep 5
 
@@ -65,15 +65,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --jsonl:"--file_path:${source_dir}/Object_zipf_${i}.json --nodes:Object" \
                     --nodes:Field ${source_dir}/Field.csv \
                     --relationships:OBJECT_CAN_TRANSFORM_INTO_OBJECT ${source_dir}/Object_CAN_TRANSFORM_INTO_Object.csv \
-                    --relationships_backward:OBJECT_CAN_TRANSFORM_INTO_OBJECT ${source_dir}/Object_CAN_TRANSFORM_INTO_Object.csv.backward \
-                    --relationships:PACKAGE_CAN_TRANSFORM_INTO_PACKAGE ${source_dir}/Package_CAN_TRANSFORM_INTO_Package.csv \
-                    --relationships_backward:PACKAGE_CAN_TRANSFORM_INTO_PACKAGE ${source_dir}/Package_CAN_TRANSFORM_INTO_Package.csv.backward \
-                    --relationships:FIELD_CAN_TRANSFORM_INTO_FIELD ${source_dir}/Field_CAN_TRANSFORM_INTO_Field.csv \
-                    --relationships_backward:FIELD_CAN_TRANSFORM_INTO_FIELD ${source_dir}/Field_CAN_TRANSFORM_INTO_Field.csv.backward \
-                    --relationships:OBJECT_COMPOSED_OF_FIELD ${source_dir}/Object_COMPOSED_OF_Field.csv \
-                    --relationships_backward:OBJECT_COMPOSED_OF_FIELD ${source_dir}/Object_COMPOSED_OF_Field.csv.backward \
-                    --relationships:PACKAGE_COMPOSED_OF_OBJECT ${source_dir}/Package_COMPOSED_OF_Object.csv \
-                    --relationships_backward:PACKAGE_COMPOSED_OF_OBJECT ${source_dir}/Package_COMPOSED_OF_Object.csv.backward &> ${log_file}
+                    --relationships_backward:OBJECT_CAN_TRANSFORM_INTO_OBJECT ${source_dir}/Object_CAN_TRANSFORM_INTO_Object.csv.backward &> ${log_file}
                 
                 /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
                 /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;

@@ -27,7 +27,7 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.75
+#define JACCARD_THRESHOLD 0.5
 #define WEIGHTEDJACCARD_THRESHOLD 0.75
 #define COSINE_THRESHOLD 0.75
 #define DICE_THRESHOLD 0.75
@@ -87,7 +87,7 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::GMM;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
@@ -1617,8 +1617,11 @@ public:
 
         D_ASSERT(_schema_groups_with_num_tuples.size() == schemas_in_cluster.size());
 
+        boost::timer::cpu_timer gmm_timer;
         vector<uint32_t> reference_schema_group;
         _GetReferenceSchemaGroup(_schema_groups_with_num_tuples, reference_schema_group);
+        auto gmm_timer_ms = gmm_timer.elapsed().wall / 1000000.0;
+        std::cout << "\nGMM Time: "  << gmm_timer_ms << " ms" << std::endl;
 
         D_ASSERT(reference_schema_group.size() == 1); // 1-most frequent property id
 
