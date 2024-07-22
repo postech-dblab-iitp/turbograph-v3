@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE" "GMM" "DBSCAN")
-cost_models=("OURS")
+cluster_algorithms=("AGGLOMERATIVE")
+cost_models=("OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 layering_orders=("DESCENDING")
 distributions=("0" "1" "2")
 
 # Define target and log directories
 scale_factor=10
-target_dir_base="/data/goodbye/sf${scale_factor}/"
+target_dir_base="/data/goodbye/threshold-6/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory

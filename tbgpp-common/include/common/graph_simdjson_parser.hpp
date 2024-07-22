@@ -27,11 +27,11 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.75
-#define WEIGHTEDJACCARD_THRESHOLD 0.75
-#define COSINE_THRESHOLD 0.75
-#define DICE_THRESHOLD 0.75
-#define OVERLAP_THRESHOLD 0.75
+#define JACCARD_THRESHOLD 0.6
+#define WEIGHTEDJACCARD_THRESHOLD 0.6
+#define COSINE_THRESHOLD 0.6
+#define DICE_THRESHOLD 0.6
+#define OVERLAP_THRESHOLD 0.6
 #define VEC_OVHD_THRESHOLD 1024
 
 // static variable
@@ -88,7 +88,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::OURS;
+    const CostModel cost_model = CostModel::DICE;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
