@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-num_schemas=("16")
+num_schemas=("2")
 
 # Define target and log directories
 target_dir_base="/data/goodbye/coalesce/"
@@ -11,7 +11,7 @@ log_dir_base="/turbograph-v3/logs"
 log_dir="${log_dir_base}/coalesce"
 
 # Input parameters
-queries_path="/turbograph-v3/queries/goodbye/clustering/sf1"
+queries_path="/turbograph-v3/queries/goodbye/sf1/zipf-0"
 query_numbers="1;2;3;4;5;6;8"
 
 # Function to parse query numbers
