@@ -570,7 +570,9 @@ void *Planner::_orcaExec(void *planner_ptr)
         boost::timer::cpu_timer physical_transform_timer;
         physical_transform_timer.start();
 #endif
-        planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
+        if (!planner->config.ORCA_COMPILE_ONLY) {
+            planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
+        }
 #ifdef BREAKDOWN_COMPILE_TIME
         auto physical_transform_timer_ms =
             physical_transform_timer.elapsed().wall / 1000000.0;
