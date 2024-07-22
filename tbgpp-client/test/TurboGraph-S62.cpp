@@ -458,8 +458,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			}
 		}
 		if(warmup) {
-			query_execution_times.erase(query_execution_times.begin());
-			query_compile_times.erase(query_compile_times.begin());
+			if (query_execution_times.size() > 0) {
+				query_execution_times.erase(query_execution_times.begin());
+			}
+			if (query_compile_times.size() > 0) {
+				query_compile_times.erase(query_compile_times.begin());
+			}
 		}
 		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
 		double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
