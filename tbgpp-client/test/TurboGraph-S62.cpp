@@ -133,6 +133,7 @@ bool run_plan_wo_compile = false;
 bool show_top_10_only = false;
 bool dump_output = false;
 bool is_compile_only = false;
+bool is_orca_compile_only = false;
 bool warmup = false;
 
 s62::PlannerConfig planner_config;		// passed to query planner
@@ -249,6 +250,9 @@ class InputParser{
 			workspace = std::string(*itr).substr(12);
 		} else if (std::strncmp(current_str.c_str(), "--compile-only", 14) == 0) {
 			is_compile_only = true;
+		} else if (std::strncmp(current_str.c_str(), "--orca-compile-only", 19) == 0) {
+			is_compile_only = true;
+			planner_config.ORCA_COMPILE_ONLY = true;
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;

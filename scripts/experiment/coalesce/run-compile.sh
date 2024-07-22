@@ -55,7 +55,7 @@ for num_schema in "${num_schemas[@]}"; do
 
         # Reun query
         timeout 3600s \
-            /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --warmup --compile-only \
+            /turbograph-v3/build/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --warmup --orca-compile-only \
             >> ${log_file}
 
         pkill -f store
