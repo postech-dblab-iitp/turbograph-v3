@@ -838,6 +838,7 @@ OperatorResultType PhysicalIdSeek::referInputChunk(DataChunk &input,
                                                    output_size);
             }
         }
+        // Slice filter columns (note that those columns are appened to the outer cols)
         for (int i = 0; i < inner_col_maps[0].size(); i++) {
             if (inner_col_maps[0][i] != std::numeric_limits<uint32_t>::max()) {
                 chunk.data[inner_col_maps[0][i]].Slice(
@@ -1247,11 +1248,18 @@ void PhysicalIdSeek::genNonPredColIdxs()
             }
         }
         else {
+            // In filter pushdown case, IdSeek first scans predicate columns
+            // and append it to the outer columns, which creates temp chunk.
+            // Compiler is aware of this, thus the pred_col_idxs_per_schema 
+            // have column indexes of temp chunk, not the actual output chunk.
+            // Therefore, we should iterate from 0 to
+            // inner_col_map.size() + this->outer_col_map.size()
             auto &pred_col_idxs = this->pred_col_idxs_per_schema[i];
-            for (auto j = 0; j < inner_col_map.size(); j++) {
-                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), inner_col_map[j]) ==
+            for (auto j = 0;
+                 j < inner_col_map.size() + this->outer_col_map.size(); j++) {
+                if (std::find(pred_col_idxs.begin(), pred_col_idxs.end(), j) ==
                     pred_col_idxs.end()) {
-                    non_pred_col_idxs_per_schema[i].push_back(inner_col_map[j]);
+                    non_pred_col_idxs_per_schema[i].push_back(j);
                 }
             }
         }
@@ -1433,13 +1441,11 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
                     validity.Initialize(STANDARD_VECTOR_SIZE);
                 }
                 for (auto seqno : target_seqnos) {
-                    num_nulls_added++;
                     validity.SetInvalid(seqno);
                 }
             }
         }
     }
-    std::cout << "num_nulls_added: " << num_nulls_added << std::endl;
 }
 
 
