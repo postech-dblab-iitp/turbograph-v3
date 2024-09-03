@@ -1021,7 +1021,8 @@ string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& 
     if (ctx.UnescapedSymbolicName()) {
         return ctx.UnescapedSymbolicName()->getText();
     } else if (ctx.EscapedSymbolicName()) {
-        return ctx.EscapedSymbolicName()->getText();
+        std::string escapedName = ctx.EscapedSymbolicName()->getText();
+        return std::string(escapedName.begin(), std::remove(escapedName.begin(), escapedName.end(), '`'));
     } else {
         assert(ctx.HexLetter());
         return ctx.HexLetter()->getText();
