@@ -459,11 +459,6 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);	// to lower case
 	D_ASSERT(func_name != "");
 
-	// TODO we need to handle like
-	if (func_name == "regexp_matches") {
-		func_name = "~~";
-	}
-
 	// refer expression_type.h
 	bool child_exists = children.size() > 0;
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
