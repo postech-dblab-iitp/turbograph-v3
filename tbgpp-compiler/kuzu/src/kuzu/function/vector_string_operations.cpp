@@ -154,6 +154,11 @@ RegexMatchesVectorOperation::getDefinitions() {
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCH_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING, STRING}, BOOL,
+        empty_scalar_exec_func(),
+        empty_scalar_select_func(),
+        false /* isVarLength */));
     return definitions;
 }
 
