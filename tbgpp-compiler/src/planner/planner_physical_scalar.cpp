@@ -29,6 +29,7 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarExpr(CExpression * scala
 		case COperator::EopScalarAggFunc: return pTransformScalarAggFunc(scalar_expr, lhs_child_cols, rhs_child_cols);
 		case COperator::EopScalarFunc: return pTransformScalarFunc(scalar_expr, lhs_child_cols, rhs_child_cols);
 		case COperator::EopScalarSwitch: return pTransformScalarSwitch(scalar_expr, lhs_child_cols, rhs_child_cols);
+		case COperator::EopScalarNullTest: return pTransformScalarNullTest(scalar_expr, lhs_child_cols, rhs_child_cols);
 		default:
 			GPOS_ASSERT(false); // NOT implemented yet
 	}
@@ -403,6 +404,13 @@ unique_ptr<duckdb::Expression> Planner::pTransformScalarSwitch(CExpression *scal
 
 	return make_unique<duckdb::BoundCaseExpression>(move(e_when), move(e_then), move(e_else));
 }
+
+unique_ptr<duckdb::Expression> Planner::pTransformScalarNullTest(CExpression *scalar_expr, CColRefArray *lhs_child_cols, CColRefArray* rhs_child_cols) {
+	auto result = make_unique<duckdb::BoundOperatorExpression>(duckdb::ExpressionType::OPERATOR_IS_NULL, duckdb::LogicalType::BOOLEAN);
+	result->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](0), lhs_child_cols, rhs_child_cols)));
+	return std::move(result);
+}
+
 
 unique_ptr<duckdb::Expression> Planner::pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type) {
 	return make_unique<duckdb::BoundCastExpression>(move(orig_expr), target_type, false /* try_cast */);
