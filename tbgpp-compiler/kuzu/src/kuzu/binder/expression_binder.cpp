@@ -195,20 +195,17 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     const ParsedExpression& parsedExpression) {
-// TODO jhko do nothing
-        return make_shared<Expression>(kuzu::common::ExpressionType::VARIABLE, kuzu::common::DataType(), "EMPTY_EXPRESSION");
-
-    // expression_vector children;
-    // for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-    //     children.push_back(bindExpression(*parsedExpression.getChild(i)));
-    // }
-    // auto expressionType = parsedExpression.getExpressionType();
-    // auto functionName = expressionTypeToString(expressionType);
-    // auto execFunc = VectorNullOperations::bindExecFunction(expressionType, children);
-    // auto selectFunc = VectorNullOperations::bindSelectFunction(expressionType, children);
-    // auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    // return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
-    //     move(execFunc), move(selectFunc), uniqueExpressionName);
+    expression_vector children;
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    }
+    auto expressionType = parsedExpression.getExpressionType();
+    auto functionName = expressionTypeToString(expressionType);
+    auto execFunc = empty_scalar_exec_func();
+    auto selectFunc = empty_scalar_select_func();
+    auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
+        move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(

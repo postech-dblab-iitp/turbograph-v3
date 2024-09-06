@@ -35,6 +35,9 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 		return lExprScalarLiteralExpr(expression, prev_plan, required_type);
 	case AGGREGATE_FUNCTION:
 		return lExprScalarAggFuncExpr(expression, prev_plan, required_type);
+	case IS_NULL:
+	case IS_NOT_NULL:
+		return lExprScalarNullOp(expression, prev_plan, required_type);
 	case FUNCTION:
 		return lExprScalarFuncExpr(expression, prev_plan, required_type);
 	case CASE_ELSE:
@@ -91,6 +94,27 @@ CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, Lo
 
 	return CUtils::PexprScalarBoolOp(mp, op_type, pdrgpexprChildren);
 
+}
+
+CExpression *Planner::lExprScalarNullOp(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
+
+	CMemoryPool* mp = this->memory_pool;
+	ScalarFunctionExpression* bool_expr = (ScalarFunctionExpression*) expression;
+	auto children = bool_expr->getChildren();
+
+	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
+	CExpression* child_expr =  lExprScalarExpression(children[0].get(), prev_plan, required_type);
+
+	// PexprScalarBoolOp
+	CScalarBoolOp::EBoolOperator op_type;
+	switch(bool_expr->expressionType) {
+		case ExpressionType::IS_NULL:
+			return CUtils::PexprIsNull(mp, child_expr);
+		case ExpressionType::IS_NOT_NULL:
+			return CUtils::PexprIsNotNull(mp, child_expr);
+		default:
+			D_ASSERT(false);
+	}
 }
 
 CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expression, LogicalPlan* prev_plan, DataTypeID required_type) {
