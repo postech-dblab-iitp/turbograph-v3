@@ -1,0 +1,67 @@
+#!/bin/bash
+data_dir=$1
+db_dir=$2
+
+./tbgpp-execution-engine/bulkload_using_map \
+	--output_dir:${db_dir} \
+	--jsonl:"--file_path:${data_dir}/nodes.json --nodes:Node" \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/friendOf ${data_dir}/edges_friendOf.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/friendOf ${data_dir}/edges_friendOf.csv.backward \
+    --relationships:http://schema.org/eligibleRegion ${data_dir}/edges_eligibleRegion.csv \
+    --relationships_backward:http://schema.org/eligibleRegion ${data_dir}/edges_eligibleRegion.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/follows ${data_dir}/edges_follows.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/follows ${data_dir}/edges_follows.csv.backward \
+    --relationships:http://purl.org/stuff/rev#reviewer ${data_dir}/edges_rev.csv \
+    --relationships_backward:http://purl.org/stuff/rev#reviewer ${data_dir}/edges_rev.csv.backward \
+    --relationships:http://ogp.me/ns#tag ${data_dir}/edges_ns.csv \
+    --relationships_backward:http://ogp.me/ns#tag ${data_dir}/edges_ns.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/subscribes ${data_dir}/edges_subscribes.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/subscribes ${data_dir}/edges_subscribes.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/gender ${data_dir}/edges_gender.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/gender ${data_dir}/edges_gender.csv.backward \
+    --relationships:http://purl.org/stuff/rev#hasReview ${data_dir}/edges_rev.csv \
+    --relationships_backward:http://purl.org/stuff/rev#hasReview ${data_dir}/edges_rev.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/hasGenre ${data_dir}/edges_hasGenre.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/hasGenre ${data_dir}/edges_hasGenre.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/makesPurchase ${data_dir}/edges_makesPurchase.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/makesPurchase ${data_dir}/edges_makesPurchase.csv.backward \
+    --relationships:http://schema.org/actor ${data_dir}/edges_actor.csv \
+    --relationships_backward:http://schema.org/actor ${data_dir}/edges_actor.csv.backward \
+    --relationships:http://purl.org/goodrelations/includes ${data_dir}/edges_includes.csv \
+    --relationships_backward:http://purl.org/goodrelations/includes ${data_dir}/edges_includes.csv.backward \
+    --relationships:http://purl.org/dc/terms/Location ${data_dir}/edges_Location.csv \
+    --relationships_backward:http://purl.org/dc/terms/Location ${data_dir}/edges_Location.csv.backward \
+    --relationships:http://purl.org/goodrelations/offers ${data_dir}/edges_offers.csv \
+    --relationships_backward:http://purl.org/goodrelations/offers ${data_dir}/edges_offers.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor ${data_dir}/edges_purchaseFor.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/purchaseFor ${data_dir}/edges_purchaseFor.csv.backward \
+    --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/likes ${data_dir}/edges_likes.csv \
+    --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/likes ${data_dir}/edges_likes.csv.backward \
+    --relationships:http://www.w3.org/1999/02/22-rdf-syntax-ns#type ${data_dir}/edges_22-rdf-syntax-ns.csv \
+    --relationships_backward:http://www.w3.org/1999/02/22-rdf-syntax-ns#type ${data_dir}/edges_22-rdf-syntax-ns.csv.backward \
+    --relationships:http://xmlns.com/foaf/age ${data_dir}/edges_age.csv \
+    --relationships_backward:http://xmlns.com/foaf/age ${data_dir}/edges_age.csv.backward \
+    --relationships:http://www.geonames.org/ontology#parentCountry ${data_dir}/edges_ontology.csv \
+    --relationships_backward:http://www.geonames.org/ontology#parentCountry ${data_dir}/edges_ontology.csv.backward \
+    --relationships:http://schema.org/nationality ${data_dir}/edges_nationality.csv \
+    --relationships_backward:http://schema.org/nationality ${data_dir}/edges_nationality.csv.backward \
+    --relationships:http://schema.org/language ${data_dir}/edges_language.csv \
+    --relationships_backward:http://schema.org/language ${data_dir}/edges_language.csv.backward \
+    --relationships:http://schema.org/director ${data_dir}/edges_director.csv \
+    --relationships_backward:http://schema.org/director ${data_dir}/edges_director.csv.backward \
+    --relationships:http://xmlns.com/foaf/homepage ${data_dir}/edges_homepage.csv \
+    --relationships_backward:http://xmlns.com/foaf/homepage ${data_dir}/edges_homepage.csv.backward \
+    --relationships:http://schema.org/employee ${data_dir}/edges_employee.csv \
+    --relationships_backward:http://schema.org/employee ${data_dir}/edges_employee.csv.backward \
+    --relationships:http://purl.org/ontology/mo/conductor ${data_dir}/edges_conductor.csv \
+    --relationships_backward:http://purl.org/ontology/mo/conductor ${data_dir}/edges_conductor.csv.backward \
+    --relationships:http://schema.org/author ${data_dir}/edges_author.csv \
+    --relationships_backward:http://schema.org/author ${data_dir}/edges_author.csv.backward \
+    --relationships:http://purl.org/ontology/mo/performed_in ${data_dir}/edges_performed_in.csv \
+    --relationships_backward:http://purl.org/ontology/mo/performed_in ${data_dir}/edges_performed_in.csv.backward \
+    --relationships:http://schema.org/contactPoint ${data_dir}/edges_contactPoint.csv \
+    --relationships_backward:http://schema.org/contactPoint ${data_dir}/edges_contactPoint.csv.backward \
+    --relationships:http://schema.org/editor ${data_dir}/edges_editor.csv \
+    --relationships_backward:http://schema.org/editor ${data_dir}/edges_editor.csv.backward \
+    --relationships:http://purl.org/ontology/mo/artist ${data_dir}/edges_artist.csv \
+    --relationships_backward:http://purl.org/ontology/mo/artist ${data_dir}/edges_artist.csv.backward
