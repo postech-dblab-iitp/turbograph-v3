@@ -199,6 +199,18 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         children.push_back(bindExpression(*parsedExpression.getChild(i)));
     }
+    // Assumption: IS NOT NULL filter (no IS NULL filter)
+    // If IS NULL, don't set filter column
+    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+        if (children[i]->expressionType == ExpressionType::PROPERTY) {
+            auto &property = (PropertyExpression&)*children[i];
+            auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
+            node_expr->setUsedForFilterColumn(property.getPropertyName());
+        }
+        else {
+            D_ASSERT(false);
+        }
+    }
     auto expressionType = parsedExpression.getExpressionType();
     auto functionName = expressionTypeToString(expressionType);
     auto execFunc = empty_scalar_exec_func();

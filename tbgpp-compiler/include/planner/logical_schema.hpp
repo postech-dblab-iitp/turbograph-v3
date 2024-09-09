@@ -232,7 +232,7 @@ private:
 
 /* Append to the last column of the schema */
 	void appendKey(string& k1, string& k2, CColRef* colref, bool is_node, bool is_edge) {
-		size_t dot_pos = k2.find_last_of(".");
+		size_t dot_pos = k2.find_first_of(".");
 		// make sure the poisition is valid
 		if (dot_pos != string::npos)
 			k2 = k2.substr(dot_pos+1);

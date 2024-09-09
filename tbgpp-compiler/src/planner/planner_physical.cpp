@@ -5340,7 +5340,8 @@ void Planner::pGetFilterOnlyInnerColsIdx(CExpression *expr,
         case COperator::EopScalarAggFunc:
         case COperator::EopScalarFunc:
         case COperator::EopScalarCmp:
-        case COperator::EopScalarSwitch: {
+        case COperator::EopScalarSwitch:
+        case COperator::EopScalarNullTest: {
             for (ULONG child_idx = 0; child_idx < expr->Arity(); child_idx++) {
                 pGetFilterOnlyInnerColsIdx(expr->operator[](child_idx),
                                            inner_cols, output_cols,
