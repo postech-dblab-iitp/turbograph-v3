@@ -340,7 +340,7 @@ void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk
 		std::cout << "Dump Done!" << std::endl << std::endl;;
 	}
 
-	OutputUtil::PrintQueryOutput(col_names, resultChunks, true);
+	OutputUtil::PrintQueryOutput(col_names, resultChunks, false);
 }
 
 void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62::Planner& planner, kuzu::binder::Binder &binder) {
