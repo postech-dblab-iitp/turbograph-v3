@@ -278,10 +278,10 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, vector<vector<vector<idx_t>>> &adj_list_buffers, 
 	LogicalType edge_direction_type, PartitionID part_id) {
 	for (auto idx = 0; idx < adj_list_buffers.size(); idx++) {
+		if (idx > 1) continue;
 		ExtentID cur_vertex_localextentID = idx;
 		ExtentID cur_vertex_extentID = cur_vertex_localextentID | (((uint32_t)part_id) << 16);
 		vector<vector<idx_t>> &adj_list_buffer = adj_list_buffers[idx];
-		if (adj_list_buffer.size() == 0) continue;
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { edge_direction_type };
 		vector<data_ptr_t> adj_list_datas(1);
@@ -296,12 +296,23 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		tmp_adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE + adj_len_total);
 		
 		size_t offset = STORAGE_STANDARD_VECTOR_SIZE;
-		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
-			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
-				tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
+		if (adj_list_buffer.size() == 0) {
+			std::cout << "\nEmpty case" << std::endl;
+			std::cout << "idx: " << idx << std::endl;
+			std::cout << "adj_len_total: " << adj_len_total << std::endl;
+			for (size_t i = 0; i < STORAGE_STANDARD_VECTOR_SIZE; i++) {
+				tmp_adj_list_buffer[i] = offset;
 			}
-			offset += adj_list_buffer[i].size();
-			tmp_adj_list_buffer[i] = offset;
+		}
+		else {
+
+			for (size_t i = 0; i < adj_list_buffer.size(); i++) {
+				for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
+					tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
+				}
+				offset += adj_list_buffer[i].size();
+				tmp_adj_list_buffer[i] = offset;
+			}
 		}
 		adj_list_datas[0] = (data_ptr_t) tmp_adj_list_buffer.data();
 

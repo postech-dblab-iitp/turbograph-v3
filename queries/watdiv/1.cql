@@ -8,11 +8,5 @@ v0.`http://schema.org/contentRating` IS NOT NULL AND
 v4.`http://purl.org/stuff/rev#title` IS NOT NULL
 RETURN v0.id, v4.id, v6.id, v7.id
 
-MATCH (v0)
-WHERE v0.`http://schema.org/caption` IS NOT NULL
-RETURN v0.id
-
-MATCH (v0) 
-WHERE v0.id = 37 AND 
-v0.`http://schema.org/caption` IS NOT NULL 
-RETURN v0.`http://schema.org/caption`;
+MATCH (v7)-[:actor]->(v6)
+RETURN v7.id, v6.id;
