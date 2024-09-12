@@ -238,6 +238,7 @@ public:
 	
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
+	ExtentID GetCurrentExtentID();
 
 	idx_t GetNewTemporalID()
 	{

@@ -85,6 +85,13 @@ PartitionID PartitionCatalogEntry::GetPartitionID()
     return pid;
 }
 
+ExtentID PartitionCatalogEntry::GetCurrentExtentID()
+{
+    ExtentID eid = pid;
+    eid = eid << 16;
+    return eid + local_extent_id_version;
+}
+
 ExtentID PartitionCatalogEntry::GetNewExtentID()
 {
     ExtentID new_eid = pid;

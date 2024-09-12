@@ -5153,9 +5153,9 @@ void Planner::pGetProjectionExprs(
     vector<duckdb::LogicalType> output_types, vector<duckdb::idx_t> &ref_idxs,
     vector<unique_ptr<duckdb::Expression>> &out_exprs)
 {
-    for (auto idx : ref_idxs) {
+    for (int i = 0; i < ref_idxs.size(); i++) {
         out_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
-            output_types[idx], idx));
+            output_types[i], ref_idxs[i]));
     }
 }
 

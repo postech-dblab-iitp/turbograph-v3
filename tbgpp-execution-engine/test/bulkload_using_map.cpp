@@ -276,9 +276,9 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 }
 
 void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, vector<vector<vector<idx_t>>> &adj_list_buffers, 
-	LogicalType edge_direction_type, PartitionID part_id) {
+	LogicalType edge_direction_type, PartitionID part_id, ExtentID max_extent_id) {
 	for (auto idx = 0; idx < adj_list_buffers.size(); idx++) {
-		if (idx > 1) continue;
+		if (idx >= max_extent_id) continue;
 		ExtentID cur_vertex_localextentID = idx;
 		ExtentID cur_vertex_extentID = cur_vertex_localextentID | (((uint32_t)part_id) << 16);
 		vector<vector<idx_t>> &adj_list_buffer = adj_list_buffers[idx];
@@ -297,9 +297,6 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		
 		size_t offset = STORAGE_STANDARD_VECTOR_SIZE;
 		if (adj_list_buffer.size() == 0) {
-			std::cout << "\nEmpty case" << std::endl;
-			std::cout << "idx: " << idx << std::endl;
-			std::cout << "adj_len_total: " << adj_len_total << std::endl;
 			for (size_t i = 0; i < STORAGE_STANDARD_VECTOR_SIZE; i++) {
 				tmp_adj_list_buffer[i] = offset;
 			}
@@ -876,7 +873,10 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		}
 		
 		// Process remaining adjlist
-		AppendAdjListChunk(ext_mng, client, adj_list_buffers, LogicalType::FORWARD_ADJLIST, cur_part_id);
+		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		PartitionCatalogEntry *src_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
+		AppendAdjListChunk(ext_mng, client, adj_list_buffers, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetCurrentExtentID());
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
@@ -1059,7 +1059,10 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		}
 
 		// Process remaining adjlist
-		AppendAdjListChunk(ext_mng, client, adj_list_buffers, LogicalType::BACKWARD_ADJLIST, cur_part_id);
+		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		PartitionCatalogEntry *src_part_cat_entry = 
+			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
+		AppendAdjListChunk(ext_mng, client, adj_list_buffers, LogicalType::BACKWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetCurrentExtentID());
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;

@@ -182,6 +182,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
     Catalog &cat_instance = client.db->GetCatalog();
 	ExtentID prev_eid = std::numeric_limits<ExtentID>::max();
 	Vector &src_vid_column_vector = input.data[nodeColIdx];
+	vector<ExtentID> pruned_eids;
 	target_eid_flags.reset();
 
 	// Cursor initialization
@@ -318,6 +319,9 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 			if (eid_to_mapping_idx[ext_seqno] != -1) {
 				target_eids.push_back(eid);
 			}
+			else {
+				pruned_eids.push_back(eid);
+			}
 		}
 	}
 
@@ -329,6 +333,13 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 		D_ASSERT(mapping_idx != -1);
 		mapping_idxs.push_back(mapping_idx);
 		if (mapping_idx != mapping_idxs[0]) is_multi_schema = true;
+		auto &vec = target_seqnos_per_extent_map[ext_seqno];
+		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
+		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
+	}
+	// Append vector for the pruned eids (this will used in Seek for nullify)
+	for (auto i = 0; i < pruned_eids.size(); i++) {
+		auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(pruned_eids[i]);
 		auto &vec = target_seqnos_per_extent_map[ext_seqno];
 		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
 		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});

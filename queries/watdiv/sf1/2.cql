@@ -9,4 +9,4 @@ WHERE v0.`http://schema.org/legalName` IS NOT NULL AND
 v101.uri = "http://db.uwaterloo.ca/~galuc/wsdbm/Country5" AND 
 v4.`http://schema.org/jobTitle` IS NOT NULL AND 
 v8.`http://purl.org/stuff/rev#totalVotes` IS NOT NULL
-RETURN v0.id, v3.id, v4.id, v8.id
+RETURN v0, v3, v4, v8

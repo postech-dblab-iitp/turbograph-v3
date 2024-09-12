@@ -4,4 +4,4 @@ MATCH (v0)-[:`http://db.uwaterloo.ca/~galuc/wsdbm/likes`]->(v1),
 (v0)-[:`http://xmlns.com/foaf/age`]->(v4),
 (v0)-[:`http://db.uwaterloo.ca/~galuc/wsdbm/gender`]->(v5)
 WHERE v0.`http://xmlns.com/foaf/givenName` IS NOT NULL
-RETURN v0.id
+RETURN v0
