@@ -2,8 +2,8 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
-#include "typedef.hpp"
 #include <queue>
+#include "typedef.hpp"
 
 // catalog related
 #include "catalog/catalog.hpp"
@@ -112,8 +112,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
 PhysicalIdSeek::PhysicalIdSeek(
     Schema &sch, uint64_t id_col_idx, vector<uint64_t> oids,
     vector<vector<uint64_t>> projection_mapping,
-    vector<uint32_t> &outer_col_map,
-    vector<vector<uint32_t>> &inner_col_maps,
+    vector<uint32_t> &outer_col_map, vector<vector<uint32_t>> &inner_col_maps,
     vector<uint32_t> &union_inner_col_map,
     vector<vector<uint64_t>> scan_projection_mapping,
     vector<vector<duckdb::LogicalType>> scan_types,
@@ -208,23 +207,26 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     }
 
     // Calculate Format
-    auto total_nulls =
-        calculateTotalNulls(chunk, target_eids,
-                            target_seqnos_per_extent, mapping_idxs);
+    auto total_nulls = calculateTotalNulls(
+        chunk, target_eids, target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
                          target_seqnos_per_extent, mapping_idxs, output_size);
-    } else if (format == OutputFormat::UNIONALL) {
+    }
+    else if (format == OutputFormat::UNIONALL) {
         doSeekUnionAll(context, input, chunk, state, target_eids,
                        target_seqnos_per_extent, mapping_idxs, output_size);
         markInvalidForUnseekedColumns(chunk, state, target_eids,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
-    return referInputChunk(input, chunk, state, output_size);
+    referInputChunk(input, chunk, state, output_size);
+    nullifyValuesForPrunedExtents(chunk, state, target_eids.size(),
+                                  target_seqnos_per_extent);
+    return OperatorResultType::NEED_MORE_INPUT;
 }
 
 OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
@@ -273,7 +275,7 @@ OperatorResultType PhysicalIdSeek::Execute(
     vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
     idx_t &output_chunk_idx) const
 {
-    D_ASSERT(false); // deprecated
+    D_ASSERT(false);  // deprecated
     if (join_type == JoinType::INNER) {
         return ExecuteInner(context, input, chunks, lstate, output_chunk_idx);
     }
@@ -319,9 +321,8 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
     // Calculate Format
     const idx_t UNIFIED_CHUNK_IDX = 0;
     auto &unified_chunk = *(chunks[UNIFIED_CHUNK_IDX].get());
-    auto total_nulls =
-        calculateTotalNulls(unified_chunk, target_eids,
-                            target_seqnos_per_extent, mapping_idxs);
+    auto total_nulls = calculateTotalNulls(
+        unified_chunk, target_eids, target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
 
@@ -494,7 +495,8 @@ void PhysicalIdSeek::doSeekUnionAll(
         idx_t chunk_idx = input.GetSchemaIdx();
         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
         vector<vector<uint32_t>> chunk_idx_to_output_cols_idx(1);
-        getOutputIdxsForFilteredSeek(chunk_idx, chunk_idx_to_output_cols_idx[0]);
+        getOutputIdxsForFilteredSeek(chunk_idx,
+                                     chunk_idx_to_output_cols_idx[0]);
 
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
@@ -582,14 +584,14 @@ void PhysicalIdSeek::doSeekSchemaless(
             rowcol_t *rowcol_arr = (rowcol_t *)rowcol.GetData();
 
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-                extentIdx++) {
-                for (idx_t i = 0; i < target_seqnos_per_extent[extentIdx].size();
-                    i++) {
+                 extentIdx++) {
+                for (idx_t i = 0;
+                     i < target_seqnos_per_extent[extentIdx].size(); i++) {
                     PartialSchema *schema_ptr =
                         (PartialSchema
-                            *)(&partial_schemas[mapping_idxs[extentIdx]]);
-                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]].schema_ptr =
-                        (char *)schema_ptr;
+                             *)(&partial_schemas[mapping_idxs[extentIdx]]);
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]]
+                        .schema_ptr = (char *)schema_ptr;
                     rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset =
                         schema_ptr->getStoredTypesSize();
                 }
@@ -604,7 +606,7 @@ void PhysicalIdSeek::doSeekSchemaless(
             chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset);
 
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
-                extentIdx++) {
+                 extentIdx++) {
                 // Note: Row store is shared accross all column
                 context.client->graph_store->doVertexIndexSeek(
                     state.ext_it, chunk, input, nodeColIdx, target_eids,
@@ -627,7 +629,7 @@ void PhysicalIdSeek::doSeekGrouping(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
-    D_ASSERT(false); // deprecated
+    D_ASSERT(false);  // deprecated
     // idx_t base_chunk_idx = input.GetSchemaIdx() * this->inner_col_maps.size();
 
     // if (!do_filter_pushdown) {
@@ -783,13 +785,13 @@ void PhysicalIdSeek::doSeekGrouping(
     //             auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
     //             auto &output_col_idx = chunk_idx_to_output_cols_idx[chunk_idx];
     //             for (auto extent_idx : extent_idxs_for_chunk) {
-    //                 /* 
-    //                 Q. Why use tmp_chunk instead of input? 
-    //                 A. Since the chunk is sliced, the vid vector in 
-    //                 the input should also be sliced, as seen in GetNextExtent. 
-    //                 There are several approaches we could take, such as 
-    //                 copying and slicing the input, creating a sliced vids 
-    //                 vector. We ustmp_chunk because its left part is a sliced portion 
+    //                 /*
+    //                 Q. Why use tmp_chunk instead of input?
+    //                 A. Since the chunk is sliced, the vid vector in
+    //                 the input should also be sliced, as seen in GetNextExtent.
+    //                 There are several approaches we could take, such as
+    //                 copying and slicing the input, creating a sliced vids
+    //                 vector. We ustmp_chunk because its left part is a sliced portion
     //                 of the input, allowing us to simply pass it along.
     //                 */
     //                 context.client->graph_store->doVertexIndexSeek(
@@ -1151,7 +1153,6 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
             }
         }
 
-
         idx_t idx_shift_for_non_id_columns = 0;
         uint64_t accumulated_offset = 0;
         partial_schemas.push_back(PartialSchema());
@@ -1177,7 +1178,8 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
             auto it =
                 std::find(union_inner_col_map.begin(),
                           union_inner_col_map.end(), inner_col_maps[i][j]);
-            auto pos = it - union_inner_col_map.begin() - idx_shift_for_non_id_columns;
+            auto pos =
+                it - union_inner_col_map.begin() - idx_shift_for_non_id_columns;
             partial_schemas[i].offset_info[pos] = accumulated_offset;
             accumulated_offset +=
                 GetTypeIdSize(union_types[inner_col_maps[i][j]].InternalType());
@@ -1250,7 +1252,7 @@ void PhysicalIdSeek::genNonPredColIdxs()
         else {
             // In filter pushdown case, IdSeek first scans predicate columns
             // and append it to the outer columns, which creates temp chunk.
-            // Compiler is aware of this, thus the pred_col_idxs_per_schema 
+            // Compiler is aware of this, thus the pred_col_idxs_per_schema
             // have column indexes of temp chunk, not the actual output chunk.
             // Therefore, we should iterate from 0 to
             // inner_col_map.size() + this->outer_col_map.size()
@@ -1304,8 +1306,7 @@ void PhysicalIdSeek::getReverseMappingIdxs(
 
 // Since the difference comes from the null vector, we only consider the ratio of null values, not actual bytes.
 size_t PhysicalIdSeek::calculateTotalNulls(
-    DataChunk &unified_chunk,
-    vector<ExtentID> &target_eids,
+    DataChunk &unified_chunk, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
@@ -1448,6 +1449,34 @@ void PhysicalIdSeek::markInvalidForUnseekedColumns(
     }
 }
 
+void PhysicalIdSeek::nullifyValuesForPrunedExtents(
+    DataChunk &chunk, IdSeekState &state, size_t num_unpruned_extents,
+    vector<vector<uint32_t>> &target_seqnos_per_extent) const
+{
+    // @jhha
+    // Some extents can be prunned during planning due to applied filters.
+    // In such cases, the seek will not load values for these extents,
+    // resulting in dummy values (not null values) in the output chunk.
+    // We need to eliminate these dummy values.
+    // Currently, we are replacing them with null values.
+    // However, we may need another solution (e.g., slice).
+    // Note: target_seqnos_per_extent have vector for all extents,
+    // including the pruned one. Those are appended in the last.
+    for (u_int64_t extentIdx = num_unpruned_extents;
+         extentIdx < target_seqnos_per_extent.size(); extentIdx++) {
+        auto &target_seqnos = target_seqnos_per_extent[extentIdx];
+        for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
+            auto &vec = chunk.data[columnIdx];
+            auto &validity = FlatVector::Validity(vec);
+            if (validity.GetData() == nullptr) {
+                validity.Initialize(STANDARD_VECTOR_SIZE);
+            }
+            for (auto seqno : target_seqnos) {
+                validity.SetInvalid(seqno);
+            }
+        }
+    }
+}
 
 OperatorResultType PhysicalIdSeek::moveToNextOutputChunk(
     vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
@@ -1519,7 +1548,8 @@ void PhysicalIdSeek::generateOutputColIdxsForInner()
  */
 void PhysicalIdSeek::getUnionScanTypes()
 {
-    if(num_total_schemas == 1) return;
+    if (num_total_schemas == 1)
+        return;
 
     bool found = false;
     for (auto i = 0; i < inner_col_maps.size(); i++) {
@@ -1533,10 +1563,11 @@ void PhysicalIdSeek::getUnionScanTypes()
                 break;
             }
         }
-        if (found) break;
+        if (found)
+            break;
     }
 
-    if(!found) {
+    if (!found) {
         out_id_col_idx = -1;
     }
 

@@ -133,6 +133,10 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
         DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
+    void nullifyValuesForPrunedExtents(
+        DataChunk &chunk, IdSeekState &state,
+        size_t num_unpruned_extents,
+        vector<vector<uint32_t>> &target_seqnos_per_extent) const;
     void generatePartialSchemaInfos();
     void getOutputTypesForFilteredSeek(vector<LogicalType> &lhs_type,
                                        vector<LogicalType> &scan_type,
