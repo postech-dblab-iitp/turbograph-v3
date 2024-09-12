@@ -223,10 +223,9 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
-    referInputChunk(input, chunk, state, output_size);
     nullifyValuesForPrunedExtents(chunk, state, target_eids.size(),
                                   target_seqnos_per_extent);
-    return OperatorResultType::NEED_MORE_INPUT;
+    return referInputChunk(input, chunk, state, output_size);
 }
 
 OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
