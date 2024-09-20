@@ -35,14 +35,14 @@ sleep 5
 
 # Execute queries
 for query_num in $queries; do
-    query_file="${queries_path}/q${query_num}.cql"
+    query_file="${queries_path}/${query_num}.cql"
     if [ ! -f "$query_file" ]; then
         echo "Query file $query_file not found!"
         continue
     fi
     query_str=$(cat "$query_file")
-    warmup_output=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:greedy)
-    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:greedy)
+    warmup_output=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
+    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive)
     exit_status=$?
 
     if [ $exit_status -ne 0 ]; then
