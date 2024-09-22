@@ -1895,40 +1895,43 @@ CStatisticsUtils::AddWidthInfo(CMemoryPool *mp, UlongToDoubleMap *src_width,
 //  and information maintained in the current statistics object
 void
 CStatisticsUtils::ComputeCardUpperBounds(
-	CMemoryPool *mp, const CStatistics *input_stats,
+	CMemoryPool *, const CStatistics *,
 	CStatistics
-		*output_stats,	  // output statistics object that is to be updated
-	CDouble rows_output,  // estimated output cardinality of the operator
+		*,	  // output statistics object that is to be updated
+	CDouble ,  // estimated output cardinality of the operator
 	CStatistics::ECardBoundingMethod
-		card_bounding_method  // technique used to estimate max source cardinality in the output stats object
+		  // technique used to estimate max source cardinality in the output stats object
 )
 {
-	GPOS_ASSERT(NULL != output_stats);
-	GPOS_ASSERT(CStatistics::EcbmSentinel != card_bounding_method);
+	/**
+	 * @brief jhha: Disable this function (currently, Orca does not use this)
+	 */
+	// GPOS_ASSERT(NULL != output_stats);
+	// GPOS_ASSERT(CStatistics::EcbmSentinel != card_bounding_method);
 
-	const CUpperBoundNDVPtrArray *input_stats_ndv_upper_bound =
-		input_stats->GetUpperBoundNDVs();
-	ULONG length = input_stats_ndv_upper_bound->Size();
-	for (ULONG i = 0; i < length; i++)
-	{
-		const CUpperBoundNDVs *upper_bound_NDVs =
-			(*input_stats_ndv_upper_bound)[i];
-		CDouble upper_bound_ndv_input = upper_bound_NDVs->UpperBoundNDVs();
-		CDouble upper_bound_ndv_output = rows_output;
-		if (CStatistics::EcbmInputSourceMaxCard == card_bounding_method)
-		{
-			upper_bound_ndv_output = upper_bound_ndv_input;
-		}
-		else if (CStatistics::EcbmMin == card_bounding_method)
-		{
-			upper_bound_ndv_output =
-				std::min(upper_bound_ndv_input.Get(), rows_output.Get());
-		}
+	// const CUpperBoundNDVPtrArray *input_stats_ndv_upper_bound =
+	// 	input_stats->GetUpperBoundNDVs();
+	// ULONG length = input_stats_ndv_upper_bound->Size();
+	// for (ULONG i = 0; i < length; i++)
+	// {
+	// 	const CUpperBoundNDVs *upper_bound_NDVs =
+	// 		(*input_stats_ndv_upper_bound)[i];
+	// 	CDouble upper_bound_ndv_input = upper_bound_NDVs->UpperBoundNDVs();
+	// 	CDouble upper_bound_ndv_output = rows_output;
+	// 	if (CStatistics::EcbmInputSourceMaxCard == card_bounding_method)
+	// 	{
+	// 		upper_bound_ndv_output = upper_bound_ndv_input;
+	// 	}
+	// 	else if (CStatistics::EcbmMin == card_bounding_method)
+	// 	{
+	// 		upper_bound_ndv_output =
+	// 			std::min(upper_bound_ndv_input.Get(), rows_output.Get());
+	// 	}
 
-		CUpperBoundNDVs *upper_bound_NDVs_copy =
-			upper_bound_NDVs->CopyUpperBoundNDVs(mp, upper_bound_ndv_output);
-		output_stats->AddCardUpperBound(upper_bound_NDVs_copy);
-	}
+	// 	CUpperBoundNDVs *upper_bound_NDVs_copy =
+	// 		upper_bound_NDVs->CopyUpperBoundNDVs(mp, upper_bound_ndv_output);
+	// 	output_stats->AddCardUpperBound(upper_bound_NDVs_copy);
+	// }
 }
 
 // EOF
