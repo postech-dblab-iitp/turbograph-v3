@@ -418,7 +418,7 @@ void PhysicalIdSeek::initializeSeek(
         chunks[i]->SetSchemaIdx(i);
         chunks[i]->Reset();
     }
-    fillSeqnoToEIDIdx(target_seqnos_per_extent, state.seqno_to_eid_idx);
+    fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
 }
 
 void PhysicalIdSeek::initializeSeek(
@@ -438,7 +438,7 @@ void PhysicalIdSeek::initializeSeek(
     state.InitializeSels(1);
     chunk.SetSchemaIdx(input.GetSchemaIdx());
     chunk.Reset();
-    fillSeqnoToEIDIdx(target_seqnos_per_extent, state.seqno_to_eid_idx);
+    fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
 }
 
 void PhysicalIdSeek::InitializeOutputChunks(
@@ -1263,6 +1263,20 @@ void PhysicalIdSeek::genNonPredColIdxs()
                     non_pred_col_idxs_per_schema[i].push_back(j);
                 }
             }
+        }
+    }
+}
+
+void PhysicalIdSeek::fillSeqnoToEIDIdx(
+    size_t num_valid_extents,
+    vector<vector<uint32_t>> &target_seqnos_per_extent,
+    vector<idx_t> &seqno_to_eid_idx) const
+{
+    std::fill(seqno_to_eid_idx.begin(), seqno_to_eid_idx.end(), -1);
+    for (auto i = 0; i < num_valid_extents; i++) {
+        auto &vec = target_seqnos_per_extent[i];
+        for (auto &idx : vec) {
+            seqno_to_eid_idx[idx] = i;
         }
     }
 }

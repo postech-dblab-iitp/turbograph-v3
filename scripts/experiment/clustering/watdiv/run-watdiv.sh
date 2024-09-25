@@ -6,7 +6,7 @@ cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
-scale_factor=10
+scale_factor=1
 target_dir_base="/data/watdiv/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
@@ -16,8 +16,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/watdiv/sf${scale_factor}"
-query_numbers="1-20"
+queries_path="/turbograph-v3/queries/watdiv/"
+query_numbers="1-10"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -44,7 +44,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
     for cost_model in "${cost_models[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             for query_num in $queries; do
-                query_file="${queries_path}/${query_num}.cql"
+                query_file="${queries_path}/q${query_num}.cql"
                 if [ ! -f "$query_file" ]; then
                     echo "Query file $query_file not found!"
                     continue
