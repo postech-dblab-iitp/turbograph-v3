@@ -337,13 +337,6 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
 		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
 	}
-	// Append vector for the pruned eids (this will used in Seek for nullify)
-	for (auto i = 0; i < pruned_eids.size(); i++) {
-		auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(pruned_eids[i]);
-		auto &vec = target_seqnos_per_extent_map[ext_seqno];
-		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
-		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
-	}
 
 	// TODO maybe we don't need this..
 	if (is_multi_schema) {
@@ -352,6 +345,14 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 			std::less{}, 
 			[](auto && p){ return std::get<0>(p); }
 		);
+	}
+
+	// Append vector for the pruned eids (this will used in Seek for nullify)
+	for (auto i = 0; i < pruned_eids.size(); i++) {
+		auto ext_seqno = GET_EXTENT_SEQNO_FROM_EID(pruned_eids[i]);
+		auto &vec = target_seqnos_per_extent_map[ext_seqno];
+		auto cursor = target_seqnos_per_extent_map_cursors[ext_seqno];
+		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
 	}
 
 	ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);

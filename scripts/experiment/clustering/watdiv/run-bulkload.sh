@@ -118,7 +118,9 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --relationships:http://schema.org/editor ${source_dir}/edges_editor.csv \
                 --relationships_backward:http://schema.org/editor ${source_dir}/edges_editor.csv.backward \
                 --relationships:http://purl.org/ontology/mo/artist ${source_dir}/edges_artist.csv \
-                --relationships_backward:http://purl.org/ontology/mo/artist ${source_dir}/edges_artist.csv.backward &> ${log_file}
+                --relationships_backward:http://purl.org/ontology/mo/artist ${source_dir}/edges_artist.csv.backward \
+                --relationships:http://schema.org/trailer ${source_dir}/edges_trailer.csv \
+                --relationships_backward:http://schema.org/trailer ${source_dir}/edges_trailer.csv.backward &> ${log_file}
             
             /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
             /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;

@@ -689,10 +689,12 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopDSITableScan(CEx
             }
         }
         else {
-            D_ASSERT(false); // not implemented yet
             vector<unique_ptr<duckdb::Expression>> filter_exprs;
-            filter_exprs.push_back(std::move(
-                pTransformScalarExpr(filter_pred_expr, scan_cols, nullptr)));
+            filter_exprs.push_back(
+                std::move(pTransformScalarExpr(filter_pred_expr, scan_cols, nullptr)));
+            op = new duckdb::PhysicalNodeScan(
+                local_schemas, global_schema, oids, projection_mappings,
+                scan_projection_mappings, move(filter_exprs));
         }
     } else {
         op = new duckdb::PhysicalNodeScan(
@@ -2340,7 +2342,6 @@ void Planner::
     CExpression *pexprInner = (*plan_expr)[1];
     CColRefArray *inner_cols = pexprInner->Prpp()->PcrsRequired()->Pdrgpcr(mp);
     CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
-    CColRefArray *filter_inner_cols = GPOS_NEW(mp) CColRefArray(mp);
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
     CColRefArray *filter_output_cols  = GPOS_NEW(mp) CColRefArray(mp);
 
@@ -2654,12 +2655,36 @@ void Planner::
             if (inner_root->operator[](0)->Pop()->Eopid() ==
                 COperator::EOperatorId::EopPhysicalFilter) {
                 has_filter = true;
-                filter_inner_cols->AppendArray(inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp));
             }
 
             CExpression *idxscan_expr =
                 has_filter ? inner_root->operator[](0)->operator[](0)
                            : inner_root->operator[](0);
+
+            if (has_filter) {
+                filter_expr = inner_root->operator[](0);
+                filter_pred_expr = filter_expr->operator[](1);
+                CColRefArray *inner_cols = filter_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+                CColRefArray *idxscan_cols =
+                    filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+
+                filter_output_cols->AppendArray(output_cols);
+
+                // Get filter only columns in idxscan_cols
+                vector<ULONG> inner_filter_only_cols_idx;
+                pGetFilterOnlyInnerColsIdx(
+                    filter_pred_expr, idxscan_cols /* all inner cols */,
+                    inner_cols /* output inner cols */, inner_filter_only_cols_idx);
+
+                for (auto col_idx : inner_filter_only_cols_idx) {
+                    CColRef *col = idxscan_cols->operator[](col_idx);
+                    filter_output_cols->Append(col);
+                    // update types
+                    ULONG col_id = col->Id();
+                    id_map.insert(std::make_pair(col_id, col_idx));
+                    types.push_back(pGetColumnsDuckDBType(col));
+                }
+            }
 
             // Get JoinColumnID
             for (uint32_t j = 0; j < idxscan_expr->operator[](0)->Arity();
@@ -2799,16 +2824,6 @@ void Planner::
                                 scan_ident_mapping.push_back(0);
                                 output_ident_mapping.push_back(j);
                                 scan_type.push_back(duckdb::LogicalType::ID);
-
-                                // if (pMatchExprPattern(proj_elem_expr,
-                                //                       scalarident_pattern)) {
-                                //     inner_col_id.push_back(
-                                //         ident_op->Pcr()->Id());
-                                // }
-                                // else {
-                                //     inner_col_id.push_back(
-                                //         std::numeric_limits<ULONG>::max());
-                                // }
                             }
                         }
                         else {
@@ -2820,15 +2835,6 @@ void Planner::
                             INT type_mod = proj_elem->Pcr()->TypeModifier();
                             scan_type.push_back(pConvertTypeOidToLogicalType(
                                 type_oid, type_mod));
-
-                            // if (pMatchExprPattern(proj_elem_expr,
-                            //                       scalarident_pattern)) {
-                            //     inner_col_id.push_back(ident_op->Pcr()->Id());
-                            // }
-                            // else {
-                            //     inner_col_id.push_back(
-                            //         std::numeric_limits<ULONG>::max());
-                            // }
                         }
                     }
                     else if (projectlist_expr->operator[](j)
