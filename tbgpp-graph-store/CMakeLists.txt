@@ -6,8 +6,13 @@ cmake_minimum_required(VERSION 3.16)
 project(tbgpp-graph-store)
 
 ####################################################
+# ADD SUBDIRECTORIES
+####################################################
+add_subdirectory(third_party)
+
+####################################################
 # COMPILATION FLAGS
-####################################################ㄴ
+####################################################
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -19,6 +24,11 @@ endif()
 ####################################################
 # FIND PACKAGES
 ####################################################
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libCacheSim/cmake/Modules/")
+find_package(GLib REQUIRED)
+include_directories(${GLib_INCLUDE_DIRS})
+target_link_libraries(libCacheSim PRIVATE ${GLib_LIBRARIES})
+set(LIBS ${LIBS} ${GLib_LIBRARY})
 
 find_package(TBB REQUIRED)
 find_package(OpenMP REQUIRED)
@@ -45,6 +55,7 @@ include_directories(
   # cache
   "${PROJECT_SOURCE_DIR}/include/cache" 
   "${PROJECT_SOURCE_DIR}/include/cache/disk_aio"
+  "${PROJECT_SOURCE_DIR}/include/cache/libCacheSim/libCacheSim/include/"
   # catalog
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
@@ -53,6 +64,8 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/include/schemaless"
   # statistics
   "${PROJECT_SOURCE_DIR}/include/statistics"
+  # third_party
+  "${PROJECT_SOURCE_DIR}/third_party/libCacheSim/libCacheSim/include/"
 )
 
 ####################################################
@@ -62,12 +75,13 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(tbgpp-graph-store-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_include_directories( tbgpp-graph-store-lib PUBLIC 
+target_include_directories(tbgpp-graph-store-lib PUBLIC 
   # include  
   "${PROJECT_SOURCE_DIR}/include"
   # cache
   "${PROJECT_SOURCE_DIR}/include/cache" 
   "${PROJECT_SOURCE_DIR}/include/cache/disk_aio"
+  "${PROJECT_SOURCE_DIR}/include/cache/libCacheSim/libCacheSim/include/"
   # catalog
   "${PROJECT_SOURCE_DIR}/include/catalog"
   "${PROJECT_SOURCE_DIR}/include/catalog/default"
@@ -77,9 +91,15 @@ target_include_directories( tbgpp-graph-store-lib PUBLIC
   # execution-engine
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/execution"
   "${PROJECT_SOURCE_DIR}/../tbgpp-execution-engine/include/storage"
+  # third_party
+  "${PROJECT_SOURCE_DIR}/third_party/libCacheSim/libCacheSim/include/"
 )
-target_link_libraries(tbgpp-graph-store-lib tbgpp-common-lib)
-target_link_libraries(tbgpp-graph-store-lib tbgpp-main)
+target_link_libraries(tbgpp-graph-store-lib
+  tbgpp-common-lib
+  tbgpp-main
+  libCacheSim
+)
+# target_link_libraries(tbgpp-graph-store-lib tbgpp-main)
 
 
 ####################################################

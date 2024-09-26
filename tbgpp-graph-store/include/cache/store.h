@@ -42,4 +42,22 @@ private:
   int delete_object(uint64_t object_id);
 };
 
+class DefaultStore {
+public:
+  DefaultStore(const std::string &unix_socket, size_t size);
+  ~DefaultStore();
+  void Run();
+
+private:
+  void listener();
+  void finalize();
+
+  std::string unix_socket_;
+  size_t size_;
+  int store_fd_;
+
+  std::mutex client_lock_;
+  std::unordered_set<pid_t> clients_;
+};
+
 #endif // STORE_H

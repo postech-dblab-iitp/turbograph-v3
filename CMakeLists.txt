@@ -30,6 +30,13 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+#######################
+#### FIND PACKAGES ####
+#######################
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/tbgpp-graph-store/third_party/libCacheSim/cmake/Modules/")
+find_package(GLib REQUIRED)
+include_directories(${GLib_INCLUDE_DIRS})
+
 ##########################
 ### Add subdirectories ###
 ##########################

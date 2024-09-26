@@ -106,7 +106,7 @@ class Turbo_bin_io_handler {
         file_size_ = f;
         assert(f != -1);
         file_path = std::string(file_name);
-        return OK;
+        return DONE;
     }
 
     ReturnStatus Append(std::int64_t size_to_append, char *data)
@@ -127,7 +127,7 @@ class Turbo_bin_io_handler {
         err = write(file_descriptor, (void *)data, size_to_append);
         assert(err == size_to_append);
         assert(err != -1);
-        return ReturnStatus::OK;
+        return ReturnStatus::DONE;
     }
 
     ReturnStatus Read(int64_t offset_to_read, int64_t size_to_read, char *data)
@@ -150,7 +150,7 @@ class Turbo_bin_io_handler {
             data = &data[tmp];
         }
         assert(tmp_size_to_read == size_read);
-        return OK;
+        return DONE;
     }
 
     ReturnStatus Write(int64_t offset_to_write, int64_t size_to_write,
@@ -172,7 +172,7 @@ class Turbo_bin_io_handler {
             data = &data[tmp];
         }
         assert(tmp_size_to_write == size_written);
-        return OK;
+        return DONE;
     }
 
     char *CreateMmap(bool write_enabled)

@@ -563,3 +563,140 @@ void LightningStore::Run() {
   listener_thread.join();
   monitor_thread.join();
 }
+
+
+DefaultStore::DefaultStore(const std::string &unix_socket, size_t size) {
+  // shm_unlink(SHM_NAME);
+  // store_fd_ = shm_open(SHM_NAME, O_RDWR | O_CREAT, 0666);
+  store_fd_ = memfd_create("store", MFD_CLOEXEC);
+  int status = ftruncate64(store_fd_, size);
+  if (status < 0) {
+    perror("cannot ftruncate");
+    exit(-1);
+  }
+  int flags = MAP_SHARED | MAP_NORESERVE;
+  // int flags = MAP_ANONYMOUS | MAP_SHARED | MAP_NORESERVE;
+  int prot = PROT_READ | PROT_WRITE;
+  // void *virtMem = mmap(nullptr, size, prot, flags, -1, 0);
+  // void *virtMem = mmap((void *)LIGHTNING_MMAP_ADDR, size, prot, flags, -1, 0);
+  void *virtMem = mmap((void *)LIGHTNING_MMAP_ADDR, size, prot, flags, store_fd_, 0);
+  if (virtMem == (void *)-1) {
+    perror("mmap failed");
+    exit(-1);
+  }
+}
+
+DefaultStore::~DefaultStore() {}
+
+void DefaultStore::listener() {
+  int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (server_fd < 0) {
+    perror("cannot create socket");
+    exit(-1);
+  }
+
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, unix_socket_.c_str(), unix_socket_.size());
+  unlink(unix_socket_.c_str());
+
+  int status = bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
+  if (status < 0) {
+    perror("cannot bind");
+    exit(-1);
+  }
+
+  status = listen(server_fd, 0);
+  if (status < 0) {
+    perror("cannot listen");
+    exit(-1);
+  }
+
+  std::cout << "Store is ready!" << std::endl;
+
+  int timeout;
+  struct pollfd fds[200];
+  int nfds = 1, current_size = 0, i, j;
+  
+  memset(fds, 0 , sizeof(fds));
+  fds[0].fd = server_fd;
+  fds[0].events = POLLIN;
+  timeout = (3 * 1000); // timeout = 3 seconds
+
+  while (true) {
+    if (got_signal) break;
+    status = poll(fds, nfds, timeout);
+    if (status <= 0) continue; // poll fail or timeout
+    assert(nfds == 1); // TODO, process only 1 events now
+
+    int client_fd = accept(server_fd, nullptr, nullptr);
+    if (client_fd < 0) {
+      perror("cannot accept");
+      exit(-1);
+    }
+
+    pid_t pid;
+    int bytes_read = recv(client_fd, &pid, sizeof(pid), 0);
+    if (bytes_read != sizeof(pid)) {
+      perror("failure reading pid from unix domain socket!");
+      exit(-1);
+    }
+
+    int bytes_sent = send(client_fd, &size_, sizeof(size_), 0);
+    if (bytes_sent != sizeof(size_)) {
+      perror("failure sending the size of the object store");
+      exit(-1);
+    }
+
+    int password_length = 0;
+
+    bytes_read = recv(client_fd, &password_length, sizeof(password_length), 0);
+    if (bytes_read != sizeof(password_length)) {
+      std::cerr << "failure receiving the password size" << std::endl;
+      exit(-1);
+    }
+
+    char password[100];
+    bytes_read = recv(client_fd, password, password_length, 0);
+    if (bytes_read != password_length) {
+      std::cerr << "failure receiving the password" << std::endl;
+      exit(-1);
+    }
+
+    bool ok = false;
+
+    if (strcmp(password, "password") == 0) {
+      ok = true;
+    }
+
+    bytes_sent = send(client_fd, &ok, sizeof(ok), 0);
+    if (bytes_sent != sizeof(ok)) {
+      perror("failure sending the ok bit");
+      exit(-1);
+    }
+
+    send_fd(client_fd, store_fd_);
+    {
+      std::lock_guard<std::mutex> guard(client_lock_);
+
+      clients_.insert(pid);
+    }
+  }
+}
+
+void DefaultStore::finalize() {
+  while (true) {
+    if (got_signal == 1) {
+      break;
+    }
+    usleep(10000);
+  }
+}
+
+void DefaultStore::Run() {
+  std::thread listener_thread = std::thread(&DefaultStore::listener, this);
+  std::thread finalize_thread = std::thread(&DefaultStore::finalize, this);
+  finalize_thread.join();
+  listener_thread.join();
+}

@@ -211,7 +211,7 @@ class Turbo_bin_aio_handler {
     assert(f != -1);
     file_path = std::string(file_name);
     //assert(file_descriptor == file_descriptor_temp);
-    return OK;
+    return DONE;
   }*/
     
   void Append(std::int64_t size_to_append, char* data, void* func, const std::function<void(diskaio::DiskAioInterface*)>& wait_cb = {}) {
