@@ -2,11 +2,11 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
-scale_factor=1
+scale_factor=10
 target_dir_base="/data/watdiv/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
 
@@ -17,7 +17,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/watdiv/"
-query_numbers="1-10"
+query_numbers="10"
 
 # Function to parse query numbers
 parse_query_numbers() {

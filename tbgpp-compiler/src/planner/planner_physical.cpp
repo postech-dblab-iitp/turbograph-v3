@@ -2919,7 +2919,20 @@ void Planner::
     }
 
     if (skip_seek) {
-        // check if we need to put projection operator
+        duckdb::Schema schema_proj;
+        vector<duckdb::LogicalType> output_types_proj;
+        vector<unique_ptr<duckdb::Expression>> proj_exprs;
+        pGetDuckDBTypesFromColRefs(output_cols, output_types_proj);
+        schema_proj.setStoredTypes(output_types_proj);
+        pGetProjectionExprs(outer_cols, output_cols,
+                            output_types_proj, proj_exprs);
+        if (proj_exprs.size() != 0) {
+            duckdb::CypherPhysicalOperator *duckdb_proj_op =
+                new duckdb::PhysicalProjection(schema_proj,
+                                                move(proj_exprs));
+            result->push_back(duckdb_proj_op);
+            pBuildSchemaFlowGraphForUnaryOperator(schema_proj);
+        }
         return;
     }
 
