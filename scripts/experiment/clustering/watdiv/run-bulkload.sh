@@ -5,14 +5,14 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE" "SETEDIT")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/tbgpp-common/include/common/graph_simdjson_parser.hpp"
 
 # Define source, target, and log directories
-scale_factor=10
+scale_factor=1
 source_dir_base="/source-data/watdiv/sf${scale_factor}/"
 target_dir_base="/data/watdiv/sf${scale_factor}/"
 log_dir_base="/turbograph-v3/logs"
