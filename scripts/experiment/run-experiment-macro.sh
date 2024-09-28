@@ -1,4 +1,4 @@
-# bash run-experiment.sh /data/tpch/sf1 ../../queries/tpch/sf1 '1-22' ../../results/tpch-sf1.csv
+bash run-experiment.sh /data/tpch/sf1 ../../queries/tpch/sf1 '7-22' ../../results/tpch-sf1.csv
 # bash run-experiment.sh /data/tpch/sf10 ../../queries/tpch/sf10 '1-22' ../../results/tpch-sf10.csv
 # bash run-experiment.sh /data/tpch/sf100 ../../queries/tpch/sf100 '3;5;8;11;13;18;19;20;22' ../../results/sf100-removing-release.csv
 # bash run-experiment.sh /data/tpch/sf10 queries/tpch/sf10 '17' results/tpch-sf10-0313-new3.csv
@@ -14,5 +14,5 @@
 
 # bash run-experiment.sh /data/goodbye/sf10 ../../queries/goodbye/ '1-8' ../../results/goodbye.csv
 
-bash run-experiment.sh /data/watdiv/sf1 ../../queries/watdiv/sf1 '1-20' ../../results/watdiv-sf1.csv
-bash run-experiment.sh /data/watdiv/sf10 ../../queries/watdiv/sf1 '1-20' ../../results/watdiv-sf10.csv
+# bash run-experiment.sh /data/watdiv/sf1 ../../queries/watdiv/sf1 '1-20' ../../results/watdiv-sf1.csv
+# bash run-experiment.sh /data/watdiv/sf10 ../../queries/watdiv/sf1 '1-20' ../../results/watdiv-sf10.csv
