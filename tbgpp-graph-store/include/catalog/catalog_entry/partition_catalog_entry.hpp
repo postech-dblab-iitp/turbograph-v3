@@ -239,6 +239,7 @@ public:
 	PartitionID GetPartitionID();
 	ExtentID GetNewExtentID();
 	ExtentID GetCurrentExtentID();
+	ExtentID GetLocalExtentID();
 
 	idx_t GetNewTemporalID()
 	{

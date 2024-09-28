@@ -35,7 +35,7 @@ sleep 5
 
 # Execute queries
 for query_num in $queries; do
-    query_file="${queries_path}/${query_num}.cql"
+    query_file="${queries_path}/q${query_num}.cql"
     if [ ! -f "$query_file" ]; then
         echo "Query file $query_file not found!"
         continue
