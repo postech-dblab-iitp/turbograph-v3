@@ -2664,7 +2664,7 @@ void Planner::
             if (has_filter) {
                 filter_expr = inner_root->operator[](0);
                 filter_pred_expr = filter_expr->operator[](1);
-                CColRefArray *inner_cols = filter_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+                CColRefArray *inner_cols = inner_root->Prpp()->PcrsRequired()->Pdrgpcr(mp);
                 CColRefArray *idxscan_cols =
                     filter_expr->operator[](0)->Prpp()->PcrsRequired()->Pdrgpcr(mp);
 
