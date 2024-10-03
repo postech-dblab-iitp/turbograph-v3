@@ -116,6 +116,7 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         size_t buf_size = 0;
         size_t alloc_buf_size = 0;
         size_t bitmap_size = 0;
+		const size_t slot_for_num_adj = 1;
 
         /**
          * TODO: check null is correctly handled for LIST types
@@ -125,7 +126,12 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Calculate the size of the buffer to allocate
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            alloc_buf_size = sizeof(idx_t) * adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1] + comp_header_size;
+            size_t num_adj_lists = adj_list_buffer[0];
+            alloc_buf_size =
+                sizeof(idx_t) * (slot_for_num_adj + num_adj_lists == 0
+                                     ? 0
+                                     : adj_list_buffer[num_adj_lists]) +
+                comp_header_size;
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
             // New Implementation
             size_t string_len_total = 0;
@@ -220,7 +226,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             }
         } else if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
-            size_t input_size = adj_list_buffer[STORAGE_STANDARD_VECTOR_SIZE - 1];
             memcpy(buf_ptr, &comp_header, comp_header_size);
             memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), alloc_buf_size - comp_header_size);
         } else if (l_type.id() == LogicalTypeId::LIST) {

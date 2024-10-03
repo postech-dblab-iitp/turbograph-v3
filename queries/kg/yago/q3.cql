@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://schema.org/neighbors`]->(v2), (v2)-[:`http://schema.org/neighbors`]->(v3) WHERE v3.`http://schema.org/sameAs` IS NOT NULL AND v3.`http://www.w3.org/2000/01/rdf-schema#comment` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri, v3.uri

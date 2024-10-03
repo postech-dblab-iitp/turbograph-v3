@@ -2377,6 +2377,10 @@ void Planner::
     bool skip_seek = false; // when only scan _id column
     size_t num_filter_only_col = 0;
 
+    // Cycle handling
+    bool construct_filter_for_cycle = false;
+    vector<unique_ptr<duckdb::Expression>> cycle_filter_duckdb_exprs;
+
     CExpression *filter_expr = NULL;
     CExpression *filter_pred_expr = NULL;
     CExpression *idxscan_expr = NULL;
@@ -2686,12 +2690,26 @@ void Planner::
                 }
             }
 
+            // Handle cycle case (where the IdSeek condition have AND)
+            CExpression *seek_condition = idxscan_expr->operator[](0);
+            if (seek_condition->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
+                D_ASSERT(seek_condition->Arity() == 2); 
+                construct_filter_for_cycle = true;
+                CExpression *cycle_filter_expr =  CUtils::PexprScalarCmp(
+                    mp, 
+                    seek_condition->operator[](0)->operator[](1),
+                    seek_condition->operator[](1)->operator[](1),
+                    IMDType::ECmpType::EcmptEq);
+                pGetFilterDuckDBExprs(cycle_filter_expr, outer_cols, nullptr, 0, cycle_filter_duckdb_exprs);
+            }
+
             // Get JoinColumnID
-            for (uint32_t j = 0; j < idxscan_expr->operator[](0)->Arity();
+            CExpression *scalar_cmp_expr = construct_filter_for_cycle ? seek_condition->operator[](0) : seek_condition;
+            for (uint32_t j = 0; j < scalar_cmp_expr->Arity();
                  j++) {
                 CScalarIdent *sc_ident =
                     (CScalarIdent
-                         *)(idxscan_expr->operator[](0)->operator[](j)->Pop());
+                         *)(scalar_cmp_expr->operator[](j)->Pop());
                 sccmp_colids.push_back(sc_ident->Pcr()->Id());
             }
 
@@ -2947,6 +2965,17 @@ void Planner::
     /* Generate operator and push */
     duckdb::Schema tmp_schema;
     tmp_schema.setStoredTypes(types);
+
+    if (construct_filter_for_cycle) {
+        vector<duckdb::LogicalType> output_types_cycle_filter;
+        pGetDuckDBTypesFromColRefs(outer_cols, output_types_cycle_filter);
+        duckdb::Schema schema_cycle_filter;
+        schema_cycle_filter.setStoredTypes(output_types_cycle_filter);
+        duckdb::CypherPhysicalOperator *duckdb_filter_op =
+            new duckdb::PhysicalFilter(schema_cycle_filter, move(cycle_filter_duckdb_exprs));
+        result->push_back(duckdb_filter_op);
+        pBuildSchemaFlowGraphForUnaryOperator(schema_cycle_filter);
+    }
 
     /**
      * TODO: this code is currently wrong. It should be fixed.

@@ -285,30 +285,32 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		vector<LogicalType> adj_list_chunk_types = { edge_direction_type };
 		vector<data_ptr_t> adj_list_datas(1);
 		
+		/**
+		 * jhha: to reduce the adjacency list size,
+		 * we record num adj list in front of the vector
+		 * therefore, the structur would be
+		 * [num_adj_list, offsets, adj lists]
+		 */
+
 		// adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 		// TODO directly copy into buffer in AppendChunk.. to avoid copy
 		vector<idx_t> tmp_adj_list_buffer;
+		size_t num_adj_list = adj_list_buffer.size();
+		const size_t slot_for_num_adj = 1;
 		size_t adj_len_total = 0;
 		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
 			adj_len_total += adj_list_buffer[i].size();
 		}
-		tmp_adj_list_buffer.resize(STORAGE_STANDARD_VECTOR_SIZE + adj_len_total);
+		tmp_adj_list_buffer.resize(slot_for_num_adj + num_adj_list + adj_len_total);
+		tmp_adj_list_buffer[0] = num_adj_list;
 		
-		size_t offset = STORAGE_STANDARD_VECTOR_SIZE;
-		if (adj_list_buffer.size() == 0) {
-			for (size_t i = 0; i < STORAGE_STANDARD_VECTOR_SIZE; i++) {
-				tmp_adj_list_buffer[i] = offset;
+		size_t offset = slot_for_num_adj + num_adj_list;
+		for (size_t i = 0; i < num_adj_list; i++) {
+			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
+				tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
 			}
-		}
-		else {
-
-			for (size_t i = 0; i < adj_list_buffer.size(); i++) {
-				for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
-					tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
-				}
-				offset += adj_list_buffer[i].size();
-				tmp_adj_list_buffer[i] = offset;
-			}
+			offset += adj_list_buffer[i].size();
+			tmp_adj_list_buffer[i + slot_for_num_adj] = offset;
 		}
 		adj_list_datas[0] = (data_ptr_t) tmp_adj_list_buffer.data();
 
