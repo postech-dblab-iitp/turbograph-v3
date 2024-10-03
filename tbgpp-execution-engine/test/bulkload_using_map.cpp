@@ -304,10 +304,10 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		tmp_adj_list_buffer.resize(slot_for_num_adj + num_adj_list + adj_len_total);
 		tmp_adj_list_buffer[0] = num_adj_list;
 		
-		size_t offset = slot_for_num_adj + num_adj_list;
+		size_t offset = num_adj_list;
 		for (size_t i = 0; i < num_adj_list; i++) {
 			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
-				tmp_adj_list_buffer[offset + j] = adj_list_buffer[i][j];
+				tmp_adj_list_buffer[offset + slot_for_num_adj + j] = adj_list_buffer[i][j];
 			}
 			offset += adj_list_buffer[i].size();
 			tmp_adj_list_buffer[i + slot_for_num_adj] = offset;
