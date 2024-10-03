@@ -138,7 +138,8 @@ CCostContext::FNeedsNewStats() const
 		return false;
 	}
 
-	if (!m_pdpplan->Ppim()->FContainsUnresolved())
+	// if (!m_pdpplan->Ppim()->FContainsUnresolved())
+	if (true)
 	{
 		// All partition selectors have been resolved at this level.
 		// No need to use DPE stats for the common ancestor join and
