@@ -13,7 +13,7 @@
 #include <functional>
 #include <map>
 
-// #define DEBUG_PRINT_OP_INPUT_OUTPUT
+#define DEBUG_PRINT_OP_INPUT_OUTPUT
 // #define DEBUG_PRINT_PIPELINE
 
 namespace duckdb {
