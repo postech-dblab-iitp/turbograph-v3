@@ -109,8 +109,6 @@ void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uin
                            ? num_adj_lists
                            : adjListBase[target_seqno - 1]);
     *end_ptr = adjListBase + adjListBase[target_seqno];
-    std::cout << "num_adj_lists: " << num_adj_lists << std::endl;
-    std::cout << "start_ptr: " << **start_ptr << std::endl;
 }
 
 
