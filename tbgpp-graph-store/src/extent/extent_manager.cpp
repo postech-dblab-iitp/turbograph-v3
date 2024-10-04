@@ -127,10 +127,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
             idx_t *adj_list_buffer = (idx_t*) input.data[input_chunk_idx].GetData();
             size_t num_adj_lists = adj_list_buffer[0];
-            alloc_buf_size =
-                sizeof(idx_t) * (slot_for_num_adj + num_adj_lists == 0
-                                     ? 0
-                                     : adj_list_buffer[num_adj_lists]) +
+            size_t adj_list_size = num_adj_lists == 0 ? 0 : adj_list_buffer[num_adj_lists];
+            alloc_buf_size = 
+                sizeof(idx_t) * (slot_for_num_adj + adj_list_size) +
                 comp_header_size;
         } else if (l_type.id() == LogicalTypeId::VARCHAR) {
             // New Implementation

@@ -1,4 +1,1 @@
 MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://schema.org/administrates`]->(v2), (v2)-[:`http://schema.org/location`]->(v3), (v2)-[:`http://yago-knowledge.org/resource/capital`]->(v4), (v1)-[:`http://schema.org/administrates`]->(v5) WHERE v4.`http://schema.org/geo` IS NOT NULL AND v5.`http://www.w3.org/2000/01/rdf-schema#comment` IS NOT NULL AND v3.`http://www.w3.org/2000/01/rdf-schema#comment` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri, v3.uri, v4.uri, v5.uri
-
-
-MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://schema.org/administrates`]->(v2) RETURN v0.uri, v1.uri

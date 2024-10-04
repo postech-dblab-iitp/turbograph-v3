@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS")
+cost_models=("OVERLAP")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -16,7 +16,7 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/yago/"
+queries_path="/turbograph-v3/queries/kg/yago/"
 query_numbers="1-5"
 
 # Function to parse query numbers
