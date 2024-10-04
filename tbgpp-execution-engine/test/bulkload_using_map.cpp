@@ -292,7 +292,6 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		 * [num_adj_list, offsets, adj lists]
 		 */
 
-		// adj_list_datas[0] = (data_ptr_t) adj_list_buffer.data();
 		// TODO directly copy into buffer in AppendChunk.. to avoid copy
 		vector<idx_t> tmp_adj_list_buffer;
 		size_t num_adj_list = adj_list_buffer.size();
@@ -301,13 +300,19 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
 			adj_len_total += adj_list_buffer[i].size();
 		}
+
+		// jhha: futher optimize storing adj list
+		if(adj_len_total == 0) {
+			num_adj_list = 0;
+		}
+
 		tmp_adj_list_buffer.resize(slot_for_num_adj + num_adj_list + adj_len_total);
 		tmp_adj_list_buffer[0] = num_adj_list;
 		
 		size_t offset = num_adj_list;
 		for (size_t i = 0; i < num_adj_list; i++) {
 			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
-				tmp_adj_list_buffer[offset + slot_for_num_adj + j] = adj_list_buffer[i][j];
+				tmp_adj_list_buffer[slot_for_num_adj + offset + j] = adj_list_buffer[i][j];
 			}
 			offset += adj_list_buffer[i].size();
 			tmp_adj_list_buffer[i + slot_for_num_adj] = offset;

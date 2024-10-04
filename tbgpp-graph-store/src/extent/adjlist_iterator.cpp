@@ -104,11 +104,18 @@ void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uin
         num_adj_lists = ((idx_t *)bufptr_adjidx_pair.second)[0];
         adjListBase = ((idx_t *)bufptr_adjidx_pair.second) + slot_for_num_adj;
     }
-    *start_ptr =
-        adjListBase + (target_seqno == 0
-                           ? num_adj_lists
-                           : adjListBase[target_seqno - 1]);
-    *end_ptr = adjListBase + adjListBase[target_seqno];
+    D_ASSERT(num_adj_lists <= STORAGE_STANDARD_VECTOR_SIZE);
+    if (num_adj_lists <= target_seqno) {
+        *start_ptr = nullptr;
+        *end_ptr = nullptr;
+    }
+    else {
+        *start_ptr =
+            adjListBase + (target_seqno == 0
+                            ? num_adj_lists
+                            : adjListBase[target_seqno - 1]);
+        *end_ptr = adjListBase + adjListBase[target_seqno];
+    }
 }
 
 
