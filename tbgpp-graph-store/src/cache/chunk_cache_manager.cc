@@ -22,7 +22,7 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
   client = new LightningClient("/tmp/lightning", "password");
 
   // Initialize file handlers
-  if (std::filesystem::exists(std::string(path) + file_meta_info_name)) {
+  if (std::filesystem::exists(std::string(path) + "/" + file_meta_info_name)) {
     InitializeFileHandlersUsingMetaInfo(path);
   } else {
     InitializeFileHandlersByIteratingDirectories(path);

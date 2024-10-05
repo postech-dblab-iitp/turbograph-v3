@@ -285,6 +285,11 @@ void Planner::_orcaSetTraceFlags()
         traceflag_bitset->Union(merge_join_bitset);
         merge_join_bitset->Release();
     }
+    else if (config.DISABLE_HASH_JOIN) {
+        CBitSet *hash_join_bitset = CXform::PbsMergeJoinXforms(mp);
+        traceflag_bitset->Union(hash_join_bitset);
+        hash_join_bitset->Release();
+    }
 
     traceflag_bitset->Union(join_heuristic_bitset);
     join_heuristic_bitset->Release();
