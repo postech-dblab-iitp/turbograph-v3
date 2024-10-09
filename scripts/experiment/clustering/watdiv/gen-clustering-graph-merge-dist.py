@@ -21,7 +21,7 @@ def extract_times(file_path):
 def read_logs(folder):
     data = []
     for filename in os.listdir(folder):
-        if filename.startswith('watdiv') and filename.endswith('.txt'):
+        if filename.startswith('yago') and filename.endswith('.txt'):
             parts = filename.split('_')
             query_number = parts[1][1:]  # Strip 'Q' from the query number
             algorithm = parts[2]

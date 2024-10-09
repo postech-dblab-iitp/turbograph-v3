@@ -355,7 +355,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
 	}
 
-	ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);
+	if (target_eids.size() > 0) ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);
 
 	return StoreAPIResult::OK;
 }

@@ -1,1 +1,1 @@
-MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://schema.org/location`]->(v2), (v0)-[:`http://schema.org/location`]->(v3), (v0)-[:`http://schema.org/location`]->(v4), (v4)-[:`http://schema.org/administrates`]->(v5), (v4)-[:`http://schema.org/administrates`]->(v6) WHERE v6.`http://schema.org/alternateName` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri, v3.uri, v4.uri, v5.uri, v6.uri
+MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://yago-knowledge.org/resource/leader`]->(v2) RETURN v0.uri, v1.uri, v2.uri
