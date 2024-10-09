@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://schema.org/about`]->(v1), (v1)-[:`http://schema.org/spouse`]->(v2) WHERE v0.`http://schema.org/mainEntityOfPage` IS NOT NULL AND v0.`http://schema.org/dateCreated` IS NOT NULL AND v0.`http://schema.org/image` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

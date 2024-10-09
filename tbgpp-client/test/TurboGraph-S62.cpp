@@ -458,7 +458,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 					// Print result plan
 					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 				}
-				sleep(2);
+				sleep(1);
 			}
 		}
 		if(warmup) {

@@ -313,6 +313,13 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
                        num_tuples_per_chunk);
     }
 
+    if (target_eids.size() == 0) {
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(0);
+        }
+        return OperatorResultType::OUTPUT_EMPTY;
+    }
+
     if (state.has_remaining_output) {
         return moveToNextOutputChunk(chunks, lstate, output_chunk_idx);
     }
