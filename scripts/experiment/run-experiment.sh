@@ -34,15 +34,18 @@ echo "Query number,Compile time,Query execution time" > $output_file
 sleep 5
 
 # Execute queries
+log_dir="/turbograph-v3/logs/query/ldbc/"
 for query_num in $queries; do
     query_file="${queries_path}/q${query_num}.cql"
     if [ ! -f "$query_file" ]; then
         echo "Query file $query_file not found!"
         continue
     fi
+    log_file="${log_dir}/Q${query_num}.txt"
     query_str=$(cat "$query_file")
-    warmup_output=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
-    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive)
+    # warmup_output=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive)
+    # output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive)
+    output_str=$(timeout 3600s ../../build-release/tbgpp-client/TurboGraph-S62 --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:exhaustive --profile &> $log_file)
     exit_status=$?
 
     if [ $exit_status -ne 0 ]; then

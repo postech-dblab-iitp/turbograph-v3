@@ -15,7 +15,7 @@ def extract_times(file_path):
             time2 = float(re.search(r'Average Compile Time: (\d+(\.\d+)?) ms', content).group(1))
         except AttributeError:
             return None
-    return time1 + time2
+    return time1
 
 def read_logs(folder):
     data = []
@@ -36,7 +36,7 @@ def calculate_geomean_speedups(df, mode):
     
     if mode == 'measure':
         baseline_measure = 'OURS'
-        measures = ['OVERLAP', 'JACCARD', 'DICE', 'COSINE', 'WEIGHTEDJACCARD', 'OURS']
+        measures = ['JACCARD', 'OURS']
         baseline_times = df[df['Measure'] == baseline_measure].groupby(['Query'])['TotalTime'].mean()
         for measure in measures:
             measure_times = df[df['Measure'] == measure].groupby(['Query'])['TotalTime'].mean()
@@ -140,8 +140,8 @@ def plot_per_dataset_graph(datasets, data, mode, output_file, custom_labels, fig
     print(f"Per-dataset bar chart saved as {output_file}")
 
 def main(base_folder, mode, output_file, remove_datasets=None):
-    datasets = ['yago', 'freebase', 'dbpedia']
-    x_labels_custom = ['YAGO', 'Freebase', 'DBpedia']  # Custom uppercase labels for the X-axis
+    datasets = ['yago']
+    x_labels_custom = ['YAGO']  # Custom uppercase labels for the X-axis
     all_data = []
 
     for dataset in datasets:
@@ -164,7 +164,7 @@ def main(base_folder, mode, output_file, remove_datasets=None):
 
     # Set up custom labels based on mode
     custom_labels_dict = {
-        'measure': ['Overlap', 'Jaccard', 'Dice', 'Cosine', 'W-Jaccard', 'Ours'],
+        'measure': ['Jaccard', 'Ours'],
         'algorithm': ['GMMSchema', 'DBSCAN', 'Ours'],
         'layering': ['Descending', 'Ascending', 'No Sort']
     }

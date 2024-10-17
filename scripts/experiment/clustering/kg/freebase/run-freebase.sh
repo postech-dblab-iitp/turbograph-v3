@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("SINGLECLUSTER")
-cost_models=("JACCARD")
+cluster_algorithms=("AGGLOMERATIVE")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
 scale_factor=10
-target_dir_base="/data/yago/"
+target_dir_base="/data/freebase/"
 log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory
@@ -16,8 +16,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/yago/"
-query_numbers="1-25"
+queries_path="/turbograph-v3/queries/kg/freebase/"
+query_numbers="1-29"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -52,8 +52,8 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 query_str=$(cat "$query_file")
 
                 # Setup
-                target_dir="${target_dir_base}/yago_${cluster_algo}_${cost_model}_${layering_order}"
-                log_file="${log_dir}/yago_Q${query_num}_${cluster_algo}_${cost_model}_${layering_order}.txt"
+                target_dir="${target_dir_base}/freebase_${cluster_algo}_${cost_model}_${layering_order}"
+                log_file="${log_dir}/freebase_Q${query_num}_${cluster_algo}_${cost_model}_${layering_order}.txt"
 
                 # Run store
                 /turbograph-v3/build-release/tbgpp-graph-store/store 365GB&

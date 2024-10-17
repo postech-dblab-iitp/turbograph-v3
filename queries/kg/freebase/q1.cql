@@ -1,0 +1,1 @@
+MATCH (v0)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/is-a`]->(v1), (v1)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Higher_classification`]->(v2) RETURN v0.uri, v1.uri, v2.uri

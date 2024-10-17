@@ -27,7 +27,7 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.3
+#define JACCARD_THRESHOLD 0
 #define WEIGHTEDJACCARD_THRESHOLD 0.3
 #define COSINE_THRESHOLD 0.3
 #define DICE_THRESHOLD 0.3
@@ -68,7 +68,8 @@ public:
         OPTICS,
         AGGLOMERATIVE,
         GMM,
-        PGSE
+        PGSE,
+        SINGLECLUSTER
     };
 
     enum class CostModel {
@@ -87,8 +88,8 @@ public:
         NO_SORT
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::DBSCAN;
-    const CostModel cost_model = CostModel::OURS;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::SINGLECLUSTER;
+    const CostModel cost_model = CostModel::JACCARD;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
 /*******************/
 
@@ -238,6 +239,19 @@ public:
                 clustering_timer.start();
                 // Clustering
                 _ClusterSchemaGMM();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::SINGLECLUSTER: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterAllSchemas();
                 clustering_timer.stop();
 
                 // Create Extents
@@ -1577,6 +1591,27 @@ public:
                 sg_to_cluster_vec[temp_output[i].second[j]] = i;
             }
         }
+    }
+
+
+    // Function to merge all schemas into a single cluster
+    void _ClusterAllSchemas() {
+        // Step 1: Sort all schema groups
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                    schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // Step 2: Initialize clusters
+        std::vector<std::vector<std::size_t>> clusters;
+
+        // Step 3: Place all schema indices into one cluster
+        std::vector<size_t> schemas_in_cluster(schema_groups_with_num_tuples.size());
+        std::iota(schemas_in_cluster.begin(), schemas_in_cluster.end(), 0); // Fill with schema group indices
+        clusters.push_back(schemas_in_cluster); // Add all schemas to one single cluster
+
+        // Step 4: Populate clustering results for the merged cluster
+        _PopulateClusteringResults(clusters);
     }
 
     void _ClusterSchemaGMM() {

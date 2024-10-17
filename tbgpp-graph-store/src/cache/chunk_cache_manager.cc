@@ -45,7 +45,7 @@ ChunkCacheManager::~ChunkCacheManager() {
   }
 }
 
-void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler) {
+void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler, bool close_file) {
   uint8_t *ptr;
   size_t size;
 
@@ -66,7 +66,8 @@ void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler
   file_handler->FlushAllBlocking();
   file_handler->WaitAllPendingDiskIO(false);
   CacheDataTransformer::Swizzle(ptr);
-  file_handler->Close();
+  if (close_file)
+    file_handler->Close();
   UnPinSegment(cid);
 }
 
@@ -295,11 +296,9 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache() {
 
     // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
     // TODO we need a write lock
-    UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
+    UnswizzleFlushSwizzle(file_handler.first, file_handler.second, false);
     client->ClearDirty(file_handler.first);
-    client->Delete(file_handler.first);
   }
-  file_handlers.clear();
   return NOERROR;
 }
 

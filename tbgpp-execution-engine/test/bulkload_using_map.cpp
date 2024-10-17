@@ -56,6 +56,7 @@ using json = nlohmann::json;
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/graph_simdjson_parser.hpp"
+#include "statistics/histogram_generator.hpp"
 
 #define BULKLOAD_DEBUG_PRINT
 
@@ -116,12 +117,13 @@ void InitializeAdjListBuffers() {
 	if (edge_files.size() == 0 || edge_files_backward.size() == 0) {
 		return;
 	}
-	adj_list_buffers.resize(10000);
+	adj_list_buffers.resize(5000);
 	for (size_t i = 0; i < adj_list_buffers.size(); i++) adj_list_buffers[i].resize(STORAGE_STANDARD_VECTOR_SIZE);
 }
 
 void ClearAdjListBuffers() {
-	D_ASSERT(adj_list_buffers.size() == 10000);
+	D_ASSERT(adj_list_buffers.size() == 5000);
+#pragma omp parallel for num_threads(32)
 	for (size_t i = 0; i < adj_list_buffers.size(); i++) {
 		D_ASSERT(adj_list_buffers[i].size() == STORAGE_STANDARD_VECTOR_SIZE);
 		for (size_t j = 0; j < adj_list_buffers[i].size(); j++) {
@@ -788,7 +790,9 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Initialize AdjListBuffer
+		auto clear_adjlist_start = std::chrono::high_resolution_clock::now();
 		ClearAdjListBuffers();
+		auto clear_adjlist_end = std::chrono::high_resolution_clock::now();
 		// vector<vector<vector<idx_t>>> adj_list_buffers;
 		// adj_list_buffers.resize(65536); // 2^16
 		// for (size_t i = 0; i < adj_list_buffers.size(); i++) adj_list_buffers[i].clear();
@@ -910,11 +914,12 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
+		std::chrono::duration<double> clear_adj_duration = clear_adjlist_end - clear_adjlist_start;
 #ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count());
+		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f, %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count(), clear_adj_duration.count());
 #endif
+		ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	}
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 }
 
 void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
@@ -1100,8 +1105,8 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 #ifdef BULKLOAD_DEBUG_PRINT
 		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str(), duration.count());
 #endif
+		ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	}
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 }
 
 void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
@@ -1378,6 +1383,10 @@ int main(int argc, char** argv) {
                      "[" << e.what() << "]\n";
     }
 	
+	HistogramGenerator hist_gen;
+	hist_gen.CreateHistogram(client);
+
+	ChunkCacheManager::ccm->FlushMetaInfo(DiskAioParameters::WORKSPACE.c_str());
 
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
