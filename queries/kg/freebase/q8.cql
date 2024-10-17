@@ -1,0 +1,1 @@
+MATCH (v0)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Release_of`]->(v1), (v1)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Artist`]->(v2) WHERE v0.`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Title_ID` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri
