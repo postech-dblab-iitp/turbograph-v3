@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = true;
+static bool unionall_forced = false;
 
 namespace duckdb {
 
@@ -498,11 +498,16 @@ void PhysicalIdSeek::doSeekUnionAll(
         output_size = input.size();
     }
     else {
+        // Assume single schema
         idx_t chunk_idx = input.GetSchemaIdx();
         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
         vector<vector<uint32_t>> chunk_idx_to_output_cols_idx(1);
         getOutputIdxsForFilteredSeek(chunk_idx,
                                      chunk_idx_to_output_cols_idx[0]);
+
+        if (is_tmp_chunk_initialized_per_schema[chunk_idx]) {
+            tmp_chunk.Reset();
+        }
 
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
@@ -515,9 +520,6 @@ void PhysicalIdSeek::doSeekUnionAll(
                     tmp_chunk_type);
                 tmp_chunk.Initialize(tmp_chunk_type);
                 is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
-            }
-            else {
-                tmp_chunk.Reset();
             }
 
             // Get output col idx

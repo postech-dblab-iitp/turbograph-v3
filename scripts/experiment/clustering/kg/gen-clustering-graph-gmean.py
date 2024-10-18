@@ -15,7 +15,7 @@ def extract_times(file_path):
             time2 = float(re.search(r'Average Compile Time: (\d+(\.\d+)?) ms', content).group(1))
         except AttributeError:
             return None
-    return time1
+    return time1 + time2
 
 def read_logs(folder):
     data = []
@@ -36,7 +36,8 @@ def calculate_geomean_speedups(df, mode):
     
     if mode == 'measure':
         baseline_measure = 'OURS'
-        measures = ['JACCARD', 'OURS']
+        measures = ['OURS', 'OVERLAP', 'JACCARD', 'WEIGHTEDJACCARD', 'COSINE', 'DICE']
+        keys = measures
         baseline_times = df[df['Measure'] == baseline_measure].groupby(['Query'])['TotalTime'].mean()
         for measure in measures:
             measure_times = df[df['Measure'] == measure].groupby(['Query'])['TotalTime'].mean()
@@ -50,6 +51,7 @@ def calculate_geomean_speedups(df, mode):
     elif mode == 'algorithm':
         baseline_algorithm = 'AGGLOMERATIVE'
         algorithms = ['GMM', 'DBSCAN', 'AGGLOMERATIVE']
+        keys = algorithms
         baseline_times = df[df['Algorithm'] == baseline_algorithm].groupby(['Query'])['TotalTime'].mean()
         for algorithm in algorithms:
             algorithm_times = df[df['Algorithm'] == algorithm].groupby(['Query'])['TotalTime'].mean()
@@ -63,6 +65,7 @@ def calculate_geomean_speedups(df, mode):
     elif mode == 'layering':
         baseline_layering = 'DESCENDING'
         layerings = ['DESCENDING', 'ASCENDING', 'NO_SORT']
+        keys = layerings
         baseline_times = df[df['Layering'] == baseline_layering].groupby(['Query'])['TotalTime'].mean()
         for layering in layerings:
             layering_times = df[df['Layering'] == layering].groupby(['Query'])['TotalTime'].mean()
@@ -72,6 +75,37 @@ def calculate_geomean_speedups(df, mode):
                     speedups[query][layering].append(speedup)
         x_labels = layerings
         y_values = [gmean([speedup for query in speedups for speedup in speedups[query][layering]]) for layering in layerings]
+
+
+    # Function to extract the integer part of the query key for sorting
+    def extract_query_number(query):
+        return int(re.search(r'\d+', query).group())
+
+    # Sort queries by the integer part using the custom sorting function
+    queries = sorted(speedups.keys(), key=extract_query_number)
+    
+    # Prepare table header: the first row will be keys (e.g., measures) followed by the queries
+    header = [""] + queries
+    table_data = [header]
+
+    # Prepare table rows for each key (measure, algorithm, or layering)
+    for key in keys:
+        row = [key]
+        for query in queries:
+            if key in speedups[query]:
+                # Calculate the mean speedup for this key and query
+                mean_speedup = sum(speedups[query][key]) / len(speedups[query][key])
+                row.append(f"{mean_speedup:.2f}")
+            else:
+                row.append("N/A")  # If no speedup for this key-query pair, mark it as "N/A"
+        table_data.append(row)
+
+    # Determine the column widths to align the table output
+    col_widths = [max(len(str(cell)) for cell in col) for col in zip(*table_data)]
+
+    # Print the table row by row with proper alignment
+    for row in table_data:
+        print(" | ".join((str(cell).ljust(width) for cell, width in zip(row, col_widths))))
 
     return x_labels, y_values
 
@@ -140,8 +174,8 @@ def plot_per_dataset_graph(datasets, data, mode, output_file, custom_labels, fig
     print(f"Per-dataset bar chart saved as {output_file}")
 
 def main(base_folder, mode, output_file, remove_datasets=None):
-    datasets = ['yago']
-    x_labels_custom = ['YAGO']  # Custom uppercase labels for the X-axis
+    datasets = ['yago', 'freebase', 'dbpedia']
+    x_labels_custom = ['YAGO', 'Freebase', 'DBpedia']  # Custom uppercase labels for the X-axis
     all_data = []
 
     for dataset in datasets:
@@ -164,7 +198,7 @@ def main(base_folder, mode, output_file, remove_datasets=None):
 
     # Set up custom labels based on mode
     custom_labels_dict = {
-        'measure': ['Jaccard', 'Ours'],
+        'measure': ['Ours', 'Overlap', 'Jaccard', 'Weighted Jaccard', 'Cosine', 'Dice'],
         'algorithm': ['GMMSchema', 'DBSCAN', 'Ours'],
         'layering': ['Descending', 'Ascending', 'No Sort']
     }
