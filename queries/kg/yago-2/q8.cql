@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/address` IS NOT NULL AND v0.`http://yago-knowledge.org/resource/elevation` IS NOT NULL RETURN v0.`http://yago-knowledge.org/resource/populationNumber` AS `v0_populationNumber` ORDER BY `v0_populationNumber`

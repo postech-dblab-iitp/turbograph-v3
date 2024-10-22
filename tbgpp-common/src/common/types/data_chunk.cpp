@@ -156,7 +156,6 @@ void DataChunk::InitializeRowColumn(const vector<uint32_t> &columns_to_be_groupe
 		D_ASSERT(columns_to_be_grouped[i] < data.size());
 		data[columns_to_be_grouped[i]].CreateRowColumn(cache, count);
 		data[columns_to_be_grouped[i]].SetVectorType(VectorType::ROW_VECTOR);
-		// vector_caches[columns_to_be_grouped[i]] = move(shared_cache);
 	}
 	row_vector_caches.push_back(move(cache));
 }

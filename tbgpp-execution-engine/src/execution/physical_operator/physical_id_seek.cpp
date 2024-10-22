@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = false;
+static bool unionall_forced = true;
 
 namespace duckdb {
 
@@ -204,6 +204,11 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     if (state.need_initialize_extit) {
         initializeSeek(context, input, chunk, state, nodeColIdx, target_eids,
                        target_seqnos_per_extent, mapping_idxs);
+
+        if (target_eids.size() == 0) {
+            chunk.SetCardinality(0);
+            return OperatorResultType::OUTPUT_EMPTY;
+        }
     }
 
     // Calculate Format
@@ -574,9 +579,9 @@ void PhysicalIdSeek::doSeekSchemaless(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, idx_t &output_idx) const
 {
+    D_ASSERT(target_eids.size() > 0);
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
-    // SchemalessDataChunk &schless_chunk = (SchemalessDataChunk &)chunk;
 
     if (!do_filter_pushdown) {
         if (union_inner_col_map_wo_id.size() == 0) {
@@ -616,11 +621,13 @@ void PhysicalIdSeek::doSeekSchemaless(
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 // Note: Row store is shared accross all column
+                const vector<uint32_t> &output_col_idx =
+                    inner_output_col_idxs[mapping_idxs[extentIdx]];
                 context.client->graph_store->doVertexIndexSeek(
                     state.ext_it, chunk, input, nodeColIdx, target_eids,
                     target_seqnos_per_extent, extentIdx, out_id_col_idx, rowcol,
                     chunk.GetRowMajorStore(union_inner_col_map_wo_id[0]),
-                    output_idx);
+                    output_col_idx, output_idx);
             }
         }
     }

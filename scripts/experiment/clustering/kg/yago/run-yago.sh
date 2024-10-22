@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("SINGLECLUSTER")
-cost_models=("JACCARD")
+cluster_algorithms=("SINGLECLUSTER" "AGGLOMERATIVE")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -16,8 +16,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/yago/"
-query_numbers="1-25"
+queries_path="/turbograph-v3/queries/kg/yago-2/"
+query_numbers="1-14"
 
 # Function to parse query numbers
 parse_query_numbers() {
