@@ -1539,8 +1539,8 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output, Ex
 
 // For Seek Operator - Bulk Mode + Target Seqnos
 bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk &output, ExtentID &output_eid, 
-                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, Vector &rowcol_vec,
-                                   char *row_major_store, vector<uint32_t> &target_seqnos, idx_t out_id_col_idx, 
+                                   ExtentID target_eid, DataChunk &input, idx_t nodeColIdx, const vector<uint32_t> &output_column_idxs,
+                                   Vector &rowcol_vec, char *row_major_store, vector<uint32_t> &target_seqnos, idx_t out_id_col_idx, 
                                    idx_t &num_output_tuples, bool is_output_chunk_initialized)
 {
     if (target_eid != current_eid) {
@@ -1565,23 +1565,44 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
         type_sizes.push_back(type_size);
     }
 
+    // Null handling
+    // @jhha: this implementation is not discusssed with tslee
+    // Though we used row format, we still need to handle null values
+    // Therefore, we use the null bitmap as ususal, but this may not efficient
+    ValidityMask src_validities[cur_ext_property_type.size()];
+    for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
+        if (cur_ext_property_type[i] != LogicalType::ID) {
+            auto comp_header = (CompressionHeader *)io_requested_buf_ptrs[toggle][i];
+            if (comp_header->HasNullMask()) {
+                size_t bitmap_ptr_offset = comp_header->GetNullBitmapOffset();
+                src_validities[i] = ValidityMask((uint64_t *)(io_requested_buf_ptrs[toggle][i] + bitmap_ptr_offset));
+            }
+        }
+    }
+
     idx_t id_col_value;
     for (auto i = 0; i < target_seqnos.size(); i++) {
         idx_t accumulated_bytes = 0;
         idx_t seqno = target_seqnos[i];
         idx_t target_seqno = getIdRefFromVectorTemp(vids, seqno) & 0x00000000FFFFFFFF;
         for (auto j = 0; j < cur_ext_property_type.size(); j++) {
+            ValidityMask &src_validity = src_validities[j];
+            auto &validity = FlatVector::Validity(output.data[output_column_idxs[j]]);
+
+            // Do Seek
             switch (cur_ext_property_type[j].id())
             {
             case LogicalTypeId::VARCHAR:
             {
                 string_t *varchar_arr = (string_t *)(io_requested_buf_ptrs[toggle][j] + comp_header_valid_size);
-                // if (!varchar_arr[target_seqno].IsInlined()) {
-                //     std::cout << "length: " << varchar_arr[target_seqno].GetSize() << std::endl;
-                // }
-                memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
-                    &varchar_arr[target_seqno],
-                    sizeof(string_t));
+                if (src_validity.RowIsValid(target_seqno)) {
+                    memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
+                        &varchar_arr[target_seqno],
+                        sizeof(string_t));
+                }
+                else {
+                    validity.SetInvalid(seqno);
+                }
                 accumulated_bytes += sizeof(string_t);
                 break;
             }
@@ -1596,14 +1617,18 @@ bool ExtentIterator::GetNextExtentInRowFormat(ClientContext &context, DataChunk 
                 idx_t *id_column = (idx_t *)out_id_vec.GetData();
                 id_col_value = physical_id_base + target_seqno;
                 id_column[seqno] = id_col_value;
-                // accumulated_bytes += sizeof(idx_t);
                 break;
             }
             default:
             {
-                memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
-                    io_requested_buf_ptrs[toggle][j] + comp_header_valid_size + target_seqno * type_sizes[j],
-                    type_sizes[j]);
+                if (src_validity.RowIsValid(target_seqno)) {
+                    memcpy(row_major_store + rowcol_arr[seqno].offset + accumulated_bytes,
+                        io_requested_buf_ptrs[toggle][j] + comp_header_valid_size + target_seqno * type_sizes[j],
+                        type_sizes[j]);
+                }
+                else {
+                    validity.SetInvalid(seqno);
+                }
                 accumulated_bytes += type_sizes[j];
                 break;
             }
