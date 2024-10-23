@@ -30,6 +30,7 @@ SOURCE_DATA_DIR=$2
 	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 docker run -itd --cap-add SYS_ADMIN \
 	--cap-add SYS_PTRACE \
+	--ulimit nofile=67108864:67108864	\
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
