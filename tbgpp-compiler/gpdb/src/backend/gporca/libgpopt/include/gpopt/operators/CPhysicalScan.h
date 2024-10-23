@@ -44,6 +44,9 @@ protected:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
+	// pruned output columns (for s62)
+	CColRefArray *m_pruned_pdrgpcrOutput;
+
 	// distribution
 	CDistributionSpec *m_pds;
 
@@ -94,6 +97,22 @@ public:
 		return m_pdrgpcrOutput;
 	}
 
+	// accessors
+	CColRefArray *
+	PrunedPdrgpcrOutput() const
+	{
+		return m_pruned_pdrgpcrOutput;
+	}
+
+	// setter
+	void
+	SetPrunedOutputCols(CColRefArray *pruned_pdrgpcrOutput)
+	{
+		GPOS_ASSERT(NULL != pruned_pdrgpcrOutput);
+		m_pruned_pdrgpcrOutput = pruned_pdrgpcrOutput;
+		ComputeTableStats(m_mp);
+	}
+	
 	// sensitivity to order of inputs
 	virtual BOOL FInputOrderSensitive() const;
 

@@ -42,6 +42,7 @@ CLogicalIndexGet::CLogicalIndexGet(CMemoryPool *mp)
 	  m_ulOriginOpId(gpos::ulong_max),
 	  m_pnameAlias(NULL),
 	  m_pdrgpcrOutput(NULL),
+	  m_pruned_pdrgpcrOutput(NULL),
 	  m_pcrsOutput(NULL),
 	  m_pos(NULL),
 	  m_pcrsDist(NULL)
@@ -68,6 +69,7 @@ CLogicalIndexGet::CLogicalIndexGet(CMemoryPool *mp, const IMDIndex *pmdindex,
 	  m_ulOriginOpId(ulOriginOpId),
 	  m_pnameAlias(pnameAlias),
 	  m_pdrgpcrOutput(pdrgpcrOutput),
+	  m_pruned_pdrgpcrOutput(pdrgpcrOutput),
 	  m_pcrsOutput(NULL),
 	  m_pcrsDist(NULL)
 {
@@ -101,6 +103,7 @@ CLogicalIndexGet::~CLogicalIndexGet()
 	CRefCount::SafeRelease(m_ptabdesc);
 	CRefCount::SafeRelease(m_pindexdesc);
 	CRefCount::SafeRelease(m_pdrgpcrOutput);
+	CRefCount::SafeRelease(m_pruned_pdrgpcrOutput);
 	CRefCount::SafeRelease(m_pcrsOutput);
 	CRefCount::SafeRelease(m_pos);
 	CRefCount::SafeRelease(m_pcrsDist);

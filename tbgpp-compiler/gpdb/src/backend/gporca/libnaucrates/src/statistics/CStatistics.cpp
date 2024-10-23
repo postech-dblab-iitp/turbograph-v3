@@ -588,6 +588,14 @@ CStatistics::ScaleStats(CMemoryPool *mp, CDouble factor) const
 	return scaled_stats;
 }
 
+void
+CStatistics::ScaleStatsWoCopy(CDouble factor)
+{
+	CDouble scaled_num_rows = m_rows * factor;
+
+	this->m_rows = scaled_num_rows;
+}
+
 //	copy statistics object with re-mapped column ids
 IStatistics *
 CStatistics::CopyStatsWithRemap(CMemoryPool *mp,

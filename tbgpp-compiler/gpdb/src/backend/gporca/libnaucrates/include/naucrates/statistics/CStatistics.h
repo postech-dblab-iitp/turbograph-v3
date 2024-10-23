@@ -280,6 +280,9 @@ public:
 	// return a copy of this stats object scaled by a given factor
 	virtual IStatistics *ScaleStats(CMemoryPool *mp, CDouble factor) const;
 
+	// return the stats object scaled by a given factor without copy
+	virtual void ScaleStatsWoCopy(CDouble factor);
+
 	// copy stats with remapped column id
 	virtual IStatistics *CopyStatsWithRemap(CMemoryPool *mp,
 											UlongToColRefMap *colref_mapping,

@@ -89,10 +89,16 @@ CXformGet2TableScan::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 
 	pdrgpcrOutput->AddRef();
 
+	CColRefArray* pruned_pdrgpcrOutput = popGet->PrunedPdrgpcrOutput();
+	GPOS_ASSERT(NULL != pruned_pdrgpcrOutput);
+
+	pruned_pdrgpcrOutput->AddRef();
+
+	CPhysicalTableScan *ptable_scan = GPOS_NEW(mp) CPhysicalTableScan(mp, pname, ptabdesc, pdrgpcrOutput);
+	ptable_scan->SetPrunedOutputCols(pruned_pdrgpcrOutput);
+
 	// create alternative expression
-	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
-		mp,
-		GPOS_NEW(mp) CPhysicalTableScan(mp, pname, ptabdesc, pdrgpcrOutput));
+	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(mp, ptable_scan);
 	// add alternative to transformation result
 	pxfres->Add(pexprAlt);
 }

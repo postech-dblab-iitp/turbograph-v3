@@ -428,20 +428,20 @@ CEngine::FPossibleDuplicateGroups(CGroup *pgroupFst, CGroup *pgroupSnd)
 void
 CEngine::DeriveStats(CMemoryPool *pmpLocal)
 {
-	CWStringDynamic str(m_mp);
-	COstreamString oss(&str);
-	oss << "\n[OPT]: Statistics Derivation Time (stage " << m_ulCurrSearchStage
-		<< ") ";
-	CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(
-		m_mp, const_cast<WCHAR *>(str.GetBuffer()));
+	// CWStringDynamic str(m_mp);
+	// COstreamString oss(&str);
+	// oss << "\n[OPT]: Statistics Derivation Time (stage " << m_ulCurrSearchStage
+	// 	<< ") ";
+	// CHAR *sz = CUtils::CreateMultiByteCharStringFromWCString(
+	// 	m_mp, const_cast<WCHAR *>(str.GetBuffer()));
 
 	{
-		CAutoTimer at(sz, GPOS_FTRACE(EopttracePrintOptimizationStatistics));
+		// CAutoTimer at(sz, GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 		// derive stats on root group
 		CEngine::DeriveStats(pmpLocal, m_mp, PgroupRoot(), NULL /*prprel*/);
 	}
 
-	GPOS_DELETE_ARRAY(sz);
+	// GPOS_DELETE_ARRAY(sz);
 }
 
 //---------------------------------------------------------------------------
@@ -2212,11 +2212,12 @@ CEngine::FCheckEnfdProps(CMemoryPool *mp, CGroupExpression *pgexpr,
 
 	// check whether the current physical operator satisfies the CTE requirements
 	// and whether it is a motion over unresolved part consumers
-	if (!FValidCTEAndPartitionProperties(mp, exprhdl, prpp))
-	{
-		pcc->Release();
-		return false;
-	}
+	// 240819 - disable this for reduce compilation time (s62 don't need CTE)
+	// if (!FValidCTEAndPartitionProperties(mp, exprhdl, prpp))
+	// {
+	// 	pcc->Release();
+	// 	return false;
+	// }
 
 	// Determine if any property enforcement is disable or unnecessary
 	BOOL fOrderReqd = !GPOS_FTRACE(EopttraceDisableSort) &&

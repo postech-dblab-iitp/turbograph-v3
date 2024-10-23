@@ -410,7 +410,9 @@ void *Planner::_orcaExec(void *planner_ptr)
     {  // this area should be enforced
         /* Optimizer components */
         planner->_orcaSetTraceFlags();
-        CMDAccessor mda(mp, CMDCache::Pcache(), CTestUtils::m_sysidDefault,
+        CSystemId default_sysid(IMDId::EmdidGeneral,
+								GPOS_WSZ_STR_LENGTH("GPDB"));
+        CMDAccessor mda(mp, CMDCache::Pcache(), default_sysid,
                         provider);
         gpdbcost::CCostModelGPDB *pcm = planner->_orcaGetCostModel(mp);
         planner->_orcaSetOptCtxt(mp, &mda, pcm);
@@ -514,42 +516,42 @@ void *Planner::_orcaExec(void *planner_ptr)
 #endif
 
 		// iterate possible plans
-        if (planner->config.ORCA_DEBUG_PRINT) {
-            while (true) {
-                bool search_plan;
-                while (true) {
-                    string user_input;
-                    std::cout << "[ORCA DEBUG] Search Possible Plans? [y/n]: ";
-                    std::getline(std::cin, user_input);
-                    std::for_each(user_input.begin(), user_input.end(),
-                                  [](auto &c) { c = std::tolower(c); });
-                    if (user_input == "y") {
-                        search_plan = true;
-                        break;
-                    }
-                    else if (user_input == "n") {
-                        search_plan = false;
-                        break;
-                    }
-                    else {
-                        printf("Please Enter Either Y or N\n");
-                    }
-                }
+        // if (planner->config.ORCA_DEBUG_PRINT) {
+        //     while (true) {
+        //         bool search_plan;
+        //         while (true) {
+        //             string user_input;
+        //             std::cout << "[ORCA DEBUG] Search Possible Plans? [y/n]: ";
+        //             std::getline(std::cin, user_input);
+        //             std::for_each(user_input.begin(), user_input.end(),
+        //                           [](auto &c) { c = std::tolower(c); });
+        //             if (user_input == "y") {
+        //                 search_plan = true;
+        //                 break;
+        //             }
+        //             else if (user_input == "n") {
+        //                 search_plan = false;
+        //                 break;
+        //             }
+        //             else {
+        //                 printf("Please Enter Either Y or N\n");
+        //             }
+        //         }
 
-				if (search_plan) {
-					CExpression *pexpr = eng.PexprExtractPlanInteractively();
-                    if (pexpr != NULL) {
-                        CWStringDynamic str(mp, L"\n");
-                        COstreamString oss(&str);
-                        pexpr->OsPrint(oss);
-                        GPOS_TRACE(str.GetBuffer());
-                    }
-				}
-				else {
-					break;
-				}
-            }
-        }
+		// 		if (search_plan) {
+		// 			CExpression *pexpr = eng.PexprExtractPlanInteractively();
+        //             if (pexpr != NULL) {
+        //                 CWStringDynamic str(mp, L"\n");
+        //                 COstreamString oss(&str);
+        //                 pexpr->OsPrint(oss);
+        //                 GPOS_TRACE(str.GetBuffer());
+        //             }
+		// 		}
+		// 		else {
+		// 			break;
+		// 		}
+        //     }
+        // }
 
 #ifdef BREAKDOWN_COMPILE_TIME
         boost::timer::cpu_timer orca_extract_plan_timer;

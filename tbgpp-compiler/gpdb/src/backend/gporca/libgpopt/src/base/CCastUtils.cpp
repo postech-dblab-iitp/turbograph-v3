@@ -209,6 +209,7 @@ CCastUtils::PdrgpexprCastEquality(CMemoryPool *mp, CExpression *pexpr)
 			CPredicateUtils::FINDF(pexprPred))
 		{
 			CExpression *pexprCasted = PexprAddCast(mp, pexprPred);
+			// CExpression *pexprCasted = NULL;
 			if (NULL != pexprCasted)
 			{
 				// release predicate since we will construct a new one

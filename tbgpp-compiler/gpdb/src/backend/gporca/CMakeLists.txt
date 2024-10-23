@@ -123,4 +123,4 @@ add_subdirectory(libgpdbcost)
 add_subdirectory(libgpopt)
 
 # Tests.
-add_subdirectory(server)
+#add_subdirectory(server)

@@ -2377,57 +2377,42 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 		// release unused 
 		pcrsUnusedLocal->Release();
 	}
-	// S62 eliminate unused columns for logical get
 	else if( COperator::EopLogicalGet == pop->Eopid() ) {
-		// CLogicalGet* get_op = (CLogicalGet*) pop;
-		// // unused =  output - used
-		// CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp); // TODO need to release pcrsUnusedLocal?
-		// pcrsUnusedLocal->Include(get_op->PdrgpcrOutput());
-		// pcrsUnusedLocal->Difference(pcrsReqd);
+		CLogicalGet* get_op = (CLogicalGet*) pop;
+		// unused =  output - used
+		CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp); // TODO need to release pcrsUnusedLocal?
+		pcrsUnusedLocal->Include(get_op->PdrgpcrOutput());
+		pcrsUnusedLocal->Difference(pcrsReqd);
+		CColRefArray* origOutputCols = get_op->PdrgpcrOutput();
 
-		// if( 0 < pcrsUnusedLocal-> Size()) {
+		if( 0 < pcrsUnusedLocal-> Size()) {
+			std::vector<ULONG> used_indices;
+			used_indices.push_back(0); // always include the first column
+			for(ULONG _i = 1; _i < origOutputCols->Size(); _i++ ) {
+				CColRef* cur_col = origOutputCols->operator[](_i);
+				if( pcrsReqd->FMember(cur_col) ) {
+					used_indices.push_back(_i);
+				}
+			}
+			GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
 
-		// 	CColRefArray* origOutputCols = get_op->PdrgpcrOutput();
-		// 	std::vector<ULONG> used_indices;
-		// 	for(ULONG _i = 0; _i < origOutputCols->Size(); _i++ ) {
-		// 		CColRef* cur_col = origOutputCols->operator[](_i);
-		// 		if( pcrsReqd->FMember(cur_col) ) {
-		// 			used_indices.push_back(_i);
-		// 		}
-		// 	}
-		// 	GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
+			// new outputarray and tabledesc
+			CColRefArray *new_pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
 
-		// 	CColumnDescriptorArray * colDescArr = get_op->Ptabdesc()->Pdrgpcoldesc();
+			for (ULONG ui_idx = 0; ui_idx < used_indices.size(); ui_idx++) {
+				ULONG target_idx = used_indices[ui_idx];
+				new_pdrgpcrOutput->Append(origOutputCols->operator[](target_idx));
+			}
 
-		// 	// new outputarray and tabledesc
-		// 	CColRefArray *new_pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
-		// 	CColumnDescriptorArray * new_colDescArr = GPOS_NEW(mp) CColumnDescriptorArray(mp);
-			
-		// 	for( ULONG col_idx = 0; col_idx < origOutputCols->Size(); col_idx++) {
-		// 		for(ULONG ui_idx = 0; ui_idx < used_indices.size(); ui_idx++){
-		// 			ULONG target_idx = used_indices[ui_idx];
-		// 			if(target_idx == col_idx) {
-		// 				new_pdrgpcrOutput->Append(origOutputCols->operator[](col_idx));
-		// 				colDescArr->operator[](col_idx)->AddRef();
-		// 				new_colDescArr->Append(colDescArr->operator[](col_idx));
-		// 			}
-		// 		}
-		// 	}
-		// 	new_pdrgpcrOutput->AddRef();
-		// 	new_colDescArr->AddRef();
-		// 	pop->AddRef();
-		// 	// replace coldescarr with subset
-		// 	(*colDescArr).AddRef();
-		// 	directly access coldescarr and clear and reset to new colarrs
-		// 	(*colDescArr).Clear();
-		// 	(*colDescArr).AppendArray(new_colDescArr);
-		// 	CName* name =  GPOS_NEW(mp) CName(get_op->Name());
-
-		// 	// since leaf, directly return newly added logical operator
-		// 	return  GPOS_NEW(mp) CExpression(
-		// 		mp, GPOS_NEW(mp) CLogicalGet(mp, name, get_op->Ptabdesc(), new_pdrgpcrOutput) );
-		// }
-
+			new_pdrgpcrOutput->AddRef();
+			pop->AddRef();
+			get_op->SetPrunedOutputCols(new_pdrgpcrOutput);
+		}
+		else {
+			get_op->SetPrunedOutputCols(origOutputCols);
+		}
+		// release unused 
+		pcrsUnusedLocal->Release();
 	}
 
 	if (pop->FLogical())

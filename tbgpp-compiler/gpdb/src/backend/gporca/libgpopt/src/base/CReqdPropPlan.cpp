@@ -106,7 +106,7 @@ CReqdPropPlan::~CReqdPropPlan()
 	CRefCount::SafeRelease(m_ped);
 	CRefCount::SafeRelease(m_per);
 	CRefCount::SafeRelease(m_pepp);
-	CRefCount::SafeRelease(m_pcter);
+	// CRefCount::SafeRelease(m_pcter);
 }
 
 
@@ -172,7 +172,7 @@ CReqdPropPlan::Compute(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CReqdPropPlan *prppInput = CReqdPropPlan::Prpp(prpInput);
 	CPhysical *popPhysical = CPhysical::PopConvert(exprhdl.Pop());
 	ComputeReqdCols(mp, exprhdl, prpInput, child_index, pdrgpdpCtxt);
-	ComputeReqdCTEs(mp, exprhdl, prpInput, child_index, pdrgpdpCtxt);
+	// ComputeReqdCTEs(mp, exprhdl, prpInput, child_index, pdrgpdpCtxt);
 	CPartFilterMap *ppfmDerived =
 		PpfmCombineDerived(mp, exprhdl, prppInput, child_index, pdrgpdpCtxt);
 
@@ -418,7 +418,7 @@ CReqdPropPlan::Equals(const CReqdPropPlan *prpp) const
 	GPOS_ASSERT(NULL != prpp);
 
 	BOOL result = PcrsRequired()->Equals(prpp->PcrsRequired()) &&
-				  Pcter()->Equals(prpp->Pcter()) &&
+				//   Pcter()->Equals(prpp->Pcter()) &&
 				  Peo()->Matches(prpp->Peo()) && Ped()->Matches(prpp->Ped()) &&
 				  Per()->Matches(prpp->Per());
 
@@ -453,13 +453,13 @@ CReqdPropPlan::HashValue() const
 	GPOS_ASSERT(NULL != m_peo);
 	GPOS_ASSERT(NULL != m_ped);
 	GPOS_ASSERT(NULL != m_per);
-	GPOS_ASSERT(NULL != m_pcter);
+	// GPOS_ASSERT(NULL != m_pcter);
 
 	ULONG ulHash = m_pcrs->HashValue();
 	ulHash = gpos::CombineHashes(ulHash, m_peo->HashValue());
 	ulHash = gpos::CombineHashes(ulHash, m_ped->HashValue());
 	ulHash = gpos::CombineHashes(ulHash, m_per->HashValue());
-	ulHash = gpos::CombineHashes(ulHash, m_pcter->HashValue());
+	// ulHash = gpos::CombineHashes(ulHash, m_pcter->HashValue());
 
 	return ulHash;
 }
@@ -494,10 +494,11 @@ CReqdPropPlan::FSatisfied(const CDrvdPropRelational *pdprel,
 	{
 		GPOS_ASSERT(NULL != pdpplan->Ppim());
 
-		return pdpplan->Pds()->FSatisfies(this->Ped()->PdsRequired()) &&
-			   pdpplan->Prs()->FSatisfies(this->Per()->PrsRequired()) &&
-			   pdpplan->Ppim()->FSatisfies(this->Pepp()->PppsRequired()) &&
-			   pdpplan->GetCostModel()->FSatisfies(this->Pcter());
+		return pdpplan->Pds()->FSatisfies(this->Ped()->PdsRequired());
+		// return pdpplan->Pds()->FSatisfies(this->Ped()->PdsRequired()) &&
+		// 	   pdpplan->Prs()->FSatisfies(this->Per()->PrsRequired()) &&
+		// 	   pdpplan->Ppim()->FSatisfies(this->Pepp()->PppsRequired()) &&
+		// 	   pdpplan->GetCostModel()->FSatisfies(this->Pcter());
 	}
 
 	// otherwise, check satisfiability of all plan properties

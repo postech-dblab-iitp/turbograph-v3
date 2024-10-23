@@ -39,6 +39,7 @@ CPhysicalScan::CPhysicalScan(CMemoryPool *mp, const CName *pnameAlias,
 	  m_pnameAlias(pnameAlias),
 	  m_ptabdesc(ptabdesc),
 	  m_pdrgpcrOutput(pdrgpcrOutput),
+	  m_pruned_pdrgpcrOutput(pdrgpcrOutput),
 	  m_pds(NULL),
 	  m_pstatsBaseTable(NULL)
 {
@@ -72,6 +73,7 @@ CPhysicalScan::~CPhysicalScan()
 {
 	m_ptabdesc->Release();
 	m_pdrgpcrOutput->Release();
+	m_pruned_pdrgpcrOutput->Release();
 	m_pds->Release();
 	m_pstatsBaseTable->Release();
 	GPOS_DELETE(m_pnameAlias);
@@ -283,10 +285,10 @@ CPhysicalScan::EpetDistribution(CExpressionHandle & /*exprhdl*/,
 void
 CPhysicalScan::ComputeTableStats(CMemoryPool *mp)
 {
-	GPOS_ASSERT(NULL == m_pstatsBaseTable);
+	if (NULL != m_pstatsBaseTable) m_pstatsBaseTable->Release();
 
 	CColRefSet *pcrsHist = GPOS_NEW(mp) CColRefSet(mp);
-	CColRefSet *pcrsWidth = GPOS_NEW(mp) CColRefSet(mp, m_pdrgpcrOutput);
+	CColRefSet *pcrsWidth = GPOS_NEW(mp) CColRefSet(mp, m_pruned_pdrgpcrOutput);
 
 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	m_pstatsBaseTable =
