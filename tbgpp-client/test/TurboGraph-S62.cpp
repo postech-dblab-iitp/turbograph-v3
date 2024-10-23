@@ -188,28 +188,28 @@ void helper_deallocate_objects_in_shared_memory () {
   fprintf(stdout, "Re-initialize shared memory\n");
 }
 
-int
-bind_cr(int count, int key) {
-	if (eoq == 1) {
-		rl_done = 1;
-		eoq = 0;
-	}
-	printf("\n");
-}
+// int
+// bind_cr(int count, int key) {
+// 	if (eoq == 1) {
+// 		rl_done = 1;
+// 		eoq = 0;
+// 	}
+// 	printf("\n");
+// }
 
-int
-bind_eoq(int count, int key) {
-	eoq = 1;
+// int
+// bind_eoq(int count, int key) {
+// 	eoq = 1;
 
-	printf(";");
-}
+// 	printf(";");
+// }
 
-int initialize_readline() {
-  eoq = 0;
-//   rl_bind_key('\n', bind_cr);
-//   rl_bind_key('\r', bind_cr);
-//   rl_bind_key(';', bind_eoq);
-}
+// int initialize_readline() {
+//   eoq = 0;
+// //   rl_bind_key('\n', bind_cr);
+// //   rl_bind_key('\r', bind_cr);
+// //   rl_bind_key(';', bind_eoq);
+// }
 
 void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
 
@@ -517,9 +517,9 @@ int main(int argc, char** argv) {
 	input.getCmdOption();
 	using_history();
 	read_history((workspace + "/.history").c_str());
-	if (isatty(STDIN_FILENO)) {
-    	rl_startup_hook = initialize_readline;
-	}
+	// if (isatty(STDIN_FILENO)) {
+    // 	rl_startup_hook = initialize_readline;
+	// }
 	// set_signal_handler();
 	// setbuf(stdout, NULL);
 
