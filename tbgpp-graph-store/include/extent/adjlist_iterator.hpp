@@ -36,11 +36,9 @@ public:
         ext_it = share_ext_it;
         eid_to_bufptr_idx_map = share_eid_to_bufptr_idx_map;
     }
-    bool Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
-    void Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type = LogicalType::FORWARD_ADJLIST);
-    void getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx);
+    bool Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd);
     void getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t **start_ptr, uint64_t **end_ptr, bool is_initialized);
-    int requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type);
+    int requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd);
 
 private:
     bool is_initialized = false;
@@ -49,7 +47,8 @@ private:
     std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map;
     data_ptr_t cur_adj_list;
     idx_t *adjListBase;
-    // data_ptr_t adjListBase;
+    vector<LogicalType> fwd_types { LogicalType::FORWARD_ADJLIST };
+    vector<LogicalType> bwd_types { LogicalType::BACKWARD_ADJLIST };
 };
 
 class DFSIterator {

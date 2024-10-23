@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = true;
+static bool unionall_forced = false;
 
 namespace duckdb {
 
@@ -207,6 +207,8 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
 
         if (target_eids.size() == 0) {
             chunk.SetCardinality(0);
+            state.has_remaining_output = false;
+            state.need_initialize_extit = true;
             return OperatorResultType::OUTPUT_EMPTY;
         }
     }
@@ -616,7 +618,12 @@ void PhysicalIdSeek::doSeekSchemaless(
                 rowcol_arr[i].offset = accm_offset;
                 accm_offset += total_types_size;
             }
-            chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset);
+            try {
+                chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset);
+            }
+            catch (const std::exception &e) {
+                std::cerr << e.what() << '\n';
+            }
 
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
@@ -1343,8 +1350,6 @@ size_t PhysicalIdSeek::calculateTotalNulls(
     vector<size_t> num_nulls_per_extent(target_eids.size(), 0);
 
     // Get outer cols that are in the output
-    // vector<idx_t> outer_output_col_idxs;
-    // getOutputColIdxsForOuter(outer_output_col_idxs);
     size_t num_outer_output_cols = outer_output_col_idxs.size();
 
     for (u_int64_t extent_idx = 0; extent_idx < target_eids.size();
