@@ -2412,6 +2412,8 @@ public:
 
             schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
             temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
+
+            boundary_begin = layer_boundaries[i];
         }
 
         // remove nullptrs
