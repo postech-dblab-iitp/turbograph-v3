@@ -70,17 +70,6 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
             *queryGraph, collection);
     }
 
-    // TODO how to trigger DSI?
-    if (num_schema_combinations >= 2) {
-        auto firstQueryNode = queryGraph->getQueryNode(0);
-        firstQueryNode->setDSITarget();
-        for (auto i = 0u; i < patternElement.getNumPatternElementChains();
-             ++i) {
-            queryGraph->getQueryNode(i + 1)->setDSITarget();
-            queryGraph->getQueryRel(i)->setDSITarget();
-        }
-    }
-
     if (queryGraph->getQueryGraphType() != QueryGraphType::NONE) {
         string pathName = patternElement.getPathName();
         queryGraph->setQueryPath(pathName);
