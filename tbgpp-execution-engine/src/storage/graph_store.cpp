@@ -512,15 +512,15 @@ iTbgppGraphStore::getAdjColIdxs(idx_t index_cat_oid, vector<int> &adjColIdxs, ve
 
 StoreAPIResult
 iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, ExtentID &prev_eid, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
-	D_ASSERT( expand_dir ==ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
+	D_ASSERT( expand_dir == ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
 	bool is_initialized = true;
 	ExtentID target_eid = vid >> 32;
 	if (target_eid != prev_eid) {
 		// initialize
 		if (expand_dir == ExpandDirection::OUTGOING) {
-			is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+			is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, true);
 		} else if (expand_dir == ExpandDirection::INCOMING) {
-			is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, LogicalType::BACKWARD_ADJLIST);
+			is_initialized = adj_iter.Initialize(client, adjColIdx, target_eid, false);
 		}
 		adj_iter.getAdjListPtr(vid, target_eid, &start_ptr, &end_ptr, is_initialized);
 	} else {

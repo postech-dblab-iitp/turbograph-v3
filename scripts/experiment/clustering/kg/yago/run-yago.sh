@@ -17,7 +17,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/kg/yago-2/"
-query_numbers="1-14"
+query_numbers="5"
 
 # Function to parse query numbers
 parse_query_numbers() {

@@ -12,7 +12,7 @@
 
 namespace duckdb {
 
-bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type) {
+bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd) {
     if (is_initialized && target_eid == cur_eid) return true;
 
     cur_eid = target_eid;
@@ -23,9 +23,8 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
     }
     
     if (!ext_it ->IsInitialized()) {
-        vector<LogicalType> target_types { adjlist_type };
         vector<idx_t> target_idxs { (idx_t)adjColIdx };
-        ext_it->Initialize(context, target_types, target_idxs, target_eid);
+        ext_it->Initialize(context, is_fwd ? fwd_types : bwd_types, target_idxs, target_eid);
         (*eid_to_bufptr_idx_map)[target_eid_seqno] = std::make_pair<idx_t, data_ptr_t>(0, nullptr);
         return false;
     } else {
@@ -36,55 +35,20 @@ bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, Ex
                 return true;
             } else {
                 // Evicted extent
-                int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, adjlist_type);
+                int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, is_fwd);
                 pair.first = bufptr_idx;
                 pair.second = nullptr;
             }
         }
         else {
             // Fail to find
-            int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, adjlist_type);
+            int bufptr_idx = requestNewAdjList(context, adjColIdx, target_eid, is_fwd);
             (*eid_to_bufptr_idx_map)[target_eid_seqno] = std::make_pair<idx_t, data_ptr_t>(bufptr_idx, nullptr);
             return false;
         }
     }
     
     return true;
-}
-
-void AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, DataChunk &input, idx_t srcColIdx, LogicalType adjlist_type) {
-    D_ASSERT(false);
-    // vector<ExtentID> target_eids;
-    // uint64_t *vids = (uint64_t *)input.data[srcColIdx].GetData();
-    // ExtentID prev_eid = input.size() == 0 ? 0 : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
-    // for (size_t i = 0; i < input.size(); i++) {
-    //     uint64_t vid = vids[i];
-	// 	ExtentID target_eid = vid >> 32; // TODO make this functionality as Macro --> GetEIDFromPhysicalID
-	// 	target_eids.push_back(target_eid);
-    // }
-    // ExtentID target_eid = vid >> 32;
-
-    // if (is_initialized && target_eid == cur_eid) return;
-    // icecream::ic.enable(); IC(); IC(target_eid); icecream::ic.disable();
-
-    // vector<LogicalType> target_types { adjlist_type };
-	// vector<idx_t> target_idxs { (idx_t)adjColIdx };
-    
-    // ext_it = new ExtentIterator();
-    // ext_it->Initialize(context, nullptr, target_types, target_idxs, target_eid);
-    // // icecream::ic.enable(); IC(); icecream::ic.disable();
-    // cur_eid = target_eid;
-    // is_initialized = true;
-}
-
-void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, uint64_t *end_idx) {
-    D_ASSERT(false);
-    // idx_t target_seqno = vid & 0x00000000FFFFFFFF;
-    // data_ptr_t adj_list;
-    // ext_it->GetExtent(adj_list);
-    // idx_t *adjListBase = (idx_t *)adj_list;
-    // *start_idx = target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1];
-    // *end_idx = adjListBase[target_seqno];
 }
 
 void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t **start_ptr, uint64_t **end_ptr, bool is_initialized) {
@@ -119,11 +83,10 @@ void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uin
 }
 
 
-int AdjacencyListIterator::requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, LogicalType adjlist_type) {
+int AdjacencyListIterator::requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd) {
     ExtentID evicted_eid;
-    vector<LogicalType> target_types { adjlist_type };
     vector<idx_t> target_idxs { (idx_t)adjColIdx };
-    return ext_it->RequestNewIO(context, target_types, target_idxs, target_eid, evicted_eid);
+    return ext_it->RequestNewIO(context, is_fwd ? fwd_types : bwd_types, target_idxs, target_eid, evicted_eid);
 }
 
 void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx) {
@@ -132,7 +95,7 @@ void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t a
     initializeDSForNewLv(0);
 
     ExtentID target_eid = src_id >> 32;
-    bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST); // TODO adjColIdx, adjlist direction
+    bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, true); // TODO adjColIdx, adjlist direction
     // fprintf(stdout, "target_eid = %d, initialized = %s\n", target_eid, is_initialized ? "true" : "false");
     adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, &cur_start_end_offsets_per_level[current_lv].first,
         &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
@@ -166,7 +129,7 @@ void DFSIterator::changeLevel(ClientContext &context, bool traverse_child, uint6
         if (current_lv > max_lv) {
             initializeDSForNewLv(current_lv);
         }
-        bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+        bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, true);
         adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, &cur_start_end_offsets_per_level[current_lv].first,
             &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
     } else {
@@ -230,7 +193,7 @@ void ShortestPathIterator::initialize(ClientContext &context, NodeID src_id, Nod
 bool ShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID node_id, Level node_level, std::queue<std::pair<NodeID, Level>>& queue) {
     uint64_t *start_ptr, *end_ptr;
     ExtentID target_eid = node_id >> 32;
-    bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, LogicalType::FORWARD_ADJLIST);
+    bool is_initialized = adjlist_iterator->Initialize(context, adjColIdx, target_eid, true);
     adjlist_iterator->getAdjListPtr(node_id, target_eid, &start_ptr, &end_ptr, is_initialized);
 
     for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
@@ -361,13 +324,12 @@ bool ShortestPathAdvancedIterator::enqueueNeighbors(ClientContext &context, Node
     auto &predecessor_to_insert = is_forward ? predecessor_forward : predecessor_backward;
     auto &predecessor_to_find = is_forward ? predecessor_backward : predecessor_forward;
     auto adj_col_idx = is_forward ? adj_col_idx_fwd : adj_col_idx_bwd;
-    auto type = is_forward ? LogicalType::FORWARD_ADJLIST : LogicalType::BACKWARD_ADJLIST;
     std::shared_ptr<AdjacencyListIterator> &adjlist_iterator = is_forward ? adjlist_iterator_forward : adjlist_iterator_backward;
     
     // Intiailize others
     uint64_t *start_ptr, *end_ptr;
     ExtentID target_eid = node_id >> 32;
-    bool is_initialized = adjlist_iterator->Initialize(context, adj_col_idx, target_eid, type);
+    bool is_initialized = adjlist_iterator->Initialize(context, adj_col_idx, target_eid, is_forward);
     adjlist_iterator->getAdjListPtr(node_id, target_eid, &start_ptr, &end_ptr, is_initialized);
 
     for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {

@@ -8,14 +8,14 @@ from scipy.stats import gmean
 import sys
 
 def extract_times(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', errors='replace') as file:
         content = file.read()
         try:
             time1 = float(re.search(r'Average Query Execution Time: (\d+(\.\d+)?) ms', content).group(1))
             time2 = float(re.search(r'Average Compile Time: (\d+(\.\d+)?) ms', content).group(1))
         except AttributeError:
             return None
-    return time1
+    return time1 + time2
 
 def read_logs(folder):
     data = []
@@ -36,7 +36,7 @@ def calculate_geomean_speedups(df, mode):
     
     if mode == 'measure':
         baseline_measure = 'OURS'
-        measures = ['OURS', 'JACCARD']
+        measures = ['OURS', 'OVERLAP', 'JACCARD', 'DICE', 'COSINE', 'WEIGHTEDJACCARD']
         keys = measures
         baseline_times = df[df['Measure'] == baseline_measure].groupby(['Query'])['TotalTime'].mean()
         for measure in measures:
@@ -176,6 +176,8 @@ def plot_per_dataset_graph(datasets, data, mode, output_file, custom_labels, fig
 def main(base_folder, mode, output_file, remove_datasets=None):
     datasets = ['yago']
     x_labels_custom = ['YAGO']  # Custom uppercase labels for the X-axis
+    # datasets = ['yago', 'freebase', 'dbpedia']
+    # x_labels_custom = ['YAGO', 'Freebase', 'DBpedia']  # Custom uppercase labels for the X-axis
     all_data = []
 
     for dataset in datasets:
@@ -198,8 +200,8 @@ def main(base_folder, mode, output_file, remove_datasets=None):
 
     # Set up custom labels based on mode
     custom_labels_dict = {
-        'measure': ['Ours', 'Jaccard'],
-        'algorithm': ['GMMSchema', 'DBSCAN', 'Ours'],
+        'measure': ['Ours', 'Overlap', 'Jaccard', 'Dice', 'Cosine', 'W-Jaccard'],
+        'algorithm': ['SingleCluster', 'Ours'],
         'layering': ['Descending', 'Ascending', 'No Sort']
     }
     custom_labels = custom_labels_dict[mode]
