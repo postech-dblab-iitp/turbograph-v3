@@ -103,7 +103,7 @@ target_link_libraries(tbgpp-compiler tbgpp-common-lib tbgpp-main tbgpp-execution
 target_link_libraries(tbgpp-compiler "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
 # gpdb
 target_link_libraries(tbgpp-compiler gpdb)
-target_link_libraries(tbgpp-compiler gpos naucrates gpdbcost gpopt gporca_test_lib)
+target_link_libraries(tbgpp-compiler gpos naucrates gpdbcost gpopt)
 # kuzu
 target_link_libraries(tbgpp-compiler kuzu)
 # third_party

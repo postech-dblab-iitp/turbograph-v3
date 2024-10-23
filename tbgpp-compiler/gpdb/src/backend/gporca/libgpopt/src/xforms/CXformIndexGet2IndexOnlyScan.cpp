@@ -154,12 +154,12 @@ CXformIndexGet2IndexOnlyScan::Transform(CXformContext *pxfctxt,
 	// addref all children
 	pexprIndexCond->AddRef();
 
+	CPhysicalIndexOnlyScan *popIndexOnlyScan = GPOS_NEW(mp) CPhysicalIndexOnlyScan(
+		mp, pindexdesc, ptabdesc, pop->UlOriginOpId(),
+		GPOS_NEW(mp) CName(mp, pop->NameAlias()), pdrgpcrOutput, pos);
+	popIndexOnlyScan->SetPrunedOutputCols(pop->PrunedPdrgpcrOutput());
 	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
-		mp,
-		GPOS_NEW(mp) CPhysicalIndexOnlyScan(
-			mp, pindexdesc, ptabdesc, pexpr->Pop()->UlOpId(),
-			GPOS_NEW(mp) CName(mp, pop->NameAlias()), pdrgpcrOutput, pos),
-		pexprIndexCond);
+		mp, popIndexOnlyScan, pexprIndexCond);
 	pxfres->Add(pexprAlt);
 }
 

@@ -66,7 +66,6 @@ using json = nlohmann::json;
 #include "gpos/common/CMainArgs.h"
 
 #include "gpos/base.h"
-#include "unittest/gpopt/CTestUtils.h"
 #include "gpopt/engine/CEngine.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpopt/base/CColRef.h"

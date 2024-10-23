@@ -689,6 +689,10 @@ CJoinStatsProcessor::DeriveStatsWithOuterRefs(
 	result_join_stats->Release();
 
 	return result_stats;
+	// result_join_stats->ScaleStatsWoCopy(CDouble(1.0 / num_rows_outer));
+	// result_join_stats->SetRebinds(num_rows_outer);
+
+	// return result_join_stats;
 }
 
 // EOF

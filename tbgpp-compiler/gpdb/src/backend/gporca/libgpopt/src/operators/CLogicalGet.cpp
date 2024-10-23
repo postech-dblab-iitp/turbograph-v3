@@ -43,6 +43,7 @@ CLogicalGet::CLogicalGet(CMemoryPool *mp)
 	  m_pnameAlias(NULL),
 	  m_ptabdesc(NULL),
 	  m_pdrgpcrOutput(NULL),
+	  m_pruned_pdrgpcrOutput(NULL),
 	  m_pdrgpdrgpcrPart(NULL),
 	  m_pcrsDist(NULL)
 {
@@ -63,6 +64,7 @@ CLogicalGet::CLogicalGet(CMemoryPool *mp, const CName *pnameAlias,
 	  m_pnameAlias(pnameAlias),
 	  m_ptabdesc(ptabdesc),
 	  m_pdrgpcrOutput(NULL),
+	  m_pruned_pdrgpcrOutput(NULL),
 	  m_pdrgpdrgpcrPart(NULL),
 	  m_pcrsDist(NULL)
 {
@@ -78,7 +80,7 @@ CLogicalGet::CLogicalGet(CMemoryPool *mp, const CName *pnameAlias,
 		m_pdrgpdrgpcrPart = PdrgpdrgpcrCreatePartCols(
 			mp, m_pdrgpcrOutput, m_ptabdesc->PdrgpulPart());
 	}
-
+	m_pruned_pdrgpcrOutput = m_pdrgpcrOutput;
 	m_pcrsDist = CLogical::PcrsDist(mp, m_ptabdesc, m_pdrgpcrOutput); // S62 disable
 }
 
@@ -97,6 +99,7 @@ CLogicalGet::CLogicalGet(CMemoryPool *mp, const CName *pnameAlias,
 	  m_pnameAlias(pnameAlias),
 	  m_ptabdesc(ptabdesc),
 	  m_pdrgpcrOutput(pdrgpcrOutput),
+	  m_pruned_pdrgpcrOutput(pdrgpcrOutput),
 	  m_pdrgpdrgpcrPart(NULL)
 {
 	GPOS_ASSERT(NULL != ptabdesc);
@@ -123,6 +126,7 @@ CLogicalGet::~CLogicalGet()
 {
 	CRefCount::SafeRelease(m_ptabdesc);
 	CRefCount::SafeRelease(m_pdrgpcrOutput);
+	CRefCount::SafeRelease(m_pruned_pdrgpcrOutput);
 	CRefCount::SafeRelease(m_pdrgpdrgpcrPart);
 	CRefCount::SafeRelease(m_pcrsDist);
 

@@ -287,6 +287,8 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternativesUnionAll(
 					mp, md_accessor, pexprGet, joinOp->UlOpId(), pdrgpexpr,
 					pcrsReqd, pcrsScalarExprCpy, outer_refs, pmdindex, pmdrel,
 					false /*fAllowPartialIndex*/, ppartcnstrIndex);
+				CLogicalIndexGet *pLogicalIndexGet = CLogicalIndexGet::PopConvert(pexprLogicalIndexGet->Pop());
+				pLogicalIndexGet->SetPrunedOutputCols(popGet->PrunedPdrgpcrOutput());
 				if (NULL != pexprLogicalIndexGet)
 				{
 					hasResult = true;

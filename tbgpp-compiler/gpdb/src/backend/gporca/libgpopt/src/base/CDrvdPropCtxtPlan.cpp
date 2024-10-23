@@ -106,11 +106,12 @@ CDrvdPropCtxtPlan::AddProps(CDrvdProp *pdp)
 		return;
 	}
 
-	CDrvdPropPlan *pdpplan = CDrvdPropPlan::Pdpplan(pdp);
+	// CDrvdPropPlan *pdpplan = CDrvdPropPlan::Pdpplan(pdp);
 
 	ULONG ulProducerId = gpos::ulong_max;
-	CDrvdPropPlan *pdpplanProducer =
-		pdpplan->GetCostModel()->PdpplanProducer(&ulProducerId);
+	// CDrvdPropPlan *pdpplanProducer =
+	// 	pdpplan->GetCostModel()->PdpplanProducer(&ulProducerId);
+	CDrvdPropPlan *pdpplanProducer = NULL;
 	if (NULL == pdpplanProducer)
 	{
 		return;

@@ -50,6 +50,9 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
+	// pruned output columns (for s62)
+	CColRefArray *m_pruned_pdrgpcrOutput;
+
 	// set representation of output columns
 	CColRefSet *m_pcrsOutput;
 
@@ -99,6 +102,21 @@ public:
 	PdrgpcrOutput() const
 	{
 		return m_pdrgpcrOutput;
+	}
+
+	// accessors
+	CColRefArray *
+	PrunedPdrgpcrOutput() const
+	{
+		return m_pruned_pdrgpcrOutput;
+	}
+
+	// setter
+	void
+	SetPrunedOutputCols(CColRefArray *pruned_pdrgpcrOutput)
+	{
+		GPOS_ASSERT(NULL != pruned_pdrgpcrOutput);
+		m_pruned_pdrgpcrOutput = pruned_pdrgpcrOutput;
 	}
 
 	// origin operator id -- gpos::ulong_max if operator was not generated via a transformation

@@ -42,6 +42,9 @@ private:
 	// output columns
 	CColRefArray *m_pdrgpcrOutput;
 
+	// pruned output columns (for s62)
+	CColRefArray *m_pruned_pdrgpcrOutput;
+
 	// partition keys
 	CColRef2dArray *m_pdrgpdrgpcrPart;
 
@@ -92,6 +95,21 @@ public:
 	PdrgpcrOutput() const
 	{
 		return m_pdrgpcrOutput;
+	}
+
+	// accessors
+	CColRefArray *
+	PrunedPdrgpcrOutput() const
+	{
+		return m_pruned_pdrgpcrOutput;
+	}
+
+	// setter
+	void
+	SetPrunedOutputCols(CColRefArray *pruned_pdrgpcrOutput)
+	{
+		GPOS_ASSERT(NULL != pruned_pdrgpcrOutput);
+		m_pruned_pdrgpcrOutput = pruned_pdrgpcrOutput;
 	}
 
 	// return table's name
