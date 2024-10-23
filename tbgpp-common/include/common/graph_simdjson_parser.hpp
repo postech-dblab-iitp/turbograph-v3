@@ -33,6 +33,7 @@ using namespace simdjson;
 #define DICE_THRESHOLD 0.3
 #define OVERLAP_THRESHOLD 0.3
 #define VEC_OVHD_THRESHOLD 1024
+#define MERGE_THRESHOLD 0.3
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -88,9 +89,15 @@ public:
         NO_SORT
     };
 
+    enum class MergeInAdvance {
+        IN_STORAGE,
+        IN_QUERY_TIME,
+    };
+
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::SINGLECLUSTER;
     const CostModel cost_model = CostModel::JACCARD;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
+    const MergeInAdvance merge_in_advance = MergeInAdvance::IN_STORAGE;
 /*******************/
 
 
@@ -1477,6 +1484,10 @@ public:
             // }
         }
 
+        if (merge_in_advance == MergeInAdvance::IN_STORAGE) {
+            _MergeInAdvance(temp_output);
+        }
+
         num_clusters = temp_output.size();
         cluster_tokens.reserve(temp_output.size());
         for (auto i = 0; i < temp_output.size(); i++) {
@@ -2340,6 +2351,74 @@ public:
     }
 
     void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
+    }
+
+    void _MergeInAdvance(vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
+        D_ASSERT(merge_in_advance == MergeInAdvance::IN_STORAGE);
+
+        // merge additionally based on cardinality
+        
+        // step 1. extract card & sort
+        std::vector<std::pair<uint64_t, uint64_t>> num_tuples_per_cluster;
+        num_tuples_per_cluster.reserve(temp_output.size());
+        for (auto i = 0; i < temp_output.size(); i++) {
+            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+
+            num_tuples_per_cluster.push_back(std::make_pair(
+                schema_groups_with_num_tuples[temp_output[i].first].second, temp_output[i].first));
+        }
+
+        std::sort(num_tuples_per_cluster.begin(), num_tuples_per_cluster.end(),
+                  [](const std::pair<std::uint64_t, uint64_t> &a,
+                     const std::pair<std::uint64_t, uint64_t> &b) {
+                      return a.second < b.second;  // sort in ascending order
+                  });
+        
+        // step 2. divide layer based on card
+        vector<uint32_t> layer_boundaries;
+        uint64_t cur_min_num_tuples = num_tuples_per_cluster[0].first;
+        for (auto i = 0; i < num_tuples_per_cluster.size(); i++) {
+            if (num_tuples_per_cluster[i].first >
+                cur_min_num_tuples * (1 + MERGE_THRESHOLD)) {
+                layer_boundaries.push_back(i);
+                cur_min_num_tuples = num_tuples_per_cluster[i].first;
+            }
+        }
+        if (layer_boundaries.size() == 0 ||
+            layer_boundaries.back() != num_tuples_per_cluster.size()) {
+            layer_boundaries.push_back(num_tuples_per_cluster.size());
+        }
+
+        // step 3. merge based on layer info
+        uint64_t boundary_begin = 0;
+        for (auto i = 0; i < layer_boundaries.size(); i++) {
+            uint64_t merged_num_tuples = 0;
+            std::vector<uint32_t> merged_schema;
+            std::vector<uint32_t> merged_indices;
+            for (auto j = boundary_begin; j < layer_boundaries[i]; j++) {
+                auto idx = num_tuples_per_cluster[j].second;
+                auto &schema_group = schema_groups_with_num_tuples[idx];
+                merged_schema.insert(merged_schema.end(),
+                                     schema_group.first.begin(),
+                                     schema_group.first.end());
+                merged_indices.insert(merged_indices.end(),
+                                      temp_output[idx].second.begin(),
+                                      temp_output[idx].second.end());
+                merged_num_tuples += schema_group.second;
+                temp_output[idx].first = std::numeric_limits<uint32_t>::max();
+            }
+            std::sort(merged_schema.begin(), merged_schema.end());
+            merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
+
+            schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
+            temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
+        }
+
+        // remove nullptrs
+        temp_output.erase(
+            std::remove_if(begin(temp_output), end(temp_output),
+                            [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
+            end(temp_output));
     }
 
 private:
