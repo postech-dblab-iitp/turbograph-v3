@@ -66,43 +66,55 @@ void RadixScatterStringVector(VectorData &vdata, const SelectionVector &sel, idx
                               const bool desc, const bool has_null, const bool nulls_first, const idx_t prefix_len,
                               idx_t offset) {
 	auto source = (string_t *)vdata.data;
-	if (has_null) {
-		auto &validity = vdata.validity;
+	if (vdata.is_valid) {
+		if (has_null) {
+			auto &validity = vdata.validity;
+			const data_t valid = nulls_first ? 1 : 0;
+			const data_t invalid = 1 - valid;
+
+			for (idx_t i = 0; i < add_count; i++) {
+				auto idx = sel.get_index(i);
+				auto source_idx = vdata.sel->get_index(idx) + offset;
+				// write validity and according value
+				if (validity.RowIsValid(source_idx)) {
+					key_locations[i][0] = valid;
+					EncodeStringDataPrefix(key_locations[i] + 1, source[source_idx], prefix_len);
+					// invert bits if desc
+					if (desc) {
+						for (idx_t s = 1; s < prefix_len + 1; s++) {
+							*(key_locations[i] + s) = ~*(key_locations[i] + s);
+						}
+					}
+				} else {
+					key_locations[i][0] = invalid;
+					memset(key_locations[i] + 1, '\0', prefix_len);
+				}
+				key_locations[i] += prefix_len + 1;
+			}
+		} else {
+			for (idx_t i = 0; i < add_count; i++) {
+				auto idx = sel.get_index(i);
+				auto source_idx = vdata.sel->get_index(idx) + offset;
+				// write value
+				EncodeStringDataPrefix(key_locations[i], source[source_idx], prefix_len);
+				// invert bits if desc
+				if (desc) {
+					for (idx_t s = 0; s < prefix_len; s++) {
+						*(key_locations[i] + s) = ~*(key_locations[i] + s);
+					}
+				}
+				key_locations[i] += prefix_len;
+			}
+		}
+	}
+	else {
 		const data_t valid = nulls_first ? 1 : 0;
 		const data_t invalid = 1 - valid;
 
 		for (idx_t i = 0; i < add_count; i++) {
-			auto idx = sel.get_index(i);
-			auto source_idx = vdata.sel->get_index(idx) + offset;
-			// write validity and according value
-			if (validity.RowIsValid(source_idx)) {
-				key_locations[i][0] = valid;
-				EncodeStringDataPrefix(key_locations[i] + 1, source[source_idx], prefix_len);
-				// invert bits if desc
-				if (desc) {
-					for (idx_t s = 1; s < prefix_len + 1; s++) {
-						*(key_locations[i] + s) = ~*(key_locations[i] + s);
-					}
-				}
-			} else {
-				key_locations[i][0] = invalid;
-				memset(key_locations[i] + 1, '\0', prefix_len);
-			}
+			key_locations[i][0] = invalid;
+			memset(key_locations[i] + 1, '\0', prefix_len);
 			key_locations[i] += prefix_len + 1;
-		}
-	} else {
-		for (idx_t i = 0; i < add_count; i++) {
-			auto idx = sel.get_index(i);
-			auto source_idx = vdata.sel->get_index(idx) + offset;
-			// write value
-			EncodeStringDataPrefix(key_locations[i], source[source_idx], prefix_len);
-			// invert bits if desc
-			if (desc) {
-				for (idx_t s = 0; s < prefix_len; s++) {
-					*(key_locations[i] + s) = ~*(key_locations[i] + s);
-				}
-			}
-			key_locations[i] += prefix_len;
 		}
 	}
 }

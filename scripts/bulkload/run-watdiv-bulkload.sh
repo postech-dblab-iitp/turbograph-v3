@@ -4,7 +4,7 @@ db_dir=$2
 
 ./tbgpp-execution-engine/bulkload_using_map \
 	--output_dir:${db_dir} \
-	--jsonl:"--file_path:${data_dir}/nodes.json --nodes:Node" \
+	--jsonl:"--file_path:${data_dir}/nodes.json --nodes:NODE" \
     --relationships:http://db.uwaterloo.ca/~galuc/wsdbm/friendOf ${data_dir}/edges_friendOf.csv \
     --relationships_backward:http://db.uwaterloo.ca/~galuc/wsdbm/friendOf ${data_dir}/edges_friendOf.csv.backward \
     --relationships:http://schema.org/eligibleRegion ${data_dir}/edges_eligibleRegion.csv \
@@ -64,4 +64,6 @@ db_dir=$2
     --relationships:http://schema.org/editor ${data_dir}/edges_editor.csv \
     --relationships_backward:http://schema.org/editor ${data_dir}/edges_editor.csv.backward \
     --relationships:http://purl.org/ontology/mo/artist ${data_dir}/edges_artist.csv \
-    --relationships_backward:http://purl.org/ontology/mo/artist ${data_dir}/edges_artist.csv.backward
+    --relationships_backward:http://purl.org/ontology/mo/artist ${data_dir}/edges_artist.csv.backward \
+    --relationships:http://schema.org/trailer ${data_dir}/edges_trailer.csv \
+    --relationships_backward:http://schema.org/trailer ${data_dir}/edges_trailer.csv.backward

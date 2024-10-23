@@ -204,6 +204,11 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     if (state.need_initialize_extit) {
         initializeSeek(context, input, chunk, state, nodeColIdx, target_eids,
                        target_seqnos_per_extent, mapping_idxs);
+
+        if (target_eids.size() == 0) {
+            chunk.SetCardinality(0);
+            return OperatorResultType::OUTPUT_EMPTY;
+        }
     }
 
     // Calculate Format
@@ -311,6 +316,13 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
         initializeSeek(context, input, chunks, state, nodeColIdx, target_eids,
                        target_seqnos_per_extent, mapping_idxs,
                        num_tuples_per_chunk);
+    }
+
+    if (target_eids.size() == 0) {
+        for (auto i = 0; i < chunks.size(); i++) {
+            chunks[i]->SetCardinality(0);
+        }
+        return OperatorResultType::OUTPUT_EMPTY;
     }
 
     if (state.has_remaining_output) {
@@ -491,11 +503,16 @@ void PhysicalIdSeek::doSeekUnionAll(
         output_size = input.size();
     }
     else {
+        // Assume single schema
         idx_t chunk_idx = input.GetSchemaIdx();
         auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
         vector<vector<uint32_t>> chunk_idx_to_output_cols_idx(1);
         getOutputIdxsForFilteredSeek(chunk_idx,
                                      chunk_idx_to_output_cols_idx[0]);
+
+        if (is_tmp_chunk_initialized_per_schema[chunk_idx]) {
+            tmp_chunk.Reset();
+        }
 
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
@@ -508,9 +525,6 @@ void PhysicalIdSeek::doSeekUnionAll(
                     tmp_chunk_type);
                 tmp_chunk.Initialize(tmp_chunk_type);
                 is_tmp_chunk_initialized_per_schema[chunk_idx] = true;
-            }
-            else {
-                tmp_chunk.Reset();
             }
 
             // Get output col idx
@@ -565,9 +579,9 @@ void PhysicalIdSeek::doSeekSchemaless(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs, idx_t &output_idx) const
 {
+    D_ASSERT(target_eids.size() > 0);
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
-    // SchemalessDataChunk &schless_chunk = (SchemalessDataChunk &)chunk;
 
     if (!do_filter_pushdown) {
         if (union_inner_col_map_wo_id.size() == 0) {
@@ -607,11 +621,13 @@ void PhysicalIdSeek::doSeekSchemaless(
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 // Note: Row store is shared accross all column
+                const vector<uint32_t> &output_col_idx =
+                    inner_output_col_idxs[mapping_idxs[extentIdx]];
                 context.client->graph_store->doVertexIndexSeek(
                     state.ext_it, chunk, input, nodeColIdx, target_eids,
                     target_seqnos_per_extent, extentIdx, out_id_col_idx, rowcol,
                     chunk.GetRowMajorStore(union_inner_col_map_wo_id[0]),
-                    output_idx);
+                    output_col_idx, output_idx);
             }
         }
     }

@@ -355,7 +355,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
 		target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
 	}
 
-	ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);
+	if (target_eids.size() > 0) ext_it->Initialize(client, scanSchemas, projection_mapping, &mapping_idxs, target_eids);
 
 	return StoreAPIResult::OK;
 }
@@ -384,6 +384,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     idx_t nodeColIdx, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos,
     idx_t out_id_col_idx, Vector &rowcol_vec, char *row_major_store,
+	const vector<uint32_t> &output_col_idx,
     idx_t &num_output_tuples)
 {
     ExtentID target_eid = target_eids[current_pos];
@@ -391,8 +392,8 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     D_ASSERT(ext_it != nullptr || ext_it->IsInitialized());
     D_ASSERT(current_pos < target_seqnos_per_extent.size());
     ext_it->GetNextExtentInRowFormat(
-        client, output, current_eid, target_eid, input, nodeColIdx, rowcol_vec,
-        row_major_store, target_seqnos_per_extent[current_pos], out_id_col_idx,
+        client, output, current_eid, target_eid, input, nodeColIdx, output_col_idx,
+		rowcol_vec, row_major_store, target_seqnos_per_extent[current_pos], out_id_col_idx,
         num_output_tuples);
     return StoreAPIResult::OK;
 }

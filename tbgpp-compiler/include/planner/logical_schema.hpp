@@ -234,8 +234,10 @@ private:
 	void appendKey(string& k1, string& k2, CColRef* colref, bool is_node, bool is_edge) {
 		size_t dot_pos = k2.find_first_of(".");
 		// make sure the poisition is valid
-		if (dot_pos != string::npos)
-			k2 = k2.substr(dot_pos+1);
+		if (dot_pos != string::npos) {
+			auto prefix = k2.substr(0, dot_pos);
+			if (prefix == k1) k2 = k2.substr(dot_pos+1);
+		}
 
 		D_ASSERT( k2 != "" );
 		D_ASSERT( !(is_node && is_edge) );

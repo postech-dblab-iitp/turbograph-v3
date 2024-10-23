@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://schema.org/about`]->(v1), (v0)-[:`http://schema.org/author`]->(v1), (v0)-[:`http://schema.org/about`]->(v2), (v0)-[:`http://schema.org/author`]->(v3) WHERE v1.`http://schema.org/mainEntityOfPage` IS NOT NULL AND v1.`http://schema.org/sameAs` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri, v3.uri

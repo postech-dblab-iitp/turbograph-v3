@@ -26,7 +26,7 @@ CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_dir
   
   // Create shared memory
   std::string shm_path = shm_directory_ + std::string("/iTurboGraph_Catalog_SHM");
-  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::open_or_create, shm_path.c_str(), 1024 * 1024 * 1024, (void *) CATALOG_ADDR);
+  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::open_or_create, shm_path.c_str(), 15 * 1024 * 1024 * 1024UL, (void *) CATALOG_ADDR);
   fprintf(stdout, "Open/Create shared memory: iTurboGraph_Catalog_SHM\n");
   const_named_it named_beg = catalog_segment->named_begin();
 	const_named_it named_end = catalog_segment->named_end();
@@ -50,7 +50,7 @@ bool CatalogServer::recreate() {
   else fprintf(stdout, "Remove SHM file error\n");
   
   // Create shared memory
-  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::create_only, shm_path.c_str(), 1024 * 1024 * 1024, (void *) CATALOG_ADDR);
+  catalog_segment = new fixed_managed_mapped_file(boost::interprocess::create_only, shm_path.c_str(), 15 * 1024 * 1024 * 1024UL, (void *) CATALOG_ADDR);
   fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");
   return true;
 }

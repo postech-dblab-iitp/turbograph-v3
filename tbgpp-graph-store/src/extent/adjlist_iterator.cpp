@@ -90,18 +90,32 @@ void AdjacencyListIterator::getAdjListRange(uint64_t vid, uint64_t *start_idx, u
 void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uint64_t **start_ptr, uint64_t **end_ptr, bool is_initialized) {
     idx_t target_seqno = GET_SEQNO_FROM_PHYSICAL_ID(vid);
     auto target_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(target_eid);
+    size_t num_adj_lists = 0;
+    size_t slot_for_num_adj = 1;
     
     D_ASSERT((*eid_to_bufptr_idx_map)[target_eid_seqno].first != -1);
     auto &bufptr_adjidx_pair = (*eid_to_bufptr_idx_map)[target_eid_seqno];
     if (!bufptr_adjidx_pair.second) {
         ext_it->GetExtent(cur_adj_list, bufptr_adjidx_pair.first, is_initialized);
         bufptr_adjidx_pair.second = cur_adj_list;
-        adjListBase = (idx_t *)cur_adj_list;
+        num_adj_lists = ((idx_t *)cur_adj_list)[0];
+        adjListBase = ((idx_t *)cur_adj_list) + slot_for_num_adj;
     } else {
-        adjListBase = (idx_t *)bufptr_adjidx_pair.second;
+        num_adj_lists = ((idx_t *)bufptr_adjidx_pair.second)[0];
+        adjListBase = ((idx_t *)bufptr_adjidx_pair.second) + slot_for_num_adj;
     }
-    *start_ptr = adjListBase + (target_seqno == 0 ? STORAGE_STANDARD_VECTOR_SIZE : adjListBase[target_seqno - 1]);
-    *end_ptr = adjListBase + adjListBase[target_seqno];
+    D_ASSERT(num_adj_lists <= STORAGE_STANDARD_VECTOR_SIZE);
+    if (num_adj_lists <= target_seqno) {
+        *start_ptr = nullptr;
+        *end_ptr = nullptr;
+    }
+    else {
+        *start_ptr =
+            adjListBase + (target_seqno == 0
+                            ? num_adj_lists
+                            : adjListBase[target_seqno - 1]);
+        *end_ptr = adjListBase + adjListBase[target_seqno];
+    }
 }
 
 

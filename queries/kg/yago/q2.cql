@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://yago-knowledge.org/resource/notableWork`]->(v1), (v1)-[:`http://schema.org/about`]->(v2) WHERE v2.`http://schema.org/url` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri
