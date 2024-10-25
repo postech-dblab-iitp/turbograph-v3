@@ -43,6 +43,9 @@ static const std::string INVALID_PLAN_MSG = "Invalid plan";
 static const std::string INVALID_PREPARED_STATEMENT_MSG = "Invalid prepared statement";
 static const std::string INVALID_RESULT_SET_MSG = "Invalid result set";
 
+// Default values
+s62_resultset empty_result_set = {0, NULL, NULL};
+
 s62_state s62_connect(const char *dbname) {
     try
     {
@@ -617,6 +620,7 @@ static void s62_register_resultset(s62_prepared_statement* prepared_statement, s
 		prev_result_set = new_result_set;
 	}
 
+	if (result_set == NULL) result_set = &empty_result_set;
 	s62_resultset_wrapper *result_set_wrp = (s62_resultset_wrapper*)malloc(sizeof(s62_resultset_wrapper));
 	result_set_wrp->result_set = result_set;
 	result_set_wrp->cursor = 0;
@@ -638,7 +642,6 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
         for( auto exec : executors ) { 
 			std::cout << exec->pipeline->toString() << std::endl;
 			exec->ExecutePipeline(); 
-			
 		}
 		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
 		s62_register_resultset(prepared_statement, result_set_wrp);
@@ -655,7 +658,7 @@ s62_state s62_close_resultset(s62_resultset_wrapper* result_set_wrp) {
 
 	s62_resultset *next_result_set = NULL;
 	s62_resultset *result_set = result_set_wrp->result_set;
-	while (result_set != NULL) {
+	while (result_set != NULL && result_set != &empty_result_set) {
 		next_result_set = result_set->next;
 		s62_result *next_result = NULL;
 		s62_result *result = result_set->result;
