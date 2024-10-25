@@ -46,21 +46,17 @@ int main() {
 
     // Prepare query
     s62_prepared_statement* prep_stmt = s62_prepare("MATCH (item:LINEITEM) \
-		WHERE item.L_EXTENDEDPRICE <= $ext \
-		RETURN \
-			item.L_RETURNFLAG AS ret_flag, \
-			item.L_LINESTATUS AS line_stat, \
-			sum(item.L_QUANTITY) AS sum_qty, \
-			sum(item.L_EXTENDEDPRICE) AS sum_base_price, \
-			sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price, \
-			sum(item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX)) AS sum_charge, \
-			avg(item.L_QUANTITY) AS avg_qty, \
-			avg(item.L_EXTENDEDPRICE) AS avg_price, \
-			avg(item.L_DISCOUNT) AS avg_disc, \
-			COUNT(*) AS count_order \
-		ORDER BY \
-			ret_flag, \
-			line_stat;");
+        WHERE item.L_EXTENDEDPRICE <= $ext\
+        RETURN item.L_RETURNFLAG AS ret_flag, \
+        item.L_LINESTATUS AS line_stat, \
+        sum(item.L_QUANTITY) AS sum_qty,\
+        sum(item.L_EXTENDEDPRICE) AS sum_base_price, \
+        sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price, \
+        sum(item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX)) AS sum_charge, \
+        avg(item.L_QUANTITY) AS avg_qty, avg(item.L_EXTENDEDPRICE) AS avg_price,\
+        avg(item.L_DISCOUNT) AS avg_disc,\
+        COUNT(*) AS count_order \
+        ORDER BY ret_flag, line_stat");
 
     printf("s62_prepare_query() done\n");
 
@@ -83,7 +79,7 @@ int main() {
     // Bind value
     // Create s62_decimal value
     s62_hugeint hint_value = {100010, 0};
-    s62_decimal dec_value = {5, 2, hint_value};
+    s62_decimal dec_value = {6, 2, hint_value};
     s62_bind_decimal(prep_stmt, 1, dec_value);
     printf("s62_bind_value() done\n");
 
@@ -93,7 +89,7 @@ int main() {
     printf("s62_execute_query() done\n");
     printf("rows: %ld, num_properties: %ld, cursor: %ld\n", rows, resultset_wrapper->result_set->num_properties, resultset_wrapper->cursor);
 
-    // Fetch results=
+    // Fetch results
     while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
         s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
         s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
