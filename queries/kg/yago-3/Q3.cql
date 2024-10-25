@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://schema.org/children`]->(v1), (v1)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v1.`http://schema.org/birthDate` IS NOT NULL RETURN v0.`http://schema.org/sameAs` AS `v0_sameAs`, v1.`http://schema.org/birthDate` AS `v1_birthDate`, COUNT(v0.`http://schema.org/sameAs`) AS `v0_sameAs_count` ORDER BY `v0_sameAs`

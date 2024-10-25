@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://schema.org/deathPlace`]->(v1), (v1)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/image` IS NOT NULL RETURN v0.`http://yago-knowledge.org/resource/sportNumber` AS `v0_sportNumber`, v1.`http://schema.org/geo` AS `v1_geo`, COUNT(v0.`http://yago-knowledge.org/resource/sportNumber`) AS `v0_sportNumber_count` ORDER BY `v1_geo`

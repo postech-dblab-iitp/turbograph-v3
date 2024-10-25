@@ -2073,7 +2073,7 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 	const CName &tab_name =
 		CPhysicalScan::PopConvert(pop)->Ptabdesc()->Name();
 	if (wcsncmp(tab_name.Pstr()->GetBuffer(), L"eps_", 4) == 0) {
-		scanPenalization = 100.0;
+		scanPenalization = 1000000.0;
 	}
 
 	switch (op_id)
