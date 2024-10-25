@@ -339,18 +339,43 @@ s62_state s62_bind_float(s62_prepared_statement* prepared_statement, idx_t param
 
 s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t param_idx, double val);
 
+//! s62_date stores days, which represents the days since 1970-01-01
+//! For example, if you want to input 1970-01-15, then 
+//! s62_date date_value = {14}
+//! s62_bind_date(prep_stmt, 1, date_value)
 s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val);
 
+//! s62_time stores micros, which is a microseconds since 00:00:00
+//! For example, if you want to input 06:02:03, then
+//! s62_time time_value = {21,723,000}
+//! s62_bind_time(prep_stmt, 1, time_value)
 s62_state s62_bind_time(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_time val);
 
+//! s62_timestamp stores micros, which is a microseconds since 1970-01-01
+//! For example, if you want to input 2021-08-03 11:59:44.123456, then
+//! s62_timestamp timestamp_value = {1627991984123456}
+//! s62_bind_timestamp(prep_stmt, 1, timestamp_value)
 s62_state s62_bind_timestamp(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_timestamp val);
 
+//! s62_bind_varchar binds a VARCHAR value to a parameter
+//! For example, if you want to input "hello", then
+//! s62_bind_varchar(prep_stmt, 1, "hello")
 s62_state s62_bind_varchar(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val);
 
+//! s62_bind_varchar_length binds a VARCHAR value to a parameter with a specified length
+//! For example, if you want to input "hello", then
+//! s62_bind_varchar_length(prep_stmt, 1, "hello", 5)
 s62_state s62_bind_varchar_length(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val, idx_t length);
 
+//! s62_decimal stores a decimal value, which represents with a width and scale
+//! For example, if you want to input 1000.10, then
+//! s62_hugeint hint_value = {100010, 0};
+//! s62_decimal dec_value = {6, 2, hint_value};
+//! s62_bind_decimal(prep_stmt, 1, dec_value)
+//! For more example, please see LogicalType::GetDecimalProperties(uint8_t &width, uint8_t &scale)
 s62_state s62_bind_decimal(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_decimal val);
 
+//! s62_bind_null binds a NULL value to a parameter
 s62_state s62_bind_null(s62_prepared_statement* prepared_statement, idx_t param_idx);
 
 //===--------------------------------------------------------------------===//

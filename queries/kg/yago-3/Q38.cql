@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/mainEntityOfPage` IS NOT NULL RETURN v0.`http://www.w3.org/2000/01/rdf-schema#comment` AS `v0_rdf-schema#comment`, COUNT(v0.`http://www.w3.org/2000/01/rdf-schema#comment`) AS `v0_rdf-schema#comment_count` ORDER BY `v0_rdf-schema#comment`

@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://yago-knowledge.org/resource/studentOf`]->(v1), (v1)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v1.`http://schema.org/mainEntityOfPage` IS NOT NULL RETURN v0.`http://schema.org/url` AS `v0_url`, v1.`http://schema.org/deathDate` AS `v1_deathDate`, COUNT(v0.`http://schema.org/url`) AS `v0_url_count` ORDER BY `v0_url`

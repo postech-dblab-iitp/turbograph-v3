@@ -1,0 +1,1 @@
+MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/sameAs` IS NOT NULL RETURN v0.`http://schema.org/image` AS `v0_image`, COUNT(v0.`http://schema.org/image`) AS `v0_image_count` ORDER BY `v0_image`

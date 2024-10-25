@@ -138,12 +138,6 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 
     You will see `Turbograph-S62 >> ` prompt. You can execute queries here.
 
-3. Building Statistics
-
-    Before executing query, you have to run `analyze;` to make optimizer use statistics.
-
-    If not, it will make segfault error.
-
 ## Execution Options
 
 - `--workspace: <workspace>`: Specifies the workspace directory.
@@ -166,5 +160,5 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 
 - COUNT
     - COUNT(): Not Supported
-    - COUNT(*): Not Supported
+    - COUNT(*): Supported
     - COUNT(column_name): Supported

@@ -94,8 +94,8 @@ public:
         IN_QUERY_TIME,
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::SINGLECLUSTER;
-    const CostModel cost_model = CostModel::JACCARD;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_STORAGE;
 /*******************/
@@ -2355,25 +2355,20 @@ public:
 
     void _MergeInAdvance(vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
         D_ASSERT(merge_in_advance == MergeInAdvance::IN_STORAGE);
-
         // merge additionally based on cardinality
-        
         // step 1. extract card & sort
         std::vector<std::pair<uint64_t, uint64_t>> num_tuples_per_cluster;
         num_tuples_per_cluster.reserve(temp_output.size());
         for (auto i = 0; i < temp_output.size(); i++) {
             if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
-
             num_tuples_per_cluster.push_back(std::make_pair(
-                schema_groups_with_num_tuples[temp_output[i].first].second, temp_output[i].first));
+                schema_groups_with_num_tuples[temp_output[i].first].second, i));
         }
-
         std::sort(num_tuples_per_cluster.begin(), num_tuples_per_cluster.end(),
-                  [](const std::pair<std::uint64_t, uint64_t> &a,
-                     const std::pair<std::uint64_t, uint64_t> &b) {
-                      return a.second < b.second;  // sort in ascending order
-                  });
-        
+                [](const std::pair<std::uint64_t, uint64_t> &a,
+                    const std::pair<std::uint64_t, uint64_t> &b) {
+                    return a.second < b.second;  // sort in ascending order
+                });
         // step 2. divide layer based on card
         vector<uint32_t> layer_boundaries;
         uint64_t cur_min_num_tuples = num_tuples_per_cluster[0].first;
@@ -2388,7 +2383,6 @@ public:
             layer_boundaries.back() != num_tuples_per_cluster.size()) {
             layer_boundaries.push_back(num_tuples_per_cluster.size());
         }
-
         // step 3. merge based on layer info
         uint64_t boundary_begin = 0;
         for (auto i = 0; i < layer_boundaries.size(); i++) {
@@ -2396,32 +2390,30 @@ public:
             std::vector<uint32_t> merged_schema;
             std::vector<uint32_t> merged_indices;
             for (auto j = boundary_begin; j < layer_boundaries[i]; j++) {
-                auto idx = num_tuples_per_cluster[j].second;
+                auto temp_idx = num_tuples_per_cluster[j].second;
+                auto idx = temp_output[temp_idx].first;
                 auto &schema_group = schema_groups_with_num_tuples[idx];
                 merged_schema.insert(merged_schema.end(),
-                                     schema_group.first.begin(),
-                                     schema_group.first.end());
+                                    schema_group.first.begin(),
+                                    schema_group.first.end());
                 merged_indices.insert(merged_indices.end(),
-                                      temp_output[idx].second.begin(),
-                                      temp_output[idx].second.end());
+                                    temp_output[temp_idx].second.begin(),
+                                    temp_output[temp_idx].second.end());
                 merged_num_tuples += schema_group.second;
-                temp_output[idx].first = std::numeric_limits<uint32_t>::max();
+                temp_output[temp_idx].first = std::numeric_limits<uint32_t>::max();
             }
             std::sort(merged_schema.begin(), merged_schema.end());
             merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
-
             schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
             temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
-
             boundary_begin = layer_boundaries[i];
         }
-
         // remove nullptrs
         temp_output.erase(
             std::remove_if(begin(temp_output), end(temp_output),
                             [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
             end(temp_output));
-    }
+        }
 
 private:
     bool get_key_and_type(string &key_path, vector<string> &keys, vector<LogicalType> &types) {
