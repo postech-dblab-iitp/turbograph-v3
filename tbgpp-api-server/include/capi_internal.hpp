@@ -33,7 +33,6 @@ namespace duckdb {
 s62_type ConvertCPPTypeToC(const LogicalType &type);
 LogicalTypeId ConvertCTypeToCPP(s62_type c_type);
 idx_t GetCTypeSize(s62_type type);
-std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors);
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root);
+std::string generatePostgresStylePlan(std::vector<CypherPipelineExecutor*>& executors, bool is_executed = false);
 
 } // namespace duckdb
