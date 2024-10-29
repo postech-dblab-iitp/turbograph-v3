@@ -45,23 +45,12 @@ int main() {
     s62_close_metadata(metadata);
 
     // Prepare query
-    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (item:LINEITEM) \
-        WHERE item.L_EXTENDEDPRICE <= $ext\
-        RETURN item.L_RETURNFLAG AS ret_flag, \
-        item.L_LINESTATUS AS line_stat, \
-        sum(item.L_QUANTITY) AS sum_qty,\
-        sum(item.L_EXTENDEDPRICE) AS sum_base_price, \
-        sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price, \
-        sum(item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX)) AS sum_charge, \
-        avg(item.L_QUANTITY) AS avg_qty, avg(item.L_EXTENDEDPRICE) AS avg_price,\
-        avg(item.L_DISCOUNT) AS avg_disc,\
-        COUNT(*) AS count_order \
-        ORDER BY ret_flag, line_stat");
+    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)-[:IS_LOCATED_IN]->(r:REGION)  WHERE pa.P_SIZE = 43 and pa.P_TYPE CONTAINS 'COPPER' and r.R_NAME = 'AMERICA'  WITH pa, p.PS_SUPPLYCOST AS PS_SUPPLYCOST, s.S_ACCTBAL AS S_ACCTBAL,s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS,s.S_PHONE AS S_PHONE,s.S_COMMENT AS S_COMMENT, n.N_NAME AS N_NAME MATCH (pa)-[p2:PARTSUPP]->(:SUPPLIER)-[:SUPP_BELONG_TO]->(:NATION)-[:IS_LOCATED_IN]->(r2:REGION) WHERE r2.R_NAME = 'AMERICA'  WITH pa.P_PARTKEY AS P_PARTKEY, pa.P_MFGR AS P_MFGR, PS_SUPPLYCOST, S_ACCTBAL, S_NAME, S_ADDRESS, S_PHONE, S_COMMENT, N_NAME, min(p2.PS_SUPPLYCOST) as minvalue WHERE PS_SUPPLYCOST = minvalue RETURN S_ACCTBAL, S_NAME, N_NAME, P_PARTKEY, P_MFGR, S_ADDRESS, S_PHONE, S_COMMENT ORDER BY S_ACCTBAL desc,N_NAME,S_NAME,P_PARTKEY LIMIT 100;");
 
     printf("s62_prepare_query() done\n");
 
     printf("Prepared statement original query: %s\n", prep_stmt->query);
-    printf("Prepared statement plan: %s\n", prep_stmt->plan);
+    printf("Prepared statement plan: \n%s\n", prep_stmt->plan);
     printf("Prepared statement num_properties: %ld\n", prep_stmt->num_properties);
     s62_property* current_property = prep_stmt->property;
     while (current_property != NULL) {
@@ -88,27 +77,28 @@ int main() {
     s62_num_rows rows = s62_execute(prep_stmt, &resultset_wrapper);
     printf("s62_execute_query() done\n");
     printf("rows: %ld, num_properties: %ld, cursor: %ld\n", rows, resultset_wrapper->result_set->num_properties, resultset_wrapper->cursor);
+    printf("Prepared statement plan after execution: \n%s\n", prep_stmt->plan);
 
     // Fetch results
-    while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
-        s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
-        s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
-        s62_hugeint sum_qty_value = s62_get_hugeint(resultset_wrapper, 2);
-        s62_string sum_base_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 3));
-        s62_string sum_disc_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 4));
-        s62_string sum_charge_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 5));
-        double avg_qty_value = s62_get_double(resultset_wrapper, 6);
-        double avg_price_value = s62_get_double(resultset_wrapper, 7);
-        double avg_disc_value = s62_get_double(resultset_wrapper, 8);
-        int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
-        printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld, sum_base_price: %s, sum_disc_price: %s, sum_charge: %s, avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
-                ret_flag_value.data, line_stat_value.data, sum_qty_value.upper, sum_qty_value.lower, 
-                sum_base_price_value.data, 
-                sum_disc_price_value.data,
-                sum_charge_value.data, 
-                avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
-    }
-    printf("s62_fetch() done\n");
+    // while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
+    //     s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
+    //     s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
+    //     s62_hugeint sum_qty_value = s62_get_hugeint(resultset_wrapper, 2);
+    //     s62_string sum_base_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 3));
+    //     s62_string sum_disc_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 4));
+    //     s62_string sum_charge_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 5));
+    //     double avg_qty_value = s62_get_double(resultset_wrapper, 6);
+    //     double avg_price_value = s62_get_double(resultset_wrapper, 7);
+    //     double avg_disc_value = s62_get_double(resultset_wrapper, 8);
+    //     int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
+    //     printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld, sum_base_price: %s, sum_disc_price: %s, sum_charge: %s, avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
+    //             ret_flag_value.data, line_stat_value.data, sum_qty_value.upper, sum_qty_value.lower, 
+    //             sum_base_price_value.data, 
+    //             sum_disc_price_value.data,
+    //             sum_charge_value.data, 
+    //             avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
+    // }
+    // printf("s62_fetch() done\n");
 
     s62_close_resultset(resultset_wrapper);
     printf("s62_close_resultset() done\n");
