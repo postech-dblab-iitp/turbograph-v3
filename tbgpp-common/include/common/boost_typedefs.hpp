@@ -6,7 +6,8 @@
 
 namespace duckdb {
     #define MIN_MAX_ARRAY_SIZE 1024
-    #define CATALOG_ADDR 0x10007fff8000
+    // #define CATALOG_ADDR 0x10007fff8000
+    #define CATALOG_ADDR 0x7f1000000000
 
     struct minmax_t {
         idx_t min = 0;
