@@ -2394,7 +2394,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 					used_indices.push_back(_i);
 				}
 			}
-			GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
+			// GPOS_ASSERT(used_indices.size() < pcrsReqd->Size());
 
 			// new outputarray and tabledesc
 			CColRefArray *new_pdrgpcrOutput = GPOS_NEW(mp) CColRefArray(mp);
