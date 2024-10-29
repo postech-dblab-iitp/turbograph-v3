@@ -171,61 +171,137 @@ idx_t GetCTypeSize(s62_type type) {
 	} // LCOV_EXCL_STOP
 }
 
-std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors) {
-	json j = json::array( { json({}), } );
-	
-	// reverse-iterate executors
-	json* current_root = &(j[0]);
-	bool isRootOp = true;	// is true for only one operator
-	
-	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
-		// reverse operator
-		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp );
-			if( isRootOp ) { isRootOp = false; }
-		}
-		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
-		if( isRootOp ) { isRootOp = false; }
-	}
-	
-	return j.dump(4);
+std::string pipelineToPostgresPlan(
+    duckdb::CypherPipeline* pipeline,
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*>& parent_map,
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*>& rhs_map,
+    int indent,
+	bool is_executed);
+
+// Helper to check if a pipeline's sink is a binary operator
+bool isBinaryOperatorSink(duckdb::CypherPipeline* pipeline) {
+    std::string sink_type = pipeline->sink->ToString();
+    return sink_type == "HashJoin";
 }
 
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root) {
-	json* content;
-	if( is_root ) {
-		(*j)["Plan"] = json({});
-		content = &((*j)["Plan"]);
-	} else {
-		if( (*j)["Plans"].is_null() ) {
-			// single child
-			(*j)["Plans"] = json::array( { json({}), } );
-		} else {
-			// already made child with two childs. so pass
+// Helper to find a matching binary operator in the middle of lhs pipeline
+bool hasMatchingOperator(duckdb::CypherPipeline* lhs_pipeline, duckdb::CypherPipeline* rhs_pipeline) {
+    std::string rhs_op_type = rhs_pipeline->sink->ToString();
+    for (auto& op : lhs_pipeline->operators) {
+        if (op->ToString() == rhs_op_type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Main function to generate PostgreSQL-style query plan
+std::string generatePostgresStylePlan(std::vector<CypherPipelineExecutor*>& executors, bool is_executed) {
+    std::ostringstream oss;
+
+    // Step 1: Map parent-child relationships and rhs mappings for binary operators
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*> parent_map;
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*> rhs_map;
+
+
+    for (size_t i = 0; i < executors.size(); ++i) {
+        auto* pipeline = executors[i]->pipeline;
+        
+        // Identify if the pipeline contains a binary operator as sink
+        for (size_t j = i + 1; j < executors.size(); ++j) {
+            auto* next_pipeline = executors[j]->pipeline;
+
+            // For binary operators, look for middle of lhs and sink in rhs pipeline
+            if (isBinaryOperatorSink(next_pipeline) && hasMatchingOperator(pipeline, next_pipeline)) {
+                rhs_map[pipeline] = next_pipeline;  // Map left (lhs) to right (rhs) pipeline
+                break;
+            }
+
+            // Unary operators connected through source-sink
+            if (next_pipeline->source == pipeline->sink) {
+                parent_map[next_pipeline] = pipeline;
+            }
+        }
+    }
+
+    // Step 2: Start from the root pipeline and recursively output the plan tree
+    auto root_pipeline = executors.back()->pipeline;
+    oss << pipelineToPostgresPlan(root_pipeline, parent_map, rhs_map, 0, is_executed);
+
+    return oss.str();
+}
+
+void printOperator(std::ostringstream& oss, duckdb::CypherPhysicalOperator* op, std::string& indent_str, bool is_root, bool is_executed) {
+	std::string op_type = op->ToString();
+	std::string params = op->ParamsToString();
+
+	if (is_root) {
+		if (is_executed) {
+			oss << indent_str << op_type << "  (rows: " <<  op->processed_tuples << ", time: " << op->op_timer.elapsed().wall / 1000000.0 << ")" << "\n";
 		}
-		content = &((*j)["Plans"][0]);
+		else {
+			oss << indent_str << op_type << "\n";
+		}
+	} else {
+		if (is_executed) {
+			oss << indent_str << "-> " << op_type << "  (rows: " <<  op->processed_tuples << ", time: " << op->op_timer.elapsed().wall / 1000000.0 << ")" << "  (" << params << ")\n";
+		}
+		else {
+			oss << indent_str << "-> " << op_type << "  (" << params << ")\n";
+		}
 	}
-	(*content)["Node Type"] = op->ToString();
-	// output shcma
-	
-	// add child when operator is 
-	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
-	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
-	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
+}
+
+// Recursive helper to output pipeline and its operators
+std::string pipelineToPostgresPlan(
+    duckdb::CypherPipeline* pipeline,
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*>& parent_map,
+    std::unordered_map<duckdb::CypherPipeline*, duckdb::CypherPipeline*>& rhs_map,
+    int indent,
+	bool is_executed) {
+    
+    std::ostringstream oss;
+
+    // Traverse operators in this pipeline from top to bottom
+	std::vector<CypherPhysicalOperator *> operators = pipeline->operators;
+	if (indent == 0) operators.push_back(pipeline->sink);
+	operators.insert(operators.begin(), pipeline->source);
+
+	std::vector<int> idxscan_idents;
+
+	// reverse
+	for (auto it = operators.rbegin(); it != operators.rend(); ++it) {
+		auto &op = *it;
+        std::string op_type = op->ToString();
+		std::string params = op->ParamsToString();
+    	std::string indent_str(indent, ' ');
+        
+        // Check if the current operator is a binary operator
+        if (op_type == "AdjIdxJoin" || op_type == "IdSeek" || op_type == "HashJoin") {
+			printOperator(oss, op, indent_str, false, is_executed);
+            // Handle right child pipeline recursively if found
+            if (rhs_map.find(pipeline) != rhs_map.end()) {
+                oss << pipelineToPostgresPlan(rhs_map[pipeline], parent_map, rhs_map, indent + 4, is_executed);
+            }
+			else {
+				idxscan_idents.push_back(indent + 4);
+			}
+        } else {
+            // Unary operators, simply add them to the output
+			indent == 0 ? printOperator(oss, op, indent_str, true, is_executed) : printOperator(oss, op, indent_str, false, is_executed);
+            if (parent_map.find(pipeline) != parent_map.end() && op == pipeline->source) {
+                oss << pipelineToPostgresPlan(parent_map[pipeline], parent_map, rhs_map, indent + 4, is_executed);
+            }
+        }
+
+		indent += 4;
+    }
+
+	for (auto ident : idxscan_idents) {
+		oss << std::string(ident, ' ') << "-> Index Scan\n";
 	}
 
-	return content;
+    return oss.str();
 }
 
 } // namespace duckdb

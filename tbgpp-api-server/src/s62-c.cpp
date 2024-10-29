@@ -408,7 +408,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
 
 		prepared_statement->num_properties = col_names.size();
 		prepared_statement->property = property;
-		prepared_statement->plan = strdup(jsonifyQueryPlan(executors).c_str());
+		prepared_statement->plan = strdup(generatePostgresStylePlan(executors).c_str());
     }
 }
 
@@ -645,6 +645,7 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 		}
 		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
 		s62_register_resultset(prepared_statement, result_set_wrp);
+		prepared_statement->plan = strdup(generatePostgresStylePlan(executors, true).c_str());
     	return cypher_prep_stmt->getNumRows();
     }
 }
