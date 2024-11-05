@@ -7,7 +7,7 @@
 # Target image
 IMAGE_NAME="turbograph-image"
 IMAGE_TAG="latest"
-CONTAINER_NAME="turbograph-s62"
+CONTAINER_NAME="turbograph-s62-query-gen"
 
 # TODO override from user input
 SHARED_MEM_SIZE="360g"
@@ -34,6 +34,8 @@ docker run -itd --cap-add SYS_ADMIN \
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
+	-v ~/s62-benchmark-runner:/s62-benchmark-runner \
+	-v /mnt:/mnt \
 	--shm-size=${SHARED_MEM_SIZE} \
 	--entrypoint="/bin/bash" \
 	--name ${CONTAINER_NAME} \
