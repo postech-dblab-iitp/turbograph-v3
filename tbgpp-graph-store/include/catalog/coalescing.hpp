@@ -530,7 +530,7 @@ class Coalescing {
         for (auto i = 0; i < cardinality_for_each_gl.size(); i++) {
             // std::cout << "card of " << cardinality_for_each_gl[i].first
             //     << " : " << cardinality_for_each_gl[i].second << std::endl;
-            if (cardinality_for_each_gl[i].second > 20 * smallest_card) {
+            if (cardinality_for_each_gl[i].second > 1.3 * smallest_card) {
                 // flush
                 for (auto j = begin_idx; j < i; j++) {
                     table_oids_in_group[group_idx].push_back(
@@ -559,8 +559,5 @@ class Coalescing {
         // }
     }
 };
-
-Coalescing::GroupingAlgorithm Coalescing::grouping_algo =
-    Coalescing::GroupingAlgorithm::DEFAULT;
 
 }  // namespace duckdb
