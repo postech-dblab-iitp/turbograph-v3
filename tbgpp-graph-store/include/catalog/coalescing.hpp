@@ -240,10 +240,16 @@ class Coalescing {
                     auto it = std::find(merged_property_key_ids.begin(),
                                         merged_property_key_ids.end(),
                                         property_key_ids[j]);
-                    D_ASSERT(it != merged_property_key_ids.end());
-                    auto idx =
-                        std::distance(merged_property_key_ids.begin(), it);
-                    property_location_in_representative[i].push_back(idx);
+                    // D_ASSERT(it != merged_property_key_ids.end());
+                    if (it != merged_property_key_ids.end()) {
+                        auto idx =
+                            std::distance(merged_property_key_ids.begin(), it);
+                        property_location_in_representative[i].push_back(idx);
+                    } else {
+                        property_location_in_representative[i].push_back(
+                            std::numeric_limits<uint64_t>::max()
+                        );
+                    }
                 }
             }
         }
