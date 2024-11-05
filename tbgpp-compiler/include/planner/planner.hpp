@@ -484,8 +484,21 @@ private:
 	void pInitializeSchemaFlowGraph();
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
+	void pBuildSchemaFlowGraphForMultiSchemaScan(duckdb::Schema &global_schema, vector<duckdb::Schema>& local_schemas);
 	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
 	void pBuildSchemaFlowGraphForBinaryOperator(duckdb::Schema &output_schema, size_t num_rhs_schemas);
+	OID pGetTableOidFromScanExpr(CExpression *scan_expr);
+
+	void pConstructNodeScanParams(CExpression *projection_expr, vector<uint64_t>& oids, 
+								vector<vector<uint64_t>>& projection_mapping, vector<vector<uint64_t>>& scan_projection_mapping,
+								vector<duckdb::LogicalType>& global_types, vector<duckdb::Schema>& local_schemas);
+	bool pConstructColumnInfosRegardingFilter(
+		CExpression *projection_expr, vector<ULONG>& output_original_colref_ids,
+		vector<duckdb::idx_t>& non_filter_only_column_idxs
+	);
+	void pConstructFilterColPosVals(
+		CExpression *projection_expr, vector<int64_t> &pred_attr_poss, vector<duckdb::Value>& literal_vals
+	);
 
 	inline string pGetColNameFromColRef(const CColRef *column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
@@ -532,8 +545,9 @@ private:
 		}
 	}
 	vector<duckdb::CypherPhysicalOperator *> *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
-	duckdb::LogicalType  pGetColumnsDuckDBType(CColRef *column);
+	duckdb::LogicalType pGetColumnsDuckDBType(const CColRef *column);
 	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
+	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types, vector<duckdb::idx_t>& col_prop_ids);
 	void pGetProjectionExprs(vector<duckdb::LogicalType> output_types, vector<duckdb::idx_t>& ref_idxs, vector<unique_ptr<duckdb::Expression>>& out_exprs);
 	void pRemoveColumnsFromSchemas(vector<duckdb::Schema>& in_schemas, vector<duckdb::idx_t>& ref_idxs, vector<duckdb::Schema>& out_schemas);
 	bool pIsColEdgeProperty(const CColRef* colref);
@@ -572,6 +586,7 @@ private:
 
 	// Attr Value Get
 	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
+	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, IMDId *mdid, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
 
 	// AdjIdxJoin Helpers
 	bool pIsComplexPred(CExpression *pred_expr);
