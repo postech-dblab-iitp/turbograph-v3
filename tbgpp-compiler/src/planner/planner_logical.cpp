@@ -1531,9 +1531,11 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
         is_each_group_has_temporary_table);
 
     // add temporary table oid to property expression
-    D_ASSERT(representative_table_oids.size() == is_each_group_has_temporary_table.size());
+    D_ASSERT(representative_table_oids.size() ==
+             is_each_group_has_temporary_table.size());
     for (auto i = 0; i < representative_table_oids.size(); i++) {
-        if (!is_each_group_has_temporary_table[i]) continue;
+        if (!is_each_group_has_temporary_table[i])
+            continue;
         int col_idx_except_id_col = 0;
         for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
             if (!node_expr->isUsedColumn(col_idx))
@@ -1541,9 +1543,14 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
             PropertyExpression *expr =
                 (PropertyExpression *)(prop_exprs[col_idx].get());
             if (col_idx != 0) {  // exclude _id column
-                expr->addPropertyID(
-                    representative_table_oids[i],
-                    property_location_in_representative[i][col_idx_except_id_col] + 1);
+                if (property_location_in_representative
+                        [i][col_idx_except_id_col] !=
+                    std::numeric_limits<uint64_t>::max()) {
+                    expr->addPropertyID(representative_table_oids[i],
+                                        property_location_in_representative
+                                                [i][col_idx_except_id_col] +
+                                            1);
+                }
                 col_idx_except_id_col++;
             }
             else {
