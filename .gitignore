@@ -55,4 +55,4 @@ r*hs
 *.png
 *.pdf
 
-test
+test/*
