@@ -141,7 +141,7 @@ public:
     idx_t GetAggFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
         auto &catalog = db.GetCatalog();
         AggregateFunctionCatalogEntry *aggfunc_cat =
-            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
+            (AggregateFunctionCatalogEntry *)catalog.GetFuncEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
         
         if (aggfunc_cat == nullptr) { throw InvalidInputException("Unsupported agg func name: " + func_name); }
 
@@ -160,7 +160,7 @@ public:
     idx_t GetScalarFuncMdId(ClientContext &context, string &func_name, vector<LogicalType> &arguments) {
         auto &catalog = db.GetCatalog();
         ScalarFunctionCatalogEntry *scalarfunc_cat =
-            (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::SCALAR_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
+            (ScalarFunctionCatalogEntry *)catalog.GetFuncEntry(context, CatalogType::SCALAR_FUNCTION_ENTRY, DEFAULT_SCHEMA, func_name, true);
 
         if (scalarfunc_cat == nullptr) { throw InvalidInputException("Unsupported scalar func name: " + func_name); }
 
@@ -221,7 +221,7 @@ public:
         idx_t aggfunc_oid_ = (aggfunc_oid - FUNCTION_BASE_ID) / FUNC_GROUP_SIZE;
         auto &catalog = db.GetCatalog();
         AggregateFunctionCatalogEntry *aggfunc_cat =
-            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
+            (AggregateFunctionCatalogEntry *)catalog.GetFuncEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
         return aggfunc_cat;
     }
 
@@ -231,14 +231,14 @@ public:
         function_idx = (aggfunc_oid - FUNCTION_BASE_ID) % FUNC_GROUP_SIZE;
         auto &catalog = db.GetCatalog();
         aggfunc_cat =
-            (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
+            (AggregateFunctionCatalogEntry *)catalog.GetFuncEntry(context, DEFAULT_SCHEMA, aggfunc_oid_);
     }
 
     ScalarFunctionCatalogEntry *GetScalarFunc(ClientContext &context, idx_t scalarfunc_oid) {
         idx_t scalarfunc_oid_ = (scalarfunc_oid - FUNCTION_BASE_ID) / FUNC_GROUP_SIZE;
         auto &catalog = db.GetCatalog();
         ScalarFunctionCatalogEntry *scalarfunc_cat =
-            (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
+            (ScalarFunctionCatalogEntry *)catalog.GetFuncEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
         return scalarfunc_cat;
     }
 
@@ -248,7 +248,7 @@ public:
         function_idx = (scalarfunc_oid - FUNCTION_BASE_ID) % FUNC_GROUP_SIZE;
         auto &catalog = db.GetCatalog();
         scalarfunc_cat =
-            (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
+            (ScalarFunctionCatalogEntry *)catalog.GetFuncEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
     void GetPropertyKeyToPropertySchemaMap(
@@ -366,7 +366,7 @@ public:
 
     idx_t GetAggregate(ClientContext &context, const char *aggname, idx_t type_id, int nargs) {
         auto &catalog = db.GetCatalog();
-        auto *func = (AggregateFunctionCatalogEntry *)catalog.GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, aggname);
+        auto *func = (AggregateFunctionCatalogEntry *)catalog.GetFuncEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, DEFAULT_SCHEMA, aggname);
         return func->GetOid();
     }
 
