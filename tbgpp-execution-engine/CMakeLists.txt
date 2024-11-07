@@ -24,10 +24,6 @@ set(CMAKE_CXX_STANDARD 17)
 ####################################################
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-# dependencies - tbb
-include(cmake/FindTBB.cmake)
-find_package(TBB REQUIRED)
-
 # dependencies - boost
 #set(Boost_DEBUG 1)
 include(cmake/FindBoost.cmake)
@@ -144,6 +140,5 @@ foreach(test_file ${ENGINE_TEST_SRC})
     tbgpp-graph-store-lib
     tbgpp-execution-engine-lib
     nlohmann_json::nlohmann_json "-pthread -ldl -lboost_system -lboost_timer -lboost_date_time -lboost_filesystem"
-    tbb
   )
 endforeach(test_file ${TILE_TEST_SRC})
