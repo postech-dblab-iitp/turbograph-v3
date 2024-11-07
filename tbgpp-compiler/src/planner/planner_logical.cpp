@@ -1461,7 +1461,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr,
 
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
     // group table_oids
-    if (node_expr->isDSITarget() && pruned_table_oids.size() > 1) {
+    if (pruned_table_oids.size() > 1) {
         return lPlanNodeOrRelExprWithDSI(node_expr, prop_exprs,
                                          pruned_table_oids, is_node);
     }
@@ -1513,6 +1513,7 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
     std::vector<uint64_t> representative_table_oids;
     std::vector<std::vector<uint64_t>> table_oids_in_groups;
     std::vector<std::vector<uint64_t>> property_location_in_representative;
+    std::vector<bool> is_each_group_has_temporary_table;
 
     for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
         if (!node_expr->isUsedColumn(col_idx))
@@ -1526,28 +1527,58 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
 
     context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(
         *context, prop_key_ids, pruned_table_oids, representative_table_oids,
-        table_oids_in_groups, property_location_in_representative);
+        table_oids_in_groups, property_location_in_representative,
+        is_each_group_has_temporary_table);
 
-    int tmp_idx = 0;
-    for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
-        if (!node_expr->isUsedColumn(col_idx))
+    // add temporary table oid to property expression
+    D_ASSERT(representative_table_oids.size() ==
+             is_each_group_has_temporary_table.size());
+    for (auto i = 0; i < representative_table_oids.size(); i++) {
+        if (!is_each_group_has_temporary_table[i])
             continue;
-        PropertyExpression *expr =
-            (PropertyExpression *)(prop_exprs[col_idx].get());
-        if (col_idx != 0) {  // exclude _id column
-            for (int i = 0; i < representative_table_oids.size(); i++) {
-                expr->addPropertyID(
-                    representative_table_oids[i],
-                    property_location_in_representative[i][tmp_idx] + 1);
+        int col_idx_except_id_col = 0;
+        for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+            if (!node_expr->isUsedColumn(col_idx))
+                continue;
+            PropertyExpression *expr =
+                (PropertyExpression *)(prop_exprs[col_idx].get());
+            if (col_idx != 0) {  // exclude _id column
+                if (property_location_in_representative
+                        [i][col_idx_except_id_col] !=
+                    std::numeric_limits<uint64_t>::max()) {
+                    expr->addPropertyID(representative_table_oids[i],
+                                        property_location_in_representative
+                                                [i][col_idx_except_id_col] +
+                                            1);
+                }
+                col_idx_except_id_col++;
             }
-            tmp_idx++;
-        }
-        else {
-            for (int i = 0; i < representative_table_oids.size(); i++) {
+            else {
                 expr->addPropertyID(representative_table_oids[i], 0);
             }
         }
     }
+
+    // for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+    //     if (!node_expr->isUsedColumn(col_idx))
+    //         continue;
+    //     PropertyExpression *expr =
+    //         (PropertyExpression *)(prop_exprs[col_idx].get());
+
+    //     if (col_idx != 0) {  // exclude _id column
+    //         for (int i = 0; i < representative_table_oids.size(); i++) {
+    //             expr->addPropertyID(
+    //                 representative_table_oids[i],
+    //                 property_location_in_representative[i][tmp_idx] + 1);
+    //         }
+    //         tmp_idx++;
+    //     }
+    //     else {
+    //         for (int i = 0; i < representative_table_oids.size(); i++) {
+    //             expr->addPropertyID(representative_table_oids[i], 0);
+    //         }
+    //     }
+    // }
 
     map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;
     std::pair<CExpression *, CColRefArray *> planned_expr;
@@ -1723,7 +1754,6 @@ void Planner::lBuildSchemaProjectionMapping(
             }
             else {
                 // need to be projected as null column
-                D_ASSERT(!is_dsi || (col_idx == 0));
                 schema_proj_mapping.find(t_oid)->second.insert(
                     {(uint64_t)col_idx, std::numeric_limits<uint64_t>::max()});
             }

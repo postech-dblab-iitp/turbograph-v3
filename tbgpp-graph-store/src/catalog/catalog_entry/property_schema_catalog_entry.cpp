@@ -218,6 +218,7 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 	return partition_oid;
 }
 
+// TODO this is not approximation now. change the name
 uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately()
 {
     if (extent_ids.size() == 0) {
