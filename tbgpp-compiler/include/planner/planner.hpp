@@ -432,7 +432,7 @@ private:
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
 	vector<duckdb::CypherPhysicalOperator *> *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
 	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
-	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result, bool is_dsi = false);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 	void pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result);
 
 	// limit, sort
@@ -484,6 +484,9 @@ private:
 	void pInitializeSchemaFlowGraph();
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
+	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
+		vector<duckdb::LogicalType> &local_types, vector<uint32_t>& union_inner_col_map, vector<uint32_t>& inner_col_map,
+		vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping, bool load_physical_id_col);
 	void pBuildSchemaFlowGraphForMultiSchemaScan(duckdb::Schema &global_schema, vector<duckdb::Schema>& local_schemas);
 	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
 	void pBuildSchemaFlowGraphForBinaryOperator(duckdb::Schema &output_schema, size_t num_rhs_schemas);
@@ -499,6 +502,16 @@ private:
 	void pConstructFilterColPosVals(
 		CExpression *projection_expr, vector<int64_t> &pred_attr_poss, vector<duckdb::Value>& literal_vals
 	);
+
+	inline bool pIsPhysicalIdCol(CColRefTable *col) {
+		return col->AttrNum() == INT(-1);
+	}
+
+	inline bool pIsComplexCondition(CExpression *expr) {
+		return expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp;
+	}
+
+	bool pFindOperandsColIdxs(CExpression *expr, CColRefArray *cols, duckdb::idx_t &out_idx);
 
 	inline string pGetColNameFromColRef(const CColRef *column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
