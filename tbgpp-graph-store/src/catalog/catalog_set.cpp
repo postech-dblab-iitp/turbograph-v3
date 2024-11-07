@@ -10,6 +10,7 @@
 #include "common/string_util.hpp"
 #include "parser/column_definition.hpp"
 //#include "parser/expression/constant_expression.hpp"
+#include "main/client_context.hpp"
 #include <sys/fcntl.h>
 
 #include <iostream>
@@ -52,44 +53,31 @@ CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
 }
 
 CatalogSet::CatalogSet(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults)
-    : catalog(&catalog), defaults(move(defaults)), catalog_segment(catalog_segment_) {
-// IC(catalog_set_name_);
-	// this->catalog_set_name = catalog_set_name_;
+    : catalog(&catalog), defaults(move(defaults)) {
 	string mapping_name = catalog_set_name_ + "_mapping";
-	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
+	mapping = catalog_segment_->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
-		catalog_segment->get_allocator<map_value_type>());
+		catalog_segment_->get_allocator<map_value_type>());
 	string entries_name = catalog_set_name_ + "_entries";
-	entries = catalog_segment->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
+	entries = catalog_segment_->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
-		catalog_segment->get_allocator<ValueType>());
+		catalog_segment_->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
-	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
-// IC();
+	current_entry = catalog_segment_->find_or_construct<idx_t>(current_entry_name.c_str())(0);
 }
 
 void CatalogSet::Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segment_, string catalog_set_name_, unique_ptr<DefaultGenerator> defaults) {
-// IC(catalog_set_name_);
-// fprintf(stdout, "this %p\n", this);
-	// this->catalog_set_name = catalog_set_name_;
-// fprintf(stdout, "catalog_segment %p\n", catalog_segment_);
-	this->catalog_segment = catalog_segment_;
-// IC();
 	this->catalog = &catalog;
-// IC();
 	string mapping_name = catalog_set_name_ + "_mapping";
-	mapping = catalog_segment->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
+	mapping = catalog_segment_->find_or_construct<MappingUnorderedMap>(mapping_name.c_str())
 		(3, SHM_CaseInsensitiveStringHashFunction(), SHM_CaseInsensitiveStringEquality(), 
-		catalog_segment->get_allocator<map_value_type>());
-// IC();
+		catalog_segment_->get_allocator<map_value_type>());
 	string entries_name = catalog_set_name_ + "_entries";
-	entries = catalog_segment->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
+	entries = catalog_segment_->find_or_construct<EntriesUnorderedMap>(entries_name.c_str())
 		(3, boost::hash<idx_t>(), std::equal_to<idx_t>(),
-		catalog_segment->get_allocator<ValueType>());
-// IC();
+		catalog_segment_->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
-	current_entry = catalog_segment->find_or_construct<idx_t>(current_entry_name.c_str())(0);
-// IC();
+	current_entry = catalog_segment_->find_or_construct<idx_t>(current_entry_name.c_str())(0);
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
@@ -176,8 +164,12 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 		*current_entry = entry_index + 1;
 
 		string dummy_name = name + "_dummy" + std::to_string(entry_index);
-		auto dummy_node = catalog_segment->find_or_construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name, (void_allocator) catalog_segment->get_segment_manager());
-		//ValueType dummy_node = ValueType(entry_index, 
+        auto dummy_node =
+            context.GetCatalogSHM()->find_or_construct<CatalogEntry>(
+                dummy_name.c_str())(
+                CatalogType::INVALID, value->catalog, name,
+                (void_allocator)context.GetCatalogSHM()->get_segment_manager());
+        //ValueType dummy_node = ValueType(entry_index, 
 		//	boost::interprocess::make_managed_unique_ptr(catalog_segment->construct<CatalogEntry>(dummy_name.c_str())(CatalogType::INVALID, value->catalog, name), *catalog_segment).get());
 		dummy_node->timestamp = 0;
 		dummy_node->deleted = true;
@@ -415,7 +407,7 @@ void CatalogSet::DropEntryInternal(ClientContext &context, idx_t entry_index, Ca
 	// create a new entry and replace the currently stored one
 	// set the timestamp to the timestamp of the current transaction
 	// and point it at the dummy node
-	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name, (void_allocator) catalog_segment->get_segment_manager());
+	auto value = make_unique<CatalogEntry>(CatalogType::DELETED_ENTRY, entry.catalog, entry.name, (void_allocator) context.GetCatalogSHM()->get_segment_manager());
 	//value->timestamp = transaction.transaction_id;
 	//value->child = move(entries[entry_index]); //TODO
 	value->child->parent = value.get();
@@ -479,7 +471,7 @@ bool CatalogSet::HasConflict(ClientContext &context, transaction_t timestamp) {
 
 MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name, bool get_latest) {
 	MappingValue *mapping_value;
-	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
 	char_string name_(temp_charallocator);
 	name_ = name.c_str();
 
@@ -504,12 +496,12 @@ MappingValue *CatalogSet::GetMapping(ClientContext &context, const string &name,
 }
 
 void CatalogSet::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
-	char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+	char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
 	char_string name_(temp_charallocator);
 	name_ = name.c_str();
 	auto entry = mapping->find(name_);
 	string new_value_name = name + "_mapval" + std::to_string(entry_index);
-	auto new_value = catalog_segment->find_or_construct<MappingValue>(new_value_name.c_str())(entry_index);
+	auto new_value = context.GetCatalogSHM()->find_or_construct<MappingValue>(new_value_name.c_str())(entry_index);
 	//auto new_value = make_unique<MappingValue>(entry_index);
 	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
 	new_value->timestamp = 0;
@@ -629,7 +621,7 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 		}
 		return current;
 	}
-icecream::ic.enable(); IC(name); icecream::ic.disable();
+
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
@@ -773,7 +765,7 @@ void CatalogSet::Scan(ClientContext &context, const std::function<void(CatalogEn
 	if (defaults && !defaults->created_all_entries) {
 		// this catalog set has a default set defined:
 		auto default_entries = defaults->GetDefaultEntries();
-		char_allocator temp_charallocator (catalog_segment->get_segment_manager());
+		char_allocator temp_charallocator (context.GetCatalogSHM()->get_segment_manager());
 		char_string default_entry_(temp_charallocator);
 		for (auto &default_entry : default_entries) {
 			default_entry_ = default_entry.c_str();
@@ -810,4 +802,117 @@ void CatalogSet::Scan(const std::function<void(CatalogEntry *)> &callback) {
 		}
 	}
 }
+
+CatalogSetInMem::CatalogSetInMem(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
+    : CatalogSet(catalog, move(defaults)) {
+	mapping = make_unique<case_insensitive_map_t<MappingValue *>>();
+	entries = make_unique<unordered_map<idx_t, CatalogEntry *>>();
+}
+
+bool CatalogSetInMem::CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
+                             unordered_set<CatalogEntry *> &dependencies) {
+	// first check if the entry exists in the unordered set
+	idx_t entry_index;
+	auto mapping_value = GetMapping(context, name);
+	if (mapping_value == nullptr || mapping_value->deleted) {
+		// if it does not: entry has never been created
+
+		// first create a dummy deleted entry for this entry
+		// so transactions started before the commit of this transaction don't
+		// see it yet
+		entry_index = *current_entry;
+		*current_entry = entry_index + 1;
+
+		string dummy_name = name + "_dummy" + std::to_string(entry_index);
+        auto dummy_node =
+			new CatalogEntry(CatalogType::INVALID, value->catalog, name, 
+			(void_allocator)context.GetCatalogSHM()->get_segment_manager());
+        
+		dummy_node->timestamp = 0;
+		dummy_node->deleted = true;
+		dummy_node->set = this;
+
+		entries->insert_or_assign(entry_index, move(dummy_node));
+		PutMapping(context, name, entry_index);
+	} else {
+		return true; // XXX In the current single thread version, we just return (LoadCatalog Case)
+	}
+	// create a new entry and replace the currently stored one
+	// set the timestamp to the timestamp of the current transaction
+	// and point it at the dummy node
+	//value->timestamp = transaction.transaction_id;
+	value->timestamp = 0;
+	value->set = this;
+
+	// now add the dependency set of this object to the dependency manager
+	// catalog->dependency_manager->AddObject(context, value, dependencies); // TODO 240103 tslee disabled this.. error occur
+
+	// value->child = move(entries->at(entry_index));
+	// value->child->parent = value;
+	// push the old entry in the undo buffer for this transaction
+	//transaction.PushCatalogEntry(value->child.get());
+	entries->at(entry_index) = move(value);
+	return true;
+}
+
+void CatalogSetInMem::PutMapping(ClientContext &context, const string &name, idx_t entry_index) {
+	auto entry = mapping->find(name);
+	string new_value_name = name + "_mapval" + std::to_string(entry_index);
+
+	auto new_value = new MappingValue(entry_index);
+	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
+	new_value->timestamp = 0;
+	if (entry != mapping->end()) {
+		if (HasConflict(context, entry->second->timestamp)) {
+			throw TransactionException("Catalog write-write conflict on name \"%s\"", name);
+		}
+		new_value->child = move(entry->second);
+		new_value->child->parent = new_value;
+	}
+	mapping->insert(std::make_pair(name, move(new_value)));
+	//mapping->insert_or_assign(name.c_str(), move(new_value));
+	// mapping[name] = move(new_value);
+}
+
+MappingValue *CatalogSetInMem::GetMapping(ClientContext &context, const string &name, bool get_latest) {
+	MappingValue *mapping_value;
+
+	auto entry = mapping->find(name);
+	if (entry != mapping->end()) {
+		mapping_value = entry->second;
+	} else {
+		return nullptr;
+	}
+	if (get_latest) {
+		return mapping_value;
+	}
+	while (mapping_value->child) {
+		if (UseTimestamp(context, mapping_value->timestamp)) {
+			break;
+		}
+		mapping_value = mapping_value->child;
+		D_ASSERT(mapping_value);
+	}
+
+	return mapping_value;
+}
+
+CatalogEntry *CatalogSetInMem::GetEntry(ClientContext &context, const string &name) {
+	// unique_lock<mutex> lock(catalog_lock); // TODO disable in debug phase..
+	auto mapping_value = GetMapping(context, name);
+	if (mapping_value != nullptr && !mapping_value->deleted) {
+		// we found an entry for this name
+		// check the version numbers
+
+		auto catalog_entry = entries->at(mapping_value->index);
+		CatalogEntry *current = GetEntryForTransaction(context, catalog_entry);
+		if (current->deleted || (std::string(current->name.data()) != name && !UseTimestamp(context, mapping_value->timestamp))) {
+			return nullptr;
+		}
+		return current;
+	}
+
+	return nullptr;
+}
+
 } // namespace duckdb

@@ -53,6 +53,7 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 Catalog::Catalog(DatabaseInstance &db)
     : db(db), dependency_manager(make_unique<DependencyManager>(*this)) {
 	catalog_version = 1; // TODO we need to load this
+	functions = make_unique<CatalogSetInMem>(*this);
 }
 
 Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment_)
@@ -66,6 +67,8 @@ Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segme
 		std::make_shared<ClientContext>(db.shared_from_this());
 	CreateSchemaInfo schema_info;
 	CreateSchema(*client.get(), &schema_info);
+
+	functions = make_unique<CatalogSetInMem>(*this);
 
 	// initialize default functions
 	BuiltinFunctions builtin(*client.get(), *this, false);
@@ -83,7 +86,7 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
 	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
-	entry->SetCatalog(this);
+	// entry->SetCatalog(this);
 
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(db.shared_from_this());
@@ -91,11 +94,8 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 		throw CatalogException("Schema with name main already exists!");
 	}
 
-	// Set SHM
-	entry->SetCatalogSegment(catalog_segment_);
-
 	// Load CatalogSet
-	entry->LoadCatalogSet();
+	entry->LoadCatalogSet(catalog_segment_);
 
 	// initialize default functions
 	BuiltinFunctions builtin(*client.get(), *this, true);
@@ -148,14 +148,6 @@ Catalog &Catalog::GetCatalog(ClientContext &context) {
 }
 
 CatalogEntry *Catalog::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
-	/*const_named_it named_beg = catalog_segment->named_begin();
-	const_named_it named_end = catalog_segment->named_end();
-	fprintf(stdout, "All named object list\n");
-	for(; named_beg != named_end; ++named_beg){
-		//A pointer to the name of the named object
-		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-		fprintf(stdout, "\t%s\n", name);
-	}*/
 	auto schema = GetSchema(context, info->schema);
 	return CreateGraph(context, schema, info);
 }
@@ -206,7 +198,65 @@ CatalogEntry *Catalog::CreateFunction(ClientContext &context, CreateFunctionInfo
 }
 
 CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
-	return schema->CreateFunction(context, info);
+    // return schema->CreateFunction(context, info);
+    StandardEntry *function;
+    void_allocator alloc_inst(context.GetCatalogSHM()->get_segment_manager());
+    switch (info->type) {
+        case CatalogType::SCALAR_FUNCTION_ENTRY:
+            function = new ScalarFunctionCatalogEntry(
+                this, nullptr, (CreateScalarFunctionInfo *)info, alloc_inst);
+            break;
+        case CatalogType::MACRO_ENTRY:
+            D_ASSERT(false);
+            break;
+
+        case CatalogType::TABLE_MACRO_ENTRY:
+            D_ASSERT(false);
+            break;
+        case CatalogType::AGGREGATE_FUNCTION_ENTRY:
+            D_ASSERT(info->type == CatalogType::AGGREGATE_FUNCTION_ENTRY);
+            // create an aggregate function
+            function = new AggregateFunctionCatalogEntry(
+                this, nullptr, (CreateAggregateFunctionInfo *)info,
+                alloc_inst);
+            break;
+        default:
+            throw InternalException("Unknown function type \"%s\"",
+                                    CatalogTypeToString(info->type));
+    }
+    // return AddEntry(context, move(function), info->on_conflict);
+	unordered_set<CatalogEntry *> dependencies;
+	auto entry_name = function->name;
+	auto entry_type = function->type;
+	auto result = function;
+
+	// first find the set for this entry
+	auto &set = *functions;
+
+	// dependencies.insert(this);
+	
+	if (info->on_conflict == OnCreateConflict::REPLACE_ON_CONFLICT) {
+		// CREATE OR REPLACE: first try to drop the entry
+		auto old_entry = set.GetEntry(context, std::string(entry_name.data()));
+		if (old_entry) {
+			if (old_entry->type != entry_type) {
+				throw CatalogException("Existing object %s is of type %s, trying to replace with type %s", std::string(entry_name.data()),
+				                       CatalogTypeToString(old_entry->type), CatalogTypeToString(entry_type));
+			}
+			(void)set.DropEntry(context, std::string(entry_name.data()), false);
+		}
+	}
+	// now try to add the entry
+	if (!set.CreateEntry(context, std::string(entry_name.data()), move(function), dependencies)) {
+		// entry already exists!
+		if (info->on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
+			throw CatalogException("%s with name \"%s\" already exists!", CatalogTypeToString(entry_type), std::string(entry_name.data()));
+		} else {
+			return nullptr;
+		}
+	}
+	oid_to_catalog_entry_array.insert({result->GetOid(), (void *)result});
+	return result;
 }
 
 CatalogEntry *Catalog::CreateIndex(ClientContext &context, CreateIndexInfo *info) {
@@ -307,23 +357,15 @@ CatalogEntry *Catalog::CreateSchema(ClientContext &context, CreateSchemaInfo *in
 
 	unordered_set<CatalogEntry *> dependencies;
 	string schema_cat_name_in_shm = "schemacatalogentry_" + info->schema;
-	auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, info->schema, info->internal, this->catalog_segment);
-	// fprintf(stdout, "Create Schema %s, %p\n", schema_cat_name_in_shm.c_str(), entry);
-	// const_named_it named_beg = catalog_segment->named_begin();
-	// const_named_it named_end = catalog_segment->named_end();
-	// fprintf(stdout, "All named object list\n");
-	// for(; named_beg != named_end; ++named_beg){
-	// 	//A pointer to the name of the named object
-	// 	const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-	// 	fprintf(stdout, "\t%s %p\n", name, named_beg->value());
-	// }
-	std::pair<SchemaCatalogEntry *,std::size_t> ret = catalog_segment->find<SchemaCatalogEntry>("schemacatalogentry_main");
-	SchemaCatalogEntry *schema_cat = ret.first;
+    auto entry = this->catalog_segment->construct<SchemaCatalogEntry>(
+        schema_cat_name_in_shm.c_str())(this, info->schema, info->internal,
+                                        this->catalog_segment);
+
+    std::pair<SchemaCatalogEntry *, std::size_t> ret =
+        catalog_segment->find<SchemaCatalogEntry>("schemacatalogentry_main");
+    SchemaCatalogEntry *schema_cat = ret.first;
 	auto result = (CatalogEntry*) entry;
-	//auto entry = boost::interprocess::make_managed_unique_ptr(this->catalog_segment->construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str())
-	//		(this, info->schema, info->internal, this->catalog_segment), *this->catalog_segment);
-	//auto result = boost::interprocess::to_raw_pointer(entry.get());
-	//if (!schemas->CreateEntry(context, info->schema, move(entry.get()), dependencies)) {
+
 	if (!schemas->CreateEntry(context, info->schema, move(entry), dependencies)) {
 		if (info->on_conflict == OnCreateConflict::ERROR_ON_CONFLICT) {
 			throw CatalogException("Schema with name %s already exists!", info->schema);
@@ -362,11 +404,13 @@ void Catalog::DropEntry(ClientContext &context, DropInfo *info) {
 }
 
 CatalogEntry *Catalog::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
+	D_ASSERT(false);
 	auto schema = GetSchema(context, info->schema);
 	return AddFunction(context, schema, info);
 }
 
 CatalogEntry *Catalog::AddFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
+	D_ASSERT(false);
 	return schema->AddFunction(context, info);
 }
 
@@ -375,15 +419,13 @@ SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &sch
 	D_ASSERT(!schema_name.empty());
 	if (schema_name == TEMP_SCHEMA) {
 		D_ASSERT(false);
-		//return ClientData::Get(context).temporary_objects.get();
 	}
-// IC();
+
 	auto entry = schemas->GetEntry(context, schema_name);
 	if (!entry && !if_exists) {
 		D_ASSERT(false); // TODO exception handling
-		//throw CatalogException(error_context.FormatError("Schema with name %s does not exist!", schema_name));
 	}
-	//fprintf(stdout, "GetSchema %p\n", entry);
+
 	return (SchemaCatalogEntry *)entry;
 }
 
@@ -482,6 +524,15 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 	return {nullptr, nullptr};
 }
 
+CatalogEntryLookup Catalog::LookupFuncEntry(ClientContext &context, CatalogType type, const string &schema_name,
+                                        const string &name, bool if_exists) { //, QueryErrorContext error_context) {
+	auto entry = functions->GetEntry(context, name);
+	if (!entry && !if_exists) {
+		D_ASSERT(false);
+	}
+	return {nullptr, entry};
+}
+
 CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema, const string &name) {
 	D_ASSERT(false);
 	vector<CatalogType> entry_types {CatalogType::TABLE_ENTRY, CatalogType::SEQUENCE_ENTRY};
@@ -500,6 +551,11 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const 
                                 bool if_exists) { //, QueryErrorContext error_context) {
 	//return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
 	return LookupEntry(context, type, schema_name, name, if_exists).entry;
+}
+
+CatalogEntry *Catalog::GetFuncEntry(ClientContext &context, CatalogType type, const string &schema_name, const string &name,
+                                bool if_exists) {
+	return LookupFuncEntry(context, type, schema_name, name, if_exists).entry;
 }
 
 CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, idx_t oid, bool if_exists) {
@@ -525,6 +581,11 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_nam
 // TODO remove logics using search paths..
 
 	return nullptr;
+}
+
+CatalogEntry *Catalog::GetFuncEntry(ClientContext &context, const string &schema_name, idx_t oid, bool if_exists) {
+	auto cat_entry = (CatalogEntry *)oid_to_catalog_entry_array.at(oid);
+	return cat_entry;
 }
 
 template <>

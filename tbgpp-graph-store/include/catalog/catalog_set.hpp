@@ -145,7 +145,7 @@ public:
 	CatalogEntry *GetEntryFromIndex(idx_t index);
 	void UpdateTimestamp(CatalogEntry *entry, transaction_t timestamp);
 
-private:
+protected:
 	//! Adjusts table dependencies on the event of an UNDO
 	void AdjustTableDependencies(CatalogEntry *entry);
 	//! Adjust one dependency
@@ -165,7 +165,7 @@ private:
 	void DeleteMapping(ClientContext &context, const string &name);
 	void DropEntryDependencies(ClientContext &context, idx_t entry_index, CatalogEntry &entry, bool cascade);
 
-private:
+protected:
 	Catalog *catalog;
 	//! The catalog lock is used to make changes to the data
 	mutex catalog_lock;
@@ -180,7 +180,35 @@ private:
 	//! The generator used to generate default internal entries
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager
-	fixed_managed_mapped_file *catalog_segment;
+	// fixed_managed_mapped_file *catalog_segment;
 	// string catalog_set_name;
 };
+
+class CatalogSetInMem : public CatalogSet {
+	friend class DependencyManager;
+	friend class EntryDropper;
+
+public:
+	DUCKDB_API explicit CatalogSetInMem(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
+
+	//! Create an entry in the catalog set. Returns whether or not it was
+	//! successful.
+	DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
+	                            unordered_set<CatalogEntry *> &dependencies);
+
+	//! Returns the entry with the specified name
+	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &name);
+
+private:
+
+	MappingValue *GetMapping(ClientContext &context, const string &name, bool get_latest = false);
+	void PutMapping(ClientContext &context, const string &name, idx_t entry_index);
+
+private:
+	//! Mapping of string to catalog entry
+	unique_ptr<case_insensitive_map_t<MappingValue *>> mapping;
+	//! The set of catalog entries
+	unique_ptr<unordered_map<idx_t, CatalogEntry *>> entries;
+};
+
 } // namespace duckdb

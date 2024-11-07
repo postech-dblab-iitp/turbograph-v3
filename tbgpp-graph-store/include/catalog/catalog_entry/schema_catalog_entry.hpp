@@ -84,7 +84,7 @@ private:
 	//! The catalog set holding the indexes
 	CatalogSet indexes;
 	//! The catalog set holding the scalar and aggregate functions
-	CatalogSet functions;
+	// CatalogSet functions;
 	/*
 	//! The catalog set holding the tables
 	CatalogSet tables;
@@ -101,7 +101,7 @@ private:
 	//! The catalog set holding the types
 	CatalogSet types;
 	*/
-	fixed_managed_mapped_file *catalog_segment;
+	// fixed_managed_mapped_file *catalog_segment;
 	//! oid to catalog entry array
 	OidToCatalogEntryPtrUnorderedMap oid_to_catalog_entry_array; // TODO change this to array data structure
 
@@ -115,8 +115,8 @@ public:
 	virtual void Serialize(Serializer &serializer);
 	//! Deserializes to a CreateSchemaInfo
 	static unique_ptr<CreateSchemaInfo> Deserialize(Deserializer &source);
-	void LoadCatalogSet();
-	void SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment);
+	void LoadCatalogSet(fixed_managed_mapped_file *&catalog_segment);
+	// void SetCatalogSegment(fixed_managed_mapped_file *catalog_segment);
 
 	string ToSQL() override;
 

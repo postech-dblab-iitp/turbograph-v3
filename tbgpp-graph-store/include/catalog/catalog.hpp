@@ -56,6 +56,7 @@ class PropertySchemaCatalogEntry;
 class ExtentCatalogEntry;
 class ChunkDefinitionCatalogEntry;
 class CatalogSet;
+class CatalogSetInMem;
 class DatabaseInstance;
 class DependencyManager;
 
@@ -118,6 +119,10 @@ public:
 	mutex write_lock;
 	//! Shared memory manager
 	fixed_managed_mapped_file *catalog_segment;
+	//! The catalog set holding the scalar and aggregate functions
+	unique_ptr<CatalogSetInMem> functions;
+
+	std::unordered_map<idx_t, void *> oid_to_catalog_entry_array;
 
 public:
 	//! Get the ClientContext from the Catalog
@@ -231,7 +236,10 @@ public:
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, CatalogType type, const string &schema,
 	                                  const string &name, bool if_exists = false);
 	                                  //QueryErrorContext error_context = QueryErrorContext());
+	DUCKDB_API CatalogEntry *GetFuncEntry(ClientContext &context, CatalogType type, const string &schema,
+	                                  const string &name, bool if_exists = false);
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &schema, idx_t oid, bool if_exists = false);
+	DUCKDB_API CatalogEntry *GetFuncEntry(ClientContext &context, const string &schema, idx_t oid, bool if_exists = false);
 
 	//! Gets the "schema.name" entry without a specified type, if entry does not exist an exception is thrown
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &schema, const string &name);
@@ -258,6 +266,8 @@ private:
 	//! A variation of GetEntry that returns an associated schema as well.
 	CatalogEntryLookup LookupEntry(ClientContext &context, CatalogType type, const string &schema, const string &name,
 	                               bool if_exists = false);//, QueryErrorContext error_context = QueryErrorContext());
+	CatalogEntryLookup LookupFuncEntry(ClientContext &context, CatalogType type, const string &schema, const string &name,
+	                               bool if_exists = false);
 
 	//! Return an exception with did-you-mean suggestion.
 	//CatalogException CreateMissingEntryException(ClientContext &context, const string &entry_name, CatalogType type,
