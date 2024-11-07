@@ -60,7 +60,9 @@ class PropertyExpression : public Expression {
     }
     void addPropertyID(table_id_t tableID, property_id_t propID)
     {
-        assert(propertyIDPerTable.find(tableID) == propertyIDPerTable.end());
+        if (propertyIDPerTable.find(tableID) != propertyIDPerTable.end()) {
+            return;
+        }
         propertyIDPerTable.insert(std::make_pair(tableID, propID));
     }
 
