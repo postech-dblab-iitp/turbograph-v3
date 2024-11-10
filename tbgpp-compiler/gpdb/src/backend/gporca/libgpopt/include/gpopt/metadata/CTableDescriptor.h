@@ -58,6 +58,9 @@ private:
 	// array of columns
 	CColumnDescriptorArray *m_pdrgpcoldesc;
 
+	// org array of columns
+	CColumnDescriptorArray *m_org_pdrgpcoldesc;
+
 	// distribution policy
 	IMDRelation::Ereldistrpolicy m_rel_distr_policy;
 
@@ -155,11 +158,27 @@ public:
 	// return the position of a particular attribute (identified by attno)
 	ULONG GetAttributePosition(INT attno) const;
 
+	// column descriptor setter
+	void
+	SetPdrgpcoldesc(CColumnDescriptorArray *new_pdrgpcoldesc) 
+	{
+		GPOS_ASSERT(NULL != new_pdrgpcoldesc);
+		m_org_pdrgpcoldesc = m_pdrgpcoldesc;
+		m_pdrgpcoldesc = new_pdrgpcoldesc;
+	}
+
 	// column descriptor accessor
 	CColumnDescriptorArray *
 	Pdrgpcoldesc() const
 	{
 		return m_pdrgpcoldesc;
+	}
+
+	// column descriptor accessor
+	CColumnDescriptorArray *
+	OrgPdrgpcoldesc() const
+	{
+		return m_org_pdrgpcoldesc;
 	}
 
 	// distribution column descriptors accessor

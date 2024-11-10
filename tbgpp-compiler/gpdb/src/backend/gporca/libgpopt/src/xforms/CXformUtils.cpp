@@ -2263,8 +2263,7 @@ CXformUtils::PdrgpcrIndexColumns(CMemoryPool *mp, CColRefArray *colref_array,
 		}
 		ULONG ulPosNonDropped = pmdrel->NonDroppedColAt(ulPos);
 
-		if (gpos::ulong_max == ulPosNonDropped ||
-			ulPosNonDropped >= colref_array->Size())
+		if (gpos::ulong_max == ulPosNonDropped)
 		{
 			// GPDB6 and lower assumes that the root and leaf partitions have
 			// the same underlying column structure. That assumption can be
