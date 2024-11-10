@@ -45,7 +45,7 @@ int main() {
     s62_close_metadata(metadata);
 
     // Prepare query
-    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (pa:PART)-[p:PARTSUPP]->(s:SUPPLIER)-[:SUPP_BELONG_TO]->(n:NATION)-[:IS_LOCATED_IN]->(r:REGION)  WHERE pa.P_SIZE = 43 and pa.P_TYPE CONTAINS 'COPPER' and r.R_NAME = 'AMERICA'  WITH pa, p.PS_SUPPLYCOST AS PS_SUPPLYCOST, s.S_ACCTBAL AS S_ACCTBAL,s.S_NAME AS S_NAME, s.S_ADDRESS AS S_ADDRESS,s.S_PHONE AS S_PHONE,s.S_COMMENT AS S_COMMENT, n.N_NAME AS N_NAME MATCH (pa)-[p2:PARTSUPP]->(:SUPPLIER)-[:SUPP_BELONG_TO]->(:NATION)-[:IS_LOCATED_IN]->(r2:REGION) WHERE r2.R_NAME = 'AMERICA'  WITH pa.P_PARTKEY AS P_PARTKEY, pa.P_MFGR AS P_MFGR, PS_SUPPLYCOST, S_ACCTBAL, S_NAME, S_ADDRESS, S_PHONE, S_COMMENT, N_NAME, min(p2.PS_SUPPLYCOST) as minvalue WHERE PS_SUPPLYCOST = minvalue RETURN S_ACCTBAL, S_NAME, N_NAME, P_PARTKEY, P_MFGR, S_ADDRESS, S_PHONE, S_COMMENT ORDER BY S_ACCTBAL desc,N_NAME,S_NAME,P_PARTKEY LIMIT 100;");
+    s62_prepared_statement* prep_stmt = s62_prepare("MATCH (l:LINEITEM)-[:IS_PART_OF]->(ord:ORDERS)-[:MADE_BY]->(c:CUSTOMER) WHERE c.C_MKTSEGMENT = 'FURNITURE' AND ord.O_ORDERDATE < date('1995-03-07') AND l.L_SHIPDATE > date('1995-03-07') RETURN ord.O_ORDERKEY, sum(l.L_EXTENDEDPRICE*(1-l.L_DISCOUNT)) AS revenue, ord.O_ORDERDATE AS ord_date, ord.O_ORDERPRIORITY ORDER BY revenue DESC, ord_date limit 50");
 
     printf("s62_prepare_query() done\n");
 
@@ -80,25 +80,43 @@ int main() {
     printf("Prepared statement plan after execution: \n%s\n", prep_stmt->plan);
 
     // Fetch results
-    // while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
-    //     s62_string ret_flag_value = s62_get_varchar(resultset_wrapper, 0);
-    //     s62_string line_stat_value = s62_get_varchar(resultset_wrapper, 1);
-    //     s62_hugeint sum_qty_value = s62_get_hugeint(resultset_wrapper, 2);
-    //     s62_string sum_base_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 3));
-    //     s62_string sum_disc_price_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 4));
-    //     s62_string sum_charge_value = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 5));
-    //     double avg_qty_value = s62_get_double(resultset_wrapper, 6);
-    //     double avg_price_value = s62_get_double(resultset_wrapper, 7);
-    //     double avg_disc_value = s62_get_double(resultset_wrapper, 8);
-    //     int64_t count_order_value = s62_get_int64(resultset_wrapper, 9);
-    //     printf("ret_flag: %s, line_stat: %s, sum_qty: %ld%ld, sum_base_price: %s, sum_disc_price: %s, sum_charge: %s, avg_qty: %f, avg_price: %f, avg_disc: %f, count_order: %ld\n", 
-    //             ret_flag_value.data, line_stat_value.data, sum_qty_value.upper, sum_qty_value.lower, 
-    //             sum_base_price_value.data, 
-    //             sum_disc_price_value.data,
-    //             sum_charge_value.data, 
-    //             avg_qty_value, avg_price_value, avg_disc_value, count_order_value);
-    // }
-    // printf("s62_fetch() done\n");
+    while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
+        uint64_t orderkey = s62_get_uint64(resultset_wrapper, 0);
+        s62_string revenue = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 1));
+        s62_date orderdate = s62_get_date(resultset_wrapper, 2);
+        s62_string orderpriority = s62_get_varchar(resultset_wrapper, 3);
+        printf("orderkey: %ld, revenue: %s, orderdate: %d, shippriority: %s\n", orderkey, revenue.data, orderdate.days, orderpriority.data);
+
+
+        // uint64_t customer_id = s62_get_id(resultset_wrapper, 0);
+        // uint64_t customer_custkey = s62_get_uint64(resultset_wrapper, 1);
+        // s62_string customer_name = s62_get_varchar(resultset_wrapper, 2);
+        // s62_string customer_address = s62_get_varchar(resultset_wrapper, 3);
+        // uint64_t customer_nationkey = s62_get_uint64(resultset_wrapper, 4);
+        // s62_string customer_phone = s62_get_varchar(resultset_wrapper, 5);
+        // s62_string customer_acctbal = s62_decimal_to_string(s62_get_decimal(resultset_wrapper, 6));
+        // s62_string customer_mktsegment = s62_get_varchar(resultset_wrapper, 7);
+        // s62_string customer_comment = s62_get_varchar(resultset_wrapper, 8);
+
+        // printf("customer_id: %ld, customer_custkey: %ld, customer_name: %s, customer_address: %s, customer_nationkey: %ld, customer_phone: %s, customer_acctbal: %s, customer_mktsegment: %s, customer_comment: %s\n", 
+        //     customer_id, customer_custkey, customer_name.data, customer_address.data, customer_nationkey, customer_phone.data, customer_acctbal.data, customer_mktsegment.data, customer_comment.data);
+
+        // uint64_t nation_id = s62_get_id(resultset_wrapper, 9);
+        // uint64_t nation_key = s62_get_uint64(resultset_wrapper, 10);
+        // s62_string nation_name = s62_get_varchar(resultset_wrapper, 11);
+        // uint64_t nation_regionkey = s62_get_uint64(resultset_wrapper, 12);
+        // s62_string nation_comment = s62_get_varchar(resultset_wrapper, 13);
+
+        // printf("nation_id: %ld, nation_key: %ld, nation_name: %s, nation_regionkey: %ld, nation_comment: %s\n", nation_id, nation_key, nation_name.data, nation_regionkey, nation_comment.data);
+
+        // uint64_t cust_belong_to_id = s62_get_id(resultset_wrapper, 14);
+        // uint64_t cust_belong_to_custkey = s62_get_uint64(resultset_wrapper, 15);
+        // uint64_t cust_belong_to_nationkey = s62_get_uint64(resultset_wrapper, 16);
+
+        // printf("cust_belong_to_id: %ld, cust_belong_to_custkey: %ld, cust_belong_to_nationkey: %ld\n", cust_belong_to_id, cust_belong_to_custkey, cust_belong_to_nationkey);
+
+    }
+    printf("s62_fetch() done\n");
 
     s62_close_resultset(resultset_wrapper);
     printf("s62_close_resultset() done\n");

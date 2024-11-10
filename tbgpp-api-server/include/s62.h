@@ -45,65 +45,65 @@ typedef enum S62_METADATA_TYPE {
 typedef enum S62_TYPE {
 	S62_TYPE_INVALID = 0,
 	// bool
-	S62_TYPE_BOOLEAN,
+	S62_TYPE_BOOLEAN, // 1
 	// int8_t
-	S62_TYPE_TINYINT,
+	S62_TYPE_TINYINT, // 2
 	// int16_t
-	S62_TYPE_SMALLINT,
+	S62_TYPE_SMALLINT, // 3
 	// int32_t
-	S62_TYPE_INTEGER,
+	S62_TYPE_INTEGER, // 4
 	// int64_t
-	S62_TYPE_BIGINT,
+	S62_TYPE_BIGINT, // 5
 	// uint8_t
-	S62_TYPE_UTINYINT,
+	S62_TYPE_UTINYINT, // 6
 	// uint16_t
-	S62_TYPE_USMALLINT,
+	S62_TYPE_USMALLINT, // 7
 	// uint32_t
-	S62_TYPE_UINTEGER,
+	S62_TYPE_UINTEGER, // 8
 	// uint64_t
-	S62_TYPE_UBIGINT,
+	S62_TYPE_UBIGINT, // 9
 	// float
-	S62_TYPE_FLOAT,
+	S62_TYPE_FLOAT, // 10
 	// double
-	S62_TYPE_DOUBLE,
+	S62_TYPE_DOUBLE, // 11
 	// S62_timestamp, in microseconds
-	S62_TYPE_TIMESTAMP,
+	S62_TYPE_TIMESTAMP, // 12
 	// S62_date
-	S62_TYPE_DATE,
+	S62_TYPE_DATE, // 13
 	// S62_time
-	S62_TYPE_TIME,
+	S62_TYPE_TIME, // 14
 	// S62_interval
-	S62_TYPE_INTERVAL,
+	S62_TYPE_INTERVAL, // 15
 	// S62_hugeint
-	S62_TYPE_HUGEINT,
+	S62_TYPE_HUGEINT, // 16
 	// const char*
-	S62_TYPE_VARCHAR,
+	S62_TYPE_VARCHAR, // 17
 	// S62_blob
-	S62_TYPE_BLOB,
+	S62_TYPE_BLOB, // 18
 	// decimal
-	S62_TYPE_DECIMAL,
+	S62_TYPE_DECIMAL, // 19
 	// S62_timestamp, in seconds
-	S62_TYPE_TIMESTAMP_S,
+	S62_TYPE_TIMESTAMP_S, // 20
 	// S62_timestamp, in milliseconds
-	S62_TYPE_TIMESTAMP_MS,
+	S62_TYPE_TIMESTAMP_MS, // 21
 	// S62_timestamp, in nanoseconds
-	S62_TYPE_TIMESTAMP_NS,
+	S62_TYPE_TIMESTAMP_NS, // 22
 	// enum type, only useful as logical type
-	S62_TYPE_ENUM,
+	S62_TYPE_ENUM, // 23
 	// list type, only useful as logical type
-	S62_TYPE_LIST,
+	S62_TYPE_LIST, // 24
 	// struct type, only useful as logical type
-	S62_TYPE_STRUCT,
+	S62_TYPE_STRUCT, // 25
 	// map type, only useful as logical type
-	S62_TYPE_MAP,
+	S62_TYPE_MAP, // 26
 	// S62_hugeint
-	S62_TYPE_UUID,
+	S62_TYPE_UUID, // 27
 	// union type, only useful as logical type
-	S62_TYPE_UNION,
+	S62_TYPE_UNION, // 28
 	// S62_bit
-	S62_TYPE_BIT,
+	S62_TYPE_BIT, // 29
 	// S62_ID
-	S62_TYPE_ID,
+	S62_TYPE_ID, // 30
 } s62_type;
 
 //! Days are stored as days since 1970-01-01
