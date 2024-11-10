@@ -144,7 +144,7 @@ CIndexDescriptor::Pindexdesc(CMemoryPool *mp, const CTableDescriptor *ptabdesc,
 {
 	CWStringConst strIndexName(mp, pmdindex->Mdname().GetMDName()->GetBuffer());
 
-	CColumnDescriptorArray *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
+	CColumnDescriptorArray *pdrgpcoldesc = ptabdesc->OrgPdrgpcoldesc();
 
 	pmdindex->MDId()->AddRef();
 

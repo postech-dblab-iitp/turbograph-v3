@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE" "SINGLECLUSTER")
+cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-merge_modes=("" "IN_STORAGE")
+merge_modes=("")
 
 # Define target and log directories
 scale_factor=10
@@ -17,8 +17,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/yago-3/"
-query_numbers="35"
+queries_path="/turbograph-v3/queries/kg/yago/"
+query_numbers="1-20"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -46,7 +46,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             for merge in "${merge_modes[@]}"; do
                 for query_num in $queries; do
-                    query_file="${queries_path}/Q${query_num}.cql"
+                    query_file="${queries_path}/q${query_num}.cql"
                     if [ ! -f "$query_file" ]; then
                         echo "Query file $query_file not found!"
                         continue
@@ -73,7 +73,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
                     # Run query
                     timeout 3600s \
-                        /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --explain --profile --warmup \
+                        /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:"$query_str" --disable-merge-join --num-iterations:2 --join-order-optimizer:exhaustive --explain --profile --warmup \
                         > ${log_file} 2>&1
 
                     pkill -f store

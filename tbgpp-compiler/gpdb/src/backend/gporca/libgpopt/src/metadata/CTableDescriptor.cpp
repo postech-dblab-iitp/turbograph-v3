@@ -42,6 +42,7 @@ CTableDescriptor::CTableDescriptor(
 	  m_mdid(mdid),
 	  m_name(mp, name),
 	  m_pdrgpcoldesc(NULL),
+	  m_org_pdrgpcoldesc(NULL),
 	  m_rel_distr_policy(rel_distr_policy),
 	  m_erelstoragetype(erelstoragetype),
 	  m_pdrgpcoldescDist(NULL),
@@ -58,6 +59,7 @@ CTableDescriptor::CTableDescriptor(
 	GPOS_ASSERT(mdid->IsValid());
 
 	m_pdrgpcoldesc = GPOS_NEW(m_mp) CColumnDescriptorArray(m_mp);
+	m_org_pdrgpcoldesc = GPOS_NEW(m_mp) CColumnDescriptorArray(m_mp);
 	m_pdrgpcoldescDist = GPOS_NEW(m_mp) CColumnDescriptorArray(m_mp);
 	m_pdrgpulPart = GPOS_NEW(m_mp) ULongPtrArray(m_mp);
 	m_pdrgpbsKeys = GPOS_NEW(m_mp) CBitSetArray(m_mp);
@@ -82,6 +84,7 @@ CTableDescriptor::~CTableDescriptor()
 	m_mdid->Release();
 
 	m_pdrgpcoldesc->Release();
+	m_org_pdrgpcoldesc->Release();
 	m_pdrgpcoldescDist->Release();
 	m_pdrgpulPart->Release();
 	m_pdrgpbsKeys->Release();

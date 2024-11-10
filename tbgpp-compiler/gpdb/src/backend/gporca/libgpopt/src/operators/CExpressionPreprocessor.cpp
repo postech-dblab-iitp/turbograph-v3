@@ -2407,9 +2407,18 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 			new_pdrgpcrOutput->AddRef();
 			pop->AddRef();
 			get_op->SetPrunedOutputCols(new_pdrgpcrOutput);
-		}
-		else {
-			get_op->SetPrunedOutputCols(origOutputCols);
+
+			// new column descriptor array
+			CColumnDescriptorArray *new_pdrgpcoldesc = GPOS_NEW(mp) CColumnDescriptorArray(mp);
+			for (ULONG ui_idx = 0; ui_idx < used_indices.size(); ui_idx++) {
+				ULONG target_idx = used_indices[ui_idx];
+				new_pdrgpcoldesc->Append(get_op->Ptabdesc()->Pdrgpcoldesc()->operator[](target_idx));
+			}
+			get_op->Ptabdesc()->SetPdrgpcoldesc(new_pdrgpcoldesc);
+
+			CName* name =  GPOS_NEW(mp) CName(get_op->Name());
+			return  GPOS_NEW(mp) CExpression(
+				mp, GPOS_NEW(mp) CLogicalGet(mp, name, get_op->Ptabdesc(), new_pdrgpcrOutput));
 		}
 		// release unused 
 		pcrsUnusedLocal->Release();
