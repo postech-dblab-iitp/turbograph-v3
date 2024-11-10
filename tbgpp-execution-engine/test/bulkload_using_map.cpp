@@ -72,6 +72,7 @@ vector<std::tuple<string, string, size_t>> edge_files_backward;
 vector<vector<vector<idx_t>>> adj_list_buffers;
 string output_dir;
 double set_sim_threshold = 0.99;
+size_t max_extent_id = 0;
 
 bool load_edge;
 bool load_backward_edge;
@@ -117,12 +118,13 @@ void InitializeAdjListBuffers() {
 	if (edge_files.size() == 0 || edge_files_backward.size() == 0) {
 		return;
 	}
-	adj_list_buffers.resize(5000);
+	if (max_extent_id == 0) max_extent_id = 5000; // default value
+	adj_list_buffers.resize(max_extent_id);
 	for (size_t i = 0; i < adj_list_buffers.size(); i++) adj_list_buffers[i].resize(STORAGE_STANDARD_VECTOR_SIZE);
 }
 
 void ClearAdjListBuffers() {
-	D_ASSERT(adj_list_buffers.size() == 5000);
+	D_ASSERT(adj_list_buffers.size() == max_extent_id);
 #pragma omp parallel for num_threads(32)
 	for (size_t i = 0; i < adj_list_buffers.size(); i++) {
 		D_ASSERT(adj_list_buffers[i].size() == STORAGE_STANDARD_VECTOR_SIZE);
@@ -656,6 +658,8 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
 
 		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(vertex_file).c_str(), std::get<1>(vertex_file).c_str(), duration.count());
+
+		if (max_extent_id < partition_cat->GetLocalExtentID()) max_extent_id = partition_cat->GetLocalExtentID();
 	}
 	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	fprintf(stdout, "\nLoad CSV Vertex Files Done!\n");
