@@ -23,8 +23,6 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 
-#include <gperftools/tcmalloc.h>
-
 using namespace gpos;
 
 #define GPOS_MEM_GUARD_SIZE (GPOS_SIZEOF(BYTE))
@@ -81,8 +79,8 @@ CMemoryPoolTracker::NewImpl(const ULONG bytes, const CHAR *file,
 
 	ULONG alloc_size = GPOS_MEM_BYTES_TOTAL(bytes);
 
-	// void *ptr = clib::Malloc(alloc_size);
-	void *ptr = tc_malloc(alloc_size);
+	void *ptr = clib::Malloc(alloc_size);
+	// void *ptr = tc_malloc(alloc_size);
 
 	// check if allocation failed
 	if (NULL == ptr)
@@ -141,8 +139,8 @@ CMemoryPoolTracker::DeleteImpl(void *ptr, EAllocationType eat)
 	clib::Memset(ptr, GPOS_MEM_FREED_PATTERN_CHAR, user_size);
 #endif	// GPOS_DEBUG
 
-	// clib::Free(header);
-	tc_free(header);
+	clib::Free(header);
+	// tc_free(header);
 }
 
 // get user requested size of allocation
