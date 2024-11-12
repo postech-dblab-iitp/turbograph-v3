@@ -11,7 +11,7 @@ list(APPEND srcs ${hdrs})
 
 add_library(gpos ${srcs})
 
-target_link_libraries(gpos ${CMAKE_DL_LIBS} -ltcmalloc)
+target_link_libraries(gpos ${CMAKE_DL_LIBS})
 
 # Tests reside in the 'server' subdirectory.
 add_subdirectory(server)
