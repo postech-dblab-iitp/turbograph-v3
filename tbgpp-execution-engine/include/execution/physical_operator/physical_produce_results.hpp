@@ -11,16 +11,22 @@ class PhysicalProduceResults : public CypherPhysicalOperator {
    public:
     PhysicalProduceResults(Schema &sch)
         : CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch)
-    {}
+    {
+        DetermineResultTypes();
+    }
     PhysicalProduceResults(Schema &sch, vector<uint64_t> projection_mapping)
         : CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch),
           projection_mapping(projection_mapping)
-    {}
+    {
+        DetermineResultTypes();
+    }
     PhysicalProduceResults(Schema &sch,
                            vector<vector<uint64_t>> projection_mappings)
         : CypherPhysicalOperator(PhysicalOperatorType::PRODUCE_RESULTS, sch),
           projection_mappings(projection_mappings)
-    {}
+    {
+        DetermineResultTypes();
+    }
     ~PhysicalProduceResults() {}
 
    public:
@@ -50,6 +56,7 @@ class PhysicalProduceResults : public CypherPhysicalOperator {
 
     std::string ParamsToString() const override;
     std::string ToString() const override;
+    void DetermineResultTypes();
 
    private:
     vector<uint64_t> projection_mapping;

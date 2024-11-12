@@ -140,6 +140,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
             }
             else {
                 D_ASSERT(false);
+                throw NotImplementedException("unionall over join case");
             }
             break;
         }
