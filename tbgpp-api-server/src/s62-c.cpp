@@ -375,7 +375,7 @@ static void s62_extract_query_metadata(s62_prepared_statement* prepared_statemen
     }
     else {
 		auto col_names = planner->getQueryOutputColNames();
-		auto col_types = executors.back()->pipeline->GetSink()->schema.getStoredTypes();
+		auto col_types = executors.back()->pipeline->GetSink()->GetTypes();
 		auto col_oids = planner->getQueryOutputOIDs();
 
 		s62_property *property = NULL;
