@@ -42,12 +42,12 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
 {
     duckdb::CypherPhysicalOperator::operator_version = 0;
     pInitializeSchemaFlowGraph();
-    vector<duckdb::CypherPhysicalOperator *> final_pipeline_ops =
+    duckdb::CypherPhysicalOperatorGroups final_pipeline_ops =
         *pTraverseTransformPhysicalPlan(orca_plan_root);
 
     // Append PhysicalProduceResults
     duckdb::Schema final_output_schema =
-        final_pipeline_ops[final_pipeline_ops.size() - 1]->schema;
+        final_pipeline_ops[final_pipeline_ops.size() - 1]->GetOp()->schema;
     vector<duckdb::Schema> prev_local_schemas;
     duckdb::CypherPhysicalOperator *op;
 
@@ -115,11 +115,11 @@ bool Planner::pValidatePipelines()
     return ok;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 {
 
-    vector<duckdb::CypherPhysicalOperator *> *result = nullptr;
+    duckdb::CypherPhysicalOperatorGroups *result = nullptr;
 
     /* Matching order
 		- UnionAll-ComputeScalar-TableScan|IndexScan => NodeScan|NodeIndexScan
@@ -139,7 +139,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
                 result = pTransformEopUnionAllForNodeOrEdgeScan(plan_expr);
             }
             else {
-                D_ASSERT(false);
+                result = pTransformEopUnionAll(plan_expr);
             }
             break;
         }
@@ -294,7 +294,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(CExpression *plan_expr) {
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopTableScan(CExpression *plan_expr) {
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
     CPhysicalTableScan *scan_op = NULL;
     if (plan_expr->Pop()->Eopid() ==
@@ -316,7 +316,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTableScan(CExpre
 #endif
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopNormalTableScan(CExpression* plan_expr) {
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopNormalTableScan(CExpression* plan_expr) {
 	/*
 		handles
 		 - F + S
@@ -326,7 +326,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopNormalTableScan(
     auto *mp = this->memory_pool;
 
     // leaf node
-    auto result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto result = new duckdb::CypherPhysicalOperatorGroups();
 
     CExpression *scan_expr = NULL;
     CExpression *filter_expr = NULL;
@@ -486,12 +486,12 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopNormalTableScan(
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopDSITableScan(CExpression *plan_expr) {
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopDSITableScan(CExpression *plan_expr) {
     // expand TableScan -> UnionAll - TableScan
 
     auto *mp = this->memory_pool;
     duckdb::Catalog &cat_instance = context->db->GetCatalog();
-    auto result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto result = new duckdb::CypherPhysicalOperatorGroups();
 
     // variables for scan op
     vector<uint64_t> oids;
@@ -687,7 +687,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopDSITableScan(CEx
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
 {
     // constants
@@ -699,7 +699,7 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
              COperator::EOperatorId::EopPhysicalSerialUnionAll);
 
     // Result containers for processing projections and schemas
-    auto result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto result = new duckdb::CypherPhysicalOperatorGroups();
     vector<uint64_t> oids;
     vector<vector<uint64_t>> projection_mapping;
     vector<vector<uint64_t>> scan_projection_mapping;
@@ -902,6 +902,27 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
     return result;
 }
 
+duckdb::CypherPhysicalOperatorGroups *
+Planner::pTransformEopUnionAll(CExpression *plan_expr)
+{
+    auto *mp = this->memory_pool;
+
+    duckdb::CypherPhysicalOperatorGroups *result = new duckdb::CypherPhysicalOperatorGroups();
+    duckdb::CypherPhysicalOperatorGroup *union_group = new duckdb::CypherPhysicalOperatorGroup();
+
+    CExpressionArray *childs = plan_expr->PdrgPexpr();
+    const ULONG num_childs = childs->Size();
+
+    for (int i = 0; i < num_childs; i++) {
+        CExpression *child_expr = childs->operator[](i);
+        auto child_result = pTraverseTransformPhysicalPlan(child_expr);
+        union_group->PushBack(child_result->GetGroups());
+    }
+    result->push_back(union_group);
+
+    return result;
+}
+
 void Planner::pConstructNodeScanParams(
     CExpression *projection_expr, vector<uint64_t> &oids,
     vector<vector<uint64_t>> &projection_mapping,
@@ -1021,7 +1042,7 @@ void Planner::pConstructNodeScanParams(
     }
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     CExpression *plan_expr, bool is_left_outer)
 {
@@ -1032,7 +1053,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     */
 
     CMemoryPool *mp = this->memory_pool;
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     // ORCA data structures
@@ -1364,7 +1385,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     CExpression *plan_expr)
 {
@@ -1372,7 +1393,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     vector<duckdb::LogicalType> types;
@@ -1478,7 +1499,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 {
 #ifdef DYNAMIC_SCHEMA_INSTANTIATION
@@ -1525,13 +1546,13 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr)
 #endif
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     vector<duckdb::LogicalType> types;
@@ -1981,12 +2002,12 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(
     CExpression *plan_expr)
 {
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     CDrvdPropPlan *drvd_prop_plan = plan_expr->GetDrvdPropPlan();
@@ -2012,7 +2033,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(
 void Planner::
     pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(
         CExpression *plan_expr,
-        vector<duckdb::CypherPhysicalOperator *> *result)
+        duckdb::CypherPhysicalOperatorGroups *result)
 {
     CMemoryPool *mp = this->memory_pool;
     vector<duckdb::LogicalType> types;
@@ -2283,7 +2304,7 @@ void Planner::
 void Planner::
     pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(
         CExpression *plan_expr,
-        vector<duckdb::CypherPhysicalOperator *> *result)
+        duckdb::CypherPhysicalOperatorGroups *result)
 {
     CMemoryPool *mp = this->memory_pool;
 
@@ -2620,13 +2641,13 @@ void Planner::
 }
 
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     vector<duckdb::LogicalType> types;
@@ -3083,7 +3104,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
 }
 
 void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
-    CExpression *plan_expr, vector<duckdb::CypherPhysicalOperator *> *result)
+    CExpression *plan_expr, duckdb::CypherPhysicalOperatorGroups *result)
 {
     CMemoryPool *mp = this->memory_pool;
 
@@ -3147,7 +3168,7 @@ void Planner::pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(
     pBuildSchemaFlowGraphForUnaryOperator(proj_schema);
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
@@ -3253,7 +3274,7 @@ Planner::pTransformEopPhysicalHashJoinToHashJoin(CExpression *plan_expr)
     return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalMergeJoinToMergeJoin(CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
@@ -3351,7 +3372,7 @@ Planner::pTransformEopPhysicalMergeJoinToMergeJoin(CExpression *plan_expr)
     return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalInnerNLJoinToCartesianProduct(
     CExpression *plan_expr)
 {
@@ -3490,7 +3511,7 @@ Planner::pTransformEopPhysicalInnerNLJoinToCartesianProduct(
     return pBuildSchemaflowGraphForBinaryJoin(plan_expr, op, schema);
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
                                                       bool is_correlated)
 {
@@ -3572,13 +3593,13 @@ Planner::pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr,
     }
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopLimit(
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopLimit(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     CExpression *limit_expr = plan_expr;
@@ -3614,7 +3635,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopLimit(
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
 {
 
@@ -3622,7 +3643,7 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
     CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     vector<unique_ptr<duckdb::Expression>> proj_exprs;
@@ -3894,12 +3915,12 @@ Planner::pTransformEopProjectionColumnar(CExpression *plan_expr)
 //     return new_result;
 // }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopAgg(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
     vector<duckdb::LogicalType> types;
     vector<duckdb::LogicalType> proj_types;
@@ -4076,7 +4097,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
     // new pipeline
-    auto new_result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto new_result = new duckdb::CypherPhysicalOperatorGroups();
     new_result->push_back(op);
     if (generate_sfg) {
         // Set for the current pipeline. We consider after group by, schema is merged.
@@ -4089,12 +4110,12 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopAgg(
     return new_result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopPhysicalFilter(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     CPhysicalFilter *filter_op = (CPhysicalFilter *)plan_expr->Pop();
@@ -4152,13 +4173,13 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopPhysicalFilter(
     return result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopSort(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
 
     /* Non-root - call single child */
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
 
     CPhysicalSort *proj_op = (CPhysicalSort *)plan_expr->Pop();
@@ -4208,7 +4229,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
-    auto new_result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto new_result = new duckdb::CypherPhysicalOperatorGroups();
     new_result->push_back(op);
 
     if (generate_sfg) {
@@ -4223,7 +4244,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopSort(
     return new_result;
 }
 
-vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
+duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopTopNSort(
     CExpression *plan_expr)
 {
     CMemoryPool *mp = this->memory_pool;
@@ -4235,7 +4256,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
              COperator::EOperatorId::EopPhysicalLimit);
     D_ASSERT(plan_expr->operator[](0)->operator[](0)->Pop()->Eopid() ==
              COperator::EOperatorId::EopPhysicalSort);
-    vector<duckdb::CypherPhysicalOperator *> *result =
+    duckdb::CypherPhysicalOperatorGroups *result =
         pTraverseTransformPhysicalPlan(
             plan_expr->operator[](0)->operator[](0)->PdrgPexpr()->operator[](
                 0));
@@ -4326,7 +4347,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
     auto pipeline = new duckdb::CypherPipeline(*result, pipelines.size());
     pipelines.push_back(pipeline);
 
-    auto new_result = new vector<duckdb::CypherPhysicalOperator *>();
+    auto new_result = new duckdb::CypherPhysicalOperatorGroups();
     new_result->push_back(op);
 
     if (generate_sfg) {
@@ -4342,7 +4363,7 @@ vector<duckdb::CypherPhysicalOperator *> *Planner::pTransformEopTopNSort(
 }
 
 
-vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExpression* plan_expr) {
+duckdb::CypherPhysicalOperatorGroups* Planner::pTransformEopShortestPath(CExpression* plan_expr) {
 	CMemoryPool* mp = this->memory_pool;
 	CPhysicalShortestPath *shrtst_op = (CPhysicalShortestPath*) plan_expr->Pop();
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
@@ -4356,7 +4377,7 @@ vector<duckdb::CypherPhysicalOperator*>* Planner::pTransformEopShortestPath(CExp
     auto upper_bound = shrtst_op->PathUpperBound();
 
     // DuckDB types
-	vector<duckdb::CypherPhysicalOperator *> *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+	duckdb::CypherPhysicalOperatorGroups *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
     vector<duckdb::LogicalType> types;
     vector<uint32_t> input_col_map;
     duckdb::Schema schema;
@@ -4572,7 +4593,7 @@ void Planner::pGenerateColumnNames(CColRefArray *columns,
 }
 
 void Planner::pGenerateSchemaFlowGraph(
-    vector<duckdb::CypherPhysicalOperator *> &final_pipeline_ops)
+    duckdb::CypherPhysicalOperatorGroups &final_pipeline_ops)
 {
     if (!generate_sfg)
         return;
@@ -5266,7 +5287,7 @@ void Planner::pShiftFilterPredInnerColumnIndices(
     }
 }
 
-vector<duckdb::CypherPhysicalOperator *> *
+duckdb::CypherPhysicalOperatorGroups *
 Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
                                             duckdb::CypherPhysicalOperator *op,
                                             duckdb::Schema &output_schema)
@@ -5280,7 +5301,7 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
 	*/
 
     // Step 1. rhs pipline
-    vector<duckdb::CypherPhysicalOperator *> *rhs_result =
+    duckdb::CypherPhysicalOperatorGroups *rhs_result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](1));
     rhs_result->push_back(op);
     auto pipeline = new duckdb::CypherPipeline(*rhs_result);
@@ -5299,7 +5320,7 @@ Planner::pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr,
     }
 
     // Step 3. lhs pipeline
-    vector<duckdb::CypherPhysicalOperator *> *lhs_result =
+    duckdb::CypherPhysicalOperatorGroups *lhs_result =
         pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
     lhs_result->push_back(op);
 

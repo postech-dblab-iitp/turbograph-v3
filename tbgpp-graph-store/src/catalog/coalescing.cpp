@@ -4,6 +4,6 @@
 namespace duckdb {
 
 Coalescing::GroupingAlgorithm Coalescing::grouping_algo =
-    Coalescing::GroupingAlgorithm::DEFAULT;
+    Coalescing::GroupingAlgorithm::MERGEALL;
 
 }

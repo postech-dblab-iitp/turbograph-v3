@@ -3,12 +3,36 @@
 #include <cassert>
 #include <string>
 #include "execution/physical_operator/cypher_physical_operator.hpp"
+#include "execution/cypher_physical_operator_group.hpp"
 
 namespace duckdb {
 	
 class CypherPipeline {
 
 public:
+	CypherPipeline() {}
+
+	CypherPipeline(CypherPhysicalOperatorGroups& groups, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
+		vector<CypherPhysicalOperator *> ops;
+		for (idx_t i = 0; i < groups.size(); i++) {
+			if (groups[i]->IsSingleton()) {
+				ops.push_back(groups[i]->GetOp());
+			}
+			else {
+				std::cout << "asldfjalsdfas;dlfasjdlfasjd...." << std::endl;
+				throw NotImplementedException("grouped operators are not supported yet");
+			}
+		}
+
+		source = ops.front();
+		sink = ops.back();
+		pipelineLength = ops.size();
+
+		ops.erase(ops.begin());
+		ops.pop_back();
+		operators = ops;
+	}
+
 	CypherPipeline(vector<CypherPhysicalOperator *> ops, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
 		assert( ops.size() >= 2 && "too few operators");
 
@@ -91,6 +115,10 @@ public:
 
 	idx_t GetPipelineId() {
 		return pipeline_id;
+	}
+
+	virtual bool IsSuperPipeline() {
+		return false;
 	}
 
 	// members

@@ -74,6 +74,8 @@ class Coalescing {
    private:
     enum class GroupingAlgorithm {
         DEFAULT,
+        MERGEALL,
+        SPLITALL
     };
 
     static GroupingAlgorithm grouping_algo;
@@ -148,6 +150,22 @@ class Coalescing {
 
         // clustering according to the algorithm ?
         switch (grouping_algo) {
+            case GroupingAlgorithm::MERGEALL:
+            {
+                table_oids_in_group.emplace_back();
+                for (auto i = 0; i < table_oids.size(); i++) {
+                    table_oids_in_group[0].push_back(table_oids[i]);
+                }
+                break;
+            }
+            case GroupingAlgorithm::SPLITALL:
+            {
+                for (auto i = 0; i < table_oids.size(); i++) {
+                    table_oids_in_group.emplace_back();
+                    table_oids_in_group[i].push_back(table_oids[i]);
+                }
+                break;
+            }
             case GroupingAlgorithm::DEFAULT:
             default:
                 grouping_default(cardinality_for_each_gl, table_oids_in_group);
