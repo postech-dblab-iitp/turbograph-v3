@@ -41,7 +41,7 @@ public:
 		 vector<CypherPipelineExecutor *> childs_p, std::map<CypherPhysicalOperator *, CypherPipelineExecutor *> deps_p);
 	
 	//! Fully execute a pipeline with a source and a sink until the source is completely exhausted
-	void ExecutePipeline();
+	virtual void ExecutePipeline();
 
 	//! Push a single input DataChunk into the pipeline.
 	// //! Returns either OperatorResultType::NEED_MORE_INPUT or OperatorResultType::FINISHED

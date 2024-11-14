@@ -1659,7 +1659,11 @@ CCostModelGPDB::CostIndexScan(CMemoryPool *,  // mp
 	ULONG ulIndexKeys = 1;
 	if (COperator::EopPhysicalIndexScan == op_id)
 	{
-		ulIndexKeys = CPhysicalIndexScan::PopConvert(pop)->Pindexdesc()->Keys();
+		CIndexDescriptor *index_desc = CPhysicalIndexScan::PopConvert(pop)->Pindexdesc();
+		ulIndexKeys = index_desc->Keys();
+		if (index_desc->IsInstanceDescriptor()) {
+			// dRowsIndex = dRowsIndex / index_desc->GetTableIdsInGroup()->Size();
+		}
 	}
 	else
 	{
