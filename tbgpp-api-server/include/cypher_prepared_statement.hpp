@@ -70,6 +70,9 @@ public:
             else if (type_id == LogicalTypeId::VARCHAR) {
                 params[paramOrder[index]] = "'" + value.GetValue<string>() + "'";
             } 
+            else if (type_id == LogicalTypeId::DATE) {
+                params[paramOrder[index]] = "date('" + value.GetValue<string>() + "')";
+            }
             else {
                 params[paramOrder[index]] = value.ToString();
             }

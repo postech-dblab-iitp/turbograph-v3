@@ -270,6 +270,7 @@ typedef enum {
 	S62_ERROR_INVALID_COLUMN_INDEX = -13,
 	S62_ERROR_INVALID_COLUMN_TYPE = -14,
 	S62_ERROR_INVALID_CURSOR = -15,
+	S62_ERROR_INVALID_PARAMETER = -16
 } s62_error_code;
 
 typedef enum {
@@ -344,6 +345,11 @@ s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t para
 //! s62_date date_value = {14}
 //! s62_bind_date(prep_stmt, 1, date_value)
 s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val);
+
+//! string version of s62_bind_date
+//! For example, if you want to input 1970-01-15, then
+//! s62_bind_date(prep_stmt, 1, "1970-01-15")
+s62_state s62_bind_date_string(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val);
 
 //! s62_time stores micros, which is a microseconds since 00:00:00
 //! For example, if you want to input 06:02:03, then
