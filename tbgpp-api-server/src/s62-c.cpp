@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <ctime>
 #include "capi_internal.hpp"
 #include "main/database.hpp"
 #include "cache/chunk_cache_manager.h"
@@ -40,6 +41,7 @@ static const std::string INVALID_METADATA_TYPE_MSG = "Invalid metadata type";
 static const std::string INVALID_NUMBER_OF_PROPERTIES_MSG = "Invalid number of properties";
 static const std::string INVALID_PROPERTY_MSG = "Invalid property";
 static const std::string INVALID_PLAN_MSG = "Invalid plan";
+static const std::string INVALID_PARAMETER = "Invalid parameter";
 static const std::string INVALID_PREPARED_STATEMENT_MSG = "Invalid prepared statement";
 static const std::string INVALID_RESULT_SET_MSG = "Invalid result set";
 
@@ -526,6 +528,32 @@ s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t para
 
 s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val) {
 	auto value = Value::DATE(duckdb::date_t(val.days));
+	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
+}
+
+s62_state s62_bind_date_string(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val) {
+    std::tm time = {};
+    if (strptime(val, "%Y-%m-%d", &time) == nullptr) {
+        last_error_message = INVALID_PARAMETER;
+        last_error_code = S62_ERROR_INVALID_PARAMETER;
+		return S62_ERROR;
+    }
+
+    std::tm epoch = {};
+    epoch.tm_year = 70;  // 1970
+    epoch.tm_mon = 0;    // January
+    epoch.tm_mday = 1;   // 1st day
+
+    auto epoch_time = std::mktime(&epoch);
+    auto input_time = std::mktime(&time);
+
+    if (epoch_time == -1 || input_time == -1) {
+        last_error_message = INVALID_PARAMETER;
+        last_error_code = S62_ERROR_INVALID_PARAMETER;
+		return S62_ERROR;
+    }
+
+	auto value = Value::DATE(duckdb::date_t(static_cast<int64_t>(std::difftime(input_time, epoch_time) / (60 * 60 * 24))));
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 

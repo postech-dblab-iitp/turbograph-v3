@@ -345,6 +345,9 @@ s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t para
 //! s62_bind_date(prep_stmt, 1, date_value)
 s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val);
 
+
+s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, const char *val);
+
 //! s62_time stores micros, which is a microseconds since 00:00:00
 //! For example, if you want to input 06:02:03, then
 //! s62_time time_value = {21,723,000}
