@@ -109,7 +109,7 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
         load_sid = src_id_inner_map_idx != -1;
         load_tid = tgt_id_inner_map_idx != -1;
 
-        D_ASSERT((load_eid ? 1 : 0) + (load_sid ? 1 : 0) + (load_tid ? 1 : 0) ==
+        D_ASSERT((load_eid ? 1 : 0) + (load_sid ? 1 : 0) + (load_tid ? 1 : 0) <=
                  this->inner_col_map.size());
 
         if (load_eid) {
