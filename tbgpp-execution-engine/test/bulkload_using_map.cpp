@@ -115,7 +115,7 @@ void helper_deallocate_objects_in_shared_memory () {
 }
 
 void InitializeAdjListBuffers() {
-	if (edge_files.size() == 0 || edge_files_backward.size() == 0) {
+	if (edge_files.size() == 0 && edge_files_backward.size() == 0) {
 		return;
 	}
 	if (max_extent_id == 0) max_extent_id = 5000; // default value

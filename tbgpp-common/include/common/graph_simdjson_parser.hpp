@@ -2047,6 +2047,8 @@ public:
 
             GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix, _cost_model);
 
+            std::cout << "GenerateCostMatrix done" << std::endl;
+
             /* START_OF_COST_MODEL_BASED */
             std::unique_ptr<std::priority_queue<std::pair<double, uint64_t>,
                                                 std::vector<std::pair<double, uint64_t>>,
@@ -2065,6 +2067,9 @@ public:
             auto cost_pq = *cost_pq_ptr;
             /* END_OF_COST_MODEL_BASED */
 
+            std::cout << "cost_pq created" << std::endl;
+            std::cout << "cost_matrix size: " << cost_matrix.size() << std::endl;
+
             std::vector<bool> visited(num_tuples_total, false);
 
             for (auto i = 0; i < cost_matrix.size(); i++) {
@@ -2074,6 +2079,8 @@ public:
                 cost_pq.push({cost_matrix[i], i});
                 // std::cout << "Insert " << cost_matrix[i] << ", " << i << std::endl;
             }
+
+            std:;cout << "cost_pq size: " << cost_pq.size() << std::endl;
 
             uint32_t num_tuples_added = 0;
             if (!cost_pq.empty()) {
@@ -2148,6 +2155,8 @@ public:
                     MergeVertexlets(idx1, idx2, temp_output);
                     num_tuples_added++;
                     merged_count++;
+
+                    std::cout << "Merged " << idx1 << " and " << idx2 << std::endl;
                 } while (!cost_pq.empty());
             }
             
