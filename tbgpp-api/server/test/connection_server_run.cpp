@@ -1,6 +1,6 @@
 #include <signal.h>
 #include <iostream>
-#include "connection/s62_connection_server.hpp"
+#include "s62_connection_server.hpp"
 
 using namespace duckdb;
 

@@ -1,4 +1,4 @@
-#include "connection/s62_connection_apis.hpp"
+#include "s62_connection_apis.hpp"
 #include "main/database.hpp"
 #include "cache/chunk_cache_manager.h"
 #include "catalog/catalog_wrapper.hpp"
@@ -62,7 +62,8 @@ void S62ConnectionAPIs::SetupDatabase() {
 
     // create planner
     auto planner_config = s62::PlannerConfig();
-    planner_config.INDEX_JOIN_ONLY = true;
+    planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
+    planner_config.DEBUG_PRINT = false;
     planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
 
     // Print done

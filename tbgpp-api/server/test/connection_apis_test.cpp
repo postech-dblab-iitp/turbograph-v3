@@ -1,5 +1,5 @@
 #include <iostream>
-#include "connection/s62_connection_apis.hpp"
+#include "s62_connection_apis.hpp"
 
 int main(int argc, char** argv) {
     std::string workspace("/data");

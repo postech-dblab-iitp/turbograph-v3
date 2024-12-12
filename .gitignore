@@ -56,3 +56,8 @@ r*hs
 *.pdf
 
 test/*
+
+load_test_csv
+api-broker
+
+tbgpp-common/third_party/velox/fbthrift/conda/Miniconda3-latest-Linux-x86_64.sh 

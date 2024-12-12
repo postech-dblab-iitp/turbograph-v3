@@ -69,13 +69,16 @@ Also, if you failed to find image while executing run-docker-example.sh, then ch
 
 ### Building Project
 
-To build in debug mode, you can run the following commands.
+After docker setup, please execute this. You only need to execute once.
 
 ```
 cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
 cd tbgpp-common/third_party/velox
 ./scripts/setup-ubuntu.sh
+```
+
+To build in debug mode, you can run the following commands.
+```
 cd /turbograph-v3
 mkdir build
 cd build/
@@ -86,10 +89,6 @@ ninja
 To build in release mode, you can run the following commands.
 
 ```
-cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
-cd tbgpp-common/third_party/velox
-./scripts/setup-ubuntu.sh
 cd /turbograph-v3
 mkdir build
 cd build/

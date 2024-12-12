@@ -5,7 +5,7 @@
 #include <string.h>
 #include <nlohmann/json.hpp>
 #include <charconv>
-#include "connection/connection_types.hpp"
+#include "connection_types.hpp"
 
 using json = nlohmann::json;
 typedef int32_t ClientId;
