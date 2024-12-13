@@ -5,7 +5,7 @@
 #include <string.h>
 #include <nlohmann/json.hpp>
 #include <charconv>
-#include "connection_types.hpp"
+#include "s62_socket_server.hpp"
 
 using json = nlohmann::json;
 typedef int32_t ClientId;
@@ -37,31 +37,9 @@ void PrintPropertyNamesTypes(json& json_data) {
     }
 }
 
-void PrintNodesMetadata(int sock) {
-    std::string message(1, static_cast<char>(API_ID::GetNodesMetadata)); 
-    json receivedData = SendMessageReceieveJson(sock, message);
-
-    for (auto& node : receivedData["metadata"]) {
-        std::cout << "Label Name: " << node["label_name"].get<std::string>() << std::endl;
-        PrintPropertyNamesTypes(node);
-        std::cout << "---------------------------------------------" << std::endl;  // Separator for readability
-    }
-}
-
-void PrintEdgesMetadata(int sock) {
-    std::string message(1, static_cast<char>(API_ID::GetEdgesMetadata)); 
-    json receivedData = SendMessageReceieveJson(sock, message);
-
-    for (auto& edge : receivedData["metadata"]) {
-        std::cout << "Type Name: " << edge["type_name"].get<std::string>() << std::endl;
-        PrintPropertyNamesTypes(edge);
-        std::cout << "---------------------------------------------" << std::endl;  // Separator for readability
-    }
-}
-
 ClientId RunPrepareStatement(int sock) {
     std::string message(1, static_cast<char>(API_ID::PrepareStatement)); 
-    std::string query("MATCH (n:Person {id: ?})-[r:IS_LOCATED_IN]->(p:Place) \
+    std::string query("MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place) \
 		   RETURN \
 		   	n.firstName AS firstName, \
 			n.lastName AS lastName, \
@@ -83,20 +61,6 @@ ClientId RunPrepareStatement(int sock) {
     return receivedDataPrepare["client_id"].get<ClientId>();
 }
 
-void RunSetParams(int sock, ClientId client_id) {
-    int32_t htonl_client_id = htonl(client_id);
-    json parameters = { {"1", 65} };
-    std::string message = static_cast<char>(API_ID::SetParams) + 
-                            std::string((char*)(&htonl_client_id), sizeof(ClientId)) + 
-                            parameters.dump();
-    json receivedDataParam = SendMessageReceieveJson(sock, message);
-
-    if (receivedDataParam["status"].get<int32_t>() == 1) {
-        std::cerr << "Set parameters failed" << std::endl;
-        return;
-    }
-}
-
 json RunExecuteStatement(int sock, ClientId client_id) {
     int32_t htonl_client_id = htonl(client_id);
     std::string message = static_cast<char>(API_ID::ExecuteStatement) + 
@@ -114,7 +78,6 @@ json RunExecuteStatement(int sock, ClientId client_id) {
 
 void PrintPrepareSetExecuteStatement(int sock) {
     ClientId client_id = RunPrepareStatement(sock);
-    RunSetParams(sock, client_id);
     json receivedDataExec = RunExecuteStatement(sock, client_id);
 
     std::cout << "Result set size: " << receivedDataExec["result_set_size"].get<size_t>() << std::endl;
@@ -143,8 +106,6 @@ int main() {
         return -1;
     }
 
-    PrintNodesMetadata(sock);
-    PrintEdgesMetadata(sock);
     PrintPrepareSetExecuteStatement(sock);
 
     close(sock);

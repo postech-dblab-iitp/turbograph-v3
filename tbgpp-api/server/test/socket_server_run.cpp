@@ -1,14 +1,14 @@
 #include <signal.h>
 #include <iostream>
-#include "s62_connection_server.hpp"
+#include "s62_socket_server.hpp"
 
 using namespace duckdb;
 
-S62ConnectionServer* s62_connection_server;
+S62SocketServer* s62_socket_server;
 
 void conn_server_signal_handler(int sig_number) {
   std::cout << "Capture Ctrl+C" << std::endl;
-  s62_connection_server->exit();
+  s62_socket_server->exit();
   exit(0);
 }
 
@@ -27,8 +27,8 @@ int main(int argc, char** argv) {
 
   fprintf(stdout, "Connection Server Directory: %s\n", workspace.c_str());
 
-  s62_connection_server = new S62ConnectionServer(workspace, PORT);
-  s62_connection_server->run();
+  s62_socket_server = new S62SocketServer(workspace, PORT);
+  s62_socket_server->run();
 
   fprintf(stdout, "Program exit\n");
   return 0;
