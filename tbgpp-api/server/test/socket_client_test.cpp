@@ -39,16 +39,22 @@ void PrintPropertyNamesTypes(json& json_data) {
 
 ClientId RunPrepareStatement(int sock) {
     std::string message(1, static_cast<char>(API_ID::PrepareStatement)); 
-    std::string query("MATCH (n:Person {id: 65})-[r:IS_LOCATED_IN]->(p:Place) \
-		   RETURN \
-		   	n.firstName AS firstName, \
-			n.lastName AS lastName, \
-			n.birthday AS birthday, \
-			n.locationIP AS locationIP, \
-			n.browserUsed AS browserUsed, \
-			p.id AS cityId, \
-			n.gender AS gender, \
-			n.creationDate AS creationDate;");
+    std::string query("MATCH (item:LINEITEM) \\
+        WHERE item.L_SHIPDATE <= date('1998-08-25') \\
+        RETURN \\
+            item.L_RETURNFLAG AS ret_flag, \\
+            item.L_LINESTATUS AS line_stat, \\
+            sum(item.L_QUANTITY) AS sum_qty, \\
+            sum(item.L_EXTENDEDPRICE) AS sum_base_price, \\
+            sum(item.L_EXTENDEDPRICE * (1 - item.L_DISCOUNT)) AS sum_disc_price, \\
+            sum(item.L_EXTENDEDPRICE*(1 - item.L_DISCOUNT)*(1 + item.L_TAX)) AS sum_charge, \\
+            avg(item.L_QUANTITY) AS avg_qty, \\
+            avg(item.L_EXTENDEDPRICE) AS avg_price,\\
+            avg(item.L_DISCOUNT) AS avg_disc, \\
+            COUNT(*) AS count_order \\
+        ORDER BY \\
+            ret_flag, \\
+            line_stat;");
     
     message.append(query);
     json receivedDataPrepare = SendMessageReceieveJson(sock, message);
@@ -70,10 +76,72 @@ json RunExecuteStatement(int sock, ClientId client_id) {
 
     if (receivedDataExec["status"].get<int32_t>() == 1) {
         std::cerr << "Execute statement failed" << std::endl;
+        std::cerr << receivedDataExec["error"] << std::endl;
         return {};
     }
 
     return receivedDataExec;
+}
+
+json RunFetch(int sock, ClientId client_id) {
+    int32_t htonl_client_id = htonl(client_id);
+    std::string message = static_cast<char>(API_ID::Fetch) + 
+                            std::string((char*)(&htonl_client_id), 
+                            sizeof(ClientId));
+    json receivedDataFetch = SendMessageReceieveJson(sock, message);
+
+    if (receivedDataFetch["status"].get<int32_t>() == 1) {
+        std::cerr << "Fetch failed" << std::endl;
+        std::cerr << receivedDataFetch["error"] << std::endl;
+        return {};
+    }
+
+    return receivedDataFetch;
+}
+
+json RunFetchAll(int sock, ClientId client_id) {
+    int32_t htonl_client_id = htonl(client_id);
+    std::string message = static_cast<char>(API_ID::FetchAll) + 
+                            std::string((char*)(&htonl_client_id), 
+                            sizeof(ClientId));
+    json receivedDataFetchAll = SendMessageReceieveJson(sock, message);
+
+    if (receivedDataFetchAll["status"].get<int32_t>() == 1) {
+        std::cerr << "FetchAll failed" << std::endl;
+        std::cerr << receivedDataFetchAll["error"] << std::endl;
+        return {};
+    }
+
+    return receivedDataFetchAll;
+}
+
+void TestFetchAndFetchAll(int sock) {
+    ClientId client_id = RunPrepareStatement(sock);
+    if (client_id == -1) {
+        return;
+    }
+
+    json receivedDataExec = RunExecuteStatement(sock, client_id);
+    if (receivedDataExec.empty()) {
+        return;
+    }
+
+    std::cout << "Testing Fetch:" << std::endl;
+    for (size_t i = 0; i < 5; ++i) {  // Fetch first 5 rows (or fewer if result set is smaller)
+        json fetchResult = RunFetch(sock, client_id);
+        if (fetchResult.empty() || fetchResult["status"].get<int32_t>() != 0) {
+            break;
+        }
+        std::cout << "Row " << i + 1 << ": " << fetchResult["data"].get<std::string>() << std::endl;
+    }
+
+    std::cout << "Testing FetchAll:" << std::endl;
+    json fetchAllResult = RunFetchAll(sock, client_id);
+    if (!fetchAllResult.empty() && fetchAllResult["status"].get<int32_t>() == 0) {
+        for (const auto& row : fetchAllResult["data"].get<std::vector<std::string>>()) {
+            std::cout << row << std::endl;
+        }
+    }
 }
 
 void PrintPrepareSetExecuteStatement(int sock) {
@@ -106,7 +174,7 @@ int main() {
         return -1;
     }
 
-    PrintPrepareSetExecuteStatement(sock);
+    TestFetchAndFetchAll(sock);
 
     close(sock);
     return 0;

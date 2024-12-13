@@ -32,11 +32,10 @@ enum Status : int32_t {
 };
 
 enum API_ID : char {
-    GetNodesMetadata = 0,
-    GetEdgesMetadata = 1,
-    PrepareStatement = 2,
-    SetParams = 3,
-    ExecuteStatement = 4
+    PrepareStatement = 0,
+    ExecuteStatement = 1,
+    Fetch = 2,
+    FetchAll = 3
 };
 
 namespace duckdb {
@@ -126,6 +125,19 @@ public:
                         connection.ExecuteStatement(query, query_result_set_wrapper);
                         QueryResultSetWrapperToJson(response, query_result_set_wrapper);
                         UnregisterPreparedStatement(client_id);
+                        RegisterResultSet(client_id, query_result_set_wrapper);
+                    }
+                    break;
+                case API_ID::Fetch:
+                    {
+                        ClientId client_id = GetClientID(buffer + API_ID_SIZE);
+                        Fetch(response, client_id);
+                    }
+                    break;
+                case API_ID::FetchAll:
+                    {
+                        ClientId client_id = GetClientID(buffer + API_ID_SIZE);
+                        FetchAll(response, client_id);
                     }
                     break;
                 default:
@@ -170,16 +182,108 @@ private:
         available_client_ids.push(client_id);
     }
 
+    void RegisterResultSet(ClientId client_id, QueryResultSetWrapper& query_result_set_wrapper) {
+        client_result_set_map[client_id] = query_result_set_wrapper;
+    }
+
     void QueryResultSetWrapperToJson(Response& response, const QueryResultSetWrapper& query_result_set_wrapper) {
         response["status"] = Status::Success;
         response["result_set_size"] = query_result_set_wrapper.result_set_size;
         response["property_names"] = query_result_set_wrapper.property_names;
     }
 
+    void Fetch(Response& response, ClientId client_id) {
+        auto it = client_result_set_map.find(client_id);
+        if (it == client_result_set_map.end()) {
+            response["status"] = Status::Failure;
+            response["error"] = "No result set found for the client ID.";
+            return;
+        }
+
+        QueryResultSetWrapper& result_set = it->second;
+
+        if (result_set.cursor >= result_set.result_set_size) {
+            response["status"] = Status::Failure;
+            response["error"] = "No more rows to fetch.";
+            return;
+        }
+
+        // Locate the chunk and row
+        size_t local_cursor;
+        size_t cursor = result_set.cursor;
+        size_t acc_rows = 0;
+
+        for (auto& chunk : result_set.result_chunks) {
+            if (cursor < acc_rows + chunk->size()) {
+                local_cursor = cursor - acc_rows;
+
+                // Format the row
+                std::string row;
+                auto num_cols = chunk->ColumnCount();
+                for (size_t i = 0; i < num_cols; i++) {
+                    row += chunk->GetValue(i, local_cursor).ToString();
+                    if (i != num_cols - 1) row += "|";
+                }
+
+                result_set.cursor++;  // Increment cursor
+
+                response["status"] = Status::Success;
+                response["data"] = row;
+                return;
+            }
+            acc_rows += chunk->size();
+        }
+
+        response["status"] = Status::Failure;
+        response["error"] = "Cursor out of bounds.";
+    }
+
+    void FetchAll(Response& response, ClientId client_id) {
+        auto it = client_result_set_map.find(client_id);
+        if (it == client_result_set_map.end()) {
+            response["status"] = Status::Failure;
+            response["error"] = "No result set found for the client ID.";
+            return;
+        }
+
+        QueryResultSetWrapper& result_set = it->second;
+        std::vector<std::string> all_rows;
+
+        // Iterate through all rows starting from the cursor
+        size_t cursor = result_set.cursor;
+        size_t acc_rows = 0;
+
+        for (auto& chunk : result_set.result_chunks) {
+            auto num_cols = chunk->ColumnCount();
+
+            for (size_t row_idx = 0; row_idx < chunk->size(); row_idx++) {
+                if (cursor > 0) {
+                    cursor--;
+                    continue;
+                }
+
+                // Format the row
+                std::string row;
+                for (size_t i = 0; i < num_cols; i++) {
+                    row += chunk->GetValue(i, row_idx).ToString();
+                    if (i != num_cols - 1) row += "|";
+                }
+
+                all_rows.push_back(row);
+            }
+        }
+
+        result_set.cursor = result_set.result_set_size;  // Move cursor to the end
+
+        response["status"] = Status::Success;
+        response["data"] = all_rows;
+    }
+
 private:
     int port;
     int server_fd;
     Query client_stmts[NUM_MAX_CLIENTS];
+    std::unordered_map<ClientId, QueryResultSetWrapper> client_result_set_map;
     std::queue<int> available_client_ids;
     S62SocketAPIs connection;
 };
