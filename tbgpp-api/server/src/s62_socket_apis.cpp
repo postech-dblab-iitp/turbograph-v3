@@ -98,8 +98,8 @@ void S62SocketAPIs::ExecuteStatement(std::string& query, QueryResultSetWrapper& 
         for( auto exec : executors ) { exec->ExecutePipeline(); }
         std::cout << "Storing metadata" << std::endl;
         auto& output_schema = executors[executors.size()-1]->pipeline->GetSink()->schema;
-        auto stored_names = output_schema.getStoredColumnNames();
-        query_result_set_wrapper.SetPropertyNames(stored_names);
+        auto property_names = planner->getQueryOutputColNames();
+        query_result_set_wrapper.SetPropertyNames(property_names);
 
         std::cout << "Plan executed" << std::endl;
         query_result_set_wrapper.SetResultChunks(*(executors.back()->context->query_results));

@@ -31,22 +31,23 @@ struct QueryResultSetWrapper {
     ResultSetSize result_set_size = 0;
     PropertyNames property_names;
     std::vector<DataChunk*> result_chunks;
+    size_t cursor = 0;  // Add a cursor to track the current position
 
     void SetPropertyNames(PropertyNames& stored_names) {
         property_names.reserve(stored_names.size());
-        for (auto& stored_name: stored_names) {
+        for (auto& stored_name : stored_names) {
             property_names.push_back(move(stored_name));
         }
     }
 
-    void SetResultChunks(vector<unique_ptr<DataChunk>>& results) {
+    void SetResultChunks(std::vector<std::unique_ptr<DataChunk>>& results) {
         for (size_t i = 0; i < results.size(); i++) {
             result_chunks.push_back(new DataChunk());
         }
         for (size_t i = 0; i < results.size(); i++) {
             result_chunks[i]->Move(*results[i]);
         }
-        for (auto &it : result_chunks) {
+        for (auto& it : result_chunks) {
             result_set_size += it->size();
         }
     }
