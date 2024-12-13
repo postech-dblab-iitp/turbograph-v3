@@ -199,6 +199,20 @@ The following API identifiers (`API_ID`) are supported for socket communication:
    - **ExecuteStatement**: Send the prepared client ID.
    - **FetchAll**: Retrieve all rows of the result set in CSV format.
 
+### How to Run Socket Server
+
+1. **Start the Store**:
+     ```bash
+     cd /turbograph-v3/build
+     ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100gb)>
+     ```
+
+2. **Start the Socket Server**:
+     ```bash
+     cd /turbograph-v3/build/tbgpp-api/server
+     ./socket_server_run <workspace> # e.g., ./socket_server_run /data/tpch/sf1
+     ```
+
 ### Python Flask Server/Client Examples
 
 The `tbgpp-api/server/test/python-example` directory contains examples for integrating with the Flask server. This includes:
@@ -208,6 +222,8 @@ The `tbgpp-api/server/test/python-example` directory contains examples for integ
   - Converts query results (in CSV format) to JSON for JavaScript compatibility.
 - **Flask Client**:
   - Demonstrates how to send queries and interpret the JSON responses.
+
+Note that you SHOULD run socket server before running the Flask server.
 
 ### Running the Flask Server
 
