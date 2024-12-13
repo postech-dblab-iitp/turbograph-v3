@@ -19,9 +19,30 @@ def create_socket():
     return s
 
 def send_message_receive_json(sock, message):
+    # Send the message
     sock.sendall(message.encode('utf-8'))
-    response = sock.recv(BUFFER_SIZE).decode('utf-8')
-    return json.loads(response)
+    
+    # Buffer to store incoming data
+    response_data = b""
+    
+    while True:
+        # Read data in chunks
+        chunk = sock.recv(BUFFER_SIZE)
+        if not chunk:  # Stop if no more data is sent by the server
+            break
+        response_data += chunk
+        
+        # Check if we've reached the end of the JSON message
+        try:
+            # Attempt to parse the current response as JSON
+            json.loads(response_data.decode('utf-8'))
+            break
+        except json.JSONDecodeError:
+            # If parsing fails, continue receiving more data
+            continue
+
+    # Decode and parse the complete response
+    return json.loads(response_data.decode('utf-8'))
 
 def run_prepare_statement(sock, query):
     message = chr(API_ID_PREPARE_STATEMENT) + query
