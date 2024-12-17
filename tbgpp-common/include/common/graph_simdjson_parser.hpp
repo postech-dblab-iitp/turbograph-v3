@@ -1080,53 +1080,6 @@ public:
         return overlap_similarity;
     }
 
-    double _ComputeDistanceMergingSchemaOurs(
-        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
-        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2,
-        size_t num_schemas)
-    {
-        double cost_schema = -CostSchemaVal * log(num_schemas);
-        // double cost_schema = -CostSchemaVal;
-        double cost_null = CostNullVal;
-        double cost_vectorization = CostVectorizationVal;
-
-        int64_t num_nulls1 = 0;
-        int64_t num_nulls2 = 0;
-        idx_t i = 0;
-        idx_t j = 0;
-        while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
-            if (schema_group1.first[i] == schema_group2.first[j]) {
-                i++;
-                j++;
-            } else if (schema_group1.first[i] < schema_group2.first[j]) {
-                num_nulls1++;
-                i++;
-            } else {
-                num_nulls2++;
-                j++;
-            }
-        }
-        while (i < schema_group1.first.size()) {
-            num_nulls1++;
-            i++;
-        }
-        while (j < schema_group2.first.size()) {
-            num_nulls2++;
-            j++;
-        }
-
-        cost_null *= (num_nulls1 * schema_group1.second + num_nulls2 * schema_group2.second);
-        if (schema_group1.second < VEC_OVHD_THRESHOLD ||
-            schema_group2.second < VEC_OVHD_THRESHOLD) {
-            cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
-                - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        } else {
-            cost_vectorization = 0.0;
-        }
-        double distance = cost_schema + cost_null + cost_vectorization;
-        return distance;
-    }
-
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
         if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
@@ -1172,89 +1125,122 @@ public:
         uint32_t num_tuples_total, vector<double> &cost_matrix,
         const CostModel _cost_model)
     {
-        // uint32_t begin_idx = current_layer == 0 ? 0 : layer_boundaries[current_layer - 1];
-        size_t num_schemas = schema_groups_with_num_tuples.size();
-        for (auto i = 0; i < num_tuples_total; i++) {
-            for (auto j = i + 1; j < num_tuples_total; j++) {
+        try {
+            size_t num_schemas = schema_groups_with_num_tuples.size();
+            size_t matrix_idx = 0;
+            for (auto i = 0; i < num_tuples_total; i++) {
+                for (auto j = i + 1; j < num_tuples_total; j++) {
 
-                uint32_t schema_group1_idx = temp_output[i].first;
-                uint32_t schema_group2_idx = temp_output[j].first;
-                // auto &schema_group1 =
-                //     i > num_tuples_in_current_layer
-                //         ? temp_output[i - num_tuples_in_current_layer]
-                //         : schema_groups_with_num_tuples
-                //               [num_tuples_order[begin_idx + i]];
-                // auto &schema_group2 =
-                //     j > num_tuples_in_current_layer
-                //         ? temp_output[j - num_tuples_in_current_layer]
-                //         : schema_groups_with_num_tuples
-                //               [num_tuples_order[begin_idx + j]];
+                    uint32_t schema_group1_idx = temp_output[i].first;
+                    uint32_t schema_group2_idx = temp_output[j].first;
 
-                double cost;
-                if (schema_group1_idx == std::numeric_limits<uint32_t>::max() ||
-                    schema_group2_idx == std::numeric_limits<uint32_t>::max()) {
-                    cost = COST_MAX;
+                    double cost;
+                    if (schema_group1_idx == std::numeric_limits<uint32_t>::max() ||
+                        schema_group2_idx == std::numeric_limits<uint32_t>::max()) {
+                        cost = COST_MAX;
+                    } else {
+                        auto &schema_group1 =
+                            schema_groups_with_num_tuples[schema_group1_idx];
+                        auto &schema_group2 =
+                            schema_groups_with_num_tuples[schema_group2_idx];
+
+                        /* START_OF_COST_MODEL_BASED */
+                        if (_cost_model == CostModel::OURS) {
+                            cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
+                                                                    schema_group2, num_schemas);
+                        } else if (_cost_model == CostModel::SETEDIT) {
+                            cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
+                                                                    schema_group2);
+                        } else if (_cost_model == CostModel::JACCARD) {
+                            cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
+                                                                    schema_group2);
+                        } else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
+                            cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
+                                                                    schema_group2);
+                        } else if (_cost_model == CostModel::COSINE) {
+                            cost = _ComputeCostMergingSchemaGroupsCosine(schema_group1,
+                                                                    schema_group2);
+                        } else if (_cost_model == CostModel::DICE) {
+                            cost = _ComputeCostMergingSchemaGroupsDice(schema_group1,
+                                                                    schema_group2);
+                        } else if (_cost_model == CostModel::OVERLAP) {
+                            cost = _ComputeCostMergingSchemaGroupsOverlap(schema_group1,
+                                                                    schema_group2);
+                        } else {
+                            D_ASSERT(false);
+                        }
+                        /* END_OF_COST_MODEL_BASED */
+                    }
+
+                    if (matrix_idx > cost_matrix.size()) {
+                        throw std::invalid_argument("Matrix index exceeds the size of the cost matrix.");
+                    }
+                    cost_matrix[matrix_idx] = cost;
+                    matrix_idx++;
                 }
-                else {
-                    auto &schema_group1 =
-                        schema_groups_with_num_tuples[schema_group1_idx];
-                    auto &schema_group2 =
-                        schema_groups_with_num_tuples[schema_group2_idx];
-
-                    /* START_OF_COST_MODEL_BASED */
-                    if (_cost_model == CostModel::OURS) {
-                        cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
-                                                                schema_group2, num_schemas);
-                    }
-                    else if (_cost_model == CostModel::SETEDIT) {
-                        cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
-                                                                schema_group2);
-                    }
-                    else if (_cost_model == CostModel::JACCARD) {
-                        cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
-                                                                schema_group2);
-                    }
-                    else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
-                        cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
-                                                                schema_group2);
-                    }
-                    else if (_cost_model == CostModel::COSINE) {
-                        cost = _ComputeCostMergingSchemaGroupsCosine(schema_group1,
-                                                                schema_group2);
-                    }
-                    else if (_cost_model == CostModel::DICE) {
-                        cost = _ComputeCostMergingSchemaGroupsDice(schema_group1,
-                                                                schema_group2);
-                    }
-                    else if (_cost_model == CostModel::OVERLAP) {
-                        cost = _ComputeCostMergingSchemaGroupsOverlap(schema_group1,
-                                                                schema_group2);
-                    }
-                    else {
-                        D_ASSERT(false);
-                    }
-                    /* END_OF_COST_MODEL_BASED */
-                }
-
-                // j > i
-                uint32_t matrix_idx =
-                    i * num_tuples_total + j - (((i + 1) * (i + 2)) / 2);
-                cost_matrix[matrix_idx] = cost;
-
-                // fprintf(stdout,
-                //         "i = %d, j = %d, schema_group1_idx = %d, "
-                //         "schema_group2_idx = %d, matrix_idx = %d, cost = %lf\n",
-                //         i, j, schema_group1_idx, schema_group2_idx, matrix_idx,
-                //         cost);
             }
+        } catch (const std::exception &e) {
+            std::cerr << "Error in GenerateCostMatrix: " << e.what() << std::endl;
+            throw; // Re-throw the exception after logging
         }
-
-        // // print cost matrix
-        // for (auto i = 0; i < cost_matrix.size(); i++) {
-        //     std::cout << cost_matrix[i] << ", ";
-        // }
-        // std::cout << std::endl;
     }
+
+    double _ComputeDistanceMergingSchemaOurs(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2,
+        size_t num_schemas)
+    {
+        try {
+            if (schema_group1.first.empty() || schema_group2.first.empty()) {
+                throw std::invalid_argument("Schema group vectors cannot be empty.");
+            }
+
+            double cost_schema = -CostSchemaVal * log(num_schemas);
+            // double cost_schema = -CostSchemaVal;
+            double cost_null = CostNullVal;
+            double cost_vectorization = CostVectorizationVal;
+
+            int64_t num_nulls1 = 0;
+            int64_t num_nulls2 = 0;
+            idx_t i = 0;
+            idx_t j = 0;
+            while (i < schema_group1.first.size() && j < schema_group2.first.size()) {
+                if (schema_group1.first[i] == schema_group2.first[j]) {
+                    i++;
+                    j++;
+                } else if (schema_group1.first[i] < schema_group2.first[j]) {
+                    num_nulls1++;
+                    i++;
+                } else {
+                    num_nulls2++;
+                    j++;
+                }
+            }
+            while (i < schema_group1.first.size()) {
+                num_nulls1++;
+                i++;
+            }
+            while (j < schema_group2.first.size()) {
+                num_nulls2++;
+                j++;
+            }
+
+            cost_null *= (num_nulls1 * schema_group1.second + num_nulls2 * schema_group2.second);
+            if (schema_group1.second < VEC_OVHD_THRESHOLD ||
+                schema_group2.second < VEC_OVHD_THRESHOLD) {
+                cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
+                    - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
+            } else {
+                cost_vectorization = 0.0;
+            }
+            double distance = cost_schema + cost_null + cost_vectorization;
+            return distance;
+        } catch (const std::exception &e) {
+            std::cerr << "Error in _ComputeDistanceMergingSchemaOurs: " << e.what() << std::endl;
+            throw; // Re-throw the exception after logging
+        }
+    }
+
 
     void _ClusterSchema() {
         cluster_algo->doindex();
@@ -1467,21 +1453,21 @@ public:
                                [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
                 end(temp_output));
             
-            // for (auto i = 0; i < temp_output.size(); i++) {
-            //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+            for (auto i = 0; i < temp_output.size(); i++) {
+                if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
 
-            //     std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-            //     for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-            //         std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
-            //     }
-            //     std::cout << std::endl;
+                std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
+                for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
+                    std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+                }
+                std::cout << std::endl;
 
-            //     std::cout << "\t";
-            //     for (auto j = 0; j < temp_output[i].second.size(); j++) {
-            //         std::cout << temp_output[i].second[j] << ", ";
-            //     }
-            //     std::cout << std::endl;
-            // }
+                std::cout << "\t";
+                for (auto j = 0; j < temp_output[i].second.size(); j++) {
+                    std::cout << temp_output[i].second[j] << ", ";
+                }
+                std::cout << std::endl;
+            }
         }
 
         if (merge_in_advance == MergeInAdvance::IN_STORAGE) {
@@ -2039,13 +2025,15 @@ public:
             std::cout << "Iteration " << iteration << " start" << std::endl;
             merged_count = 0;
 
-            uint32_t num_tuples_in_cost_matrix = (num_tuples_total * (num_tuples_total - 1)) / 2;
+            uint64_t num_tuples_in_cost_matrix = (static_cast<uint64_t>(num_tuples_total) * (static_cast<uint64_t>(num_tuples_total)  - 1)) / 2;
             std::vector<double> cost_matrix(num_tuples_in_cost_matrix, COST_MAX);
             std::cout << "Layer " << current_layer 
                 << ", num_tuples: " << num_tuples_total 
                 << ", num_tuples_in_cost_matrix: " << num_tuples_in_cost_matrix << std::endl;
 
             GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix, _cost_model);
+
+            std::cout << "GenerateCostMatrix Done" << std::endl;
 
             /* START_OF_COST_MODEL_BASED */
             std::unique_ptr<std::priority_queue<std::pair<double, uint64_t>,
@@ -2074,6 +2062,8 @@ public:
                 cost_pq.push({cost_matrix[i], i});
                 // std::cout << "Insert " << cost_matrix[i] << ", " << i << std::endl;
             }
+
+            std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
 
             uint32_t num_tuples_added = 0;
             if (!cost_pq.empty()) {
@@ -2119,21 +2109,38 @@ public:
                     }
                     /* END_OF_COST_MODEL_BASED */
 
-                    // row_idx, col_idx
-                    uint32_t idx1, idx2;
+                    // // row_idx, col_idx
+                    // uint32_t idx1, idx2;
                     
-                    // ((2n - 1) - ((2n - 1)^2 - 8k)^0.5) / 2
-                    idx1 = ((2 * num_tuples_total - 1) -
-                            (std::sqrt((2 * num_tuples_total - 1) *
-                                        (2 * num_tuples_total - 1) -
-                                    8 * min_cost.second))) /
-                        2;
+                    // // ((2n - 1) - ((2n - 1)^2 - 8k)^0.5) / 2
+                    // idx1 = ((2 * num_tuples_total - 1) -
+                    //         (std::sqrt((2 * num_tuples_total - 1) *
+                    //                     (2 * num_tuples_total - 1) -
+                    //                 8 * min_cost.second))) /
+                    //     2;
                     
-                    idx1 = std::max((uint32_t)0, std::min(idx1, num_tuples_total - 2));
-                    idx2 = min_cost.second -
-                        ((idx1 * (2 * num_tuples_total - idx1 - 1)) / 2) +
-                        idx1 + 1;
+                    // idx1 = std::max((uint32_t)0, std::min(idx1, num_tuples_total - 2));
+                    // idx2 = min_cost.second -
+                    //     ((idx1 * (2 * num_tuples_total - idx1 - 1)) / 2) +
+                    //     idx1 + 1;
                     
+                    // jhha: THe original code have floating point error, this fixed to use binary search
+                    // Avoid floating point and do a binary search instead:
+                    uint32_t i_low = 0, i_high = num_tuples_total - 1;
+                    while (i_low < i_high) {
+                        uint32_t i_mid = (i_low + i_high) / 2;
+                        uint64_t T_mid = (uint64_t)i_mid * (2U * num_tuples_total - i_mid - 1U) / 2U;
+                        if (T_mid > min_cost.second) {
+                            i_high = i_mid; // go lower
+                        } else {
+                            i_low = i_mid + 1; // go higher
+                        }
+                    }
+                    // After this, i_low-1 should be the actual row if i_low > 0
+                    uint32_t idx1 = (i_low == 0) ? 0 : i_low - 1;
+                    uint64_t T_idx1 = (uint64_t)idx1 * (2U * num_tuples_total - idx1 - 1U) / 2U;
+                    uint32_t idx2 = (uint32_t)(min_cost.second - T_idx1 + idx1 + 1);
+
                     // std::cout << "cost: " << min_cost.first << ", idx: " << min_cost.second << std::endl;
                     // std::cout << "idx1: " << idx1 << ", idx2: " << idx2 << std::endl;
 
@@ -2158,27 +2165,75 @@ public:
         std::cout << "Layer " << current_layer << " temp_output size: " << temp_output.size() << std::endl;
     }
 
-    void MergeVertexlets(uint32_t idx1, uint32_t idx2, vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
+    void MergeVertexlets(uint32_t idx1, uint32_t idx2, 
+                        std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
+        // Check if indices are within bounds for temp_output
+        if (idx1 >= temp_output.size() || idx2 >= temp_output.size()) {
+            std::cerr << "Error: Index out of bounds for temp_output. "
+                    << "idx1: " << idx1 << ", idx2: " << idx2 
+                    << ", temp_output.size(): " << temp_output.size() << std::endl;
+            return;
+        }
+
+        // Check if the first indices from temp_output are valid for schema_groups_with_num_tuples
+        if (temp_output[idx1].first >= schema_groups_with_num_tuples.size() || 
+            temp_output[idx2].first >= schema_groups_with_num_tuples.size()) {
+            std::cerr << "Error: Invalid schema group index from temp_output. "
+                    << "temp_output[idx1].first: " << temp_output[idx1].first 
+                    << ", temp_output[idx2].first: " << temp_output[idx2].first 
+                    << ", schema_groups_with_num_tuples.size(): " << schema_groups_with_num_tuples.size() << std::endl;
+            return;
+        }
+
+        // Safely retrieve schema groups
         auto &schema_group1 = schema_groups_with_num_tuples[temp_output[idx1].first];
         auto &schema_group2 = schema_groups_with_num_tuples[temp_output[idx2].first];
 
+        // Merge schema vectors
         std::vector<uint32_t> merged_schema;
-        merged_schema.reserve(schema_group1.first.size() + schema_group2.first.size());
-        std::merge(schema_group1.first.begin(), schema_group1.first.end(),
-                   schema_group2.first.begin(), schema_group2.first.end(),
-                   std::back_inserter(merged_schema));
-        merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
+        try {
+            merged_schema.reserve(schema_group1.first.size() + schema_group2.first.size());
+            std::merge(schema_group1.first.begin(), schema_group1.first.end(),
+                    schema_group2.first.begin(), schema_group2.first.end(),
+                    std::back_inserter(merged_schema));
+            merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
+        } catch (const std::exception &e) {
+            std::cerr << "Error during schema merging: " << e.what() << std::endl;
+            return;
+        }
 
+        // Compute merged number of tuples
         uint64_t merged_num_tuples = schema_group1.second + schema_group2.second;
+
+        // Add new merged schema group
         schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
+
+        // Merge indices
         std::vector<uint32_t> merged_indices;
-        merged_indices.reserve(temp_output[idx1].second.size() + temp_output[idx2].second.size());
-        merged_indices.insert(merged_indices.end(), temp_output[idx1].second.begin(), temp_output[idx1].second.end());
-        merged_indices.insert(merged_indices.end(), temp_output[idx2].second.begin(), temp_output[idx2].second.end());
+        try {
+            merged_indices.reserve(temp_output[idx1].second.size() + temp_output[idx2].second.size());
+            merged_indices.insert(merged_indices.end(), temp_output[idx1].second.begin(), temp_output[idx1].second.end());
+            merged_indices.insert(merged_indices.end(), temp_output[idx2].second.begin(), temp_output[idx2].second.end());
+        } catch (const std::exception &e) {
+            std::cerr << "Error during index merging: " << e.what() << std::endl;
+            return;
+        }
+
+        // Add new merged entry to temp_output
         temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
 
-        temp_output[idx1].first = std::numeric_limits<uint32_t>::max();
-        temp_output[idx2].first = std::numeric_limits<uint32_t>::max();
+        // Invalidate the original entries in temp_output
+        if (idx1 < temp_output.size()) {
+            temp_output[idx1].first = std::numeric_limits<uint32_t>::max();
+        } else {
+            std::cerr << "Warning: Invalidating idx1 failed as idx1 is now out of bounds." << std::endl;
+        }
+
+        if (idx2 < temp_output.size()) {
+            temp_output[idx2].first = std::numeric_limits<uint32_t>::max();
+        } else {
+            std::cerr << "Warning: Invalidating idx2 failed as idx2 is now out of bounds." << std::endl;
+        }
     }
 
     vector<unsigned int> &GetClusterTokens(size_t cluster_idx) {
