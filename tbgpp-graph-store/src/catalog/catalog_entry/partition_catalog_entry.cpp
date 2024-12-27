@@ -248,8 +248,8 @@ uint64_t PartitionCatalogEntry::GetNumberOfColumns() const
  * If we want to support negative number, we need to change this
  */
 
-void PartitionCatalogEntry::UpdateMinMaxArray(PropertyKeyID key_id, idx_t min,
-                                              idx_t max)
+void PartitionCatalogEntry::UpdateMinMaxArray(PropertyKeyID key_id, int64_t min,
+                                              int64_t max)
 {
     auto location = global_property_key_to_location.find(key_id);
     if (location != global_property_key_to_location.end()) {

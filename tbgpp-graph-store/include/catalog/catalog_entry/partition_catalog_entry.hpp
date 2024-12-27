@@ -247,7 +247,7 @@ public:
 	}
 
 	// Statistics
-	void UpdateMinMaxArray(PropertyKeyID key_id, idx_t min, idx_t max);
+	void UpdateMinMaxArray(PropertyKeyID key_id, int64_t min, int64_t max);
 	void UpdateWelfordStdDevArray(PropertyKeyID key_id, Vector& data, size_t size);
 	StdDev GetStdDev(PropertyKeyID key_id);
 

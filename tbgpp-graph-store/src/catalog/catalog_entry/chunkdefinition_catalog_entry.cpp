@@ -17,7 +17,6 @@ ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, Schem
 }
 
 void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input_size) {
-	// return;
 	D_ASSERT(LogicalType(data_type_id).IsNumeric());
 
 	idx_t num_entries_in_array = (num_entries_in_column + MIN_MAX_ARRAY_SIZE - 1) / MIN_MAX_ARRAY_SIZE;
@@ -28,19 +27,20 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 		idx_t start_offset = i * MIN_MAX_ARRAY_SIZE;
 		idx_t end_offset = (i == num_entries_in_array - 1) ? 
 							num_entries_in_column : (i + 1) * MIN_MAX_ARRAY_SIZE;
-		Value min_val = Value::MaximumValue(LogicalType(data_type_id));
-		Value max_val = Value::MinimumValue(LogicalType(data_type_id));
+		Value min_val = Value::MaximumValue(LogicalTypeId::BIGINT);
+		Value max_val = Value::MinimumValue(LogicalTypeId::BIGINT);
 		for (idx_t j = start_offset; j < end_offset; j++) {
 			Value val = column.GetValue(j);
 			if (val.IsNull()) continue;
-			if (min_val > val) min_val = val;
-			if (max_val < val) max_val = val;
+			Value bigint_val = val.CastAs(LogicalType::BIGINT);
+			if (min_val > bigint_val) min_val = bigint_val;
+			if (max_val < bigint_val) max_val = bigint_val;
 			has_nonnull_value = true;
 		}
 		// This does automatic type conversion
 		if (has_nonnull_value) {
-			min_max_array[i].min = min_val.GetValue<idx_t>();
-			min_max_array[i].max = max_val.GetValue<idx_t>();
+			min_max_array[i].min = min_val.GetValue<int64_t>();
+			min_max_array[i].max = max_val.GetValue<int64_t>();
 		}
 	}
 	is_min_max_array_exist = true;

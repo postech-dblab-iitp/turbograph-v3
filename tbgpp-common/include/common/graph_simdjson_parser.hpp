@@ -45,20 +45,6 @@ namespace duckdb {
 typedef std::pair<idx_t, idx_t> LidPair;
 #endif
 
-class CostCompareGreat {
-public:
-    bool operator()(std::pair<double, uint64_t> a, std::pair<double, uint64_t> b) {
-        return a.first > b.first;
-    }
-};
-
-class CostCompareLess {
-public:
-    bool operator()(std::pair<double, uint64_t> a, std::pair<double, uint64_t> b) {
-        return a.first < b.first;
-    }
-};
-
 class GraphSIMDJSONFileParser {
 
 /** CONFIGURATIONS **/
@@ -97,7 +83,7 @@ public:
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
-    const MergeInAdvance merge_in_advance = MergeInAdvance::IN_STORAGE;
+    const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/
 
 
@@ -1118,70 +1104,30 @@ public:
         // std::cout << eigensolver.eigenvectors() * eigensolver.eigenvalues().array().sqrt().matrix().asDiagonal() << std::endl;
     }
 
-    void GenerateCostMatrix(
-        vector<std::pair<std::vector<uint32_t>, uint64_t>>
-            &schema_groups_with_num_tuples,
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output,
-        uint32_t num_tuples_total, vector<double> &cost_matrix,
-        const CostModel _cost_model)
+
+    double CalculateCost(
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
+        std::pair<std::vector<uint32_t>, uint64_t> &schema_group2,
+        const CostModel _cost_model,
+        size_t num_schemas)
     {
-        try {
-            size_t num_schemas = schema_groups_with_num_tuples.size();
-            size_t matrix_idx = 0;
-            for (auto i = 0; i < num_tuples_total; i++) {
-                for (auto j = i + 1; j < num_tuples_total; j++) {
-
-                    uint32_t schema_group1_idx = temp_output[i].first;
-                    uint32_t schema_group2_idx = temp_output[j].first;
-
-                    double cost;
-                    if (schema_group1_idx == std::numeric_limits<uint32_t>::max() ||
-                        schema_group2_idx == std::numeric_limits<uint32_t>::max()) {
-                        cost = COST_MAX;
-                    } else {
-                        auto &schema_group1 =
-                            schema_groups_with_num_tuples[schema_group1_idx];
-                        auto &schema_group2 =
-                            schema_groups_with_num_tuples[schema_group2_idx];
-
-                        /* START_OF_COST_MODEL_BASED */
-                        if (_cost_model == CostModel::OURS) {
-                            cost = _ComputeDistanceMergingSchemaOurs(schema_group1,
-                                                                    schema_group2, num_schemas);
-                        } else if (_cost_model == CostModel::SETEDIT) {
-                            cost = _ComputeCostMergingSchemaSetEdit(schema_group1,
-                                                                    schema_group2);
-                        } else if (_cost_model == CostModel::JACCARD) {
-                            cost = _ComputeCostMergingSchemaGroupsJaccard(schema_group1,
-                                                                    schema_group2);
-                        } else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
-                            cost = _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1,
-                                                                    schema_group2);
-                        } else if (_cost_model == CostModel::COSINE) {
-                            cost = _ComputeCostMergingSchemaGroupsCosine(schema_group1,
-                                                                    schema_group2);
-                        } else if (_cost_model == CostModel::DICE) {
-                            cost = _ComputeCostMergingSchemaGroupsDice(schema_group1,
-                                                                    schema_group2);
-                        } else if (_cost_model == CostModel::OVERLAP) {
-                            cost = _ComputeCostMergingSchemaGroupsOverlap(schema_group1,
-                                                                    schema_group2);
-                        } else {
-                            D_ASSERT(false);
-                        }
-                        /* END_OF_COST_MODEL_BASED */
-                    }
-
-                    if (matrix_idx > cost_matrix.size()) {
-                        throw std::invalid_argument("Matrix index exceeds the size of the cost matrix.");
-                    }
-                    cost_matrix[matrix_idx] = cost;
-                    matrix_idx++;
-                }
-            }
-        } catch (const std::exception &e) {
-            std::cerr << "Error in GenerateCostMatrix: " << e.what() << std::endl;
-            throw; // Re-throw the exception after logging
+        if (_cost_model == CostModel::OURS) {
+            return _ComputeDistanceMergingSchemaOurs(schema_group1, schema_group2, num_schemas);
+        } else if (_cost_model == CostModel::SETEDIT) {
+            return _ComputeCostMergingSchemaSetEdit(schema_group1, schema_group2);
+        } else if (_cost_model == CostModel::JACCARD) {
+            return _ComputeCostMergingSchemaGroupsJaccard(schema_group1, schema_group2);
+        } else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
+            return _ComputeCostMergingSchemaGroupsWeightedJaccard(schema_group1, schema_group2);
+        } else if (_cost_model == CostModel::COSINE) {
+            return _ComputeCostMergingSchemaGroupsCosine(schema_group1, schema_group2);
+        } else if (_cost_model == CostModel::DICE) {
+            return _ComputeCostMergingSchemaGroupsDice(schema_group1, schema_group2);
+        } else if (_cost_model == CostModel::OVERLAP) {
+            return _ComputeCostMergingSchemaGroupsOverlap(schema_group1, schema_group2);
+        } else {
+            D_ASSERT(false);
+            return COST_MAX; // Fallback in case of an unsupported cost model
         }
     }
 
@@ -1479,20 +1425,8 @@ public:
         for (auto i = 0; i < temp_output.size(); i++) {
             if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
 
-            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-            for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-                std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
-            }
-            std::cout << std::endl;
-
             cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
             std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
-
-            std::cout << "\t";
-            for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                std::cout << temp_output[i].second[j] << ", ";
-            }
-            std::cout << std::endl;
 
             for (auto j = 0; j < temp_output[i].second.size(); j++) {
                 sg_to_cluster_vec[temp_output[i].second[j]] = i;
@@ -2025,51 +1959,105 @@ public:
             std::cout << "Iteration " << iteration << " start" << std::endl;
             merged_count = 0;
 
-            uint64_t num_tuples_in_cost_matrix = (static_cast<uint64_t>(num_tuples_total) * (static_cast<uint64_t>(num_tuples_total)  - 1)) / 2;
-            std::vector<double> cost_matrix(num_tuples_in_cost_matrix, COST_MAX);
             std::cout << "Layer " << current_layer 
-                << ", num_tuples: " << num_tuples_total 
-                << ", num_tuples_in_cost_matrix: " << num_tuples_in_cost_matrix << std::endl;
+                    << ", num_tuples: " << num_tuples_total << std::endl;
 
-            GenerateCostMatrix(schema_groups_with_num_tuples, temp_output, num_tuples_total, cost_matrix, _cost_model);
-
-            std::cout << "GenerateCostMatrix Done" << std::endl;
+            if (num_tuples_total > std::numeric_limits<uint32_t>::max()) {
+                std::cerr << "Number of tuples exceeds the maximum value of uint32_t" << std::endl;
+                break;
+            }
 
             /* START_OF_COST_MODEL_BASED */
-            std::unique_ptr<std::priority_queue<std::pair<double, uint64_t>,
-                                                std::vector<std::pair<double, uint64_t>>,
-                                                std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>> cost_pq_ptr;
+            auto cost_compare_great = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
+                                        const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
+                return a.first < b.first; // Larger costs come first
+            };
 
-            // Initialize the appropriate priority queue based on the cost model
+            auto cost_compare_less = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
+                                        const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
+                return a.first > b.first; // Smaller costs come first
+            };
+
+            // Pre-allocate memory for the vector
+            std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>> pre_allocated_vector;
+            pre_allocated_vector.reserve(num_tuples_total); // Reserve space for all pairwise costs
+
+            std::unique_ptr<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
+                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
+                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
+                                                                const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>> cost_pq_ptr;
+
             if (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT) {
-                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
-                                                            std::vector<std::pair<double, uint64_t>>,
-                                                            std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareGreat());
+                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
+                                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
+                                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
+                                                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>>(
+                    cost_compare_great, std::move(pre_allocated_vector));
             } else {
-                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, uint64_t>,
-                                                            std::vector<std::pair<double, uint64_t>>,
-                                                            std::function<bool(const std::pair<double, uint64_t>&, const std::pair<double, uint64_t>&)>>>(CostCompareLess());
+                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
+                                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
+                                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
+                                                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>>(
+                    cost_compare_less, std::move(pre_allocated_vector));
             }
-            auto cost_pq = *cost_pq_ptr;
             /* END_OF_COST_MODEL_BASED */
+        
+            auto &cost_pq = *cost_pq_ptr;
+            vector<std::pair<double, std::pair<uint32_t, uint32_t>>> min_costs(num_tuples_total);
+            vector<bool> valid_costs(num_tuples_total, false);
 
-            std::vector<bool> visited(num_tuples_total, false);
+            #pragma omp parallel for num_threads(32)
+            for (uint32_t i = 0; i < num_tuples_total; ++i) {
+                std::optional<std::pair<double, std::pair<uint32_t, uint32_t>>> min_cost;
 
-            for (auto i = 0; i < cost_matrix.size(); i++) {
-                if (_cost_model == CostModel::OURS) {
-                    if (cost_matrix[i] > 0) continue;
+                for (uint32_t j = i + 1; j < num_tuples_total; ++j) {
+                    uint32_t group1_idx = temp_output[i].first;
+                    uint32_t group2_idx = temp_output[j].first;
+
+                    double cost = (group1_idx == std::numeric_limits<uint32_t>::max() || 
+                                group2_idx == std::numeric_limits<uint32_t>::max())
+                                    ? COST_MAX
+                                    : CalculateCost(schema_groups_with_num_tuples[group1_idx], 
+                                                    schema_groups_with_num_tuples[group2_idx],
+                                                    _cost_model,
+                                                    schema_groups_with_num_tuples.size());
+
+                    // Skip invalid costs for OURS model
+                    if (_cost_model == CostModel::OURS && cost > 0) {
+                        continue;
+                    }
+
+                    auto current_cost = std::make_pair(cost, std::make_pair(i, j));
+                    if (!min_cost.has_value() || 
+                        (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT
+                            ? cost_compare_great(current_cost, *min_cost)
+                            : cost_compare_less(current_cost, *min_cost))) {
+                        min_cost = current_cost;
+                    }
                 }
-                cost_pq.push({cost_matrix[i], i});
-                // std::cout << "Insert " << cost_matrix[i] << ", " << i << std::endl;
+
+                if (min_cost.has_value()) {
+                    min_costs[i] = *min_cost;
+                    valid_costs[i] = true;
+                }
             }
 
+            // Push all costs to the priority queue
+            for (uint32_t i = 0; i < num_tuples_total; ++i) {
+                if (valid_costs[i]) cost_pq.push(min_costs[i]);
+            }
             std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
 
             uint32_t num_tuples_added = 0;
+            std::vector<bool> visited(num_tuples_total, false);
             if (!cost_pq.empty()) {
                 do {
-                    std::pair<double, uint64_t> min_cost = cost_pq.top();
+                    std::pair<double, std::pair<uint32_t, uint32_t>> min_cost = cost_pq.top();
                     cost_pq.pop();
+
+                    // Extract the indices directly from the pair
+                    uint32_t idx1 = min_cost.second.first;
+                    uint32_t idx2 = min_cost.second.second;
 
                     /* START_OF_COST_MODEL_BASED */
                     if (_cost_model == CostModel::OURS) {
@@ -2109,41 +2097,7 @@ public:
                     }
                     /* END_OF_COST_MODEL_BASED */
 
-                    // // row_idx, col_idx
-                    // uint32_t idx1, idx2;
-                    
-                    // // ((2n - 1) - ((2n - 1)^2 - 8k)^0.5) / 2
-                    // idx1 = ((2 * num_tuples_total - 1) -
-                    //         (std::sqrt((2 * num_tuples_total - 1) *
-                    //                     (2 * num_tuples_total - 1) -
-                    //                 8 * min_cost.second))) /
-                    //     2;
-                    
-                    // idx1 = std::max((uint32_t)0, std::min(idx1, num_tuples_total - 2));
-                    // idx2 = min_cost.second -
-                    //     ((idx1 * (2 * num_tuples_total - idx1 - 1)) / 2) +
-                    //     idx1 + 1;
-                    
-                    // jhha: THe original code have floating point error, this fixed to use binary search
-                    // Avoid floating point and do a binary search instead:
-                    uint32_t i_low = 0, i_high = num_tuples_total - 1;
-                    while (i_low < i_high) {
-                        uint32_t i_mid = (i_low + i_high) / 2;
-                        uint64_t T_mid = (uint64_t)i_mid * (2U * num_tuples_total - i_mid - 1U) / 2U;
-                        if (T_mid > min_cost.second) {
-                            i_high = i_mid; // go lower
-                        } else {
-                            i_low = i_mid + 1; // go higher
-                        }
-                    }
-                    // After this, i_low-1 should be the actual row if i_low > 0
-                    uint32_t idx1 = (i_low == 0) ? 0 : i_low - 1;
-                    uint64_t T_idx1 = (uint64_t)idx1 * (2U * num_tuples_total - idx1 - 1U) / 2U;
-                    uint32_t idx2 = (uint32_t)(min_cost.second - T_idx1 + idx1 + 1);
-
-                    // std::cout << "cost: " << min_cost.first << ", idx: " << min_cost.second << std::endl;
-                    // std::cout << "idx1: " << idx1 << ", idx2: " << idx2 << std::endl;
-
+                    // Check if either of the indices have been visited
                     if (visited[idx1] || visited[idx2]) {
                         continue;
                     }
@@ -2151,7 +2105,7 @@ public:
                     visited[idx1] = true;
                     visited[idx2] = true;
 
-                    // merge idx1 and idx2
+                    // Merge the two indices
                     MergeVertexlets(idx1, idx2, temp_output);
                     num_tuples_added++;
                     merged_count++;
@@ -2278,7 +2232,6 @@ public:
         for (auto i = 0; i < order.size(); i++) {
             auto original_idx = order[i];
             get_key_and_type(id_to_property_vec[original_idx], key_names, types);
-            // printf("%d - %s(%s), ", i, key_names.back().c_str(), types.back().ToString().c_str());
         }
         // printf("\n");
         graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, universal_property_key_ids);
@@ -2306,8 +2259,10 @@ public:
             vector<LogicalType> cur_cluster_schema_types;
             vector<string> cur_cluster_schema_names;
 
+            std::cout << "Cluster " << i << ": ";
             vector<unsigned int> &tokens = GetClusterTokens(i);
             for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
+                std::cout << tokens[token_idx] << ", ";
                 uint64_t original_idx;
                 if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
                     original_idx = order[tokens[token_idx]];
@@ -2330,27 +2285,12 @@ public:
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
-
-// #ifdef DYNAMIC_SCHEMA_INSTANTIATION
-        // if (num_clusters >= 1) {
-        //     // create univ ps cat entry for dynamic schema instantiation
-        //     vector<PropertyKeyID> property_key_ids;
-        //     string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_univ";
-        //     CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
-        //     PropertySchemaCatalogEntry *univ_property_schema_cat = 
-        //         (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
-        //     graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
-        //     univ_property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
-        //     univ_property_schema_cat->SetFake();
-        //     partition_cat->SetUnivPropertySchema(univ_property_schema_cat->GetOid());
-        // }
-// #endif
+        std::cout << "Token Ended" << std::endl;
 
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {
 			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
 			lid_to_pid_map_instance = &lid_to_pid_map->back().second;
-			// lid_to_pid_map_instance->reserve(approximated_num_rows * 2);
 		}
 
         // Iterate JSON file again & create extents
@@ -2370,10 +2310,8 @@ public:
         for (auto doc_ : docs) {
             uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
             D_ASSERT(cluster_id < num_clusters);
-
             recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
-            // printf("%ld-th tuple, cluster %ld, per_cluster_idx %ld\n", num_tuples, cluster_id, num_tuples_per_cluster[cluster_id]);
-            
+
             if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
                 datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
@@ -2539,10 +2477,8 @@ private:
                             ondemand::number_type t = child.value().get_number_type();
                             switch(t) {
                             case ondemand::number_type::signed_integer:
-                                child_type_id = LogicalTypeId::BIGINT;
-                                break;
                             case ondemand::number_type::unsigned_integer:
-                                child_type_id = LogicalTypeId::UBIGINT;
+                                child_type_id = LogicalTypeId::BIGINT;
                                 break;
                             case ondemand::number_type::floating_point_number:
                                 child_type_id = LogicalTypeId::DOUBLE;
@@ -2578,11 +2514,13 @@ private:
                     ondemand::number_type t = field.value().get_number_type();
                     switch(t) {
                     case ondemand::number_type::signed_integer:
+                    case ondemand::number_type::unsigned_integer:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::BIGINT);
                         break;
-                    case ondemand::number_type::unsigned_integer:
-                        current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::UBIGINT);
-                        break;
+                    // jhha: enfoce a property cannot be the signed and unsigned integer at the same time
+                    // case ondemand::number_type::unsigned_integer:
+                    //     current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::UBIGINT);
+                    //     break;
                     case ondemand::number_type::floating_point_number:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::DOUBLE);
                         break;
@@ -2771,11 +2709,12 @@ private:
                     ondemand::number_type t = field.value().get_number_type();
                     switch(t) {
                     case ondemand::number_type::signed_integer:
+                    case ondemand::number_type::unsigned_integer:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::BIGINT);
                         break;
-                    case ondemand::number_type::unsigned_integer:
-                        current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::UBIGINT);
-                        break;
+                    // case ondemand::number_type::unsigned_integer:
+                    //     current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::UBIGINT);
+                    //     break;
                     case ondemand::number_type::floating_point_number:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::DOUBLE);
                         break;
@@ -2851,13 +2790,11 @@ private:
                     switch(t) {
                     case ondemand::number_type::signed_integer: {
                         const Value int_val = Value::BIGINT(child.value().get_int64().value());
-                        // icecream::ic.enable(); IC(val_vectors.size()); icecream::ic.disable();
-                        // fprintf(stderr, "val_vectors ptr %p\n", val_vectors.data());
                         val_vectors.push_back(int_val);
                         break;
                     }
                     case ondemand::number_type::unsigned_integer:
-                        val_vectors.push_back(Value::UBIGINT(child.value().get_uint64().value()));
+                        val_vectors.push_back(Value::BIGINT(static_cast<int64_t>(child.value().get_uint64().value())));
                         break;
                     case ondemand::number_type::floating_point_number:
                         val_vectors.push_back(Value::DOUBLE(child.value().get_double().value()));
@@ -2910,27 +2847,24 @@ private:
         }
         case ondemand::json_type::number: {
             // assume it fits in a double
-            // std::cout << element.get_double();
             ondemand::number_type t = element.get_number_type();
             switch(t) {
             case ondemand::number_type::signed_integer: {
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_int64();
-                // std::cout << element.get_int64() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
-                uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
-                column_ptr[current_idx] = element.get_uint64();
-                // std::cout << element.get_uint64() << std::endl;
+                // jhha: assume unsigned integer column's type is int64_t
+                int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
+                column_ptr[current_idx] = static_cast<int64_t>(element.get_uint64());
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
             case ondemand::number_type::floating_point_number: {
                 double *column_ptr = (double *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = element.get_double();
-                // std::cout << element.get_double() << std::endl;
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
                 break;
             }
