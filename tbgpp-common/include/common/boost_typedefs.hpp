@@ -9,8 +9,8 @@ namespace duckdb {
     #define CATALOG_ADDR 0x10007fff8000
 
     struct minmax_t {
-        idx_t min = 0;
-        idx_t max = 0;
+        int64_t min = 0;
+        int64_t max = 0;
     };
 
     struct welford_t {
