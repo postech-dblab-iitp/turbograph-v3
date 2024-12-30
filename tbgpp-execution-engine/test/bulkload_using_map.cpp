@@ -124,9 +124,9 @@ void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
 void InitializeDiskAio() {
 	fprintf(stdout, "\nInitialize Disk Aio Parameters\n"); // TODO use debug options
 	// Initialize System Parameters
-	DiskAioParameters::NUM_THREADS = 1;
-	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
-	DiskAioParameters::NUM_CPU_SOCKETS = 1;
+	DiskAioParameters::NUM_THREADS = 8;
+	DiskAioParameters::NUM_TOTAL_CPU_CORES = 32;
+	DiskAioParameters::NUM_CPU_SOCKETS = 2;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
 	DiskAioParameters::WORKSPACE = output_dir;
 	
@@ -707,7 +707,8 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
-    #pragma omp parallel for num_threads(8)
+	lid_pair_to_epid_map.reserve(edge_files.size()); // prevent pointer change due to reallocation
+    #pragma omp parallel for num_threads(1)
 	for (auto &edge_file: edge_files) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
@@ -766,10 +767,13 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 
 		// Initialize LID_PAIR_TO_EPID_MAP
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
-		if (load_backward_edge) {
-			lid_pair_to_epid_map.emplace_back(std::get<0>(edge_file), unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
-			lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
+		#pragma omp critical
+		{
+			if (load_backward_edge) {
+				lid_pair_to_epid_map.emplace_back(std::get<0>(edge_file), unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+				lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
+				lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
+			}
 		}
 		LidPair lid_pair;
 
@@ -778,8 +782,11 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
-			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
+		#pragma omp critical
+		{
+			CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+				partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
+		}
 
 		// Initialize variables related to vertex extent
 		LidPair prev_id {0, 0};
@@ -881,23 +888,29 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 							  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
 			
 			// Create Edge Extent by Extent Manager
-			ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat, new_eid);
-			property_schema_cat->AddExtent(new_eid, data.size());
+			#pragma omp critical
+			{
+				ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat, new_eid);
+				property_schema_cat->AddExtent(new_eid, data.size());
+			}
 		}
 		
 		// Process remaining adjlist
-		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
-		PartitionCatalogEntry *src_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
-		AppendAdjListChunk(ext_mng, client, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
+		#pragma omp critical
+		{
+			vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+			PartitionCatalogEntry *src_part_cat_entry = 
+				(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
+			AppendAdjListChunk(ext_mng, client, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
+		}
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 #ifdef BULKLOAD_DEBUG_PRINT
 		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count());
 #endif
-		ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	}
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 }
 
 void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
@@ -907,7 +920,10 @@ void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManage
 void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
-	#pragma omp parallel for num_threads(8)
+	// jhha: currently, bwd multi-thread load have errors
+	// only ~80% edges are loaded
+	// I assume that this bug is related to the reader, but not verified
+	#pragma omp parallel for num_threads(1) 
 	for (auto &edge_file: edge_files_backward) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
@@ -976,8 +992,11 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
 		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
-			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST, dst_column_idx.size());
+		#pragma omp critical
+		{
+			CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+				partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST, dst_column_idx.size());
+		}
 		
 		// Initialize variables related to vertex extent
 		LidPair prev_id {0, 0};
@@ -1067,18 +1086,21 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		}
 
 		// Process remaining adjlist
-		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
-		PartitionCatalogEntry *src_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
-		AppendAdjListChunk(ext_mng, client, LogicalType::BACKWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
-		
+		#pragma omp critical
+		{
+			vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+			PartitionCatalogEntry *src_part_cat_entry = 
+				(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
+			AppendAdjListChunk(ext_mng, client, LogicalType::BACKWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
+		}
+
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
 #ifdef BULKLOAD_DEBUG_PRINT
 		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str(), duration.count());
 #endif
-		ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	}
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 }
 
 void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
