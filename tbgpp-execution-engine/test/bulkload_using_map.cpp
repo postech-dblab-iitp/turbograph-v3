@@ -278,13 +278,24 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 
 void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, 
 	LogicalType edge_direction_type, PartitionID part_id, ExtentID max_extent_id, 
-	unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers) {
+	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> &adj_list_buffers) {
 	vector<vector<idx_t>> empty_adj_list;
-	for (auto idx = 0; idx < adj_list_buffers.size() && idx < max_extent_id; idx++) {
+
+	for (auto idx = 0; idx < max_extent_id; idx++) {
 		ExtentID cur_vertex_localextentID = idx;
+		auto iter = adj_list_buffers.find(cur_vertex_localextentID);
 		vector<vector<idx_t>> &adj_list_buffer = 
-			adj_list_buffers.find(cur_vertex_localextentID) == adj_list_buffers.end() ?
-			empty_adj_list : adj_list_buffers[cur_vertex_localextentID];
+			iter == adj_list_buffers.end() ?
+			empty_adj_list : iter->second.second;
+		size_t num_adj_list =
+			iter == adj_list_buffers.end() ?
+			0 : iter->second.first.first + 1;
+		size_t adj_len_total =
+			iter == adj_list_buffers.end() ?
+			0 : 2 * iter->second.first.second;
+		
+		if (adj_len_total == 0) num_adj_list = 0;
+		
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { edge_direction_type };
 		vector<data_ptr_t> adj_list_datas(1);
@@ -298,40 +309,26 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 
 		// TODO directly copy into buffer in AppendChunk.. to avoid copy
 		vector<idx_t> tmp_adj_list_buffer;
-		size_t num_adj_list = adj_list_buffer.size();
-		size_t max_srcid_has_adjlist = 0;
 		const size_t slot_for_num_adj = 1;
-		size_t adj_len_total = 0;
-		for (size_t i = 0; i < adj_list_buffer.size(); i++) {
-			adj_len_total += adj_list_buffer[i].size();
-			if (adj_list_buffer[i].size() > 0) {
-				max_srcid_has_adjlist = i;
-			}
-		}
-
-		// jhha: futher optimize storing adj list
-		if (adj_len_total == 0) {
-			num_adj_list = 0;
-		} else {
-			num_adj_list = max_srcid_has_adjlist + 1;
-		}
 
 		tmp_adj_list_buffer.resize(slot_for_num_adj + num_adj_list + adj_len_total);
 		tmp_adj_list_buffer[0] = num_adj_list;
 		
 		size_t offset = num_adj_list;
 		for (size_t i = 0; i < num_adj_list; i++) {
-			for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
+            for (size_t j = 0; j < adj_list_buffer[i].size(); j++) {
 				tmp_adj_list_buffer[slot_for_num_adj + offset + j] = adj_list_buffer[i][j];
 			}
 			offset += adj_list_buffer[i].size();
 			tmp_adj_list_buffer[i + slot_for_num_adj] = offset;
 		}
-		adj_list_datas[0] = (data_ptr_t) tmp_adj_list_buffer.data();
 
+		adj_list_datas[0] = (data_ptr_t) tmp_adj_list_buffer.data();
 		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
+
 		ExtentID cur_vertex_extentID = cur_vertex_localextentID | (((uint32_t)part_id) << 16);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, cur_vertex_extentID);
+
 		adj_list_chunk.Destroy();
 	}
 }
@@ -340,7 +337,7 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 					   idx_t &vertex_seqno, std::vector<int64_t> &dst_column_idx, vector<idx_t *> dst_key_columns,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance,
-					   unordered_map<ExtentID, vector<vector<idx_t>>> &adj_list_buffers,
+					   unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> &adj_list_buffers,
 					   idx_t epid_base, idx_t src_lid = 0) {
 	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 
@@ -348,10 +345,25 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 	ExtentID cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
 	ExtentID cur_vertex_localextentID = cur_vertex_extentID & 0xFFFF;
 	vector<vector<idx_t>> *adj_list_buffer;
-	if (adj_list_buffers.find(cur_vertex_localextentID) == adj_list_buffers.end()) {
-		adj_list_buffers[cur_vertex_localextentID] = vector<vector<idx_t>>(STORAGE_STANDARD_VECTOR_SIZE);
+	if (adj_list_buffers.find(cur_vertex_localextentID) ==
+		adj_list_buffers.end()) {
+		vector<vector<idx_t>> empty_adj_list;
+		empty_adj_list.resize(STORAGE_STANDARD_VECTOR_SIZE);
+        adj_list_buffers[cur_vertex_localextentID] =
+            std::make_pair<std::pair<uint64_t, uint64_t>,
+                           vector<vector<idx_t>>>(
+                std::make_pair<uint64_t, uint64_t>(0, 0),
+                std::move(empty_adj_list));
+    }
+	auto &adj_list_buffer_extent = adj_list_buffers[cur_vertex_localextentID];
+    adj_list_buffer = &(adj_list_buffer_extent.second);
+
+	if (adj_list_buffer_extent.first.first < cur_src_seqno) {
+		adj_list_buffer_extent.first.first = cur_src_seqno;
 	}
-	adj_list_buffer = &(adj_list_buffers[cur_vertex_localextentID]);
+	if (end_idx > begin_idx) {
+		adj_list_buffer_extent.first.second += (end_idx - begin_idx);
+	}
 
 	idx_t dst_seqno, cur_dst_pid;
 	LidPair dst_key{0, 0};
@@ -430,19 +442,34 @@ inline void FillBwdAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_
 					   idx_t &vertex_seqno, std::vector<int64_t> &dst_column_idx, vector<idx_t *> dst_key_columns,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance,
 					   unordered_map<LidPair, idx_t, boost::hash<LidPair>> &lid_pair_to_epid_map_instance,
-					   unordered_map<ExtentID, vector<vector<idx_t>>> &adj_list_buffers) {
+					   unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> &adj_list_buffers) {
 	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 
 	// TODO need to be optimized
 	ExtentID cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
 	ExtentID cur_vertex_localextentID = cur_vertex_extentID & 0xFFFF;
 	vector<vector<idx_t>> *adj_list_buffer;
-	if (adj_list_buffers.find(cur_vertex_localextentID) == adj_list_buffers.end()) {
-		adj_list_buffers[cur_vertex_localextentID] = vector<vector<idx_t>>(STORAGE_STANDARD_VECTOR_SIZE);
-	}
-	adj_list_buffer = &(adj_list_buffers[cur_vertex_localextentID]);
+    if (adj_list_buffers.find(cur_vertex_localextentID) ==
+        adj_list_buffers.end()) {
+		vector<vector<idx_t>> empty_adj_list;
+		empty_adj_list.resize(STORAGE_STANDARD_VECTOR_SIZE);
+        adj_list_buffers[cur_vertex_localextentID] =
+            std::make_pair<std::pair<uint64_t, uint64_t>,
+                           vector<vector<idx_t>>>(
+                std::make_pair<uint64_t, uint64_t>(0, 0),
+                std::move(empty_adj_list));
+    }
+    auto &adj_list_buffer_extent = adj_list_buffers[cur_vertex_localextentID];
+    adj_list_buffer = &(adj_list_buffer_extent.second);
 
-	idx_t dst_seqno, cur_dst_pid, peid;
+	if (adj_list_buffer_extent.first.first < cur_src_seqno) {
+		adj_list_buffer_extent.first.first = cur_src_seqno;
+	}
+	if (end_idx > begin_idx) {
+		adj_list_buffer_extent.first.second += (end_idx - begin_idx);
+	}
+
+    idx_t dst_seqno, cur_dst_pid, peid;
 	LidPair dst_key{0, 0};
 	LidPair pid_pair {0, cur_src_pid};
 	end_idx = src_seqno;
@@ -696,21 +723,29 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 	fprintf(stdout, "\nLoad Vertex CSV Files Done!\n");
 }
 
-void ClearAdjListBuffers(unordered_map<ExtentID, vector<vector<idx_t>>>& adj_list_buffers) {
+void ClearAdjListBuffers(
+    unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
+                                      vector<vector<idx_t>>>> &adj_list_buffers)
+{
     // Collect iterators into a vector
-    vector<unordered_map<ExtentID, vector<vector<idx_t>>>::iterator> iterators;
+    vector<unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
+                                             vector<vector<idx_t>>>>::iterator>
+        iterators;
     iterators.reserve(adj_list_buffers.size());
-    for (auto it = adj_list_buffers.begin(); it != adj_list_buffers.end(); ++it) {
+    for (auto it = adj_list_buffers.begin(); it != adj_list_buffers.end();
+         ++it) {
         iterators.push_back(it);
     }
 
-    // Parallelize over the collected iterators
-	#pragma omp parallel for num_threads(32)
+	// Parallelize over the collected iterators
+#pragma omp parallel for num_threads(32)
     for (size_t i = 0; i < iterators.size(); i++) {
-        auto& buffers = iterators[i]->second;
-        for (auto& inner_vector : buffers) {
+        auto &buffers = iterators[i]->second.second;
+        for (auto &inner_vector : buffers) {
             inner_vector.clear();
         }
+        iterators[i]->second.first.first = 0;   // Reset num_adj_list
+        iterators[i]->second.first.second = 0;  // Reset adj_len_total
     }
 }
 
@@ -718,7 +753,7 @@ void ClearAdjListBuffers(unordered_map<ExtentID, vector<vector<idx_t>>>& adj_lis
 void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
-	unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers;
+	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> adj_list_buffers;
 	for (auto &edge_file: edge_files) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
@@ -799,10 +834,14 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		idx_t vertex_seqno;
 		bool is_first_tuple_processed = false;
 		PartitionID cur_part_id;
-		ClearAdjListBuffers(adj_list_buffers);
 
+		ClearAdjListBuffers(adj_list_buffers);
+		
 		// Read CSV File into DataChunk & CreateEdgeExtent
-		while (!reader.ReadCSVFile(key_names, types, data)) {
+		while (true) {
+			bool eof = reader.ReadCSVFile(key_names, types, data);
+			if (eof) break;
+
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = partition_cat->GetNewExtentID();
 
@@ -851,9 +890,11 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 						src_seqno++;
 					} else {
 						end_idx = src_seqno;
+						
 						FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, prev_src_pid, vertex_seqno,
 										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 										  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
+
 						prev_id = src_key;
 						prev_src_pid = cur_src_pid;
 						begin_idx = src_seqno;
@@ -871,6 +912,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 						src_seqno++;
 					} else {
 						end_idx = src_seqno;
+
 						FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, prev_src_pid, vertex_seqno,
 										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 										  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
@@ -887,6 +929,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			
 			// Process remaining dst vertices
 			end_idx = src_seqno;
+
 			FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
 							  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 							  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
@@ -903,6 +946,7 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
 		PartitionCatalogEntry *src_part_cat_entry = 
 			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
+
 		AppendAdjListChunk(ext_mng, client, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
 		
 		auto edge_file_end = std::chrono::high_resolution_clock::now();
@@ -921,6 +965,7 @@ void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManage
 void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
+	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> adj_list_buffers;
 	for (auto &edge_file: edge_files_backward) {
 		auto edge_file_start = std::chrono::high_resolution_clock::now();
 
@@ -935,7 +980,6 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		GraphSIMDCSVFileParser reader;
 		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
-		unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers;
 
 #ifdef BULKLOAD_DEBUG_PRINT
 		fprintf(stdout, "\nStart to load %s, %s\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str());

@@ -2259,10 +2259,10 @@ public:
             vector<LogicalType> cur_cluster_schema_types;
             vector<string> cur_cluster_schema_names;
 
-            std::cout << "Cluster " << i << ": ";
+            // std::cout << "Cluster " << i << ": ";
             vector<unsigned int> &tokens = GetClusterTokens(i);
             for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
-                std::cout << tokens[token_idx] << ", ";
+                // std::cout << tokens[token_idx] << ", ";
                 uint64_t original_idx;
                 if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
                     original_idx = order[tokens[token_idx]];
@@ -2285,7 +2285,7 @@ public:
 
             datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
         }
-        std::cout << "Token Ended" << std::endl;
+        // std::cout << "Token Ended" << std::endl;
 
         // Initialize LID_TO_PID_MAP
 		if (load_edge) {
