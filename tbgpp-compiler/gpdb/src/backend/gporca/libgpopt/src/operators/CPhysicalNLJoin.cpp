@@ -171,6 +171,17 @@ CPhysicalNLJoin::PcrsRequired(CMemoryPool *mp, CExpressionHandle &exprhdl,
 		pcrs->Include(PdrgPcrInner());
 	}
 
+	CWStringDynamic str(mp, L"\n");
+	COstreamString oss(&str);
+	oss << "NL Join child " << child_index << " required columns: ";
+	if (exprhdl.Pexpr() != NULL) {
+		exprhdl.Pexpr()->OsPrint(oss);
+	}
+	else {
+		exprhdl.Pgexpr()->OsPrint(oss);
+	}
+	GPOS_TRACE(str.GetBuffer());
+
 	CColRefSet *pcrsReqd =
 		PcrsChildReqd(mp, exprhdl, pcrs, child_index, 2 /*ulScalarIndex*/);
 	pcrs->Release();

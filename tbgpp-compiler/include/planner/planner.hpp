@@ -491,6 +491,7 @@ private:
 	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
 		vector<duckdb::LogicalType> &local_types, vector<uint32_t>& union_inner_col_map, vector<uint32_t>& inner_col_map,
 		vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping, bool load_physical_id_col);
+	void pBuildSchemaFlowGraphForSingleSchemaScan(duckdb::Schema &output_schema);
 	void pBuildSchemaFlowGraphForMultiSchemaScan(duckdb::Schema &global_schema, vector<duckdb::Schema>& local_schemas);
 	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
 	void pBuildSchemaFlowGraphForBinaryOperator(duckdb::Schema &output_schema, size_t num_rhs_schemas);
@@ -676,9 +677,11 @@ private:
 	PipelineOperatorTypes pipeline_operator_types;
 	PipelineNumSchemas num_schemas_of_childs;
 	PipelineSchemas pipeline_schemas;
+	PipelineSchemas other_source_schemas; // @jhha: temporal impl. please remove
 	PipelineUnionSchema pipeline_union_schema;
 	vector<duckdb::SchemaFlowGraph> sfgs;
 	bool generate_sfg = false;
+	bool restrict_generate_sfg_for_unionall = false;
 
 	// dynamic schema instantiation
 	vector<CExpression *> output_expressions_to_be_refined;

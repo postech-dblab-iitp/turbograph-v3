@@ -278,9 +278,9 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 
 void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, 
 	LogicalType edge_direction_type, PartitionID part_id, ExtentID max_extent_id, 
-	unordered_map<ExtentID, vector<vector<idx_t>>> adj_list_buffers) {
+	unordered_map<ExtentID, vector<vector<idx_t>>>& adj_list_buffers) {
 	vector<vector<idx_t>> empty_adj_list;
-	for (auto idx = 0; idx < adj_list_buffers.size() && idx < max_extent_id; idx++) {
+	for (auto idx = 0; idx < max_extent_id; idx++) {
 		ExtentID cur_vertex_localextentID = idx;
 		vector<vector<idx_t>> &adj_list_buffer = 
 			adj_list_buffers.find(cur_vertex_localextentID) == adj_list_buffers.end() ?

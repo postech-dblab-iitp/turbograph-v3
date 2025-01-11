@@ -4,6 +4,8 @@
 
 namespace duckdb {
 
+// Big assumption: in vector, 2-dim group is always the last one
+
 // Represents group of pipelines (each pipline can also be super-pipeline)
 class CypherPhysicalOperatorGroup {
 public:
@@ -52,6 +54,10 @@ public:
         child_idx++;
     }
 
+    bool AdvanceChild() {
+        return false;
+    }
+
     size_t GetSize() {
         if (IsSingleton()) {
             return 1;
@@ -98,8 +104,8 @@ public:
         return total_size;
     }
 
-    CypherPhysicalOperatorGroup *operator[](idx_t idx) {
-        return groups[idx];
+    CypherPhysicalOperator *operator[](idx_t idx) {
+        return GetIdxOperator(idx);
     }
 
     CypherPhysicalOperator* back() {
@@ -123,6 +129,10 @@ public:
             group_sizes.push_back(group->GetSize());
         }
         return group_sizes;
+    }
+
+    bool AdvanceGroup() {
+        return groups[0]->AdvanceChild();
     }
   
     CypherPhysicalOperator* GetIdxOperator(int idx) const {
