@@ -967,170 +967,23 @@ CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
 	return new_ptabdesc;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::SplitUnionAll
-//
-//	@doc:
-//		Split a UnionAll expression into two parts
-//
-//---------------------------------------------------------------------------
-// CExpression *CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr,
-//                                                    CExpression *pexprParent,
-//                                                    BOOL is_first_time)
-// {
-//     GPOS_ASSERT(NULL != pexpr);
-//     GPOS_ASSERT(COperator::EopLogicalGet == pexpr->Pop()->Eopid());
-
-// 	// If first time, initialize split state
-// 	if (is_first_time)
-// 	{
-// 		// Cleanup previous state if exists
-// 		CRefCount::SafeRelease(m_pdrgpbsSplits);
-// 		m_ulSplitIndex = 0;
-
-// 		// Create bitset for tables
-// 		CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
-// 		CTableDescriptor *ptabdesc = CLogicalGet::PopConvert(pexpr->Pop())->Ptabdesc();
-// 		IMdIdArray *pimdidarray = ptabdesc->GetTableIdsInGroup();
-// 		for (ULONG ul = 0; ul < pimdidarray->Size(); ul++)
-// 		{
-// 			(void) pbs->ExchangeSet(ul);
-// 		}
-
-// 		// Generate all possible splits
-// 		m_pdrgpbsSplits = PdrgpbsSubsets(m_mp, pbs);
-// 		pbs->Release();
-// 	}
-// 	else
-// 	{
-// 		// Move to next split configuration
-// 		m_ulSplitIndex++;
-
-// 		// If we've tried all splits, reset index
-// 		if (m_ulSplitIndex >= m_pdrgpbsSplits->Size())
-// 		{
-// 			m_ulSplitIndex = 0;
-// 		}
-// 	}
-
-
-// 	GPOS_ASSERT(NULL != pexpr);
-// 	GPOS_ASSERT(COperator::EopLogicalGet == pexpr->Pop()->Eopid());
-
-// 	// Get table descriptor from LogicalGet
-// 	CTableDescriptor *ptabdesc = CLogicalGet::PopConvert(pexpr->Pop())->Ptabdesc();
-
-// 	// Get table ids from table descriptor
-// 	IMdIdArray *pimdidarray = ptabdesc->GetTableIdsInGroup();
-	
-// 	// Get number of tables in the virtual table
-// 	ULONG ulTables = pimdidarray->Size();
-// 	GPOS_ASSERT(ulTables > 1);
-	
-// 	// Create arrays to hold table descriptors for each group
-// 	IMdIdArray *pdrgmdidFirst = GPOS_NEW(m_mp) IMdIdArray(m_mp);
-// 	IMdIdArray *pdrgmdidSecond = GPOS_NEW(m_mp) IMdIdArray(m_mp);
-	
-// 	SplitGraphlets(pimdidarray, ulTables, pdrgmdidFirst, pdrgmdidSecond);
-	
-// 	// Create new virtual tables for each group
-// 	// TODO need unique name?
-//     CTableDescriptor *ptabdescFirst =
-//         CreateTableDescForVirtualTable((*pdrgmdidFirst)[0], ptabdesc, "VirtualTable1");
-//     ptabdescFirst->SetInstanceDescriptor(true);
-//     for (ULONG ul = 0; ul < pdrgmdidFirst->Size(); ul++) {
-//         ptabdescFirst->AddTableInTheGroup((*pdrgmdidFirst)[ul]);
-//     }
-
-//     CTableDescriptor *ptabdescSecond =
-//         CreateTableDescForVirtualTable((*pdrgmdidSecond)[0], ptabdesc, "VirtualTable2");
-//     ptabdescSecond->SetInstanceDescriptor(true);
-//     for (ULONG ul = 0; ul < pdrgmdidSecond->Size(); ul++) {
-//         ptabdescSecond->AddTableInTheGroup((*pdrgmdidSecond)[ul]);
-//     }
-
-//     std::wstring w_alias1 = L"VirtualTable1";
-// 	std::wstring w_alias2 = L"VirtualTable2";
-// 	CWStringConst strAlias1(w_alias1.c_str());
-// 	CWStringConst strAlias2(w_alias2.c_str());
-	
-// 	CExpression *pexprFirstVirtual = GPOS_NEW(m_mp) CExpression(m_mp,
-// 		GPOS_NEW(m_mp) CLogicalGet(m_mp, GPOS_NEW(m_mp) CName(m_mp, CName(&strAlias1)), ptabdescFirst));
-	
-// 	CExpression *pexprSecondVirtual = GPOS_NEW(m_mp) CExpression(m_mp,
-// 		GPOS_NEW(m_mp) CLogicalGet(m_mp, GPOS_NEW(m_mp) CName(m_mp, CName(&strAlias2)), ptabdescSecond));
-	
-// 	// TODO add temporal catalog for virtual tables
-	
-// 	// Create UnionAll of the two virtual tables
-// 	CExpressionArray *pdrgpexprChildren = GPOS_NEW(m_mp) CExpressionArray(m_mp);
-// 	pdrgpexprChildren->Append(pexprFirstVirtual);
-// 	pdrgpexprChildren->Append(pexprSecondVirtual);
-	
-// 	CExpression *pexprUnionAll = GPOS_NEW(m_mp) CExpression(
-// 		m_mp,
-// 		GPOS_NEW(m_mp) CLogicalUnionAll(m_mp),
-// 		pdrgpexprChildren
-// 	);
-
-// 	// Replace pexpr with pexprUnionAll in parent's children array
-// 	CExpressionArray *pdrgpexprParentChildren = pexprParent->PdrgPexpr();
-// 	for (ULONG ul = 0; ul < pdrgpexprParentChildren->Size(); ul++)
-// 	{
-// 		if ((*pdrgpexprParentChildren)[ul] == pexpr)
-// 		{
-// 			// pexprParent->AddRef();
-// 			pdrgpexprParentChildren->Replace(ul, pexprUnionAll);
-// 			break;
-// 		}
-// 	}
-	
-// 	return pexprUnionAll;
-// }
-
-CExpression *CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr,
-                                                   ULONG ulTarget,
-                                                   SComponent **splitted_components,
-                                                   BOOL is_first_time)
+void CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
+                                           SComponent **splitted_components,
+                                           BOOL is_first_time)
 {
-	// TODO: update m_rgpcomp, ...
+    // TODO: update m_rgpcomp, ...
     GPOS_ASSERT(NULL != pexpr);
-    // GPOS_ASSERT(COperator::EopLogicalGet == pexpr->Pop()->Eopid());
 
 	// If first time, initialize split state
-	if (is_first_time)
-	{
-		// Cleanup previous state if exists
-		// CRefCount::SafeRelease(m_pdrgpbsSplits);
-		m_ulSplitIndex = 0;
+    if (is_first_time) {
+        m_ulSplitIndex = 0;
+    }
+    else {
+        // Move to next split configuration
+        m_ulSplitIndex++;
+    }
 
-		// Create bitset for tables
-		// CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
-		// CTableDescriptor *ptabdesc = CLogicalGet::PopConvert(pexpr->Pop())->Ptabdesc();
-		// IMdIdArray *pimdidarray = ptabdesc->GetTableIdsInGroup();
-		// for (ULONG ul = 0; ul < pimdidarray->Size(); ul++)
-		// {
-		// 	(void) pbs->ExchangeSet(ul);
-		// }
-
-		// // Generate all possible splits
-		// m_pdrgpbsSplits = PdrgpbsSubsets(m_mp, pbs);
-		// pbs->Release();
-	}
-	else
-	{
-		// Move to next split configuration
-		m_ulSplitIndex++;
-
-		// // If we've tried all splits, reset index
-		// if (m_ulSplitIndex >= m_pdrgpbsSplits->Size())
-		// {
-		// 	m_ulSplitIndex = 0;
-		// }
-	}
-
-	CExpression *scan_expr = FindLogicalGetExpr(pexpr);
+    CExpression *scan_expr = FindLogicalGetExpr(pexpr);
 	GPOS_ASSERT(scan_expr != NULL);
 
 	// Get table descriptor from LogicalGet
@@ -1148,7 +1001,7 @@ CExpression *CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr,
 	IMdIdArray *pdrgmdidSecond = GPOS_NEW(m_mp) IMdIdArray(m_mp);
 	
 	// Split table IDs into two groups
-	SplitGraphlets(pimdidarray, ulTables, pdrgmdidFirst, pdrgmdidSecond);
+	SplitGraphlets(pimdidarray, ulTables, pdrgmdidFirst, pdrgmdidSecond, m_ulSplitIndex);
 	
 	// Create new virtual tables for each group
     CTableDescriptor *ptabdescFirst =
@@ -1187,32 +1040,6 @@ CExpression *CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr,
 	splitted_components[0]->m_edge_set = m_rgpcomp[ulTarget]->m_edge_set;
 	splitted_components[1]->m_pbs = m_rgpcomp[ulTarget]->m_pbs;
 	splitted_components[1]->m_edge_set = m_rgpcomp[ulTarget]->m_edge_set;
-
-    // Create UnionAll of the two virtual tables
-	// CExpressionArray *pdrgpexprChildren = GPOS_NEW(m_mp) CExpressionArray(m_mp);
-	// pdrgpexprChildren->Append(pexprFirstVirtual);
-	// pdrgpexprChildren->Append(pexprSecondVirtual);
-	
-	// CExpression *pexprUnionAll = GPOS_NEW(m_mp) CExpression(
-	// 	m_mp,
-	// 	GPOS_NEW(m_mp) CLogicalUnionAll(m_mp),
-	// 	pdrgpexprChildren
-	// );
-
-	// // Replace pexpr with pexprUnionAll in parent's children array
-	// CExpressionArray *pdrgpexprParentChildren = pexprParent->PdrgPexpr();
-	// for (ULONG ul = 0; ul < pdrgpexprParentChildren->Size(); ul++)
-	// {
-	// 	if ((*pdrgpexprParentChildren)[ul] == pexpr)
-	// 	{
-	// 		// pexprParent->AddRef();
-	// 		pdrgpexprParentChildren->Replace(ul, pexprUnionAll);
-	// 		break;
-	// 	}
-	// }
-	
-	// return pexprUnionAll;
-	return NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -1266,17 +1093,20 @@ CExpression *CJoinOrderDPCoalescing::PexprCopyWithNewChildren(
 void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
                                             ULONG ulTables,
                                             IMdIdArray *pdrgmdidFirst,
-                                            IMdIdArray *pdrgmdidSecond)
+                                            IMdIdArray *pdrgmdidSecond,
+											ULONG ulSplitIndex)
 {
     // Split tables into two groups // TODO change split method
     ULONG ulFirstGroupSize = ulTables / 2;
+	// ULONG ulFirstGroupSize = 1;
 
     // Split tables between the two groups
-    for (ULONG ul = 0; ul < ulTables; ul++) {
-        IMDId *pmdid = (*pimdidarray)[ul];
+    for (ULONG ul = ulSplitIndex; ul < ulTables + ulSplitIndex; ul++) {
+		ULONG ulIndex = ul % ulTables;
+        IMDId *pmdid = (*pimdidarray)[ulIndex];
         pmdid->AddRef();
 
-        if (ul < ulFirstGroupSize) {
+        if (ul - ulSplitIndex < ulFirstGroupSize) {
             pdrgmdidFirst->Append(pmdid);
         }
         else {
@@ -1284,232 +1114,6 @@ void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
         }
     }
 }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::GeneratePushDownCandidates
-//
-//	@doc:
-//		Generate candidate plans by pushing joins below union all
-//
-//---------------------------------------------------------------------------
-// CExpressionArray *CJoinOrderDPCoalescing::GenerateCandidates(
-//     CExpression *pexpr, CExpression *pexprParent,
-//     CExpression *pexprResult)
-// {
-//     // Store top K candidate plans from pushdown
-// 	const ULONG ulMaxCandidates = 3;
-// 	CExpressionArray *pdrgpexprCandidates = GPOS_NEW(m_mp) CExpressionArray(m_mp);
-	
-// 	// Get initial pushdown plan // TODO how about use memo data structure?
-// 	CExpression *pexprPushed = PushJoinBelowUnionAll(pexpr, pexprResult);
-// 	if (NULL != pexprPushed)
-// 	{
-// 		pdrgpexprCandidates->Append(pexprPushed);
-		
-// 		// Try additional pushdowns to get more candidates
-// 		while (pdrgpexprCandidates->Size() < ulMaxCandidates)
-// 		{
-// 			CExpression *pexprNextPush = PushJoinBelowUnionAll(pexprPushed, pexprResult);
-// 			if (NULL == pexprNextPush)
-// 			{
-// 				break;
-// 			}
-// 			pdrgpexprCandidates->Append(pexprNextPush);
-// 			pexprPushed = pexprNextPush;
-// 		}
-// 	}
-
-// 	return pdrgpexprCandidates;
-// }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PushJoinBelowUnionAll
-//
-//	@doc:
-//		Push join below union all if possible
-//
-//---------------------------------------------------------------------------
-// CExpression *CJoinOrderDPCoalescing::PushJoinBelowUnionAll(
-//     CExpression *pexpr, CExpression *pexprRoot)
-// {
-//     GPOS_ASSERT(NULL != pexpr);
-
-//     CMemoryPool *mp = m_mp;
-
-//     // deep copy the input expression to transform
-//     // CExpression *pexprCopy = pexpr->PexprCopyWithRemappedColumns(mp, NULL /*phmulcr*/, true /*must_exist*/);
-
-//     // extract components
-//     CExpression *pexprLeft = (*pexpr)[0];
-//     CExpression *pexprRight = (*pexpr)[1];
-//     CExpression *pexprScalar = (*pexpr)[2];
-
-//     // If both children are union alls, return
-//     if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid() &&
-//         COperator::EopLogicalUnionAll == pexprRight->Pop()->Eopid()) {
-//         return NULL;
-//     }
-
-//     CExpression *pexprUnion, *pexprOther;
-//     BOOL isLeftChildUnion;
-
-//     if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid()) {
-//         pexprUnion = pexprLeft;
-//         pexprOther = pexprRight;
-//         isLeftChildUnion = true;
-//     }
-//     else {
-//         pexprUnion = pexprRight;
-//         pexprOther = pexprLeft;
-//         isLeftChildUnion = false;
-//     }
-
-//     CLogicalUnionAll *popUnionAll =
-//         CLogicalUnionAll::PopConvert(pexprUnion->Pop());
-//     CColRef2dArray *union_input_columns = popUnionAll->PdrgpdrgpcrInput();
-
-//     if (!popUnionAll->CanPushJoinBelowUnionAll()) {
-//         return NULL;
-//     }
-
-//     CColRef2dArray *input_columns = GPOS_NEW(mp) CColRef2dArray(mp);
-//     CExpressionArray *join_array = GPOS_NEW(mp) CExpressionArray(mp);
-
-//     CColRefArray *other_colref_array =
-//         pexprOther->DeriveOutputColumns()->Pdrgpcr(mp);
-//     CColRefArray *colref_array_from = GPOS_NEW(mp) CColRefArray(mp);
-
-//     const ULONG arity = pexprUnion->Arity();
-//     for (ULONG ul = 0; ul < arity; ul++) {
-//         CExpression *pexprChild = (*pexprUnion)[ul];
-//         CColRefArray *child_colref_array = (*union_input_columns)[ul];
-
-//         CExpression *pexprLeftChild, *pexprRightChild, *pexprRemappedScalar,
-//             *pexprRemappedOther, *join_expr;
-
-//         if (ul == 0) {
-//             pexprRemappedScalar = pexprScalar;
-//             pexprRemappedOther = pexprOther;
-//             pexprRemappedScalar->AddRef();
-//             pexprRemappedOther->AddRef();
-//             colref_array_from->AppendArray(child_colref_array);
-//             colref_array_from->AppendArray(other_colref_array);
-//             input_columns->Append(colref_array_from);
-//         }
-//         else {
-//             CColRefArray *colref_array_to = GPOS_NEW(mp) CColRefArray(mp);
-//             colref_array_to->AppendArray(child_colref_array);
-//             colref_array_to->AppendArray(other_colref_array);
-//             input_columns->Append(colref_array_to);
-//             UlongToColRefMap *colref_mapping =
-//                 CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
-//             pexprRemappedScalar = pexprScalar->PexprCopyWithRemappedColumns(
-//                 mp, colref_mapping, true);
-//             pexprRemappedOther = pexprOther;
-//             pexprRemappedOther->AddRef();
-//             colref_mapping->Release();
-//         }
-
-//         if (isLeftChildUnion) {
-//             pexprLeftChild = pexprChild;
-//             pexprRightChild = pexprRemappedOther;
-//             pexprLeftChild->AddRef();
-//         }
-//         else {
-//             pexprLeftChild = pexprRemappedOther;
-//             pexprRightChild = pexprChild;
-//             pexprRightChild->AddRef();
-//         }
-
-//         join_expr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
-//             mp, pexprLeftChild, pexprRightChild, pexprRemappedScalar);
-//         join_array->Append(join_expr);
-//     }
-
-//     other_colref_array->Release();
-
-//     CColRefArray *output_columns = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
-//     return GPOS_NEW(mp) CExpression(
-//         mp, GPOS_NEW(mp) CLogicalUnionAll(mp, output_columns, input_columns),
-//         join_array);
-// }
-
-// Recursively traverse the expression tree and process each leaf node
-// void CJoinOrderDPCoalescing::ProcessLeafNodes(CExpression *pexpr,
-//                                               CExpression *pexprParent,
-//                                               CExpression *pexprResult,
-//                                               CDouble &dCost)
-// {
-//     if (NULL == pexpr) {
-//         return;
-//     }
-
-//     // Check if this is a leaf node (LogicalGet operator)
-//     if (COperator::EopLogicalInnerJoin == pexpr->Pop()->Eopid()) {
-		
-//         CLogicalGet *popGet = CLogicalGet::PopConvert(pexpr->Pop());
-//         CTableDescriptor *ptabdesc = popGet->Ptabdesc();
-
-//         // If the table is an instance descriptor, split the union all
-//         if (ptabdesc->IsInstanceDescriptor()) {
-//             CExpressionArray *pdrgpexprCandidates =
-//                 GenerateCandidates(pexpr, pexprParent, pexprResult);
-
-//             // CExpression *pexprBest = NULL;
-//             // CDouble dCostBest = 0.0;
-//             // BOOL fFirst = true;
-
-//             // // For each candidate pushdown plan
-//             // const ULONG ulCandidates = pdrgpexprCandidates->Size();
-//             // for (ULONG ul = 0; ul < ulCandidates; ul++) {
-//             //     CExpression *pexprCandidate = (*pdrgpexprCandidates)[ul];
-
-//             //     const ULONG ulMaxTrySplit = 3;  // TODO: how to determine this?
-//             //     ULONG ulTrySplit = 0;
-//             //     // Try different union all splits
-//             //     SplitUnionAll(pexpr, pexprParent, true);
-//             //     while (true) {
-//             //         // Run GOO on current split
-//             //         CExpression *pexprGOO =
-//             //             BuildQueryGraphAndRunGOO(pexprCandidate);
-//             //         CDouble dCostGOO = DCost(pexprGOO);
-
-//             //         // Update best plan if cost is lower
-//             //         if (fFirst || dCostGOO < dCostBest)
-//             //         {
-//             //             CRefCount::SafeRelease(pexprBest);
-//             //             pexprBest = pexprGOO;
-//             //             dCostBest = dCostGOO;
-//             //             fFirst = false;
-//             //         }
-//             //         else
-//             //         {
-//             //             pexprGOO->Release();
-//             //         }
-                    
-// 			// 		ulTrySplit++;
-// 			// 		if (ulTrySplit >= ulMaxTrySplit) {
-// 			// 			break;
-// 			// 		}
-
-// 			// 		SplitUnionAll(pexpr, pexprParent, false);
-//             //     }
-//             // }
-
-//             // Cleanup
-//             pdrgpexprCandidates->Release();
-//         }
-//         return;
-//     }
-
-//     // Recursively process children
-//     const ULONG ulArity = pexpr->Arity();
-//     for (ULONG ul = 0; ul < ulArity; ul++) {
-//         ProcessLeafNodes((*pexpr)[ul], pexpr, pexprResult, dCost);
-//     }
-// }
 
 CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 {
@@ -1607,102 +1211,6 @@ CJoinOrderDPCoalescing::PexprExpand()
 		return pexprResult;
 	}
 }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::BuildQueryGraph
-//
-//	@doc:
-//		Build query graph from input NAry join expression
-//
-//---------------------------------------------------------------------------
-// void CJoinOrderDPCoalescing::BuildQueryGraph(CExpression *pexpr,
-//                                              SComponent ***rgpcomp,
-//                                              ULONG *ulComps, SEdge ***rgpedge,
-//                                              ULONG *ulEdges, ULONG *num_query_graphs)
-// {
-//     // Initialize component and edge arrays
-//     *rgpcomp = GPOS_NEW_ARRAY(m_mp, SComponent*, m_ulComps);
-//     *rgpedge = GPOS_NEW_ARRAY(m_mp, SEdge*, m_ulEdges);
-//     *ulComps = 0;
-//     *ulEdges = 0;
-// 	*num_query_graphs = 0;
-//     // Stack for DFS traversal
-//     CExpressionArray *pdrgpexprStack = GPOS_NEW(m_mp) CExpressionArray(m_mp);
-//     pdrgpexprStack->Append(pexpr);
-
-//     while (pdrgpexprStack->Size() > 0)
-//     {
-//         // Get next expression to process
-//         CExpression *pexprCurrent = pdrgpexprStack->Pop();
-        
-//         if (CUtils::FLogicalJoin(pexprCurrent->Pop()))
-//         {
-//             // For joins, process both children and the join predicate
-//             CExpression *pexprLeft = (*pexprCurrent)[0];
-//             CExpression *pexprRight = (*pexprCurrent)[1];
-//             CExpression *pexprPred = (*pexprCurrent)[2];
-
-//             // Create components for left and right children if they're base tables
-//             if (COperator::EopLogicalGet == pexprLeft->Pop()->Eopid())
-//             {
-//                 CBitSet *pbsLeft = GPOS_NEW(m_mp) CBitSet(m_mp);
-//                 (void) pbsLeft->ExchangeSet(*ulComps);
-//                 SComponent *pcompLeft = GPOS_NEW(m_mp) SComponent(m_mp, pbsLeft, pexprLeft);
-//                 (*rgpcomp)[*ulComps] = pcompLeft;
-//                 (*ulComps)++;
-//             }
-//             else
-//             {
-//                 pdrgpexprStack->Append(pexprLeft);
-//             }
-
-//             if (COperator::EopLogicalGet == pexprRight->Pop()->Eopid())
-//             {
-//                 CBitSet *pbsRight = GPOS_NEW(m_mp) CBitSet(m_mp);
-//                 (void) pbsRight->ExchangeSet(*ulComps);
-//                 SComponent *pcompRight = GPOS_NEW(m_mp) SComponent(m_mp, pbsRight, pexprRight);
-//                 (*rgpcomp)[*ulComps] = pcompRight;
-//                 (*ulComps)++;
-//             }
-//             else
-//             {
-//                 pdrgpexprStack->Append(pexprRight);
-//             }
-
-//             // Create edge for join predicate
-//             if (!CUtils::FScalarConstTrue(pexprPred))
-//             {
-//                 CBitSet *pbsEdge = GPOS_NEW(m_mp) CBitSet(m_mp);
-//                 (void) pbsEdge->ExchangeSet(*ulComps - 2); // Left component
-//                 (void) pbsEdge->ExchangeSet(*ulComps - 1); // Right component
-                
-//                 SEdge *pedge = GPOS_NEW(m_mp) SEdge(m_mp, pbsEdge, pexprPred);
-//                 (*rgpedge)[*ulEdges] = pedge;
-//                 (*ulEdges)++;
-//             }
-//         }
-//         else if (COperator::EopLogicalGet == pexprCurrent->Pop()->Eopid())
-//         {
-//             // Create component for base table
-//             CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
-//             (void) pbs->ExchangeSet(*ulComps);
-//             SComponent *pcomp = GPOS_NEW(m_mp) SComponent(m_mp, pbs, pexprCurrent);
-//             (*rgpcomp)[*ulComps] = pcomp;
-//             (*ulComps)++;
-//         }
-//         else
-//         {
-//             // For other operators, continue traversing down
-//             for (ULONG ul = 0; ul < pexprCurrent->Arity(); ul++)
-//             {
-//                 pdrgpexprStack->Append((*pexprCurrent)[ul]);
-//             }
-//         }
-//     }
-
-//     pdrgpexprStack->Release();
-// }
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -2049,7 +1557,6 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 
 	// Cleanup
 	size->Release();
-	// tree->Release();
 	GPOS_DELETE_ARRAY(parent);
 	GPOS_DELETE_ARRAY(rank);
 
