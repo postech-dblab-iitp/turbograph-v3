@@ -47,7 +47,7 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
 
     // Append PhysicalProduceResults
     duckdb::Schema final_output_schema =
-        final_pipeline_ops[final_pipeline_ops.size() - 1]->GetOp()->schema;
+        final_pipeline_ops[final_pipeline_ops.size() - 1]->schema;
     vector<duckdb::Schema> prev_local_schemas;
     duckdb::CypherPhysicalOperator *op;
 
@@ -413,7 +413,6 @@ duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopNormalTableScan(CExp
     tmp_schema.setStoredTypes(types);
     tmp_schema.setStoredColumnNames(out_col_names);
     duckdb::CypherPhysicalOperator *op = nullptr;
-    generate_sfg = true;
 
     if (!do_filter_pushdown) {
         op = new duckdb::PhysicalNodeScan(tmp_schema, oids,
@@ -473,12 +472,7 @@ duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopNormalTableScan(CExp
         }
     }
 
-    if (generate_sfg) {
-        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-        num_schemas_of_childs.push_back({1});
-        pipeline_schemas.push_back({tmp_schema});
-        pipeline_union_schema.push_back(tmp_schema);
-    }
+    pBuildSchemaFlowGraphForSingleSchemaScan(tmp_schema);
 
     D_ASSERT(op != nullptr);
     result->push_back(op);
@@ -673,13 +667,7 @@ duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopDSITableScan(CExpres
             scan_projection_mappings);
     }
 
-    generate_sfg = true;
-
-    // Update schema flow graph for scan
-    pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-    num_schemas_of_childs.push_back({local_schemas.size()});
-    pipeline_schemas.push_back(local_schemas);
-    pipeline_union_schema.push_back(global_schema);
+    pBuildSchemaFlowGraphForMultiSchemaScan(global_schema, local_schemas);
 
     D_ASSERT(op != nullptr);
     result->push_back(op);
@@ -914,12 +902,16 @@ Planner::pTransformEopUnionAll(CExpression *plan_expr)
     const ULONG num_childs = childs->Size();
 
     for (int i = 0; i < num_childs; i++) {
+        generate_sfg = (i == 0);
+        restrict_generate_sfg_for_unionall = (i != 0);
         CExpression *child_expr = childs->operator[](i);
         auto child_result = pTraverseTransformPhysicalPlan(child_expr);
         union_group->PushBack(child_result->GetGroups());
     }
-    result->push_back(union_group);
+    generate_sfg = true;
+    restrict_generate_sfg_for_unionall = false;
 
+    result->push_back(union_group);
     return result;
 }
 
@@ -4599,7 +4591,8 @@ void Planner::pGenerateSchemaFlowGraph(
         return;
     duckdb::SchemaFlowGraph sfg(final_pipeline_ops.size(),
                                 pipeline_operator_types, num_schemas_of_childs,
-                                pipeline_schemas, pipeline_union_schema);
+                                pipeline_schemas, other_source_schemas,
+                                pipeline_union_schema);
     auto &num_schemas_of_childs_ = sfg.GetNumSchemasOfChilds();
     vector<vector<uint64_t>> flow_graph;
     flow_graph.resize(final_pipeline_ops.size());
@@ -4719,14 +4712,32 @@ void Planner::pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id,
     }
 }
 
+void Planner::pBuildSchemaFlowGraphForSingleSchemaScan(duckdb::Schema &output_schema)
+{    
+    if (!restrict_generate_sfg_for_unionall) {
+        generate_sfg = true;
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({1});
+        pipeline_schemas.push_back({output_schema});
+        pipeline_union_schema.push_back(output_schema);
+    } else {
+        other_source_schemas.push_back({output_schema});
+    }
+}
+
 void Planner::pBuildSchemaFlowGraphForMultiSchemaScan(
     duckdb::Schema &global_schema, vector<duckdb::Schema>& local_schemas)
 {
-    generate_sfg = true;
-    pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
-    num_schemas_of_childs.push_back({local_schemas.size()});
-    pipeline_schemas.push_back(local_schemas);
-    pipeline_union_schema.push_back(global_schema);
+    if (!restrict_generate_sfg_for_unionall) {
+        generate_sfg = true;
+        pipeline_operator_types.push_back(duckdb::OperatorType::UNARY);
+        num_schemas_of_childs.push_back({local_schemas.size()});
+        pipeline_schemas.push_back(local_schemas);
+        pipeline_union_schema.push_back(global_schema);
+    }
+    else {
+        other_source_schemas.push_back(local_schemas);
+    }
 }
 
 void Planner::pBuildSchemaFlowGraphForUnaryOperator(

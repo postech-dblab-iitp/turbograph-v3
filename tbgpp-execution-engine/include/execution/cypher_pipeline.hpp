@@ -19,7 +19,7 @@ public:
 
 	std::vector<CypherPhysicalOperator *> GetOperators() const {
 		vector<CypherPhysicalOperator *> result;
-		for (size_t i = 0; i < pipelineLength; i++) {
+		for (size_t i = 1; i < pipelineLength - 1; i++) {
 			result.push_back(operator_groups.GetIdxOperator(i));
 		}
 		return result;
@@ -35,6 +35,10 @@ public:
 
 	CypherPhysicalOperator* GetIdxOperator(int idx) {
 		return operator_groups.GetIdxOperator(idx);
+	}
+
+	bool AdvanceGroup() {
+		return false;
 	}
 
 	std::string toString() {

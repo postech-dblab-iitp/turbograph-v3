@@ -210,12 +210,24 @@ CPhysicalUnionAll::Matches(COperator *pop) const
 //---------------------------------------------------------------------------
 CColRefSet *
 CPhysicalUnionAll::PcrsRequired(CMemoryPool *mp,
-								CExpressionHandle &,  //exprhdl,
+								CExpressionHandle &exprhdl,  //exprhdl,
 								CColRefSet *pcrsRequired, ULONG child_index,
 								CDrvdPropArray *,  // pdrgpdpCtxt
 								ULONG			   // ulOptReq
 )
 {
+	CWStringDynamic str(mp, L"\n");
+	COstreamString oss(&str);
+	oss << "UNION child " << child_index << " required columns: ";
+	if (exprhdl.Pexpr() != NULL) {
+		exprhdl.Pexpr()->OsPrint(oss);
+	}
+	else {
+		exprhdl.Pgexpr()->OsPrint(oss);
+	}
+	pcrsRequired->OsPrint(oss);
+	GPOS_TRACE(str.GetBuffer());
+
 	return MapOutputColRefsToInput(mp, pcrsRequired, child_index);
 }
 
@@ -960,6 +972,20 @@ CPhysicalUnionAll::MapOutputColRefsToInput(CMemoryPool *mp,
 	ULONG total_num_cols = all_outcols->Size();
 	CColRefArray *in_colref_array = (*PdrgpdrgpcrInput())[child_index];
 	CColRefSetIter iter(*out_col_refs);
+
+	CWStringDynamic str2(mp, L"\n");
+	COstreamString oss2(&str2);
+	for (ULONG i = 0; i < in_colref_array->Size(); i++)
+	{
+		(*in_colref_array)[i]->OsPrint(oss2);
+	}
+	oss2 << std::endl;
+	for (ULONG i = 0; i < all_outcols->Size(); i++)
+	{
+		(*all_outcols)[i]->OsPrint(oss2);
+	}
+	GPOS_TRACE(str2.GetBuffer());
+
 	while (iter.Advance())
 	{
 		BOOL found = false;
@@ -969,12 +995,20 @@ CPhysicalUnionAll::MapOutputColRefsToInput(CMemoryPool *mp,
 			if (iter.Bit() == (*all_outcols)[i]->Id())
 			{
 				// the input colref will have the same index, but in the list of input cols
+				std::cout << i << std::endl;
 				result->Include((*in_colref_array)[i]);
 				found = true;
 			}
 		}
 		GPOS_ASSERT(found);
 	}
+
+
+	CWStringDynamic str(mp, L"\n");
+	COstreamString oss(&str);
+	result->OsPrint(oss);
+	GPOS_TRACE(str.GetBuffer());
+
 	return result;
 }
 

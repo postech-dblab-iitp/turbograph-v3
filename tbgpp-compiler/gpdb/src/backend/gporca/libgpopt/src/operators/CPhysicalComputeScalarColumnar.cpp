@@ -103,9 +103,33 @@ CPhysicalComputeScalarColumnar::PcrsRequired(CMemoryPool *mp,
 		0 == child_index &&
 		"Required properties can only be computed on the relational child");
 
+
+	CWStringDynamic str2(mp, L"\n");
+	COstreamString oss2(&str2);
+	oss2 << "Compute Scalar IN ";
+	GPOS_TRACE(str2.GetBuffer());
+
 	CColRefSet *pcrs = GPOS_NEW(mp) CColRefSet(mp, *pcrsRequired);
 	CColRefSet *pcrsChildReqd =
 		PcrsChildReqd(mp, exprhdl, pcrs, child_index, 1 /*ulScalarIndex*/);
+
+	CWStringDynamic str(mp, L"\n");
+	COstreamString oss(&str);
+	oss << "Compute Scalar required columns: ";
+	pcrs->OsPrint(oss);
+	GPOS_TRACE(str.GetBuffer());
+
+	if (pcrs->Size() == 1) {
+		CWStringDynamic str2(mp, L"\n");
+		COstreamString oss2(&str2);
+		if (exprhdl.Pexpr() != NULL) {
+			exprhdl.Pexpr()->OsPrint(oss2);
+		}
+		else {
+			exprhdl.Pgexpr()->OsPrint(oss2);
+		}
+		GPOS_TRACE(str2.GetBuffer());
+	}
 
 	pcrs->Release();	
 

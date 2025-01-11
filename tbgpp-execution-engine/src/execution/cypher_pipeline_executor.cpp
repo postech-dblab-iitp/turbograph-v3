@@ -166,7 +166,13 @@ void CypherPipelineExecutor::ExecutePipeline()
 			if (sfg.AdvanceCurSourceIdx()) continue;
 			else {
 				// TODO process remaining postponed outputs
-				break;
+				if (pipeline->AdvanceGroup()) {
+					sfg.ReplaceToOtherSourceSchema();
+					local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
+					local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
+					continue;
+				}
+				else break;
 			}
 		}
 		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging

@@ -569,18 +569,44 @@ CPhysical::PcrsChildReqd(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 	// request was not found in map -- we need to compute it
 	pcrs = GPOS_NEW(mp) CColRefSet(mp, *pcrsRequired);
+
+	CWStringDynamic str5(mp, L"\n");
+	COstreamString oss5(&str5);
+	oss5 << "before UNION";
+	pcrs->OsPrint(oss5);
+	GPOS_TRACE(str5.GetBuffer());
+
 	if (gpos::ulong_max != ulScalarIndex)
 	{
 		// include used columns and exclude defined columns of scalar child
 		pcrs->Union(exprhdl.DeriveUsedColumns(ulScalarIndex));
+		
+		CWStringDynamic str(mp, L"\n");
+		COstreamString oss(&str);
+		oss << "After UNION";
+		pcrs->OsPrint(oss);
+		GPOS_TRACE(str.GetBuffer());
+
 		if (Eopid() != EopPhysicalComputeScalarColumnar) {
 			// if scalar columnar, do not exclude
 			pcrs->Exclude(exprhdl.DeriveDefinedColumns(ulScalarIndex));
 		}
 	}
 
+	CWStringDynamic str3(mp, L"\n");
+	COstreamString oss3(&str3);
+	oss3 << "After Exclude";
+	pcrs->OsPrint(oss3);
+	GPOS_TRACE(str3.GetBuffer());
+
 	// intersect computed column set with child's output columns
 	pcrs->Intersection(exprhdl.DeriveOutputColumns(child_index));
+
+	CWStringDynamic str2(mp, L"\n");
+	COstreamString oss2(&str2);
+	oss2 << "After INTERSECT";
+	pcrs->OsPrint(oss2);
+	GPOS_TRACE(str2.GetBuffer());
 
 	// insert request in map
 	pcrs->AddRef();
