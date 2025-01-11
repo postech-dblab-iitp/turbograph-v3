@@ -177,10 +177,6 @@ private:
 	// driver of subset generation
 	static CBitSetArray *PdrgpbsSubsets(CMemoryPool *mp, CBitSet *pbs);
 
-    // void BuildQueryGraph(CExpression *pexpr, SComponent ***rgpcomp,
-    //                      ULONG *ulComps, SEdge ***rgpedge, ULONG *ulEdges,
-    //                      ULONG *num_query_graphs);
-
     void CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity);
 
     void UpdateEdgeSelectivity(ULONG ulTarget, CDoubleArray *pdrgdSelectivity,
@@ -202,31 +198,18 @@ private:
     CTableDescriptor *CreateTableDescForVirtualTable(CTableDescriptor *ptabdesc,
                                                      IMdIdArray *pdrgmdid);
 
-    // CExpression *SplitUnionAll(CExpression *pexpr, CExpression *pexprParent,
-    //                            BOOL is_first_time);
-
-    CExpression *SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
-                               SComponent **splitted_components,
-                               BOOL is_first_time);
+    void SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
+                       SComponent **splitted_components, BOOL is_first_time);
 
     CExpression *PexprCopyWithNewChildren(CMemoryPool *mp, CExpression *pexpr,
                                           CExpression *target_expr,
                                           CExpression *new_expr);
 
     void SplitGraphlets(IMdIdArray *pimdidarray, ULONG ulTables,
-                        IMdIdArray *pdrgmdidFirst, IMdIdArray *pdrgmdidSecond);
+                        IMdIdArray *pdrgmdidFirst, IMdIdArray *pdrgmdidSecond,
+						ULONG ulSplitIndex);
 
     CExpression *FindLogicalGetExpr(CExpression *pexpr);
-
-    // CExpression *PushJoinBelowUnionAll(CExpression *pexpr,
-    //                                    CExpression *pexprRoot);
-
-    // CExpressionArray *GenerateCandidates(CExpression *pexpr,
-    //                                      CExpression *pexprParent,
-    //                                      CExpression *pexprResult);
-
-    // void ProcessLeafNodes(CExpression *pexpr, CExpression *pexprParent,
-    //                       CExpression *pexprResult, CDouble &dCost);
 
    public:
 	// ctor
