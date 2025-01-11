@@ -197,7 +197,7 @@ private:
 
     ULONG Union(ULONG *parent, ULONG *rank, ULONG x, ULONG y);
 
-    void ProcessUnionAllComponents(CExpression *pexprResult, CDouble &dCost);
+    CExpression *ProcessUnionAllComponents(CDouble &dCost);
 
     CTableDescriptor *CreateTableDescForVirtualTable(CTableDescriptor *ptabdesc,
                                                      IMdIdArray *pdrgmdid);
