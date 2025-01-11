@@ -50,9 +50,9 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             rm -rf ${target_dir}
             mkdir -p ${target_dir}
             
-            /turbograph-v3/build-release/tbgpp-graph-store/store 365GB &
+            /turbograph-v3/build-release/tbgpp-graph-store/store 500GB &
             /turbograph-v3/build-release/tbgpp-graph-store/catalog_test_catalog_server ${target_dir} &
-            sleep 5
+            sleep 15
 
             log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
             /turbograph-v3/build-release/tbgpp-execution-engine/bulkload_using_map \

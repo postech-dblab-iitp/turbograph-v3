@@ -28,10 +28,16 @@ protected:
   size_t log_size_;
 };
 
+// #define LOGGED_WRITE(lval, rval, hdr_ptr, log_ptr)                             \
+//   do {                                                                         \
+//     sm_offset offset = (uint8_t *)(&(lval)) - (uint8_t *)(hdr_ptr);            \
+//     log_ptr->Write(offset, rval);                                              \
+//   } while (false)
+
+// Remove log write for S62 (we don't use this)
 #define LOGGED_WRITE(lval, rval, hdr_ptr, log_ptr)                             \
   do {                                                                         \
     sm_offset offset = (uint8_t *)(&(lval)) - (uint8_t *)(hdr_ptr);            \
-    log_ptr->Write(offset, rval);                                              \
   } while (false)
 
 #endif // UNDO_DISK_H

@@ -121,7 +121,7 @@ LightningStore::LightningStore(const std::string &unix_socket, size_t size)
 
   allocator_ = new MemAllocator((LightningStoreHeader *)store_header_, nullptr);
 
-  int num_mpk_pages = sizeof(LightningStoreHeader) / 4096 + 1;
+  int64_t num_mpk_pages = sizeof(LightningStoreHeader) / 4096 + 1;
 
   int64_t secure_memory_size = num_mpk_pages * 4096;
 
