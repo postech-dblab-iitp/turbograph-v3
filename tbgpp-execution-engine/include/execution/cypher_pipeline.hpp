@@ -19,7 +19,6 @@ public:
 				ops.push_back(groups[i]->GetOp());
 			}
 			else {
-				std::cout << "asldfjalsdfas;dlfasjdlfasjd...." << std::endl;
 				throw NotImplementedException("grouped operators are not supported yet");
 			}
 		}

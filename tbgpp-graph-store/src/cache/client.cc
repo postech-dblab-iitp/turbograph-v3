@@ -314,12 +314,16 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
     // object->dirty_bit = 0;
 
     *offset_ptr = object_buffer_offset;
-    object_log_->OpenObject(object_id);
+    // object_log_->OpenObject(object_id);
 
     return 0;
   }
 
   int64_t new_object_index = alloc_object_entry();
+  if (new_object_index >= MAX_NUM_OBJECTS) {
+    std::cerr << "Object entires are full!" << std::endl;
+    return -1;
+  }
   sm_offset object_buffer_offset = allocator_->MallocShared(size);
   ObjectEntry *new_object = &header_->object_entries[new_object_index];
   uint8_t *object_buffer = &base_[object_buffer_offset];
@@ -345,6 +349,10 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
   LOGGED_WRITE(new_object->sealed, false, header_, disk_);
   // new_object->sealed = false;
 
+  if (hash_object_id(object_id) > HASHMAP_SIZE) {
+    std::cerr << "hash_object_id is too large!" << std::endl;
+    return -1;
+  }
   int64_t head_index =
       header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
   ObjectEntry *head = &header_->object_entries[head_index];
@@ -367,7 +375,7 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
 
   *offset_ptr = object_buffer_offset;
 
-  object_log_->OpenObject(object_id);
+  // object_log_->OpenObject(object_id);
 
   return 0;
 }
@@ -560,7 +568,7 @@ int LightningClient::Release(uint64_t object_id) {
   ObjectEntry *object_entry = &header_->object_entries[object_index];
   assert(object_entry->sealed);
 
-  object_log_->CloseObject(object_id);
+  // object_log_->CloseObject(object_id);
 
   LOGGED_WRITE(object_entry->ref_count, object_entry->ref_count - 1, header_,
                disk_);
@@ -608,7 +616,7 @@ int LightningClient::delete_internal(uint64_t object_id) {
   ObjectEntry *object_entry = &header_->object_entries[object_index];
   assert(object_entry->sealed);
 
-  object_log_->CloseObject(object_id);
+  // object_log_->CloseObject(object_id);
   allocator_->FreeShared(object_entry->offset);
   int64_t prev_object_index = object_entry->prev;
   int64_t next_object_index = object_entry->next;

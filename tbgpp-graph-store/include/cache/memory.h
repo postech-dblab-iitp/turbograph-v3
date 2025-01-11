@@ -14,7 +14,7 @@
 #define HASHMAP_SIZE 2097152
 // #define MAX_NUM_OBJECTS 100000
 // #define MAX_NUM_OBJECTS 524288
-#define MAX_NUM_OBJECTS 1048576
+#define MAX_NUM_OBJECTS 16777216
 
 typedef int64_t sm_offset;
 
