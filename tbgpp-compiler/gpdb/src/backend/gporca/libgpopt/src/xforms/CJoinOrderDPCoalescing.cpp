@@ -1511,11 +1511,9 @@ void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
 //     }
 // }
 
-void CJoinOrderDPCoalescing::ProcessUnionAllComponents(CExpression *pexprResult,
-                                                       CDouble &dCost)
+CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 {
-    // // Start traversing from root
-    // ProcessLeafNodes(pexprResult, NULL, pexprResult, dCost);
+    CExpression *pexprResultUnionAll = NULL;
 
     // Iterate through components
     for (ULONG ul = 0; ul < m_ulComps; ul++) {
@@ -1547,22 +1545,27 @@ void CJoinOrderDPCoalescing::ProcessUnionAllComponents(CExpression *pexprResult,
             continue;
         }
         
-        while (true) {
-            // Run GOO on current split
-            CExpression *pexprGOO = BuildQueryGraphAndRunGOO(pcomp->m_pexpr, ul, dCost);
-            CDouble dCostGOO = DCost(pexprGOO);
+		CExpression *pexprGOO = 
+			BuildQueryGraphAndRunGOO(pcomp->m_pexpr, ul, dCost);
+		
+		if (pexprGOO == NULL) {
+			continue;
+		}
 
-            // Update best plan if cost is lower
-            if (dCostGOO < dCost) {
-                pexprResult->Release();
-                pexprResult = pexprGOO;
-                dCost = dCostGOO;
-            }
-            else {
-                pexprGOO->Release();
-            }
-        }
+		CDouble dCostGOO = DCost(pexprGOO);
+
+		// Update best plan if cost is lower
+		if (dCostGOO < dCost) {
+			pexprResultUnionAll->Release();
+			pexprResultUnionAll = pexprGOO;
+			dCost = dCostGOO;
+		}
+		else {
+			pexprGOO->Release();
+		}
     }
+	
+	return pexprResultUnionAll;
 }
 
 //---------------------------------------------------------------------------
@@ -1592,17 +1595,17 @@ CJoinOrderDPCoalescing::PexprExpand()
     // compute cost for pexprResult
 	CDouble dCost = DCost(pexprResult);
 
-	// Split one by one
-	ProcessUnionAllComponents(pexprResult, dCost);
+    // Split one by one
+    CExpression *pexprResultUnionAll =
+        ProcessUnionAllComponents(dCost);
 
-	// CExpression *pexprResult; // = PexprBestJoinOrder(pbs);
-	// if (NULL != pexprResult)
-	// {
-	// 	pexprResult->AddRef();
-	// }
-	// pbs->Release();
-
-	return pexprResult;
+    if (NULL != pexprResultUnionAll)
+	{
+		pexprResultUnionAll->AddRef();
+		return pexprResultUnionAll;
+	} else {
+		return pexprResult;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -2070,10 +2073,11 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
     splitted_components = GPOS_NEW_ARRAY(m_mp, SComponent *, num_query_graphs);
 
 	CExpression *pexprResult = NULL;
-    const ULONG ulMaxTrySplit = 3;
+    const ULONG ulMaxTrySplit = 1;
     for (ULONG ulTrySplit = 0; ulTrySplit < ulMaxTrySplit; ulTrySplit++) {
         SplitUnionAll(pexpr, ulTarget, splitted_components, ulTrySplit == 0);
 
+		CExpressionArray *pexprArray = GPOS_NEW(m_mp) CExpressionArray(m_mp);
         CDouble total_cost = 0;
         for (ULONG ul = 0; ul < num_query_graphs; ul++) {
             UpdateEdgeSelectivity(ulTarget, m_pdrgdSelectivity, ul,
@@ -2086,12 +2090,14 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
 										   ul);
             CDouble dCostGOO = DCost(pexprGOO);
 			total_cost = total_cost + dCostGOO;
-
-			if (total_cost < dBestCost) {
-				dBestCost = total_cost;
-				pexprResult = pexprGOO;
-			}
+			pexprArray->Append(pexprGOO);
         }
+
+		if (total_cost < dBestCost) {
+			pexprResult = GPOS_NEW(m_mp) CExpression(m_mp,
+				GPOS_NEW(m_mp) CLogicalUnionAll(m_mp),
+				pexprArray);
+		}
     }
 
     return pexprResult;
