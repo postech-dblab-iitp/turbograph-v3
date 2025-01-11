@@ -190,7 +190,7 @@ LightningClient::LightningClient(const std::string &store_socket,
     exit(-1);
   }
 
-  disk_ = new UndoLogDisk(1024 * 1024 * 10, base_, size_ + object_log_size);
+  disk_ = new UndoLogDisk(1024 * 1024 * 1024, base_, size_ + object_log_size);
   object_log_ = new ObjectLog(object_log_base_, size_, disk_);
 
   allocator_ = new MemAllocator(header_, disk_);
