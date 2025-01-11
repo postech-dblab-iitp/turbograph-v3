@@ -643,71 +643,65 @@ vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
 
     for (auto pipe_idx = 0; pipe_idx < pipelines.size(); pipe_idx++) {
         auto &pipe = pipelines[pipe_idx];
-        if (pipe->IsSuperPipeline()) {
-            std::cout << "Super pipeline is not supported yet" << std::endl;
-            throw std::runtime_error("Super pipeline is not supported yet");
+        duckdb::SchemaFlowGraph *sfg = generate_sfg ? &sfgs[pipe_idx] : nullptr;
+
+        // find children and deps - the child/dep ordering matters.
+        // must run in ascending order of the vector
+        auto *new_ctxt = new duckdb::ExecutionContext(context);
+        vector<duckdb::CypherPipelineExecutor *>
+            child_executors;  // child : pipe's sink == op's source
+        std::map<duckdb::CypherPhysicalOperator *,
+                duckdb::CypherPipelineExecutor *>
+            dep_executors;  // dep   : pipe's sink == op's operator
+
+        // inject per-operator dependencies in a pipeline
+        for (duckdb::idx_t op_idx = 1; op_idx < pipe->pipelineLength;
+            op_idx++) {
+            pipe->GetIdxOperator(op_idx)->children.push_back(
+                pipe->GetIdxOperator(op_idx - 1));
         }
-        else {
-            duckdb::SchemaFlowGraph *sfg = generate_sfg ? &sfgs[pipe_idx] : nullptr;
 
-            // find children and deps - the child/dep ordering matters.
-            // must run in ascending order of the vector
-            auto *new_ctxt = new duckdb::ExecutionContext(context);
-            vector<duckdb::CypherPipelineExecutor *>
-                child_executors;  // child : pipe's sink == op's source
-            std::map<duckdb::CypherPhysicalOperator *,
-                    duckdb::CypherPipelineExecutor *>
-                dep_executors;  // dep   : pipe's sink == op's operator
+        // find children pipeline
+        for (auto &ce : executors) {
+            // connect SOURCE with previous SINK
+            if (pipe->GetSource() == ce->pipeline->GetSink()) {
+                child_executors.push_back(ce);
+            }
+        }
 
-            // inject per-operator dependencies in a pipeline
-            for (duckdb::idx_t op_idx = 1; op_idx < pipe->pipelineLength;
+        // find dependent pipeline
+        for (auto &ce : executors) {
+            // connect OPERATORS with previous SINK
+            for (int op_idx = 0; op_idx < pipe->GetOperators().size();
                 op_idx++) {
-                pipe->GetIdxOperator(op_idx)->children.push_back(
-                    pipe->GetIdxOperator(op_idx - 1));
-            }
-
-            // find children pipeline
-            for (auto &ce : executors) {
-                // connect SOURCE with previous SINK
-                if (pipe->GetSource() == ce->pipeline->GetSink()) {
-                    child_executors.push_back(ce);
-                }
-            }
-
-            // find dependent pipeline
-            for (auto &ce : executors) {
-                // connect OPERATORS with previous SINK
-                for (int op_idx = 0; op_idx < pipe->GetOperators().size();
-                    op_idx++) {
-                    duckdb::CypherPhysicalOperator *op =
-                        pipe->GetOperators()[op_idx];
-                    if (op == ce->pipeline->GetSink()) {
-                        dep_executors.insert(std::make_pair(op, ce));
-                        // add previous of ce to children
-                        if (ce->pipeline->pipelineLength == 2) {
-                            op->children.push_back(ce->pipeline->GetSource());
-                        }
-                        else {
-                            op->children.push_back(ce->pipeline->GetIdxOperator(
-                                ce->pipeline->pipelineLength -
-                                2));  // last one in operators
-                        }
+                duckdb::CypherPhysicalOperator *op =
+                    pipe->GetOperators()[op_idx];
+                if (op == ce->pipeline->GetSink()) {
+                    dep_executors.insert(std::make_pair(op, ce));
+                    // add previous of ce to children
+                    if (ce->pipeline->pipelineLength == 2) {
+                        op->children.push_back(ce->pipeline->GetSource());
+                    }
+                    else {
+                        op->children.push_back(ce->pipeline->GetIdxOperator(
+                            ce->pipeline->pipelineLength -
+                            2));  // last one in operators
                     }
                 }
             }
-            duckdb::CypherPipelineExecutor *pipe_exec;
-            if (generate_sfg) {
-                pipe_exec = new duckdb::CypherPipelineExecutor(
-                    new_ctxt, pipe, *sfg, move(child_executors),
-                    move(dep_executors));
-            }
-            else {
-                pipe_exec = new duckdb::CypherPipelineExecutor(
-                    new_ctxt, pipe, move(child_executors), move(dep_executors));
-            }
-
-            executors.push_back(pipe_exec);
         }
+        duckdb::CypherPipelineExecutor *pipe_exec;
+        if (generate_sfg) {
+            pipe_exec = new duckdb::CypherPipelineExecutor(
+                new_ctxt, pipe, *sfg, move(child_executors),
+                move(dep_executors));
+        }
+        else {
+            pipe_exec = new duckdb::CypherPipelineExecutor(
+                new_ctxt, pipe, move(child_executors), move(dep_executors));
+        }
+
+        executors.push_back(pipe_exec);
     }
 
     return executors;

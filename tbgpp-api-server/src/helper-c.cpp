@@ -181,12 +181,13 @@ std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors) {
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
   		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
-		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
+		auto operators = pipeline->GetOperators();
+		for (auto it2 = operators.crbegin() ; it2 != operators.crend(); ++it2) {
 			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp );
 			if( isRootOp ) { isRootOp = false; }
 		}
 		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->source, isRootOp );
+		current_root = operatorToVisualizerJSON( current_root, pipeline->GetSource(), isRootOp );
 		if( isRootOp ) { isRootOp = false; }
 	}
 	

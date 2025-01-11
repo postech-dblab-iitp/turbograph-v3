@@ -3257,6 +3257,7 @@ private:
     vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map;
     PyObject* p_sklearn_module = nullptr;
 
+    // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
     const double CostSchemaVal = 300;
     // const double CostNullVal = 0.001;
     const double CostNullVal = 0.08;

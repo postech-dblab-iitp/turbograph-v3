@@ -13,77 +13,36 @@ public:
 	CypherPipeline() {}
 
 	CypherPipeline(CypherPhysicalOperatorGroups& groups, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
-		vector<CypherPhysicalOperator *> ops;
-		for (idx_t i = 0; i < groups.size(); i++) {
-			if (groups[i]->IsSingleton()) {
-				ops.push_back(groups[i]->GetOp());
-			}
-			else {
-				throw NotImplementedException("grouped operators are not supported yet");
-			}
-		}
-
-		source = ops.front();
-		sink = ops.back();
-		pipelineLength = ops.size();
-
-		ops.erase(ops.begin());
-		ops.pop_back();
-		operators = ops;
-	}
-
-	CypherPipeline(vector<CypherPhysicalOperator *> ops, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
-		assert( ops.size() >= 2 && "too few operators");
-
-		source = ops.front();
-		sink = ops.back();
-		pipelineLength = ops.size();
-
-		ops.erase(ops.begin());
-		ops.pop_back();
-		operators = ops;
-	}
-	std::vector<CypherPhysicalOperator *> &GetOperators() {
-		return operators;	
+		operator_groups = groups;
+		pipelineLength = groups.size();
 	}
 
 	std::vector<CypherPhysicalOperator *> GetOperators() const {
 		vector<CypherPhysicalOperator *> result;
-		D_ASSERT(source);
-		result.push_back(source);
-		for (auto &op : operators) {
-			result.push_back(op);
-		}
-		if (sink) {
-			result.push_back(sink);
+		for (size_t i = 0; i < pipelineLength; i++) {
+			result.push_back(operator_groups.GetIdxOperator(i));
 		}
 		return result;
 	}
 
 	CypherPhysicalOperator *GetSink() {
-		return sink;
+		return operator_groups.GetIdxOperator(pipelineLength - 1);
 	}
 
 	CypherPhysicalOperator *GetSource() {
-		return source;
+		return operator_groups.GetIdxOperator(0);
 	}
 
 	CypherPhysicalOperator* GetIdxOperator(int idx) {
-		if( idx == 0 ) {
-			return source;
-		}
-		if ( idx == pipelineLength - 1) {
-			return sink;
-		}
-		// operator
-		return operators[idx - 1];
+		return operator_groups.GetIdxOperator(idx);
 	}
 
 	std::string toString() {
 		std::string result;
 		// sink
-		result += "#" + std::to_string(sink->GetOperatorId()) + " " + sink->ToString() + "(" + sink->ParamsToString() + ")\n";
+		result += "#" + std::to_string(GetSink()->GetOperatorId()) + " " + GetSink()->ToString() + "(" + GetSink()->ParamsToString() + ")\n";
 		// operators - reversed
+		auto operators = GetOperators();;
 		for (auto op = operators.rbegin(); op != operators.rend(); ++op) {
 			result += "\t|\n";
 			if ((*op)->schemas.size() > 0) {
@@ -98,16 +57,16 @@ public:
 		}
 		// source
 		result += "\t|\n";
-		if (source->schemas.size() > 0) {
-			result += "    union all schema : " + source->schema.printStoredColumnAndTypes() + "\n";
-			for (auto i = 0; i < source->schemas.size(); i++) {
-				result += "    schema " + std::to_string(i + 1) + " : " + source->schemas[i].printStoredColumnAndTypes() + "\n";
+		if (GetSource()->schemas.size() > 0) {
+			result += "    union all schema : " + GetSource()->schema.printStoredColumnAndTypes() + "\n";
+			for (auto i = 0; i < GetSource()->schemas.size(); i++) {
+				result += "    schema " + std::to_string(i + 1) + " : " + GetSource()->schemas[i].printStoredColumnAndTypes() + "\n";
 			}
 		} else {
-			result += "    " + source->schema.printStoredColumnAndTypes() + "\n";
+			result += "    " + GetSource()->schema.printStoredColumnAndTypes() + "\n";
 		}
 		result += "\t|\n";
-		result += "#" + std::to_string(source->GetOperatorId()) + " " + source->ToString() + "(" + source->ParamsToString() + ")\n";
+		result += "#" + std::to_string(GetSource()->GetOperatorId()) + " " + GetSource()->ToString() + "(" + GetSource()->ParamsToString() + ")\n";
 
 		return result;
 	}
@@ -116,22 +75,12 @@ public:
 		return pipeline_id;
 	}
 
-	virtual bool IsSuperPipeline() {
-		return false;
-	}
-
 	// members
 	int pipelineLength;
-
 	//! The unique pipeline id
 	idx_t pipeline_id;
-	//! The source of this pipeline
-	CypherPhysicalOperator *source;
-	//! The chain of intermediate operators
-	std::vector<CypherPhysicalOperator *> operators;	// TODO name is strange!!!!! need to fix.
-	//! The sink (i.e. destination) for data; this is e.g. a hash table to-be-built
-	CypherPhysicalOperator *sink;
-
+	//! The operator groups
+	CypherPhysicalOperatorGroups operator_groups;
 };
 
 }

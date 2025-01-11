@@ -4,7 +4,8 @@
 
 namespace duckdb {
 
-class CypherPhysicalOperatorGroup { // 2-dim group
+// Represents group of pipelines (each pipline can also be super-pipeline)
+class CypherPhysicalOperatorGroup {
 public:
     CypherPhysicalOperatorGroup() = default;
     ~CypherPhysicalOperatorGroup() = default;
@@ -25,14 +26,55 @@ public:
         return op;
     }
 
+    CypherPhysicalOperator *GetIdxOperator(int idx) {
+        if (IsSingleton()) {
+            return op;
+        }
+        else {
+            auto &repr_child = childs[child_idx];
+            size_t acc_size = 0;
+            for (auto &child : repr_child) {
+                if (acc_size + child->GetSize() > idx) {
+                    return child->GetIdxOperator(idx - acc_size);
+                }
+                acc_size += child->GetSize();
+            }
+            throw NotImplementedException("Invalid Idx for CypherPhysicalOperatorGroup GetOp");
+            return nullptr;
+        }
+    }
+
     bool IsSingleton() const {
         return op != nullptr;
     }
 
+    void IncrementChildIdx() {
+        child_idx++;
+    }
+
+    size_t GetSize() {
+        if (IsSingleton()) {
+            return 1;
+        }
+        else {
+            auto &repr_child = childs[0];
+            size_t size = 0;
+            for (auto &child : repr_child) {
+                size += child->GetSize();
+            }
+            return size;
+        }
+    }
+
     vector<vector<CypherPhysicalOperatorGroup *>> childs;
     CypherPhysicalOperator *op = nullptr;
+    int child_idx = 0;
 };
 
+// Data structure for handling recursive super-pipeline
+// For example
+// [op1, op2, [(op3, op4) | (op3-2, op4-2)]]
+// This is represented as two CypherPhysicalOperatorGroup
 
 class CypherPhysicalOperatorGroups {
     
@@ -48,7 +90,12 @@ public:
     }
 
     size_t size() {
-        return groups.size();
+        vector<size_t> group_sizes;
+        size_t total_size = 0;
+        for (auto &group : groups) {
+            total_size += group->GetSize();
+        }
+        return total_size;
     }
 
     CypherPhysicalOperatorGroup *operator[](idx_t idx) {
@@ -68,7 +115,32 @@ public:
     vector<CypherPhysicalOperatorGroup *> &GetGroups() {
         return groups;
     }
+
+    vector<size_t> GetGroupsSize() const {
+        vector<size_t> group_sizes;
+        // reverse iterate
+        for (auto &group : groups) {
+            group_sizes.push_back(group->GetSize());
+        }
+        return group_sizes;
+    }
   
+    CypherPhysicalOperator* GetIdxOperator(int idx) const {
+        auto group_sizes = GetGroupsSize();
+        size_t group_idx = 0;
+        size_t local_idx = 0;
+        size_t acc_size = 0;
+        for (auto &size : group_sizes) {
+            if (acc_size + size > idx) {
+                local_idx = idx - acc_size;
+                break;
+            }
+            acc_size += size;
+            group_idx++;
+        }
+        return groups[group_idx]->GetIdxOperator(idx);
+    }
+
     vector<CypherPhysicalOperatorGroup *> groups;
 };
 

@@ -54,8 +54,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 		opOutputSchemaIdx.push_back(0);
 	}
 	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength - 1));
-	local_source_state = pipeline->source->GetLocalSourceState(*context);
-	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+	local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
+	local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
 	for (auto op: pipeline->GetOperators()) {
 		local_operator_states.push_back(op->GetOperatorState(*context));
 	}
@@ -107,8 +107,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 		opOutputSchemaIdx.push_back(0);
 	}
 	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength));
-	local_source_state = pipeline->source->GetLocalSourceState(*context);
-	local_sink_state = pipeline->sink->GetLocalSinkState(*context);
+	local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
+	local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
 	for (auto op: pipeline->GetOperators()) {
 		local_operator_states.push_back(op->GetOperatorState(*context));
 	}
