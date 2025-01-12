@@ -648,7 +648,8 @@ CJoinOrderDPCoalescing::DCost(CExpression *pexpr)
 		}
 
 		// leaf operator, use its estimated number of rows as cost
-		dCost = CDouble(pexpr->Pstats()->Rows());
+		// dCost = CDouble(pexpr->Pstats()->Rows());
+		dCost = 0.0;
 	}
 	else
 	{
