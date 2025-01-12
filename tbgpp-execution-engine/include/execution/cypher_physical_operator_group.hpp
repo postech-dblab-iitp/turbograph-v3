@@ -55,7 +55,44 @@ public:
     }
 
     bool AdvanceChild() {
-        return false;
+        if (IsChildSingletonVector(child_idx)) {
+            if (!IsLastChild()) {
+                IncrementChildIdx();
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            auto &current_child = childs[child_idx];
+            auto advanced = current_child[0]->AdvanceChild();
+            if (!advanced) {
+                if (!IsLastChild()) {
+                    IncrementChildIdx();
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+            else {
+                return true;
+            }
+        }
+    }
+
+    bool IsLastChild() {
+        return child_idx == childs.size() - 1;
+    }
+
+    bool IsChildSingletonVector(int child_idx) {
+        auto &child = childs[child_idx];
+        bool is_singleton_vector = true;
+        for (auto group : child) {
+            is_singleton_vector &= group->IsSingleton();
+        }
+        return is_singleton_vector;
     }
 
     size_t GetSize() {
@@ -149,6 +186,10 @@ public:
             group_idx++;
         }
         return groups[group_idx]->GetIdxOperator(idx);
+    }
+
+    bool IsSinkSingleton() const {
+        return groups.back()->IsSingleton();
     }
 
     vector<CypherPhysicalOperatorGroup *> groups;
