@@ -169,7 +169,9 @@ void CypherPipelineExecutor::ExecutePipeline()
 				if (pipeline->AdvanceGroup()) {
 					sfg.ReplaceToOtherSourceSchema();
 					local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
-					local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
+					if (!pipeline->IsSinkSingleton()) {
+						local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
+					}
 					continue;
 				}
 				else break;
@@ -186,9 +188,9 @@ void CypherPipelineExecutor::ExecutePipeline()
     std::cout << "[Sink-Combine (" << pipeline->GetSink()->ToString() << ")]"
               << std::endl;
 #endif
-    StartOperator(pipeline->GetSink());
+    StartOperator(pipeline->GetReprSink());
     pipeline->GetSink()->Combine(*context, *local_sink_state);
-    EndOperator(pipeline->GetSink(), nullptr);
+    EndOperator(pipeline->GetReprSink(), nullptr);
 
     // flush profiler contents
     // TODO operators may need to flush expressionexecutor stats on termination. refer to OperatorState::Finalize()
@@ -198,7 +200,7 @@ void CypherPipelineExecutor::ExecutePipeline()
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result)
 {
-    StartOperator(pipeline->GetSource());
+    StartOperator(pipeline->GetReprSource());
     switch (childs.size()) {
         // no child pipeline
         case 0: {
@@ -214,7 +216,7 @@ void CypherPipelineExecutor::FetchFromSource(DataChunk &result)
             break;
         }
     }
-    EndOperator(pipeline->GetSource(), &result);
+    EndOperator(pipeline->GetReprSource(), &result);
     pipeline->GetSource()->processed_tuples += result.size();
 }
 
@@ -265,10 +267,10 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         PrintInputChunk(pipeline->GetSink()->ToString(), *pipeOutputChunk);
 #endif
-        StartOperator(pipeline->GetSink());
+        StartOperator(pipeline->GetReprSink());
         auto sinkResult = pipeline->GetSink()->Sink(*context, *pipeOutputChunk,
                                                     *local_sink_state);
-        EndOperator(pipeline->GetSink(), nullptr);
+        EndOperator(pipeline->GetReprSink(), nullptr);
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         PrintOutputChunk(
             pipeline->GetSink()->ToString(),
@@ -400,7 +402,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 #endif
 
 		duckdb::OperatorResultType opResult;
-		StartOperator(pipeline->GetIdxOperator(current_idx));
+		StartOperator(pipeline->GetReprIdxOperator(current_idx));
 		if (cur_op_type == OperatorType::UNARY) {
 			// execute operator
 			if (!pipeline->GetIdxOperator(current_idx)->IsSink()) {
@@ -416,7 +418,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			opOutputSchemaIdx[current_idx] = current_output_schema_idx;
 
 			// record statistics
-			EndOperator(pipeline->GetIdxOperator(current_idx), current_output_chunk);
+			EndOperator(pipeline->GetReprIdxOperator(current_idx), current_output_chunk);
 			pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunk->size();
 
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
@@ -447,11 +449,11 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			// record statistics
 			if (opResult == OperatorResultType::POSTPONE_OUTPUT ||
 				opResult == OperatorResultType::OUTPUT_EMPTY) {
-				EndOperator(pipeline->GetIdxOperator(current_idx), nullptr);
+				EndOperator(pipeline->GetReprIdxOperator(current_idx), nullptr);
 				prev_output_chunk = nullptr;
 			} else {
 				D_ASSERT(output_schema_idx < current_output_chunks->size());
-				EndOperator(pipeline->GetIdxOperator(current_idx), current_output_chunks->at(output_schema_idx).get());
+				EndOperator(pipeline->GetReprIdxOperator(current_idx), current_output_chunks->at(output_schema_idx).get());
 				pipeline->GetIdxOperator(current_idx)->processed_tuples += current_output_chunks->at(output_schema_idx)->size();
 
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
