@@ -353,6 +353,7 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
     std::cerr << "hash_object_id is too large!" << std::endl;
     return -1;
   }
+
   int64_t head_index =
       header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
   ObjectEntry *head = &header_->object_entries[head_index];

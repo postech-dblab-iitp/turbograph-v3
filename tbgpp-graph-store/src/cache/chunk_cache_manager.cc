@@ -218,7 +218,7 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   // Get() success. Align memory & adjust size
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
   *size = segment_size - sizeof(size_t);
-
+  
   return NOERROR;
 }
 
@@ -258,7 +258,8 @@ ReturnStatus ChunkCacheManager::CreateSegment(ChunkID cid, std::string file_path
     //throw InvalidInputException("[CreateSegment] invalid alloc_size");
 
   // Create file for the segment
-  return CreateNewFile(cid, file_path, alloc_size, can_destroy);
+  auto ret = CreateNewFile(cid, file_path, alloc_size, can_destroy);
+  return ret;
 }
 
 ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {

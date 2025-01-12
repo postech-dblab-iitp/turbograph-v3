@@ -622,6 +622,7 @@ private:
 	void pAppendFilterOnlyCols(CExpression *filter_expr, CColRefArray *input_cols, CColRefArray *output_cols, CColRefArray* result_cols);
 	void pSeperatePropertyNonPropertyCols(CColRefSet *input_cols, CColRefSet *property_cols, CColRefSet* non_property_cols);
 	void pGetFilterDuckDBExprs(CExpression *filter_expr, CColRefArray *outer_cols, CColRefArray *inner_cols, size_t index_shifting_size, vector<unique_ptr<duckdb::Expression>> &out_exprs);
+	void pGetProjectionExprsWithJoinCond(CExpression *scalar_cmp_expr, CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
 	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
