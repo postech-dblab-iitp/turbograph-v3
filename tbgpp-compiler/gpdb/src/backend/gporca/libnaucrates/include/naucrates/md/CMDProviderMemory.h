@@ -70,6 +70,14 @@ public:
 	// return the mdid for the specified system id and type
 	virtual IMDId *MDId(CMemoryPool *mp, CSystemId sysid,
 						IMDType::ETypeInfo type_info) const;
+
+	// add virtual table to the MD cache
+	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid) {
+		(void) mp;
+		(void) pdrgmdid;
+		GPOS_ASSERT(!"Not implemented");
+		return NULL;
+	}
 };
 }  // namespace gpmd
 

@@ -3830,4 +3830,20 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 	return input_col_mdids;
 }
 
+IMDId *
+CTranslatorTBGPPToDXL::AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid) {
+	// Convert IMdIdArray to array of OIDs
+	ULONG size = pdrgmdid->Size();
+	uint32_t *oid_array = new uint32_t[size];
+	
+	for (ULONG i = 0; i < size; i++) {
+		IMDId *mdid = (*pdrgmdid)[i];
+		oid_array[i] = CMDIdGPDB::CastMdid(mdid)->Oid();
+	}
+	ULONG virtual_table_oid = duckdb::AddVirtualTable(oid_array, size);
+
+	CMDIdGPDB *mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, virtual_table_oid, 0, 0);
+	return mdid;
+}
+
 // EOF

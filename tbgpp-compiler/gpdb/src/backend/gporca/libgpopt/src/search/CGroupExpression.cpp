@@ -823,7 +823,7 @@ CGroupExpression::Transform(
 	{
 		++(*pulNumberOfBindings);
 		ULONG ulNumResults = pxfres->Pdrgpexpr()->Size();
-		// PrintXformInput(mp, pxform, pexpr); // S62 added for debugging
+		PrintXformInput(mp, pxform, pexpr); // S62 added for debugging
 		pxform->Transform(pxfctxt, pxfres, pexpr);
 		ulNumResults = pxfres->Pdrgpexpr()->Size() - ulNumResults;
 		PrintXform(mp, pxform, pexpr, pxfres, ulNumResults);
