@@ -15,6 +15,9 @@ public:
 	CypherPipeline(CypherPhysicalOperatorGroups& groups, idx_t pipeline_id = 0) : pipeline_id(pipeline_id) {
 		operator_groups = groups;
 		pipelineLength = groups.size();
+		repr_operators = GetOperators();
+		repr_operators.insert(repr_operators.begin(), GetSource());
+		repr_operators.push_back(GetSink());
 	}
 
 	std::vector<CypherPhysicalOperator *> GetOperators() const {
@@ -37,8 +40,24 @@ public:
 		return operator_groups.GetIdxOperator(idx);
 	}
 
+	CypherPhysicalOperator *GetReprSink() {
+		return repr_operators[pipelineLength - 1];
+	}
+
+	CypherPhysicalOperator *GetReprSource() {
+		return repr_operators[0];
+	}
+
+	CypherPhysicalOperator* GetReprIdxOperator(int idx) {
+		return repr_operators[idx];
+	}
+
+	bool IsSinkSingleton() {
+		return operator_groups.IsSinkSingleton();
+	}
+
 	bool AdvanceGroup() {
-		return false;
+		return operator_groups.AdvanceGroup();
 	}
 
 	std::string toString() {
@@ -85,6 +104,8 @@ public:
 	idx_t pipeline_id;
 	//! The operator groups
 	CypherPhysicalOperatorGroups operator_groups;
+	//! Representative pipeline
+	vector<CypherPhysicalOperator *> repr_operators;
 };
 
 }
