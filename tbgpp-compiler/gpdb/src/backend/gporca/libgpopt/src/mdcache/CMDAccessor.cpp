@@ -614,12 +614,12 @@ CMDAccessor::GetImdObj(IMDId *mdid, IMDCacheObject::Emdtype mdtype)
 	return pimdobj;
 }
 
-IMDId *CMDAccessor::AddVirtualTable(IMdIdArray *pdrgmdid) {
+IMDId *CMDAccessor::AddVirtualTable(IMDId *mdid, IMdIdArray *pdrgmdid) {
 	// TODO what is sysid?
 	CSystemId default_sysid(IMDId::EmdidGeneral,
 								GPOS_WSZ_STR_LENGTH("GPDB"));
 	IMDProvider *pmdp = Pmdp(default_sysid);
-	return pmdp->AddVirtualTable(m_mp, pdrgmdid);
+	return pmdp->AddVirtualTable(m_mp, mdid, pdrgmdid);
 }
 
 //---------------------------------------------------------------------------

@@ -72,8 +72,9 @@ public:
 						IMDType::ETypeInfo type_info) const;
 
 	// add virtual table to the MD cache
-	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid) {
+	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid) {
 		(void) mp;
+		(void) mdid;
 		(void) pdrgmdid;
 		GPOS_ASSERT(!"Not implemented");
 		return NULL;
