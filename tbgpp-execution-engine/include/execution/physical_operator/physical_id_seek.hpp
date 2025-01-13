@@ -129,7 +129,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     OperatorResultType moveToNextOutputChunk(
         vector<unique_ptr<DataChunk>> &chunks, OperatorState &lstate,
         idx_t &output_chunk_idx) const;
-    void markInvalidForUnseekedColumns(
+    void markInvalidForUnseekedValues(
         DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
         vector<vector<uint32_t>> &target_seqnos_per_extent,
         vector<idx_t> &mapping_idxs) const;
@@ -179,6 +179,8 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                              vector<idx_t> &mapping_idxs) const;
     void getUnionScanTypes();
     void buildExpressionExecutors(vector<vector<unique_ptr<Expression>>> &predicates);
+    void markInvalidForColumnsToUnseek(DataChunk &chunk, vector<ExtentID> &target_eids, 
+                                    vector<idx_t> &mapping_idxs) const;
 
     // parameters
     uint64_t id_col_idx;
