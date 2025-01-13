@@ -100,6 +100,7 @@ private:
 private:
     Binder* binder;
     unordered_map<string, shared_ptr<Literal>> parameterMap;
+    uint64_t currentORGroupID = 0;
 };
 
 } // namespace binder
