@@ -125,6 +125,7 @@ private:
 
 	void PrintInputChunk(std::string opname, DataChunk &input);
 	void PrintOutputChunk(std::string opname, DataChunk &output);
+	void ReinitializePipeline();
 };
 }
 

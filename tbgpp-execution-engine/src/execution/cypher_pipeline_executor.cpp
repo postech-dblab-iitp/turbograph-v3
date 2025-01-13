@@ -94,9 +94,8 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 	context->thread = &thread;
 
 	// initialize interm chunks
-	auto &flow_graph = this->sfg.GetFlowGraph();
 	for (int i = 0; i < pipeline->pipelineLength; i++) { 
-		Schema &output_schema = this->sfg.GetUnionOutputSchema(i);
+		Schema &output_schema = pipeline->GetIdxOperator(i)->schema;
 		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
 		// we maintain only one chunk for source node (union schema)
 		size_t num_datachunks = 1;
@@ -116,6 +115,34 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 #ifdef DEBUG_PRINT_PIPELINE
     sfg.printSchemaGraph();
 #endif
+}
+
+void CypherPipelineExecutor::ReinitializePipeline()
+{
+	if(!pipeline->IsSinkSingleton()) {
+		throw std::runtime_error("ReinitializePipeline is only for singleton sink pipelines");
+	}
+
+	auto sinkOutputChunk = std::move(opOutputChunks.back());
+	opOutputChunks.clear();
+	for (int i = 0; i < pipeline->pipelineLength-1; i++) { 
+		Schema &output_schema = pipeline->GetIdxOperator(i)->schema;
+		opOutputChunks.push_back(std::vector<unique_ptr<DataChunk>>());
+		// we maintain only one chunk for source node (union schema)
+		size_t num_datachunks = 1;
+        for (int j = 0; j < num_datachunks; j++) {
+            pipeline->GetIdxOperator(i)->InitializeOutputChunks(
+                opOutputChunks[i], output_schema, j);
+        }
+		opOutputSchemaIdx.push_back(0);
+	}
+	opOutputChunks.push_back(std::move(sinkOutputChunk));
+	D_ASSERT(opOutputChunks.size() == (pipeline->pipelineLength));
+	local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
+	local_operator_states.clear();
+	for (auto op: pipeline->GetOperators()) {
+		local_operator_states.push_back(op->GetOperatorState(*context));
+	}
 }
 
 void CypherPipelineExecutor::ExecutePipeline()
@@ -168,10 +195,7 @@ void CypherPipelineExecutor::ExecutePipeline()
 				// TODO process remaining postponed outputs
 				if (pipeline->AdvanceGroup()) {
 					sfg.ReplaceToOtherSourceSchema();
-					local_source_state = pipeline->GetSource()->GetLocalSourceState(*context);
-					if (!pipeline->IsSinkSingleton()) {
-						local_sink_state = pipeline->GetSink()->GetLocalSinkState(*context);
-					}
+					ReinitializePipeline();
 					continue;
 				}
 				else break;

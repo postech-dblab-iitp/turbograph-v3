@@ -2249,55 +2249,39 @@ CTableDescriptorArray *Planner::lGetTableDescriptorArrayFromOids(
 void Planner::lPruneUnnecessaryGraphlets(
     std::vector<uint64_t> &table_oids, NodeOrRelExpression *node_expr,
     const expression_vector &prop_exprs,
-    std::vector<uint64_t> &final_pruned_table_oids)
+    std::vector<uint64_t> &pruned_table_oids)
 {
-    std::unordered_set<uint64_t> union_pruned_table_oids;
-
-    // Process each OR group
-    for (uint64_t group_idx = 0; group_idx < node_expr->getNumORGroups(); ++group_idx) {
-        std::unordered_map<uint64_t, int> necessary_table_oids_map;
-        std::vector<uint64_t> group_pruned_table_oids;
-
-        for (auto table_oid : table_oids) {
-            necessary_table_oids_map[table_oid] = 0;
-        }
-
-        int num_filter_cols = 0;
-        for (int col_idx = 0; col_idx < prop_exprs.size(); ++col_idx) {
-            if (!node_expr->isUsedForFilterColumn(col_idx, group_idx))
-                continue;
-
-            auto &_prop_expr = prop_exprs[col_idx];
-            PropertyExpression *expr =
-                static_cast<PropertyExpression *>(_prop_expr.get());
-            num_filter_cols++;
-            auto *propIdPerTable = expr->getPropertyIDPerTable();
-
-            for (auto &it : *propIdPerTable) {
-                if (necessary_table_oids_map.find(it.first) !=
-                    necessary_table_oids_map.end()) {
-                    necessary_table_oids_map[it.first]++;
-                } else {
-                    D_ASSERT(false);
-                }
+    std::unordered_map<uint64_t, int> necessary_table_oids_map;
+    for (auto i = 0; i < table_oids.size(); i++) {
+        necessary_table_oids_map.insert({table_oids[i], 0});
+    }
+    int num_filter_cols = 0;
+    for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
+        if (!node_expr->isUsedForFilterColumn(col_idx))
+            continue;
+        auto &_prop_expr = prop_exprs[col_idx];
+        PropertyExpression *expr =
+            static_cast<PropertyExpression *>(_prop_expr.get());
+        num_filter_cols++;
+        auto *propIdPerTable = expr->getPropertyIDPerTable();
+        for (auto &it : *propIdPerTable) {
+            if (necessary_table_oids_map.find(it.first) !=
+                necessary_table_oids_map.end()) {
+                necessary_table_oids_map[it.first]++;
+            }
+            else {
+                D_ASSERT(false);
             }
         }
-
-        for (auto &it : necessary_table_oids_map) {
-            if (it.second == num_filter_cols) {
-                group_pruned_table_oids.push_back(it.first);
-            }
-        }
-
-        std::sort(group_pruned_table_oids.begin(), group_pruned_table_oids.end());
-
-        // Add this group's pruned OIDs to the union set
-        union_pruned_table_oids.insert(group_pruned_table_oids.begin(), group_pruned_table_oids.end());
     }
 
-    // Convert union set to final pruned table OIDs
-    final_pruned_table_oids.assign(union_pruned_table_oids.begin(), union_pruned_table_oids.end());
-    std::sort(final_pruned_table_oids.begin(), final_pruned_table_oids.end());
+    for (auto &it : necessary_table_oids_map) {
+        if (it.second == num_filter_cols) {
+            pruned_table_oids.push_back(it.first);
+        }
+    }
+
+    std::sort(pruned_table_oids.begin(), pruned_table_oids.end());
 }
 
 void Planner::lPruneUnnecessaryColumns(NodeOrRelExpression *node_expr,
