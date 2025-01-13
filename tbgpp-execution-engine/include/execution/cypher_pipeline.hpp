@@ -57,7 +57,9 @@ public:
 	}
 
 	bool AdvanceGroup() {
-		return operator_groups.AdvanceGroup();
+		bool result = operator_groups.AdvanceGroup();
+		pipelineLength = operator_groups.size();
+		return result;
 	}
 
 	std::string toString() {
