@@ -226,7 +226,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     else if (format == OutputFormat::UNIONALL) {
         doSeekUnionAll(context, input, chunk, state, target_eids,
                        target_seqnos_per_extent, mapping_idxs, output_size);
-        markInvalidForUnseekedColumns(chunk, state, target_eids,
+        markInvalidForUnseekedValues(chunk, state, target_eids,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
@@ -360,7 +360,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(
             doSeekUnionAll(context, input, unified_chunk, state, target_eids,
                            target_seqnos_per_extent, mapping_idxs,
                            num_tuples_per_chunk[output_chunk_idx]);
-            markInvalidForUnseekedColumns(unified_chunk, state, target_eids,
+            markInvalidForUnseekedValues(unified_chunk, state, target_eids,
                                           target_seqnos_per_extent,
                                           mapping_idxs);
         }
@@ -433,6 +433,7 @@ void PhysicalIdSeek::initializeSeek(
         chunks[i]->Reset();
     }
     fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
+    markInvalidForColumnsToUnseek(input, target_eids, mapping_idxs);
 }
 
 void PhysicalIdSeek::initializeSeek(
@@ -453,6 +454,7 @@ void PhysicalIdSeek::initializeSeek(
     chunk.SetSchemaIdx(input.GetSchemaIdx());
     chunk.Reset();
     fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
+    markInvalidForColumnsToUnseek(input, target_eids, mapping_idxs);
 }
 
 void PhysicalIdSeek::InitializeOutputChunks(
@@ -468,13 +470,7 @@ void PhysicalIdSeek::InitializeOutputChunks(
     if (!force_output_union) {
         for (auto i = 0; i < union_inner_col_map.size(); i++) {
             if (union_inner_col_map[i] < opOutputChunk->ColumnCount()) {
-                opOutputChunk->data[union_inner_col_map[i]].SetIsValid(false);
-            }
-        }
-        for (auto i = 0; i < inner_col_maps[inner_idx].size(); i++) {
-            if (inner_col_maps[inner_idx][i] < opOutputChunk->ColumnCount()) {
-                opOutputChunk->data[inner_col_maps[inner_idx][i]].SetIsValid(
-                    true);
+                opOutputChunk->data[union_inner_col_map[i]].SetIsValid(true);
             }
         }
     }
@@ -1448,7 +1444,7 @@ void PhysicalIdSeek::fillOutSizePerSchema(
     }
 }
 
-void PhysicalIdSeek::markInvalidForUnseekedColumns(
+void PhysicalIdSeek::markInvalidForUnseekedValues(
     DataChunk &chunk, IdSeekState &state, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
@@ -1630,6 +1626,27 @@ void PhysicalIdSeek::buildExpressionExecutors(
             expressions.push_back(move(predicates[i][0]));
         }
         executors[i].AddExpression(*(expressions[i]));
+    }
+}
+
+void PhysicalIdSeek::markInvalidForColumnsToUnseek(DataChunk &chunk, vector<ExtentID> &target_eids, 
+                            vector<idx_t> &mapping_idxs) const
+{
+    // Mark all columns invalid first
+    for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
+        chunk.data[columnIdx].SetIsValid(false);
+    }
+    // Mark all outer columns valid
+    for (auto columnIdx : outer_output_col_idxs) {
+        chunk.data[columnIdx].SetIsValid(true);
+    }
+    // Mark seek columns valid
+    for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
+        auto mapping_idx = mapping_idxs[extentIdx];
+        auto &inner_output_col_idx = inner_output_col_idxs[mapping_idx];
+        for (auto columnIdx : inner_output_col_idx) {
+            chunk.data[columnIdx].SetIsValid(true);
+        }
     }
 }
 
