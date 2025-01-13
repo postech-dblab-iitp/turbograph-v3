@@ -425,7 +425,7 @@ public:
 	// static IMDRelation::Ereldistrpolicy GetRelDistribution(GpPolicy *gp_policy);
 
 	// add virtual table to the MD cache
-	static IMDId *AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid);
+	static IMDId *AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid);
 };
 }  // namespace gpdxl
 

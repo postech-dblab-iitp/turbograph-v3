@@ -932,7 +932,7 @@ CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
 
 	if (pdrgmdid->Size() > 1) {
 		// TODO add temporal catalog for virtual tables	
-		IMDId *mdid = mda->AddVirtualTable(pdrgmdid);
+		IMDId *mdid = mda->AddVirtualTable(ptabdesc->MDId(), pdrgmdid);
 
 		new_ptabdesc = GPOS_NEW(m_mp) CTableDescriptor(
 			m_mp,
@@ -1136,8 +1136,8 @@ void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
 											ULONG ulSplitIndex)
 {
     // Split tables into two groups // TODO change split method
-    ULONG ulFirstGroupSize = ulTables / 2;
-	// ULONG ulFirstGroupSize = 1;
+    // ULONG ulFirstGroupSize = ulTables / 2;
+	ULONG ulFirstGroupSize = 2;
 
     // Split tables between the two groups
     for (ULONG ul = ulSplitIndex; ul < ulTables + ulSplitIndex; ul++) {
@@ -1166,10 +1166,10 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
             continue;
         }
 
-		CWStringDynamic str(m_mp, L"\n");
-		COstreamString oss(&str);
-		pcomp->m_pexpr->OsPrint(oss);
-		GPOS_TRACE(str.GetBuffer());
+		// CWStringDynamic str(m_mp, L"\n");
+		// COstreamString oss(&str);
+		// pcomp->m_pexpr->OsPrint(oss);
+		// GPOS_TRACE(str.GetBuffer());
 
 		CExpression *pexpr = FindLogicalGetExpr(pcomp->m_pexpr);
 		if (pexpr == NULL) {
@@ -1210,10 +1210,12 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 		}
     }
 
-	CWStringDynamic str(m_mp, L"\n");
-	COstreamString oss(&str);
-	pexprResultUnionAll->OsPrint(oss);
-	GPOS_TRACE(str.GetBuffer());
+	// if (pexprResultUnionAll != NULL) {
+	// 	CWStringDynamic str(m_mp, L"\n");
+	// 	COstreamString oss(&str);
+	// 	pexprResultUnionAll->OsPrint(oss);
+	// 	GPOS_TRACE(str.GetBuffer());
+	// }
 	
 	return pexprResultUnionAll;
 }
@@ -1265,13 +1267,13 @@ CJoinOrderDPCoalescing::CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity)
 {
 	*pdrgdSelectivity = GPOS_NEW(m_mp) CDoubleArray(m_mp);
 
-	for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++) {
-		SComponent *pcomp = m_rgpcomp[ulComp];
-		CWStringDynamic strComp(m_mp, L"\n");
-		COstreamString ossComp(&strComp);
-		pcomp->m_pexpr->OsPrint(ossComp);
-		GPOS_TRACE(strComp.GetBuffer());
-	}
+	// for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++) {
+	// 	SComponent *pcomp = m_rgpcomp[ulComp];
+	// 	CWStringDynamic strComp(m_mp, L"\n");
+	// 	COstreamString ossComp(&strComp);
+	// 	pcomp->m_pexpr->OsPrint(ossComp);
+	// 	GPOS_TRACE(strComp.GetBuffer());
+	// }
 
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
@@ -1348,10 +1350,10 @@ void CJoinOrderDPCoalescing::UpdateEdgeSelectivity(
 
 		CJoinOrder::SComponent *compTemp = PcompCombine(comp1, comp2);
 
-		CWStringDynamic str(m_mp, L"\n");
-		COstreamString oss(&str);
-		compTemp->m_pexpr->OsPrint(oss);
-		GPOS_TRACE(str.GetBuffer());
+		// CWStringDynamic str(m_mp, L"\n");
+		// COstreamString oss(&str);
+		// compTemp->m_pexpr->OsPrint(oss);
+		// GPOS_TRACE(str.GetBuffer());
 
 		GPOS_ASSERT(!CUtils::FCrossJoin(compTemp->m_pexpr));
 		
@@ -1463,10 +1465,10 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 			comp->m_pexpr->AddRef();
 			tree->Append(comp->m_pexpr);
 
-			CWStringDynamic strExpr(m_mp, L"\n");
-			COstreamString ossExpr(&strExpr);
-			comp->m_pexpr->OsPrint(ossExpr);
-			GPOS_TRACE(strExpr.GetBuffer());
+			// CWStringDynamic strExpr(m_mp, L"\n");
+			// COstreamString ossExpr(&strExpr);
+			// comp->m_pexpr->OsPrint(ossExpr);
+			// GPOS_TRACE(strExpr.GetBuffer());
 
 			// Initialize each element as its own set
 			parent[ul] = ul;
@@ -1523,8 +1525,13 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 
             if (fFirst || dCost < dMinCost) {
                 dMinCost = dCost;
-                ulMinI = ulFirstRoot;
-                ulMinJ = ulSecondRoot;
+				if ((*size)[ulFirstRoot]->Get() > (*size)[ulSecondRoot]->Get()) {
+					ulMinI = ulFirstRoot;
+					ulMinJ = ulSecondRoot;
+				} else {
+					ulMinI = ulSecondRoot;
+					ulMinJ = ulFirstRoot;
+				}
                 fFirst = false;
             }
         }
@@ -1556,8 +1563,10 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 		}
 
 		// Get expressions from tree array and increase their reference counts
-		CExpression *pexprLeft = (*tree)[ulMinI];
-		CExpression *pexprRight = (*tree)[ulMinJ]; 
+		// CExpression *pexprLeft = (*tree)[ulMinI];
+		// CExpression *pexprRight = (*tree)[ulMinJ]; 
+		CExpression *pexprLeft = (*tree)[ulMinJ];
+		CExpression *pexprRight = (*tree)[ulMinI]; 
 		pexprLeft->AddRef();
 		pexprRight->AddRef();
 
@@ -1565,20 +1574,20 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 		CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
 			m_mp, pexprLeft, pexprRight, pexprPred);
 
-		CWStringDynamic strLeft(m_mp, L"\n");
-		COstreamString ossLeft(&strLeft);
-		pexprLeft->OsPrint(ossLeft);
-		GPOS_TRACE(strLeft.GetBuffer());
+		// CWStringDynamic strLeft(m_mp, L"\n");
+		// COstreamString ossLeft(&strLeft);
+		// pexprLeft->OsPrint(ossLeft);
+		// GPOS_TRACE(strLeft.GetBuffer());
 
-		CWStringDynamic strRight(m_mp, L"\n");
-		COstreamString ossRight(&strRight);
-		pexprRight->OsPrint(ossRight);
-		GPOS_TRACE(strRight.GetBuffer());
+		// CWStringDynamic strRight(m_mp, L"\n");
+		// COstreamString ossRight(&strRight);
+		// pexprRight->OsPrint(ossRight);
+		// GPOS_TRACE(strRight.GetBuffer());
 
-		CWStringDynamic strJoin(m_mp, L"\n");
-		COstreamString ossJoin(&strJoin);
-		pexprJoin->OsPrint(ossJoin);
-		GPOS_TRACE(strJoin.GetBuffer());
+		// CWStringDynamic strJoin(m_mp, L"\n");
+		// COstreamString ossJoin(&strJoin);
+		// pexprJoin->OsPrint(ossJoin);
+		// GPOS_TRACE(strJoin.GetBuffer());
 		
 		// Union the sets
 		ULONG new_root = Union(parent, rank, ulMinI, ulMinJ);
@@ -1595,10 +1604,10 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 	CExpression *pexprResult = (*tree)[rootIndex];
 	pexprResult->AddRef();
 
-	CWStringDynamic str(m_mp, L"\n");
-	COstreamString oss(&str);
-	pexprResult->OsPrint(oss);
-	GPOS_TRACE(str.GetBuffer());
+	// CWStringDynamic str(m_mp, L"\n");
+	// COstreamString oss(&str);
+	// pexprResult->OsPrint(oss);
+	// GPOS_TRACE(str.GetBuffer());
 
 	// Cleanup
 	size->Release();
@@ -1642,7 +1651,7 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
                                            m_rgpedge, m_pdrgdSelectivity,
 										   splitted_components, ulTarget,
 										   ul);
-            CDouble dCostGOO = DCost(pexprGOO) * 0.5;
+            CDouble dCostGOO = DCost(pexprGOO);
 			total_cost = total_cost + dCostGOO;
 			pexprArray->Append(pexprGOO);
             pdrgdrgpcrInput->Append(

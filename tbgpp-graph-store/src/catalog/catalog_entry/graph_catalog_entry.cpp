@@ -245,6 +245,14 @@ void GraphCatalogEntry::GetPropertyNames(ClientContext &context, vector<Property
 	}
 }
 
+void GraphCatalogEntry::GetPropertyNames(ClientContext &context, PropertyKeyID_vector &property_key_ids, vector<string> &property_names) {
+	property_names.reserve(property_key_ids.size());
+	for (int i = 0; i < property_key_ids.size(); i++) {
+		auto property_name = property_key_id_to_name_vec[property_key_ids[i]];
+		property_names.push_back(property_name);
+	}
+}
+
 void GraphCatalogEntry::GetVertexLabels(vector<string> &label_names) {
 	for(auto it = vertexlabel_map.begin(); it != vertexlabel_map.end(); ++it) {
 		label_names.push_back(it->first);

@@ -467,11 +467,19 @@ public:
                                   is_each_group_has_temporary_table);
     }
 
-    idx_t AddVirtualTable(ClientContext &context, uint32_t *oid_array, idx_t size) {
+    idx_t AddVirtualTable(ClientContext &context, uint32_t original_vtbl_oid,
+                          uint32_t *oid_array, idx_t size)
+    {
         auto &catalog = db.GetCatalog();
         GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(
             context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
 
+        // Get original table schema
+        PropertySchemaCatalogEntry *original_property_schema_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                context, DEFAULT_SCHEMA, original_vtbl_oid);
+
+        // Get first table in oid_array for partition info
         PropertySchemaCatalogEntry *property_schema_cat =
             (PropertySchemaCatalogEntry *)catalog.GetEntry(
                 context, DEFAULT_SCHEMA, oid_array[0]);
@@ -483,12 +491,7 @@ public:
         string part_name = part_cat->GetName();
         string property_schema_name =
             part_name + DEFAULT_TEMPORAL_INFIX +
-            std::to_string(
-                part_cat->GetNewTemporalID());  // TODO vpart -> vps
-
-        vector<LogicalType> merged_types;
-        vector<PropertyKeyID> merged_property_key_ids;
-        vector<string> key_names;
+            std::to_string(part_cat->GetNewTemporalID());
 
         // Create new Property Schema Catalog Entry
         CreatePropertySchemaInfo propertyschema_info(
@@ -498,50 +501,46 @@ public:
             (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
                 context, &propertyschema_info);
 
-        idx_t_vector *merged_offset_infos =
-            temporal_ps_cat->GetOffsetInfos();
-        idx_t_vector *merged_freq_values =
-            temporal_ps_cat->GetFrequencyValues();
+        // Get original schema info // TODO string key names necessary?
+        auto *original_types = original_property_schema_cat->GetTypes();
+        auto *original_key_ids = original_property_schema_cat->GetKeyIDs();
+        vector<string> key_names;
+        gcat->GetPropertyNames(context, *original_key_ids, key_names);
+
+        // Merge histograms from oid_array tables
+        idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();
+        idx_t_vector *merged_freq_values = temporal_ps_cat->GetFrequencyValues();
         uint64_t_vector *merged_ndvs = temporal_ps_cat->GetNDVs();
         uint64_t merged_num_tuples = 0;
 
-        // merge histogram & schema
-        _merge_schemas_and_histograms(
-            context, db, oid_array, size, merged_types,
-            merged_property_key_ids, merged_offset_infos,
-            merged_freq_values, merged_ndvs, merged_num_tuples);
+        _merge_histograms(context, db, oid_array, size, *original_key_ids,
+                          merged_offset_infos, merged_freq_values,
+                          merged_ndvs, merged_num_tuples);
 
         // create physical id index catalog
-        CreateIndexInfo idx_info(DEFAULT_SCHEMA,
-                                property_schema_name + "_id",
-                                IndexType::PHYSICAL_ID, part_cat->GetOid(),
-                                temporal_ps_cat->GetOid(), 0, {-1});
+        CreateIndexInfo idx_info(DEFAULT_SCHEMA, property_schema_name + "_id",
+                                 IndexType::PHYSICAL_ID, part_cat->GetOid(),
+                                 temporal_ps_cat->GetOid(), 0, {-1});
         IndexCatalogEntry *index_cat =
-            (IndexCatalogEntry *)catalog.CreateIndex(context,
-                                                        &idx_info);
+            (IndexCatalogEntry *)catalog.CreateIndex(context, &idx_info);
 
-        gcat->GetPropertyNames(context, merged_property_key_ids,
-                                key_names);
         temporal_ps_cat->SetFake();
-        temporal_ps_cat->SetSchema(context, key_names, merged_types,
-                                    merged_property_key_ids);
+        temporal_ps_cat->SetSchema(context, key_names, *original_types,
+                                   *original_key_ids);
         temporal_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
-        temporal_ps_cat->SetNumberOfLastExtentNumTuples(
-            merged_num_tuples);
+        temporal_ps_cat->SetNumberOfLastExtentNumTuples(merged_num_tuples);
 
         return temporal_ps_cat->GetOid();
     }
 
-    void _merge_schemas_and_histograms(
+    void _merge_histograms(
         ClientContext &context, DatabaseInstance &db,
-        uint32_t *table_oids_to_be_merged, idx_t size, vector<LogicalType> &merged_types,
-        vector<PropertyKeyID> &merged_property_key_ids,
+        uint32_t *table_oids_to_be_merged, idx_t size,
+        const PropertyKeyID_vector &original_key_ids,
         idx_t_vector *merged_offset_infos, uint64_t_vector *merged_freq_values,
         uint64_t_vector *merged_ndvs, uint64_t &merged_num_tuples)
     {
         auto &catalog = db.GetCatalog();
-        unordered_set<PropertyKeyID> merged_schema;
-        unordered_map<PropertyKeyID, LogicalTypeId> type_info;
         unordered_map<PropertyKeyID, vector<idx_t>>
             intermediate_merged_freq_values;
         unordered_map<PropertyKeyID, idx_t> accumulated_ndvs;
@@ -549,7 +548,7 @@ public:
 
         bool has_histogram = true;
 
-        // merge schemas & histograms
+        // merge histograms
         for (auto i = 0; i < size; i++) {
             idx_t table_oid = table_oids_to_be_merged[i];
 
@@ -557,7 +556,6 @@ public:
                 (PropertySchemaCatalogEntry *)catalog.GetEntry(
                     context, DEFAULT_SCHEMA, table_oid);
 
-            auto *types = ps_cat->GetTypes();
             auto *key_ids = ps_cat->GetKeyIDs();
             auto *ndvs = ps_cat->GetNDVs();
             accumulated_ndvs_for_physical_id_col +=
@@ -570,13 +568,9 @@ public:
              * TODO: adding NDVs is seems wrong.
              * We have to do correctly (e.g., setting max NDV)
             */
-
-            for (auto j = 0; j < key_ids->size(); j++) {
-                merged_schema.insert(key_ids->at(j));
-                if (type_info.find(key_ids->at(j)) == type_info.end()) {
-                    type_info.insert({key_ids->at(j), types->at(j)});
-                }
-                if (has_histogram) {
+           
+            if (has_histogram) {
+                for (auto j = 0; j < key_ids->size(); j++) {
                     if (accumulated_ndvs.find(key_ids->at(j)) ==
                         accumulated_ndvs.end()) {
                         accumulated_ndvs.insert({key_ids->at(j), ndvs->at(j)});
@@ -620,29 +614,29 @@ public:
             }
         }
 
-        merged_property_key_ids.reserve(merged_schema.size());
-        if (has_histogram) {
-            merged_ndvs->push_back(accumulated_ndvs_for_physical_id_col);
-        }
-        for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
-            merged_property_key_ids.push_back(*it);
-        }
-        // TODO sort by key ids - always right?
-        // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
+        if (!has_histogram)
+            return;
+
+        merged_ndvs->push_back(accumulated_ndvs_for_physical_id_col);
         size_t accumulated_offset = 0;
-        for (auto i = 0; i < merged_property_key_ids.size(); i++) {
-            idx_t prop_key_id = merged_property_key_ids[i];
-            merged_types.push_back(LogicalType(type_info.at(prop_key_id)));
-            if (!has_histogram)
-                continue;
-            auto &freq_vec = intermediate_merged_freq_values.at(prop_key_id);
-            accumulated_offset += (freq_vec.size() + 1);
-            merged_offset_infos->push_back(accumulated_offset);
-            for (auto j = 0; j < freq_vec.size(); j++) {
-                merged_freq_values->push_back(freq_vec[j]);
+        for (auto i = 0; i < original_key_ids.size(); i++) {
+            idx_t prop_key_id = original_key_ids[i];
+            auto it = intermediate_merged_freq_values.find(prop_key_id);
+            if (it == intermediate_merged_freq_values.end()) {
+                // Property not present in merged tables - use zero frequencies
+                accumulated_offset += 1;
+                merged_offset_infos->push_back(accumulated_offset);
+                merged_ndvs->push_back(0);
+            } else {
+                auto &freq_vec = it->second;
+                accumulated_offset += (freq_vec.size() + 1);
+                merged_offset_infos->push_back(accumulated_offset);
+                for (auto j = 0; j < freq_vec.size(); j++) {
+                    merged_freq_values->push_back(freq_vec[j]);
+                }
+                auto ndv_it = accumulated_ndvs.find(prop_key_id);
+                merged_ndvs->push_back(ndv_it != accumulated_ndvs.end() ? ndv_it->second : 0);
             }
-            auto &ndv = accumulated_ndvs.at(prop_key_id);
-            merged_ndvs->push_back(ndv);
         }
     }
 

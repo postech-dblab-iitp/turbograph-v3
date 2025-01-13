@@ -297,7 +297,7 @@ public:
 						   const CMDProviderArray *pdrgpmdp);
 
 	// s62 added, create new virtual table
-	IMDId *AddVirtualTable(IMdIdArray *pdrgmdid);
+	IMDId *AddVirtualTable(IMDId *mdid, IMdIdArray *pdrgmdid);
 
 	// interface to a relation object from the MD cache
 	const IMDRelation *RetrieveRel(IMDId *mdid);
