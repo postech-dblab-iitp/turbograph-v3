@@ -328,7 +328,6 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 
 		ExtentID cur_vertex_extentID = cur_vertex_localextentID | (((uint32_t)part_id) << 16);
 		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, cur_vertex_extentID);
-
 		adj_list_chunk.Destroy();
 	}
 }
@@ -1119,6 +1118,8 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			}
 
 			// Process remaining dst vertices
+			end_idx = src_seqno;
+			
 			FillBwdAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
 										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 										  lid_pair_to_epid_map_instance, adj_list_buffers);

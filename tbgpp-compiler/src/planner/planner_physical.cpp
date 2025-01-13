@@ -2652,6 +2652,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
     CColRefSet *outer_inner_cols = GPOS_NEW(mp) CColRefSet(mp, outer_cols);
     outer_inner_cols->Include(pexprInner->Prpp()->PcrsRequired());
     CColRefArray *filter_output_cols  = GPOS_NEW(mp) CColRefArray(mp);
+    CColRefArray *join_cond_cols = GPOS_NEW(mp) CColRefArray(mp);
 
     unordered_map<ULONG, uint64_t> id_map;
     vector<uint32_t> outer_col_map;
@@ -2689,6 +2690,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
     bool construct_filter_for_cycle = false;
     vector<unique_ptr<duckdb::Expression>> cycle_filter_duckdb_exprs;
 
+    CExpression *scalar_cmp_expr = NULL;
     CExpression *filter_expr = NULL;
     CExpression *filter_pred_expr = NULL;
     CExpression *idxscan_expr = NULL;
@@ -2755,7 +2757,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
             }
 
             // Get JoinColumnID
-            CExpression *scalar_cmp_expr = construct_filter_for_cycle ? seek_condition->operator[](0) : seek_condition;
+            scalar_cmp_expr = construct_filter_for_cycle ? seek_condition->operator[](0) : seek_condition;
             for (uint32_t j = 0; j < scalar_cmp_expr->Arity();
                  j++) {
                 CScalarIdent *sc_ident =
@@ -2993,7 +2995,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
         vector<unique_ptr<duckdb::Expression>> proj_exprs;
         pGetDuckDBTypesFromColRefs(output_cols, output_types_proj);
         schema_proj.setStoredTypes(output_types_proj);
-        pGetProjectionExprs(outer_cols, output_cols,
+        pGetProjectionExprsWithJoinCond(scalar_cmp_expr, outer_cols, output_cols,
                             output_types_proj, proj_exprs);
         if (proj_exprs.size() != 0) {
             duckdb::CypherPhysicalOperator *duckdb_proj_op =
@@ -5933,6 +5935,35 @@ void Planner::pSeperatePropertyNonPropertyCols(CColRefSet *input_cols,
         }
     }
 }
+
+void Planner::pGetProjectionExprsWithJoinCond(
+    CExpression *scalar_cmp_expr,
+    CColRefArray *input_cols, CColRefArray *output_cols,
+    vector<duckdb::LogicalType> output_types,
+    vector<unique_ptr<duckdb::Expression>> &out_exprs)
+{
+    for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
+        CColRef *col = (*output_cols)[col_idx];
+        ULONG idx = input_cols->IndexOf(col);
+        if (idx == gpos::ulong_max) { // join cond column
+            D_ASSERT(scalar_cmp_expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarCmp);
+            for (uint32_t j = 0; j < scalar_cmp_expr->Arity();
+                    j++) {
+                CScalarIdent *sc_ident =
+                    (CScalarIdent
+                            *)(scalar_cmp_expr->operator[](j)->Pop());
+                idx = input_cols->IndexOf(sc_ident->Pcr());
+                if (idx != gpos::ulong_max) {
+                    break;
+                }
+            }
+        }
+        D_ASSERT(idx != gpos::ulong_max);
+        out_exprs.push_back(make_unique<duckdb::BoundReferenceExpression>(
+            output_types[col_idx], (int)idx));
+    }
+}
+
 
 void Planner::pGetProjectionExprs(
     CColRefArray *input_cols, CColRefArray *output_cols,
