@@ -1636,6 +1636,10 @@ void PhysicalIdSeek::markInvalidForColumnsToUnseek(DataChunk &chunk, vector<Exte
     for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
         chunk.data[columnIdx].SetIsValid(false);
     }
+    // Mark all outer columns valid
+    for (auto columnIdx : outer_output_col_idxs) {
+        chunk.data[columnIdx].SetIsValid(true);
+    }
     // Mark seek columns valid
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
         auto mapping_idx = mapping_idxs[extentIdx];
