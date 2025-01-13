@@ -57,7 +57,8 @@ public:
 						IMDType::ETypeInfo type_info) const = 0;
 
 	// add virtual table to the MD cache
-	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid) = 0;
+    virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
+                                   IMdIdArray *pdrgmdid) = 0;
 };
 
 // arrays of MD providers

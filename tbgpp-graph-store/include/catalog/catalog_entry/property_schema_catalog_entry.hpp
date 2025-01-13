@@ -94,13 +94,21 @@ public:
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
 
-	//! Set Schema Info
-	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids);
+    //! Set Schema Info
+    void SetSchema(ClientContext &context, vector<string> &key_names,
+                   vector<LogicalType> &types,
+                   vector<PropertyKeyID> &prop_key_ids);
 
-	//! Set Schema Info
-	void SetSchema(ClientContext &context, vector<LogicalType> &types, vector<PropertyKeyID> &prop_key_ids);
+    //! Set Schema Info
+    void SetSchema(ClientContext &context, vector<LogicalType> &types,
+                   vector<PropertyKeyID> &prop_key_ids);
 
-	void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
+    //! Set Schema Info with key names, types and key IDs
+    void SetSchema(ClientContext &context, vector<string> &key_names,
+                   LogicalTypeId_vector &types,
+                   PropertyKeyID_vector &prop_key_ids);
+
+    void SetKeyColumnIdxs(vector<idx_t> &key_column_idxs_);
 	void SetFake() {
 		is_fake = true;
 	}

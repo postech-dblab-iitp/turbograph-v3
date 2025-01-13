@@ -47,7 +47,7 @@ public:
 		return GetGPDBTypeMdid(mp, sysid, type_info);
 	}
 
-	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid);
+	virtual IMDId *AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid);
 };
 }  // namespace gpmd
 
