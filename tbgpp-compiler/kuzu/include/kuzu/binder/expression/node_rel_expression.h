@@ -125,6 +125,7 @@ protected:
     vector<shared_ptr<Expression>> properties;
     vector<bool> used_columns;
     vector<bool> used_for_filter_columns;
+    vector<vector<bool>> used_for_filter_columns_per_OR;
     bool schema_info_bound = false;
     bool dsi_target = false;
     bool is_whold_node_required = false;

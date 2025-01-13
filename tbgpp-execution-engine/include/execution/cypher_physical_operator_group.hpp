@@ -83,10 +83,12 @@ public:
     }
 
     bool IsLastChild() {
+        if (IsSingleton()) return true;
         return child_idx == childs.size() - 1;
     }
 
     bool IsChildSingletonVector(int child_idx) {
+        if (IsSingleton()) return true;
         auto &child = childs[child_idx];
         bool is_singleton_vector = true;
         for (auto group : child) {

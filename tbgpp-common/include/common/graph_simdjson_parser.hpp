@@ -2535,6 +2535,11 @@ private:
                     current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::BOOLEAN);
                     break;
                 }
+                case ondemand::json_type::null: {
+                    // @jhha:
+                    current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::VARCHAR);
+                    break;
+                }
                 }
 
                 //if (in_array && field.value().type() != ondemand::json_type::object) transactions[current_idx].emplace_back(current_prefix);
@@ -2890,9 +2895,12 @@ private:
         case ondemand::json_type::null: {
             // We check that the value is indeed null
             // otherwise: an error is thrown.
-            // if(element.is_null()) {
-            //   std::cout << "null";
-            // }
+            // @jhha: think this value as a empty string (temporal)
+            std::string_view string_val = "";
+            auto data_ptr = data.data[current_col_idx].GetData();
+            ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
+                                                    (const char*)string_val.data(), string_val.size());
+            FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
             break;
         }
         }
