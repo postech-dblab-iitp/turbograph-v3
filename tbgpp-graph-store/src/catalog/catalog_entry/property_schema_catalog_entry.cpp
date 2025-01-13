@@ -111,6 +111,36 @@ void PropertySchemaCatalogEntry::SetSchema(ClientContext &context, vector<Logica
 	}
 }
 
+void PropertySchemaCatalogEntry::SetSchema(ClientContext &context,
+                                           vector<string> &key_names,
+                                           LogicalTypeId_vector &types,
+                                           PropertyKeyID_vector &prop_key_ids)
+{
+    char_allocator temp_charallocator(
+        context.GetCatalogSHM()->get_segment_manager());
+    D_ASSERT(property_typesid.empty());
+    D_ASSERT(property_key_names.empty());
+
+    for (auto &it : types) {
+        if (it != LogicalTypeId::FORWARD_ADJLIST &&
+            it != LogicalTypeId::BACKWARD_ADJLIST)
+            num_columns++;
+        property_typesid.push_back(it);
+        D_ASSERT(it != LogicalTypeId::DECIMAL);  // not implemented yet
+		extra_typeinfo_vec.push_back(0);
+    }
+
+    for (auto &it : key_names) {
+        char_string key_(temp_charallocator);
+        key_ = it.c_str();
+        property_key_names.push_back(move(key_));
+    }
+
+    for (auto i = 0; i < prop_key_ids.size(); i++) {
+        property_keys.push_back(prop_key_ids[i]);
+    }
+}
+
 void PropertySchemaCatalogEntry::SetTypes(vector<LogicalType> &types) {
 	D_ASSERT(property_typesid.empty());
 	for (auto &it : types) {

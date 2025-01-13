@@ -36,8 +36,10 @@ MDProviderTBGPP::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 	return str;
 }
 
-IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMdIdArray *pdrgmdid) {
-	return CTranslatorTBGPPToDXL::AddVirtualTable(mp, pdrgmdid);
+IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
+                                        IMdIdArray *pdrgmdid)
+{
+    return CTranslatorTBGPPToDXL::AddVirtualTable(mp, mdid, pdrgmdid);
 }
 
 // EOF

@@ -302,8 +302,9 @@ idx_t duckdb::GetOpFamiliesForScOp(idx_t op_id)
     return catalog_wrapper->GetOpFamiliesForScOp(op_id);
 }
 
-idx_t duckdb::AddVirtualTable(uint32_t *oid_array, idx_t size)
+idx_t duckdb::AddVirtualTable(uint32_t original_vtbl_oid, uint32_t *oid_array,
+                              idx_t size)
 {
-    return catalog_wrapper->AddVirtualTable(*client_wrapper.get(), oid_array,
-                                            size);
+    return catalog_wrapper->AddVirtualTable(*client_wrapper.get(),
+                                            original_vtbl_oid, oid_array, size);
 }
