@@ -796,8 +796,9 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		if (rel->GetType(ul) == duckdb::LogicalType::FORWARD_ADJLIST ||
 			rel->GetType(ul) == duckdb::LogicalType::BACKWARD_ADJLIST) continue;
 		// Form_pg_attribute att = rel->rd_att->attrs[ul];
-		CMDName *md_colname =
-			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
+		// CMDName *md_colname =
+		// 	CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
+		CMDName *md_colname = CDXLUtils::CreateMDNameFromCharArray(mp, "");
 
 		// translate the default column value
 		CDXLNode *dxl_default_col_val = NULL;
