@@ -648,7 +648,8 @@ CJoinOrderDPCoalescing::DCost(CExpression *pexpr)
 		}
 
 		// leaf operator, use its estimated number of rows as cost
-		dCost = CDouble(pexpr->Pstats()->Rows());
+		// dCost = CDouble(pexpr->Pstats()->Rows());
+		dCost = 0.0;
 	}
 	else
 	{
@@ -947,6 +948,22 @@ CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
 		for (ULONG ul = 0; ul < pdrgmdid->Size(); ul++) {
 			new_ptabdesc->AddTableInTheGroup((*pdrgmdid)[ul]);
 		}
+
+		// Get column descriptors from original table descriptor
+		CColumnDescriptorArray *org_pdrgpcoldesc = ptabdesc->OrgPdrgpcoldesc();
+		CColumnDescriptorArray *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
+		GPOS_ASSERT(NULL != org_pdrgpcoldesc);
+		GPOS_ASSERT(NULL != pdrgpcoldesc);
+
+		// Add each column descriptor to the new table descriptor
+		for (ULONG ul = 0; ul < org_pdrgpcoldesc->Size(); ul++)
+		{
+			CColumnDescriptor *pcoldesc = (*org_pdrgpcoldesc)[ul];
+			pcoldesc->AddRef();
+			new_ptabdesc->AddColumn(pcoldesc);
+		}
+
+		new_ptabdesc->SetPdrgpcoldesc(pdrgpcoldesc);
 	} else {
 		GPOS_ASSERT(pdrgmdid->Size() == 1);
 
@@ -961,6 +978,22 @@ CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
 			IMDRelation::ErelstorageHeap,
 			0
 		);
+
+		// Get column descriptors from original table descriptor
+		CColumnDescriptorArray *org_pdrgpcoldesc = ptabdesc->OrgPdrgpcoldesc();
+		CColumnDescriptorArray *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
+		GPOS_ASSERT(NULL != org_pdrgpcoldesc);
+		GPOS_ASSERT(NULL != pdrgpcoldesc);
+
+		// Add each column descriptor to the new table descriptor
+		for (ULONG ul = 0; ul < org_pdrgpcoldesc->Size(); ul++)
+		{
+			CColumnDescriptor *pcoldesc = (*org_pdrgpcoldesc)[ul];
+			pcoldesc->AddRef();
+			new_ptabdesc->AddColumn(pcoldesc);
+		}
+
+		new_ptabdesc->SetPdrgpcoldesc(pdrgpcoldesc);
 	}
 
 	new_ptabdesc->AddRef();
@@ -1009,21 +1042,27 @@ void CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
     
     CTableDescriptor *ptabdescSecond =
         CreateTableDescForVirtualTable(ptabdesc, pdrgmdidSecond);
+	
+    // Get output columns from original LogicalGet
+    CLogicalGet *plogicalget = CLogicalGet::PopConvert(scan_expr->Pop());
+    CColRefArray *pdrgpcrOutput = plogicalget->PdrgpcrOutput();
 
     std::wstring w_alias1 = L"VirtualTable1";
 	std::wstring w_alias2 = L"VirtualTable2";
 	CWStringConst strAlias1(w_alias1.c_str());
 	CWStringConst strAlias2(w_alias2.c_str());
 
+	pdrgpcrOutput->AddRef();
     CExpression *pexprFirstVirtual = GPOS_NEW(m_mp) CExpression(
         m_mp, GPOS_NEW(m_mp) CLogicalGet(
                   m_mp, GPOS_NEW(m_mp) CName(m_mp, CName(&strAlias1)),
-                  ptabdescFirst));
+                  ptabdescFirst, pdrgpcrOutput));
 
+	pdrgpcrOutput->AddRef();
     CExpression *pexprSecondVirtual = GPOS_NEW(m_mp) CExpression(
         m_mp, GPOS_NEW(m_mp) CLogicalGet(
                   m_mp, GPOS_NEW(m_mp) CName(m_mp, CName(&strAlias2)),
-                  ptabdescSecond));
+                  ptabdescSecond, pdrgpcrOutput));
 
     // Create new expressions by replacing the original LogicalGet with the new virtual table LogicalGets
     CExpression *pexprFirstComponent =
@@ -1160,7 +1199,9 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 
 		// Update best plan if cost is lower
 		if (dCostGOO < dCost) {
-			pexprResultUnionAll->Release();
+			if (pexprResultUnionAll != NULL) {
+				pexprResultUnionAll->Release();
+			}
 			pexprResultUnionAll = pexprGOO;
 			dCost = dCostGOO;
 		}
@@ -1168,6 +1209,11 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 			pexprGOO->Release();
 		}
     }
+
+	CWStringDynamic str(m_mp, L"\n");
+	COstreamString oss(&str);
+	pexprResultUnionAll->OsPrint(oss);
+	GPOS_TRACE(str.GetBuffer());
 	
 	return pexprResultUnionAll;
 }
@@ -1183,12 +1229,6 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 CExpression *
 CJoinOrderDPCoalescing::PexprExpand()
 {
-	CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
-	for (ULONG ul = 0; ul < m_ulComps; ul++)
-	{
-		(void) pbs->ExchangeSet(ul);
-	}
-
 	// Calculate edge selectivity
 	CalcEdgeSelectivity(&m_pdrgdSelectivity);
 
@@ -1423,6 +1463,11 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 			comp->m_pexpr->AddRef();
 			tree->Append(comp->m_pexpr);
 
+			CWStringDynamic strExpr(m_mp, L"\n");
+			COstreamString ossExpr(&strExpr);
+			comp->m_pexpr->OsPrint(ossExpr);
+			GPOS_TRACE(strExpr.GetBuffer());
+
 			// Initialize each element as its own set
 			parent[ul] = ul;
 			rank[ul] = 0;
@@ -1580,11 +1625,13 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
     splitted_components = GPOS_NEW_ARRAY(m_mp, SComponent *, num_query_graphs);
 
 	CExpression *pexprResult = NULL;
-    const ULONG ulMaxTrySplit = 1;
+    const ULONG ulMaxTrySplit = 10;
     for (ULONG ulTrySplit = 0; ulTrySplit < ulMaxTrySplit; ulTrySplit++) {
         SplitUnionAll(pexpr, ulTarget, splitted_components, ulTrySplit == 0);
 
 		CExpressionArray *pexprArray = GPOS_NEW(m_mp) CExpressionArray(m_mp);
+		CColRefArray *pdrgpcrOutput = GPOS_NEW(m_mp) CColRefArray(m_mp);
+    	CColRef2dArray *pdrgdrgpcrInput = GPOS_NEW(m_mp) CColRef2dArray(m_mp);
         CDouble total_cost = 0;
         for (ULONG ul = 0; ul < num_query_graphs; ul++) {
             UpdateEdgeSelectivity(ulTarget, m_pdrgdSelectivity, ul,
@@ -1595,16 +1642,24 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
                                            m_rgpedge, m_pdrgdSelectivity,
 										   splitted_components, ulTarget,
 										   ul);
-            CDouble dCostGOO = DCost(pexprGOO);
+            CDouble dCostGOO = DCost(pexprGOO) * 0.5;
 			total_cost = total_cost + dCostGOO;
 			pexprArray->Append(pexprGOO);
+            pdrgdrgpcrInput->Append(
+                pexprGOO->DeriveOutputColumns()->Pdrgpcr(m_mp));
         }
 
-		if (total_cost < dBestCost) {
-			pexprResult = GPOS_NEW(m_mp) CExpression(m_mp,
-				GPOS_NEW(m_mp) CLogicalUnionAll(m_mp),
-				pexprArray);
-		}
+        if (total_cost < dBestCost) {
+			pdrgpcrOutput->AppendArray(
+                (*pexprArray)[0]->DeriveOutputColumns()->Pdrgpcr(m_mp));
+			pdrgpcrOutput->AddRef();
+			pdrgdrgpcrInput->AddRef();
+            pexprResult = GPOS_NEW(m_mp) CExpression(
+                m_mp,
+                GPOS_NEW(m_mp)
+                    CLogicalUnionAll(m_mp, pdrgpcrOutput, pdrgdrgpcrInput),
+                pexprArray);
+        }
     }
 
     return pexprResult;
