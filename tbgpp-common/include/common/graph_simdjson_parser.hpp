@@ -1215,7 +1215,7 @@ public:
 
         // run dbscan
         auto dbscan = DBSCAN<std::pair<std::vector<uint32_t>, uint64_t>, double>();
-        dbscan.Run(&schema_groups_with_num_tuples, 1, 2.0f, 50,
+        dbscan.Run(&schema_groups_with_num_tuples, 1, 0.5f, 1,
                    [&](const std::pair<std::vector<uint32_t>, uint64_t> &a,
                        const std::pair<std::vector<uint32_t>, uint64_t> &b) {
                         int64_t num_nulls1 = 0;
