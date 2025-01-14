@@ -134,6 +134,10 @@ class SchemaFlowGraph {  // for each pipeline
         schema_per_operator[0] = other_source_schemas[0];
         other_source_schemas.erase(other_source_schemas.begin());
         cur_source_idx = 0;
+        flow_graph[0].resize(schema_per_operator[0].size());
+        for (auto i = 0; i < schema_per_operator[0].size(); i++) {
+            flow_graph[0][i] = i;
+        }
     }
 
     idx_t GetCurSourceIdx()
