@@ -42,7 +42,9 @@ private:
     shared_ptr<Expression> bindRelPropertyExpression(
         const Expression& expression, const string& propertyName);
     unique_ptr<Expression> createPropertyExpression(
-        Expression& nodeOrRel, const vector<Property>& propertyName, uint64_t prop_key_id = 0);
+        Expression &nodeOrRel, Property &anchorProperty,
+        unordered_map<table_id_t, property_id_t> &propertyIDPerTable,
+        uint64_t prop_key_id = 0);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindScalarFunctionExpression(

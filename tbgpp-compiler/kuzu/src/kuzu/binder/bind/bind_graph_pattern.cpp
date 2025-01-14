@@ -226,7 +226,6 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
                                     QueryGraph &queryGraph,
                                     PropertyKeyValCollection &collection)
 {
-
     if (!queryRel->isSchemainfoBound()) {
         D_ASSERT(client != nullptr);
 
@@ -241,54 +240,76 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
             queryRel->getLowerBound() != queryRel->getUpperBound() ? true
                                                                    : false;
 
-        duckdb::string_vector *universal_schema;
-        duckdb::idx_t_vector *universal_schema_ids;
-        duckdb::LogicalTypeId_vector *universal_types_id;
-        duckdb::PropertyToPropertySchemaPairVecUnorderedMap *property_schema_index;
+        // duckdb::idx_t_vector *universal_schema_ids;
+        // duckdb::LogicalTypeId_vector *universal_types_id;
+        // duckdb::PropertyToPropertySchemaPairVecUnorderedMap *property_schema_index;
+
+        vector<duckdb::idx_t> universal_schema_ids;
+        vector<duckdb::LogicalTypeId> universal_types_id;
+        unordered_map<duckdb::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
+
+        duckdb::GraphCatalogEntry *graph_catalog_entry =
+            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+                DEFAULT_GRAPH);
+
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(
-            *client, tableIDs, &property_schema_index, &universal_schema,
-            &universal_schema_ids, &universal_types_id,
-            queryRel->getPartitionIDs());
+            *client, tableIDs, property_schema_index, universal_schema_ids,
+            universal_types_id, queryRel->getPartitionIDs());
         {
             string propertyName = "_id";
-            vector<Property> prop_id;
+            unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+            propertyIDPerTable.reserve(tableIDs.size());
+            
+            Property anchorProperty;
+            anchorProperty.name = std::to_string(0);
+            anchorProperty.dataType = DataType(DataTypeID::NODE_ID);
+            
             for (auto &table_id : tableIDs) {
-                prop_id.push_back(Property::constructNodeProperty(
-                    PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0,
-                    table_id));
-                // TODO for variable length, id is not nodeid type. it is list!!
+                propertyIDPerTable.insert({table_id, 0});
             }
-            auto prop_idexpr =
-                expressionBinder.createPropertyExpression(*queryRel, prop_id);
-            queryRel->addPropertyExpression(propertyName,
+            auto prop_idexpr = expressionBinder.createPropertyExpression(
+                *queryRel, anchorProperty, propertyIDPerTable);
+            uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, propertyName);
+            queryRel->addPropertyExpression(propertyKeyID,
                                             std::move(prop_idexpr));
         }
 
         // for each property, create property expression
         // for variable length join, cannot create property
-        for (uint64_t i = 0; i < universal_schema->size(); i++) {
-            // auto it = pkey_to_ps_map.find(universal_schema[i]);
-            std::string propertyName = std::string(universal_schema->at(i));
-            duckdb::idx_t property_key_id = universal_schema_ids->at(i);
-            duckdb::LogicalTypeId property_key_type = universal_types_id->at(i);
-            vector<Property> prop_id;
+        for (uint64_t i = 0; i < universal_schema_ids.size(); i++) {
+            duckdb::idx_t property_key_id = universal_schema_ids.at(i);
+            duckdb::LogicalTypeId property_key_type = universal_types_id.at(i);
+            // vector<Property> prop_id;
+            unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+            propertyIDPerTable.reserve(tableIDs.size());
+
+            Property anchorProperty;
+            anchorProperty.name = std::to_string(property_key_id);
+            anchorProperty.dataType = DataType((DataTypeID)property_key_type);
+
+            std::string propertyName = graph_catalog_entry->GetPropertyName(*client, property_key_id);
             if (isVariableLength && !(propertyName == "_sid" ||
                                       propertyName == "_tid")) {
                 // when variable length, only fetch _sid and _tid, propery cannot be fetched
                 continue;
             }
-            auto it = property_schema_index->find(property_key_id);
+            auto it = property_schema_index.find(property_key_id);
             for (auto &tid_and_cid_pair : it->second) {
                 // uint8_t duckdb_typeid = (uint8_t)std::get<2>(tid_and_cid_pair);
                 DataTypeID kuzu_typeid = (DataTypeID)property_key_type;
-                prop_id.push_back(Property::constructNodeProperty(
-                    PropertyNameDataType(propertyName, kuzu_typeid),
-                    tid_and_cid_pair.second + 1,
-                    tid_and_cid_pair.first));
+                D_ASSERT(anchorProperty.dataType.typeID == kuzu_typeid);
+                // prop_id.push_back(Property::constructNodeProperty(
+                //     PropertyNameDataType(propertyName, kuzu_typeid),
+                //     tid_and_cid_pair.second + 1,
+                //     tid_and_cid_pair.first));
+                propertyIDPerTable.insert(
+                    {tid_and_cid_pair.first, tid_and_cid_pair.second + 1});
             }
             auto prop_idexpr = expressionBinder.createPropertyExpression(
-                *queryRel, prop_id, property_key_id);
-            queryRel->addPropertyExpression(propertyName,
+                *queryRel, anchorProperty, propertyIDPerTable, property_key_id);
+            // uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, propertyName);
+            queryRel->addPropertyExpression(property_key_id,
                                             std::move(prop_idexpr));
         }
         queryRel->markAllColumnsAsUsed();
@@ -333,7 +354,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
-        auto idProperty = queryNode->getPropertyExpression("_id"); // this may add unnessary _id
+        auto idProperty = queryNode->getPropertyExpression(INTERNAL_ID_PROPERTY_KEY_ID); // this may add unnessary _id
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to single node a with both labels
         if (!nodePattern.getLabelOrTypeNames().empty()) {
@@ -358,7 +379,6 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
                                      PropertyKeyValCollection &collection,
                                      bool hasEdgeConnection)
 {
-
     if (!queryNode->isSchemainfoBound()) {
         D_ASSERT(client != nullptr);
 
@@ -378,47 +398,62 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         unordered_map<string,
                       vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>>
             pkey_to_ps_map;
-        duckdb::string_vector *universal_schema;
-        duckdb::idx_t_vector *universal_schema_ids;
-        duckdb::LogicalTypeId_vector *universal_types_id;
-        duckdb::PropertyToPropertySchemaPairVecUnorderedMap *property_schema_index;
+        vector<duckdb::idx_t> universal_schema_ids; 
+        vector<duckdb::LogicalTypeId> universal_types_id;
+        unordered_map<duckdb::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
+        duckdb::GraphCatalogEntry *graph_catalog_entry =
+            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+                DEFAULT_GRAPH);
+
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(
-            *client, tableIDs, &property_schema_index, &universal_schema,
-            &universal_schema_ids, &universal_types_id,
-            queryNode->getPartitionIDs());
+            *client, tableIDs, property_schema_index, universal_schema_ids,
+            universal_types_id, queryNode->getPartitionIDs());
         {
             string propertyName = "_id";
-            vector<Property> prop_id;
+            unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+            propertyIDPerTable.reserve(tableIDs.size());
+
+            Property anchorProperty;
+            anchorProperty.name = std::to_string(0);
+            anchorProperty.dataType = DataType(DataTypeID::NODE_ID);
+            
             for (auto &table_id : tableIDs) {
-                prop_id.push_back(Property::constructNodeProperty(
-                    PropertyNameDataType(propertyName, DataTypeID::NODE_ID), 0,
-                    table_id));
+                propertyIDPerTable.insert({table_id, 0});
             }
-            auto prop_idexpr =
-                expressionBinder.createPropertyExpression(*queryNode, prop_id);
-            queryNode->addPropertyExpression(propertyName,
+            auto prop_idexpr = expressionBinder.createPropertyExpression(
+                *queryNode, anchorProperty, propertyIDPerTable);
+            uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, propertyName);
+            queryNode->addPropertyExpression(propertyKeyID,
                                              std::move(prop_idexpr));
             if (hasEdgeConnection)
                 queryNode->markAllColumnsAsUsed();
         }
 
         // for each property, create property expression
-        for (uint64_t i = 0; i < universal_schema->size(); i++) {
-            std::string propertyName = std::string(universal_schema->at(i));
-            duckdb::idx_t property_key_id = universal_schema_ids->at(i);
-            duckdb::LogicalTypeId property_key_type = universal_types_id->at(i);
-            auto it = property_schema_index->find(property_key_id);
-            vector<Property> prop_id;
+        for (uint64_t i = 0; i < universal_schema_ids.size(); i++) {
+            duckdb::idx_t property_key_id = universal_schema_ids.at(i);
+            duckdb::LogicalTypeId property_key_type = universal_types_id.at(i);
+            auto it = property_schema_index.find(property_key_id);
+            unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+            propertyIDPerTable.reserve(tableIDs.size());
+
+            Property anchorProperty;
+            anchorProperty.name = std::to_string(property_key_id);
+            anchorProperty.dataType = DataType((DataTypeID)property_key_type);
+
             for (auto &table_id_and_column_idx_pair : it->second) {
                 DataTypeID kuzu_typeid = (DataTypeID)property_key_type;
-                prop_id.push_back(Property::constructNodeProperty(
-                    PropertyNameDataType(propertyName, kuzu_typeid),
-                    table_id_and_column_idx_pair.second + 1,
-                    table_id_and_column_idx_pair.first));
+                D_ASSERT(anchorProperty.dataType.typeID == kuzu_typeid);
+                propertyIDPerTable.insert(
+                    {table_id_and_column_idx_pair.first,
+                     table_id_and_column_idx_pair.second + 1});
             }
+
             auto prop_idexpr = expressionBinder.createPropertyExpression(
-                *queryNode, prop_id, property_key_id);
-            queryNode->addPropertyExpression(propertyName,
+                *queryNode, anchorProperty, propertyIDPerTable, property_key_id);
+            // uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, propertyName);
+            queryNode->addPropertyExpression(property_key_id,
                                              std::move(prop_idexpr));
         }
         queryNode->setSchemainfoBound(true);

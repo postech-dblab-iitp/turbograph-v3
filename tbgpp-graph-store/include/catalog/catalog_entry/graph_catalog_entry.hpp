@@ -92,24 +92,49 @@ public:
 		return &edge_partitions;
 	}
 
-	vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type);
-	void GetPropertyKeyIDs(ClientContext &context, vector<string> &property_names, vector<LogicalType> &property_types, vector<PropertyKeyID> &property_key_ids);
-	void GetPropertyNames(ClientContext &context, vector<PropertyKeyID> &property_key_ids, vector<string> &property_names);
-	void GetPropertyNames(ClientContext &context, PropertyKeyID_vector &property_key_ids, vector<string> &property_names);
-	void GetVertexLabels(vector<string>& label_names);
-	void GetEdgeTypes(vector<string>& type_names);
-	void GetVertexPartitionIndexesInLabel(ClientContext &context, string label, vector<idx_t> &vertex_partition_indexes);
-	void GetEdgePartitionIndexesInType(ClientContext &context, string type, vector<idx_t> &edge_partition_indexes);
-	void GetConnectedEdgeOids(ClientContext &context, idx_t src_part_oid, vector<idx_t> &edge_part_oids);
-	LogicalTypeId GetTypeIdFromPropertyKeyID(const PropertyKeyID pkid);
-	string GetLabelFromVertexPartitionIndex(ClientContext &context, idx_t index);
-	string GetTypeFromEdgePartitionIndex(ClientContext &context, idx_t index);
+    vector<idx_t> LookupPartition(ClientContext &context, vector<string> keys,
+                                  GraphComponentType graph_component_type);
+    void GetPropertyKeyIDs(ClientContext &context,
+                           vector<string> &property_names,
+                           vector<LogicalType> &property_types,
+                           vector<PropertyKeyID> &property_key_ids);
+    void GetPropertyNames(ClientContext &context,
+                          vector<PropertyKeyID> &property_key_ids,
+                          vector<string> &property_names);
+    void GetPropertyNames(ClientContext &context,
+                          PropertyKeyID_vector &property_key_ids,
+                          vector<string> &property_names);
+    string GetPropertyName(ClientContext &context,
+                           PropertyKeyID property_key_id);
+    void GetVertexLabels(vector<string> &label_names);
+    void GetEdgeTypes(vector<string> &type_names);
+    void GetVertexPartitionIndexesInLabel(
+        ClientContext &context, string label,
+        vector<idx_t> &vertex_partition_indexes);
+    void GetEdgePartitionIndexesInType(ClientContext &context, string type,
+                                       vector<idx_t> &edge_partition_indexes);
+    void GetConnectedEdgeOids(ClientContext &context, idx_t src_part_oid,
+                              vector<idx_t> &edge_part_oids);
+    LogicalTypeId GetTypeIdFromPropertyKeyID(const PropertyKeyID pkid);
+    string GetLabelFromVertexPartitionIndex(ClientContext &context,
+                                            idx_t index);
+    string GetTypeFromEdgePartitionIndex(ClientContext &context, idx_t index);
 
-	vector<idx_t> Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
+    vector<idx_t> Intersection(ClientContext &context, vector<VertexLabelID>& label_ids);
 	VertexLabelID GetVertexLabelID();
 	EdgeTypeID GetEdgeTypeID();
+
+	//! Get a new property key id
 	PropertyKeyID GetPropertyKeyID();
+
+	//! Get a new partition id
 	PartitionID GetNewPartitionID();
+
+	//! Get a property key id from a property name
+	PropertyKeyID GetPropertyKeyID(ClientContext &context, string &property_name);
+
+	//! Get a property key id from a property name
+	PropertyKeyID GetPropertyKeyID(ClientContext &context, const string &property_name);
 
 	//! Serialize the meta information of the TableCatalogEntry a serializer
 	//virtual void Serialize(Serializer &serializer);

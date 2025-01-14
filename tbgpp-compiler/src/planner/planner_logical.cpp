@@ -277,17 +277,17 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                         ? lExprLogicalPathJoin(
                               lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
                               lhs_plan->getSchema()->getColRefOfKey(lhs_name,
-                                                                    ID_COLNAME),
+                                                                    ID_COLNAME_ID),
                               edge_plan->getSchema()->getColRefOfKey(
-                                  edge_name, SID_COLNAME),
+                                  edge_name, SID_COLNAME_ID),
                               qedge->getLowerBound(), qedge->getUpperBound(),
                               ar_join_type)
                         : lExprLogicalJoin(
                               lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
                               lhs_plan->getSchema()->getColRefOfKey(lhs_name,
-                                                                    ID_COLNAME),
+                                                                    ID_COLNAME_ID),
                               edge_plan->getSchema()->getColRefOfKey(
-                                  edge_name, SID_COLNAME),
+                                  edge_name, SID_COLNAME_ID),
                               ar_join_type, nullptr);
                 lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
                 lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
@@ -300,9 +300,9 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                     CExpression *selection_expr = CUtils::PexprLogicalSelect(
                         mp, lhs_plan->getPlanExpr(),
                         lExprScalarCmpEq(lExprScalarPropertyExpr(
-                                             edge_name, TID_COLNAME, lhs_plan),
+                                             edge_name, TID_COLNAME_ID, lhs_plan),
                                          lExprScalarPropertyExpr(
-                                             rhs_name, ID_COLNAME, lhs_plan)));
+                                             rhs_name, ID_COLNAME_ID, lhs_plan)));
                     hop_plan->addUnaryParentOp(selection_expr);
                 }
                 else {
@@ -322,9 +322,9 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                     auto join_expr = lExprLogicalJoin(
                         lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
                         lhs_plan->getSchema()->getColRefOfKey(edge_name,
-                                                              TID_COLNAME),
+                                                              TID_COLNAME_ID),
                         rhs_plan->getSchema()->getColRefOfKey(rhs_name,
-                                                              ID_COLNAME),
+                                                              ID_COLNAME_ID),
                         rb_join_type, nullptr);
                     lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
                     lhs_plan->addBinaryParentOp(join_expr, rhs_plan);
@@ -513,9 +513,9 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                 if (push_selection_pred_into_join) {
                     additional_join_pred = lExprScalarCmpEq(
                         lExprScalarPropertyExpr(
-                            edge_name, is_src_lhs ? TID_COLNAME : SID_COLNAME,
+                            edge_name, is_src_lhs ? TID_COLNAME_ID : SID_COLNAME_ID,
                             lhs_plan),
-                        lExprScalarPropertyExpr(rhs_name, ID_COLNAME,
+                        lExprScalarPropertyExpr(rhs_name, ID_COLNAME_ID,
                                                 lhs_plan));
                 }
                 a_r_join_expr =
@@ -523,19 +523,19 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                         ? lExprLogicalPathJoin(
                               lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
                               lhs_plan->getSchema()->getColRefOfKey(lhs_name,
-                                                                    ID_COLNAME),
+                                                                    ID_COLNAME_ID),
                               edge_plan->getSchema()->getColRefOfKey(
                                   edge_name,
-                                  is_src_lhs ? SID_COLNAME : TID_COLNAME),
+                                  is_src_lhs ? SID_COLNAME_ID : TID_COLNAME_ID),
                               qedge->getLowerBound(), qedge->getUpperBound(),
                               ar_join_type)
                         : lExprLogicalJoin(
                               lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
                               lhs_plan->getSchema()->getColRefOfKey(lhs_name,
-                                                                    ID_COLNAME),
+                                                                    ID_COLNAME_ID),
                               edge_plan->getSchema()->getColRefOfKey(
                                   edge_name,
-                                  is_src_lhs ? SID_COLNAME : TID_COLNAME),
+                                  is_src_lhs ? SID_COLNAME_ID : TID_COLNAME_ID),
                               ar_join_type, additional_join_pred);
                 lhs_plan->addBinaryParentOp(a_r_join_expr, edge_plan);
 
@@ -551,10 +551,10 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                                 lExprScalarCmpEq(
                                     lExprScalarPropertyExpr(
                                         edge_name,
-                                        is_src_lhs ? TID_COLNAME : SID_COLNAME,
+                                        is_src_lhs ? TID_COLNAME_ID : SID_COLNAME_ID,
                                         lhs_plan),
                                     lExprScalarPropertyExpr(
-                                        rhs_name, ID_COLNAME, lhs_plan)));
+                                        rhs_name, ID_COLNAME_ID, lhs_plan)));
                         hop_plan->addUnaryParentOp(selection_expr);
                     }
                     else {
@@ -575,9 +575,9 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                             lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
                             lhs_plan->getSchema()->getColRefOfKey(
                                 edge_name,
-                                is_src_lhs ? TID_COLNAME : SID_COLNAME),
+                                is_src_lhs ? TID_COLNAME_ID : SID_COLNAME_ID),
                             rhs_plan->getSchema()->getColRefOfKey(rhs_name,
-                                                                  ID_COLNAME),
+                                                                  ID_COLNAME_ID),
                             rb_join_type, nullptr);
                         lhs_plan->getSchema()->appendSchema(
                             rhs_plan->getSchema());
@@ -715,9 +715,9 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 }
                 a_r_join_expr = lExprLogicalJoin(
                     lhs_plan->getPlanExpr(), edge_plan->getPlanExpr(),
-                    lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME),
+                    lhs_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME_ID),
                     edge_plan->getSchema()->getColRefOfKey(edge_name,
-                                                           SID_COLNAME),
+                                                           SID_COLNAME_ID),
                     gpopt::COperator::EOperatorId::EopLogicalInnerJoin,
                     nullptr);
                 lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
@@ -729,9 +729,9 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 CExpression *selection_expr = CUtils::PexprLogicalSelect(
                     mp, lhs_plan->getPlanExpr(),
                     lExprScalarCmpEq(lExprScalarPropertyExpr(
-                                         lhs_name, ID_COLNAME, outer_plan),
+                                         lhs_name, ID_COLNAME_ID, outer_plan),
                                      lExprScalarPropertyExpr(
-                                         edge_name, SID_COLNAME, lhs_plan)));
+                                         edge_name, SID_COLNAME_ID, lhs_plan)));
                 lhs_plan->addUnaryParentOp(selection_expr);
             }
             D_ASSERT(lhs_plan != nullptr);
@@ -743,14 +743,14 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 hop_plan = lhs_plan;
                 CExpression *right_pred =
                     is_rhs_bound_on_outer
-                        ? lExprScalarPropertyExpr(rhs_name, ID_COLNAME,
+                        ? lExprScalarPropertyExpr(rhs_name, ID_COLNAME_ID,
                                                   outer_plan)
-                        : lExprScalarPropertyExpr(rhs_name, ID_COLNAME,
+                        : lExprScalarPropertyExpr(rhs_name, ID_COLNAME_ID,
                                                   hop_plan);
                 CExpression *selection_expr = CUtils::PexprLogicalSelect(
                     mp, lhs_plan->getPlanExpr(),
                     lExprScalarCmpEq(lExprScalarPropertyExpr(
-                                         edge_name, TID_COLNAME, lhs_plan),
+                                         edge_name, TID_COLNAME_ID, lhs_plan),
                                      right_pred));
                 hop_plan->addUnaryParentOp(selection_expr);
             }
@@ -767,8 +767,8 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 auto join_expr = lExprLogicalJoin(
                     lhs_plan->getPlanExpr(), rhs_plan->getPlanExpr(),
                     lhs_plan->getSchema()->getColRefOfKey(edge_name,
-                                                          TID_COLNAME),
-                    rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME),
+                                                          TID_COLNAME_ID),
+                    rhs_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME_ID),
                     gpopt::COperator::EOperatorId::EopLogicalInnerJoin,
                     nullptr);
                 lhs_plan->getSchema()->appendSchema(rhs_plan->getSchema());
@@ -781,9 +781,9 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 CExpression *selection_expr = CUtils::PexprLogicalSelect(
                     mp, hop_plan->getPlanExpr(),
                     lExprScalarCmpEq(lExprScalarPropertyExpr(
-                                         rhs_name, ID_COLNAME, outer_plan),
+                                         rhs_name, ID_COLNAME_ID, outer_plan),
                                      lExprScalarPropertyExpr(
-                                         edge_name, TID_COLNAME, hop_plan)));
+                                         edge_name, TID_COLNAME_ID, hop_plan)));
                 hop_plan->addUnaryParentOp(selection_expr);
             }
             GPOS_ASSERT(hop_plan != nullptr);
@@ -909,12 +909,12 @@ LogicalPlan *Planner::lPlanProjection(const expression_vector &expressions,
                             prop_expr->getVariableName())) {
                         new_schema.appendNodeProperty(
                             prop_expr->getVariableName(),
-                            prop_expr->getPropertyName(), orig_colref);
+                            prop_expr->getPropertyID(), orig_colref);
                     }
                     else {
                         new_schema.appendEdgeProperty(
                             prop_expr->getVariableName(),
-                            prop_expr->getPropertyName(), orig_colref);
+                            prop_expr->getPropertyID(), orig_colref);
                     }
                 }
                 else {
@@ -1054,12 +1054,12 @@ LogicalPlan *Planner::lPlanGroupBy(const expression_vector &expressions,
                             prop_expr->getVariableName())) {
                         new_schema.appendNodeProperty(
                             prop_expr->getVariableName(),
-                            prop_expr->getPropertyName(), orig_colref);
+                            prop_expr->getPropertyID(), orig_colref);
                     }
                     else {
                         new_schema.appendEdgeProperty(
                             prop_expr->getVariableName(),
-                            prop_expr->getPropertyName(), orig_colref);
+                            prop_expr->getPropertyID(), orig_colref);
                     }
                 }
                 else {
@@ -1189,13 +1189,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs,
             PropertyExpression *prop_expr =
                 (PropertyExpression *)(orderby_expr.get());
             string k1 = prop_expr->getVariableName();
-            string k2 = prop_expr->getPropertyName();
+            uint64_t k2 = prop_expr->getPropertyID();
             CColRef *key_colref =
                 prev_plan->getSchema()->getColRefOfKey(k1, k2);
             // fallback to alias
             if (key_colref == NULL && prop_expr->hasAlias()) {
                 k1 = prop_expr->getAlias();
-                k2 = "";
+                k2 = std::numeric_limits<uint64_t>::max();
                 key_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
             }
             D_ASSERT(key_colref != NULL);
@@ -1203,11 +1203,11 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs,
         }
         else {
             CColRef *key_colref = prev_plan->getSchema()->getColRefOfKey(
-                orderby_expr->getUniqueName(), "");
+                orderby_expr->getUniqueName(), std::numeric_limits<uint64_t>::max());
             // fallback to alias
             if (key_colref == NULL && orderby_expr->hasAlias()) {
                 key_colref = prev_plan->getSchema()->getColRefOfKey(
-                    orderby_expr->getAlias(), "");
+                    orderby_expr->getAlias(), std::numeric_limits<uint64_t>::max());
             }
             D_ASSERT(key_colref != NULL);
             sort_colrefs.push_back(key_colref);
@@ -1321,6 +1321,12 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
 
     auto table_oids = edge_expr->getTableIDs();
 
+    duckdb::Catalog &catalog = context->db->GetCatalog();
+    duckdb::GraphCatalogEntry *graph_catalog_entry =
+        (duckdb::GraphCatalogEntry *)catalog.GetEntry(
+            *context, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+            DEFAULT_GRAPH);
+
     // generate three columns, based on the first table
     CColRefArray *cols;
     LogicalSchema schema;
@@ -1353,9 +1359,11 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
             static_cast<PropertyExpression *>(_prop_expr.get());
 
         // if property name in _id, _sid, _tid
-        if (expr->getPropertyName() == "_id" ||
-            expr->getPropertyName() == "_sid" ||
-            expr->getPropertyName() == "_tid") {
+        property_id_t propertyID = expr->getPropertyID();
+        string property_name = graph_catalog_entry->GetPropertyName(*context, propertyID);
+        if (property_name == "_id" ||
+            property_name == "_sid" ||
+            property_name == "_tid") {
             gpmd::IMDId *col_type_imdid =
                 lGetRelMd(table_oids[0])
                     ->GetMdCol(expr->getPropertyID(table_oids[0]))
@@ -1365,7 +1373,7 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
                     ->GetMdCol(expr->getPropertyID(table_oids[0]))
                     ->TypeModifier();
 
-            std::string property_name = expr->getPropertyName();
+            // std::string property_name = expr->getPropertyName();   
             std::wstring property_print_name = L"";
             property_print_name.assign(property_name.begin(),
                                        property_name.end());
@@ -1382,7 +1390,7 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
             path_output_cols->Append(new_colref);
 
             // add to schema
-            schema.appendEdgeProperty(edge_name, property_name, new_colref);
+            schema.appendEdgeProperty(edge_name, propertyID, new_colref);
         }
     }
     D_ASSERT(schema.getNumPropertiesOfKey(edge_name) == 3);
@@ -1773,13 +1781,13 @@ void Planner::lGenerateNodeOrEdgeSchema(NodeOrRelExpression *node_expr,
         auto &_prop_expr = prop_exprs[col_idx];
         PropertyExpression *expr =
             static_cast<PropertyExpression *>(_prop_expr.get());
-        string expr_name = expr->getUniqueName();
+        uint64_t propertyID = expr->getPropertyID();
         if (is_node) {
-            schema.appendNodeProperty(node_name, expr_name,
+            schema.appendNodeProperty(node_name, propertyID,
                                       prop_colrefs->operator[](i));
         }
         else {
-            schema.appendEdgeProperty(node_name, expr_name,
+            schema.appendEdgeProperty(node_name, propertyID,
                                       prop_colrefs->operator[](i));
         }
     }
@@ -2025,9 +2033,9 @@ LogicalPlan *Planner::lPlanShortestPath(QueryGraph *qg, NodeExpression *lhs,
     string rhs_name = rhs->getUniqueName();
 
     CColRef *lhs_col_ref =
-        prev_plan->getSchema()->getColRefOfKey(lhs_name, ID_COLNAME);
+        prev_plan->getSchema()->getColRefOfKey(lhs_name, 0);
     CColRef *rhs_col_ref =
-        prev_plan->getSchema()->getColRefOfKey(rhs_name, ID_COLNAME);
+        prev_plan->getSchema()->getColRefOfKey(rhs_name, 0);
     CColRef *prev_lhs_col_ref =
         col_factory->LookupColRef(lhs_col_ref->PrevId());
     CColRef *prev_rhs_col_ref =

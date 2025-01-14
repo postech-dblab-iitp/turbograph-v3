@@ -253,6 +253,10 @@ void GraphCatalogEntry::GetPropertyNames(ClientContext &context, PropertyKeyID_v
 	}
 }
 
+string GraphCatalogEntry::GetPropertyName(ClientContext &context, PropertyKeyID property_key_id) {
+	return property_key_id_to_name_vec[property_key_id];
+}
+
 void GraphCatalogEntry::GetVertexLabels(vector<string> &label_names) {
 	for(auto it = vertexlabel_map.begin(); it != vertexlabel_map.end(); ++it) {
 		label_names.push_back(it->first);
@@ -370,6 +374,36 @@ PropertyKeyID GraphCatalogEntry::GetPropertyKeyID() {
 
 PartitionID GraphCatalogEntry::GetNewPartitionID() {
 	return partition_id_version++;
+}
+
+PropertyKeyID GraphCatalogEntry::GetPropertyKeyID(ClientContext &context,
+                                                  string &property_name)
+{
+    char_allocator temp_charallocator(
+        context.db->GetCatalog().catalog_segment->get_segment_manager());
+    char_string property_name_(temp_charallocator);
+    property_name_ = property_name.c_str();
+
+    // find property key id. do not allow to get property key id for a property that does not exist
+    auto property_key_id = propertykey_map.find(property_name_);
+    D_ASSERT(property_key_id != propertykey_map.end());
+
+    return property_key_id->second;
+}
+
+PropertyKeyID GraphCatalogEntry::GetPropertyKeyID(ClientContext &context,
+                                                  const string &property_name)
+{
+    char_allocator temp_charallocator(
+        context.db->GetCatalog().catalog_segment->get_segment_manager());
+    char_string property_name_(temp_charallocator);
+    property_name_ = property_name.c_str();
+
+    // find property key id. do not allow to get property key id for a property that does not exist
+    auto property_key_id = propertykey_map.find(property_name_);
+    D_ASSERT(property_key_id != propertykey_map.end());
+
+    return property_key_id->second;
 }
 
 } // namespace duckdb

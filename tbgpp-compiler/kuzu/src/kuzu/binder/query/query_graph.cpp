@@ -231,60 +231,73 @@ unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
 }
 
 void PropertyKeyValCollection::addPropertyKeyValPair(
-    const Expression& variable, expression_pair propertyKeyValPair) {
+    const Expression &variable, expression_pair propertyKeyValPair)
+{
     auto varName = variable.getUniqueName();
-    if (!(varNameToPropertyKeyValPairs.find(varName)!=varNameToPropertyKeyValPairs.end())) {
-        varNameToPropertyKeyValPairs.insert({varName, unordered_map<string, expression_pair>{}});
+    if (!(varNameToPropertyKeyValPairs.find(varName) !=
+          varNameToPropertyKeyValPairs.end())) {
+        varNameToPropertyKeyValPairs.insert(
+            {varName, unordered_map<uint64_t, expression_pair>{}});
     }
-    auto property = (PropertyExpression*)propertyKeyValPair.first.get();
-    assert(!(varNameToPropertyKeyValPairs.at(varName).find(property->getPropertyName()) != varNameToPropertyKeyValPairs.at(varName).end()));
+    auto property = (PropertyExpression *)propertyKeyValPair.first.get();
+    assert(!(varNameToPropertyKeyValPairs.at(varName).find(
+                 property->getPropertyID()) !=
+             varNameToPropertyKeyValPairs.at(varName).end()));
     varNameToPropertyKeyValPairs.at(varName).insert(
-        {property->getPropertyName(), std::move(propertyKeyValPair)});
+        {property->getPropertyID(), std::move(propertyKeyValPair)});
 }
 
-
 vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
-    const kuzu::binder::Expression& variable) const {
+    const kuzu::binder::Expression &variable) const
+{
     auto varName = variable.getUniqueName();
-    if (! (varNameToPropertyKeyValPairs.find(varName) != varNameToPropertyKeyValPairs.end())) {
+    if (!(varNameToPropertyKeyValPairs.find(varName) !=
+          varNameToPropertyKeyValPairs.end())) {
         return vector<expression_pair>{};
     }
     vector<expression_pair> result;
     // jhko changed pair parsing expression for CPP17
-    for (auto& val : varNameToPropertyKeyValPairs.at(varName)) {
+    for (auto &val : varNameToPropertyKeyValPairs.at(varName)) {
         result.push_back(val.second);
     }
     return result;
 }
 
-vector<expression_pair> PropertyKeyValCollection::getAllPropertyKeyValPairs() const {
+vector<expression_pair> PropertyKeyValCollection::getAllPropertyKeyValPairs()
+    const
+{
     vector<expression_pair> result;
     // jhko changed pair parsing expression for CPP17
-    for (auto& val : varNameToPropertyKeyValPairs) {
-        for (auto& innerval : val.second) {
+    for (auto &val : varNameToPropertyKeyValPairs) {
+        for (auto &innerval : val.second) {
             result.push_back(innerval.second);
         }
     }
     return result;
 }
 
-bool PropertyKeyValCollection::hasPropertyKeyValPair(
-    const Expression& variable, const string& propertyName) const {
-    auto varName = variable.getUniqueName();
-    if (!(varNameToPropertyKeyValPairs.find(varName)!=varNameToPropertyKeyValPairs.end())) {
-        return false;
-    }
-    if (!(varNameToPropertyKeyValPairs.at(varName).find(propertyName)!=varNameToPropertyKeyValPairs.at(varName).end())) {
-        return false;
-    }
-    return true;
-}
+// bool PropertyKeyValCollection::hasPropertyKeyValPair(
+//     const Expression &variable, const string &propertyName) const
+// {
+//     auto varName = variable.getUniqueName();
+//     if (!(varNameToPropertyKeyValPairs.find(varName) !=
+//           varNameToPropertyKeyValPairs.end())) {
+//         return false;
+//     }
+//     if (!(varNameToPropertyKeyValPairs.at(varName).find(propertyName) !=
+//           varNameToPropertyKeyValPairs.at(varName).end())) {
+//         return false;
+//     }
+//     return true;
+// }
 
-expression_pair PropertyKeyValCollection::getPropertyKeyValPair(
-    const Expression& variable, const string& propertyName) const {
-    assert(hasPropertyKeyValPair(variable, propertyName));
-    return varNameToPropertyKeyValPairs.at(variable.getUniqueName()).at(propertyName);
-}
+// expression_pair PropertyKeyValCollection::getPropertyKeyValPair(
+//     const Expression &variable, const string &propertyName) const
+// {
+//     assert(hasPropertyKeyValPair(variable, propertyName));
+//     return varNameToPropertyKeyValPairs.at(variable.getUniqueName())
+//         .at(propertyName);
+// }
 
 } // namespace binder
 } // namespace kuzu

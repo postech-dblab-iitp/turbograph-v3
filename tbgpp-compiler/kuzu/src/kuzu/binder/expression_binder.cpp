@@ -172,7 +172,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             
             D_ASSERT(childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY);
             auto &node_expr = (NodeOrRelExpression &)*children[i];
-            node_expr.setUsedForFilterColumn(INTERNAL_ID_SUFFIX);
+            node_expr.setUsedForFilterColumn(INTERNAL_ID_PROPERTY_KEY_ID);
         } else {
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
@@ -181,7 +181,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             if (childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY) {
                 auto &property = (PropertyExpression&)*children[i];
                 auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
-                node_expr->setUsedForFilterColumn(property.getPropertyName());
+                node_expr->setUsedForFilterColumn(property.getPropertyID());
             } else if (childrenAfterCast[i]->expressionType == ExpressionType::VARIABLE) {
                 D_ASSERT(false); // not implemeneted yet
             }
@@ -205,7 +205,7 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
         if (children[i]->expressionType == ExpressionType::PROPERTY) {
             auto &property = (PropertyExpression&)*children[i];
             auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
-            node_expr->setUsedForFilterColumn(property.getPropertyName());
+            node_expr->setUsedForFilterColumn(property.getPropertyID());
         }
         else {
             D_ASSERT(false);
@@ -245,11 +245,12 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
 shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     const Expression& expression, const string& propertyName) {
     auto& nodeOrRel = (NodeOrRelExpression&)expression;
-    if (!nodeOrRel.hasPropertyExpression(propertyName)) {
+    uint64_t propertyKeyID = binder->getPropertyKeyID(propertyName);
+    if (!nodeOrRel.hasPropertyExpression(propertyKeyID)) {
         throw BinderException(
             "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
     }
-    return nodeOrRel.getPropertyExpression(propertyName);
+    return nodeOrRel.getPropertyExpression(propertyKeyID);
 }
 
 static void validatePropertiesWithSameDataType(const vector<Property>& properties,
@@ -278,23 +279,30 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
         throw BinderException(
             "Cannot read property of variable length rel " + rel.getRawName() + ".");
     }
-    if (!rel.hasPropertyExpression(propertyName)) {
+    uint64_t propertyKeyID = binder->getPropertyKeyID(propertyName);
+    if (!rel.hasPropertyExpression(propertyKeyID)) {
         throw BinderException(
             "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
     }
-    return rel.getPropertyExpression(propertyName);
+    return rel.getPropertyExpression(propertyKeyID);
 }
 
 unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    Expression& nodeOrRel, const vector<Property>& properties, uint64_t prop_key_id) {
-    assert(!properties.empty());
-    auto anchorProperty = properties[0];
+    Expression &nodeOrRel, Property &anchorProperty,
+    unordered_map<table_id_t, property_id_t> &propertyIDPerTable,
+    uint64_t prop_key_id)
+{
+    // assert(!properties.empty());
+    // auto anchorProperty = properties[0];
 
-// conform data type between multi table access
-    validatePropertiesWithSameDataType(
-        properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
-    return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, prop_key_id, nodeOrRel,
-        populatePropertyIDPerTable(properties));
+    // tslee: 250114 disabled for performance issue
+    // // conform data type between multi table access
+    // validatePropertiesWithSameDataType(properties, anchorProperty.dataType,
+    //                                    anchorProperty.name,
+    //                                    nodeOrRel.getRawName());
+    return make_unique<PropertyExpression>(
+        anchorProperty.dataType, anchorProperty.name, prop_key_id, nodeOrRel,
+        std::move(propertyIDPerTable));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(

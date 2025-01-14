@@ -242,16 +242,16 @@ CExpression *Planner::lTryGenerateScalarIdent(kuzu::binder::Expression* expressi
 	CMemoryPool* mp = this->memory_pool;
 	CColRef* target_colref;
 
-	target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), "");
+	target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), std::numeric_limits<uint64_t>::max());
 	if(target_colref == NULL) {
-		target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getAlias(), "");
+		target_colref = prev_plan->getSchema()->getColRefOfKey(expression->getAlias(), std::numeric_limits<uint64_t>::max());
 	}
 
 	if((target_colref == NULL) && l_is_outer_plan_registered) {
 		D_ASSERT(l_registered_outer_plan != nullptr);
-		target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), "");
+		target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getUniqueName(), std::numeric_limits<uint64_t>::max());
 		if(target_colref == NULL) {
-			target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getAlias(), "");
+			target_colref = l_registered_outer_plan->getSchema()->getColRefOfKey(expression->getAlias(), std::numeric_limits<uint64_t>::max());
 		}
 	}
 
@@ -279,19 +279,20 @@ CExpression *Planner::lExprScalarPropertyExpr(
 
     PropertyExpression *prop_expr = (PropertyExpression *)expression;
     string k1 = "";
-    string k2 = "";
+    uint64_t k2 = 0;
+
 
     CColRef *target_colref;
 
     // try first with property
     k1 = prop_expr->getVariableName();
-    k2 = prop_expr->getPropertyName();
+    k2 = prop_expr->getPropertyID();
     target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
 
     // fallback to alias
     if (target_colref == NULL && prop_expr->hasAlias()) {
         k1 = prop_expr->getAlias();
-        k2 = "";
+        k2 = std::numeric_limits<uint64_t>::max();
         target_colref = prev_plan->getSchema()->getColRefOfKey(k1, k2);
     }
 
@@ -299,14 +300,14 @@ CExpression *Planner::lExprScalarPropertyExpr(
     if (target_colref == NULL && l_is_outer_plan_registered) {
         GPOS_ASSERT(l_registered_outer_plan != nullptr);
         k1 = prop_expr->getVariableName();
-        k2 = prop_expr->getPropertyName();
+        k2 = prop_expr->getPropertyID();
         target_colref =
             l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
 
         // fallback to alias
         if (target_colref == NULL && prop_expr->hasAlias()) {
             k1 = prop_expr->getAlias();
-            k2 = "";
+            k2 = std::numeric_limits<uint64_t>::max();
             target_colref =
                 l_registered_outer_plan->getSchema()->getColRefOfKey(k1, k2);
         }
@@ -327,7 +328,7 @@ CExpression *Planner::lExprScalarPropertyExpr(
     return ident_expr;
 }
 
-CExpression *Planner::lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan) {
+CExpression *Planner::lExprScalarPropertyExpr(string k1, uint64_t k2, LogicalPlan *prev_plan) {
 
 	CMemoryPool *mp = this->memory_pool;
 
@@ -714,7 +715,7 @@ CExpression *Planner::lExprScalarIdInCollExpr(kuzu::binder::Expression *expressi
 	// CColRef *new_colref = col_factory->PcrCreate(
 	// 	lGetMDAccessor()->RetrieveType(scalar_op->MdidType()),
 	// 	scalar_op->TypeModifier(), col_cname);
-	auto target_colref = prev_plan->getSchema()->getColRefOfKey(var_name, "");
+	auto target_colref = prev_plan->getSchema()->getColRefOfKey(var_name, std::numeric_limits<uint64_t>::max());
 	D_ASSERT(target_colref != NULL);
 
 	CExpression *ident_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
@@ -725,7 +726,7 @@ CExpression *Planner::lExprScalarShortestPathExpr(kuzu::binder::Expression *expr
     CMemoryPool *mp = this->memory_pool;
 	PathExpression *path_expr = (PathExpression *)expression;
 	string k1 = path_expr->getUniqueName();
-    auto target_colref = prev_plan->getSchema()->getColRefOfKey(k1, "");
+    auto target_colref = prev_plan->getSchema()->getColRefOfKey(k1, std::numeric_limits<uint64_t>::max());
 	D_ASSERT(target_colref != NULL);
 	CExpression *ident_expr = GPOS_NEW(mp) CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, target_colref));
     return ident_expr;
