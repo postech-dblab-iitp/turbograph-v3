@@ -255,6 +255,19 @@ class InputParser{
 		} else if (std::strncmp(current_str.c_str(), "--query:", 8) == 0) {
 			input_query_string = std::string(*itr).substr(8);
 			is_query_string_given = true;
+		} else if (std::strncmp(current_str.c_str(), "--query-file:", 13) == 0) {
+			std::string query_file_path = std::string(*itr).substr(13);
+			std::ifstream query_file(query_file_path);
+			if (query_file.is_open()) {
+				std::stringstream buffer;
+				buffer << query_file.rdbuf(); // Read the entire file content into a stringstream
+				input_query_string = buffer.str();
+				is_query_string_given = true;
+				query_file.close();
+			} else {
+				std::cerr << "Error: Unable to open query file at " << query_file_path << std::endl;
+				exit(-1); 
+			}
 		} else if (std::strncmp(current_str.c_str(), "--debug-orca", 12) == 0) {
 			planner_config.ORCA_DEBUG_PRINT = true;
 		} else if (std::strncmp(current_str.c_str(), "--explain", 9) == 0) {
@@ -454,10 +467,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
 
 				if (planner_config.num_iterations == 1) {
-					// Print result plan
 					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 				}
-				sleep(1);
+				else {
+					std::cout << "Iteration " << i + 1 << " done" << std::endl;
+					sleep(1);
+				}
 			}
 		}
 		if(warmup) {

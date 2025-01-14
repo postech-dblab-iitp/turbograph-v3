@@ -12,14 +12,12 @@ using namespace gpos;
 using namespace gpdxl;
 using namespace gpmd;
 
-uint64_t MDProviderTBGPP::hash_mdid(std::vector<OID> &oids)
-{
-	uint64_t hash = 0;
-	for (ULONG i = 0; i < oids.size(); i++)
-	{
-		hash ^= std::hash<uint64_t>()(oids[i]) + (hash << 6) + (hash >> 2);
-	}
-	return hash;
+uint64_t MDProviderTBGPP::hash_mdid(std::vector<OID> &oids) {
+    size_t seed = 0;
+    for (const auto &oid : oids) {
+        seed ^= std::hash<OID>()(oid) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
 }
 
 MDProviderTBGPP::MDProviderTBGPP(CMemoryPool *mp) : m_mp(mp)
@@ -92,6 +90,9 @@ bool MDProviderTBGPP::CheckVirtualTableExists(std::vector<uint64_t> &oids,
         oids_vec.push_back(oid);
     }
     uint64_t hash = hash_mdid(oids_vec);
+    if (m_virtual_tables.bucket_count() == 0) {
+        m_virtual_tables.rehash(1);  // Ensure at least one bucket is allocated
+    }
     auto iter = m_virtual_tables.find(hash);
     if (iter == m_virtual_tables.end()) {
         return false;

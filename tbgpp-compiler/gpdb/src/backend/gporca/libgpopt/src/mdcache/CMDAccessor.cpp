@@ -373,7 +373,7 @@ CMDAccessor::~CMDAccessor()
 {
 	// release cache accessors and MD providers in hashtables
 	m_shtCacheAccessors.DestroyEntries(DestroyAccessorElement);
-	m_shtProviders.DestroyEntries(DestroyProviderElement);
+	// m_shtProviders.DestroyEntries(DestroyProviderElement);
 	GPOS_DELETE(m_pmdpGeneric);
 
 	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
