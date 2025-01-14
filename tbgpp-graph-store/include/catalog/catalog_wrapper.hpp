@@ -507,7 +507,7 @@ public:
         auto *original_types = original_property_schema_cat->GetTypes();
         auto *original_key_ids = original_property_schema_cat->GetKeyIDs();
         vector<string> key_names;
-        // gcat->GetPropertyNames(context, *original_key_ids, key_names);
+        gcat->GetPropertyNames(context, *original_key_ids, key_names);
 
         // Merge histograms from oid_array tables
         idx_t_vector *merged_offset_infos = temporal_ps_cat->GetOffsetInfos();

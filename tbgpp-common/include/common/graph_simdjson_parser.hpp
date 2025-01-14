@@ -80,7 +80,7 @@ public:
         IN_QUERY_TIME,
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::DBSCAN;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;

@@ -1651,7 +1651,7 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
                                            m_rgpedge, m_pdrgdSelectivity,
 										   splitted_components, ulTarget,
 										   ul);
-            CDouble dCostGOO = DCost(pexprGOO);
+            CDouble dCostGOO = DCost(pexprGOO) * 0.5;
 			total_cost = total_cost + dCostGOO;
 			pexprArray->Append(pexprGOO);
             pdrgdrgpcrInput->Append(

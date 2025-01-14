@@ -55,6 +55,7 @@ public:
     }
 
     bool AdvanceChild() {
+        if (IsSingleton()) return false;
         if (IsChildSingletonVector(child_idx)) {
             if (!IsLastChild()) {
                 IncrementChildIdx();
@@ -102,10 +103,10 @@ public:
             return 1;
         }
         else {
-            auto &repr_child = childs[0];
+            auto &cur_child = childs[child_idx];
             size_t size = 0;
-            for (auto &child : repr_child) {
-                size += child->GetSize();
+            for (auto &cur_child_child : cur_child) {
+                size += cur_child_child->GetSize();
             }
             return size;
         }
