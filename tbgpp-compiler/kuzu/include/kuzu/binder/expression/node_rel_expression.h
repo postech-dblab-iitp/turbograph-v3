@@ -44,7 +44,6 @@ public:
         propertyKeyIDToIdx.insert({propertyKeyID, properties.size()});
         properties.push_back(std::move(property));
         used_columns.push_back(false);
-        used_for_filter_columns.push_back(false);
     }
 
     inline bool hasPropertyExpression(uint64_t propertyKeyID) const {
@@ -95,21 +94,31 @@ public:
         return used_columns[col_idx];
     }
 
-    // TODO deprecated
-    // void setUsedForFilterColumn(uint64_t col_idx) {
-    //     assert(used_for_filter_columns.size() > col_idx);
-    //     used_for_filter_columns[col_idx] = true;
-    // }
-
-    void setUsedForFilterColumn(uint64_t propertyKeyID) {
+    void setUsedForFilterColumn(uint64_t propertyKeyID, uint64_t group_idx = 0) {
+        if (used_for_filter_columns_per_OR.find(group_idx) == used_for_filter_columns_per_OR.end()) {
+            used_for_filter_columns_per_OR[group_idx] = vector<bool>(used_columns.size(), false);
+        }
         auto col_idx = propertyKeyIDToIdx.at(propertyKeyID);
+        auto &used_for_filter_columns = used_for_filter_columns_per_OR[group_idx];
         used_columns[col_idx] = true;
         used_for_filter_columns[col_idx] = true;
     }
 
-    bool isUsedForFilterColumn(uint64_t col_idx) {
+    bool isUsedForFilterColumn(uint64_t col_idx, uint64_t group_idx = 0) {
+        if (used_for_filter_columns_per_OR.find(group_idx) == used_for_filter_columns_per_OR.end()) {
+            return false;
+        }
+        auto &used_for_filter_columns = used_for_filter_columns_per_OR[group_idx];
         assert(used_for_filter_columns.size() > col_idx);
         return used_for_filter_columns[col_idx];
+    }
+
+    vector<uint64_t> getORGroupIDs() {
+        vector<uint64_t> group_ids;
+        for (auto &it : used_for_filter_columns_per_OR) {
+            group_ids.push_back(it.first);
+        }
+        return std::move(group_ids);
     }
 
     bool isWholeNodeRequired() {
@@ -125,8 +134,7 @@ protected:
     // vector<unique_ptr<Expression>> properties;
     vector<shared_ptr<Expression>> properties;
     vector<bool> used_columns;
-    vector<bool> used_for_filter_columns;
-    vector<vector<bool>> used_for_filter_columns_per_OR;
+    unordered_map<int, vector<bool>> used_for_filter_columns_per_OR;
     bool schema_info_bound = false;
     bool dsi_target = false;
     bool is_whold_node_required = false;
