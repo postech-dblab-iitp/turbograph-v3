@@ -79,7 +79,7 @@ public:
 				out_mem_ptr = (void*)mem_ptr;
 				break;
 			}
-			case DataTypeID::BOOL: {
+			case DataTypeID::BOOLEAN: {
 				out_length = 1;
 				int8_t val = kuzu_literal->val.booleanVal ? 1 : 0;
 				char *mem_ptr = (char*) malloc(out_length);

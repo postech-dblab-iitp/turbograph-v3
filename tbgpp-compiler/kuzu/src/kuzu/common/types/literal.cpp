@@ -7,7 +7,7 @@ namespace common {
 
 Literal::Literal(uint8_t* value, const DataType& dataType) : _isNull{false}, dataType{dataType} {
     switch (dataType.typeID) {
-    case BOOL:
+    case BOOLEAN:
         val.booleanVal = *(bool*)value;
         break;
     case INT64:
@@ -48,7 +48,7 @@ void Literal::bind(const Literal& other) {
     _isNull = false;
     assert(dataType.typeID == other.dataType.typeID);
     switch (dataType.typeID) {
-    case BOOL: {
+    case BOOLEAN: {
         val.booleanVal = other.val.booleanVal;
     } break;
     case INTEGER: {

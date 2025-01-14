@@ -691,6 +691,9 @@ private:
 	CColRefSet *colrefs_for_dsi = nullptr;
 	bool analyze_ongoing = false;
 
+	// md provider
+	gpmd::MDProviderTBGPP *provider = nullptr;
+
 	// const string for system columns
 	string ID_COLNAME = "_id";
 	string SID_COLNAME = "_sid";

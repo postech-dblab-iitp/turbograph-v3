@@ -95,14 +95,14 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     
     expression_vector childrenAfterCast;
     for (auto& child : children) {
-        childrenAfterCast.push_back(implicitCastIfNecessary(child, BOOL));
+        childrenAfterCast.push_back(implicitCastIfNecessary(child, BOOLEAN));
     }
     auto functionName = expressionTypeToString(expressionType);
     auto execFunc = empty_scalar_exec_func();
     auto selectFunc = empty_scalar_select_func();
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL),
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOLEAN),
         move(childrenAfterCast), move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
@@ -216,7 +216,7 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     auto execFunc = empty_scalar_exec_func();
     auto selectFunc = empty_scalar_select_func();
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOL), move(children),
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOLEAN), move(children),
         move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
@@ -514,7 +514,7 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
             auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
-            boundWhen = implicitCastIfNecessary(boundWhen, BOOL);
+            boundWhen = implicitCastIfNecessary(boundWhen, BOOLEAN);
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);

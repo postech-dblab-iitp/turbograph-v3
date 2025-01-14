@@ -1526,9 +1526,9 @@ LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
     }
 
     context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(
-        *context, prop_key_ids, pruned_table_oids, representative_table_oids,
-        table_oids_in_groups, property_location_in_representative,
-        is_each_group_has_temporary_table);
+        *context, prop_key_ids, pruned_table_oids, provider,
+        representative_table_oids, table_oids_in_groups,
+        property_location_in_representative, is_each_group_has_temporary_table);
 
     // add temporary table oid to property expression
     D_ASSERT(representative_table_oids.size() ==

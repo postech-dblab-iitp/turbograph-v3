@@ -42,7 +42,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToStringVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{BOOL}, STRING,
+        std::vector<DataTypeID>{BOOLEAN}, STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
