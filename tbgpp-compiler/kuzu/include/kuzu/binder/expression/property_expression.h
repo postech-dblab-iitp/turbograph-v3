@@ -14,7 +14,7 @@ class PropertyExpression : public Expression {
         unordered_map<table_id_t, property_id_t> propertyIDPerTable)
         : Expression{PROPERTY, std::move(dataType),
                      nodeOrRel.getUniqueName() + "." + propertyName},
-          propertyName{propertyName},
+        //   propertyName{propertyName},
           propertyID{propertyID},
           variableName{nodeOrRel.getUniqueName()},
           variableRawName{nodeOrRel.getRawName()},
@@ -26,7 +26,7 @@ class PropertyExpression : public Expression {
 
     PropertyExpression(const PropertyExpression &other)
         : Expression{PROPERTY, other.dataType, other.uniqueName},
-          propertyName{other.propertyName},
+        //   propertyName{other.propertyName},
           propertyID{other.propertyID},
           variableName{other.variableName},
           variableRawName{other.variableRawName},
@@ -35,7 +35,7 @@ class PropertyExpression : public Expression {
         rawName = other.rawName;
     }
 
-    inline string getPropertyName() const { return propertyName; }
+    // inline string getPropertyName() const { return propertyName; }
 
     inline uint64_t getPropertyID() const { return propertyID; }
 
@@ -73,7 +73,7 @@ class PropertyExpression : public Expression {
 
     inline bool isInternalID() const
     {
-        return getPropertyName() == INTERNAL_ID_SUFFIX;
+        return propertyID == INTERNAL_ID_PROPERTY_KEY_ID;
     }
 
     inline unique_ptr<Expression> copy() const override
@@ -87,7 +87,7 @@ class PropertyExpression : public Expression {
     Expression *getNodeOrRelExpr() { return nodeOrRelExpr; }
 
    private:
-    string propertyName;
+    // string propertyName;
     uint64_t propertyID;
     // reference to a node/rel table
     string variableName;

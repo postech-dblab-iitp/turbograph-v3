@@ -41,6 +41,7 @@ constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEA
     5000000;
 
 const std::string INTERNAL_ID_SUFFIX = "_id";
+const uint64_t INTERNAL_ID_PROPERTY_KEY_ID = 0;
 
 struct StorageConfig {
     // The default amount of memory pre-allocated to both the default and large pages buffer pool.

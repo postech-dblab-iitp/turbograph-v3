@@ -39,23 +39,23 @@ public:
         return tableIDs[0];
     }
 
-    inline void addPropertyExpression(const string propertyName, unique_ptr<Expression> property) {
-        assert(!(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end()));
-        propertyNameToIdx.insert({propertyName, properties.size()});
+    inline void addPropertyExpression(uint64_t propertyKeyID, unique_ptr<Expression> property) {
+        assert(!(propertyKeyIDToIdx.find(propertyKeyID) != propertyKeyIDToIdx.end()));
+        propertyKeyIDToIdx.insert({propertyKeyID, properties.size()});
         properties.push_back(std::move(property));
         used_columns.push_back(false);
         used_for_filter_columns.push_back(false);
     }
 
-    inline bool hasPropertyExpression(const string& propertyName) const {
-        return propertyNameToIdx.find(propertyName) != propertyNameToIdx.end();
+    inline bool hasPropertyExpression(uint64_t propertyKeyID) const {
+        return propertyKeyIDToIdx.find(propertyKeyID) != propertyKeyIDToIdx.end();
     }
 
-    inline shared_ptr<Expression> getPropertyExpression(const string& propertyName) {
-        assert(propertyNameToIdx.find(propertyName) != propertyNameToIdx.end());
-        used_columns[propertyNameToIdx.at(propertyName)] = true;
+    inline shared_ptr<Expression> getPropertyExpression(uint64_t propertyKeyID) {
+        assert(propertyKeyIDToIdx.find(propertyKeyID) != propertyKeyIDToIdx.end());
+        used_columns[propertyKeyIDToIdx.at(propertyKeyID)] = true;
         // return properties[propertyNameToIdx.at(propertyName)]->copy();
-        return properties[propertyNameToIdx.at(propertyName)];
+        return properties[propertyKeyIDToIdx.at(propertyKeyID)];
     }
 
     inline const vector<shared_ptr<Expression>> &getPropertyExpressions() const {
@@ -95,13 +95,14 @@ public:
         return used_columns[col_idx];
     }
 
-    void setUsedForFilterColumn(uint64_t col_idx) {
-        assert(used_for_filter_columns.size() > col_idx);
-        used_for_filter_columns[col_idx] = true;
-    }
+    // TODO deprecated
+    // void setUsedForFilterColumn(uint64_t col_idx) {
+    //     assert(used_for_filter_columns.size() > col_idx);
+    //     used_for_filter_columns[col_idx] = true;
+    // }
 
-    void setUsedForFilterColumn(const string& propertyName) {
-        auto col_idx = propertyNameToIdx.at(propertyName);
+    void setUsedForFilterColumn(uint64_t propertyKeyID) {
+        auto col_idx = propertyKeyIDToIdx.at(propertyKeyID);
         used_columns[col_idx] = true;
         used_for_filter_columns[col_idx] = true;
     }
@@ -119,7 +120,7 @@ protected:
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
     table_id_t univTableID;
-    unordered_map<std::string, size_t> propertyNameToIdx; // TODO map using id -> size_t / not string -> size_t
+    unordered_map<uint64_t, size_t> propertyKeyIDToIdx;
     // TODO maintain map<tid, vector<size_t> projectionListPerTid
     // vector<unique_ptr<Expression>> properties;
     vector<shared_ptr<Expression>> properties;

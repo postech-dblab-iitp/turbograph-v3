@@ -286,7 +286,7 @@ private:
 	CExpression *lExprScalarCmpEq(CExpression *left_expr, CExpression *right_expr);	// note that two inputs are gpos::CExpression*
 	CExpression *lTryGenerateScalarIdent(kuzu::binder::Expression *expression, LogicalPlan *prev_plan);
 	CExpression *lExprScalarPropertyExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
-	CExpression *lExprScalarPropertyExpr(string k1, string k2, LogicalPlan *prev_plan);
+	CExpression *lExprScalarPropertyExpr(string k1, uint64_t k2, LogicalPlan *prev_plan);
 	CExpression *lExprScalarLiteralExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarAggFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
@@ -694,7 +694,7 @@ private:
 	// md provider
 	gpmd::MDProviderTBGPP *provider = nullptr;
 
-	// const string for system columns
+	// const variables for system columns
 	string ID_COLNAME = "_id";
 	string SID_COLNAME = "_sid";
 	string TID_COLNAME = "_tid";
@@ -704,6 +704,9 @@ private:
 	CName *id_col_cname;
 	CName *sid_col_cname;
 	CName *tid_col_cname;
+	uint64_t ID_COLNAME_ID = 0;
+	uint64_t SID_COLNAME_ID;
+	uint64_t TID_COLNAME_ID;
 };
 
 }

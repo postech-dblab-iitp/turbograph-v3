@@ -29,9 +29,9 @@ public:
     inline uint64_t getUpperBound() const { return upperBound; }
     inline bool isVariableLength() const { return !(lowerBound == 1 && upperBound == 1); }
 
-    inline bool hasInternalIDProperty() const { return hasPropertyExpression(INTERNAL_ID_SUFFIX); }
+    inline bool hasInternalIDProperty() const { return hasPropertyExpression(INTERNAL_ID_PROPERTY_KEY_ID); }
     inline shared_ptr<Expression> getInternalIDProperty() {
-        return getPropertyExpression(INTERNAL_ID_SUFFIX);
+        return getPropertyExpression(INTERNAL_ID_PROPERTY_KEY_ID);
     }
 
     std::string getName() override {

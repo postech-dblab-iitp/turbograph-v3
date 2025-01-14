@@ -354,7 +354,12 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		vector<double> query_compile_times;
 		for (int i = 0; i < planner_config.num_iterations; i++) {
 			boost::timer::cpu_timer compile_timer;
+			// boost::timer::cpu_timer parse_timer;
+			// boost::timer::cpu_timer transform_timer;
+			// boost::timer::cpu_timer bind_timer;
+
 			compile_timer.start();
+			// parse_timer.start();
 
 			auto inputStream = ANTLRInputStream(query_str);
 
@@ -371,19 +376,24 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 
 			// Parser
 			auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+			// parse_timer.stop();
 
 			// Sematic parsing
 			// Transformer
+			// transform_timer.start();
 			kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
 			auto statement = transformer.transform();
+			// transform_timer.stop();
 
 			if (planner_config.DEBUG_PRINT) {
 				std::cout << "Transformation Done" << std::endl;
 			}
 			
 			// Binder
+			// bind_timer.start();
 			auto boundStatement = binder.bind(*statement);
 			kuzu::binder::BoundStatement *bst = boundStatement.get();
+			// bind_timer.stop();
 
 			if (planner_config.DEBUG_PRINT) {
 				BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
@@ -398,6 +408,9 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 
 			auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
 			auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+			// auto parse_time_ms = parse_timer.elapsed().wall / 1000000.0;
+			// auto transform_time_ms = transform_timer.elapsed().wall / 1000000.0;
+			// auto bind_time_ms = bind_timer.elapsed().wall / 1000000.0;
 			query_compile_times.push_back(compile_time_ms);
 
 			// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
@@ -450,10 +463,17 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 				auto &resultChunks = *(executors.back()->context->query_results);
 				auto &schema = executors.back()->pipeline->GetSink()->schema;
 				printOutput(planner, resultChunks, schema);
-				
-				std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms) / " << "Query Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+                std::cout << "\nCompile Time: " << compile_time_ms
+                          << " ms (orca: " << orca_compile_time_ms << " ms) / "
+                          << "Query Execution Time: " << query_exec_time_ms
+                          << " ms" << std::endl
+                          << std::endl;
+                // std::cout << "Parse Time: " << parse_time_ms << " ms / "
+                //           << "Transform Time: " << transform_time_ms << " ms / "
+                //           << "Bind Time: " << bind_time_ms << " ms" << std::endl
+                //           << std::endl;
 
-				if (planner_config.num_iterations == 1) {
+                if (planner_config.num_iterations == 1) {
 					// Print result plan
 					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
 				}

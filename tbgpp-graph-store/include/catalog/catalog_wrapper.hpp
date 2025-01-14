@@ -252,91 +252,101 @@ public:
             (ScalarFunctionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
+    // deprecated
+    // void GetPropertyKeyToPropertySchemaMap(
+    //     ClientContext &context, vector<idx_t> &oids,
+    //     unordered_map<string,
+    //                   std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>>
+    //         &pkey_to_ps_map,
+    //     vector<string> &universal_schema)
+    // {
+    //     auto &catalog = db.GetCatalog();
+
+    //     for (auto &oid : oids) {
+    //         PropertySchemaCatalogEntry *ps_cat =
+    //             (PropertySchemaCatalogEntry *)catalog.GetEntry(
+    //                 context, DEFAULT_SCHEMA, oid);
+
+    //         string_vector *property_keys = ps_cat->GetKeys();
+    //         LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
+    //         for (int i = 0; i < property_keys->size(); i++) {
+    //             if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
+    //                 (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
+    //                 continue;
+    //             string property_key = std::string((*property_keys)[i]);
+    //             auto it = pkey_to_ps_map.find(property_key);
+    //             if (it == pkey_to_ps_map.end()) {
+    //                 universal_schema.push_back(property_key);
+    //                 pkey_to_ps_map.emplace(
+    //                     property_key,
+    //                     std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
+    //                         std::make_tuple(oid, i + 1,
+    //                                         (*property_key_types)[i])});
+    //             }
+    //             else {
+    //                 it->second.push_back(
+    //                     std::make_tuple(oid, i + 1, (*property_key_types)[i]));
+    //             }
+    //         }
+    //     }
+    // }
+
     void GetPropertyKeyToPropertySchemaMap(
         ClientContext &context, vector<idx_t> &oids,
-        unordered_map<string,
-                      std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>>
-            &pkey_to_ps_map,
-        vector<string> &universal_schema)
+        unordered_map<idx_t, vector<std::pair<uint64_t, uint64_t>>>
+            &property_schema_index,
+        vector<idx_t> &universal_schema_ids,
+        vector<LogicalTypeId> &universal_types_id, vector<idx_t> &part_oids)
     {
         auto &catalog = db.GetCatalog();
-
-        for (auto &oid : oids) {
-            PropertySchemaCatalogEntry *ps_cat =
-                (PropertySchemaCatalogEntry *)catalog.GetEntry(
-                    context, DEFAULT_SCHEMA, oid);
-
-            string_vector *property_keys = ps_cat->GetKeys();
-            LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
-            for (int i = 0; i < property_keys->size(); i++) {
-                if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
-                    (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
-                    continue;
-                string property_key = std::string((*property_keys)[i]);
-                auto it = pkey_to_ps_map.find(property_key);
-                if (it == pkey_to_ps_map.end()) {
-                    universal_schema.push_back(property_key);
-                    pkey_to_ps_map.emplace(
-                        property_key,
-                        std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
-                            std::make_tuple(oid, i + 1,
-                                            (*property_key_types)[i])});
-                }
-                else {
-                    it->second.push_back(
-                        std::make_tuple(oid, i + 1, (*property_key_types)[i]));
-                }
-            }
-        }
-    }
-
-    void GetPropertyKeyToPropertySchemaMap(
-        ClientContext &context, vector<idx_t> &oids,
-        PropertyToPropertySchemaPairVecUnorderedMap **property_schema_index,
-        string_vector **universal_schema,
-        idx_t_vector **universal_schema_ids,
-        LogicalTypeId_vector **universal_types_id,
-        vector<idx_t> &part_oids)
-    {
-        auto &catalog = db.GetCatalog();
-        const void_allocator void_alloc = catalog.catalog_segment->get_segment_manager();
-
-        // Allocate
-        *property_schema_index = new PropertyToPropertySchemaPairVecUnorderedMap(void_alloc);
-        *universal_schema = new string_vector(void_alloc);
-        *universal_schema_ids = new idx_t_vector(void_alloc);
-        *universal_types_id = new LogicalTypeId_vector(void_alloc);
+        const void_allocator void_alloc =
+            catalog.catalog_segment->get_segment_manager();
 
         // Concat all property keys and types
-        for (auto &part_oid: part_oids) {
+        for (auto &part_oid : part_oids) {
             PartitionCatalogEntry *part_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(
                     context, DEFAULT_SCHEMA, part_oid);
-        
-            auto part_universal_schema = part_cat->GetUniversalPropertyKeyNames();
-            auto part_universal_schema_ids = part_cat->GetUniversalPropertyKeyIds();
-            auto part_universal_types_id = part_cat->GetUniversalPropertyTypeIds();
-            auto part_property_schema_index = part_cat->GetPropertySchemaIndex();
+
+            auto part_universal_schema_ids =
+                part_cat->GetUniversalPropertyKeyIds();
+            auto part_universal_types_id =
+                part_cat->GetUniversalPropertyTypeIds();
+            auto part_property_schema_index =
+                part_cat->GetPropertySchemaIndex();
+            
+            if (universal_schema_ids.empty()) {
+                universal_schema_ids.reserve(part_universal_schema_ids->size());
+                universal_types_id.reserve(part_universal_types_id->size());
+                property_schema_index.reserve(part_property_schema_index->size());
+            }
 
             // Merge
-            for (auto i = 0; i < part_universal_schema->size(); i++) {
-                duckdb::idx_t property_key_id = part_universal_schema_ids->at(i);
-                auto it = (*property_schema_index)->find(property_key_id);
-                if (it == (*property_schema_index)->end()) {
-                    (*universal_schema)->push_back(part_universal_schema->at(i));
-                    (*universal_schema_ids)->push_back(part_universal_schema_ids->at(i));
-                    (*universal_types_id)->push_back(part_universal_types_id->at(i));
-                    (*property_schema_index)->emplace(
-                        property_key_id,
-                        part_property_schema_index->find(property_key_id)->second);
+            for (auto i = 0; i < part_universal_schema_ids->size(); i++) {
+                duckdb::idx_t property_key_id =
+                    part_universal_schema_ids->at(i);
+                auto it = property_schema_index.find(property_key_id);
+                if (it == property_schema_index.end()) {
+                    universal_schema_ids.push_back(
+                        part_universal_schema_ids->at(i));
+                    universal_types_id.push_back(
+                        part_universal_types_id->at(i));
+                    auto it = part_property_schema_index->find(property_key_id);
+                    vector<std::pair<uint64_t, uint64_t>> pairs;
+                    pairs.reserve(it->second.size());
+                    for (const auto& pair : it->second) {
+                        pairs.push_back(pair);
+                    }
+                    property_schema_index.emplace(property_key_id, std::move(pairs));
                 }
                 else {
                     auto &original_pair_vector = it->second;
-                    auto &new_pair_vector = part_property_schema_index->find(property_key_id)->second;
-                    original_pair_vector.insert(
-                        original_pair_vector.end(),
-                        new_pair_vector.begin(),
-                        new_pair_vector.end());
+                    auto &new_pair_vector =
+                        part_property_schema_index->find(property_key_id)
+                            ->second;
+                    original_pair_vector.insert(original_pair_vector.end(),
+                                                new_pair_vector.begin(),
+                                                new_pair_vector.end());
                 }
             }
         }

@@ -38,6 +38,14 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type,
     tid_col_cname = GPOS_NEW(memory_pool)
         CName(GPOS_NEW(memory_pool) CWStringConst(w_tid_col_name),
               true /*fOwnsMemory*/);
+    
+    duckdb::Catalog &catalog = context->db->GetCatalog();
+    duckdb::GraphCatalogEntry *graph_catalog_entry =
+        (duckdb::GraphCatalogEntry *)catalog.GetEntry(
+            *context, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+            DEFAULT_GRAPH);
+    SID_COLNAME_ID = graph_catalog_entry->GetPropertyKeyID(*context, SID_COLNAME);
+    TID_COLNAME_ID = graph_catalog_entry->GetPropertyKeyID(*context, TID_COLNAME);
 }
 
 Planner::~Planner()
@@ -299,14 +307,14 @@ void Planner::_orcaSetTraceFlags()
                   &disabled_trace_flags);
 
     if (config.ORCA_DEBUG_PRINT) {
-        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
-        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
-        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
-        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
-        GPOS_SET_TRACE(
-            gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
-        GPOS_SET_TRACE(
-            gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
+        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
+        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
+        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
+        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
+        // GPOS_SET_TRACE(
+        //     gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
+        // GPOS_SET_TRACE(
+        //     gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
         GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintOptimizationContext);
         GPOS_SET_TRACE(
             gpos::EOptTraceFlag::EopttracePrintOptimizationStatistics);

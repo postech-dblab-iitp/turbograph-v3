@@ -49,9 +49,6 @@ MDProviderTBGPP::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
                                         IMdIdArray *pdrgmdid)
 {
-    std::cout << "Adding virtual table, hash table size: "
-              << m_virtual_tables.size() << std::endl;
-
     // Convert IMdIdArray to vector of OIDs and sort
     std::vector<OID> oids;
     for (ULONG i = 0; i < pdrgmdid->Size(); i++) {
@@ -71,7 +68,6 @@ IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
         // Check if we already have this exact virtual table
         for (const auto &pair : iter->second) {
             if (pair.second == oids) {
-				std::cout << "Found existing virtual table for hash " << hash << std::endl;
                 return pair.first;
             }
         }
@@ -99,10 +95,6 @@ bool MDProviderTBGPP::CheckVirtualTableExists(std::vector<uint64_t> &oids,
     else {
         for (const auto &pair : iter->second) {
             if (pair.second == oids_vec) {
-                std::cout << "Found existing virtual table for hash " << hash
-                          << " with oid "
-                          << CMDIdGPDB::CastMdid(pair.first)->Oid()
-                          << std::endl;
                 virtual_table_oid =
                     (uint64_t)CMDIdGPDB::CastMdid(pair.first)->Oid();
                 return true;

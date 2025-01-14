@@ -220,9 +220,9 @@ public:
     vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
     vector<expression_pair> getAllPropertyKeyValPairs() const;
 
-    bool hasPropertyKeyValPair(const Expression& variable, const string& propertyName) const;
-    expression_pair getPropertyKeyValPair(
-        const Expression& variable, const string& propertyName) const;
+    // bool hasPropertyKeyValPair(const Expression& variable, const string& propertyName) const;
+    // expression_pair getPropertyKeyValPair(
+    //     const Expression& variable, const string& propertyName) const;
 
     inline unique_ptr<PropertyKeyValCollection> copy() const {
         return make_unique<PropertyKeyValCollection>(*this);
@@ -231,7 +231,8 @@ public:
 private:
     // First indexed on variable name, then indexed on property name.
     // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
-    unordered_map<string, unordered_map<string, expression_pair>> varNameToPropertyKeyValPairs;
+    // unordered_map<string, unordered_map<string, expression_pair>> varNameToPropertyKeyValPairs;
+    unordered_map<string, unordered_map<uint64_t, expression_pair>> varNameToPropertyKeyValPairs;
 };
 
 } // namespace binder
