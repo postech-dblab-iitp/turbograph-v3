@@ -74,13 +74,13 @@ bool TypeUtils::convertToBoolean(const char* data) {
         return false;
     }
     throw ConversionException(
-        prefixConversionExceptionMessage(data, BOOL) +
+        prefixConversionExceptionMessage(data, BOOLEAN) +
         ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 
 string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos) {
     switch (dataType.typeID) {
-    case BOOL:
+    case BOOLEAN:
         return TypeUtils::toString(((bool*)overflowPtr)[pos]);
     case INTEGER:
         return TypeUtils::toString(((int32_t*)overflowPtr)[pos]);
@@ -126,7 +126,7 @@ string TypeUtils::toString(const Literal& literal) {
         return "NULL";
     }
     switch (literal.dataType.typeID) {
-    case BOOL:
+    case BOOLEAN:
         return TypeUtils::toString(literal.val.booleanVal);
     case INTEGER:
         return TypeUtils::toString(literal.val.int32Val);

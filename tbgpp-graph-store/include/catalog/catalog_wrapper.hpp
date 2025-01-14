@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "function/function.hpp"
+#include "mdprovider/MDProviderTBGPP.h"
 
 #include "icecream.hpp"
 
@@ -456,12 +457,13 @@ public:
 
     void ConvertTableOidsIntoRepresentativeOids(
         ClientContext &context, vector<uint64_t> &property_key_ids,
-        vector<idx_t> &table_oids, vector<idx_t> &representative_table_oids,
+        vector<idx_t> &table_oids, gpmd::MDProviderTBGPP *provider,
+        vector<idx_t> &representative_table_oids,
         vector<vector<duckdb::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,
         vector<bool> &is_each_group_has_temporary_table)
     {
-        Coalescing::do_coalescing(context, db, property_key_ids, table_oids,
+        Coalescing::do_coalescing(context, db, property_key_ids, table_oids, provider,
                                   representative_table_oids, table_oids_in_group,
                                   property_location_in_representative,
                                   is_each_group_has_temporary_table);

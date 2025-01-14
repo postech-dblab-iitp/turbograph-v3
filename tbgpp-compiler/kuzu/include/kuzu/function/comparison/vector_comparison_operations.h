@@ -23,7 +23,7 @@ protected:
         // }
 
         // S62 extended as we 
-        for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL, PATH}) {
+        for (auto& typeID : vector<DataTypeID>{BOOLEAN, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL, PATH}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
 
@@ -39,7 +39,7 @@ private:
         auto execFunc = empty_scalar_exec_func();
         auto selectFunc = empty_scalar_select_func();
         return make_unique<VectorOperationDefinition>(
-            name, vector<DataTypeID>{leftTypeID, rightTypeID}, BOOL, execFunc, selectFunc);
+            name, vector<DataTypeID>{leftTypeID, rightTypeID}, BOOLEAN, execFunc, selectFunc);
     }
 
     // template<typename FUNC>

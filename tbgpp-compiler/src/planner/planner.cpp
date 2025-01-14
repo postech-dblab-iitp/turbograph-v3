@@ -181,14 +181,15 @@ CMDProviderMemory *Planner::_orcaGetProviderMemory()
 
 gpmd::MDProviderTBGPP *Planner::_orcaGetProviderTBGPP()
 {
-    gpmd::MDProviderTBGPP *provider = nullptr;
     CMemoryPool *mp = nullptr;
-    {
+    if (provider == nullptr) {
         CAutoMemoryPool amp;
         mp = amp.Pmp();
         provider = new (mp, __FILE__, __LINE__) gpmd::MDProviderTBGPP(mp);
         // detach safety
         (void)amp.Detach();
+    } else {
+        return provider;
     }
     D_ASSERT(provider != nullptr);
     provider->AddRef();
@@ -621,7 +622,7 @@ void *Planner::_orcaExec(void *planner_ptr)
 #endif
     }
 
-    CRefCount::SafeRelease(provider);
+    // CRefCount::SafeRelease(provider);
 
     return nullptr;
 }

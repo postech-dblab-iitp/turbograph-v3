@@ -63,8 +63,10 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
         return UBIGINT;
     } else if ("DOUBLE" == dataTypeIDString) {
         return DOUBLE;
+    } else if ("BOOL" == dataTypeIDString) {
+        return BOOLEAN;
     } else if ("BOOLEAN" == dataTypeIDString) {
-        return BOOL;
+        return BOOLEAN;
     } else if ("STRING" == dataTypeIDString) {
         return STRING;
     } else if ("DATE" == dataTypeIDString) {
@@ -98,7 +100,7 @@ string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "REL";
     case NODE_ID:
         return "NODE_ID";
-    case BOOL:
+    case BOOLEAN:
         return "BOOL";
     case INT64:
         return "INT64";
@@ -145,7 +147,7 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
     case NODE_ID:
         return sizeof(nodeID_t);
-    case BOOL:
+    case BOOLEAN:
         return sizeof(uint8_t);
     case INT64:
         return sizeof(int64_t);

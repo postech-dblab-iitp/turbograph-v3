@@ -41,7 +41,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ConcatVectorOperation::g
 std::vector<std::unique_ptr<VectorOperationDefinition>> ContainsVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(CONTAINS_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
@@ -51,7 +51,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ContainsVectorOperation:
 std::vector<std::unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ENDS_WITH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
@@ -61,7 +61,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation:
 std::vector<std::unique_ptr<VectorOperationDefinition>> REMatchVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(RE_MATCH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
@@ -128,7 +128,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 StartsWithVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(STARTS_WITH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
@@ -139,7 +139,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 PrefixVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(PREFIX_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
@@ -150,12 +150,12 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 RegexMatchesVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING, STRING}, BOOL,
+        std::vector<DataTypeID>{STRING, STRING, STRING}, BOOLEAN,
         empty_scalar_exec_func(),
         empty_scalar_select_func(),
         false /* isVarLength */));
