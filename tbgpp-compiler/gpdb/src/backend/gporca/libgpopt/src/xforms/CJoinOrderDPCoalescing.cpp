@@ -1634,7 +1634,7 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
     splitted_components = GPOS_NEW_ARRAY(m_mp, SComponent *, num_query_graphs);
 
 	CExpression *pexprResult = NULL;
-    const ULONG ulMaxTrySplit = 1;
+    const ULONG ulMaxTrySplit = 2;
     for (ULONG ulTrySplit = 0; ulTrySplit < ulMaxTrySplit; ulTrySplit++) {
         SplitUnionAll(pexpr, ulTarget, splitted_components, ulTrySplit == 0);
 
