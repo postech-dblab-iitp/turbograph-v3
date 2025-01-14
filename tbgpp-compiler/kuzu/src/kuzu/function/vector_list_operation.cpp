@@ -165,7 +165,7 @@ void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& 
     switch (argumentTypes[1].typeID) {
     case INT64:
     case DOUBLE:
-    case BOOL:
+    case BOOLEAN:
     case STRING:
     case DATE:
     case TIMESTAMP:
@@ -285,7 +285,7 @@ ListAppendVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListContainsVectorOperation::getDefinitions() {
     return getBinaryListOperationDefinitions<operation::ListContains, uint8_t>(
-        LIST_CONTAINS_FUNC_NAME, BOOL);
+        LIST_CONTAINS_FUNC_NAME, BOOLEAN);
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> PathListLenVectorOperation::getDefinitions() {

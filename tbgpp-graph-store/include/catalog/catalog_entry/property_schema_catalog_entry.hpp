@@ -113,6 +113,11 @@ public:
 		is_fake = true;
 	}
 
+	//! Check if the property schema is fake
+	bool IsFake() {
+		return is_fake;
+	}
+
 	//! Set physical ID index
 	void SetPhysicalIDIndex(idx_t index_oid) {
 		physical_id_index = index_oid;

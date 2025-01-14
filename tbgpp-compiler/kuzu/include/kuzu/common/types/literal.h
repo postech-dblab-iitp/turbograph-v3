@@ -21,7 +21,7 @@ public:
         assert(dataType.typeID == LIST);
     }
 
-    explicit Literal(bool value) : _isNull{false}, dataType(BOOL) { this->val.booleanVal = value; }
+    explicit Literal(bool value) : _isNull{false}, dataType(BOOLEAN) { this->val.booleanVal = value; }
 
     explicit Literal(uint64_t value) : _isNull{false}, dataType(UBIGINT) {
         this->val.uint64Val = value;

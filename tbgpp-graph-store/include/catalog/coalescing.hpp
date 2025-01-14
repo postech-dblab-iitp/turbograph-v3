@@ -6,6 +6,7 @@
 #include "main/database.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
+#include "mdprovider/MDProviderTBGPP.h"
 
 namespace duckdb {
 
@@ -14,6 +15,7 @@ class Coalescing {
     static void do_coalescing(
         ClientContext &context, DatabaseInstance &db,
         vector<uint64_t> &property_key_ids, vector<idx_t> &table_oids,
+        gpmd::MDProviderTBGPP *provider,
         vector<idx_t> &representative_table_oids,
         vector<vector<duckdb::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,
@@ -65,7 +67,7 @@ class Coalescing {
         // create temporal catalog table
         // TODO check if we already built temporal table for the same groups
         _create_temporal_table_catalog(
-            context, db, part_cat, table_oids_in_group,
+            context, db, part_cat, provider, table_oids_in_group,
             representative_table_oids, part_id, part_oid, property_key_ids,
             property_location_in_representative,
             is_each_group_has_temporary_table);
@@ -175,7 +177,7 @@ class Coalescing {
 
     static void _create_temporal_table_catalog(
         ClientContext &context, DatabaseInstance &db,
-        PartitionCatalogEntry *part_cat,
+        PartitionCatalogEntry *part_cat, gpmd::MDProviderTBGPP *provider,
         vector<vector<duckdb::idx_t>> &table_oids_in_group,
         vector<idx_t> &representative_table_oids, PartitionID part_id,
         idx_t part_oid, vector<uint64_t> &property_key_ids,
@@ -198,57 +200,83 @@ class Coalescing {
                 representative_table_oids.push_back(table_oids_to_be_merged[0]);
             }
             else {
-                string property_schema_name =
-                    part_name + DEFAULT_TEMPORAL_INFIX +
-                    std::to_string(
-                        part_cat->GetNewTemporalID());  // TODO vpart -> vps
-                // std::cout << "temp schema: " << property_schema_name
-                //           << std::endl;
-                vector<LogicalType> merged_types;
+                bool is_new_virtual_table = false;
+                uint64_t virtual_table_oid = 0;
+                PropertySchemaCatalogEntry *temporal_ps_cat = nullptr;
                 vector<PropertyKeyID> merged_property_key_ids;
-                vector<string> key_names;
 
-                // Create new Property Schema Catalog Entry
-                CreatePropertySchemaInfo propertyschema_info(
-                    DEFAULT_SCHEMA, property_schema_name.c_str(), part_id,
-                    part_oid);
-                PropertySchemaCatalogEntry *temporal_ps_cat =
-                    (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
-                        context, &propertyschema_info);
+                if (provider != nullptr) {
+                    is_new_virtual_table = !(provider->CheckVirtualTableExists(
+                        table_oids_to_be_merged, virtual_table_oid));
+                }
 
-                idx_t_vector *merged_offset_infos =
-                    temporal_ps_cat->GetOffsetInfos();
-                idx_t_vector *merged_freq_values =
-                    temporal_ps_cat->GetFrequencyValues();
-                uint64_t_vector *merged_ndvs = temporal_ps_cat->GetNDVs();
-                uint64_t merged_num_tuples = 0;
+                if (is_new_virtual_table) {
+                    string property_schema_name =
+                        part_name + DEFAULT_TEMPORAL_INFIX +
+                        std::to_string(
+                            part_cat->GetNewTemporalID());  // TODO vpart -> vps
+                    // std::cout << "temp schema: " << property_schema_name
+                    //           << std::endl;
+                    vector<LogicalType> merged_types;
+                    
+                    vector<string> key_names;
 
-                // merge histogram & schema
-                _merge_schemas_and_histograms(
-                    context, db, table_oids_to_be_merged, merged_types,
-                    merged_property_key_ids, merged_offset_infos,
-                    merged_freq_values, merged_ndvs, merged_num_tuples);
+                    // Create new Property Schema Catalog Entry
+                    CreatePropertySchemaInfo propertyschema_info(
+                        DEFAULT_SCHEMA, property_schema_name.c_str(), part_id,
+                        part_oid);
+                    temporal_ps_cat =
+                        (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
+                            context, &propertyschema_info);
 
-                // create physical id index catalog
-                CreateIndexInfo idx_info(DEFAULT_SCHEMA,
-                                         property_schema_name + "_id",
-                                         IndexType::PHYSICAL_ID, part_oid,
-                                         temporal_ps_cat->GetOid(), 0, {-1});
-                IndexCatalogEntry *index_cat =
-                    (IndexCatalogEntry *)catalog.CreateIndex(context,
-                                                             &idx_info);
+                    idx_t_vector *merged_offset_infos =
+                        temporal_ps_cat->GetOffsetInfos();
+                    idx_t_vector *merged_freq_values =
+                        temporal_ps_cat->GetFrequencyValues();
+                    uint64_t_vector *merged_ndvs = temporal_ps_cat->GetNDVs();
+                    uint64_t merged_num_tuples = 0;
 
-                // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
-                //     key_names.push_back("");
-                // }
-                gcat->GetPropertyNames(context, merged_property_key_ids,
-                                       key_names);
-                temporal_ps_cat->SetFake();
-                temporal_ps_cat->SetSchema(context, key_names, merged_types,
-                                           merged_property_key_ids);
-                temporal_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
-                temporal_ps_cat->SetNumberOfLastExtentNumTuples(
-                    merged_num_tuples);
+                    // merge histogram & schema
+                    _merge_schemas_and_histograms(
+                        context, db, table_oids_to_be_merged, merged_types,
+                        merged_property_key_ids, merged_offset_infos,
+                        merged_freq_values, merged_ndvs, merged_num_tuples);
+
+                    // create physical id index catalog
+                    CreateIndexInfo idx_info(DEFAULT_SCHEMA,
+                                            property_schema_name + "_id",
+                                            IndexType::PHYSICAL_ID, part_oid,
+                                            temporal_ps_cat->GetOid(), 0, {-1});
+                    IndexCatalogEntry *index_cat =
+                        (IndexCatalogEntry *)catalog.CreateIndex(context,
+                                                                &idx_info);
+
+                    // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
+                    //     key_names.push_back("");
+                    // }
+                    gcat->GetPropertyNames(context, merged_property_key_ids,
+                                        key_names);
+                    temporal_ps_cat->SetFake();
+                    temporal_ps_cat->SetSchema(context, key_names, merged_types,
+                                            merged_property_key_ids);
+                    temporal_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
+                    temporal_ps_cat->SetNumberOfLastExtentNumTuples(
+                        merged_num_tuples);
+
+                    provider->AddVirtualTable(table_oids_to_be_merged,
+                                              temporal_ps_cat->GetOid());
+                } else {
+                    temporal_ps_cat = (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                        context, DEFAULT_SCHEMA, virtual_table_oid);
+                    D_ASSERT(temporal_ps_cat != nullptr);
+                    D_ASSERT(temporal_ps_cat->IsFake());
+
+                    auto *key_ids = temporal_ps_cat->GetKeyIDs();
+                    merged_property_key_ids.reserve(key_ids->size());
+                    for (auto i = 0; i < key_ids->size(); i++) {
+                        merged_property_key_ids.push_back(key_ids->at(i));
+                    }
+                }
 
                 representative_table_oids.push_back(temporal_ps_cat->GetOid());
                 is_each_group_has_temporary_table[i] = true;
