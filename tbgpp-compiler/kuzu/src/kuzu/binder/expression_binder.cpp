@@ -37,6 +37,7 @@ namespace kuzu {
 namespace binder {
 
 shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
+    bool is_root = currentORGroupID == 0;
     shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (isExpressionBoolConnection(expressionType)) {
@@ -78,14 +79,25 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
     }
+    if (is_root) { //@jhha: temporal implementation for OR filter
+        currentORGroupID = 0;
+    }
     return expression;
 }
 
 shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     const ParsedExpression& parsedExpression) {
+    auto expressionType = parsedExpression.getExpressionType();
     expression_vector children;
-    for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
-        children.push_back(bindExpression(*parsedExpression.getChild(i)));
+    if (expressionType == ExpressionType::OR) {
+        for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+            children.push_back(bindExpression(*parsedExpression.getChild(i)));
+            currentORGroupID++;
+        }
+    } else {
+        for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
+            children.push_back(bindExpression(*parsedExpression.getChild(i)));
+        }
     }
     return bindBooleanExpression(parsedExpression.getExpressionType(), children);
 }
@@ -172,7 +184,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             
             D_ASSERT(childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY);
             auto &node_expr = (NodeOrRelExpression &)*children[i];
-            node_expr.setUsedForFilterColumn(INTERNAL_ID_PROPERTY_KEY_ID);
+            node_expr.setUsedForFilterColumn(INTERNAL_ID_PROPERTY_KEY_ID, currentORGroupID);
         } else {
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
@@ -181,7 +193,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             if (childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY) {
                 auto &property = (PropertyExpression&)*children[i];
                 auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
-                node_expr->setUsedForFilterColumn(property.getPropertyID());
+                node_expr->setUsedForFilterColumn(property.getPropertyID(), currentORGroupID);
             } else if (childrenAfterCast[i]->expressionType == ExpressionType::VARIABLE) {
                 D_ASSERT(false); // not implemeneted yet
             }
@@ -205,7 +217,9 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
         if (children[i]->expressionType == ExpressionType::PROPERTY) {
             auto &property = (PropertyExpression&)*children[i];
             auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
-            node_expr->setUsedForFilterColumn(property.getPropertyID());
+            if (parsedExpression.getExpressionType() == ExpressionType::IS_NOT_NULL) {
+                node_expr->setUsedForFilterColumn(property.getPropertyID(), currentORGroupID);
+            }
         }
         else {
             D_ASSERT(false);

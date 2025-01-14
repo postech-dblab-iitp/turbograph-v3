@@ -23,9 +23,23 @@ void IsNullLoop(Vector &input, Vector &result, idx_t count) {
 
 		result.SetVectorType(VectorType::FLAT_VECTOR);
 		auto result_data = FlatVector::GetData<bool>(result);
-		for (idx_t i = 0; i < count; i++) {
-			auto idx = data.sel->get_index(i);
-			result_data[i] = INVERSE ? data.validity.RowIsValid(idx) : !data.validity.RowIsValid(idx);
+		if (!data.is_valid) {
+			if (INVERSE) {
+				for (idx_t i = 0; i < count; i++) {
+					result_data[i] = false;
+				}
+			}
+			else {
+				for (idx_t i = 0; i < count; i++) {
+					result_data[i] = true;
+				}
+			}
+		}
+		else {
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = data.sel->get_index(i);
+				result_data[i] = INVERSE ? data.validity.RowIsValid(idx) : !data.validity.RowIsValid(idx);
+			}
 		}
 	}
 }
