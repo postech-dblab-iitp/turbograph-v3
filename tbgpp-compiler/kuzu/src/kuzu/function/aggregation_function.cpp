@@ -88,7 +88,7 @@ template<typename FUNC>
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
     const DataType& inputType, bool isDistinct) {
     switch (inputType.typeID) {
-    case BOOL:
+    case BOOLEAN:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
 	case TINYINT:

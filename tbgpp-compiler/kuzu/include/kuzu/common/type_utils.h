@@ -69,7 +69,7 @@ inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const Dat
 
     for (auto i = 0u; i < left.size; i++) {
         switch (leftDataType.childType->typeID) {
-        case BOOL: {
+        case BOOLEAN: {
             if (!isValueEqual(reinterpret_cast<uint8_t*>(left.overflowPtr)[i],
                     reinterpret_cast<uint8_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {

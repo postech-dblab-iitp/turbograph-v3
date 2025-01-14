@@ -27,7 +27,7 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
 
 shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOL);
+    ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOLEAN);
     return whereExpression;
 }
 

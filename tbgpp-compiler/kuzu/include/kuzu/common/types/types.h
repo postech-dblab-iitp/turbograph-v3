@@ -47,7 +47,7 @@ enum DataTypeID : uint8_t {
 
     // physical fixed size types
     NODE_ID = 108,
-    BOOL = 10,
+    BOOLEAN = 10,
     INTEGER = 13,
     INT64 = 14,     // BIGINT
     UBIGINT = 31,
@@ -133,7 +133,7 @@ public:
     static inline std::vector<DataTypeID> getAllValidTypeIDs() {
         // S62 extended
         return std::vector<DataTypeID>{
-            NODE_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST,
+            NODE_ID, BOOLEAN, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST,
             SQLNULL, USER, TINYINT, SMALLINT, INTEGER, TIME, TIMESTAMP_SEC, TIMESTAMP_MS, TIMESTAMP_NS,
             DECIMAL, FLOAT, CHAR, BLOB, UTINYINT, USMALLINT, UINTEGER, UBIGINT, TIMESTAMP_TZ, TIME_TZ, JSON, HUGEINT, POINTER, HASH, UUID, STRUCT, MAP, TABLE, ENUM, FORWARD_ADJLIST, BACKWARD_ADJLIST, ADJLISTCOLUMN  
             };

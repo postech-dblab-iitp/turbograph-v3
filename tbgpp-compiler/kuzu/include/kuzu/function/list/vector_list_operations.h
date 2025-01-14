@@ -43,7 +43,7 @@ struct VectorListOperations : public VectorOperations {
         std::vector<std::unique_ptr<VectorOperationDefinition>> result;
         scalar_exec_func execFunc;
         for (auto& rightTypeID :
-            std::vector<common::DataTypeID>{common::BOOL, common::INT64, common::UBIGINT, common::DOUBLE,
+            std::vector<common::DataTypeID>{common::BOOLEAN, common::INT64, common::UBIGINT, common::DOUBLE,
                 common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL, common::LIST, common::NODE_ID}) {
             // switch (rightTypeID) {
             // case common::BOOL: {
