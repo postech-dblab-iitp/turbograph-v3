@@ -533,6 +533,25 @@ void MemAllocator::PrintAvalaibleMemory() {
   std::cout << "total: " << total_available_memory << std::endl;
 }
 
+// todo: 매번 새로 계산하는 게 아니라 변수를 하나 두고 malloc/free 할 때 관리
+size_t MemAllocator::GetAvailableMemory() {
+  uint64_t total_available_memory = 0;
+  for (int i = 0; i < 64; i++) {
+    if (free_list_->free_list_head[i] >= 0) {
+
+      int64_t mem_entry_index = free_list_->free_list_head[i];
+
+      while (mem_entry_index >= 0) {
+        MemoryEntry *cur =
+            (MemoryEntry *)&header_->memory_entries[mem_entry_index];
+        mem_entry_index = cur->next;
+        total_available_memory += cur->size;
+      }
+    }
+  }
+  return total_available_memory;
+}
+
 void MemAllocator::FreeSharedNoLog(sm_offset offset) {
   sm_offset block_offset = offset - sizeof(MemoryHeader);
   MemoryHeader *header = (MemoryHeader *)&base_[block_offset];

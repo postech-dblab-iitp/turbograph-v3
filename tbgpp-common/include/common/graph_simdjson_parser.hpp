@@ -2308,20 +2308,46 @@ public:
         
         docs = parser.iterate_many(json); // TODO w/o parse?
         for (auto doc_ : docs) {
-            uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
+            uint64_t cluster_id =
+                sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
             D_ASSERT(cluster_id < num_clusters);
-            recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
+            recursive_iterate_jsonl(doc_["properties"], "", true,
+                                    num_tuples_per_cluster[cluster_id], 0,
+                                    cluster_id, datas[cluster_id]);
 
-            if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
+            if (++num_tuples_per_cluster[cluster_id] ==
+                STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
-                datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
-                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat, *property_schema_cats[cluster_id]);
-                property_schema_cats[cluster_id]->AddExtent(new_eid, datas[cluster_id].size());
-                if (load_edge) StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
+                datas[cluster_id].SetCardinality(
+                    num_tuples_per_cluster[cluster_id]);
+                ExtentID new_eid = ext_mng->CreateExtent(
+                    *client.get(), datas[cluster_id], *partition_cat,
+                    *property_schema_cats[cluster_id]);
+                property_schema_cats[cluster_id]->AddExtent(
+                    new_eid, datas[cluster_id].size());
+
+                // check remaining memory & flush if necessary
+                size_t remaining_memory;
+                ChunkCacheManager::ccm->GetRemainingMemoryUsage(remaining_memory);
+                if (remaining_memory < 10 * 1024 * 1024 * 1024UL) {
+                    ChunkCacheManager::ccm
+                        ->FlushDirtySegmentsAndDeleteFromcache(true);
+                }
+
+                // store LID to PID info for edge loading
+                if (load_edge) {
+                    StoreLidToPidInfo(datas[cluster_id],
+                                      per_cluster_key_column_idxs[cluster_id],
+                                      new_eid);
+                }
+
+                // reset num_tuples_per_cluster & datas
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
-                for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
-                    auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                for (auto col_idx = 0;
+                     col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                    auto &validity =
+                        FlatVector::Validity(datas[cluster_id].data[col_idx]);
                     validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
                     validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
                 }
@@ -2332,14 +2358,19 @@ public:
         // Create extents for remaining datas
         for (size_t i = 0; i < num_clusters; i++) {
             datas[i].SetCardinality(num_tuples_per_cluster[i]);
-            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat, *property_schema_cats[i]);
+            ExtentID new_eid =
+                ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat,
+                                      *property_schema_cats[i]);
             property_schema_cats[i]->AddExtent(new_eid, datas[i].size());
-            if (load_edge) StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
+            if (load_edge)
+                StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i],
+                                  new_eid);
         }
 
         printf("# of documents = %ld\n", num_tuples);
         for (int i = 0; i < num_clusters; i++) {
-            printf("cluster %d num_tuples: %ld\n", i, num_tuples_per_cluster[i]);
+            printf("cluster %d num_tuples: %ld\n", i,
+                   num_tuples_per_cluster[i]);
         }
     }
 

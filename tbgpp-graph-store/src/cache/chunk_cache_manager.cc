@@ -286,7 +286,7 @@ ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
   return NOERROR;
 }
 
-ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache() {
+ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment) {
   std::cout << "Start to flush file! Total # files = " << file_handlers.size() << std::endl;
   for (auto &file_handler: file_handlers) {
     if (file_handler.second == nullptr) continue;
@@ -299,7 +299,15 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache() {
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second, false);
     client->ClearDirty(file_handler.first);
+    if (destroy_segment) {
+      DestroySegment(file_handler.first);
+    }
   }
+  return NOERROR;
+}
+
+ReturnStatus ChunkCacheManager::GetRemainingMemoryUsage(size_t &remaining_memory_usage) {
+  remaining_memory_usage = client->GetRemainingMemory();
   return NOERROR;
 }
 
