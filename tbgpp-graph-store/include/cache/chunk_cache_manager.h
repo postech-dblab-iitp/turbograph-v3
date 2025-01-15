@@ -32,7 +32,8 @@ public:
   ReturnStatus CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
   ReturnStatus DestroySegment(ChunkID cid);
   ReturnStatus FinalizeIO(ChunkID cid, bool read=true, bool write=true);
-  ReturnStatus FlushDirtySegmentsAndDeleteFromcache();
+  ReturnStatus FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment=false);
+  ReturnStatus GetRemainingMemoryUsage(size_t &remaining_memory_usage);
 
   // APIs for Debugging purpose
   int GetRefCount(ChunkID cid);
