@@ -14,6 +14,8 @@ public:
 
   void PrintAvalaibleMemory();
 
+  size_t GetAvailableMemory();
+
   // for crash recovery
   void FreeSharedNoLog(sm_offset offset);
 
