@@ -4,4 +4,3 @@ WHERE v2.uri = "http://dbpedia.org/ontology/Person" AND
 v3.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL AND 
 v1.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL
 RETURN DISTINCT v1.`http://www.w3.org/2000/01/rdf-schema#label` AS r1
-LIMIT 1000
