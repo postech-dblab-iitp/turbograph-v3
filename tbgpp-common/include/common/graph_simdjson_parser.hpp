@@ -22,18 +22,19 @@ using namespace simdjson;
 #define TILE_SIZE 1024 // or 4096
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
+#define COST_MIN 0
 
 // Thresholds
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0
-#define WEIGHTEDJACCARD_THRESHOLD 0.3
-#define COSINE_THRESHOLD 0.3
-#define DICE_THRESHOLD 0.3
-#define OVERLAP_THRESHOLD 0.3
+#define JACCARD_THRESHOLD 0.7
+#define WEIGHTEDJACCARD_THRESHOLD 0.7
+#define COSINE_THRESHOLD 0.7
+#define DICE_THRESHOLD 0.7
+#define OVERLAP_THRESHOLD 0.7
 #define VEC_OVHD_THRESHOLD 1024
-#define MERGE_THRESHOLD 0.3
+#define MERGE_THRESHOLD 0.15
 
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
@@ -80,8 +81,8 @@ public:
         IN_QUERY_TIME,
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::DBSCAN;
-    const CostModel cost_model = CostModel::OURS;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
+    const CostModel cost_model = CostModel::OVERLAP;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/
@@ -1416,6 +1417,8 @@ public:
             }
         }
 
+        std::cout << "Number of final clusters: " << temp_output.size() << std::endl;
+
         if (merge_in_advance == MergeInAdvance::IN_STORAGE) {
             _MergeInAdvance(temp_output);
         }
@@ -1970,12 +1973,12 @@ public:
             /* START_OF_COST_MODEL_BASED */
             auto cost_compare_great = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
                                         const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first > b.first; // Larger costs come first
+                return a.first > b.first;
             };
 
             auto cost_compare_less = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
                                         const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first < b.first; // Smaller costs come first
+                return a.first < b.first;
             };
 
             // Pre-allocate memory for the vector
@@ -2016,7 +2019,7 @@ public:
 
                     double cost = (group1_idx == std::numeric_limits<uint32_t>::max() || 
                                 group2_idx == std::numeric_limits<uint32_t>::max())
-                                    ? COST_MAX
+                                    ? (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT ? COST_MAX : COST_MIN)
                                     : CalculateCost(schema_groups_with_num_tuples[group1_idx], 
                                                     schema_groups_with_num_tuples[group2_idx],
                                                     _cost_model,
@@ -2030,8 +2033,8 @@ public:
                     auto current_cost = std::make_pair(cost, std::make_pair(i, j));
                     if (!min_cost.has_value() || 
                         (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT
-                            ? cost_compare_great(current_cost, *min_cost)
-                            : cost_compare_less(current_cost, *min_cost))) {
+                            ? cost_compare_great(*min_cost, current_cost)
+                            : cost_compare_less(*min_cost, current_cost))) {
                         min_cost = current_cost;
                     }
                 }
@@ -2044,7 +2047,9 @@ public:
 
             // Push all costs to the priority queue
             for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                if (valid_costs[i]) cost_pq.push(min_costs[i]);
+                if (valid_costs[i]) {
+                    cost_pq.push(min_costs[i]);
+                }
             }
             std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
 
@@ -2071,27 +2076,27 @@ public:
                         }
                     }
                     else if (_cost_model == CostModel::JACCARD) {
-                        if (min_cost.first <= JACCARD_THRESHOLD || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= JACCARD_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
-                        if (min_cost.first <= WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::COSINE) {
-                        if (min_cost.first <= COSINE_THRESHOLD || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= COSINE_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::DICE) {
-                        if (min_cost.first <= DICE_THRESHOLD || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= DICE_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::OVERLAP) {
-                        if (min_cost.first <= OVERLAP_THRESHOLD || min_cost.first == COST_MAX) {
+                        if (min_cost.first <= OVERLAP_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
@@ -2308,46 +2313,20 @@ public:
         
         docs = parser.iterate_many(json); // TODO w/o parse?
         for (auto doc_ : docs) {
-            uint64_t cluster_id =
-                sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
+            uint64_t cluster_id = sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
             D_ASSERT(cluster_id < num_clusters);
-            recursive_iterate_jsonl(doc_["properties"], "", true,
-                                    num_tuples_per_cluster[cluster_id], 0,
-                                    cluster_id, datas[cluster_id]);
+            recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples_per_cluster[cluster_id], 0, cluster_id, datas[cluster_id]);
 
-            if (++num_tuples_per_cluster[cluster_id] ==
-                STORAGE_STANDARD_VECTOR_SIZE) {
+            if (++num_tuples_per_cluster[cluster_id] == STORAGE_STANDARD_VECTOR_SIZE) {
                 // create extent
-                datas[cluster_id].SetCardinality(
-                    num_tuples_per_cluster[cluster_id]);
-                ExtentID new_eid = ext_mng->CreateExtent(
-                    *client.get(), datas[cluster_id], *partition_cat,
-                    *property_schema_cats[cluster_id]);
-                property_schema_cats[cluster_id]->AddExtent(
-                    new_eid, datas[cluster_id].size());
-
-                // check remaining memory & flush if necessary
-                size_t remaining_memory;
-                ChunkCacheManager::ccm->GetRemainingMemoryUsage(remaining_memory);
-                if (remaining_memory < 10 * 1024 * 1024 * 1024UL) {
-                    ChunkCacheManager::ccm
-                        ->FlushDirtySegmentsAndDeleteFromcache(true);
-                }
-
-                // store LID to PID info for edge loading
-                if (load_edge) {
-                    StoreLidToPidInfo(datas[cluster_id],
-                                      per_cluster_key_column_idxs[cluster_id],
-                                      new_eid);
-                }
-
-                // reset num_tuples_per_cluster & datas
+                datas[cluster_id].SetCardinality(num_tuples_per_cluster[cluster_id]);
+                ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[cluster_id], *partition_cat, *property_schema_cats[cluster_id]);
+                property_schema_cats[cluster_id]->AddExtent(new_eid, datas[cluster_id].size());
+                if (load_edge) StoreLidToPidInfo(datas[cluster_id], per_cluster_key_column_idxs[cluster_id], new_eid);
                 num_tuples_per_cluster[cluster_id] = 0;
                 datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
-                for (auto col_idx = 0;
-                     col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
-                    auto &validity =
-                        FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
+                    auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
                     validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
                     validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
                 }
@@ -2358,19 +2337,14 @@ public:
         // Create extents for remaining datas
         for (size_t i = 0; i < num_clusters; i++) {
             datas[i].SetCardinality(num_tuples_per_cluster[i]);
-            ExtentID new_eid =
-                ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat,
-                                      *property_schema_cats[i]);
+            ExtentID new_eid = ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat, *property_schema_cats[i]);
             property_schema_cats[i]->AddExtent(new_eid, datas[i].size());
-            if (load_edge)
-                StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i],
-                                  new_eid);
+            if (load_edge) StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i], new_eid);
         }
 
         printf("# of documents = %ld\n", num_tuples);
         for (int i = 0; i < num_clusters; i++) {
-            printf("cluster %d num_tuples: %ld\n", i,
-                   num_tuples_per_cluster[i]);
+            printf("cluster %d num_tuples: %ld\n", i, num_tuples_per_cluster[i]);
         }
     }
 
