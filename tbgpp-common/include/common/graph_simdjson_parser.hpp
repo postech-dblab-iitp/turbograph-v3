@@ -1970,12 +1970,12 @@ public:
             /* START_OF_COST_MODEL_BASED */
             auto cost_compare_great = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
                                         const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first < b.first; // Larger costs come first
+                return a.first > b.first; // Larger costs come first
             };
 
             auto cost_compare_less = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
                                         const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first > b.first; // Smaller costs come first
+                return a.first < b.first; // Smaller costs come first
             };
 
             // Pre-allocate memory for the vector

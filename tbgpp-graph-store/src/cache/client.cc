@@ -356,7 +356,6 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
 
   int64_t head_index =
       header_->hashmap.hash_entries[hash_object_id(object_id)].object_list;
-  ObjectEntry *head = &header_->object_entries[head_index];
 
   LOGGED_WRITE(new_object->next, head_index, header_, disk_);
   // new_object->next = head_index;
@@ -365,6 +364,7 @@ int LightningClient::create_internal(uint64_t object_id, sm_offset *offset_ptr,
   // new_object->prev = -1;
 
   if (head_index >= 0) {
+    ObjectEntry *head = &header_->object_entries[head_index];
     LOGGED_WRITE(head->prev, new_object_index, header_, disk_);
     // head->prev = new_object_index;
   }

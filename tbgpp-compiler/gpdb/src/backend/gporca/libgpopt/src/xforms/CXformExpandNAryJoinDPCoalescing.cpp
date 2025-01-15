@@ -68,10 +68,10 @@ CXformExpandNAryJoinDPCoalescing::Exfp(CExpressionHandle &exprhdl) const
 	// defining the join predicate, ignore it.
 	const ULONG ulRelChild = arity - 1;
 
-	if (ulRelChild > phint->UlJoinOrderDPLimit())
-	{
-		return CXform::ExfpNone;
-	}
+	// if (ulRelChild > phint->UlJoinOrderDPLimit())
+	// {
+	// 	return CXform::ExfpNone;
+	// }
 
 	return CXformUtils::ExfpExpandJoinOrder(exprhdl, this);
 }

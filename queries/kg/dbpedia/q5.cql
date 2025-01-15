@@ -3,5 +3,4 @@ WHERE v1.`http://dbpedia.org/property/isbn` IS NOT NULL AND
 v1.`http://dbpedia.org/property/name` IS NOT NULL AND
 v1.`http://dbpedia.org/property/pages` IS NOT NULL AND
 v1.`http://dbpedia.org/property/author` IS NOT NULL
-RETURN DISTINCT v2.uri AS r1
-LIMIT 1000
+RETURN v2.uri AS r1
