@@ -997,6 +997,10 @@ int LightningClient::GetRefCount(uint64_t object_id) {
   return status;
 }
 
-void LightningClient::GetRemainingMemory() {
+void LightningClient::PrintRemainingMemory() {
   allocator_->PrintAvalaibleMemory();
+}
+
+size_t LightningClient::GetRemainingMemory() {
+  return allocator_->GetAvailableMemory();
 }
