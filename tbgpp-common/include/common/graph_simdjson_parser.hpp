@@ -2006,12 +2006,17 @@ public:
             /* END_OF_COST_MODEL_BASED */
         
             auto &cost_pq = *cost_pq_ptr;
-            vector<std::pair<double, std::pair<uint32_t, uint32_t>>> min_costs(num_tuples_total);
-            vector<bool> valid_costs(num_tuples_total, false);
-
+            const size_t TOPK = 10;
             #pragma omp parallel for num_threads(32)
             for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                std::optional<std::pair<double, std::pair<uint32_t, uint32_t>>> min_cost;
+                // Use a local heap for each tuple to store top-10 costs
+                std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
+                                    std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
+                                    std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
+                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>
+                    local_heap((_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT)
+                                ? cost_compare_great
+                                : cost_compare_less);
 
                 for (uint32_t j = i + 1; j < num_tuples_total; ++j) {
                     uint32_t group1_idx = temp_output[i].first;
@@ -2030,27 +2035,24 @@ public:
                         continue;
                     }
 
-                    auto current_cost = std::make_pair(cost, std::make_pair(i, j));
-                    if (!min_cost.has_value() || 
-                        (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT
-                            ? cost_compare_great(*min_cost, current_cost)
-                            : cost_compare_less(*min_cost, current_cost))) {
-                        min_cost = current_cost;
+                    // Add the current cost to the local heap
+                    local_heap.push(std::make_pair(cost, std::make_pair(i, j)));
+
+                    // If the heap size exceeds 10, remove the worst (least priority) cost
+                    if (local_heap.size() > TOPK) {
+                        local_heap.pop();
                     }
                 }
 
-                if (min_cost.has_value()) {
-                    min_costs[i] = *min_cost;
-                    valid_costs[i] = true;
+                while (!local_heap.empty()) {
+                    #pragma omp critical
+                    {
+                        cost_pq.push(local_heap.top());
+                    }
+                    local_heap.pop();
                 }
             }
 
-            // Push all costs to the priority queue
-            for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                if (valid_costs[i]) {
-                    cost_pq.push(min_costs[i]);
-                }
-            }
             std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
 
             uint32_t num_tuples_added = 0;
