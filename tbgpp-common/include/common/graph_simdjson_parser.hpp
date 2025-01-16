@@ -2144,6 +2144,8 @@ public:
                                     ++j) {
                                     if (j == not_visited_idx)
                                         continue;
+                                    if (visited[j])
+                                        continue;
                                     uint32_t group1_idx =
                                         temp_output[not_visited_idx].first;
                                     uint32_t group2_idx = temp_output[j].first;
