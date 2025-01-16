@@ -28,11 +28,11 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.7
-#define WEIGHTEDJACCARD_THRESHOLD 0.7
-#define COSINE_THRESHOLD 0.7
-#define DICE_THRESHOLD 0.7
-#define OVERLAP_THRESHOLD 0.7
+#define JACCARD_THRESHOLD 0.6
+#define WEIGHTEDJACCARD_THRESHOLD 0.6
+#define COSINE_THRESHOLD 0.6
+#define DICE_THRESHOLD 0.6
+#define OVERLAP_THRESHOLD 0.6
 #define VEC_OVHD_THRESHOLD 1024
 #define MERGE_THRESHOLD 0.15
 
@@ -2009,6 +2009,10 @@ public:
             const size_t TOPK = 10;
             #pragma omp parallel for num_threads(32)
             for (uint32_t i = 0; i < num_tuples_total; ++i) {
+                if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+                    continue;
+                }
+
                 // Use a local heap for each tuple to store top-10 costs
                 std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
                                     std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
@@ -2055,6 +2059,7 @@ public:
 
             std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
 
+            boost::timer::cpu_timer merge_timer;
             uint32_t num_tuples_added = 0;
             std::vector<bool> visited(num_tuples_total, false);
             if (!cost_pq.empty()) {
@@ -2118,6 +2123,8 @@ public:
                     merged_count++;
                 } while (!cost_pq.empty());
             }
+            auto merge_time_ms = merge_timer.elapsed().wall / 1000000.0;
+            std::cout << "\nMerge Time: "  << merge_time_ms << " ms" << std::endl;
             
             num_tuples_total += num_tuples_added;
             iteration++;
