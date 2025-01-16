@@ -28,11 +28,11 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.6
-#define WEIGHTEDJACCARD_THRESHOLD 0.6
-#define COSINE_THRESHOLD 0.6
-#define DICE_THRESHOLD 0.6
-#define OVERLAP_THRESHOLD 0.6
+#define JACCARD_THRESHOLD 0.4
+#define WEIGHTEDJACCARD_THRESHOLD 0.4
+#define COSINE_THRESHOLD 0.5
+#define DICE_THRESHOLD 0.4
+#define OVERLAP_THRESHOLD 0.7
 #define VEC_OVHD_THRESHOLD 1024
 #define MERGE_THRESHOLD 0.15
 
@@ -1958,6 +1958,7 @@ public:
         uint32_t merged_count;
         uint32_t iteration = 0;
         uint32_t num_tuples_total = temp_output.size();
+        std::vector<bool> visited(num_tuples_total, false);
         do {
             std::cout << "Iteration " << iteration << " start" << std::endl;
             merged_count = 0;
@@ -2039,6 +2040,18 @@ public:
                     // Skip invalid costs for OURS model
                     if (_cost_model == CostModel::OURS && cost > 0) {
                         continue;
+                    } else if (_cost_model == CostModel::SETEDIT && cost > SET_EDIT_THRESHOLD) {
+                        continue;
+                    } else if (_cost_model == CostModel::OVERLAP && cost < OVERLAP_THRESHOLD) {
+                        continue;
+                    } else if (_cost_model == CostModel::JACCARD && cost < JACCARD_THRESHOLD) {
+                        continue;
+                    } else if (_cost_model == CostModel::WEIGHTEDJACCARD && cost < WEIGHTEDJACCARD_THRESHOLD) {
+                        continue;
+                    } else if (_cost_model == CostModel::COSINE && cost < COSINE_THRESHOLD) {
+                        continue;
+                    } else if (_cost_model == CostModel::DICE && cost < DICE_THRESHOLD) {
+                        continue;
                     }
 
                     // Add the current cost to the local heap
@@ -2065,7 +2078,6 @@ public:
 
             boost::timer::cpu_timer merge_timer;
             uint32_t num_tuples_added = 0;
-            std::vector<bool> visited(num_tuples_total, false);
             if (!cost_pq.empty()) {
                 do {
                     std::pair<double, std::pair<uint32_t, uint32_t>> min_cost = cost_pq.top();
@@ -2074,6 +2086,9 @@ public:
                     // Extract the indices directly from the pair
                     uint32_t idx1 = min_cost.second.first;
                     uint32_t idx2 = min_cost.second.second;
+
+                    // fprintf(stdout, "min_cost: %.3f, idx1: %d, idx2: %d\n", min_cost.first, idx1, idx2);
+                    // fprintf(stdout, "visited[idx1]: %d, visited[idx2]: %d\n", visited[idx1] ? 1 : 0, visited[idx2] ? 1 : 0);
 
                     /* START_OF_COST_MODEL_BASED */
                     if (_cost_model == CostModel::OURS) {
@@ -2087,27 +2102,27 @@ public:
                         }
                     }
                     else if (_cost_model == CostModel::JACCARD) {
-                        if (min_cost.first <= JACCARD_THRESHOLD || min_cost.first == COST_MIN) {
+                        if (min_cost.first < JACCARD_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
-                        if (min_cost.first <= WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MIN) {
+                        if (min_cost.first < WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::COSINE) {
-                        if (min_cost.first <= COSINE_THRESHOLD || min_cost.first == COST_MIN) {
+                        if (min_cost.first < COSINE_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::DICE) {
-                        if (min_cost.first <= DICE_THRESHOLD || min_cost.first == COST_MIN) {
+                        if (min_cost.first < DICE_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
                     else if (_cost_model == CostModel::OVERLAP) {
-                        if (min_cost.first <= OVERLAP_THRESHOLD || min_cost.first == COST_MIN) {
+                        if (min_cost.first < OVERLAP_THRESHOLD || min_cost.first == COST_MIN) {
                             break;
                         }
                     }
@@ -2121,6 +2136,7 @@ public:
                             // one of them is not visited
                             uint32_t not_visited_idx = visited[idx1] ? idx2 : idx1;
                             if (--count_per_tuple[not_visited_idx] == 0) {
+                                // fprintf(stdout, "Refilling local heap for not_visited_idx: %d\n", not_visited_idx);
                                 // refill
                                 std::priority_queue<
                                     std::pair<double,
@@ -2203,10 +2219,17 @@ public:
 
                     // Merge the two indices
                     MergeVertexlets(idx1, idx2, temp_output);
+                    // fprintf(stdout, "Merged idx1: %d, idx2: %d\n", idx1, idx2);
                     num_tuples_added++;
                     merged_count++;
+                    visited.push_back(false);
                 } while (!cost_pq.empty());
             }
+            // for (auto i = 0; i < num_tuples_total + num_tuples_added; i++) {
+            //     if (!visited[i]) {
+            //         fprintf(stdout, "visited[%d]: %d\n", i, visited[i] ? 1 : 0);
+            //     }
+            // }
             auto merge_time_ms = merge_timer.elapsed().wall / 1000000.0;
             std::cout << "\nMerge Time: "  << merge_time_ms << " ms" << std::endl;
             
@@ -3366,7 +3389,7 @@ private:
     // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
     const double CostSchemaVal = 300;
     // const double CostNullVal = 0.001;
-    const double CostNullVal = 0.08;
+    const double CostNullVal = 0.005;
     const double CostVectorizationVal = 10;
     // const double CostVectorizationVal = 5.0;
 };

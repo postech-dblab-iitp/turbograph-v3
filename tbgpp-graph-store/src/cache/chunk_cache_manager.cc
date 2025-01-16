@@ -288,7 +288,16 @@ ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
 
 ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment) {
   std::cout << "Start to flush file! Total # files = " << file_handlers.size() << std::endl;
-  for (auto &file_handler: file_handlers) {
+    // Collect iterators into a vector
+    vector<unordered_map<ChunkID, Turbo_bin_aio_handler*>::iterator> iterators;
+    iterators.reserve(file_handlers.size());
+    for (auto it = file_handlers.begin(); it != file_handlers.end(); ++it) {
+        iterators.push_back(it);
+    }
+
+  #pragma omp parallel for num_threads(32) 
+  for (size_t i = 0; i < iterators.size(); i++) {
+    auto &file_handler = *(iterators[i]);
     if (file_handler.second == nullptr) continue;
 
     bool is_dirty;

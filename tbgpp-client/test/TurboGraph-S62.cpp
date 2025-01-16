@@ -560,9 +560,9 @@ int main(int argc, char** argv) {
 	// setbuf(stdout, NULL);
 
 	// Initialize System Parameters
-	DiskAioParameters::NUM_THREADS = 1;
-	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
-	DiskAioParameters::NUM_CPU_SOCKETS = 1;
+	DiskAioParameters::NUM_THREADS = 32;
+	DiskAioParameters::NUM_TOTAL_CPU_CORES = 32;
+	DiskAioParameters::NUM_CPU_SOCKETS = 2;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
 	DiskAioParameters::WORKSPACE = workspace;
 	fprintf(stdout, "\nWorkspace: %s\n\n", DiskAioParameters::WORKSPACE.c_str());
