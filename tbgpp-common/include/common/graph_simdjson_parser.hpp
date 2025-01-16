@@ -2007,6 +2007,8 @@ public:
         
             auto &cost_pq = *cost_pq_ptr;
             const size_t TOPK = 10;
+            vector<uint8_t> count_per_tuple;
+            count_per_tuple.resize(num_tuples_total, 0);
             #pragma omp parallel for num_threads(32)
             for (uint32_t i = 0; i < num_tuples_total; ++i) {
                 if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
@@ -2047,6 +2049,8 @@ public:
                         local_heap.pop();
                     }
                 }
+
+                count_per_tuple[i] = local_heap.size();
 
                 while (!local_heap.empty()) {
                     #pragma omp critical
@@ -2111,11 +2115,89 @@ public:
 
                     // Check if either of the indices have been visited
                     if (visited[idx1] || visited[idx2]) {
+                        if (visited[idx1] && visited[idx2]) {
+                            continue;
+                        } else {
+                            // one of them is not visited
+                            uint32_t not_visited_idx = visited[idx1] ? idx2 : idx1;
+                            if (--count_per_tuple[not_visited_idx] == 0) {
+                                // refill
+                                std::priority_queue<
+                                    std::pair<double,
+                                            std::pair<uint32_t, uint32_t>>,
+                                    std::vector<std::pair<
+                                        double, std::pair<uint32_t, uint32_t>>>,
+                                    std::function<bool(
+                                        const std::pair<
+                                            double,
+                                            std::pair<uint32_t, uint32_t>> &,
+                                        const std::pair<
+                                            double,
+                                            std::pair<uint32_t, uint32_t>> &)>>
+                                    local_heap(
+                                        (_cost_model == CostModel::OURS ||
+                                        _cost_model == CostModel::SETEDIT)
+                                            ? cost_compare_great
+                                            : cost_compare_less);
+
+                                for (uint32_t j = 0; j < num_tuples_total;
+                                    ++j) {
+                                    if (j == not_visited_idx)
+                                        continue;
+                                    uint32_t group1_idx =
+                                        temp_output[not_visited_idx].first;
+                                    uint32_t group2_idx = temp_output[j].first;
+
+                                    double cost =
+                                        (group1_idx == std::numeric_limits<
+                                                        uint32_t>::max() ||
+                                        group2_idx == std::numeric_limits<
+                                                        uint32_t>::max())
+                                            ? (_cost_model == CostModel::OURS ||
+                                                    _cost_model ==
+                                                        CostModel::SETEDIT
+                                                ? COST_MAX
+                                                : COST_MIN)
+                                            : CalculateCost(
+                                                schema_groups_with_num_tuples
+                                                    [group1_idx],
+                                                schema_groups_with_num_tuples
+                                                    [group2_idx],
+                                                _cost_model,
+                                                schema_groups_with_num_tuples
+                                                    .size());
+
+                                    // Skip invalid costs for OURS model
+                                    if (_cost_model == CostModel::OURS &&
+                                        cost > 0) {
+                                        continue;
+                                    }
+
+                                    // Add the current cost to the local heap
+                                    local_heap.push(std::make_pair(
+                                        cost, std::make_pair(not_visited_idx, j)));
+
+                                    // If the heap size exceeds 10, remove the worst (least priority) cost
+                                    if (local_heap.size() > TOPK) {
+                                        local_heap.pop();
+                                    }
+                                }
+
+                                count_per_tuple[not_visited_idx] = local_heap.size();
+
+                                while (!local_heap.empty()) {
+                                    cost_pq.push(local_heap.top());
+                                    local_heap.pop();
+                                }
+                            }
+                        }
                         continue;
                     }
 
                     visited[idx1] = true;
                     visited[idx2] = true;
+                    count_per_tuple[idx1] = 0;
+                    count_per_tuple[idx2] = 0;
 
                     // Merge the two indices
                     MergeVertexlets(idx1, idx2, temp_output);
