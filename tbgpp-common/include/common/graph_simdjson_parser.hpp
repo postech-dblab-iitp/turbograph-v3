@@ -28,8 +28,8 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 0.4
-#define WEIGHTEDJACCARD_THRESHOLD 0.4
+#define JACCARD_THRESHOLD 1
+#define WEIGHTEDJACCARD_THRESHOLD 0.3
 #define COSINE_THRESHOLD 0.5
 #define DICE_THRESHOLD 0.4
 #define OVERLAP_THRESHOLD 0.9
@@ -57,7 +57,8 @@ public:
         AGGLOMERATIVE,
         GMM,
         PGSE,
-        SINGLECLUSTER
+        SINGLECLUSTER,
+        SEPERATECLUSTERS
     };
 
     enum class CostModel {
@@ -81,8 +82,8 @@ public:
         IN_QUERY_TIME,
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::OVERLAP;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::SEPERATECLUSTERS;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/
@@ -137,16 +138,32 @@ public:
     }
 
     size_t InitJsonFile(const char *json_file_path, JsonFileType jftype) {
-        std::string input_path = std::string(json_file_path);
+        input_json_file_path = std::string(json_file_path);
+        json_file_type = jftype;
 
         if (jftype == JsonFileType::JSON) {
             // Load & Parse JSON File
-            json = padded_string::load(input_path);
+            json = padded_string::load(input_json_file_path);
             // docs = parser.iterate_many(json);
             doc = parser.iterate(json);
             transactions.resize(TILE_SIZE);
         } else if (jftype == JsonFileType::JSONL) {
-            json = padded_string::load(input_path);
+            json = padded_string::load(input_json_file_path);
+            docs = parser.iterate_many(json);
+            transactions.resize(TILE_SIZE);
+        }
+        return 0;
+    }
+
+    size_t InitJsonFile() {
+        if (json_file_type == JsonFileType::JSON) {
+            // Load & Parse JSON File
+            json = padded_string::load(input_json_file_path);
+            // docs = parser.iterate_many(json);
+            doc = parser.iterate(json);
+            transactions.resize(TILE_SIZE);
+        } else if (json_file_type == JsonFileType::JSONL) {
+            json = padded_string::load(input_json_file_path);
             docs = parser.iterate_many(json);
             transactions.resize(TILE_SIZE);
         }
@@ -246,6 +263,19 @@ public:
                 clustering_timer.start();
                 // Clustering
                 _ClusterAllSchemas();
+                clustering_timer.stop();
+
+                // Create Extents
+                _CreateExtents(gctype, graph_cat, label_name, label_set);
+                break;
+            }
+            case ClusterAlgorithmType::SEPERATECLUSTERS: {
+                _ExtractSchema(gctype);
+                _PreprocessSchemaForClustering(false);
+
+                clustering_timer.start();
+                // Clustering
+                _ClusterEachSchemaSeparately();
                 clustering_timer.stop();
 
                 // Create Extents
@@ -1548,6 +1578,26 @@ public:
         _PopulateClusteringResults(clusters);
     }
 
+    // Function to split all schemas into individual clusters
+    void _ClusterEachSchemaSeparately() {
+        // Step 1: Sort all schema groups
+        for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
+            std::sort(schema_groups_with_num_tuples[i].first.begin(),
+                    schema_groups_with_num_tuples[i].first.end());
+        }
+
+        // Step 2: Initialize clusters
+        std::vector<std::vector<std::size_t>> clusters;
+
+        // Step 3: Create individual clusters for each schema
+        for (size_t i = 0; i < schema_groups_with_num_tuples.size(); ++i) {
+            clusters.push_back({i}); // Each schema group index gets its own cluster
+        }
+
+        // Step 4: Populate clustering results for the split clusters
+        _PopulateClusteringResults(clusters);
+    }
+
     void _ClusterSchemaGMM() {
         // sort schema
         for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
@@ -2319,6 +2369,8 @@ public:
             case ClusterAlgorithmType::DBSCAN:
             case ClusterAlgorithmType::AGGLOMERATIVE:
             case ClusterAlgorithmType::GMM:
+            case ClusterAlgorithmType::SINGLECLUSTER:
+            case ClusterAlgorithmType::SEPERATECLUSTERS:
                 return cluster_tokens[cluster_idx];
             default:
                 D_ASSERT(false);
@@ -2335,10 +2387,7 @@ public:
     }
 
     void _CreateVertexExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
-        vector<DataChunk> datas(num_clusters);
-        property_to_id_map_per_cluster.resize(num_clusters);
-
-        // Create partition catalog
+        // Common operations
         string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + label_name;
         PartitionID new_pid = graph_cat->GetNewPartitionID();
         CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str(), new_pid);
@@ -2358,141 +2407,183 @@ public:
         graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, universal_property_key_ids);
         partition_cat->SetSchema(*client.get(), key_names, types, universal_property_key_ids);
 
-        // Create property schema catalog for each cluster
-        property_schema_cats.resize(num_clusters);
-        vector<vector<idx_t>> per_cluster_key_column_idxs;
-        per_cluster_key_column_idxs.resize(num_clusters);
-        for (size_t i = 0; i < num_clusters; i++) {
-            string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_" + std::to_string(i);
-            CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
-            property_schema_cats[i] = 
-                (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
-             
-             // Create Physical ID Index Catalog & Add to PartitionCatalogEntry
-            CreateIndexInfo idx_info(DEFAULT_SCHEMA, label_name + "_" + std::to_string(property_schema_cats[i]->GetOid()) + "_id", IndexType::PHYSICAL_ID, 
-                partition_cat->GetOid(), property_schema_cats[i]->GetOid(), 0, {-1});
-            IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
-            partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
-            property_schema_cats[i]->SetPhysicalIDIndex(index_cat->GetOid());
-            
-            // Parse schema informations
-            vector<PropertyKeyID> property_key_ids;
-            vector<LogicalType> cur_cluster_schema_types;
-            vector<string> cur_cluster_schema_names;
-
-            // std::cout << "Cluster " << i << ": ";
-            vector<unsigned int> &tokens = GetClusterTokens(i);
-            for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
-                // std::cout << tokens[token_idx] << ", ";
-                uint64_t original_idx;
-                if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
-                    original_idx = order[tokens[token_idx]];
-                } else {
-                    original_idx = tokens[token_idx];
-                }
-                
-                if (get_key_and_type(id_to_property_vec[original_idx], cur_cluster_schema_names, cur_cluster_schema_types)) {
-                    per_cluster_key_column_idxs[i].push_back(token_idx);
-                }
-                property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
-                // property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), tokens[token_idx]});
-            }
-
-            // Set catalog informations
-            graph_cat->GetPropertyKeyIDs(*client.get(), cur_cluster_schema_names, cur_cluster_schema_types, property_key_ids);
-            partition_cat->AddPropertySchema(*client.get(), property_schema_cats[i]->GetOid(), property_key_ids);
-            property_schema_cats[i]->SetSchema(*client.get(), cur_cluster_schema_names,cur_cluster_schema_types, property_key_ids);
-            property_schema_cats[i]->SetKeyColumnIdxs(per_cluster_key_column_idxs[i]);
-
-            datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
-        }
-        // std::cout << "Token Ended" << std::endl;
-
         // Initialize LID_TO_PID_MAP
-		if (load_edge) {
-			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_to_pid_map_instance = &lid_to_pid_map->back().second;
-		}
-
-        // Iterate JSON file again & create extents
-        vector<int64_t> num_tuples_per_cluster;
-        num_tuples_per_cluster.resize(num_clusters, 0);
-        int64_t num_tuples = 0;
-
-        for (size_t cluster_id = 0; cluster_id < num_clusters; cluster_id++) {
-            for (auto col_idx = 0; col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
-                auto &validity = FlatVector::Validity(datas[cluster_id].data[col_idx]);
-                validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
-                validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
-            }
+        if (load_edge) {
+            lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+            lid_to_pid_map_instance = &lid_to_pid_map->back().second;
         }
-        
-        docs = parser.iterate_many(json); // TODO w/o parse?
-        for (auto doc_ : docs) {
-            uint64_t cluster_id =
-                sg_to_cluster_vec[corresponding_schemaID[num_tuples]];
-            D_ASSERT(cluster_id < num_clusters);
-            recursive_iterate_jsonl(doc_["properties"], "", true,
-                                    num_tuples_per_cluster[cluster_id], 0,
-                                    cluster_id, datas[cluster_id]);
 
-            if (++num_tuples_per_cluster[cluster_id] ==
-                STORAGE_STANDARD_VECTOR_SIZE) {
-                // create extent
-                datas[cluster_id].SetCardinality(
-                    num_tuples_per_cluster[cluster_id]);
-                ExtentID new_eid = ext_mng->CreateExtent(
-                    *client.get(), datas[cluster_id], *partition_cat,
-                    *property_schema_cats[cluster_id]);
-                property_schema_cats[cluster_id]->AddExtent(
-                    new_eid, datas[cluster_id].size());
+        // range-based operation for memory-efficiency
+        int64_t total_num_tuples = 0;
+        const size_t CLUSTER_LOAD_CHUNK = 3000;
+        size_t start_cluster_idx = 0;
+        size_t end_cluster_idx = num_clusters > CLUSTER_LOAD_CHUNK ? CLUSTER_LOAD_CHUNK : num_clusters;
+        while(true) {
+            if (start_cluster_idx >= num_clusters) {
+                break;
+            }
 
-                // check remaining memory & flush if necessary
-                size_t remaining_memory;
-                ChunkCacheManager::ccm->GetRemainingMemoryUsage(remaining_memory);
-                if (remaining_memory < 10 * 1024 * 1024 * 1024UL) {
-                    ChunkCacheManager::ccm
-                        ->FlushDirtySegmentsAndDeleteFromcache(true);
+            size_t num_clusters_to_process = end_cluster_idx - start_cluster_idx;
+
+            vector<DataChunk> datas(num_clusters_to_process);
+            property_to_id_map_per_cluster.clear();
+            property_to_id_map_per_cluster.resize(num_clusters_to_process);
+
+            // Create property schema catalog for each cluster
+            property_schema_cats.clear();
+            property_schema_cats.resize(num_clusters_to_process);
+            vector<vector<idx_t>> per_cluster_key_column_idxs;
+            per_cluster_key_column_idxs.resize(num_clusters_to_process);
+            for (size_t i = 0; i < num_clusters_to_process; i++) {
+                uint64_t cluster_id = start_cluster_idx + i;
+                string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + std::string(label_name) + "_" + std::to_string(cluster_id);
+                CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
+                property_schema_cats[i] = 
+                    (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
+                
+                // Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+                CreateIndexInfo idx_info(DEFAULT_SCHEMA, label_name + "_" + std::to_string(property_schema_cats[i]->GetOid()) + "_id", IndexType::PHYSICAL_ID, 
+                    partition_cat->GetOid(), property_schema_cats[i]->GetOid(), 0, {-1});
+                IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance->CreateIndex(*client.get(), &idx_info);
+                partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
+                property_schema_cats[i]->SetPhysicalIDIndex(index_cat->GetOid());
+                
+                // Parse schema informations
+                vector<PropertyKeyID> property_key_ids;
+                vector<LogicalType> cur_cluster_schema_types;
+                vector<string> cur_cluster_schema_names;
+
+                vector<unsigned int> &tokens = GetClusterTokens(cluster_id);
+                for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
+                    // std::cout << tokens[token_idx] << ", ";
+                    uint64_t original_idx;
+                    if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
+                        original_idx = order[tokens[token_idx]];
+                    } else {
+                        original_idx = tokens[token_idx];
+                    }
+                    
+                    if (get_key_and_type(id_to_property_vec[original_idx], cur_cluster_schema_names, cur_cluster_schema_types)) {
+                        per_cluster_key_column_idxs[i].push_back(token_idx);
+                    }
+                    property_to_id_map_per_cluster[i].insert({cur_cluster_schema_names.back(), token_idx});
                 }
 
-                // store LID to PID info for edge loading
-                if (load_edge) {
-                    StoreLidToPidInfo(datas[cluster_id],
-                                      per_cluster_key_column_idxs[cluster_id],
-                                      new_eid);
-                }
+                // Set catalog informations
+                graph_cat->GetPropertyKeyIDs(*client.get(), cur_cluster_schema_names, cur_cluster_schema_types, property_key_ids);
+                partition_cat->AddPropertySchema(*client.get(), property_schema_cats[i]->GetOid(), property_key_ids);
+                property_schema_cats[i]->SetSchema(*client.get(), cur_cluster_schema_names,cur_cluster_schema_types, property_key_ids);
+                property_schema_cats[i]->SetKeyColumnIdxs(per_cluster_key_column_idxs[i]);
 
-                // reset num_tuples_per_cluster & datas
-                num_tuples_per_cluster[cluster_id] = 0;
-                datas[cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
-                for (auto col_idx = 0;
-                     col_idx < datas[cluster_id].ColumnCount(); col_idx++) {
-                    auto &validity =
-                        FlatVector::Validity(datas[cluster_id].data[col_idx]);
+                datas[i].Initialize(cur_cluster_schema_types, STORAGE_STANDARD_VECTOR_SIZE);
+            }
+
+            // Iterate JSON file again & create extents
+            vector<int64_t> num_tuples_per_cluster;
+            num_tuples_per_cluster.resize(num_clusters_to_process, 0);
+            int64_t num_tuples = 0;
+
+            for (size_t local_cluster_id = 0; local_cluster_id < num_clusters_to_process; local_cluster_id++) {
+                for (auto col_idx = 0; col_idx < datas[local_cluster_id].ColumnCount(); col_idx++) {
+                    auto &validity = FlatVector::Validity(datas[local_cluster_id].data[col_idx]);
                     validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
                     validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
                 }
             }
-            num_tuples++;
+            
+            int64_t doc_idx = 0;
+            docs = parser.iterate_many(json); // TODO w/o parse?
+            for (auto doc_ : docs) {
+                uint64_t cluster_id =
+                    sg_to_cluster_vec[corresponding_schemaID[doc_idx++]];
+                uint64_t local_cluster_id = cluster_id - start_cluster_idx;
+
+                if (cluster_id < start_cluster_idx || cluster_id >= end_cluster_idx) {
+                    continue;
+                }
+
+                recursive_iterate_jsonl(doc_["properties"], "", true,
+                                        num_tuples_per_cluster[local_cluster_id], 0,
+                                        local_cluster_id, datas[local_cluster_id]);
+
+                if (++num_tuples_per_cluster[local_cluster_id] ==
+                    STORAGE_STANDARD_VECTOR_SIZE) {
+                    // check remaining memory & flush if necessary
+                    size_t remaining_memory;
+                    ChunkCacheManager::ccm->GetRemainingMemoryUsage(remaining_memory);
+                    if (remaining_memory < 100 * 1024 * 1024 * 1024UL) {
+                        ChunkCacheManager::ccm
+                            ->FlushDirtySegmentsAndDeleteFromcache(true);
+                    }
+
+                    // create extent
+                    datas[local_cluster_id].SetCardinality(
+                        num_tuples_per_cluster[local_cluster_id]);
+                    ExtentID new_eid = ext_mng->CreateExtent(
+                        *client.get(), datas[local_cluster_id], *partition_cat,
+                        *property_schema_cats[local_cluster_id]);
+                    property_schema_cats[local_cluster_id]->AddExtent(
+                        new_eid, datas[local_cluster_id].size());
+
+                    // store LID to PID info for edge loading
+                    if (load_edge) {
+                        StoreLidToPidInfo(datas[local_cluster_id],
+                                        per_cluster_key_column_idxs[local_cluster_id],
+                                        new_eid);
+                    }
+
+                    // reset num_tuples_per_cluster & datas
+                    num_tuples_per_cluster[local_cluster_id] = 0;
+                    datas[local_cluster_id].Reset(STORAGE_STANDARD_VECTOR_SIZE);
+                    for (auto col_idx = 0;
+                        col_idx < datas[local_cluster_id].ColumnCount(); col_idx++) {
+                        auto &validity =
+                            FlatVector::Validity(datas[local_cluster_id].data[col_idx]);
+                        validity.Initialize(STORAGE_STANDARD_VECTOR_SIZE);
+                        validity.SetAllInvalid(STORAGE_STANDARD_VECTOR_SIZE);
+                    }
+                }
+                num_tuples++;
+            }
+            total_num_tuples += num_tuples;
+
+            // Create extents for remaining datas
+            for (size_t i = 0; i < num_clusters_to_process; i++) {
+                size_t remaining_memory;
+                ChunkCacheManager::ccm->GetRemainingMemoryUsage(remaining_memory);
+                if (remaining_memory < 100 * 1024 * 1024 * 1024UL) {
+                    ChunkCacheManager::ccm
+                        ->FlushDirtySegmentsAndDeleteFromcache(true);
+                }
+
+                datas[i].SetCardinality(num_tuples_per_cluster[i]);
+                ExtentID new_eid =
+                    ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat,
+                                        *property_schema_cats[i]);
+                property_schema_cats[i]->AddExtent(new_eid, datas[i].size());
+                if (load_edge)
+                    StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i],
+                                    new_eid);
+            }
+
+            printf("Vertex Load Range [%ld, %ld) Done\n", start_cluster_idx, end_cluster_idx);
+            for (int i = 0; i < num_clusters_to_process; i++) {
+                printf("cluster %d num_tuples: %ld\n", i + start_cluster_idx,
+                    num_tuples_per_cluster[i]);
+            }
+
+            // Destroy datas
+            for (size_t i = 0; i < num_clusters_to_process; i++) {
+                datas[i].Destroy();
+            }
+
+            // Update cluster_id range
+            start_cluster_idx += CLUSTER_LOAD_CHUNK;
+            end_cluster_idx += CLUSTER_LOAD_CHUNK;
+            if (end_cluster_idx >= num_clusters) end_cluster_idx = num_clusters;
         }
 
-        // Create extents for remaining datas
-        for (size_t i = 0; i < num_clusters; i++) {
-            datas[i].SetCardinality(num_tuples_per_cluster[i]);
-            ExtentID new_eid =
-                ext_mng->CreateExtent(*client.get(), datas[i], *partition_cat,
-                                      *property_schema_cats[i]);
-            property_schema_cats[i]->AddExtent(new_eid, datas[i].size());
-            if (load_edge)
-                StoreLidToPidInfo(datas[i], per_cluster_key_column_idxs[i],
-                                  new_eid);
-        }
-
-        printf("# of documents = %ld\n", num_tuples);
-        for (int i = 0; i < num_clusters; i++) {
-            printf("cluster %d num_tuples: %ld\n", i,
-                   num_tuples_per_cluster[i]);
-        }
+        printf("# of documents = %ld\n", total_num_tuples);
     }
 
     void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
@@ -3383,6 +3474,8 @@ private:
     ondemand::document_stream docs;
     ondemand::value val;
     simdjson::padded_string json;
+    std::string input_json_file_path;
+    JsonFileType json_file_type;
 
     vector<vector<Item>> transactions;
 

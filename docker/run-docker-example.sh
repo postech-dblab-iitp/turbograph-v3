@@ -7,10 +7,10 @@
 # Target image
 IMAGE_NAME="turbograph-image"
 IMAGE_TAG="latest"
-CONTAINER_NAME="turbograph-s62-query-gen"
+CONTAINER_NAME="turbograph-s62"
 
 # TODO override from user input
-SHARED_MEM_SIZE="360g"
+SHARED_MEM_SIZE="450g"
 # TODO add ulimit
 
 CONTAINER_UID=$(id -u)
@@ -30,16 +30,12 @@ SOURCE_DATA_DIR=$2
 	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 docker run -itd --cap-add SYS_ADMIN \
 	--cap-add SYS_PTRACE \
-	--ulimit nofile=67108864:67108864	\
+	--ulimit nofile=2000000000:2000000000	\
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
-	-v ~/s62-benchmark-runner:/s62-benchmark-runner \
 	-v /mnt:/mnt \
 	--shm-size=${SHARED_MEM_SIZE} \
 	--entrypoint="/bin/bash" \
 	--name ${CONTAINER_NAME} \
-	${IMAGE_NAME}:${IMAGE_TAG} \
-
-# TODO fix this.
-#	-c "groupadd -g ${CONTAINER_GID} ${CONTAINER_USERNAME}; useradd -u ${CONTAINER_UID} -g ${CONTAINER_GID} -ms /bin/bash ${CONTAINER_USERNAME}; tail -f /dev/null;":
+	${IMAGE_NAME}:${IMAGE_TAG} 

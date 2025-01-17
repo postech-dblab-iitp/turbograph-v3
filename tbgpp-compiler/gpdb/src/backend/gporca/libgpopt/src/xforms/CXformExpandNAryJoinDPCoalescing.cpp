@@ -58,15 +58,15 @@ CXformExpandNAryJoinDPCoalescing::CXformExpandNAryJoinDPCoalescing(
 CXform::EXformPromise
 CXformExpandNAryJoinDPCoalescing::Exfp(CExpressionHandle &exprhdl) const
 {
-	COptimizerConfig *optimizer_config =
-		COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
-	const CHint *phint = optimizer_config->GetHint();
+	// COptimizerConfig *optimizer_config =
+	// 	COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
+	// const CHint *phint = optimizer_config->GetHint();
 
-	const ULONG arity = exprhdl.Arity();
+	// const ULONG arity = exprhdl.Arity();
 
 	// since the last child of the join operator is a scalar child
 	// defining the join predicate, ignore it.
-	const ULONG ulRelChild = arity - 1;
+	// const ULONG ulRelChild = arity - 1;
 
 	// if (ulRelChild > phint->UlJoinOrderDPLimit())
 	// {
