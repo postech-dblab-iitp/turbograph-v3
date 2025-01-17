@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS")
+cost_models=("OVERLAP")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -15,8 +15,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/dbpedia-2/"
-query_numbers="1-23"
+queries_path="/turbograph-v3/queries/kg/dbpedia/"
+query_numbers="1-20"
 
 # Function to parse query numbers
 parse_query_numbers() {
