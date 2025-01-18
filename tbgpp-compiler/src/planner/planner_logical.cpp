@@ -261,6 +261,19 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                     break;
                 }
 
+                bool is_all_shortestpath =
+                    qg->getQueryGraphType() == QueryGraphType::ALL_SHORTEST;
+
+                if (is_all_shortestpath) {
+                    D_ASSERT(qg->getNumQueryRels() == 1);
+                    D_ASSERT(is_pathjoin);
+                    D_ASSERT(is_lhs_bound);
+                    D_ASSERT(is_rhs_bound);
+
+                    qg_plan = lPlanAllShortestPath(qg, lhs, qedge, rhs, lhs_plan);
+                    break;
+                }
+
                 // Scan R
                 LogicalPlan *edge_plan;
                 CExpression *a_r_join_expr;

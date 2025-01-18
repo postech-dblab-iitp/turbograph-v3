@@ -43,7 +43,8 @@ enum class PhysicalOperatorType : uint8_t {
 //ETC
 	UNWIND,
 	PRODUCE_RESULTS,
-	SHORTEST_PATH
+	SHORTEST_PATH,
+	ALL_SHORTEST_PATH
 
 //// below are duckdb operators
 	// INVALID,

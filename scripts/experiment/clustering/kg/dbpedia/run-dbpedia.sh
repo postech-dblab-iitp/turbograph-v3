@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OVERLAP")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -15,8 +15,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/dbpedia/"
-query_numbers="1-20"
+queries_path="/turbograph-v3/queries/kg/dbpedia-col-10/"
+query_numbers="1-19"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -59,7 +59,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
                 # Run query
                 timeout 3600s \
-                    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:4 --join-order-optimizer:exhaustive --warmup \
+                    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --warmup \
                     >> ${log_file}
 
                 pkill -f store

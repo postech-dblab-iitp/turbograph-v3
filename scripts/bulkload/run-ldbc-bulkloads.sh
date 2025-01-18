@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-scale_factors=("1" "10" "100")
+scale_factors=("1")
 source_dir_base="/source-data/ldbc/"
 target_dir_base="/data/ldbc/"
 
 # Loop over all combinations of cluster algorithms, cost models, and layering orders
 for scale_factor in "${scale_factors[@]}"; do
-    data_dir="${source_dir_base}/s62/sf${scale_factor}"
+    data_dir="${source_dir_base}/sf${scale_factor}"
     target_dir="${target_dir_base}/sf${scale_factor}"
     
     rm -rf ${target_dir}
@@ -15,7 +15,7 @@ for scale_factor in "${scale_factors[@]}"; do
     
     /turbograph-v3/build-release/tbgpp-graph-store/store 365GB &
     /turbograph-v3/build-release/tbgpp-graph-store/catalog_test_catalog_server ${target_dir} &
-    sleep 5
+    sleep 15
 
     /turbograph-v3/build-release/tbgpp-execution-engine/bulkload_using_map \
         --output_dir:${target_dir} \

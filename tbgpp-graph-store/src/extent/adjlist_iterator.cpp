@@ -406,25 +406,46 @@ void AllShortestPathIterator::initialize(ClientContext &context, NodeID src_id, 
 }
 
 bool AllShortestPathIterator::biDirectionalSearch(ClientContext &context) {
-    std::queue<std::pair<NodeID, Level>> forward_queue, backward_queue;
-    forward_queue.emplace(src_id, 0);
-    backward_queue.emplace(tgt_id, 0);
+    std::queue<std::pair<NodeID, Level>> queue_forward;
+    std::queue<std::pair<NodeID, Level>> queue_backward;
 
-    while (!forward_queue.empty() || !backward_queue.empty()) {
-        // Forward expansion
-        if (!forward_queue.empty() && enqueueNeighbors(context, forward_queue.front().first, forward_queue.front().second, forward_queue, true)) {
-            // Continue to explore for additional meeting points
-        }
-        forward_queue.pop();
+    queue_forward.push(make_pair(src_id, 0));
+    queue_backward.push(make_pair(tgt_id, 0));
 
-        // Backward expansion
-        if (!backward_queue.empty() && enqueueNeighbors(context, backward_queue.front().first, backward_queue.front().second, backward_queue, false)) {
-            // Continue to explore for additional meeting points
+    Level level_forward = 0;
+    Level level_backward = 0;
+
+    bool meeting_point_found = false;
+
+    while (true) {
+        if (!queue_forward.empty()) {
+            auto current_forward = queue_forward.front();
+            queue_forward.pop();
+            bool found = enqueueNeighbors(context, current_forward.first, current_forward.second, queue_forward, true);
+            if (found) {
+                meeting_point_found = true;
+            }
+            level_forward++;
         }
-        backward_queue.pop();
+
+        if (level_forward + level_backward >= upper_bound) break;
+
+        if (!queue_backward.empty()) {
+            auto current_backward = queue_backward.front();
+            queue_backward.pop();
+            bool found = enqueueNeighbors(context, current_backward.first, current_backward.second, queue_backward, false);
+            if (found) {
+                meeting_point_found = true;
+            }
+            level_backward++;
+        }
+
+        if (level_forward + level_backward >= upper_bound) break;
+
+        if (queue_forward.empty() && queue_backward.empty()) break;
     }
 
-    return !meeting_points.empty();  // Return true if any meeting points were found
+    return meeting_point_found;
 }
 
 bool AllShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>> &queue, bool is_forward) {

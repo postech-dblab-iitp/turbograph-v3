@@ -449,6 +449,7 @@ private:
 
 	// shortestPath
 	duckdb::CypherPhysicalOperatorGroups* pTransformEopShortestPath(CExpression* plan_expr);
+	duckdb::CypherPhysicalOperatorGroups* pTransformEopAllShortestPath(CExpression* plan_expr);
 
 	// aggregations
 	duckdb::CypherPhysicalOperatorGroups *pTransformEopAgg(CExpression *plan_expr);
