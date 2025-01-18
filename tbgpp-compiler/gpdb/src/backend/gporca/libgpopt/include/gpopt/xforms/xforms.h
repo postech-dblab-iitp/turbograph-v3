@@ -172,6 +172,7 @@
 #include "gpopt/xforms/CXformPathJoin2IndexPathApply.h"
 #include "gpopt/xforms/CXformIndexPathGet2IndexPathScan.h"
 #include "gpopt/xforms/CXformImplementShortestPath.h"
+#include "gpopt/xforms/CXformImplementAllShortestPath.h"
 
 #endif	// !GPOPT_xforms_H
 

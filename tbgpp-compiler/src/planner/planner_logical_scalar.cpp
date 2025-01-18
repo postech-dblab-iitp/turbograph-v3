@@ -55,6 +55,7 @@ CExpression *Planner::lExprScalarExpression(kuzu::binder::Expression *expression
 	case ID_IN_COLL:
 		return lExprScalarIdInCollExpr(expression, prev_plan, required_type);
 	case SHORTEST_PATH:
+	case ALL_SHORTEST_PATH:
 		return lExprScalarShortestPathExpr(expression, prev_plan, required_type);
 	default:
 		D_ASSERT(false);

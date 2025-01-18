@@ -384,5 +384,162 @@ bool ShortestPathAdvancedIterator::getShortestPath(ClientContext &context, std::
     return true;
 }
 
+AllShortestPathIterator::AllShortestPathIterator()
+    : src_id(INVALID_NODE_ID), tgt_id(INVALID_NODE_ID),
+      adj_col_idx_fwd(0), adj_col_idx_bwd(0), lower_bound(0), upper_bound(0) {}
+
+AllShortestPathIterator::~AllShortestPathIterator() = default;
+
+void AllShortestPathIterator::initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_forward, uint64_t adj_col_idx_backward, Level lower_bound, Level upper_bound) {
+    this->src_id = src_id;
+    this->tgt_id = tgt_id;
+    this->adj_col_idx_fwd = adj_col_idx_forward;
+    this->adj_col_idx_bwd = adj_col_idx_backward;
+    this->lower_bound = lower_bound;
+    this->upper_bound = upper_bound;
+    this->meeting_points.clear();
+
+    predecessor_forward.clear();
+    predecessor_backward.clear();
+
+    biDirectionalSearch(context);
+}
+
+bool AllShortestPathIterator::biDirectionalSearch(ClientContext &context) {
+    std::queue<std::pair<NodeID, Level>> forward_queue, backward_queue;
+    forward_queue.emplace(src_id, 0);
+    backward_queue.emplace(tgt_id, 0);
+
+    while (!forward_queue.empty() || !backward_queue.empty()) {
+        // Forward expansion
+        if (!forward_queue.empty() && enqueueNeighbors(context, forward_queue.front().first, forward_queue.front().second, forward_queue, true)) {
+            // Continue to explore for additional meeting points
+        }
+        forward_queue.pop();
+
+        // Backward expansion
+        if (!backward_queue.empty() && enqueueNeighbors(context, backward_queue.front().first, backward_queue.front().second, backward_queue, false)) {
+            // Continue to explore for additional meeting points
+        }
+        backward_queue.pop();
+    }
+
+    return !meeting_points.empty();  // Return true if any meeting points were found
+}
+
+bool AllShortestPathIterator::enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>> &queue, bool is_forward) {
+    auto &predecessor_to_insert = is_forward ? predecessor_forward : predecessor_backward;
+    auto &predecessor_to_find = is_forward ? predecessor_backward : predecessor_forward;
+    auto adj_col_idx = is_forward ? adj_col_idx_fwd : adj_col_idx_bwd;
+    std::shared_ptr<AdjacencyListIterator> &adjlist_iterator = is_forward ? adjlist_iterator_forward : adjlist_iterator_backward;
+
+    uint64_t *start_ptr = nullptr, *end_ptr = nullptr;
+    ExtentID target_eid = current_node >> 32;
+    bool is_initialized = adjlist_iterator->Initialize(context, adj_col_idx, target_eid, is_forward);
+    adjlist_iterator->getAdjListPtr(current_node, target_eid, &start_ptr, &end_ptr, is_initialized);
+
+    for (uint64_t *ptr = start_ptr; ptr < end_ptr; ptr += 2) {
+        uint64_t neighbor = *ptr;
+        uint64_t edge_id = *(ptr + 1);
+
+        // If the neighbor is a valid meeting point
+        if (predecessor_to_find.find(neighbor) != predecessor_to_find.end() && 
+            node_level + 1 >= lower_bound) { 
+            predecessor_to_insert[neighbor].emplace_back(current_node, edge_id);
+            meeting_points.insert(neighbor);  // Add to the set of meeting points
+        }
+
+        // Skip neighbors beyond the upper bound
+        if (node_level + 1 >= upper_bound) {
+            continue;
+        }
+
+        // If the neighbor has not been visited in the current direction
+        if (predecessor_to_insert.find(neighbor) == predecessor_to_insert.end()) {
+            queue.emplace(neighbor, node_level + 1);
+            predecessor_to_insert[neighbor].emplace_back(current_node, edge_id);
+        }
+    }
+
+    return !meeting_points.empty();  // Return true if at least one meeting point was found
+}
+
+std::vector<std::vector<NodeID>> AllShortestPathIterator::constructPaths() {
+    std::vector<std::vector<NodeID>> all_paths;
+
+    // Use std::function to allow recursive lambda
+    std::function<void(std::unordered_map<NodeID, std::vector<std::pair<NodeID, EdgeID>>, NodeIDHasher> &,
+                       NodeID,
+                       std::vector<NodeID> &,
+                       std::vector<std::vector<NodeID>> &)>
+        backtrack = [&](auto &predecessors, NodeID current, std::vector<NodeID> &path, auto &result_paths) {
+            if (current == src_id || current == tgt_id) {
+                path.push_back(current);
+                std::reverse(path.begin(), path.end());
+                result_paths.push_back(path);
+                std::reverse(path.begin(), path.end());
+                path.pop_back();
+                return;
+            }
+
+            for (const auto &pred : predecessors[current]) {
+                path.push_back(current);
+                backtrack(predecessors, pred.first, path, result_paths);
+                path.pop_back();
+            }
+        };
+
+    for (NodeID meeting_point : meeting_points) {
+        std::vector<std::vector<NodeID>> forward_paths, backward_paths;
+
+        // Get all forward paths
+        std::vector<NodeID> temp_path;
+        backtrack(predecessor_forward, meeting_point, temp_path, forward_paths);
+
+        // Get all backward paths
+        backtrack(predecessor_backward, meeting_point, temp_path, backward_paths);
+
+        // Combine forward and backward paths
+        for (auto &fwd_path : forward_paths) {
+            for (auto &bwd_path : backward_paths) {
+                std::vector<NodeID> full_path(fwd_path.begin(), fwd_path.end());
+                full_path.insert(full_path.end(), bwd_path.rbegin(), bwd_path.rend());
+                all_paths.push_back(full_path);
+            }
+        }
+    }
+
+    return all_paths;
+}
+
+bool AllShortestPathIterator::getAllShortestPaths(ClientContext &context, std::vector<std::vector<EdgeID>> &all_edges, std::vector<std::vector<NodeID>> &all_nodes) 
+{
+    if (!biDirectionalSearch(context)) {
+        return false;  // No paths found
+    }
+
+    auto paths = constructPaths();
+
+    for (auto &path : paths) {
+        std::vector<EdgeID> edges;
+        std::vector<NodeID> nodes = path;
+
+        for (size_t i = 0; i < path.size() - 1; i++) {
+            for (auto &pred : predecessor_forward[path[i + 1]]) {
+                if (pred.first == path[i]) {
+                    edges.push_back(pred.second);
+                    break;
+                }
+            }
+        }
+
+        all_nodes.push_back(nodes);
+        all_edges.push_back(edges);
+    }
+
+    return true;
+}
+
+
 
 }

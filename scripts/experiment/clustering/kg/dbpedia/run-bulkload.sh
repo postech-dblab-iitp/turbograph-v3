@@ -4,7 +4,7 @@
 # cluster_algorithms=("DBSCAN" "AGGLOMERATIVE" "GMM")
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
-cluster_algorithms=("SEPERATECLUSTERS")
+cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
 

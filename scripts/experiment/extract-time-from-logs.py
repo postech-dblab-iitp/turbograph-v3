@@ -15,7 +15,7 @@ def extract_times_from_log(file_path):
     if compile_time and exec_time:
         compile_time = float(compile_time.group(1))
         exec_time = float(exec_time.group(1))
-        return compile_time + exec_time
+        return exec_time
     return None
 
 # Main function to process all log files and output the results in CSV

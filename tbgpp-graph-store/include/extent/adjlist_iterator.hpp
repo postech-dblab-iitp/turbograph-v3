@@ -142,6 +142,41 @@ private:
     bool enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>>& queue, bool is_forward);
 };
 
+class AllShortestPathIterator {
+public:
+    AllShortestPathIterator();
+    ~AllShortestPathIterator();
+
+    void initialize(ClientContext &context, NodeID src_id, NodeID tgt_id, uint64_t adj_col_idx_forward, uint64_t adj_col_idx_backward, Level lower_bound, Level upper_bound);
+    bool getAllShortestPaths(ClientContext &context, std::vector<std::vector<EdgeID>> &all_edges, std::vector<std::vector<NodeID>> &all_nodes);
+
+private:
+    struct NodeIDHasher {
+        std::size_t operator()(const NodeID &k) const {
+            return GET_SEQNO_FROM_PHYSICAL_ID(k);
+        }
+    };
+
+    const NodeID INVALID_NODE_ID = -1;
+    std::unordered_set<NodeID> meeting_points;
+    NodeID src_id, tgt_id;
+    uint64_t adj_col_idx_fwd;
+    uint64_t adj_col_idx_bwd;
+    Level lower_bound;
+    Level upper_bound;
+
+    std::unordered_map<NodeID, std::vector<std::pair<NodeID, EdgeID>>, NodeIDHasher> predecessor_forward;
+    std::unordered_map<NodeID, std::vector<std::pair<NodeID, EdgeID>>, NodeIDHasher> predecessor_backward;
+    std::shared_ptr<AdjacencyListIterator> adjlist_iterator_forward;
+    std::shared_ptr<AdjacencyListIterator> adjlist_iterator_backward;
+
+    std::vector<std::vector<NodeID>> constructPaths();
+
+    bool biDirectionalSearch(ClientContext &context);
+    bool enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>> &queue, bool is_forward);
+};
+
+
 } // namespace duckdb
 
 #endif

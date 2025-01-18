@@ -277,6 +277,10 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 			result = pTransformEopShortestPath(plan_expr);
 			break;
 		}
+		case COperator::EOperatorId::EopPhysicalAllShortestPath: {
+			result = pTransformEopShortestPath(plan_expr);
+			break;
+		}
         default:
             D_ASSERT(false);
             break;
