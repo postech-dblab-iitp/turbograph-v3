@@ -24,6 +24,7 @@
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
 #include "execution/physical_operator/physical_shortestpathjoin.hpp"
+#include "execution/physical_operator/physical_all_shortestpathjoin.hpp"
 
 #include "planner/expression/bound_between_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"
@@ -278,7 +279,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 			break;
 		}
 		case COperator::EOperatorId::EopPhysicalAllShortestPath: {
-			result = pTransformEopShortestPath(plan_expr);
+			result = pTransformEopAllShortestPath(plan_expr);
 			break;
 		}
         default:
@@ -4404,6 +4405,57 @@ duckdb::CypherPhysicalOperatorGroups* Planner::pTransformEopShortestPath(CExpres
     OID path_index_oid_bwd = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
 
     duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalShortestPathJoin(schema, path_index_oid_fwd, path_index_oid_bwd, 
+                                                    input_col_map, output_idx, src_id_idx, dest_id_idx, lower_bound, upper_bound);
+    result->push_back(op);
+    pBuildSchemaFlowGraphForUnaryOperator(schema);
+
+	return result;
+}
+
+
+duckdb::CypherPhysicalOperatorGroups* Planner::pTransformEopAllShortestPath(CExpression* plan_expr) {
+	CMemoryPool* mp = this->memory_pool;
+	CPhysicalShortestPath *shrtst_op = (CPhysicalShortestPath*) plan_expr->Pop();
+    CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRefArray *input_cols = (*plan_expr)[0]->Prpp()->PcrsRequired()->Pdrgpcr(mp);
+    CColRef *path_col = ((CScalarProjectElement*)(*plan_expr)[1]->operator[](0)->Pop())->Pcr();
+    auto pname = shrtst_op->PnameAlias();
+    auto ptabledesc = shrtst_op->PtabdescArray()->operator[](0);
+    auto pcr_src = shrtst_op->PcrSource();
+    auto pcr_dest = shrtst_op->PcrDestination();
+    auto lower_bound = shrtst_op->PathLowerBound();
+    auto upper_bound = shrtst_op->PathUpperBound();
+
+    // DuckDB types
+	duckdb::CypherPhysicalOperatorGroups *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
+    vector<duckdb::LogicalType> types;
+    vector<uint32_t> input_col_map;
+    duckdb::Schema schema;
+
+    // Construct parameters
+    pConstructColMapping(input_cols, output_cols, input_col_map);
+    pGetDuckDBTypesFromColRefs(output_cols, types);
+    schema.setStoredTypes(types);
+    duckdb::idx_t src_id_idx = input_cols->IndexOf(pcr_src);
+    duckdb::idx_t dest_id_idx = input_cols->IndexOf(pcr_dest);
+    duckdb::idx_t output_idx = output_cols->IndexOf(path_col);
+
+    // Get OID
+    auto pmdrel = lGetMDAccessor()->RetrieveRel(ptabledesc->MDId());
+    D_ASSERT(pmdrel != nullptr);
+    D_ASSERT(pmdrel->IndexCount() == 3); // _id, _sid, _tid
+    // for fwd
+    auto pmdidIndex = pmdrel->IndexMDidAt(1);
+    auto pmdindex = lGetMDAccessor()->RetrieveIndex(pmdidIndex);
+    D_ASSERT(pmdindex != nullptr);
+    OID path_index_oid_fwd = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
+    // for bwd
+    pmdidIndex = pmdrel->IndexMDidAt(2);
+    pmdindex = lGetMDAccessor()->RetrieveIndex(pmdidIndex);
+    D_ASSERT(pmdindex != nullptr);
+    OID path_index_oid_bwd = CMDIdGPDB::CastMdid(pmdindex->MDId())->Oid();
+
+    duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalAllShortestPathJoin(schema, path_index_oid_fwd, path_index_oid_bwd, 
                                                     input_col_map, output_idx, src_id_idx, dest_id_idx, lower_bound, upper_bound);
     result->push_back(op);
     pBuildSchemaFlowGraphForUnaryOperator(schema);
