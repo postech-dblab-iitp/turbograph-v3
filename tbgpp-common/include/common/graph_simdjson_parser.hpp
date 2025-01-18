@@ -82,7 +82,7 @@ public:
         IN_QUERY_TIME,
     };
 
-    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::SEPERATECLUSTERS;
+    const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
     const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
@@ -3513,7 +3513,7 @@ private:
     // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
     const double CostSchemaVal = 300;
     // const double CostNullVal = 0.001;
-    const double CostNullVal = 0.005;
+    const double CostNullVal = 0.01;
     const double CostVectorizationVal = 10;
     // const double CostVectorizationVal = 5.0;
 };

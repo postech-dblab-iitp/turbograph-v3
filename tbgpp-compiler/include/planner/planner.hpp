@@ -78,6 +78,7 @@
 #include "gpopt/operators/CLogicalGbAgg.h"
 #include "gpopt/operators/CLogicalGbAggDeduplicate.h"
 #include "gpopt/operators/CLogicalShortestPath.h"
+#include "gpopt/operators/CLogicalAllShortestPath.h"
 #include "gpopt/operators/CScalarSubqueryExists.h"
 
 // orca physical ops
@@ -103,6 +104,7 @@
 #include "gpopt/operators/CPhysicalStreamAgg.h"
 #include "gpopt/operators/CPhysicalStreamAggDeduplicate.h"
 #include "gpopt/operators/CPhysicalShortestPath.h"
+#include "gpopt/operators/CPhysicalAllShortestPath.h"
 
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarConst.h"
@@ -277,6 +279,7 @@ private:
 	LogicalPlan *lPlanDistinct(const expression_vector &expressions, CColRefArray *colrefs, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanSkipOrLimit(BoundProjectionBody *proj_body, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanShortestPath(QueryGraph* qg, NodeExpression *lhs, RelExpression* edge, NodeExpression *rhs, LogicalPlan *prev_plan);
+	LogicalPlan *lPlanAllShortestPath(QueryGraph* qg, NodeExpression *lhs, RelExpression* edge, NodeExpression *rhs, LogicalPlan *prev_plan);
 
 	// scalar expression
 	CExpression *lExprScalarExpression(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type = DataTypeID::INVALID);

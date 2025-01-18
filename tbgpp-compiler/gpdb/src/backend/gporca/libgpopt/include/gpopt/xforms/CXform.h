@@ -236,6 +236,7 @@ public:
 		ExfImplementIndexPathApply,
 		ExfIndexPathGet2IndexPathScan,
 		ExfImplementShortestPath,
+		ExfImplementAllShortestPath,
 		ExfExpandNAryJoinDPCoalescing,
 		// S62 done
 

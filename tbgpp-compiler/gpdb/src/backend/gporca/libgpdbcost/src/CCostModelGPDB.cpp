@@ -73,6 +73,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] = {
 	{COperator::EopPhysicalSort, CostSort},
 
 	{COperator::EopPhysicalShortestPath, CostShortestPath},
+	{COperator::EopPhysicalAllShortestPath, CostShortestPath},
 
 	{COperator::EopPhysicalTVF, CostTVF},
 
@@ -2157,7 +2158,8 @@ CCostModelGPDB::CostShortestPath(CMemoryPool *mp, CExpressionHandle &exprhdl,
 
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT(COperator::EopPhysicalShortestPath == exprhdl.Pop()->Eopid());
+	GPOS_ASSERT(COperator::EopPhysicalShortestPath == exprhdl.Pop()->Eopid() ||
+				COperator::EopPhysicalAllShortestPath == exprhdl.Pop()->Eopid());
 
 	// log operation below
 	const CDouble rows = CDouble(std::max(1.0, pci->Rows()));

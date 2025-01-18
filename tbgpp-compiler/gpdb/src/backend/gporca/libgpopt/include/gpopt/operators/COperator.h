@@ -87,6 +87,7 @@ public:
 		EopLogicalExternalGet,
 		EopLogicalPathGet,					// S62VAR varlen added
 		EopLogicalShortestPathGet,			// S62VAR varlen added
+		EopLogicalAllShortestPathGet,			// S62VAR varlen added
 		EopLogicalIndexGet,
 		EopLogicalIndexPathGet,					// S62VAR  varlen added
 		EopLogicalBitmapTableGet,
@@ -114,6 +115,7 @@ public:
 		EopLogicalInnerApply,
 		EopLogicalPathApply,				// S62VAR added
 		EopLogicalShortestPath,				// S62VAR added
+		EopLogicalAllShortestPath,				// S62VAR added
 		EopLogicalInnerCorrelatedApply,
 		EopLogicalIndexApply,
 		EopLogicalIndexPathApply,			// S62VAR added
@@ -253,6 +255,7 @@ public:
 		EopPhysicalComputeScalar,					// PSQL operator - Row major
 		EopPhysicalComputeScalarColumnar,			// S62 Added
 		EopPhysicalShortestPath,				// S62 Added
+		EopPhysicalAllShortestPath,				// S62 Added
 		EopPhysicalSpool,
 		EopPhysicalPartitionSelector,
 		EopPhysicalPartitionSelectorDML,

@@ -117,6 +117,7 @@
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/CLogicalUpdate.h"
 #include "gpopt/operators/CLogicalShortestPath.h"
+#include "gpopt/operators/CLogicalAllShortestPath.h"
 
 // physical ops
 #include "gpopt/operators/CPhysicalAssert.h"
