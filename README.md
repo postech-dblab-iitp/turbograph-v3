@@ -59,7 +59,7 @@ Also, if you failed to find image while executing run-docker-container.sh, then 
 Before build, please run the following command
 
 ```
-cd tbgpp-common/third_party/velox
+cd s62-common/third_party/velox
 ./scripts/setup-ubuntu.sh
 ```
 
@@ -94,11 +94,11 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     ```
     # Terminal 1 (runs storage server)
     cd build
-    ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100gb)>
+    ./s62-graph-store/store <storage size (e.g., 10GB, 100gb)>
 
     # Terminal 2 (runs catalog server)
     cd build
-    ./tbgpp-graph-store/catalog_test_catalog_server <db_dir>
+    ./s62-graph-store/catalog_test_catalog_server <db_dir>
 
     # Terminal 3 (runs bulkloading process)
     cp scripts/bulkload/run-ldbc-bulkload.sh build

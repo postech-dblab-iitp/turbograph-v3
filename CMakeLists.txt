@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.16)
 ########################
 ### Project metadata ###
 ########################
-project(turbograph-v3)
+project(s62)
 
 #######################
 ### Set environment ###
@@ -33,12 +33,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ##########################
 ### Add subdirectories ###
 ##########################
-add_subdirectory(tbgpp-common)
-add_subdirectory(tbgpp-graph-store)
-add_subdirectory(tbgpp-execution-engine)
-add_subdirectory(tbgpp-compiler)
-add_subdirectory(tbgpp-client)
-add_subdirectory(tbgpp-api-server)
+add_subdirectory(s62-common)
+add_subdirectory(s62-graph-store)
+add_subdirectory(s62-execution-engine)
+add_subdirectory(s62-compiler)
+add_subdirectory(s62-client)
+add_subdirectory(s62-api-server)
 
 ####################
 ### Set compiler ###

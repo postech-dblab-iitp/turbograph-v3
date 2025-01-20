@@ -58,8 +58,10 @@ r*hs
 logs/*
 
 # Binaries
-tbgpp-common/third_party/velox/scripts/fbthrift
-tbgpp-common/third_party/velox/scripts/fizz
-tbgpp-common/third_party/velox/scripts/fmt
-tbgpp-common/third_party/velox/scripts/folly
-tbgpp-common/third_party/velox/scripts/wangle
+s62-common/third_party/velox/scripts/fbthrift
+s62-common/third_party/velox/scripts/fizz
+s62-common/third_party/velox/scripts/fmt
+s62-common/third_party/velox/scripts/folly
+s62-common/third_party/velox/scripts/wangle
+
+Miniconda3-latest-Linux-x86_64.sh

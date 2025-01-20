@@ -3,7 +3,7 @@
 db_dir=$1
 data_dir=$2
 
-./tbgpp-execution-engine/bulkload_using_map \
+./s62-execution-engine/bulkload_using_map \
 	--output_dir:${db_dir}" \
 	--nodes:LINEITEM ${data_dir}/lineitem.tbl \
 	--nodes:ORDERS ${data_dir}/orders.tbl \

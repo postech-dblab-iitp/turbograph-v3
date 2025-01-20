@@ -14,11 +14,11 @@ for scale_factor in "${scale_factors[@]}"; do
     rm -rf ${target_dir}
     mkdir -p ${target_dir}
     
-    /turbograph-v3/build-release/tbgpp-graph-store/store 365GB &
-    /turbograph-v3/build-release/tbgpp-graph-store/catalog_test_catalog_server ${target_dir} &
+    /s62/build-release/s62-graph-store/store 365GB &
+    /s62/build-release/s62-graph-store/catalog_test_catalog_server ${target_dir} &
     sleep 5
 
-    /turbograph-v3/build-release/tbgpp-execution-engine/bulkload_using_map \
+    /s62/build-release/s62-execution-engine/bulkload_using_map \
         --output_dir:${target_dir} \
         --nodes:LINEITEM ${data_dir}/lineitem.tbl${SUFFIX} \
         --nodes:ORDERS ${data_dir}/orders.tbl${SUFFIX} \
@@ -44,8 +44,8 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships:PARTSUPP ${data_dir}/partsupp.tbl \
         --relationships_backward:PARTSUPP ${data_dir}/partsupp.tbl.backward
         
-    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
-    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
+    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
+    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
 
     pkill -f store
     pkill -f catalog_test_catalog_server

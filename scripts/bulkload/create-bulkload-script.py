@@ -15,7 +15,7 @@ def generate_bulkloading_script(edge_name_mapping_file, output_script):
             script.write('db_dir=$2\n\n')
             
             # Command for bulk loading
-            script.write('./tbgpp-execution-engine/bulkload_using_map \\\n')
+            script.write('./s62-execution-engine/bulkload_using_map \\\n')
             script.write('\t--output_dir:${db_dir} \\\n')
             script.write('\t--jsonl:"--file_path:${data_dir}/nodes.json --nodes:NODE" \\\n')
 

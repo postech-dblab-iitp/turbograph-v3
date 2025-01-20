@@ -2,7 +2,7 @@
 db_dir=$1
 data_dir=$2
 
-./tbgpp-execution-engine/bulkload_using_map \
+./s62-execution-engine/bulkload_using_map \
 	--output_dir:${db_dir} \
 	--nodes:Person ${data_dir}/dynamic/Person.csv \
 	--nodes:Comment:Message ${data_dir}/dynamic/Comment.csv \

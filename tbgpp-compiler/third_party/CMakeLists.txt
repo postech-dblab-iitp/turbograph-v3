@@ -1,2 +1,0 @@
-add_subdirectory(antlr4_runtime)
-add_subdirectory(antlr4_cypher)

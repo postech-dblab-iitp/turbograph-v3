@@ -1,1 +1,0 @@
-src/backend/gpopt/utils/COptTasks.o src/backend/gpopt/utils/CConstExprEvaluatorProxy.o src/backend/gpopt/utils/CMemoryPoolPalloc.o src/backend/gpopt/utils/CMemoryPoolPallocManager.o src/backend/gpopt/utils/funcs.o
