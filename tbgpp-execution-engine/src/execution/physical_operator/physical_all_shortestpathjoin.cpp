@@ -93,14 +93,10 @@ OperatorResultType PhysicalAllShortestPathJoin::Execute(ExecutionContext &contex
         all_srtp_state.all_srtp_iter->initialize(*context.client, src_id, dst_id, all_srtp_state.adj_col_idxs[0], all_srtp_state.adj_col_idxs[1],
                                                  lower_bound, upper_bound);
 
-        std::cout << "1 " << std::endl;
-
         bool found = all_srtp_state.all_srtp_iter->getAllShortestPaths(*context.client, all_edges, all_nodes);
-        std::cout << "2" << std::endl;
 
         if (found) {
             for (size_t path_idx = 0; path_idx < all_nodes.size(); path_idx++) {
-        std::cout << "3" << std::endl;
                 const auto &nodes = all_nodes[path_idx];
                 const auto &edges = all_edges[path_idx];
                 D_ASSERT(edges.size() == nodes.size() - 1);
@@ -116,6 +112,9 @@ OperatorResultType PhysicalAllShortestPathJoin::Execute(ExecutionContext &contex
                 Value path_val = Value::LIST(path_vec);
                 chunk.data[output_idx].SetValue(all_srtp_state.output_idx, path_val);
                 all_srtp_state.output_idx++;
+                if (all_srtp_state.output_idx > 1024) {
+                    break;
+                }
             }
         }
         all_srtp_state.input_idx++;

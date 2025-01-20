@@ -158,6 +158,7 @@ private:
     };
 
     const NodeID INVALID_NODE_ID = -1;
+    const NodeID INVALID_EDGE_ID = -1;
     std::unordered_set<NodeID> meeting_points;
     NodeID src_id, tgt_id;
     uint64_t adj_col_idx_fwd;
@@ -169,6 +170,10 @@ private:
     std::unordered_map<NodeID, std::vector<std::pair<NodeID, EdgeID>>, NodeIDHasher> predecessor_backward;
     std::shared_ptr<AdjacencyListIterator> adjlist_iterator_forward;
     std::shared_ptr<AdjacencyListIterator> adjlist_iterator_backward;
+    std::shared_ptr<ExtentIterator> ext_it_forward = nullptr;
+    std::shared_ptr<ExtentIterator> ext_it_backward = nullptr;
+    std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_forward;
+    std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_backward;
 
     std::vector<std::vector<NodeID>> constructPaths();
 

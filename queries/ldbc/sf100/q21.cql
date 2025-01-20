@@ -3,5 +3,5 @@ MATCH
 (person2:Person {id: 15393162953088})
 WITH 
 person1, person2
-MATCH path = allShortestPath((person1)-[:KNOWS*1..10]-(person2))
-RETURN path
+MATCH path = allShortestPaths((person1)-[:KNOWS*1..10]-(person2))
+RETURN path_length(path);
