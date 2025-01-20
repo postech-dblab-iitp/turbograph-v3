@@ -239,6 +239,7 @@ bool isExpressionFunction(ExpressionType type);
 bool isExpressionParameter(ExpressionType type);
 bool isExpressionProperty(ExpressionType type);
 bool isExpressionShortestPath(ExpressionType type);
+bool isExpressionAllShortestPath(ExpressionType type);
 
 string expressionTypeToString(ExpressionType type);
 

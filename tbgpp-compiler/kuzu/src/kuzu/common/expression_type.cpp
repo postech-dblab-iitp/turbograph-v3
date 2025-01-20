@@ -76,6 +76,9 @@ bool isExpressionIdInColl(ExpressionType type) {
 bool isExpressionShortestPath(ExpressionType type) {
     return SHORTEST_PATH == type;
 }
+bool isExpressionAllShortestPath(ExpressionType type) {
+    return ALL_SHORTEST_PATH == type;
+}
 
 
 string expressionTypeToString(ExpressionType type) {

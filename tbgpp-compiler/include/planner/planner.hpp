@@ -317,6 +317,7 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
 	unique_ptr<duckdb::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<duckdb::Expression> lExprScalarAllShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
     LogicalPlan *lPlanNodeOrRelExprWithoutDSI(

@@ -50,6 +50,9 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarExpressionDuckDB(
     else if (isExpressionShortestPath(expr_type)) {
         return lExprScalarShortestPathExprDuckDB(expression);
     }
+    else if (isExpressionAllShortestPath(expr_type)) {
+        return lExprScalarAllShortestPathExprDuckDB(expression);
+    }
     else {
         D_ASSERT(false);
     }
@@ -320,6 +323,21 @@ unique_ptr<duckdb::Expression> Planner::lExprScalarParamExprDuckDB(
 
 
 unique_ptr<duckdb::Expression> Planner::lExprScalarShortestPathExprDuckDB(
+    kuzu::binder::Expression *expression)
+{
+    PathExpression *path_expr = (PathExpression *)expression;
+    DataType type = path_expr->getDataType();
+    duckdb::LogicalTypeId duckdb_type_id = (duckdb::LogicalTypeId)type.typeID;
+    D_ASSERT(duckdb_type_id == duckdb::LogicalTypeId::PATH);
+    // duckdb::LogicalType duckdb_type = duckdb::LogicalType(duckdb_type_id);
+    duckdb::LogicalType duckdb_type = duckdb::LogicalType::PATH(duckdb::LogicalType::UBIGINT);
+    
+    return make_unique<duckdb::BoundReferenceExpression>(
+        duckdb_type, 0 /* child_idx TODO: give proper value */);
+}
+
+
+unique_ptr<duckdb::Expression> Planner::lExprScalarAllShortestPathExprDuckDB(
     kuzu::binder::Expression *expression)
 {
     PathExpression *path_expr = (PathExpression *)expression;
