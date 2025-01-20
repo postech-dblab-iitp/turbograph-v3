@@ -15,8 +15,8 @@
 
 
 
-#ifndef CTranslatorTBGPPToDXL_H
-#define CTranslatorTBGPPToDXL_H
+#ifndef CTranslatorS62ToDXL_H
+#define CTranslatorS62ToDXL_H
 
 extern "C" {
 #include "postgres.h"
@@ -71,7 +71,7 @@ using namespace gpmd;
 //		Class for translating GPDB's relcache entries into DXL MD objects
 //
 //---------------------------------------------------------------------------
-class CTranslatorTBGPPToDXL
+class CTranslatorS62ToDXL
 {
 private:
 	//---------------------------------------------------------------------------
@@ -431,6 +431,6 @@ public:
 
 
 
-#endif	// !CTranslatorTBGPPToDXL_H
+#endif	// !CTranslatorS62ToDXL_H
 
 // EOF

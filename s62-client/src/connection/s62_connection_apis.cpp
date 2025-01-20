@@ -5,7 +5,7 @@
 #include "planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "s62dbwrappers.hpp"
 #include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
@@ -63,7 +63,7 @@ void S62ConnectionAPIs::SetupDatabase() {
     // create planner
     auto planner_config = s62::PlannerConfig();
     planner_config.INDEX_JOIN_ONLY = true;
-    planner = new s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+    planner = new s62::Planner(planner_config, s62::MDProviderType::S62, client.get());
 
     // Print done
     std::cout << "Database Connected" << std::endl;

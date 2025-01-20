@@ -59,7 +59,7 @@ namespace s62 {
 ClientContext::ClientContext(shared_ptr<DatabaseInstance> database)
     : db(move(database)), //transaction(db->GetTransactionManager(), *this), interrupted(false),
       client_data(make_unique<ClientData>(*this)),
-	  graph_store(make_unique<iTbgppGraphStore>(*this)),
+	  graph_store(make_unique<S62GraphStore>(*this)),
 	  executor(make_unique<Executor>(*this)),
 	  profiler(make_shared<QueryProfiler>(*this)) {
 	this->catalog_shm = db->GetCatalogSHM();

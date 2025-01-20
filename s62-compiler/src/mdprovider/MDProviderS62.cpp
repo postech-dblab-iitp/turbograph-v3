@@ -2,9 +2,9 @@
 // #include "postgres.h"
 // }
 #include "gpopt/mdcache/CMDAccessor.h"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 // #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
-#include "translate/CTranslatorTBGPPToDXL.hpp"
+#include "translate/CTranslatorS62ToDXL.hpp"
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/exception.h"
 
@@ -12,7 +12,7 @@ using namespace gpos;
 using namespace gpdxl;
 using namespace gpmd;
 
-uint64_t MDProviderTBGPP::hash_mdid(std::vector<OID> &oids) {
+uint64_t MDProviderS62::hash_mdid(std::vector<OID> &oids) {
     size_t seed = 0;
     for (const auto &oid : oids) {
         seed ^= std::hash<OID>()(oid) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -20,17 +20,17 @@ uint64_t MDProviderTBGPP::hash_mdid(std::vector<OID> &oids) {
     return seed;
 }
 
-MDProviderTBGPP::MDProviderTBGPP(CMemoryPool *mp) : m_mp(mp)
+MDProviderS62::MDProviderS62(CMemoryPool *mp) : m_mp(mp)
 {
 	GPOS_ASSERT(NULL != m_mp);
 }
 
 CWStringBase *
-MDProviderTBGPP::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
+MDProviderS62::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 									IMDId *md_id,
 									IMDCacheObject::Emdtype mdtype) const
 {
-	IMDCacheObject *md_obj = CTranslatorTBGPPToDXL::RetrieveObject(
+	IMDCacheObject *md_obj = CTranslatorS62ToDXL::RetrieveObject(
 		mp, md_accessor, md_id, mdtype);
 
 	GPOS_ASSERT(NULL != md_obj);
@@ -44,7 +44,7 @@ MDProviderTBGPP::GetMDObjDXLStr(CMemoryPool *mp, CMDAccessor *md_accessor,
 	return str;
 }
 
-IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
+IMDId *MDProviderS62::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
                                         IMdIdArray *pdrgmdid)
 {
     // Convert IMdIdArray to vector of OIDs and sort
@@ -72,13 +72,13 @@ IMDId *MDProviderTBGPP::AddVirtualTable(CMemoryPool *mp, IMDId *mdid,
     }
 
     IMDId *new_mdid =
-        CTranslatorTBGPPToDXL::AddVirtualTable(mp, mdid, pdrgmdid);
+        CTranslatorS62ToDXL::AddVirtualTable(mp, mdid, pdrgmdid);
     m_virtual_tables[hash].push_back(std::make_pair(new_mdid, std::move(oids)));
 
     return new_mdid;
 }
 
-bool MDProviderTBGPP::CheckVirtualTableExists(std::vector<uint64_t> &oids,
+bool MDProviderS62::CheckVirtualTableExists(std::vector<uint64_t> &oids,
                                               uint64_t &virtual_table_oid)
 {
     std::vector<OID> oids_vec;
@@ -105,7 +105,7 @@ bool MDProviderTBGPP::CheckVirtualTableExists(std::vector<uint64_t> &oids,
     return false;
 }
 
-void MDProviderTBGPP::AddVirtualTable(std::vector<uint64_t> &oids,
+void MDProviderS62::AddVirtualTable(std::vector<uint64_t> &oids,
                                       uint64_t virtual_table_oid)
 {
     std::vector<OID> oids_vec;

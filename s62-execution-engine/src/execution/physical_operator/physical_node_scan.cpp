@@ -191,7 +191,7 @@ void PhysicalNodeScan::GetData(ExecutionContext &context, DataChunk &chunk,
                                LocalSourceState &lstate) const
 {
     auto &state = (NodeScanState &)lstate;
-    // If first time here, call doScan and get iterator from iTbgppGraphStore
+    // If first time here, call doScan and get iterator from S62GraphStore
     if (!state.iter_inited) {
         state.iter_inited = true;
         bool enable_filter_buffer =

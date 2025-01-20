@@ -3,7 +3,7 @@
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
-//		CTranslatorTBGPPToDXL.cpp
+//		CTranslatorS62ToDXL.cpp
 //
 //	@doc:
 //		Class translating relcache entries into DXL objects
@@ -32,7 +32,7 @@ extern "C" {
 // #include "utils/syscache.h"
 #include "utils/typcache.h"
 }
-#include "utils/tbgpp_rel.hpp"
+#include "utils/s62_rel.hpp"
 
 #include "gpos/base.h"
 #include "gpos/error/CException.h"
@@ -41,7 +41,7 @@ extern "C" {
 #include "gpopt/base/CUtils.h"
 // #include "gpopt/gpdbwrappers.h"
 #include "gpopt/mdcache/CMDAccessor.h"
-// #include "gpopt/translate/CTranslatorTBGPPToDXL.h"
+// #include "gpopt/translate/CTranslatorS62ToDXL.h"
 #include "gpopt/translate/CTranslatorScalarToDXL.h"
 #include "gpopt/translate/CTranslatorUtils.h"
 #include "naucrates/dxl/CDXLUtils.h"
@@ -69,10 +69,10 @@ extern "C" {
 #include "naucrates/base/IDatumGeneric.h"
 #include "naucrates/base/CDatumGenericGPDB.h"
 
-// TBGPP related classes
-#include "tbgppdbwrappers.hpp"
+// S62 related classes
+#include "s62dbwrappers.hpp"
 #include "catalog/catalog.hpp"
-#include "translate/CTranslatorTBGPPToDXL.hpp"
+#include "translate/CTranslatorS62ToDXL.hpp"
 
 using namespace gpdxl;
 using namespace gpopt;
@@ -122,14 +122,14 @@ GetIndexTypeFromOid(OID index_oid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveObject
+//		CTranslatorS62ToDXL::RetrieveObject
 //
 //	@doc:
 //		Retrieve a metadata object from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveObject(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveObject(CMemoryPool *mp,
 										 CMDAccessor *md_accessor, IMDId *mdid,
 										 IMDCacheObject::Emdtype mdtype)
 {
@@ -190,14 +190,14 @@ CTranslatorTBGPPToDXL::RetrieveObject(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveMDObjGPDB
+//		CTranslatorS62ToDXL::RetrieveMDObjGPDB
 //
 //	@doc:
 //		Retrieve a GPDB metadata object from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveObjectGPDB(CMemoryPool *mp, IMDId *mdid,
+CTranslatorS62ToDXL::RetrieveObjectGPDB(CMemoryPool *mp, IMDId *mdid,
 											 IMDCacheObject::Emdtype mdtype)
 {
 	GPOS_ASSERT(mdid->MdidType() == CMDIdGPDB::EmdidGeneral);
@@ -244,14 +244,14 @@ CTranslatorTBGPPToDXL::RetrieveObjectGPDB(CMemoryPool *mp, IMDId *mdid,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetRelName
+//		CTranslatorS62ToDXL::GetRelName
 //
 //	@doc:
 //		Return a relation name
 //
 //---------------------------------------------------------------------------
 CMDName *
-CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel)
+CTranslatorS62ToDXL::GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
 	CHAR *relname = std::strcpy(new char[rel->GetName().length() + 1], rel->GetName().c_str());
@@ -265,14 +265,14 @@ CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEnt
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelIndexInfo
+//		CTranslatorS62ToDXL::RetrieveRelIndexInfo
 //
 //	@doc:
 //		Return the indexes defined on the given relation
 //
 //---------------------------------------------------------------------------
 CMDIndexInfoArray *
-CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
+CTranslatorS62ToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
 	// if (gpdb::RelPartIsNone(rel->rd_id) || gpdb::IsLeafPartition(rel->rd_id))
@@ -294,7 +294,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfo(CMemoryPool *mp, PropertySchemaCatal
 
 // return index info list of indexes defined on a partitioned table
 CMDIndexInfoArray *
-CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForPartTable(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveRelIndexInfoForPartTable(CMemoryPool *mp,
 														   Relation root_rel)
 {
 	GPOS_ASSERT(true); // TODO don't have index catalog yet..
@@ -352,7 +352,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForPartTable(CMemoryPool *mp,
 
 // return index info list of indexes defined on regular, external tables or leaf partitions
 CMDIndexInfoArray *
-CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 															  PropertySchemaCatalogEntry *rel)
 {
 	CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
@@ -422,14 +422,14 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrievePartTableIndexInfo
+//		CTranslatorS62ToDXL::RetrievePartTableIndexInfo
 //
 //	@doc:
 //		Return the index info list of on a partitioned table
 //
 //---------------------------------------------------------------------------
 // List *
-// CTranslatorTBGPPToDXL::RetrievePartTableIndexInfo(Relation rel)
+// CTranslatorS62ToDXL::RetrievePartTableIndexInfo(Relation rel)
 // {
 // 	GPOS_ASSERT(true); // TODO don't have index catalog yet..
 // 	List *index_info_list = NIL;
@@ -457,14 +457,14 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelTriggers
+//		CTranslatorS62ToDXL::RetrieveRelTriggers
 //
 //	@doc:
 //		Return the triggers defined on the given relation
 //
 //---------------------------------------------------------------------------
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
+CTranslatorS62ToDXL::RetrieveRelTriggers(CMemoryPool *mp, PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
 	// if (rel->rd_rel->relhastriggers && NULL == rel->trigdesc)
@@ -496,14 +496,14 @@ CTranslatorTBGPPToDXL::RetrieveRelTriggers(CMemoryPool *mp, PropertySchemaCatalo
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelCheckConstraints
+//		CTranslatorS62ToDXL::RetrieveRelCheckConstraints
 //
 //	@doc:
 //		Return the check constraints defined on the relation with the given oid
 //
 //---------------------------------------------------------------------------
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
+CTranslatorS62ToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
 {
 	IMdIdArray *check_constraint_mdids = GPOS_NEW(mp) IMdIdArray(mp);
 	// List *check_constraints = gpdb::GetCheckConstraintOids(oid);
@@ -523,14 +523,14 @@ CTranslatorTBGPPToDXL::RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::CheckUnsupportedRelation
+//		CTranslatorS62ToDXL::CheckUnsupportedRelation
 //
 //	@doc:
 //		Check and fall back to planner for unsupported relations
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorTBGPPToDXL::CheckUnsupportedRelation(OID rel_oid)
+CTranslatorS62ToDXL::CheckUnsupportedRelation(OID rel_oid)
 {
 	GPOS_ASSERT(true); // TODO don't have this yet..
 	// if (gpdb::RelPartIsInterior(rel_oid))
@@ -568,14 +568,14 @@ CTranslatorTBGPPToDXL::CheckUnsupportedRelation(OID rel_oid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRel
+//		CTranslatorS62ToDXL::RetrieveRel
 //
 //	@doc:
 //		Retrieve a relation from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 IMDRelation *
-CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
+CTranslatorS62ToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 									  IMDId *mdid)
 {
 	OID oid = CMDIdGPDB::CastMdid(mdid)->Oid(); // TODO check how this works
@@ -756,14 +756,14 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelColumns
+//		CTranslatorS62ToDXL::RetrieveRelColumns
 //
 //	@doc:
 //		Get relation columns
 //
 //---------------------------------------------------------------------------
 CMDColumnArray *
-CTranslatorTBGPPToDXL::RetrieveRelColumns(
+CTranslatorS62ToDXL::RetrieveRelColumns(
 	CMemoryPool *mp, CMDAccessor *md_accessor, s62::PropertySchemaCatalogEntry *rel,
 	IMDRelation::Erelstoragetype rel_storage_type)
 {
@@ -854,7 +854,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 		// 	if (!att->attisdropped)
 		// 	{
 		// 		IMDType *md_type =
-		// 			CTranslatorTBGPPToDXL::RetrieveType(mp, mdid_col);
+		// 			CTranslatorS62ToDXL::RetrieveType(mp, mdid_col);
 		// 		if (md_type->IsFixedLength())
 		// 		{
 		// 			col_len = md_type->Length();
@@ -886,14 +886,14 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::GetDefaultColumnValue
+// //		CTranslatorS62ToDXL::GetDefaultColumnValue
 // //
 // //	@doc:
 // //		Return the dxl representation of column's default value
 // //
 // //---------------------------------------------------------------------------
 // CDXLNode *
-// CTranslatorTBGPPToDXL::GetDefaultColumnValue(CMemoryPool *mp,
+// CTranslatorS62ToDXL::GetDefaultColumnValue(CMemoryPool *mp,
 // 												CMDAccessor *md_accessor,
 // 												TupleDesc rd_att,
 // 												AttrNumber attno)
@@ -941,14 +941,14 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::GetRelDistribution
+// //		CTranslatorS62ToDXL::GetRelDistribution
 // //
 // //	@doc:
 // //		Return the distribution policy of the relation
 // //
 // //---------------------------------------------------------------------------
 // IMDRelation::Ereldistrpolicy
-// CTranslatorTBGPPToDXL::GetRelDistribution(GpPolicy *gp_policy)
+// CTranslatorS62ToDXL::GetRelDistribution(GpPolicy *gp_policy)
 // {
 // 	if (NULL == gp_policy)
 // 	{
@@ -982,14 +982,14 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrieveRelDistributionCols
+// //		CTranslatorS62ToDXL::RetrieveRelDistributionCols
 // //
 // //	@doc:
 // //		Get distribution columns
 // //
 // //---------------------------------------------------------------------------
 // ULongPtrArray *
-// CTranslatorTBGPPToDXL::RetrieveRelDistributionCols(
+// CTranslatorS62ToDXL::RetrieveRelDistributionCols(
 // 	CMemoryPool *mp, GpPolicy *gp_policy, CMDColumnArray *mdcol_array,
 // 	ULONG size)
 // {
@@ -1019,7 +1019,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 // }
 
 // IMdIdArray *
-// CTranslatorTBGPPToDXL::RetrieveRelDistributionOpFamilies(CMemoryPool *mp,
+// CTranslatorS62ToDXL::RetrieveRelDistributionOpFamilies(CMemoryPool *mp,
 // 															GpPolicy *gp_policy)
 // {
 // 	IMdIdArray *distr_op_classes = GPOS_NEW(mp) IMdIdArray(mp);
@@ -1036,7 +1036,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 // }
 
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
 														OID rel_oid)
 {
 	IMdIdArray *external_partitions = GPOS_NEW(mp) IMdIdArray(mp);
@@ -1055,14 +1055,14 @@ CTranslatorTBGPPToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::AddSystemColumns
+// //		CTranslatorS62ToDXL::AddSystemColumns
 // //
 // //	@doc:
 // //		Adding system columns (oid, tid, xmin, etc) in table descriptors
 // //
 // //---------------------------------------------------------------------------
 // void
-// CTranslatorTBGPPToDXL::AddSystemColumns(CMemoryPool *mp,
+// CTranslatorS62ToDXL::AddSystemColumns(CMemoryPool *mp,
 // 										   CMDColumnArray *mdcol_array,
 // 										   Relation rel, BOOL is_ao_table)
 // {
@@ -1108,7 +1108,7 @@ CTranslatorTBGPPToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::IsTransactionVisibilityAttribute
+// //		CTranslatorS62ToDXL::IsTransactionVisibilityAttribute
 // //
 // //	@doc:
 // //		Check if attribute number is one of the system attributes related to
@@ -1116,7 +1116,7 @@ CTranslatorTBGPPToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
 // //
 // //---------------------------------------------------------------------------
 // BOOL
-// CTranslatorTBGPPToDXL::IsTransactionVisibilityAttribute(INT attno)
+// CTranslatorS62ToDXL::IsTransactionVisibilityAttribute(INT attno)
 // {
 // 	return attno == MinTransactionIdAttributeNumber ||
 // 		   attno == MaxTransactionIdAttributeNumber ||
@@ -1126,14 +1126,14 @@ CTranslatorTBGPPToDXL::RetrieveRelExternalPartitions(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveIndex
+//		CTranslatorS62ToDXL::RetrieveIndex
 //
 //	@doc:
 //		Retrieve an index from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 IMDIndex *
-CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveIndex(CMemoryPool *mp,
 										CMDAccessor *md_accessor,
 										IMDId *mdid_index)
 {
@@ -1280,7 +1280,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrievePartTableIndex
+// //		CTranslatorS62ToDXL::RetrievePartTableIndex
 // //
 // //	@doc:
 // //		Retrieve an index over a partitioned table from the relcache given its
@@ -1288,7 +1288,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 // //
 // //---------------------------------------------------------------------------
 // IMDIndex *
-// CTranslatorTBGPPToDXL::RetrievePartTableIndex(
+// CTranslatorS62ToDXL::RetrievePartTableIndex(
 // 	CMemoryPool *mp, CMDAccessor *md_accessor, IMDId *mdid_index,
 // 	const IMDRelation *md_rel, LogicalIndexes *logical_indexes)
 // {
@@ -1309,14 +1309,14 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::LookupLogicalIndexById
+//		CTranslatorS62ToDXL::LookupLogicalIndexById
 //
 //	@doc:
 //		Lookup an index given its id from the logical indexes structure
 //
 //---------------------------------------------------------------------------
 LogicalIndexInfo *
-CTranslatorTBGPPToDXL::LookupLogicalIndexById(
+CTranslatorS62ToDXL::LookupLogicalIndexById(
 	LogicalIndexes *logical_indexes, OID oid)
 {
 	// GPOS_ASSERT(NULL != logical_indexes &&
@@ -1371,14 +1371,14 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrievePartTableIndex
+// //		CTranslatorS62ToDXL::RetrievePartTableIndex
 // //
 // //	@doc:
 // //		Construct an MD cache index object given its logical index representation
 // //
 // //---------------------------------------------------------------------------
 // IMDIndex *
-// CTranslatorTBGPPToDXL::RetrievePartTableIndex(CMemoryPool *mp,
+// CTranslatorS62ToDXL::RetrievePartTableIndex(CMemoryPool *mp,
 // 												 CMDAccessor *md_accessor,
 // 												 LogicalIndexInfo *index_info,
 // 												 IMDId *mdid_index,
@@ -1545,14 +1545,14 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::LevelHasDefaultPartition
+// //		CTranslatorS62ToDXL::LevelHasDefaultPartition
 // //
 // //	@doc:
 // //		Check whether the default partition at level one is included
 // //
 // //---------------------------------------------------------------------------
 // BOOL
-// CTranslatorTBGPPToDXL::LevelHasDefaultPartition(List *default_levels,
+// CTranslatorS62ToDXL::LevelHasDefaultPartition(List *default_levels,
 // 												   ULONG level)
 // {
 // 	if (NIL == default_levels)
@@ -1575,14 +1575,14 @@ CTranslatorTBGPPToDXL::LookupLogicalIndexById(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::ComputeIncludedCols
+//		CTranslatorS62ToDXL::ComputeIncludedCols
 //
 //	@doc:
 //		Compute the included columns in an index
 //
 //---------------------------------------------------------------------------
 ULongPtrArray *
-CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
+CTranslatorS62ToDXL::ComputeIncludedCols(CMemoryPool *mp,
 											  const IMDRelation *md_rel,
 											  IMDIndex::EmdindexType index_type
 											  /*const PartitionCatalogEntry *part_cat*/)
@@ -1618,14 +1618,14 @@ CTranslatorTBGPPToDXL::ComputeIncludedCols(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetAttributePosition
+//		CTranslatorS62ToDXL::GetAttributePosition
 //
 //	@doc:
 //		Return the position of a given attribute
 //
 //---------------------------------------------------------------------------
 ULONG
-CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
+CTranslatorS62ToDXL::GetAttributePosition(INT attno,
 											   ULONG *GetAttributePosition)
 {
 	ULONG idx = (ULONG)(GPDXL_SYSTEM_COLUMNS + attno);
@@ -1637,14 +1637,14 @@ CTranslatorTBGPPToDXL::GetAttributePosition(INT attno,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::PopulateAttnoPositionMap
+//		CTranslatorS62ToDXL::PopulateAttnoPositionMap
 //
 //	@doc:
 //		Populate the attribute to position mapping
 //
 //---------------------------------------------------------------------------
 ULONG *
-CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
+CTranslatorS62ToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
 												   const IMDRelation *md_rel,
 												   /*const PartitionCatalogEntry *part_cat,*/
 												   ULONG size)
@@ -1678,14 +1678,14 @@ CTranslatorTBGPPToDXL::PopulateAttnoPositionMap(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveType
+//		CTranslatorS62ToDXL::RetrieveType
 //
 //	@doc:
 //		Retrieve a type from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 IMDType *
-CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 {
 	OID oid_type = CMDIdGPDB::CastMdid(mdid)->Oid();
 	GPOS_ASSERT(InvalidOid != oid_type);
@@ -1828,14 +1828,14 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveScOp
+//		CTranslatorS62ToDXL::RetrieveScOp
 //
 //	@doc:
 //		Retrieve a scalar operator from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDScalarOpGPDB *
-CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 {
 	OID op_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
@@ -1944,14 +1944,14 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::LookupFuncProps
+//		CTranslatorS62ToDXL::LookupFuncProps
 //
 //	@doc:
 //		Lookup function properties
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorTBGPPToDXL::LookupFuncProps(
+CTranslatorS62ToDXL::LookupFuncProps(
 	OID func_oid,
 	IMDFunction::EFuncStbl *stability,	// output: function stability
 	IMDFunction::EFuncDataAcc *access,	// output: function datya access
@@ -1984,14 +1984,14 @@ CTranslatorTBGPPToDXL::LookupFuncProps(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveFunc
+//		CTranslatorS62ToDXL::RetrieveFunc
 //
 //	@doc:
 //		Retrieve a function from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDFunctionGPDB *
-CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 {
 	OID func_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
 
@@ -2068,14 +2068,14 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveAgg
+//		CTranslatorS62ToDXL::RetrieveAgg
 //
 //	@doc:
 //		Retrieve an aggregate from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDAggregateGPDB *
-CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 {
 
 	OID agg_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
@@ -2137,14 +2137,14 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveTrigger
+//		CTranslatorS62ToDXL::RetrieveTrigger
 //
 //	@doc:
 //		Retrieve a trigger from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDTriggerGPDB *
-CTranslatorTBGPPToDXL::RetrieveTrigger(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveTrigger(CMemoryPool *mp, IMDId *mdid)
 {
 	D_ASSERT(false);
 	return nullptr; // TODO Disable currently
@@ -2191,14 +2191,14 @@ CTranslatorTBGPPToDXL::RetrieveTrigger(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveCheckConstraints
+//		CTranslatorS62ToDXL::RetrieveCheckConstraints
 //
 //	@doc:
 //		Retrieve a check constraint from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDCheckConstraintGPDB *
-CTranslatorTBGPPToDXL::RetrieveCheckConstraints(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveCheckConstraints(CMemoryPool *mp,
 												   CMDAccessor *md_accessor,
 												   IMDId *mdid)
 {
@@ -2266,14 +2266,14 @@ CTranslatorTBGPPToDXL::RetrieveCheckConstraints(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetTypeName
+//		CTranslatorS62ToDXL::GetTypeName
 //
 //	@doc:
 //		Retrieve a type's name from the relcache given its metadata id.
 //
 //---------------------------------------------------------------------------
 CMDName *
-CTranslatorTBGPPToDXL::GetTypeName(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::GetTypeName(CMemoryPool *mp, IMDId *mdid)
 {
 	OID oid_type = CMDIdGPDB::CastMdid(mdid)->Oid();
 
@@ -2294,14 +2294,14 @@ CTranslatorTBGPPToDXL::GetTypeName(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetFuncStability
+//		CTranslatorS62ToDXL::GetFuncStability
 //
 //	@doc:
 //		Get function stability property from the GPDB character representation
 //
 //---------------------------------------------------------------------------
 CMDFunctionGPDB::EFuncStbl
-CTranslatorTBGPPToDXL::GetFuncStability(CHAR c)
+CTranslatorS62ToDXL::GetFuncStability(CHAR c)
 {
 	CMDFunctionGPDB::EFuncStbl efuncstbl = CMDFunctionGPDB::EfsSentinel;
 
@@ -2325,14 +2325,14 @@ CTranslatorTBGPPToDXL::GetFuncStability(CHAR c)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetEFuncDataAccess
+//		CTranslatorS62ToDXL::GetEFuncDataAccess
 //
 //	@doc:
 //		Get function data access property from the GPDB character representation
 //
 //---------------------------------------------------------------------------
 CMDFunctionGPDB::EFuncDataAcc
-CTranslatorTBGPPToDXL::GetEFuncDataAccess(CHAR c)
+CTranslatorS62ToDXL::GetEFuncDataAccess(CHAR c)
 {
 	CMDFunctionGPDB::EFuncDataAcc access = CMDFunctionGPDB::EfdaSentinel;
 
@@ -2362,14 +2362,14 @@ CTranslatorTBGPPToDXL::GetEFuncDataAccess(CHAR c)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType
+//		CTranslatorS62ToDXL::RetrieveAggIntermediateResultType
 //
 //	@doc:
 //		Retrieve the type id of an aggregate's intermediate results
 //
 //---------------------------------------------------------------------------
 IMDId *
-CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
 															IMDId *mdid)
 {
 	OID agg_oid = CMDIdGPDB::CastMdid(mdid)->Oid();
@@ -2395,14 +2395,14 @@ CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelStats
+//		CTranslatorS62ToDXL::RetrieveRelStats
 //
 //	@doc:
 //		Retrieve relation statistics from relcache
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 {
 	CMDIdRelStats *m_rel_stats_mdid = CMDIdRelStats::CastMdid(mdid);
 	IMDId *mdid_rel = m_rel_stats_mdid->GetRelMdId();
@@ -2469,7 +2469,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 // However, if any statistics are present and not broken,
 // create column statistics using these statistics
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveColStats(CMemoryPool *mp,
 										   CMDAccessor *md_accessor,
 										   IMDId *mdid)
 {
@@ -2727,14 +2727,14 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //      @function:
-//              CTranslatorTBGPPToDXL::GenerateStatsForSystemCols
+//              CTranslatorS62ToDXL::GenerateStatsForSystemCols
 //
 //      @doc:
 //              Generate statistics for the system level columns
 //
 //---------------------------------------------------------------------------
 CDXLColStats *
-CTranslatorTBGPPToDXL::GenerateStatsForSystemCols(
+CTranslatorS62ToDXL::GenerateStatsForSystemCols(
 	CMemoryPool *mp, OID rel_oid, CMDIdColStats *mdid_col_stats,
 	CMDName *md_colname, OID att_type, AttrNumber attno,
 	CDXLBucketArray *dxl_stats_bucket_array, CDouble num_rows)
@@ -2799,7 +2799,7 @@ CTranslatorTBGPPToDXL::GenerateStatsForSystemCols(
 
 //---------------------------------------------------------------------------
 //     @function:
-//     CTranslatorTBGPPToDXL::RetrieveNumChildPartitions
+//     CTranslatorS62ToDXL::RetrieveNumChildPartitions
 //
 //  @doc:
 //      For non-leaf partition tables return the number of child partitions
@@ -2807,7 +2807,7 @@ CTranslatorTBGPPToDXL::GenerateStatsForSystemCols(
 //
 //---------------------------------------------------------------------------
 ULONG
-CTranslatorTBGPPToDXL::RetrieveNumChildPartitions(OID rel_oid)
+CTranslatorS62ToDXL::RetrieveNumChildPartitions(OID rel_oid)
 {
 	GPOS_ASSERT(InvalidOid != rel_oid);
 
@@ -2834,14 +2834,14 @@ CTranslatorTBGPPToDXL::RetrieveNumChildPartitions(OID rel_oid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveCast
+//		CTranslatorS62ToDXL::RetrieveCast
 //
 //	@doc:
 //		Retrieve a cast function from relcache
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
 {
 	// CMDIdCast *mdid_cast = CMDIdCast::CastMdid(mdid);
 	// IMDId *mdid_src = mdid_cast->MdidSrc();
@@ -2934,14 +2934,14 @@ CTranslatorTBGPPToDXL::RetrieveCast(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveScCmp
+//		CTranslatorS62ToDXL::RetrieveScCmp
 //
 //	@doc:
 //		Retrieve a scalar comparison from relcache
 //
 //---------------------------------------------------------------------------
 IMDCacheObject *
-CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
+CTranslatorS62ToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 {
 	CMDIdScCmp *mdid_scalar_cmp = CMDIdScCmp::CastMdid(mdid);
 	IMDId *mdid_left = mdid_scalar_cmp->GetLeftMdid();
@@ -2983,14 +2983,14 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray
+//		CTranslatorS62ToDXL::TransformStatsToDXLBucketArray
 //
 //	@doc:
 //		transform stats from pg_stats form to optimizer's preferred form
 //
 //---------------------------------------------------------------------------
 CDXLBucketArray *
-CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
+CTranslatorS62ToDXL::TransformStatsToDXLBucketArray(
     CMemoryPool *mp, OID att_type, CDouble num_distinct, CDouble null_freq,
     const Datum *mcv_values, const float4 *mcv_frequencies,
     ULONG num_mcv_values, const Datum *hist_values,
@@ -3080,14 +3080,14 @@ CTranslatorTBGPPToDXL::TransformStatsToDXLBucketArray(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::TransformMcvToOrcaHistogram
+//		CTranslatorS62ToDXL::TransformMcvToOrcaHistogram
 //
 //	@doc:
 //		Transform gpdb's mcv info to optimizer histogram
 //
 //---------------------------------------------------------------------------
 CHistogram *
-CTranslatorTBGPPToDXL::TransformMcvToOrcaHistogram(
+CTranslatorS62ToDXL::TransformMcvToOrcaHistogram(
 	CMemoryPool *mp, const IMDType *md_type, const Datum *mcv_values,
 	const float4 *mcv_frequencies, ULONG num_mcv_values)
 {
@@ -3124,13 +3124,13 @@ CTranslatorTBGPPToDXL::TransformMcvToOrcaHistogram(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram
+//		CTranslatorS62ToDXL::TransformHistToOrcaHistogram
 //
 //	@doc:
 //		Transform GPDB's hist info to optimizer's histogram
 //
 //---------------------------------------------------------------------------
-CHistogram *CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
+CHistogram *CTranslatorS62ToDXL::TransformHistToOrcaHistogram(
     CMemoryPool *mp, const IMDType *md_type, const Datum *hist_values,
     const Datum *hist_freq_values, ULONG num_hist_values, CDouble num_distinct,
     CDouble hist_freq)
@@ -3213,14 +3213,14 @@ CHistogram *CTranslatorTBGPPToDXL::TransformHistToOrcaHistogram(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray
+//		CTranslatorS62ToDXL::TransformHistogramToDXLBucketArray
 //
 //	@doc:
 //		Histogram to array of dxl buckets
 //
 //---------------------------------------------------------------------------
 CDXLBucketArray *
-CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray(
+CTranslatorS62ToDXL::TransformHistogramToDXLBucketArray(
 	CMemoryPool *mp, const IMDType *md_type, const CHistogram *hist)
 {
 	CDXLBucketArray *dxl_stats_bucket_array = GPOS_NEW(mp) CDXLBucketArray(mp);
@@ -3244,14 +3244,14 @@ CTranslatorTBGPPToDXL::TransformHistogramToDXLBucketArray(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelStorageType
+//		CTranslatorS62ToDXL::RetrieveRelStorageType
 //
 //	@doc:
 //		Get relation storage type
 //
 //---------------------------------------------------------------------------
 IMDRelation::Erelstoragetype
-CTranslatorTBGPPToDXL::RetrieveRelStorageType(CHAR storage_type)
+CTranslatorS62ToDXL::RetrieveRelStorageType(CHAR storage_type)
 {
 	IMDRelation::Erelstoragetype rel_storage_type =
 		IMDRelation::ErelstorageSentinel;
@@ -3284,7 +3284,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStorageType(CHAR storage_type)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrievePartKeysAndTypes
+//		CTranslatorS62ToDXL::RetrievePartKeysAndTypes
 //
 //	@doc:
 //		Get partition keys and types for relation or NULL if relation not partitioned.
@@ -3292,7 +3292,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStorageType(CHAR storage_type)
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorTBGPPToDXL::RetrievePartKeysAndTypes(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrievePartKeysAndTypes(CMemoryPool *mp,
 												   Relation rel, OID oid,
 												   ULongPtrArray **part_keys,
 												   CharPtrArray **part_types)
@@ -3342,14 +3342,14 @@ CTranslatorTBGPPToDXL::RetrievePartKeysAndTypes(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::ConstructAttnoMapping
+//		CTranslatorS62ToDXL::ConstructAttnoMapping
 //
 //	@doc:
 //		Construct a mapping for GPDB attnos to positions in the columns array
 //
 //---------------------------------------------------------------------------
 ULONG *
-CTranslatorTBGPPToDXL::ConstructAttnoMapping(CMemoryPool *mp,
+CTranslatorS62ToDXL::ConstructAttnoMapping(CMemoryPool *mp,
 												CMDColumnArray *mdcol_array,
 												ULONG max_cols)
 {
@@ -3381,14 +3381,14 @@ CTranslatorTBGPPToDXL::ConstructAttnoMapping(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveRelKeysets
+//		CTranslatorS62ToDXL::RetrieveRelKeysets
 //
 //	@doc:
 //		Get key sets for relation
 //
 //---------------------------------------------------------------------------
 ULongPtr2dArray *
-CTranslatorTBGPPToDXL::RetrieveRelKeysets(CMemoryPool *mp, OID oid,
+CTranslatorS62ToDXL::RetrieveRelKeysets(CMemoryPool *mp, OID oid,
 											 BOOL should_add_default_keys,
 											 BOOL is_partitioned,
 											 ULONG *attno_mapping)
@@ -3444,7 +3444,7 @@ CTranslatorTBGPPToDXL::RetrieveRelKeysets(CMemoryPool *mp, OID oid,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::NormalizeFrequencies
+//		CTranslatorS62ToDXL::NormalizeFrequencies
 //
 //	@doc:
 //		Sometimes a set of frequencies can add up to more than 1.0.
@@ -3452,7 +3452,7 @@ CTranslatorTBGPPToDXL::RetrieveRelKeysets(CMemoryPool *mp, OID oid,
 //
 //---------------------------------------------------------------------------
 void
-CTranslatorTBGPPToDXL::NormalizeFrequencies(float4 *freqs, ULONG length,
+CTranslatorS62ToDXL::NormalizeFrequencies(float4 *freqs, ULONG length,
 											   CDouble *null_freq)
 {
 	if (length == 0 && (*null_freq) < 1.0)
@@ -3491,14 +3491,14 @@ CTranslatorTBGPPToDXL::NormalizeFrequencies(float4 *freqs, ULONG length,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::IsIndexSupported
+//		CTranslatorS62ToDXL::IsIndexSupported
 //
 //	@doc:
 //		Check if index type is supported
 //
 //---------------------------------------------------------------------------
 BOOL
-CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
+CTranslatorS62ToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 {
 	// HeapTupleData *tup = index_rel->rd_indextuple;
 
@@ -3515,14 +3515,14 @@ CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrievePartConstraintForIndex
+// //		CTranslatorS62ToDXL::RetrievePartConstraintForIndex
 // //
 // //	@doc:
 // //		Retrieve part constraint for index
 // //
 // //---------------------------------------------------------------------------
 // CMDPartConstraintGPDB *
-// CTranslatorTBGPPToDXL::RetrievePartConstraintForIndex(
+// CTranslatorS62ToDXL::RetrievePartConstraintForIndex(
 // 	CMemoryPool *mp, CMDAccessor *md_accessor, const IMDRelation *md_rel,
 // 	Node *part_constraint, ULongPtrArray *level_with_default_part_array,
 // 	BOOL is_unbounded)
@@ -3559,14 +3559,14 @@ CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrievePartConstraintForRel
+// //		CTranslatorS62ToDXL::RetrievePartConstraintForRel
 // //
 // //	@doc:
 // //		Retrieve part constraint for relation
 // //
 // //---------------------------------------------------------------------------
 // CMDPartConstraintGPDB *
-// CTranslatorTBGPPToDXL::RetrievePartConstraintForRel(
+// CTranslatorS62ToDXL::RetrievePartConstraintForRel(
 // 	CMemoryPool *mp, CMDAccessor *md_accessor, OID rel_oid,
 // 	CMDColumnArray *mdcol_array, bool construct_full_expr)
 // {
@@ -3668,14 +3668,14 @@ CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 
 // //---------------------------------------------------------------------------
 // //	@function:
-// //		CTranslatorTBGPPToDXL::RetrievePartConstraintFromNode
+// //		CTranslatorS62ToDXL::RetrievePartConstraintFromNode
 // //
 // //	@doc:
 // //		Retrieve part constraint from GPDB node
 // //
 // //---------------------------------------------------------------------------
 // CMDPartConstraintGPDB *
-// CTranslatorTBGPPToDXL::RetrievePartConstraintFromNode(
+// CTranslatorS62ToDXL::RetrievePartConstraintFromNode(
 // 	CMemoryPool *mp, CMDAccessor *md_accessor,
 // 	CDXLColDescrArray *dxl_col_descr_array, Node *part_constraints,
 // 	ULongPtrArray *level_with_default_part_array, BOOL is_unbounded)
@@ -3706,7 +3706,7 @@ CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RelHasSystemColumns
+//		CTranslatorS62ToDXL::RelHasSystemColumns
 //
 //	@doc:
 //		Does given relation type have system columns.
@@ -3715,7 +3715,7 @@ CTranslatorTBGPPToDXL::IsIndexSupported(IndexCatalogEntry *index_cat)
 //
 //---------------------------------------------------------------------------
 BOOL
-CTranslatorTBGPPToDXL::RelHasSystemColumns(char rel_kind)
+CTranslatorS62ToDXL::RelHasSystemColumns(char rel_kind)
 {
 	return true;
 	// return RELKIND_RELATION == rel_kind || RELKIND_SEQUENCE == rel_kind ||
@@ -3724,14 +3724,14 @@ CTranslatorTBGPPToDXL::RelHasSystemColumns(char rel_kind)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::ParseCmpType
+//		CTranslatorS62ToDXL::ParseCmpType
 //
 //	@doc:
 //		Translate GPDB comparison types into optimizer comparison types
 //
 //---------------------------------------------------------------------------
 IMDType::ECmpType
-CTranslatorTBGPPToDXL::ParseCmpType(ULONG cmpt)
+CTranslatorS62ToDXL::ParseCmpType(ULONG cmpt)
 {
 	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
 	{
@@ -3747,14 +3747,14 @@ CTranslatorTBGPPToDXL::ParseCmpType(ULONG cmpt)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::GetComparisonType
+//		CTranslatorS62ToDXL::GetComparisonType
 //
 //	@doc:
 //		Translate optimizer comparison types into GPDB comparison types
 //
 //---------------------------------------------------------------------------
 ULONG
-CTranslatorTBGPPToDXL::GetComparisonType(IMDType::ECmpType cmp_type)
+CTranslatorS62ToDXL::GetComparisonType(IMDType::ECmpType cmp_type)
 {
 	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(cmp_type_mappings); ul++)
 	{
@@ -3770,14 +3770,14 @@ CTranslatorTBGPPToDXL::GetComparisonType(IMDType::ECmpType cmp_type)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies
+//		CTranslatorS62ToDXL::RetrieveIndexOpFamilies
 //
 //	@doc:
 //		Retrieve the opfamilies for the keys of the given index
 //
 //---------------------------------------------------------------------------
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 												  IMDId *mdid_index)
 {
 	// List *op_families =
@@ -3803,14 +3803,14 @@ CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies
+//		CTranslatorS62ToDXL::RetrieveScOpOpFamilies
 //
 //	@doc:
 //		Retrieve the families for the keys of the given scalar operator
 //
 //---------------------------------------------------------------------------
 IMdIdArray *
-CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
+CTranslatorS62ToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 												 IMDId *mdid_scalar_op)
 {
 	// List *op_families =
@@ -3832,7 +3832,7 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 }
 
 IMDId *
-CTranslatorTBGPPToDXL::AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid) {
+CTranslatorS62ToDXL::AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid) {
 	// Convert IMdIdArray to array of OIDs
 	ULONG size = pdrgmdid->Size();
 	uint32_t original_vtbl_oid = CMDIdGPDB::CastMdid(mdid)->Oid();

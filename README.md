@@ -120,7 +120,7 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     bash run-ldbc.sh <db_dir>
     ```
 
-    You will see `Turbograph-S62 >> ` prompt. You can execute queries here.
+    You will see `S62 >> ` prompt. You can execute queries here.
 
 ## Execution Options
 

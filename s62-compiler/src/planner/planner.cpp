@@ -1,5 +1,5 @@
 #include "planner.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 #include <limits>
 #include <map>
@@ -187,13 +187,13 @@ CMDProviderMemory *Planner::_orcaGetProviderMemory()
     return provider;
 }
 
-gpmd::MDProviderTBGPP *Planner::_orcaGetProviderTBGPP()
+gpmd::MDProviderS62 *Planner::_orcaGetProviderS62()
 {
     CMemoryPool *mp = nullptr;
     if (provider == nullptr) {
         CAutoMemoryPool amp;
         mp = amp.Pmp();
-        provider = new (mp, __FILE__, __LINE__) gpmd::MDProviderTBGPP(mp);
+        provider = new (mp, __FILE__, __LINE__) gpmd::MDProviderS62(mp);
         // detach safety
         (void)amp.Detach();
     } else {
@@ -413,7 +413,7 @@ void *Planner::_orcaExec(void *planner_ptr)
         provider = (IMDProvider *)planner->_orcaGetProviderMemory();
     }
     else {
-        provider = (IMDProvider *)planner->_orcaGetProviderTBGPP();
+        provider = (IMDProvider *)planner->_orcaGetProviderS62();
     }
     /* Core area */
     {  // this area should be enforced

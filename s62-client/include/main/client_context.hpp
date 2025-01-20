@@ -67,7 +67,7 @@ public:
 	shared_ptr<DatabaseInstance> db;
 
 	//! A graph store API that execution engine connects to
-	unique_ptr<iTbgppGraphStore> graph_store;
+	unique_ptr<S62GraphStore> graph_store;
 
 	//! The set of client-specific data
 	unique_ptr<ClientData> client_data;

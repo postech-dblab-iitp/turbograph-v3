@@ -1,7 +1,7 @@
-#include "tbgppdbwrappers.hpp"
+#include "s62dbwrappers.hpp"
 #include "catalog/catalog_wrapper.hpp"
 #include "client_context.hpp"
-#include "utils/tbgppcache.hpp"
+#include "utils/s62cache.hpp"
 // #include <setjmp.h>
 
 // #define GP_WRAP_START                                            \

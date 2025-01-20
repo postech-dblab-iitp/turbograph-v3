@@ -1,5 +1,5 @@
-#ifndef MDProviderTBGPP_H
-#define MDProviderTBGPP_H
+#ifndef MDProviderS62_H
+#define MDProviderS62_H
 
 #include "gpos/base.h"
 #include "gpos/string/CWStringBase.h"
@@ -24,14 +24,14 @@ using namespace gpos;
 // arrays of OID
 typedef CDynamicPtrArray<OID, CleanupDelete> OIDArray;
 
-class MDProviderTBGPP : public IMDProvider
+class MDProviderS62 : public IMDProvider
 {
    private:
     // memory pool
     CMemoryPool *m_mp;
 
     // private copy ctor
-    MDProviderTBGPP(const MDProviderTBGPP &);
+    MDProviderS62(const MDProviderS62 &);
 
     // hash table for virtual tables
     std::unordered_map<uint64_t,
@@ -43,9 +43,9 @@ class MDProviderTBGPP : public IMDProvider
 
    public:
     // ctor/dtor
-    explicit MDProviderTBGPP(CMemoryPool *mp);
+    explicit MDProviderS62(CMemoryPool *mp);
 
-    ~MDProviderTBGPP() {}
+    ~MDProviderS62() {}
 
     // returns the DXL string of the requested metadata object
     virtual CWStringBase *GetMDObjDXLStr(CMemoryPool *mp,
@@ -70,6 +70,6 @@ class MDProviderTBGPP : public IMDProvider
 
 
 
-#endif	// !MDProviderTBGPP_H
+#endif	// !MDProviderS62_H
 
 // EOF

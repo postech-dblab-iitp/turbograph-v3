@@ -98,7 +98,7 @@ enum DataTypeID : uint8_t {
 	TABLE = 103,
 	ENUM = 104,
 	AGGREGATE_STATE = 105,
-	// TBGPP-specific
+	// S62-specific
 	FORWARD_ADJLIST = 106,
 	BACKWARD_ADJLIST = 107,
 //  ID = 108,

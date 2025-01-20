@@ -13,8 +13,8 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef TBGPP_REL_HPP
-#define TBGPP_REL_HPP
+#ifndef S62_REL_HPP
+#define S62_REL_HPP
 
 extern "C" {
 // #include "access/tupdesc.h"

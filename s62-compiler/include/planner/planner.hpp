@@ -161,7 +161,7 @@
 #include "BTNode.h"
 #include "planner/logical_plan.hpp"
 #include "planner/value_ser_des.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 using namespace kuzu::binder;
 using namespace gpopt;
@@ -177,7 +177,7 @@ typedef vector<s62::Schema> PipelineUnionSchema;
 
 enum class MDProviderType {
 	MEMORY,
-	TBGPP
+	S62
 };
 
 class ClientContext;
@@ -248,7 +248,7 @@ private:
 	void _orcaSetTraceFlags();
 	CQueryContext *_orcaGenQueryCtxt(CMemoryPool *mp, CExpression *logical_plan);
 	CMDProviderMemory *_orcaGetProviderMemory();
-	MDProviderTBGPP *_orcaGetProviderTBGPP();
+	MDProviderS62 *_orcaGetProviderS62();
 	void _orcaInitXForm();
 	gpdbcost::CCostModelGPDB *_orcaGetCostModel(CMemoryPool *mp);
 	void _orcaSetOptCtxt(CMemoryPool *mp, CMDAccessor *mda, gpdbcost::CCostModelGPDB *pcm);
@@ -697,7 +697,7 @@ private:
 	bool analyze_ongoing = false;
 
 	// md provider
-	gpmd::MDProviderTBGPP *provider = nullptr;
+	gpmd::MDProviderS62 *provider = nullptr;
 
 	// const variables for system columns
 	string ID_COLNAME = "_id";

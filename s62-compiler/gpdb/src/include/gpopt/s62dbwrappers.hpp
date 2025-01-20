@@ -1,5 +1,5 @@
-#ifndef TBGPPDB_gdbwrappers_H
-#define TBGPPDB_gdbwrappers_H
+#ifndef S62DB_gdbwrappers_H
+#define S62DB_gdbwrappers_H
 
 extern "C" {
 #include "postgres.h"
@@ -61,6 +61,6 @@ static shared_ptr<CatalogWrapper> catalog_wrapper;
 } // duckdb
 
 
-#endif // !TBGPPDB_gdbwrappers_H
+#endif // !S62DB_gdbwrappers_H
 
 // EOF

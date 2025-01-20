@@ -7,7 +7,7 @@
 #include "planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "s62dbwrappers.hpp"
 #include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
@@ -76,7 +76,7 @@ s62_state s62_connect(const char *dbname) {
 		planner_config.DEBUG_PRINT = false;
 		if (planner == nullptr) {
 			// reuse the planner
-			planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
+			planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::S62, client.get());
 		}
 
         // Print done

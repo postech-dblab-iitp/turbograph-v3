@@ -140,7 +140,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 
     catalog_shm = new fixed_managed_mapped_file(
         boost::interprocess::open_only,
-        (string(path) + "/iTurboGraph_Catalog_SHM").c_str(),
+        (string(path) + "/S62_Catalog_SHM").c_str(),
         (void *)CATALOG_ADDR);
     
 	int64_t num_objects_in_catalog = 0;

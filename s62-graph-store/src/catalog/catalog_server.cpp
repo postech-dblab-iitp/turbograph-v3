@@ -21,13 +21,13 @@ CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_dir
     : unix_socket_(unix_socket), shm_directory_(shm_directory) {
   fprintf(stdout, "CatalogServer uses Boost %d.%d.%d\n", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
   // Remove the existing shared memory file
-  // boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
-  // int status = remove("/data/iTurboGraph_Catalog_SHM");
+  // boost::interprocess::shared_memory_object::remove("S62_Catalog_SHM");
+  // int status = remove("/data/S62_Catalog_SHM");
   
   // Create shared memory
-  std::string shm_path = shm_directory_ + std::string("/iTurboGraph_Catalog_SHM");
+  std::string shm_path = shm_directory_ + std::string("/S62_Catalog_SHM");
   catalog_segment = new fixed_managed_mapped_file(boost::interprocess::open_or_create, shm_path.c_str(), 15 * 1024 * 1024 * 1024UL, (void *) CATALOG_ADDR);
-  fprintf(stdout, "Open/Create shared memory: iTurboGraph_Catalog_SHM\n");
+  fprintf(stdout, "Open/Create shared memory: S62_Catalog_SHM\n");
   const_named_it named_beg = catalog_segment->named_begin();
 	const_named_it named_end = catalog_segment->named_end();
   int64_t num_objects_in_the_catalog = 0;
@@ -42,16 +42,16 @@ CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_dir
 
 bool CatalogServer::recreate() {
   // Remove the existing shared memory
-  // boost::interprocess::shared_memory_object::remove("iTurboGraph_Catalog_SHM");
+  // boost::interprocess::shared_memory_object::remove("S62_Catalog_SHM");
   delete catalog_segment;
-  std::string shm_path = shm_directory_ + std::string("/iTurboGraph_Catalog_SHM");
+  std::string shm_path = shm_directory_ + std::string("/S62_Catalog_SHM");
   int status = remove(shm_path.c_str());
   if (status == 0) fprintf(stdout, "Remove the existing SHM file\n");
   else fprintf(stdout, "Remove SHM file error\n");
   
   // Create shared memory
   catalog_segment = new fixed_managed_mapped_file(boost::interprocess::create_only, shm_path.c_str(), 15 * 1024 * 1024 * 1024UL, (void *) CATALOG_ADDR);
-  fprintf(stdout, "Re-initialize shared memory: iTurboGraph_Catalog_SHM\n");
+  fprintf(stdout, "Re-initialize shared memory: S62_Catalog_SHM\n");
   return true;
 }
 

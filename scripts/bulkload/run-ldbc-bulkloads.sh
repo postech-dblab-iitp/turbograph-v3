@@ -74,8 +74,8 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships:HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv \
         --relationships_backward:HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
     
-    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
-    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
+    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:flush_file_meta;
+    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:analyze;
 
     pkill -f store
     pkill -f catalog_test_catalog_server

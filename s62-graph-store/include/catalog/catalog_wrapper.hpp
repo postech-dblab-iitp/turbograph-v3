@@ -7,7 +7,7 @@
 #include "catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "function/function.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 #include "icecream.hpp"
 
@@ -467,7 +467,7 @@ public:
 
     void ConvertTableOidsIntoRepresentativeOids(
         ClientContext &context, vector<uint64_t> &property_key_ids,
-        vector<idx_t> &table_oids, gpmd::MDProviderTBGPP *provider,
+        vector<idx_t> &table_oids, gpmd::MDProviderS62 *provider,
         vector<idx_t> &representative_table_oids,
         vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,

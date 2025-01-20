@@ -13,8 +13,8 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef TBGPPCACHE_H
-#define TBGPPCACHE_H
+#ifndef S62CACHE_H
+#define S62CACHE_H
 
 // #include "access/tupdesc.h"
 // #include "nodes/bitmapset.h"
@@ -132,4 +132,4 @@ extern void RelationCacheInitializePhase3(void);
 // /* should be used only by relcache.c and postinit.c */
 // extern bool criticalSharedRelcachesBuilt;
 
-#endif   /* TBGPPCACHE_H */
+#endif   /* S62CACHE_H */

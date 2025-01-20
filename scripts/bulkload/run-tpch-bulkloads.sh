@@ -44,8 +44,8 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships:PARTSUPP ${data_dir}/partsupp.tbl \
         --relationships_backward:PARTSUPP ${data_dir}/partsupp.tbl.backward
         
-    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
-    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
+    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:flush_file_meta;
+    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:analyze;
 
     pkill -f store
     pkill -f catalog_test_catalog_server

@@ -74,7 +74,7 @@ bool helper_check_file_exists (const std::string& name) {
 }
 
 TEST_CASE ("Create a vertex partition catalog", "[catalog]") {
-  boost::interprocess::managed_shared_memory catalog_shm(boost::interprocess::open_only, "iTurboGraph_Catalog_SHM");
+  boost::interprocess::managed_shared_memory catalog_shm(boost::interprocess::open_only, "S62_Catalog_SHM");
 
   const_named_it named_beg = catalog_shm.named_begin();
 	const_named_it named_end = catalog_shm.named_end();

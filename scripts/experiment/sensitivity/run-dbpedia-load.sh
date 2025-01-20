@@ -59,7 +59,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
                 # Run query
                 timeout 3600s \
-                    /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --warmup \
+                    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --warmup \
                     >> ${log_file}
 
                 pkill -f store

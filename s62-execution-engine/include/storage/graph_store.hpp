@@ -46,9 +46,9 @@ public:
 
 };
 
-class iTbgppGraphStore: GraphStore {
+class S62GraphStore: GraphStore {
 public:
-	iTbgppGraphStore(ClientContext &client);
+	S62GraphStore(ClientContext &client);
 
 public:
  //! Initialize Scan Operation

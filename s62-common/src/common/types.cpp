@@ -197,7 +197,7 @@ constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 // TODO these are incomplete and should maybe not exist as such
 constexpr const LogicalTypeId LogicalType::TABLE;
 
-// TBGPP-specific
+// S62-specific
 constexpr const LogicalTypeId LogicalType::FORWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::BACKWARD_ADJLIST;
 constexpr const LogicalTypeId LogicalType::ID;
@@ -475,7 +475,7 @@ string LogicalTypeIdToString(LogicalTypeId id) {
 		return "USER";
 	case LogicalTypeId::JSON:
 		return "JSON";
-	// TBGPP!
+	// S62!
 	case LogicalTypeId::ID:
 		return "ID";
 	case LogicalTypeId::FORWARD_ADJLIST:

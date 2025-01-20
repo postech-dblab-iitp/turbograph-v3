@@ -103,10 +103,10 @@ using json = nlohmann::json;
 
 #include "BTNode.h"
 
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 #include "catalog/catalog_wrapper.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "s62dbwrappers.hpp"
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -590,12 +590,12 @@ int main(int argc, char** argv) {
 	}
 
 	// Run planner
-	auto planner = s62::Planner(planner_config, s62::MDProviderType::TBGPP, client.get());
+	auto planner = s62::Planner(planner_config, s62::MDProviderType::S62, client.get());
 	auto binder = kuzu::binder::Binder(client.get());
 	
 	// run queries by query name
 	cstring_uptr input_cmd;
-	string shell_prompt = "TurboGraph-S62 >> ";
+	string shell_prompt = "S62 >> ";
 	string prev_query_str;
 	string query_str;
 
@@ -610,7 +610,7 @@ int main(int argc, char** argv) {
 		}
 	} else {
 		while(true) {
-			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
+			std::cout << "S62 >> "; std::getline(std::cin, query_str, ';');
 			std::cin.ignore();
 			if (query_str.compare(":exit") == 0) {
 				break;

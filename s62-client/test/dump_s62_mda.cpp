@@ -59,9 +59,9 @@
 
 
 #include "catalog/catalog_wrapper.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "s62dbwrappers.hpp"
 
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 #include "naucrates/md/IMDIndex.h"
 
@@ -147,11 +147,11 @@ void* mda_print(void* args) {
 
 
 	IMDProvider* provider;
-	gpmd::MDProviderTBGPP * pv = nullptr;
+	gpmd::MDProviderS62 * pv = nullptr;
 	{
 		CAutoMemoryPool amp;
 		mp = amp.Pmp();
-		pv = new (mp, __FILE__, __LINE__) gpmd::MDProviderTBGPP(mp);
+		pv = new (mp, __FILE__, __LINE__) gpmd::MDProviderS62(mp);
 		// detach safety
 		(void) amp.Detach();
 	}

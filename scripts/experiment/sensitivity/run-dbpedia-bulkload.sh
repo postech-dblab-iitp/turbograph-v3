@@ -3893,8 +3893,8 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --relationships:http://xmlns.com/foaf/0.1/thumbnail ${source_dir}/edges_thumbnail_2712.csv \
                 --relationships_backward:http://xmlns.com/foaf/0.1/thumbnail ${source_dir}/edges_thumbnail_2712.csv.backward &> ${log_file}
                         
-            # /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
-            # /s62/build-release/s62-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
+            # /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:flush_file_meta;
+            # /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query:analyze;
 
             pkill -f store
             pkill -f catalog_test_catalog_server

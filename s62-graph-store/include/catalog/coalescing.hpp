@@ -6,7 +6,7 @@
 #include "main/database.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "mdprovider/MDProviderS62.h"
 
 namespace s62 {
 
@@ -15,7 +15,7 @@ class Coalescing {
     static void do_coalescing(
         ClientContext &context, DatabaseInstance &db,
         vector<uint64_t> &property_key_ids, vector<idx_t> &table_oids,
-        gpmd::MDProviderTBGPP *provider,
+        gpmd::MDProviderS62 *provider,
         vector<idx_t> &representative_table_oids,
         vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,
@@ -177,7 +177,7 @@ class Coalescing {
 
     static void _create_temporal_table_catalog(
         ClientContext &context, DatabaseInstance &db,
-        PartitionCatalogEntry *part_cat, gpmd::MDProviderTBGPP *provider,
+        PartitionCatalogEntry *part_cat, gpmd::MDProviderS62 *provider,
         vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<idx_t> &representative_table_oids, PartitionID part_id,
         idx_t part_oid, vector<uint64_t> &property_key_ids,
