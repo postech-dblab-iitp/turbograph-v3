@@ -13,7 +13,7 @@
 // #include "planner/bound_query_node.hpp"
 // #include "planner/expression.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 // class AggregateFunction;
 
 // class BoundWindowExpression : public Expression {
@@ -62,4 +62,4 @@
 
 // 	unique_ptr<Expression> Copy() override;
 // };
-// } // namespace duckdb
+// } // namespace s62

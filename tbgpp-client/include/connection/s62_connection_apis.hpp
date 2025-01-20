@@ -10,7 +10,7 @@ namespace s62 {
     class Planner;
 }
 
-namespace duckdb {
+namespace s62 {
 
 class DuckDB;
 class ClientContext;

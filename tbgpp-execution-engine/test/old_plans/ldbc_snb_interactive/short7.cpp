@@ -2,7 +2,7 @@
 
 
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* is7_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -23,10 +23,10 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 // scan message
 	Schema sch1;
 	sch1.addNode("m");
-	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); } // verified
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(3); }	// TODO fixme
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(0); }	// TODO fixme
+	s62::Value filter_val; // person key
+	if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(2199029886840); } // verified
+	if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(3); }	// TODO fixme
+	if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(0); }	// TODO fixme
 
 // expand  m->c
 	Schema sch2 = sch1;
@@ -87,12 +87,12 @@ CypherPipelineExecutor* is7_pipe1(QueryPlanSuite& suite) {
 //  (in: _m _c c.c c.cd _p p.id p.fn p.ln _a _r _p1)
 //  (out: c.c c.cd p.id p.fn p.ln bool )
 	Schema sch8;
-	sch8.addColumn("commentContent", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("commentCreationDate", duckdb::LogicalType::BIGINT);
-	sch8.addColumn("replyAuthorId", duckdb::LogicalType::UBIGINT);
-	sch8.addColumn("replyAuthorFirstName", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("replyAuthorLastName", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("replyAuthorKnowsOriginalMessageAuthor", duckdb::LogicalType::BOOLEAN);
+	sch8.addColumn("commentContent", s62::LogicalType::VARCHAR);
+	sch8.addColumn("commentCreationDate", s62::LogicalType::BIGINT);
+	sch8.addColumn("replyAuthorId", s62::LogicalType::UBIGINT);
+	sch8.addColumn("replyAuthorFirstName", s62::LogicalType::VARCHAR);
+	sch8.addColumn("replyAuthorLastName", s62::LogicalType::VARCHAR);
+	sch8.addColumn("replyAuthorKnowsOriginalMessageAuthor", s62::LogicalType::BOOLEAN);
 	vector<unique_ptr<Expression>> proj_exprs;
 	{
 		proj_exprs.push_back( move(make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 2)) );
@@ -148,12 +148,12 @@ CypherPipelineExecutor* is7_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor*
 
 // order by
 	Schema sch8;
-	sch8.addColumn("commentContent", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("commentCreationDate", duckdb::LogicalType::BIGINT);
-	sch8.addColumn("replyAuthorId", duckdb::LogicalType::UBIGINT);
-	sch8.addColumn("replyAuthorFirstName", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("replyAuthorLastName", duckdb::LogicalType::VARCHAR);
-	sch8.addColumn("replyAuthorKnowsOriginalMessageAuthor", duckdb::LogicalType::BOOLEAN);
+	sch8.addColumn("commentContent", s62::LogicalType::VARCHAR);
+	sch8.addColumn("commentCreationDate", s62::LogicalType::BIGINT);
+	sch8.addColumn("replyAuthorId", s62::LogicalType::UBIGINT);
+	sch8.addColumn("replyAuthorFirstName", s62::LogicalType::VARCHAR);
+	sch8.addColumn("replyAuthorLastName", s62::LogicalType::VARCHAR);
+	sch8.addColumn("replyAuthorKnowsOriginalMessageAuthor", s62::LogicalType::BOOLEAN);
 
 	std::vector<CypherPhysicalOperator *> ops;
 	// src

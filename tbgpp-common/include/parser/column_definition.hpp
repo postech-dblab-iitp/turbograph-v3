@@ -15,7 +15,7 @@
 // #include "catalog/catalog_entry/table_column_type.hpp"
 #include "common/case_insensitive_map.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class TableColumnType : uint8_t { STANDARD = 0, GENERATED = 1 };
 
@@ -49,8 +49,8 @@ public:
 	void SetName(const string &name);
 
 	//! compression_type
-	const duckdb::CompressionType &CompressionType() const;
-	void SetCompressionType(duckdb::CompressionType compression_type);
+	const s62::CompressionType &CompressionType() const;
+	void SetCompressionType(s62::CompressionType compression_type);
 
 	//! storage_oid
 	const storage_t &StorageOid() const;
@@ -89,7 +89,7 @@ private:
 	//! The type of the column
 	LogicalType type;
 	//! Compression Type used for this column
-	duckdb::CompressionType compression_type = duckdb::CompressionType::COMPRESSION_AUTO;
+	s62::CompressionType compression_type = s62::CompressionType::COMPRESSION_AUTO;
 	//! The index of the column in the storage of the table
 	storage_t storage_oid;
 	//! The index of the column in the table
@@ -100,4 +100,4 @@ private:
 	unique_ptr<ParsedExpression> generated_expression;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -4,7 +4,7 @@
 #include "common/field_writer.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 WindowExpression::WindowExpression(ExpressionType type, string schema, const string &function_name)
     : ParsedExpression(type, ExpressionClass::WINDOW), schema(move(schema)),
@@ -162,4 +162,4 @@ unique_ptr<ParsedExpression> WindowExpression::Deserialize(ExpressionType type, 
 	return move(expr);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -19,7 +19,7 @@
 #include "parallel/event.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 class DataChunk;
 class PhysicalOperator;
@@ -155,4 +155,4 @@ private:
 	//! The current task in process (if any)
 	unique_ptr<Task> task;
 };
-} // namespace duckdb
+} // namespace s62

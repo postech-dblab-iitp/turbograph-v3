@@ -6,7 +6,7 @@
 #include "function/aggregate/algebraic/covar.hpp"
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 void CovarPopFun::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet covar_pop("covar_pop");
@@ -22,4 +22,4 @@ void CovarSampFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(covar_samp);
 }
 
-} // namespace duckdb
+} // namespace s62

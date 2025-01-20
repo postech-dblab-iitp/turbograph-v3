@@ -1,6 +1,6 @@
 #include "parser/statement/copy_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CopyStatement::CopyStatement() : SQLStatement(StatementType::COPY_STATEMENT), info(make_unique<CopyInfo>()) {
 }
@@ -15,4 +15,4 @@ unique_ptr<SQLStatement> CopyStatement::Copy() const {
 	return unique_ptr<CopyStatement>(new CopyStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -24,7 +24,7 @@
 #include "index/art/node48.hpp"
 #include "index/art/node256.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct IteratorEntry {
 	IteratorEntry() {
 	}
@@ -152,4 +152,4 @@ public:
 	void VerifyExistence(DataChunk &chunk, VerifyExistenceType verify_type, string *err_msg_ptr = NULL);
 };
 
-} // namespace duckdb
+} // namespace s62

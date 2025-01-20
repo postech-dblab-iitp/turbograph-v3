@@ -11,7 +11,7 @@
 #include "function/scalar_function.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ScalarFunctionCatalogEntry;
 
 //! Represents a function call that has been bound to a base function
@@ -41,4 +41,4 @@ public:
 	unique_ptr<Expression> Copy() override;
 	void Verify() const override;
 };
-} // namespace duckdb
+} // namespace s62

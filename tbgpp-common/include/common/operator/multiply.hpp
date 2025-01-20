@@ -11,7 +11,7 @@
 #include "common/types.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct MultiplyOperator {
 	template <class TA, class TB, class TR>
@@ -98,4 +98,4 @@ struct DecimalMultiplyOverflowCheck {
 template <>
 hugeint_t DecimalMultiplyOverflowCheck::Operation(hugeint_t left, hugeint_t right);
 
-} // namespace duckdb
+} // namespace s62

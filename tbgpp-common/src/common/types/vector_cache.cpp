@@ -3,7 +3,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class VectorCacheBuffer : public VectorBuffer {
 public:
@@ -179,4 +179,4 @@ const LogicalType &VectorCache::GetType() const {
 	return vcache.GetType();
 }
 
-} // namespace duckdb
+} // namespace s62

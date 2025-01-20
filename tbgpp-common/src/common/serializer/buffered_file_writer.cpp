@@ -3,7 +3,7 @@
 #include "common/algorithm.hpp"
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 // Remove this when we switch C++17: https://stackoverflow.com/a/53350948
 constexpr uint8_t BufferedFileWriter::DEFAULT_OPEN_FLAGS;
@@ -59,4 +59,4 @@ void BufferedFileWriter::Truncate(int64_t size) {
 	// offset = 0;
 }
 
-} // namespace duckdb
+} // namespace s62

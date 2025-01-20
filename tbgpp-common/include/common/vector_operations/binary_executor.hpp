@@ -14,7 +14,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 struct DefaultNullCheckOperator {
 	template <class LEFT_TYPE, class RIGHT_TYPE>
@@ -507,4 +507,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

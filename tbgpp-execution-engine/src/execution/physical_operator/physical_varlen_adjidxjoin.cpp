@@ -12,7 +12,7 @@
 
 #include "execution/isomorphism_checker.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define CHECK_ISOMORPHISM
 #ifdef CHECK_ISOMORPHISM

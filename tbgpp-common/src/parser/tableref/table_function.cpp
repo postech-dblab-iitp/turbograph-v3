@@ -2,7 +2,7 @@
 #include "common/vector.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 TableFunctionRef::TableFunctionRef() : TableRef(TableReferenceType::TABLE_FUNCTION) {
 }
@@ -43,4 +43,4 @@ unique_ptr<TableRef> TableFunctionRef::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

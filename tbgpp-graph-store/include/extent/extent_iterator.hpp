@@ -16,7 +16,7 @@
 #include <limits>
 #include <tuple>
 
-namespace duckdb {
+namespace s62 {
 
 inline uint64_t& getIdRefFromVectorTemp(Vector& vector, idx_t index) {
 	switch (vector.GetVectorType()) {
@@ -84,14 +84,14 @@ public:
     /* filter pushdown */
     bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &filterValue, vector<idx_t> &output_column_idxs,
-                       vector<duckdb::LogicalType> &scanSchema, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE,
+                       vector<s62::LogicalType> &scanSchema, size_t scan_size = EXEC_ENGINE_VECTOR_SIZE,
                        bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
                        int64_t &filterKeyColIdx, Value &lfilterValue, Value &rfilterValue, bool l_inclusive, bool r_inclusive,
-                       vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
+                       vector<idx_t> &output_column_idxs, vector<s62::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
     bool GetNextExtent(ClientContext &context, DataChunk &output, FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
-                       ExpressionExecutor& executor, vector<idx_t> &output_column_idxs, vector<duckdb::LogicalType> &scanSchema, 
+                       ExpressionExecutor& executor, vector<idx_t> &output_column_idxs, vector<s62::LogicalType> &scanSchema, 
                        size_t scan_size = EXEC_ENGINE_VECTOR_SIZE, bool is_output_chunk_initialized=true);
 
     /* IdSeek */
@@ -148,7 +148,7 @@ private:
     bool getScanRange(size_t scan_size, idx_t idx_in_extent, idx_t& scan_start_offset, idx_t& scan_end_offset);
     bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, Value &filterValue, 
                     size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
-    bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, duckdb::Value &l_filterValue, duckdb::Value &r_filterValue, 
+    bool getScanRange(ClientContext &context, ChunkDefinitionID filter_cdf_id, s62::Value &l_filterValue, s62::Value &r_filterValue, 
                     bool l_inclusive, bool r_inclusive, size_t scan_size, idx_t& scan_start_offset, idx_t& scan_end_offset);
     void selVectorToRowIdxs(SelectionVector& sel, size_t sel_size, vector<idx_t>& row_idxs, idx_t offset);
     void getValidOutputMask(vector<idx_t> &output_column_idxs, vector<bool>& valid_output_mask);
@@ -208,6 +208,6 @@ private:
     IOCache *io_cache;
 };
 
-} // namespace duckdb
+} // namespace s62
 
 #endif

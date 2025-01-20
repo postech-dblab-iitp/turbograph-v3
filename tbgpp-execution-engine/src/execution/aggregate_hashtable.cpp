@@ -14,7 +14,7 @@
 
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 using ValidityBytes = RowLayout::ValidityBytes;
 
@@ -691,4 +691,4 @@ void GroupedAggregateHashTable::Finalize() {
 	is_finalized = true;
 }
 
-} // namespace duckdb
+} // namespace s62

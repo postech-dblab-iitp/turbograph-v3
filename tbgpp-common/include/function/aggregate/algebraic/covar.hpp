@@ -10,7 +10,7 @@
 
 #include "function/aggregate_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CovarState {
 	uint64_t count;
@@ -95,4 +95,4 @@ struct CovarSampOperation : public CovarOperation {
 		}
 	}
 };
-} // namespace duckdb
+} // namespace s62

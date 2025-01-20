@@ -12,7 +12,7 @@
 #include "common/exception.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 /**
  * String Utility Functions
  * Note that these are not the most efficient implementations (i.e., they copy
@@ -139,4 +139,4 @@ public:
 	DUCKDB_API static bool CILessThan(const string &l1, const string &l2);
 };
 
-} // namespace duckdb
+} // namespace s62

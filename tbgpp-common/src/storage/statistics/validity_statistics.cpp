@@ -3,7 +3,7 @@
 #include "common/field_writer.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ValidityStatistics::ValidityStatistics(bool has_null, bool has_no_null)
     : BaseStatistics(LogicalType(LogicalTypeId::VALIDITY)), has_null(has_null), has_no_null(has_no_null) {
@@ -83,4 +83,4 @@ string ValidityStatistics::ToString() const {
 	return has_null ? "[Has Null: true]" : "[Has Null: false]";
 }
 
-} // namespace duckdb
+} // namespace s62

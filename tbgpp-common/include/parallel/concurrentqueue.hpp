@@ -4,7 +4,7 @@
 
 // TODO disabled concurrentqueue implementation.
 
-namespace duckdb_moodycamel {
+namespace s62_moodycamel {
 
 template <typename T>
 class ConcurrentQueue;
@@ -58,4 +58,4 @@ public:
 	}
 };
 
-} // namespace duckdb_moodycamel
+} // namespace s62_moodycamel

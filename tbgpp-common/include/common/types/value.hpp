@@ -13,7 +13,7 @@
 #include "common/types.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Deserializer;
 class Serializer;
@@ -537,4 +537,4 @@ DUCKDB_API bool Value::IsFinite(float input);
 template <>
 DUCKDB_API bool Value::IsFinite(double input);
 
-} // namespace duckdb
+} // namespace s62

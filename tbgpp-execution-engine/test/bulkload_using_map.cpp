@@ -60,7 +60,7 @@ using json = nlohmann::json;
 
 #define BULKLOAD_DEBUG_PRINT
 
-using namespace duckdb;
+using namespace s62;
 
 vector<std::pair<string, string>> json_files;
 vector<JsonFileType> json_file_types;
@@ -260,7 +260,7 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	}
 
 	// Create Adjacency Index Catalog
-	duckdb::IndexType index_type = edge_direction_type == LogicalType::FORWARD_ADJLIST ?
+	s62::IndexType index_type = edge_direction_type == LogicalType::FORWARD_ADJLIST ?
 		IndexType::FORWARD_CSR : IndexType::BACKWARD_CSR;
 	string adj_idx_name = edge_direction_type == LogicalType::FORWARD_ADJLIST ?
 		edge_type + "_fwd" : edge_type + "_bwd";

@@ -25,7 +25,7 @@
 
 using namespace turbograph_simdcsv;
 
-namespace duckdb {
+namespace s62 {
 
 struct ParsedCSV {
   uint64_t n_indexes{0};
@@ -925,4 +925,4 @@ private:
 	};
 };
 
-} // namespace duckdb
+} // namespace s62

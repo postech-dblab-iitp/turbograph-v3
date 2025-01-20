@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "common/vector_size.hpp"
 
-namespace duckdb {
+namespace s62 {
 class VectorBuffer;
 
 struct SelectionData {
@@ -128,4 +128,4 @@ private:
 	SelectionVector vec;
 };
 
-} // namespace duckdb
+} // namespace s62

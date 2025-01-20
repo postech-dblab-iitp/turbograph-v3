@@ -2,7 +2,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_case_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CaseExpressionState : public ExpressionState {
 	CaseExpressionState(const Expression &expr, ExpressionExecutorState &root)
@@ -215,4 +215,4 @@ void ExpressionExecutor::FillSwitch(Vector &vector, Vector &result, const Select
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

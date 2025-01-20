@@ -2,7 +2,7 @@
 #include <iostream>
 #include "connection/s62_connection_server.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 S62ConnectionServer* s62_connection_server;
 

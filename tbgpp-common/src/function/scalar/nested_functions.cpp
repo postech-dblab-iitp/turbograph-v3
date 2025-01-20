@@ -1,6 +1,6 @@
 #include "function/scalar/nested_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterNestedFunctions() {
 	// Register<ArraySliceFun>();
@@ -21,4 +21,4 @@ void BuiltinFunctions::RegisterNestedFunctions() {
 	// Register<CardinalityFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct string_t;
 
@@ -58,4 +58,4 @@ hash_t Hash(interval_t val);
 hash_t Hash(const char *val, size_t size);
 hash_t Hash(uint8_t *val, size_t size);
 
-} // namespace duckdb
+} // namespace s62

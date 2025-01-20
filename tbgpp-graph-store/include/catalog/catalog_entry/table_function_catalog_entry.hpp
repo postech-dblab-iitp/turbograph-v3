@@ -12,7 +12,7 @@
 #include "function/table_function.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Catalog;
 class Constraint;
@@ -27,5 +27,5 @@ public:
 	//! The table function
 	vector<TableFunction> functions;
 };
-} // namespace duckdb
+} // namespace s62
 */

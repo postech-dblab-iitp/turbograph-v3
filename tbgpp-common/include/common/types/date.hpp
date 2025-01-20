@@ -13,7 +13,7 @@
 #include "common/winapi.hpp"
 #include "common/types/string_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Date class is a static class that holds helper functions for the Date type.
 class Date {
@@ -123,4 +123,4 @@ public:
 private:
 	static void ExtractYearOffset(int32_t &n, int32_t &year, int32_t &year_offset);
 };
-} // namespace duckdb
+} // namespace s62

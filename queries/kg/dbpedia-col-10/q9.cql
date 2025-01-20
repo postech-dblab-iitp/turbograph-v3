@@ -1,4 +1,0 @@
-MATCH (v1)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v2)
-WHERE v1.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL
-AND REGEXP_MATCHES(v1.`http://www.w3.org/2000/01/rdf-schema#label`, '.*pes.*')
-RETURN DISTINCT v2.uri AS r1, v2.`http://www.georss.org/georss/point`, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#long`, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#lat`, v1.`http://dbpedia.org/property/writers`, v1.`http://dbpedia.org/property/channel`, v1.`http://dbpedia.org/property/distanceKm`, v1.`http://dbpedia.org/property/editing`, v1.`http://dbpedia.org/ontology/completionDate`, v1.`http://dbpedia.org/property/sourceElevation`, v1.`http://dbpedia.org/ontology/mascot`, v1.`http://dbpedia.org/property/logo`, v1.`http://dbpedia.org/property/commands`, v1.`http://dbpedia.org/property/museum`

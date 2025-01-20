@@ -11,6 +11,6 @@
 #include <string>
 #include <sstream>
 
-namespace duckdb {
+namespace s62 {
 using std::string;
 }

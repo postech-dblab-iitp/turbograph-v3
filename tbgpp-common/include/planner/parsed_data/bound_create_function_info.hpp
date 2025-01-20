@@ -10,7 +10,7 @@
 
 #include "parser/parsed_data/create_macro_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class CatalogEntry;
 
 struct BoundCreateFunctionInfo {
@@ -27,4 +27,4 @@ struct BoundCreateFunctionInfo {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

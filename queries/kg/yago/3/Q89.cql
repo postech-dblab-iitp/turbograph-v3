@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/dateCreated` IS NOT NULL RETURN v0.`http://schema.org/mainEntityOfPage` AS `v0_mainEntityOfPage`, COUNT(v0.`http://schema.org/mainEntityOfPage`) AS `v0_mainEntityOfPage_count` ORDER BY `v0_mainEntityOfPage`

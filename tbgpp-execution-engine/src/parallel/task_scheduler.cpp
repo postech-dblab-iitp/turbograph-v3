@@ -15,7 +15,7 @@
 #include <queue>
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 struct SchedulerThread {
 #ifndef DUCKDB_NO_THREADS
@@ -27,8 +27,8 @@ struct SchedulerThread {
 };
 
 #ifndef DUCKDB_NO_THREADS
-typedef duckdb_moodycamel::ConcurrentQueue<unique_ptr<Task>> concurrent_queue_t;
-typedef duckdb_moodycamel::LightweightSemaphore lightweight_semaphore_t;
+typedef s62_moodycamel::ConcurrentQueue<unique_ptr<Task>> concurrent_queue_t;
+typedef s62_moodycamel::LightweightSemaphore lightweight_semaphore_t;
 
 struct ConcurrentQueue {
 	concurrent_queue_t q;
@@ -42,7 +42,7 @@ struct QueueProducerToken {
 	explicit QueueProducerToken(ConcurrentQueue &queue) : queue_token(queue.q) {
 	}
 
-	duckdb_moodycamel::ProducerToken queue_token;
+	s62_moodycamel::ProducerToken queue_token;
 };
 
 void ConcurrentQueue::Enqueue(ProducerToken &token, unique_ptr<Task> task) {
@@ -201,4 +201,4 @@ void TaskScheduler::SetThreadsInternal(int32_t n) {
 #endif
 }
 
-} // namespace duckdb
+} // namespace s62

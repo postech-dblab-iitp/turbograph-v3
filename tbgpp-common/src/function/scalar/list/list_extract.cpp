@@ -10,7 +10,7 @@
 // #include "storage/statistics/list_statistics.hpp"
 // #include "storage/statistics/validity_statistics.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // template <class T, bool HEAP_REF = false, bool VALIDITY_ONLY = false>
 // void ListExtractTemplate(idx_t count, VectorData &list_data, VectorData &offsets_data, Vector &child_vector,
@@ -250,4 +250,4 @@
 // 	// set.AddFunction(array_extract);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

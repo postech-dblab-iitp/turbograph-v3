@@ -9,14 +9,14 @@
 #include "common/types/null_value.hpp"
 #include "common/value_operations/value_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct HashOp {
 	static const hash_t NULL_HASH = 0xbf58476d1ce4e5b9;
 
 	template <class T>
 	static inline hash_t Operation(T input, bool is_null) {
-		return is_null ? NULL_HASH : duckdb::Hash<T>(input);
+		return is_null ? NULL_HASH : s62::Hash<T>(input);
 	}
 };
 
@@ -43,7 +43,7 @@ static inline void TightLoopHash(T *__restrict ldata, hash_t *__restrict result_
 			for (idx_t i = 0; i < count; i++) {
 				auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 				auto idx = sel_vector->get_index(ridx);
-				result_data[ridx] = duckdb::Hash<T>(ldata[idx]);
+				result_data[ridx] = s62::Hash<T>(ldata[idx]);
 			}
 		}
 	}
@@ -267,7 +267,7 @@ static inline void TightLoopCombineHashConstant(T *__restrict ldata, hash_t cons
 			for (idx_t i = 0; i < count; i++) {
 				auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 				auto idx = sel_vector->get_index(ridx);
-				auto other_hash = duckdb::Hash<T>(ldata[idx]);
+				auto other_hash = s62::Hash<T>(ldata[idx]);
 				hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
 			}
 		}
@@ -295,7 +295,7 @@ static inline void TightLoopCombineHash(T *__restrict ldata, hash_t *__restrict 
 			for (idx_t i = 0; i < count; i++) {
 				auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 				auto idx = sel_vector->get_index(ridx);
-				auto other_hash = duckdb::Hash<T>(ldata[idx]);
+				auto other_hash = s62::Hash<T>(ldata[idx]);
 				hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 			}
 		}
@@ -393,4 +393,4 @@ void VectorOperations::CombineHash(Vector &hashes, Vector &input, const Selectio
 	CombineHashTypeSwitch<true>(hashes, input, &rsel, count);
 }
 
-} // namespace duckdb
+} // namespace s62

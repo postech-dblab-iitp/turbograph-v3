@@ -13,7 +13,7 @@
 // #include "planner/bound_query_node.hpp"
 // #include "planner/expression.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // class BoundSubqueryExpression : public Expression {
 // public:
@@ -58,4 +58,4 @@
 
 // 	bool PropagatesNullValues() const override;
 // };
-// } // namespace duckdb
+// } // namespace s62

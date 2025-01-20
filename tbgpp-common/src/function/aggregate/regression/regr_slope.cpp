@@ -10,7 +10,7 @@
 #include "function/function_set.hpp"
 #include "function/aggregate/regression_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void RegrSlopeFun::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet fun("regr_slope");
@@ -19,4 +19,4 @@ void RegrSlopeFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(fun);
 }
 
-} // namespace duckdb
+} // namespace s62

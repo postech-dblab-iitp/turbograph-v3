@@ -170,10 +170,10 @@ using namespace gpopt;
 
 namespace s62 {
 
-typedef vector<duckdb::OperatorType> PipelineOperatorTypes;
+typedef vector<s62::OperatorType> PipelineOperatorTypes;
 typedef vector<vector<uint64_t>> PipelineNumSchemas;
-typedef vector<vector<duckdb::Schema>> PipelineSchemas;
-typedef vector<duckdb::Schema> PipelineUnionSchema;
+typedef vector<vector<s62::Schema>> PipelineSchemas;
+typedef vector<s62::Schema> PipelineUnionSchema;
 
 enum class MDProviderType {
 	MEMORY,
@@ -231,11 +231,11 @@ public:
 class Planner {
 
 public:
-	Planner(PlannerConfig config, MDProviderType mdp_type, duckdb::ClientContext *context, string memory_mdp_path = "");	// TODO change client signature to reference
+	Planner(PlannerConfig config, MDProviderType mdp_type, s62::ClientContext *context, string memory_mdp_path = "");	// TODO change client signature to reference
 	~Planner();
 
 	void execute(BoundStatement *bound_statement);
-	vector<duckdb::CypherPipelineExecutor *> genPipelineExecutors();
+	vector<s62::CypherPipelineExecutor *> genPipelineExecutors();
 	vector<string> getQueryOutputColNames();
 	vector<OID> getQueryOutputOIDs();
 
@@ -302,22 +302,22 @@ private:
 	CExpression *lExprScalarFilterExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarIdInCollExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
 	CExpression *lExprScalarShortestPathExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type);
-	INT lGetTypeModFromType(duckdb::LogicalType type);
+	INT lGetTypeModFromType(s62::LogicalType type);
 
 	// scalar expression duckdb
-	unique_ptr<duckdb::Expression> lExprScalarExpressionDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarBoolOpDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarComparisonExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarPropertyExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarLiteralExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarAggFuncExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarFuncExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarCaseElseExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarExistentialSubqueryExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
-	unique_ptr<duckdb::Expression> lExprScalarAllShortestPathExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarExpressionDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarBoolOpDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarComparisonExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarPropertyExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarLiteralExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarAggFuncExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarFuncExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarCaseElseExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarExistentialSubqueryExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarCastExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarParamExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarShortestPathExprDuckDB(kuzu::binder::Expression *expression);
+	unique_ptr<s62::Expression> lExprScalarAllShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
     LogicalPlan *lPlanNodeOrRelExprWithoutDSI(
@@ -413,65 +413,65 @@ private:
 	/* Generating orca physical plan */
 	void pGenPhysicalPlan(CExpression *orca_plan_root);
 	bool pValidatePipelines();
-	duckdb::CypherPhysicalOperatorGroups *pTraverseTransformPhysicalPlan(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTraverseTransformPhysicalPlan(CExpression *plan_expr);
 	
 	// scan
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopTableScan(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopNormalTableScan(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopDSITableScan(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopTableScan(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopNormalTableScan(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopDSITableScan(CExpression *plan_expr);
 
 	// union all
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopUnionAll(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopUnionAll(CExpression *plan_expr);
 
 	// pipelined ops
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopProjectionColumnar(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalFilter(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopProjectionColumnar(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalFilter(CExpression *plan_expr);
 
 	// joins
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression *plan_expr, bool is_left_outer);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
-	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, duckdb::CypherPhysicalOperatorGroups *result);
-	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, duckdb::CypherPhysicalOperatorGroups *result);
-	void pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(CExpression *plan_expr, duckdb::CypherPhysicalOperatorGroups *result);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(CExpression *plan_expr, bool is_left_outer);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeek(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInner(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalInnerNLJoinToCartesianProduct(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalNLJoinToBlockwiseNLJoin(CExpression *plan_expr, bool is_correlated = false);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalHashJoinToHashJoin(CExpression* plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopPhysicalMergeJoinToMergeJoin(CExpression* plan_expr);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithSortOrder(CExpression *plan_expr, s62::CypherPhysicalOperatorGroups *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToIdSeekForUnionAllInnerWithoutSortOrder(CExpression *plan_expr, s62::CypherPhysicalOperatorGroups *result);
+	void pTransformEopPhysicalInnerIndexNLJoinToProjectionForUnionAllInner(CExpression *plan_expr, s62::CypherPhysicalOperatorGroups *result);
 
 	// limit, sort
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopLimit(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopSort(CExpression *plan_expr);
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopTopNSort(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopLimit(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopSort(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopTopNSort(CExpression *plan_expr);
 
 	// shortestPath
-	duckdb::CypherPhysicalOperatorGroups* pTransformEopShortestPath(CExpression* plan_expr);
-	duckdb::CypherPhysicalOperatorGroups* pTransformEopAllShortestPath(CExpression* plan_expr);
+	s62::CypherPhysicalOperatorGroups* pTransformEopShortestPath(CExpression* plan_expr);
+	s62::CypherPhysicalOperatorGroups* pTransformEopAllShortestPath(CExpression* plan_expr);
 
 	// aggregations
-	duckdb::CypherPhysicalOperatorGroups *pTransformEopAgg(CExpression *plan_expr);
+	s62::CypherPhysicalOperatorGroups *pTransformEopAgg(CExpression *plan_expr);
 
 	// scalar expression
-	unique_ptr<duckdb::Expression> pTransformScalarExpr(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, ULONG child_index);
-	unique_ptr<duckdb::Expression> pTransformScalarConst(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarCmp(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarBoolOp(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, duckdb::LogicalType child_ref_type, int child_ref_idx, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarFunc(CExpression * scalar_expr, vector<unique_ptr<duckdb::Expression>>& child);
-	unique_ptr<duckdb::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pTransformScalarNullTest(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
-	unique_ptr<duckdb::Expression> pGenScalarCast(unique_ptr<duckdb::Expression> orig_expr, duckdb::LogicalType target_type);
+	unique_ptr<s62::Expression> pTransformScalarExpr(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarIdent(CExpression *scalar_expr, CColRefArray *child_cols, ULONG child_index);
+	unique_ptr<s62::Expression> pTransformScalarConst(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarCmp(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarBoolOp(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarAggFunc(CExpression *scalar_expr, CColRefArray *child_cols, s62::LogicalType child_ref_type, int child_ref_idx, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarFunc(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarFunc(CExpression * scalar_expr, vector<unique_ptr<s62::Expression>>& child);
+	unique_ptr<s62::Expression> pTransformScalarSwitch(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pTransformScalarNullTest(CExpression *scalar_expr, CColRefArray *child_cols, CColRefArray *rhs_child_cols = nullptr);
+	unique_ptr<s62::Expression> pGenScalarCast(unique_ptr<s62::Expression> orig_expr, s62::LogicalType target_type);
 	void pGetAllScalarIdents(CExpression * scalar_expr, vector<uint32_t> &sccmp_colids);
-	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<duckdb::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
-	void pShiftFilterPredInnerColumnIndices(unique_ptr<duckdb::Expression> &expr, size_t outer_size);
+	void pConvertLocalFilterExprToUnionAllFilterExpr(unique_ptr<s62::Expression> &expr, CColRefArray* cols, vector<ULONG> unionall_output_original_col_ids);
+	void pShiftFilterPredInnerColumnIndices(unique_ptr<s62::Expression> &expr, size_t outer_size);
 	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefArray *inner_cols, CColRefArray *output_cols, vector<ULONG> &inner_cols_idx);
 	void pGetFilterOnlyInnerColsIdx(CExpression *filter_expr, CColRefSet *inner_cols, CColRefSet *output_cols, vector<const CColRef *> &filter_only_inner_cols);
 
@@ -485,32 +485,32 @@ private:
 	
 	// helper functions
 	void pGenerateScanMapping(OID table_oid, CColRefArray *columns, vector<uint64_t>& out_mapping);
-	void pGenerateTypes(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
+	void pGenerateTypes(CColRefArray *columns, vector<s62::LogicalType>& out_types);
 	void pGenerateColumnNames(CColRefArray *columns, vector<string>& out_col_names);
 	uint64_t pGetColIdxFromTable(OID table_oid, const CColRef *target_col);
-	void pGenerateSchemaFlowGraph(duckdb::CypherPhysicalOperatorGroups &final_pipeline_ops);
+	void pGenerateSchemaFlowGraph(s62::CypherPhysicalOperatorGroups &final_pipeline_ops);
 	void pClearSchemaFlowGraph();
 	void pInitializeSchemaFlowGraph();
-	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
-		vector<duckdb::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
-	void pGenerateMappingInfo(vector<duckdb::idx_t> &scan_cols_id, duckdb::PropertyKeyID_vector *key_ids, vector<duckdb::LogicalType> &global_types,
-		vector<duckdb::LogicalType> &local_types, vector<uint32_t>& union_inner_col_map, vector<uint32_t>& inner_col_map,
+	void pGenerateMappingInfo(vector<s62::idx_t> &scan_cols_id, s62::PropertyKeyID_vector *key_ids, vector<s62::LogicalType> &global_types,
+		vector<s62::LogicalType> &local_types, vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping);
+	void pGenerateMappingInfo(vector<s62::idx_t> &scan_cols_id, s62::PropertyKeyID_vector *key_ids, vector<s62::LogicalType> &global_types,
+		vector<s62::LogicalType> &local_types, vector<uint32_t>& union_inner_col_map, vector<uint32_t>& inner_col_map,
 		vector<uint64_t> &projection_mapping, vector<uint64_t> &scan_projection_mapping, bool load_physical_id_col);
-	void pBuildSchemaFlowGraphForSingleSchemaScan(duckdb::Schema &output_schema);
-	void pBuildSchemaFlowGraphForMultiSchemaScan(duckdb::Schema &global_schema, vector<duckdb::Schema>& local_schemas);
-	void pBuildSchemaFlowGraphForUnaryOperator(duckdb::Schema &output_schema);
-	void pBuildSchemaFlowGraphForBinaryOperator(duckdb::Schema &output_schema, size_t num_rhs_schemas);
+	void pBuildSchemaFlowGraphForSingleSchemaScan(s62::Schema &output_schema);
+	void pBuildSchemaFlowGraphForMultiSchemaScan(s62::Schema &global_schema, vector<s62::Schema>& local_schemas);
+	void pBuildSchemaFlowGraphForUnaryOperator(s62::Schema &output_schema);
+	void pBuildSchemaFlowGraphForBinaryOperator(s62::Schema &output_schema, size_t num_rhs_schemas);
 	OID pGetTableOidFromScanExpr(CExpression *scan_expr);
 
 	void pConstructNodeScanParams(CExpression *projection_expr, vector<uint64_t>& oids, 
 								vector<vector<uint64_t>>& projection_mapping, vector<vector<uint64_t>>& scan_projection_mapping,
-								vector<duckdb::LogicalType>& global_types, vector<duckdb::Schema>& local_schemas);
+								vector<s62::LogicalType>& global_types, vector<s62::Schema>& local_schemas);
 	bool pConstructColumnInfosRegardingFilter(
 		CExpression *projection_expr, vector<ULONG>& output_original_colref_ids,
-		vector<duckdb::idx_t>& non_filter_only_column_idxs
+		vector<s62::idx_t>& non_filter_only_column_idxs
 	);
 	void pConstructFilterColPosVals(
-		CExpression *projection_expr, vector<int64_t> &pred_attr_poss, vector<duckdb::Value>& literal_vals
+		CExpression *projection_expr, vector<int64_t> &pred_attr_poss, vector<s62::Value>& literal_vals
 	);
 
 	inline bool pIsPhysicalIdCol(CColRefTable *col) {
@@ -521,69 +521,69 @@ private:
 		return expr->Pop()->Eopid() == COperator::EOperatorId::EopScalarBoolOp;
 	}
 
-	bool pFindOperandsColIdxs(CExpression *expr, CColRefArray *cols, duckdb::idx_t &out_idx);
+	bool pFindOperandsColIdxs(CExpression *expr, CColRefArray *cols, s62::idx_t &out_idx);
 
 	inline string pGetColNameFromColRef(const CColRef *column) {
 		std::wstring name_ws(column->Name().Pstr()->GetBuffer());
 		string name(name_ws.begin(), name_ws.end());
 		return name;
 	}
-	inline duckdb::LogicalType pConvertTypeOidToLogicalType(OID oid, INT type_mod) {
+	inline s62::LogicalType pConvertTypeOidToLogicalType(OID oid, INT type_mod) {
 		auto type_id = pConvertTypeOidToLogicalTypeId(oid);
-		if (type_id == duckdb::LogicalTypeId::DECIMAL) {
+		if (type_id == s62::LogicalTypeId::DECIMAL) {
 			if (type_mod == 0 || type_mod == -1) {
-				return duckdb::LogicalType::DECIMAL(12, 2);
+				return s62::LogicalType::DECIMAL(12, 2);
 			} 
 			else {
 				uint8_t width = (uint8_t)(type_mod >> 8);
 				uint8_t scale = (uint8_t)(type_mod & 0xFF);
-				return duckdb::LogicalType::DECIMAL(width, scale);
+				return s62::LogicalType::DECIMAL(width, scale);
 			}
 		}
-		else if (type_id == duckdb::LogicalTypeId::LIST) {
+		else if (type_id == s62::LogicalTypeId::LIST) {
 			if (type_mod == -1) {
-				return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
+				return s62::LogicalType::LIST(s62::LogicalType::UBIGINT);
 			}
 			INT child_type_oid = (type_mod & 0xFF) + LOGICAL_TYPE_BASE_ID;
 			INT child_type_mod = (type_mod >> 8);
-			return duckdb::LogicalType::LIST(pConvertTypeOidToLogicalType((OID)child_type_oid, child_type_mod));
+			return s62::LogicalType::LIST(pConvertTypeOidToLogicalType((OID)child_type_oid, child_type_mod));
 		}
-		else if (type_id == duckdb::LogicalTypeId::PATH) {
-			return duckdb::LogicalType::LIST(duckdb::LogicalType::UBIGINT);
+		else if (type_id == s62::LogicalTypeId::PATH) {
+			return s62::LogicalType::LIST(s62::LogicalType::UBIGINT);
 		}
-		return duckdb::LogicalType(type_id);
+		return s62::LogicalType(type_id);
 	}
-	inline duckdb::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
-		return (duckdb::LogicalTypeId) static_cast<std::underlying_type_t<duckdb::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+	inline s62::LogicalTypeId pConvertTypeOidToLogicalTypeId(OID oid) {
+		return (s62::LogicalTypeId) static_cast<std::underlying_type_t<s62::LogicalTypeId>>((oid - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 	}
-	inline duckdb::LogicalType pConvertKuzuTypeToLogicalType(DataType type) {
+	inline s62::LogicalType pConvertKuzuTypeToLogicalType(DataType type) {
 		switch (type.typeID) {
 		case DataTypeID::PATH:
-			return duckdb::LogicalType::PATH(duckdb::LogicalType::UBIGINT);
+			return s62::LogicalType::PATH(s62::LogicalType::UBIGINT);
 		case DataTypeID::LIST:
 			D_ASSERT(type.childType != nullptr);
-			return duckdb::LogicalType::LIST(pConvertKuzuTypeToLogicalType(*type.childType));
+			return s62::LogicalType::LIST(pConvertKuzuTypeToLogicalType(*type.childType));
 		default:
-			return duckdb::LogicalType((duckdb::LogicalTypeId)type.typeID);
+			return s62::LogicalType((s62::LogicalTypeId)type.typeID);
 		}
 	}
-	duckdb::CypherPhysicalOperatorGroups *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, duckdb::CypherPhysicalOperator *op, duckdb::Schema& output_schema);
-	duckdb::LogicalType pGetColumnsDuckDBType(const CColRef *column);
-	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types);
-	void pGetColumnsDuckDBType(CColRefArray *columns, vector<duckdb::LogicalType>& out_types, vector<duckdb::idx_t>& col_prop_ids);
-	void pGetProjectionExprs(vector<duckdb::LogicalType> output_types, vector<duckdb::idx_t>& ref_idxs, vector<unique_ptr<duckdb::Expression>>& out_exprs);
-	void pRemoveColumnsFromSchemas(vector<duckdb::Schema>& in_schemas, vector<duckdb::idx_t>& ref_idxs, vector<duckdb::Schema>& out_schemas);
+	s62::CypherPhysicalOperatorGroups *pBuildSchemaflowGraphForBinaryJoin(CExpression *plan_expr, s62::CypherPhysicalOperator *op, s62::Schema& output_schema);
+	s62::LogicalType pGetColumnsDuckDBType(const CColRef *column);
+	void pGetColumnsDuckDBType(CColRefArray *columns, vector<s62::LogicalType>& out_types);
+	void pGetColumnsDuckDBType(CColRefArray *columns, vector<s62::LogicalType>& out_types, vector<s62::idx_t>& col_prop_ids);
+	void pGetProjectionExprs(vector<s62::LogicalType> output_types, vector<s62::idx_t>& ref_idxs, vector<unique_ptr<s62::Expression>>& out_exprs);
+	void pRemoveColumnsFromSchemas(vector<s62::Schema>& in_schemas, vector<s62::idx_t>& ref_idxs, vector<s62::Schema>& out_schemas);
 	bool pIsColEdgeProperty(const CColRef* colref);
-	void pGenerateCartesianProductSchema(vector<duckdb::Schema>& lhs_schemas, vector<duckdb::Schema>& rhs_schemas, vector<duckdb::Schema>& out_schemas);
+	void pGenerateCartesianProductSchema(vector<s62::Schema>& lhs_schemas, vector<s62::Schema>& rhs_schemas, vector<s62::Schema>& out_schemas);
 	bool pIsJoinRhsOutputPhysicalIdOnly(CExpression *expr);
 	bool pCmpColName(const CColRef *colref, const WCHAR *col_name);
 
 	// scalar helper functions
-	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<duckdb::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
-	static duckdb::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
-	static duckdb::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type, bool contains_null = false);
-	static duckdb::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
-	static duckdb::JoinType pTranslateJoinType(COperator *op);
+	void pTranslatePredicateToJoinCondition(CExpression* pred, vector<s62::JoinCondition>& out_conds, CColRefArray* lhs_cols, CColRefArray* rhs_cols);
+	static s62::OrderByNullType pTranslateNullType(COrderSpec::ENullTreatment ent);
+	static s62::ExpressionType pTranslateCmpType(IMDType::ECmpType cmp_type, bool contains_null = false);
+	static s62::ExpressionType pTranslateBoolOpType(CScalarBoolOp::EBoolOperator op_type);
+	static s62::JoinType pTranslateJoinType(COperator *op);
 	static CColRef *pGetColRefFromScalarIdent(CExpression *ident_expr);
 	static bool pIsCmpTypeRange(IMDType::ECmpType cmp_type);
 	static bool pIsRangeCmpTypeOpposite(IMDType::ECmpType cmp_type, IMDType::ECmpType second_cmp_type);
@@ -608,8 +608,8 @@ private:
 	static INT pGetTypeModFromScalarSwitch(CExpression *switch_expr);
 
 	// Attr Value Get
-	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
-	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, IMDId *mdid, gpos::ULONG &attr_pos, duckdb::Value &attr_value);
+	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, gpos::ULONG &attr_pos, s62::Value &attr_value);
+	void pGetFilterAttrPosAndValue(CExpression *filter_pred_expr, IMDId *mdid, gpos::ULONG &attr_pos, s62::Value &attr_value);
 
 	// AdjIdxJoin Helpers
 	bool pIsComplexPred(CExpression *pred_expr);
@@ -619,35 +619,35 @@ private:
 	bool pIsEdgePropertyInFilter(CExpression* plan_expr);
 	bool pIsPropertyInCols(CColRefArray *cols);
 	bool pIsIDColInCols(CColRefArray *cols);
-	duckdb::idx_t pGetColIndexInPred(CExpression *pred, CColRefArray *colrefs);
-	void pGetDuckDBTypesFromColRefs(CColRefArray *colrefs, vector<duckdb::LogicalType> &out_types);
+	s62::idx_t pGetColIndexInPred(CExpression *pred, CColRefArray *colrefs);
+	void pGetDuckDBTypesFromColRefs(CColRefArray *colrefs, vector<s62::LogicalType> &out_types);
 	void pGetObjetIdsForColRefs(CColRefArray *cols, vector<uint64_t> &out_oids);
-	void pPushCartesianProductSchema(duckdb::Schema& out_schema, vector<duckdb::LogicalType> &rhs_types);
+	void pPushCartesianProductSchema(s62::Schema& out_schema, vector<s62::LogicalType> &rhs_types);
 	void pConstructColMapping(CColRefArray *in_cols, CColRefArray *out_cols, vector<uint32_t> &out_mapping);
 	void pAppendFilterOnlyCols(CExpression *filter_expr, CColRefArray *input_cols, CColRefArray *output_cols, CColRefArray* result_cols);
 	void pSeperatePropertyNonPropertyCols(CColRefSet *input_cols, CColRefSet *property_cols, CColRefSet* non_property_cols);
-	void pGetFilterDuckDBExprs(CExpression *filter_expr, CColRefArray *outer_cols, CColRefArray *inner_cols, size_t index_shifting_size, vector<unique_ptr<duckdb::Expression>> &out_exprs);
-	void pGetProjectionExprsWithJoinCond(CExpression *scalar_cmp_expr, CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
-	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<duckdb::LogicalType> output_types, vector<unique_ptr<duckdb::Expression>> &out_exprs);
+	void pGetFilterDuckDBExprs(CExpression *filter_expr, CColRefArray *outer_cols, CColRefArray *inner_cols, size_t index_shifting_size, vector<unique_ptr<s62::Expression>> &out_exprs);
+	void pGetProjectionExprsWithJoinCond(CExpression *scalar_cmp_expr, CColRefArray *input_cols, CColRefArray *output_cols, vector<s62::LogicalType> output_types, vector<unique_ptr<s62::Expression>> &out_exprs);
+	void pGetProjectionExprs(CColRefArray *input_cols, CColRefArray *output_cols, vector<s62::LogicalType> output_types, vector<unique_ptr<s62::Expression>> &out_exprs);
 	CColRef* pGetIDColInCols(CColRefArray *cols);
 	size_t pGetNumOuterSchemas();
 	bool pIsAdjIdxJoinInto(CExpression *scalar_expr, CColRefSet *outer_cols, CColRefSet *inner_cols, CExpression *&adjidxjoin_into_expr);
 	CExpression *reBuildFilterExpr(CExpression *filter_expr, CExpression *adjidxjoin_into_expr);
 	CExpression *recursiveBuildFilterExpr(CExpression *scalar_expr, CExpression *adjidxjoin_into_expr);
-	void pGetIdentIndices(unique_ptr<duckdb::Expression> &expr, vector<duckdb::idx_t> &out_idxs);
-	duckdb::AdjIdxIdIdxs pGetAdjIdxIdIdxs(CColRefArray *inner_cols, IMDIndex::EmdindexType index_type);
+	void pGetIdentIndices(unique_ptr<s62::Expression> &expr, vector<s62::idx_t> &out_idxs);
+	s62::AdjIdxIdIdxs pGetAdjIdxIdIdxs(CColRefArray *inner_cols, IMDIndex::EmdindexType index_type);
 
 	// Hash Aggregate Helpers
 	void pUpdateProjAggExprs(CExpression* pexprScalarExpr, 
-								vector<unique_ptr<duckdb::Expression>> &agg_exprs, 
-								vector<unique_ptr<duckdb::Expression>> &agg_groups, 
-								vector<unique_ptr<duckdb::Expression>> &proj_exprs,
-								vector<duckdb::LogicalType>& agg_types,
-								vector<duckdb::LogicalType>& proj_types,
+								vector<unique_ptr<s62::Expression>> &agg_exprs, 
+								vector<unique_ptr<s62::Expression>> &agg_groups, 
+								vector<unique_ptr<s62::Expression>> &proj_exprs,
+								vector<s62::LogicalType>& agg_types,
+								vector<s62::LogicalType>& proj_types,
 								CColRefArray* child_cols, 
 								bool& adjust_agg_groups_performed, 
 								bool &has_pre_projection);
-	void pAdustAggGroups( vector<unique_ptr<duckdb::Expression>>& agg_groups,  vector<unique_ptr<duckdb::Expression>> &agg_exprs);
+	void pAdustAggGroups( vector<unique_ptr<s62::Expression>>& agg_groups,  vector<unique_ptr<s62::Expression>> &agg_exprs);
 
 	// Filter DNF Transformation
 	CExpression* pPredToDNF(CExpression *pred);
@@ -660,15 +660,15 @@ private:
 	const std::string memory_mdp_filepath;
 
 	// core
-	duckdb::ClientContext *context;	// TODO this should be reference - refer to plansuite
+	s62::ClientContext *context;	// TODO this should be reference - refer to plansuite
 	CMemoryPool *memory_pool;
 
 	// logical plnaning
-	vector<duckdb::PropertyKeyID> pruned_key_ids;
+	vector<s62::PropertyKeyID> pruned_key_ids;
 
 	// used and initialized in each execution
 	BoundStatement *bound_statement;											// input parse statemnt
-	vector<duckdb::CypherPipeline *> pipelines;									// output plan pipelines
+	vector<s62::CypherPipeline *> pipelines;									// output plan pipelines
 	std::map<CColRef *, std::string> property_col_to_output_col_names_mapping; 	// actual output col names for property columns
 	vector<std::string> logical_plan_output_col_names;							// output col names
 	vector<OID> logical_plan_output_col_oids;									// output col oids			
@@ -685,7 +685,7 @@ private:
 	PipelineSchemas pipeline_schemas;
 	PipelineSchemas other_source_schemas; // @jhha: temporal impl. please remove
 	PipelineUnionSchema pipeline_union_schema;
-	vector<duckdb::SchemaFlowGraph> sfgs;
+	vector<s62::SchemaFlowGraph> sfgs;
 	bool generate_sfg = false;
 	bool restrict_generate_sfg_for_unionall = false;
 

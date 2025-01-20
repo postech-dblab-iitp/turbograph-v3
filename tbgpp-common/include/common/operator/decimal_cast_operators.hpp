@@ -10,7 +10,7 @@
 
 #include "common/operator/cast_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Decimal Casts
@@ -384,4 +384,4 @@ string_t StringCastFromDecimal::Operation(int64_t input, uint8_t width, uint8_t 
 template <>
 string_t StringCastFromDecimal::Operation(hugeint_t input, uint8_t width, uint8_t scale, Vector &result);
 
-} // namespace duckdb
+} // namespace s62

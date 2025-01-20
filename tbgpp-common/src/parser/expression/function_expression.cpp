@@ -6,7 +6,7 @@
 #include "common/field_writer.hpp"
 #include "common/types/hash.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 FunctionExpression::FunctionExpression(string schema, const string &function_name,
                                        vector<unique_ptr<ParsedExpression>> children_p,
@@ -59,10 +59,10 @@ bool FunctionExpression::Equals(const FunctionExpression *a, const FunctionExpre
 
 hash_t FunctionExpression::Hash() const {
 	hash_t result = ParsedExpression::Hash();
-	result = CombineHash(result, duckdb::Hash<const char *>(schema.c_str()));
-	result = CombineHash(result, duckdb::Hash<const char *>(function_name.c_str()));
-	result = CombineHash(result, duckdb::Hash<bool>(distinct));
-	result = CombineHash(result, duckdb::Hash<bool>(export_state));
+	result = CombineHash(result, s62::Hash<const char *>(schema.c_str()));
+	result = CombineHash(result, s62::Hash<const char *>(function_name.c_str()));
+	result = CombineHash(result, s62::Hash<bool>(distinct));
+	result = CombineHash(result, s62::Hash<bool>(export_state));
 	return result;
 }
 
@@ -119,4 +119,4 @@ void FunctionExpression::Verify() const {
 	D_ASSERT(!function_name.empty());
 }
 
-} // namespace duckdb
+} // namespace s62

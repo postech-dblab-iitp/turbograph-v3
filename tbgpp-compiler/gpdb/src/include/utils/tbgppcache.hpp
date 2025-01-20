@@ -34,7 +34,7 @@
 /*
  * Routines to open (lookup) and close a relcache entry
  */
-extern duckdb::PropertySchemaCatalogEntry* RelationIdGetRelation(duckdb::idx_t relationId);
+extern s62::PropertySchemaCatalogEntry* RelationIdGetRelation(s62::idx_t relationId);
 // extern void RelationClose(Relation relation);
 
 // /*

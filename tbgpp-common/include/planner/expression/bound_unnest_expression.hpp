@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Represents a function call that has been bound to a base function
 class BoundUnnestExpression : public Expression {
@@ -28,4 +28,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

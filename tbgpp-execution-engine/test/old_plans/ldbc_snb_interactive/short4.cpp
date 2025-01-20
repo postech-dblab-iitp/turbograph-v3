@@ -1,15 +1,15 @@
 #include "plans/query_plan_suite.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 
 	Schema schema;
 	schema.addNode("m");
-	schema.addPropertyIntoNode("m", "id", duckdb::LogicalType::UBIGINT);
-	schema.addPropertyIntoNode("m", "content", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("m", "creationDate", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("m", "id", s62::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("m", "content", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("m", "creationDate", s62::LogicalType::BIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -21,15 +21,15 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS4() {
 
 	// filter predcs
 	Schema filter_schema = schema;
-	duckdb::Value filter_val;
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }
-	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
-	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+	s62::Value filter_val;
+	if(LDBC_SF==1) { filter_val = s62::Value::UBIGINT(2199029886840); }
+	if(LDBC_SF==10) { filter_val = s62::Value::UBIGINT(58929); }
+	if(LDBC_SF==100) { filter_val = s62::Value::UBIGINT(19560); }
 		
 	// Project
 	Schema project_schema;
-	project_schema.addColumn("content", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("content", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("creationDate", s62::LogicalType::BIGINT);
 	vector<unique_ptr<Expression>> proj_exprs;
 	{	//  pid name id url => pid id name
 		auto c1 = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 2);

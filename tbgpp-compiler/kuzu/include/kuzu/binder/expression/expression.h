@@ -4,13 +4,10 @@
 #include <functional>
 #include <memory>
 #include <unordered_set>
-
 #include "common/exception.h"
 #include "common/expression_type.h"
 #include "common/types/types_include.h"
-
 #include "binder/parse_tree_node.h"
-
 
 using namespace kuzu::common;
 using namespace std;

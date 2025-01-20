@@ -1,7 +1,7 @@
 #include "catalog/coalescing.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 Coalescing::GroupingAlgorithm Coalescing::grouping_algo =
     Coalescing::GroupingAlgorithm::MERGEALL;

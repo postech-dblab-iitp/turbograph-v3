@@ -4,7 +4,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/vector_operations/aggregate_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct BitState {
@@ -218,4 +218,4 @@ void BitXorFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(bit_xor);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -4,7 +4,7 @@
 #include "common/to_string.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Exception::Exception(const string &msg) : std::exception(), type(ExceptionType::INVALID) {
 	exception_message_ = msg;
@@ -221,4 +221,4 @@ InvalidInputException::InvalidInputException(const string &msg) : Exception(Exce
 OutOfMemoryException::OutOfMemoryException(const string &msg) : Exception(ExceptionType::OUT_OF_MEMORY, msg) {
 }
 
-} // namespace duckdb
+} // namespace s62

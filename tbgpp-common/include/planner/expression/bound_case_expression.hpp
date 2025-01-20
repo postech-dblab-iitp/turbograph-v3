@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BoundCaseCheck {
 	unique_ptr<Expression> when_expr;
@@ -33,4 +33,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

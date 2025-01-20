@@ -11,7 +11,7 @@
 // #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "execution/expression_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void RowOperations::InitializeStates(RowLayout &layout, Vector &addresses, const SelectionVector &sel, idx_t count) {
 	if (count == 0) {
@@ -101,4 +101,4 @@ void RowOperations::FinalizeStates(RowLayout &layout, Vector &addresses, DataChu
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class KeywordHelper {
 public:
@@ -24,4 +24,4 @@ public:
 	static string WriteOptionallyQuoted(const string &text, char quote = '"');
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -13,7 +13,7 @@
 #include "common/types.hpp"
 #include "common/types/string_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define BSWAP16(x) ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))
 
@@ -66,4 +66,4 @@ void EncodeData(data_ptr_t dataptr, interval_t value, bool is_little_endian);
 
 void EncodeStringDataPrefix(data_ptr_t dataptr, string_t value, idx_t prefix_len);
 
-} // namespace duckdb
+} // namespace s62

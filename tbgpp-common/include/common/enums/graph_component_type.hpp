@@ -2,8 +2,8 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class GraphComponentType : uint8_t { VERTEX = 0, EDGE = 1, INVALID = 2,};
 
-} // namespace duckdb
+} // namespace s62

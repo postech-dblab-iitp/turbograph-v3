@@ -11,7 +11,7 @@
 #include "function/aggregate_function.hpp"
 #include <ctgmath>
 
-namespace duckdb {
+namespace s62 {
 
 struct StddevState {
 	uint64_t count;  //  n
@@ -141,4 +141,4 @@ struct StandardErrorOfTheMeanOperation : public STDDevBaseOperation {
 		}
 	}
 };
-} // namespace duckdb
+} // namespace s62

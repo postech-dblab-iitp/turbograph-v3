@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Logical Operator Types
@@ -101,4 +101,4 @@ enum class LogicalOperatorType : uint8_t {
 
 DUCKDB_API string LogicalOperatorToString(LogicalOperatorType type);
 
-} // namespace duckdb
+} // namespace s62

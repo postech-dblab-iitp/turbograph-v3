@@ -2,9 +2,9 @@
 
 #include "main/client_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ThreadContext::ThreadContext(ClientContext &context) : profiler(QueryProfiler::Get(context).IsEnabled()) {
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -32,7 +32,7 @@ class Binder {
     friend class ExpressionBinder;
 
    public:
-    explicit Binder(duckdb::ClientContext *client)
+    explicit Binder(s62::ClientContext *client)
         : client(client),
           lastExpressionId{0},
           variablesInScope{},
@@ -42,8 +42,8 @@ class Binder {
         builtInAggregateFunctions =
             std::make_unique<BuiltInAggregateFunctions>();
         graph_catalog_entry =
-            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
-                *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+            (s62::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client, s62::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
                 DEFAULT_GRAPH);
     }
 
@@ -271,8 +271,8 @@ class Binder {
    private:
     // const Catalog& catalog;
 
-    duckdb::ClientContext *client;
-    duckdb::GraphCatalogEntry *graph_catalog_entry;
+    s62::ClientContext *client;
+    s62::GraphCatalogEntry *graph_catalog_entry;
 
     uint32_t lastExpressionId;
     unordered_map<string, shared_ptr<Expression>> variablesInScope;

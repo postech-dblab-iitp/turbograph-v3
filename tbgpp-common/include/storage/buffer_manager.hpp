@@ -17,7 +17,7 @@
 #include "storage/buffer/buffer_handle.hpp"
 #include "storage/buffer/managed_buffer.hpp"
 
-namespace duckdb {
+namespace s62 {
 class DatabaseInstance;
 class TemporaryDirectoryHandle;
 struct EvictionQueue;
@@ -124,4 +124,4 @@ private:
 	atomic<block_id_t> temporary_id;
 };
 
-} // namespace duckdb
+} // namespace s62

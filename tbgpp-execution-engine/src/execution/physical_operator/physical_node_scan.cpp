@@ -11,7 +11,7 @@
 #include <cassert>
 #include <queue>
 
-namespace duckdb {
+namespace s62 {
 
 class NodeScanState : public LocalSourceState {
    public:
@@ -47,7 +47,7 @@ PhysicalNodeScan::PhysicalNodeScan(
     vector<vector<uint64_t>> projection_mapping,
     vector<LogicalType> scan_types_,
     vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex,
-    duckdb::Value filterValue)
+    s62::Value filterValue)
     : PhysicalNodeScan(sch, oids, projection_mapping, scan_types_,
                        scan_projection_mapping)
 {
@@ -62,7 +62,7 @@ PhysicalNodeScan::PhysicalNodeScan(
     vector<vector<uint64_t>> projection_mapping,
     vector<LogicalType> scan_types_,
     vector<vector<uint64_t>> scan_projection_mapping, int64_t filterKeyIndex,
-    duckdb::Value l_filterValue, duckdb::Value r_filterValue, bool l_inclusive,
+    s62::Value l_filterValue, s62::Value r_filterValue, bool l_inclusive,
     bool r_inclusive)
     : PhysicalNodeScan(sch, oids, projection_mapping, scan_types_,
                        scan_projection_mapping)
@@ -124,7 +124,7 @@ PhysicalNodeScan::PhysicalNodeScan(
     vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids,
     vector<vector<uint64_t>> projection_mapping,
     vector<vector<uint64_t>> scan_projection_mapping,
-    vector<int64_t> &filterKeyIndexes, vector<duckdb::Value> &filterValues)
+    vector<int64_t> &filterKeyIndexes, vector<s62::Value> &filterValues)
     : PhysicalNodeScan(sch, union_schema, oids, projection_mapping,
                        scan_projection_mapping)
 {
@@ -288,4 +288,4 @@ std::string PhysicalNodeScan::ToString() const
 {
     return "NodeScan";
 }
-}  // namespace duckdb
+}  // namespace s62

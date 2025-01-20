@@ -14,22 +14,22 @@
 // namespace std {
 
 // template <>
-// struct hash<duckdb::interval_t> {
-// 	inline size_t operator()(const duckdb::interval_t &val) const {
+// struct hash<s62::interval_t> {
+// 	inline size_t operator()(const s62::interval_t &val) const {
 // 		return hash<int32_t> {}(val.days) ^ hash<int32_t> {}(val.months) ^ hash<int64_t> {}(val.micros);
 // 	}
 // };
 
 // template <>
-// struct hash<duckdb::hugeint_t> {
-// 	inline size_t operator()(const duckdb::hugeint_t &val) const {
+// struct hash<s62::hugeint_t> {
+// 	inline size_t operator()(const s62::hugeint_t &val) const {
 // 		return hash<int64_t> {}(val.upper) ^ hash<int64_t> {}(val.lower);
 // 	}
 // };
 
 // } // namespace std
 
-// namespace duckdb {
+// namespace s62 {
 
 // using FrameBounds = std::pair<idx_t, idx_t>;
 
@@ -310,4 +310,4 @@
 
 // 	set.AddFunction(mode);
 // }
-// } // namespace duckdb
+// } // namespace s62

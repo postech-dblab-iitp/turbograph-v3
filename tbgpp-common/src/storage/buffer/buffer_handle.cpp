@@ -1,7 +1,7 @@
 #include "storage/buffer/buffer_handle.hpp"
 #include "storage/buffer_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BufferHandle::BufferHandle(shared_ptr<BlockHandle> handle, FileBuffer *node) : handle(move(handle)), node(node) {
 }
@@ -15,4 +15,4 @@ data_ptr_t BufferHandle::Ptr() {
 	return node->buffer;
 }
 
-} // namespace duckdb
+} // namespace s62

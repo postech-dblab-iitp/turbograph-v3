@@ -1,7 +1,7 @@
 #include "parser/statement/update_statement.hpp"
 #include "parser/query_node/select_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 UpdateStatement::UpdateStatement() : SQLStatement(StatementType::UPDATE_STATEMENT) {
 }
@@ -57,4 +57,4 @@ unique_ptr<SQLStatement> UpdateStatement::Copy() const {
 	return unique_ptr<UpdateStatement>(new UpdateStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

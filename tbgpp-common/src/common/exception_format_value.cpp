@@ -4,7 +4,7 @@
 #include "duckdb_fmt/printf.h"
 #include "common/types/hugeint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExceptionFormatValue::ExceptionFormatValue(double dbl_val)
     : type(ExceptionFormatValueType::FORMAT_VALUE_TYPE_DOUBLE), dbl_val(dbl_val) {
@@ -72,4 +72,4 @@ string ExceptionFormatValue::Format(const string &msg, vector<ExceptionFormatVal
 	                                     format_args.data(), static_cast<int>(format_args.size())));
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -9,7 +9,7 @@
 #include "common/types/time.hpp"
 #include "common/types/timestamp.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Cast Numeric -> String
@@ -42,19 +42,19 @@ string_t StringCast::Operation(int64_t input, Vector &vector) {
 	return NumericHelper::FormatSigned<int64_t, uint64_t>(input, vector);
 }
 template <>
-duckdb::string_t StringCast::Operation(uint8_t input, Vector &vector) {
+s62::string_t StringCast::Operation(uint8_t input, Vector &vector) {
 	return NumericHelper::FormatSigned<uint8_t, uint64_t>(input, vector);
 }
 template <>
-duckdb::string_t StringCast::Operation(uint16_t input, Vector &vector) {
+s62::string_t StringCast::Operation(uint16_t input, Vector &vector) {
 	return NumericHelper::FormatSigned<uint16_t, uint64_t>(input, vector);
 }
 template <>
-duckdb::string_t StringCast::Operation(uint32_t input, Vector &vector) {
+s62::string_t StringCast::Operation(uint32_t input, Vector &vector) {
 	return NumericHelper::FormatSigned<uint32_t, uint64_t>(input, vector);
 }
 template <>
-duckdb::string_t StringCast::Operation(uint64_t input, Vector &vector) {
+s62::string_t StringCast::Operation(uint64_t input, Vector &vector) {
 	return NumericHelper::FormatSigned<uint64_t, uint64_t>(input, vector);
 }
 
@@ -78,12 +78,12 @@ string_t StringCast::Operation(interval_t input, Vector &vector) {
 }
 
 template <>
-duckdb::string_t StringCast::Operation(hugeint_t input, Vector &vector) {
+s62::string_t StringCast::Operation(hugeint_t input, Vector &vector) {
 	return HugeintToStringCast::FormatSigned(input, vector);
 }
 
 template <>
-duckdb::string_t StringCast::Operation(date_t input, Vector &vector) {
+s62::string_t StringCast::Operation(date_t input, Vector &vector) {
 	int32_t date[3];
 	Date::Convert(input, date[0], date[1], date[2]);
 
@@ -101,7 +101,7 @@ duckdb::string_t StringCast::Operation(date_t input, Vector &vector) {
 }
 
 template <>
-duckdb::string_t StringCast::Operation(dtime_t input, Vector &vector) {
+s62::string_t StringCast::Operation(dtime_t input, Vector &vector) {
 	int32_t time[4];
 	Time::Convert(input, time[0], time[1], time[2], time[3]);
 
@@ -118,7 +118,7 @@ duckdb::string_t StringCast::Operation(dtime_t input, Vector &vector) {
 }
 
 template <>
-duckdb::string_t StringCast::Operation(timestamp_t input, Vector &vector) {
+s62::string_t StringCast::Operation(timestamp_t input, Vector &vector) {
 	date_t date_entry;
 	dtime_t time_entry;
 	Timestamp::Convert(input, date_entry, time_entry);
@@ -147,7 +147,7 @@ duckdb::string_t StringCast::Operation(timestamp_t input, Vector &vector) {
 }
 
 template <>
-duckdb::string_t StringCast::Operation(duckdb::string_t input, Vector &result) {
+s62::string_t StringCast::Operation(s62::string_t input, Vector &result) {
 	return StringVector::AddStringOrBlob(result, input);
 }
 
@@ -210,4 +210,4 @@ string_t StringCastTZ::Operation(timestamp_t input, Vector &vector) {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

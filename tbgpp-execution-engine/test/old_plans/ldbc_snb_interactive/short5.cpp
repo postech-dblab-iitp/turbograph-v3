@@ -1,6 +1,6 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite);
 
@@ -20,10 +20,10 @@ CypherPipelineExecutor* is5_pipe1(QueryPlanSuite& suite) {
 	sch1.addNode("m");
 	unique_ptr<Expression> filter_expr1;
 	// Filter
-	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }	// demo samsung
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+	s62::Value filter_val; // person key
+	if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(2199029886840); }	// demo samsung
+	if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(58929); }
+	if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(19560); }
 
 // expand
 	Schema sch2 = sch1;

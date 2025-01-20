@@ -11,7 +11,7 @@
 #include "common/chrono.hpp"
 #include "common/helper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The profiler can be used to measure elapsed time
 template <typename T>
@@ -47,4 +47,4 @@ private:
 
 using Profiler = BaseProfiler<system_clock>;
 
-} // namespace duckdb
+} // namespace s62

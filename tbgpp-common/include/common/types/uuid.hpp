@@ -11,7 +11,7 @@
 #include "common/types.hpp"
 #include "common/types/string_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The UUID class contains static operations for the UUID type
 class UUID {
@@ -40,4 +40,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

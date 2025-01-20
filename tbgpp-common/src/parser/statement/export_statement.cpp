@@ -1,6 +1,6 @@
 #include "parser/statement/export_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExportStatement::ExportStatement(unique_ptr<CopyInfo> info)
     : SQLStatement(StatementType::EXPORT_STATEMENT), info(move(info)) {
@@ -13,4 +13,4 @@ unique_ptr<SQLStatement> ExportStatement::Copy() const {
 	return unique_ptr<ExportStatement>(new ExportStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

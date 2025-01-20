@@ -10,7 +10,7 @@
 
 #include "catalog_entry.hpp"
 
-namespace duckdb {
+namespace s62 {
 class SchemaCatalogEntry;
 
 //! A StandardEntry is a catalog entry that is a member of a schema
@@ -25,4 +25,4 @@ public:
 	//! The schema the entry belongs to
 	SchemaCatalogEntry *schema;
 };
-} // namespace duckdb
+} // namespace s62

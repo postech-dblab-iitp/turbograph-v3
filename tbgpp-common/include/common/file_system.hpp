@@ -21,7 +21,7 @@
 #undef MoveFile
 #undef RemoveDirectory
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 class DatabaseInstance;
 class FileOpener;
@@ -202,4 +202,4 @@ protected:
 	DUCKDB_API virtual std::string GetName() const = 0;
 };
 
-} // namespace duckdb
+} // namespace s62

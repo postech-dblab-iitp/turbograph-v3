@@ -18,7 +18,7 @@
 #include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ColumnStatistics;
 class DataTable;
@@ -87,5 +87,5 @@ private:
 	unique_ptr<CatalogEntry> ChangeColumnType(ClientContext &context, ChangeColumnTypeInfo &info);
 	unique_ptr<CatalogEntry> SetForeignKeyConstraint(ClientContext &context, AlterForeignKeyInfo &info);
 };
-} // namespace duckdb
+} // namespace s62
 */

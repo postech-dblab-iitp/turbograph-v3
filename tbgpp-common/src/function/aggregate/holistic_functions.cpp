@@ -1,6 +1,6 @@
 // #include "duckdb/function/aggregate/holistic_functions.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // void BuiltinFunctions::RegisterHolisticAggregates() {
 // 	Register<QuantileFun>();
@@ -9,4 +9,4 @@
 // 	Register<ReservoirQuantileFun>();
 // }
 
-// } // namespace duckdb
+// } // namespace s62

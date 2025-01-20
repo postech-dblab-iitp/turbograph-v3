@@ -12,7 +12,7 @@
 
 #include "common/vector_operations/vector_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 static void TemplatedCopy(const Vector &source, const SelectionVector &sel, Vector &target, idx_t source_offset,
@@ -527,4 +527,4 @@ void VectorOperations::Copy(const Vector &source, Vector &target, idx_t source_c
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

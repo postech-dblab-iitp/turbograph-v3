@@ -14,7 +14,7 @@
 #include "parser/result_modifier.hpp"
 #include "parser/common_table_expression_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum QueryNodeType : uint8_t {
 	SELECT_NODE = 1,
@@ -75,4 +75,4 @@ protected:
 	void CopyProperties(QueryNode &other) const;
 };
 
-} // namespace duckdb
+} // namespace s62

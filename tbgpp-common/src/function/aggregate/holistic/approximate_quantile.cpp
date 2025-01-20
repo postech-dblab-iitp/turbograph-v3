@@ -7,7 +7,7 @@
 // #include <cmath>
 // #include <stdlib.h>
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct ApproxQuantileState {
 // 	duckdb_tdigest::TDigest *h;
@@ -168,4 +168,4 @@
 // 	set.AddFunction(approx_quantile);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

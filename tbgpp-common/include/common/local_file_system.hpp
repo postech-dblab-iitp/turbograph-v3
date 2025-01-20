@@ -10,7 +10,7 @@
 
 #include "common/file_system.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 
 class LocalFileSystem : public FileSystem {
@@ -100,4 +100,4 @@ private:
 static LocalFileSystem DEFAULT_LOCAL_FILE_SYSTEM = LocalFileSystem();
 
 
-} // namespace duckdb
+} // namespace s62

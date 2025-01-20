@@ -1,6 +1,6 @@
 #include "parser/statement/pragma_statement.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // PragmaStatement::PragmaStatement() : SQLStatement(StatementType::PRAGMA_STATEMENT), info(make_unique<PragmaInfo>()) {
 // }
@@ -12,4 +12,4 @@
 // 	return unique_ptr<PragmaStatement>(new PragmaStatement(*this));
 // }
 
-// } // namespace duckdb
+// } // namespace s62

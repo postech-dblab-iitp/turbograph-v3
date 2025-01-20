@@ -1,6 +1,6 @@
 #include "parser/statement/prepare_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PrepareStatement::PrepareStatement() : SQLStatement(StatementType::PREPARE_STATEMENT), statement(nullptr), name("") {
 }
@@ -13,4 +13,4 @@ unique_ptr<SQLStatement> PrepareStatement::Copy() const {
 	return unique_ptr<PrepareStatement>(new PrepareStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

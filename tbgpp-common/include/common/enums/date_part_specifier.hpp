@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class DatePartSpecifier : uint8_t {
 	YEAR,
@@ -41,4 +41,4 @@ enum class DatePartSpecifier : uint8_t {
 DUCKDB_API bool TryGetDatePartSpecifier(const string &specifier, DatePartSpecifier &result);
 DUCKDB_API DatePartSpecifier GetDatePartSpecifier(const string &specifier);
 
-} // namespace duckdb
+} // namespace s62

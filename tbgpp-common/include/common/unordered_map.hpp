@@ -10,6 +10,6 @@
 
 #include <unordered_map>
 
-namespace duckdb {
+namespace s62 {
 using std::unordered_map;
 }

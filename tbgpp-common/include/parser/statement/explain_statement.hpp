@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "parser/sql_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class ExplainType : uint8_t { EXPLAIN_STANDARD, EXPLAIN_ANALYZE };
 
@@ -29,4 +29,4 @@ public:
 	unique_ptr<SQLStatement> Copy() const override;
 };
 
-} // namespace duckdb
+} // namespace s62

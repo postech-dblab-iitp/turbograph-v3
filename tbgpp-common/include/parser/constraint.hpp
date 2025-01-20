@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Serializer;
 class Deserializer;
@@ -67,4 +67,4 @@ public:
 	//! Deserializes a blob back into a Constraint
 	DUCKDB_API static unique_ptr<Constraint> Deserialize(Deserializer &source);
 };
-} // namespace duckdb
+} // namespace s62

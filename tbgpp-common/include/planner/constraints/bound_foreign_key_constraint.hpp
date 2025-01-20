@@ -11,7 +11,7 @@
 #include "common/unordered_set.hpp"
 #include "planner/bound_constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundForeignKeyConstraint : public BoundConstraint {
 public:
@@ -38,4 +38,4 @@ public:
 	unordered_set<idx_t> fk_key_set;
 };
 
-} // namespace duckdb
+} // namespace s62

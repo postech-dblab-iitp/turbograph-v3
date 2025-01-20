@@ -1,7 +1,7 @@
 // #include "plans/query_plan_suite.hpp"
 // #include "function/aggregate/distributive_functions.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // CypherPipelineExecutor* q4_pipe1(QueryPlanSuite& suite);
 // CypherPipelineExecutor* q4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);

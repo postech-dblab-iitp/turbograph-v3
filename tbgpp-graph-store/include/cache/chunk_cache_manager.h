@@ -9,7 +9,7 @@
 #include "cache/client.h"
 #include "cache/disk_aio/Turbo_bin_aio_handler.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define NUM_MAX_SEGMENTS 65536
 

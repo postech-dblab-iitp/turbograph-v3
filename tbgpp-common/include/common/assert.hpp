@@ -15,10 +15,10 @@
 #include <assert.h>
 #define D_ASSERT assert
 #else
-namespace duckdb {
+namespace s62 {
 DUCKDB_API void DuckDBAssertInternal(bool condition, const char *condition_name, const char *file, int linenr);
 }
 
-#define D_ASSERT(condition) duckdb::DuckDBAssertInternal(bool(condition), #condition, __FILE__, __LINE__)
+#define D_ASSERT(condition) s62::DuckDBAssertInternal(bool(condition), #condition, __FILE__, __LINE__)
 
 #endif

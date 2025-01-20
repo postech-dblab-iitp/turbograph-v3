@@ -8,7 +8,7 @@
 
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalProjection : public CypherPhysicalOperator {
 
@@ -33,4 +33,4 @@ class PhysicalProjection : public CypherPhysicalOperator {
         expressions;  // projection expression per each column
 };
 
-}  // namespace duckdb
+}  // namespace s62

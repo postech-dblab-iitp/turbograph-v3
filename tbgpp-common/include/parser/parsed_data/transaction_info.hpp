@@ -10,7 +10,7 @@
 
 #include "parser/parsed_data/parse_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class TransactionType : uint8_t { INVALID, BEGIN_TRANSACTION, COMMIT, ROLLBACK };
 
@@ -22,4 +22,4 @@ struct TransactionInfo : public ParseInfo {
 	TransactionType type;
 };
 
-} // namespace duckdb
+} // namespace s62

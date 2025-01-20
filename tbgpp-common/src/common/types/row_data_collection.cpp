@@ -1,6 +1,6 @@
 #include "common/types/row_data_collection.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 RowDataCollection::RowDataCollection(BufferManager &buffer_manager, idx_t block_capacity, idx_t entry_size,
                                      bool keep_pinned)
@@ -130,4 +130,4 @@ void RowDataCollection::Merge(RowDataCollection &other) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

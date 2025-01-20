@@ -8,7 +8,7 @@
 #include "storage/statistics/validity_statistics.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BaseStatistics::BaseStatistics(LogicalType type) : type(move(type)) {
 }
@@ -153,4 +153,4 @@ void BaseStatistics::Verify(Vector &vector, idx_t count) const {
 	Verify(vector, *sel, count);
 }
 
-} // namespace duckdb
+} // namespace s62

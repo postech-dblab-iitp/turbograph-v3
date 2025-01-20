@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundBetweenExpression : public Expression {
 public:
@@ -38,4 +38,4 @@ public:
 		return upper_inclusive ? ExpressionType::COMPARE_LESSTHANOREQUALTO : ExpressionType::COMPARE_LESSTHAN;
 	}
 };
-} // namespace duckdb
+} // namespace s62

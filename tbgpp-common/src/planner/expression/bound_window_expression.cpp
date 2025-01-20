@@ -4,7 +4,7 @@
 // #include "common/string_util.hpp"
 // #include "function/aggregate_function.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // BoundWindowExpression::BoundWindowExpression(ExpressionType type, LogicalType return_type,
 //                                              unique_ptr<AggregateFunction> aggregate,
@@ -122,4 +122,4 @@
 // 	return move(new_window);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

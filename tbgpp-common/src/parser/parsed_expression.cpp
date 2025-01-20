@@ -5,7 +5,7 @@
 #include "parser/expression/list.hpp"
 #include "parser/parsed_expression_iterator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool ParsedExpression::IsAggregate() const {
 	bool is_aggregate = false;
@@ -91,7 +91,7 @@ bool ParsedExpression::Equals(const BaseExpression *other) const {
 }
 
 hash_t ParsedExpression::Hash() const {
-	hash_t hash = duckdb::Hash<uint32_t>((uint32_t)type);
+	hash_t hash = s62::Hash<uint32_t>((uint32_t)type);
 	ParsedExpressionIterator::EnumerateChildren(
 	    *this, [&](const ParsedExpression &child) { hash = CombineHash(child.Hash(), hash); });
 	return hash;
@@ -172,4 +172,4 @@ unique_ptr<ParsedExpression> ParsedExpression::Deserialize(Deserializer &source)
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

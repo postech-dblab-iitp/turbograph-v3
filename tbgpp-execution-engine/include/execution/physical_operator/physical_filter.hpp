@@ -7,7 +7,7 @@
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalFilter: public CypherPhysicalOperator {
 

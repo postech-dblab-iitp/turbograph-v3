@@ -5,7 +5,7 @@
 #include "common/string_util.hpp"
 #include "parser/qualified_name.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ColumnRefExpression::ColumnRefExpression(string column_name, string table_name)
     : ColumnRefExpression(table_name.empty() ? vector<string> {move(column_name)}
@@ -71,7 +71,7 @@ hash_t ColumnRefExpression::Hash() const {
 	hash_t result = ParsedExpression::Hash();
 	for (auto &column_name : column_names) {
 		auto lcase = StringUtil::Lower(column_name);
-		result = CombineHash(result, duckdb::Hash<const char *>(lcase.c_str()));
+		result = CombineHash(result, s62::Hash<const char *>(lcase.c_str()));
 	}
 	return result;
 }
@@ -92,4 +92,4 @@ unique_ptr<ParsedExpression> ColumnRefExpression::Deserialize(ExpressionType typ
 	return move(expression);
 }
 
-} // namespace duckdb
+} // namespace s62

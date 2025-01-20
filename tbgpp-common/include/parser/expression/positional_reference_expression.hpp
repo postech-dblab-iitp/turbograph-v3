@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class PositionalReferenceExpression : public ParsedExpression {
 public:
 	DUCKDB_API PositionalReferenceExpression(idx_t index);
@@ -31,4 +31,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

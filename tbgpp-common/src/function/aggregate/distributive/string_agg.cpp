@@ -4,7 +4,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/algorithm.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct StringAggState {
 	idx_t size;
@@ -135,4 +135,4 @@ void StringAggFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(string_agg);
 }
 
-} // namespace duckdb
+} // namespace s62

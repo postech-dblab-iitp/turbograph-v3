@@ -5,7 +5,7 @@
 #include "common/types/hash.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ParameterExpression::ParameterExpression()
     : ParsedExpression(ExpressionType::VALUE_PARAMETER, ExpressionClass::PARAMETER), parameter_nr(0) {
@@ -28,7 +28,7 @@ bool ParameterExpression::Equals(const ParameterExpression *a, const ParameterEx
 
 hash_t ParameterExpression::Hash() const {
 	hash_t result = ParsedExpression::Hash();
-	return CombineHash(duckdb::Hash(parameter_nr), result);
+	return CombineHash(s62::Hash(parameter_nr), result);
 }
 
 void ParameterExpression::Serialize(FieldWriter &writer) const {
@@ -41,4 +41,4 @@ unique_ptr<ParsedExpression> ParameterExpression::Deserialize(ExpressionType typ
 	return move(expression);
 }
 
-} // namespace duckdb
+} // namespace s62

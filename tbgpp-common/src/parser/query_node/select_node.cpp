@@ -3,7 +3,7 @@
 #include "common/field_writer.hpp"
 #include "parser/keyword_helper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SelectNode::SelectNode()
     : QueryNode(QueryNodeType::SELECT_NODE), aggregate_handling(AggregateHandling::STANDARD_HANDLING) {
@@ -216,4 +216,4 @@ unique_ptr<QueryNode> SelectNode::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

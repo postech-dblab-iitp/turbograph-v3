@@ -9,7 +9,7 @@
 #pragma once
 #include "index/art/node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Node4 : public Node {
 public:
@@ -36,4 +36,4 @@ public:
 	//! Remove Leaf from Node4
 	static void Erase(ART &art, unique_ptr<Node> &node, int pos);
 };
-} // namespace duckdb
+} // namespace s62

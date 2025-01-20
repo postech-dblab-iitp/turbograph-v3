@@ -11,7 +11,7 @@
 #include "parser/parsed_data/parse_info.hpp"
 #include "common/enums/catalog_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class OnCreateConflict : uint8_t {
 	// Standard: throw error
@@ -55,4 +55,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

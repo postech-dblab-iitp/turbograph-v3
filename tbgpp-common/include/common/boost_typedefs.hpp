@@ -4,7 +4,7 @@
 #include "common/boost.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
     #define MIN_MAX_ARRAY_SIZE 1024
     #define CATALOG_ADDR 0x10007fff8000
 
@@ -95,4 +95,4 @@ namespace duckdb {
 	typedef boost::interprocess::vector<minmax_t, minmax_allocator> minmax_t_vector;
     typedef boost::interprocess::allocator<welford_t, segment_manager_t> welford_allocator;
     typedef boost::interprocess::vector<welford_t, welford_allocator> welford_t_vector;
-} // namespace duckdb
+} // namespace s62

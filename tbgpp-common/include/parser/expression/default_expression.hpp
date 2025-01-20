@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents the default value of a column
 class DefaultExpression : public ParsedExpression {
 public:
@@ -28,4 +28,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

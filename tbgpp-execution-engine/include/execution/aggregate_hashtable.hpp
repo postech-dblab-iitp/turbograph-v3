@@ -10,7 +10,7 @@
 
 #include "execution/base_aggregate_hashtable.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BlockHandle;
 class BufferHandle;
 class RowDataCollection;
@@ -176,4 +176,4 @@ private:
 	void PayloadApply(FUNC fun);
 };
 
-} // namespace duckdb
+} // namespace s62

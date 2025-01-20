@@ -10,7 +10,7 @@
 
 #include <utility>
 
-namespace duckdb {
+namespace s62 {
 using std::make_pair;
 using std::pair;
-} // namespace duckdb
+} // namespace s62

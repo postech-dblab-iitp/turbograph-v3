@@ -5,7 +5,7 @@
 #include "common/types/hash.hpp"
 #include "common/value_operations/value_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ConstantExpression::ConstantExpression(Value val)
     : ParsedExpression(ExpressionType::VALUE_CONSTANT, ExpressionClass::CONSTANT), value(move(val)) {
@@ -38,4 +38,4 @@ unique_ptr<ParsedExpression> ConstantExpression::Deserialize(ExpressionType type
 	return make_unique<ConstantExpression>(move(value));
 }
 
-} // namespace duckdb
+} // namespace s62

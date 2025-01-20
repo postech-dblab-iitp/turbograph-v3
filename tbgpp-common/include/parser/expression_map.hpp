@@ -12,7 +12,7 @@
 #include "common/unordered_set.hpp"
 #include "parser/base_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Expression;
 
 struct ExpressionHashFunction {
@@ -32,4 +32,4 @@ using expression_map_t = unordered_map<BaseExpression *, T, ExpressionHashFuncti
 
 using expression_set_t = unordered_set<BaseExpression *, ExpressionHashFunction, ExpressionEquality>;
 
-} // namespace duckdb
+} // namespace s62

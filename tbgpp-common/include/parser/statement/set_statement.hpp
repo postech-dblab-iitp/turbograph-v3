@@ -12,7 +12,7 @@
 #include "parser/sql_statement.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class SetStatement : public SQLStatement {
 public:
@@ -28,4 +28,4 @@ public:
 	Value value;
 	SetScope scope;
 };
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "common/limits.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class SequenceInfo : uint8_t {
 	// Sequence start
@@ -65,4 +65,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

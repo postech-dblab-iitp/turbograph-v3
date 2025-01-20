@@ -2,7 +2,7 @@
 #include "common/sort/comparators.hpp"
 #include "common/sort/sort.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 MergeSorter::MergeSorter(GlobalSortState &state, BufferManager &buffer_manager)
     : state(state), buffer_manager(buffer_manager), sort_layout(state.sort_layout) {
@@ -656,4 +656,4 @@ void MergeSorter::FlushBlobs(const RowLayout &layout, const idx_t &source_count,
 	D_ASSERT(target_heap_block->byte_offset <= target_heap_block->capacity);
 }
 
-} // namespace duckdb
+} // namespace s62

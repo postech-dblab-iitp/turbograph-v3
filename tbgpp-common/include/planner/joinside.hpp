@@ -11,7 +11,7 @@
 #include "common/unordered_set.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! JoinCondition represents a left-right comparison join condition
 struct JoinCondition {
@@ -57,4 +57,4 @@ private:
 	JoinValue value;
 };
 
-} // namespace duckdb
+} // namespace s62

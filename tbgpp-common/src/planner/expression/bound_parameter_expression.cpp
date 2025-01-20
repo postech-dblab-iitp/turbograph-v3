@@ -3,7 +3,7 @@
 #include "common/to_string.hpp"
 #include "planner/expression_iterator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundParameterExpression::BoundParameterExpression(idx_t parameter_nr)
     : Expression(ExpressionType::VALUE_PARAMETER, ExpressionClass::BOUND_PARAMETER,
@@ -52,7 +52,7 @@ bool BoundParameterExpression::Equals(const BaseExpression *other_p) const {
 
 hash_t BoundParameterExpression::Hash() const {
 	hash_t result = Expression::Hash();
-	result = CombineHash(duckdb::Hash(parameter_nr), result);
+	result = CombineHash(s62::Hash(parameter_nr), result);
 	return result;
 }
 
@@ -64,4 +64,4 @@ unique_ptr<Expression> BoundParameterExpression::Copy() {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

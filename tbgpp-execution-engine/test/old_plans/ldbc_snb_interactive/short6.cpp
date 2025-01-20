@@ -1,6 +1,6 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 
@@ -9,10 +9,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	sch1.addNode("m");
 
 	// Filter
-	duckdb::Value filter_val; // message key
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(2199029886840); }
-	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(58929); }
-	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(19560); }
+	s62::Value filter_val; // message key
+	if(LDBC_SF==1) { filter_val = s62::Value::UBIGINT(2199029886840); }
+	if(LDBC_SF==10) { filter_val = s62::Value::UBIGINT(58929); }
+	if(LDBC_SF==100) { filter_val = s62::Value::UBIGINT(19560); }
 
 	// m -> p
 	Schema sch2;
@@ -28,17 +28,17 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 	
 	// Fetch f (_m _p _f _mod)
 	Schema sch5 = sch4;
-	sch5.addPropertyIntoNode("f", "id", duckdb::LogicalType::UBIGINT );
-	sch5.addPropertyIntoNode("f", "title", duckdb::LogicalType::VARCHAR );
+	sch5.addPropertyIntoNode("f", "id", s62::LogicalType::UBIGINT );
+	sch5.addPropertyIntoNode("f", "title", s62::LogicalType::VARCHAR );
 	PropertyKeys f_keys;
 	f_keys.push_back("id");
 	f_keys.push_back("title");
 
 	// fetch mod (_m _p _f f.id f.title _mod)
 	Schema sch6 = sch5;
-	sch6.addPropertyIntoNode("mod", "id", duckdb::LogicalType::UBIGINT );
-	sch6.addPropertyIntoNode("mod", "firstName", duckdb::LogicalType::VARCHAR );
-	sch6.addPropertyIntoNode("mod", "lastName", duckdb::LogicalType::VARCHAR );
+	sch6.addPropertyIntoNode("mod", "id", s62::LogicalType::UBIGINT );
+	sch6.addPropertyIntoNode("mod", "firstName", s62::LogicalType::VARCHAR );
+	sch6.addPropertyIntoNode("mod", "lastName", s62::LogicalType::VARCHAR );
 	PropertyKeys m_keys;
 	m_keys.push_back("id");
 	m_keys.push_back("firstName");
@@ -48,11 +48,11 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS6() {
 
 		// out : 
 	Schema project_schema;
-	project_schema.addColumn("forumId", duckdb::LogicalType::UBIGINT);
-	project_schema.addColumn("forumTitle", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("moderatorId", duckdb::LogicalType::UBIGINT);
-	project_schema.addColumn("moderatorFirstName", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("moderatorLastName", duckdb::LogicalType::VARCHAR);
+	project_schema.addColumn("forumId", s62::LogicalType::UBIGINT);
+	project_schema.addColumn("forumTitle", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("moderatorId", s62::LogicalType::UBIGINT);
+	project_schema.addColumn("moderatorFirstName", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("moderatorLastName", s62::LogicalType::VARCHAR);
 	vector<unique_ptr<Expression>> proj_exprs;
 	{
 		proj_exprs.push_back( move(make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 3)) );

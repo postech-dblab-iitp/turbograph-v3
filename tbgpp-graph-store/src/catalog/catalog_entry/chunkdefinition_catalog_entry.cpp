@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <iostream>
 
-namespace duckdb {
+namespace s62 {
 
 ChunkDefinitionCatalogEntry::ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::CHUNKDEFINITION_ENTRY, schema, catalog, info->chunkdefinition, void_alloc), min_max_array(void_alloc) {
@@ -61,4 +61,4 @@ unique_ptr<CatalogEntry> ChunkDefinitionCatalogEntry::Copy(ClientContext &contex
 	//return make_unique<ChunkDefinitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
-} // namespace duckdb
+} // namespace s62

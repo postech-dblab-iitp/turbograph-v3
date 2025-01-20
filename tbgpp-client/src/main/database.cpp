@@ -20,7 +20,7 @@
 #include "common/thread.hpp"
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 /*DBConfig::DBConfig() {
 	compression_functions = make_unique<CompressionFunctionSet>();
@@ -348,4 +348,4 @@ void DuckDB::SetExtensionLoaded(const std::string &name) {
 	instance->loaded_extensions.insert(name);
 }*/
 
-} // namespace duckdb
+} // namespace s62

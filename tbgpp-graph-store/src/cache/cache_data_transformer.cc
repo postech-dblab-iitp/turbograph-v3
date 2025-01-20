@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-namespace duckdb {
+namespace s62 {
 
 CacheDataTransformer::~CacheDataTransformer() {
 }

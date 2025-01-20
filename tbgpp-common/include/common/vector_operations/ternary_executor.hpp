@@ -14,7 +14,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 struct TernaryExecutor {
 private:
@@ -158,4 +158,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

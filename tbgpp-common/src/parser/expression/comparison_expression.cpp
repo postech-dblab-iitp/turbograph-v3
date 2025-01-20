@@ -4,7 +4,7 @@
 #include "common/field_writer.hpp"
 #include "parser/expression/cast_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ComparisonExpression::ComparisonExpression(ExpressionType type, unique_ptr<ParsedExpression> left,
                                            unique_ptr<ParsedExpression> right)
@@ -44,4 +44,4 @@ unique_ptr<ParsedExpression> ComparisonExpression::Deserialize(ExpressionType ty
 	return make_unique<ComparisonExpression>(type, move(left_child), move(right_child));
 }
 
-} // namespace duckdb
+} // namespace s62

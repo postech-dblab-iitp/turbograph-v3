@@ -1,7 +1,7 @@
 // #include "planner/table_filter.hpp"
 // #include "planner/filter/conjunction_filter.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // void TableFilterSet::PushFilter(idx_t column_index, unique_ptr<TableFilter> filter) {
 // 	auto entry = filters.find(column_index);
@@ -22,4 +22,4 @@
 // 	}
 // }
 
-// } // namespace duckdb
+// } // namespace s62

@@ -4,7 +4,7 @@
 #include "execution/expression_executor.hpp"
 #include "execution/physical_operator/physical_comparison_join.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalBlockwiseNLJoin::PhysicalBlockwiseNLJoin(Schema& sch, unique_ptr<Expression> condition, JoinType join_type, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
     : PhysicalJoin(sch, PhysicalOperatorType::BLOCKWISE_NL_JOIN, join_type),
@@ -278,4 +278,4 @@ OperatorResultType PhysicalBlockwiseNLJoin::Execute(ExecutionContext &context, D
 // 	                                                     state.right_outer_position);
 // }
 
-} // namespace duckdb
+} // namespace s62

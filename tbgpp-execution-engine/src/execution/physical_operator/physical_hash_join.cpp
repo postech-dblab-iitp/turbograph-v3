@@ -11,7 +11,7 @@
 
 #include "common/output_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 /**
  * TODO:
@@ -306,4 +306,4 @@ std::string PhysicalHashJoin::ToString() const
     return "HashJoin";
 }
 
-}  // namespace duckdb
+}  // namespace s62

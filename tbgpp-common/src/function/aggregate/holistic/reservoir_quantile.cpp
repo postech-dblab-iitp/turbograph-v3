@@ -7,7 +7,7 @@
 // #include <queue>
 // #include <stdlib.h>
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct ReservoirQuantileState {
 // 	data_ptr_t v;
@@ -239,4 +239,4 @@
 // 	set.AddFunction(reservoir_quantile);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

@@ -13,7 +13,7 @@
 #include "common/atomic.hpp"
 #include "storage/storage_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BufferHandle;
 class BufferManager;
 class DatabaseInstance;
@@ -66,4 +66,4 @@ private:
 	idx_t memory_usage;
 };
 
-} // namespace duckdb
+} // namespace s62

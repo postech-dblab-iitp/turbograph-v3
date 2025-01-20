@@ -4,7 +4,7 @@
 #include "common/types/hash.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundFunctionExpression::BoundFunctionExpression(LogicalType return_type, ScalarFunction bound_function,
                                                  vector<unique_ptr<Expression>> arguments,
@@ -70,4 +70,4 @@ void BoundFunctionExpression::Verify() const {
 	D_ASSERT(!function.name.empty());
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_function_info.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateAggregateFunctionInfo : public CreateFunctionInfo {
 	// deprecated
@@ -39,4 +39,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

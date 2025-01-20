@@ -11,7 +11,7 @@
 #include "planner/expression.hpp"
 #include "parser/expression/lambda_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundLambdaExpression : public Expression {
 public:
@@ -29,4 +29,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

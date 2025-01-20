@@ -10,7 +10,7 @@
 
 #include "index/art/node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Leaf : public Node {
 public:
@@ -32,4 +32,4 @@ private:
 	unique_ptr<row_t[]> row_ids;
 };
 
-} // namespace duckdb
+} // namespace s62

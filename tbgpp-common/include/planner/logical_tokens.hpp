@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace duckdb {
+namespace s62 {
 
 class LogicalOperator;
 
@@ -53,4 +53,4 @@ class LogicalUnnest;
 class LogicalUpdate;
 class LogicalWindow;
 
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 #include "common/algorithm.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void string_t::Verify() {
 	auto dataptr = GetDataUnsafe();
@@ -11,8 +11,8 @@ void string_t::Verify() {
 	D_ASSERT(dataptr);
 
 #ifdef DEBUG
-	auto utf_type = Utf8Proc::Analyze(dataptr, GetSize());
-	D_ASSERT(utf_type != UnicodeType::INVALID);
+	auto utf_type = duckdb::Utf8Proc::Analyze(dataptr, GetSize());
+	D_ASSERT(utf_type != duckdb::UnicodeType::INVALID);
 #endif
 
 	// verify that the prefix contains the first four characters of the string
@@ -31,4 +31,4 @@ void string_t::VerifyNull() {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

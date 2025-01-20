@@ -12,7 +12,7 @@
 #include "common/unordered_map.hpp"
 #include "function/copy_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Catalog;
 struct CreateCopyFunctionInfo;
@@ -25,5 +25,5 @@ public:
 	//! The copy function
 	CopyFunction function;
 };
-} // namespace duckdb
+} // namespace s62
 */

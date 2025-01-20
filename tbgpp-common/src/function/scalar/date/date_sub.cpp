@@ -10,7 +10,7 @@
 #include "common/string_util.hpp"
 #include "storage/statistics/numeric_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct DateSub {
 	struct MonthOperator {
@@ -433,4 +433,4 @@ void DateSubFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(date_sub);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 #include "parser/statement/execute_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExecuteStatement::ExecuteStatement() : SQLStatement(StatementType::EXECUTE_STATEMENT) {
 }
@@ -15,4 +15,4 @@ unique_ptr<SQLStatement> ExecuteStatement::Copy() const {
 	return unique_ptr<ExecuteStatement>(new ExecuteStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

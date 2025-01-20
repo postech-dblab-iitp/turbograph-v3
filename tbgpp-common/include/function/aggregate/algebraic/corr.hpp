@@ -13,7 +13,7 @@
 #include "function/aggregate/algebraic/covar.hpp"
 #include "function/aggregate/algebraic/stddev.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CorrState {
 	CovarState cov_pop;
@@ -74,4 +74,4 @@ struct CorrOperation {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

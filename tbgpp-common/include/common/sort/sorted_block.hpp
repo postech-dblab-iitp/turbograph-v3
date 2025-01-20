@@ -9,7 +9,7 @@
 
 #include "common/types/row_layout.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BufferManager;
 struct RowDataBlock;
@@ -167,4 +167,4 @@ private:
 	const bool flush;
 };
 
-} // namespace duckdb
+} // namespace s62

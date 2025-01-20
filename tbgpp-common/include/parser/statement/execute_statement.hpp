@@ -12,7 +12,7 @@
 #include "parser/sql_statement.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ExecuteStatement : public SQLStatement {
 public:
@@ -27,4 +27,4 @@ protected:
 public:
 	unique_ptr<SQLStatement> Copy() const override;
 };
-} // namespace duckdb
+} // namespace s62

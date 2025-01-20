@@ -5,7 +5,7 @@
 #include "common/vector_operations/ternary_executor.hpp"
 #include "common/vector_operations/senary_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct MakeDateOperator {
 	template <typename YYYY, typename MM, typename DD, typename RESULT_TYPE>
@@ -100,4 +100,4 @@ void MakeDateFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(make_timestamp);
 }
 
-} // namespace duckdb
+} // namespace s62

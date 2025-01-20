@@ -1,7 +1,7 @@
 #include "plans/query_plan_suite.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* ic8_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -21,10 +21,10 @@ CypherPipelineExecutor* ic8_pipe1(QueryPlanSuite& suite) {
 	// scan person
 	Schema sch1;
 	sch1.addNode("start");
-	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(24189255818757); }	// demo
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	s62::Value filter_val; // person key
+	if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(24189255818757); }	// demo
+	if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 
 	// start <- m
 	Schema sch2 = sch1;

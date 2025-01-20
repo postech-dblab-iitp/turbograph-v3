@@ -10,7 +10,7 @@
 
 #include "parser/constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class NotNullConstraint : public Constraint {
 public:
@@ -31,4 +31,4 @@ public:
 	DUCKDB_API static unique_ptr<Constraint> Deserialize(FieldReader &source);
 };
 
-} // namespace duckdb
+} // namespace s62

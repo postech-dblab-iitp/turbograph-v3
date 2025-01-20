@@ -5,7 +5,7 @@
 #include "storage/statistics/string_statistics.hpp"
 #include "execution/expression_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct StandardCharacterReader {
 	static char Operation(const char *data, idx_t pos) {
@@ -518,4 +518,4 @@ void LikeEscapeFun::RegisterFunction(BuiltinFunctions &set) {
 	                ScalarFunction({LogicalType::VARCHAR, LogicalType::VARCHAR, LogicalType::VARCHAR},
 	                               LogicalType::BOOLEAN, LikeEscapeFunction<NotILikeEscapeOperator>));
 }
-} // namespace duckdb
+} // namespace s62

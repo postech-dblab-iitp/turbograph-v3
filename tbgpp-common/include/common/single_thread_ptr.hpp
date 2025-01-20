@@ -26,7 +26,7 @@ public:
 	}
 };
 
-namespace duckdb {
+namespace s62 {
 template <typename T>
 class single_thread_ptr {
 public:
@@ -180,4 +180,4 @@ single_thread_ptr<T> single_thread_make_shared(Args &&... args) {
 	auto tmp_object = new _object_and_block<T>(std::forward<Args>(args)...);
 	return single_thread_ptr<T>(tmp_object, &(tmp_object->object));
 }
-} // namespace duckdb
+} // namespace s62

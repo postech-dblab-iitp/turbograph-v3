@@ -3,7 +3,7 @@
 #include "typedef.hpp"
 #include "common/output_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ShortestPathState : public OperatorState {
 public:
@@ -148,4 +148,4 @@ std::string PhysicalShortestPathJoin::ToString() const
     return "ShortestPath";
 }
 
-}  // namespace duckdb
+}  // namespace s62

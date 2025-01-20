@@ -13,7 +13,7 @@
 #include "common/string.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // API versions
 // if no explicit API version is defined, the latest API version is used
@@ -135,4 +135,4 @@ struct Storage {
 
 uint64_t NextPowerOfTwo(uint64_t v);
 
-} // namespace duckdb
+} // namespace s62

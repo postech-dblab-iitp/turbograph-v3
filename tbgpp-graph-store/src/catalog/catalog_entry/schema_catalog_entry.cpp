@@ -50,7 +50,7 @@
 #include <iostream>
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 /*void FindForeignKeyInformation(CatalogEntry *entry, AlterForeignKeyType alter_fk_type,
                                vector<unique_ptr<AlterForeignKeyInfo>> &fk_arrays) {
@@ -551,4 +551,4 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

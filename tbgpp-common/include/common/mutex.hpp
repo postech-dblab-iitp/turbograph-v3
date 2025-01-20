@@ -10,8 +10,8 @@
 
 #include <mutex>
 
-namespace duckdb {
+namespace s62 {
 using std::lock_guard;
 using std::mutex;
 using std::unique_lock;
-} // namespace duckdb
+} // namespace s62

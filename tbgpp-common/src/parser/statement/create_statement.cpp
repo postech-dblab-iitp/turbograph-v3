@@ -1,6 +1,6 @@
 #include "parser/statement/create_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CreateStatement::CreateStatement() : SQLStatement(StatementType::CREATE_STATEMENT) {
 }
@@ -12,4 +12,4 @@ unique_ptr<SQLStatement> CreateStatement::Copy() const {
 	return unique_ptr<CreateStatement>(new CreateStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

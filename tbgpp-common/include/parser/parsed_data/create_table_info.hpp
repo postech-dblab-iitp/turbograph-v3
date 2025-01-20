@@ -15,7 +15,7 @@
 #include "parser/statement/select_statement.hpp"
 //#include "catalog/catalog_entry/column_dependency_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateTableInfo : public CreateInfo {
 	CreateTableInfo() : CreateInfo(CatalogType::TABLE_ENTRY, INVALID_SCHEMA) {
@@ -49,4 +49,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 #include "common/serializer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <>
 string Deserializer::Read() {
@@ -21,4 +21,4 @@ void Deserializer::ReadStringVector(vector<string> &list) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

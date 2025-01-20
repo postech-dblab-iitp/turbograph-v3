@@ -7,7 +7,7 @@
 #include <catalog/catalog_server.hpp>
 #include <catalog/catalog_entry/list.hpp>
 
-namespace duckdb {
+namespace s62 {
 
 // typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
 typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
@@ -162,4 +162,4 @@ void CatalogServer::Exit() {
   //                   });
 }
 
-} // namespace duckdb
+} // namespace s62

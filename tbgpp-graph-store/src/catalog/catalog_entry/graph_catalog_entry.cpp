@@ -12,7 +12,7 @@
 #include <memory>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 GraphCatalogEntry::GraphCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateGraphInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::GRAPH_ENTRY, schema, catalog, info->graph, void_alloc),
@@ -406,4 +406,4 @@ PropertyKeyID GraphCatalogEntry::GetPropertyKeyID(ClientContext &context,
     return property_key_id->second;
 }
 
-} // namespace duckdb
+} // namespace s62

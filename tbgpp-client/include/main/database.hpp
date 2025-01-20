@@ -20,7 +20,7 @@
 #include "common/local_file_system.hpp"
 #include "storage/storage_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 //class StorageManager;
 class Catalog;
 class CatalogWrapper;
@@ -109,4 +109,4 @@ public:
 	DUCKDB_API void SetExtensionLoaded(const std::string &name);
 };
 
-} // namespace duckdb
+} // namespace s62

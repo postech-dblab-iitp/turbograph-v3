@@ -4,7 +4,7 @@
 #include "common/unordered_set.hpp"
 #include "common/enums/extent_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateExtentInfo : public CreateInfo {
 	CreateExtentInfo() : CreateInfo(CatalogType::EXTENT_ENTRY, INVALID_SCHEMA) {
@@ -34,4 +34,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

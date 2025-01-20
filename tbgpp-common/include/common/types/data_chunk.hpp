@@ -12,7 +12,7 @@
 #include "common/types/vector.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 class VectorCache;
 
 //!  A Data Chunk represents a set of vectors.
@@ -180,4 +180,4 @@ private:
 	bool has_row_chunk = false;
 	idx_t schema_idx;
 };
-} // namespace duckdb
+} // namespace s62

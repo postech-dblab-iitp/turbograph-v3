@@ -5,7 +5,7 @@
 #include "planner/expression/bound_function_expression.hpp"
 #include <random>
 
-namespace duckdb {
+namespace s62 {
 
 struct RandomBindData : public FunctionData {
 	ClientContext &context;
@@ -42,4 +42,4 @@ void RandomFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(ScalarFunction("random", {}, LogicalType::DOUBLE, RandomFunction, true, RandomBind));
 }
 
-} // namespace duckdb
+} // namespace s62

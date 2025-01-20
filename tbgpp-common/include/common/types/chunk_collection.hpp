@@ -12,7 +12,7 @@
 #include "common/types/data_chunk.hpp"
 // #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //!  A ChunkCollection represents a set of DataChunks that all have the same
 //!  types
@@ -144,4 +144,4 @@ private:
 	//! The types of the ChunkCollection
 	vector<LogicalType> types;
 };
-} // namespace duckdb
+} // namespace s62

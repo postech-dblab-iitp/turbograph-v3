@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class VectorType : uint8_t {
 	FLAT_VECTOR,       // Flat vectors represent a standard uncompressed vector
@@ -22,4 +22,4 @@ enum class VectorType : uint8_t {
 
 string VectorTypeToString(VectorType type);
 
-} // namespace duckdb
+} // namespace s62

@@ -5,7 +5,7 @@
 #include "function/function_set.hpp"
 #include <unordered_map>
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct EntropyState {
@@ -168,4 +168,4 @@ void EntropyFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(entropy);
 }
 
-} // namespace duckdb
+} // namespace s62

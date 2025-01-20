@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/enums/expression_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //!  The BaseExpression class is a base class that can represent any expression
 //!  part of a SQL statement.
@@ -88,4 +88,4 @@ public:
 	virtual void Verify() const;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -19,7 +19,7 @@
 #include "catalog/catalog_entry/column_dependency_manager.hpp"
 #include "storage/table_index.hpp"
 
-namespace duckdb {
+namespace s62 {
 class CatalogEntry;
 
 struct BoundCreateTableInfo {
@@ -56,4 +56,4 @@ struct BoundCreateTableInfo {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

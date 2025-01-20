@@ -4,7 +4,7 @@
 #include "common/types/schemaless_data_chunk.hpp"
 #include "tblr.h"
 
-namespace duckdb {
+namespace s62 {
 
 void OutputUtil::PrintQueryOutput(PropertyKeys &col_names,
                                   std::vector<std::unique_ptr<DataChunk>> &resultChunks,
@@ -219,4 +219,4 @@ void OutputUtil::PrintProgress(double percentage)
     fflush(stdout);
 }
 
-};  // namespace duckdb
+};  // namespace s62

@@ -6,7 +6,7 @@
 
 #include <random>
 
-namespace duckdb {
+namespace s62 {
 
 struct ConjunctionState : public ExpressionState {
 	ConjunctionState(const Expression &expr, ExpressionExecutorState &root) : ExpressionState(expr, root) {
@@ -141,4 +141,4 @@ idx_t ExpressionExecutor::Select(const BoundConjunctionExpression &expr, Express
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

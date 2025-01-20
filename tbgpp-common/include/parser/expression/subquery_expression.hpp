@@ -12,7 +12,7 @@
 #include "parser/parsed_expression.hpp"
 #include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Represents a subquery
 class SubqueryExpression : public ParsedExpression {
@@ -46,4 +46,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

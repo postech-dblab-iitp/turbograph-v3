@@ -6,7 +6,7 @@
 #include "storage/statistics/string_statistics.hpp"
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // length returns the size in characters
 struct StringLengthOperator {
@@ -121,10 +121,10 @@ void LengthFun::RegisterFunction(BuiltinFunctions &set) {
 struct UnicodeOperator {
 	template <class TA, class TR>
 	static inline TR Operation(const TA &input) {
-		auto str = reinterpret_cast<const utf8proc_uint8_t *>(input.GetDataUnsafe());
+		auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(input.GetDataUnsafe());
 		auto len = input.GetSize();
-		utf8proc_int32_t codepoint;
-		(void)utf8proc_iterate(str, len, &codepoint);
+		duckdb::utf8proc_int32_t codepoint;
+		(void)duckdb::utf8proc_iterate(str, len, &codepoint);
 		return codepoint;
 	}
 };
@@ -137,4 +137,4 @@ void UnicodeFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(unicode);
 }
 
-} // namespace duckdb
+} // namespace s62

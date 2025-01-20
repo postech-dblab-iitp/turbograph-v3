@@ -83,11 +83,11 @@ CExpression *Planner::lExprScalarBoolOp(kuzu::binder::Expression* expression, Lo
 	// PexprScalarBoolOp
 	CScalarBoolOp::EBoolOperator op_type;
 	switch(bool_expr->expressionType) {
-		case ExpressionType::NOT:
+		case kuzu::common::ExpressionType::NOT:
 			op_type = CScalarBoolOp::EBoolOperator::EboolopNot; break;
-		case ExpressionType::AND:
+		case kuzu::common::ExpressionType::AND:
 			op_type = CScalarBoolOp::EBoolOperator::EboolopAnd; break;
-		case ExpressionType::OR:
+		case kuzu::common::ExpressionType::OR:
 			op_type = CScalarBoolOp::EBoolOperator::EboolopOr; break;
 		default:
 			D_ASSERT(false);
@@ -109,9 +109,9 @@ CExpression *Planner::lExprScalarNullOp(kuzu::binder::Expression* expression, Lo
 	// PexprScalarBoolOp
 	CScalarBoolOp::EBoolOperator op_type;
 	switch(bool_expr->expressionType) {
-		case ExpressionType::IS_NULL:
+		case kuzu::common::ExpressionType::IS_NULL:
 			return CUtils::PexprIsNull(mp, child_expr);
-		case ExpressionType::IS_NOT_NULL:
+		case kuzu::common::ExpressionType::IS_NOT_NULL:
 			return CUtils::PexprIsNotNull(mp, child_expr);
 		default:
 			D_ASSERT(false);
@@ -127,8 +127,8 @@ CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expres
 	// lhs, rhs
 	CExpression *lhs_scalar_expr;
 	CExpression *rhs_scalar_expr;
-    if (children[0]->expressionType == ExpressionType::LITERAL &&
-        children[1]->expressionType != ExpressionType::LITERAL) {
+    if (children[0]->expressionType == kuzu::common::ExpressionType::LITERAL &&
+        children[1]->expressionType != kuzu::common::ExpressionType::LITERAL) {
         rhs_scalar_expr =
             lExprScalarExpression(children[1].get(), prev_plan, required_type);
         DataTypeID target_type_id =
@@ -140,8 +140,8 @@ CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expres
         lhs_scalar_expr =
             lExprScalarExpression(children[0].get(), prev_plan, target_type_id);
     }
-    else if (children[0]->expressionType != ExpressionType::LITERAL &&
-             children[1]->expressionType == ExpressionType::LITERAL) {
+    else if (children[0]->expressionType != kuzu::common::ExpressionType::LITERAL &&
+             children[1]->expressionType == kuzu::common::ExpressionType::LITERAL) {
         lhs_scalar_expr =
             lExprScalarExpression(children[0].get(), prev_plan, required_type);
         DataTypeID target_type_id =
@@ -173,34 +173,34 @@ CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expres
 
 		// reverse comp type
 		switch (comp_expr->expressionType) {
-			case ExpressionType::EQUALS: 
+			case kuzu::common::ExpressionType::EQUALS: 
 				cmp_type = IMDType::ECmpType::EcmptEq; break;
-			case ExpressionType::NOT_EQUALS:
+			case kuzu::common::ExpressionType::NOT_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptNEq; break;
-			case ExpressionType::GREATER_THAN:
+			case kuzu::common::ExpressionType::GREATER_THAN:
 				cmp_type = IMDType::ECmpType::EcmptL; break;
-			case ExpressionType::GREATER_THAN_EQUALS:
+			case kuzu::common::ExpressionType::GREATER_THAN_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptLEq; break;
-			case ExpressionType::LESS_THAN:
+			case kuzu::common::ExpressionType::LESS_THAN:
 				cmp_type = IMDType::ECmpType::EcmptG; break;
-			case ExpressionType::LESS_THAN_EQUALS:
+			case kuzu::common::ExpressionType::LESS_THAN_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptGEq; break;
 			default:
 				D_ASSERT(false);
 		}
     } else {
 		switch (comp_expr->expressionType) {
-			case ExpressionType::EQUALS: 
+			case kuzu::common::ExpressionType::EQUALS: 
 				cmp_type = IMDType::ECmpType::EcmptEq; break;
-			case ExpressionType::NOT_EQUALS:
+			case kuzu::common::ExpressionType::NOT_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptNEq; break;
-			case ExpressionType::GREATER_THAN:
+			case kuzu::common::ExpressionType::GREATER_THAN:
 				cmp_type = IMDType::ECmpType::EcmptG; break;
-			case ExpressionType::GREATER_THAN_EQUALS:
+			case kuzu::common::ExpressionType::GREATER_THAN_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptGEq; break;
-			case ExpressionType::LESS_THAN:
+			case kuzu::common::ExpressionType::LESS_THAN:
 				cmp_type = IMDType::ECmpType::EcmptL; break;
-			case ExpressionType::LESS_THAN_EQUALS:
+			case kuzu::common::ExpressionType::LESS_THAN_EQUALS:
 				cmp_type = IMDType::ECmpType::EcmptLEq; break;
 			default:
 				D_ASSERT(false);
@@ -423,7 +423,7 @@ CExpression *Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression *expressio
 	D_ASSERT(children.size()<=1); 	// not sure yet
 
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
-	vector<duckdb::LogicalType> child_types;
+	vector<s62::LogicalType> child_types;
 	for (auto i = 0; i < children.size(); i++) {
 		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan, required_type);
 		child_exprs->Append(child_expr);
@@ -433,7 +433,7 @@ CExpression *Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression *expressio
 		child_types.push_back(pConvertTypeOidToLogicalType(type_oid, type_mod));
 	}
 	// refer expression_type.h for kuzu function names
-	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
+	s62::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetAggFuncMdId(*context, func_name, child_types);
 	// no assert?
 
 	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);
@@ -452,11 +452,11 @@ CExpression *Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression *expressio
 	 * For instance, the return type for hash aggregation is determined using BindDecimalMultiply in
 	 * physical planning, but during Orca processing, Orca does not about this type info.
 	*/
-	duckdb::AggregateFunctionCatalogEntry *agg_func_cat;
-	duckdb::idx_t function_idx;
+	s62::AggregateFunctionCatalogEntry *agg_func_cat;
+	s62::idx_t function_idx;
 	context->db->GetCatalogWrapper().GetAggFuncAndIdx(*context, func_mdid_id, agg_func_cat, function_idx);
 	auto function = agg_func_cat->functions.get()->functions[function_idx];	
-	vector<unique_ptr<duckdb::Expression>> duckdb_childs;
+	vector<unique_ptr<s62::Expression>> duckdb_childs;
 	for (auto i = 0; i < children.size(); i++) {
 		duckdb_childs.push_back(move(lExprScalarExpressionDuckDB(children[i].get())));
 	}
@@ -474,7 +474,7 @@ CExpression *Planner::lExprScalarAggFuncExpr(kuzu::binder::Expression *expressio
 	return pexpr;
 }
 
-CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
+CExpression *Planner::lExprScalarFuncExpr(kuzu::binder::Expression *expression, LogicalPlan *prev_plan, DataTypeID required_type) {
 	CMemoryPool *mp = this->memory_pool;
 	
 	ScalarFunctionExpression *scalarfunc_expr = (ScalarFunctionExpression *)expression;
@@ -488,7 +488,7 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	// refer expression_type.h
 	bool child_exists = children.size() > 0;
 	CExpressionArray *child_exprs = GPOS_NEW(mp) CExpressionArray(mp);
-	vector<duckdb::LogicalType> child_types;
+	vector<s62::LogicalType> child_types;
 	for (auto i = 0; i < children.size(); i++) {
 		CExpression *child_expr = lExprScalarExpression(children[i].get(), prev_plan, required_type);
 		child_exprs->Append(child_expr);
@@ -499,7 +499,7 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	}
 
 	// refer expression_type.h for kuzu function names
-	duckdb::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetScalarFuncMdId(*context, func_name, child_types);
+	s62::idx_t func_mdid_id = context->db->GetCatalogWrapper().GetScalarFuncMdId(*context, func_name, child_types);
 
 	IMDId* func_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_mdid_id, 0, 0);
 	func_mdid->AddRef();
@@ -511,11 +511,11 @@ CExpression *Planner::lExprScalarFuncExpr(Expression *expression, LogicalPlan *p
 	IMDId *mdid_return_type = pmdscalar->GetResultTypeMdid();
 
 	// Get type mode
-	duckdb::ScalarFunctionCatalogEntry *func_catalog_entry;
-	duckdb::idx_t function_idx;
+	s62::ScalarFunctionCatalogEntry *func_catalog_entry;
+	s62::idx_t function_idx;
 	context->db->GetCatalogWrapper().GetScalarFuncAndIdx(*context, func_mdid_id, func_catalog_entry, function_idx);
 	auto function = func_catalog_entry->functions.get()->functions[function_idx];
-	vector<unique_ptr<duckdb::Expression>> duckdb_childs;
+	vector<unique_ptr<s62::Expression>> duckdb_childs;
 	for (auto i = 0; i < children.size(); i++) {
 		duckdb_childs.push_back(move(lExprScalarExpressionDuckDB(children[i].get())));
 	}
@@ -745,20 +745,20 @@ bool Planner::lIsCastingFunction(std::string &func_name)
     }
 }
 
-INT Planner::lGetTypeModFromType(duckdb::LogicalType type) {
+INT Planner::lGetTypeModFromType(s62::LogicalType type) {
 	INT mod = 0;
-	if (type.id() == duckdb::LogicalTypeId::DECIMAL) {
-		uint16_t width_scale = duckdb::DecimalType::GetWidth(type);
-		width_scale = width_scale << 8 | duckdb::DecimalType::GetScale(type);
+	if (type.id() == s62::LogicalTypeId::DECIMAL) {
+		uint16_t width_scale = s62::DecimalType::GetWidth(type);
+		width_scale = width_scale << 8 | s62::DecimalType::GetScale(type);
 		mod = width_scale;
-	} else if (type.id() == duckdb::LogicalTypeId::LIST) {
+	} else if (type.id() == s62::LogicalTypeId::LIST) {
 		// TODO we cannot handle cases when nesting lv >= 4 yet
-		if (duckdb::ListType::GetChildType(type).id() == duckdb::LogicalTypeId::LIST) {
-			INT child_mod = lGetTypeModFromType(duckdb::ListType::GetChildType(type));
-			mod = (INT)duckdb::LogicalTypeId::LIST | child_mod << 8;
+		if (s62::ListType::GetChildType(type).id() == s62::LogicalTypeId::LIST) {
+			INT child_mod = lGetTypeModFromType(s62::ListType::GetChildType(type));
+			mod = (INT)s62::LogicalTypeId::LIST | child_mod << 8;
 		} else {
 			// TODO we do not consider LIST(DECIMAL) yet
-			mod = (INT)duckdb::ListType::GetChildType(type).id();
+			mod = (INT)s62::ListType::GetChildType(type).id();
 		}
 	}
 	return mod;

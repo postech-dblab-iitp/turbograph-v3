@@ -12,7 +12,7 @@
 
 #include <boost/timer/timer.hpp>
 
-namespace duckdb {
+namespace s62 {
 struct LogicalType;
 
 typedef idx_t EdgeIdIdx;
@@ -133,4 +133,4 @@ class CypherPhysicalOperator {
     static idx_t operator_version;
 };
 
-}  // namespace duckdb
+}  // namespace s62

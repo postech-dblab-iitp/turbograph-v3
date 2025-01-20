@@ -8,7 +8,7 @@
 
 #include "function/scalar_macro_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static DefaultMacro internal_macros[] = {
 	{DEFAULT_SCHEMA, "current_user", {nullptr}, "'duckdb'"},                       // user name of current execution context
@@ -204,5 +204,5 @@ vector<string> DefaultFunctionGenerator::GetDefaultEntries() {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62
 */

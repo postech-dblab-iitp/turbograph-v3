@@ -15,7 +15,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using ValidityBytes = RowLayout::ValidityBytes;
 
@@ -256,4 +256,4 @@ void RowOperations::Scatter(DataChunk &columns, VectorData col_data[], const Row
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

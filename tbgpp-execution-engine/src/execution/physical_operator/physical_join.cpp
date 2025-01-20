@@ -1,6 +1,6 @@
 #include "execution/physical_operator/physical_join.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalJoin::PhysicalJoin(Schema& sch, PhysicalOperatorType type, JoinType join_type)
     : CypherPhysicalOperator(type, sch), join_type(join_type) {
@@ -18,4 +18,4 @@ bool PhysicalJoin::EmptyResultIfRHSIsEmpty() const {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

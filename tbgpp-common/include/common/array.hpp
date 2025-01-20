@@ -10,6 +10,6 @@
 
 #include <array>
 
-namespace duckdb {
+namespace s62 {
 using std::array;
 }

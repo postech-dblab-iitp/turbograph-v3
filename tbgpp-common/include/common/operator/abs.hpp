@@ -11,7 +11,7 @@
 #include "common/types.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AbsOperator {
 	template <class TA, class TR>
@@ -38,4 +38,4 @@ inline interval_t AbsOperator::Operation(const interval_t &input) {
 	        AbsOperator::Operation<int64_t, int64_t>(input.micros)};
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string CrossProductRef::ToString() const {
 	return left->ToString() + ", " + right->ToString();
@@ -40,4 +40,4 @@ unique_ptr<TableRef> CrossProductRef::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

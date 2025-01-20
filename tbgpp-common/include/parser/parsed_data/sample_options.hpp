@@ -13,7 +13,7 @@
 #include "common/vector.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class SampleMethod : uint8_t { SYSTEM_SAMPLE = 0, BERNOULLI_SAMPLE = 1, RESERVOIR_SAMPLE = 2 };
 
@@ -31,4 +31,4 @@ struct SampleOptions {
 	static bool Equals(SampleOptions *a, SampleOptions *b);
 };
 
-} // namespace duckdb
+} // namespace s62

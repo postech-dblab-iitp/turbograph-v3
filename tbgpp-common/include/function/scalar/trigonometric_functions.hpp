@@ -11,7 +11,7 @@
 #include "function/scalar_function.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SinFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -45,4 +45,4 @@ struct Atan2Fun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

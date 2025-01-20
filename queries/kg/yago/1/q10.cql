@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/about`]->(v1), (v1)-[:`http://schema.org/about`]->(v2), (v2)-[:`http://schema.org/deathPlace`]->(v3), (v0)-[:`http://schema.org/about`]->(v4), (v4)-[:`http://schema.org/manufacturer`]->(v5), (v5)-[:`http://schema.org/locationCreated`]->(v3) WHERE v2.`http://schema.org/url` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri, v3.uri, v4.uri, v5.uri

@@ -2,7 +2,7 @@
 
 //  --nodes:IMAGES images --nodes:CATEGORIES categories --nodes:ANNOTATIONS annotations --nodes:LICENSES licenses
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* coco3a_pipe1(QueryPlanSuite& suite);
 

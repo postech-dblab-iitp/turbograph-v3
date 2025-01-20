@@ -19,7 +19,7 @@
 
 #include "typedef.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! PhysicalHashJoin represents a hash loop join between two tables
 class PhysicalHashJoin : public PhysicalComparisonJoin {
@@ -83,4 +83,4 @@ class PhysicalHashJoin : public PhysicalComparisonJoin {
     virtual size_t GetLoopCount() const override { return num_loops; }
 };
 
-}  // namespace duckdb
+}  // namespace s62

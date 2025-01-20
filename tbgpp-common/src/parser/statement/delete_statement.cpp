@@ -1,7 +1,7 @@
 #include "parser/statement/delete_statement.hpp"
 #include "parser/query_node/select_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 DeleteStatement::DeleteStatement() : SQLStatement(StatementType::DELETE_STATEMENT) {
 }
@@ -50,4 +50,4 @@ unique_ptr<SQLStatement> DeleteStatement::Copy() const {
 	return unique_ptr<DeleteStatement>(new DeleteStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

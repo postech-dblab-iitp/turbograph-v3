@@ -2,7 +2,7 @@
 
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 NotNullConstraint::NotNullConstraint(column_t index) : Constraint(ConstraintType::NOT_NULL), index(index) {
 }
@@ -27,4 +27,4 @@ unique_ptr<Constraint> NotNullConstraint::Deserialize(FieldReader &source) {
 	return make_unique_base<Constraint, NotNullConstraint>(index);
 }
 
-} // namespace duckdb
+} // namespace s62

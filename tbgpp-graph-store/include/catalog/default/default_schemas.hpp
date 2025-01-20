@@ -10,7 +10,7 @@
 
 #include "catalog/default/default_generator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class DefaultSchemaGenerator : public DefaultGenerator {
 public:
@@ -21,4 +21,4 @@ public:
 	vector<string> GetDefaultEntries() override;
 };
 
-} // namespace duckdb
+} // namespace s62

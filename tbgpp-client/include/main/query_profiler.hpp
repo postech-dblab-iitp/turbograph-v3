@@ -22,7 +22,7 @@
 #include "common/pair.hpp"
 #include "common/deque.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 class ExpressionExecutor;
 class CypherPhysicalOperator;
@@ -252,4 +252,4 @@ public:
 		this->prev_profilers_size = size;
 	}
 };
-} // namespace duckdb
+} // namespace s62

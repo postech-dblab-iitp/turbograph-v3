@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <memory>
 
-namespace duckdb {
+namespace s62 {
 
 PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog,
                                              SchemaCatalogEntry *schema,
@@ -296,4 +296,4 @@ StdDev PartitionCatalogEntry::GetStdDev(PropertyKeyID key_id)
     return std_dev;
 }
 
-}  // namespace duckdb
+}  // namespace s62

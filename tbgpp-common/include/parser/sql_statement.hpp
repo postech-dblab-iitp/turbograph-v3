@@ -13,7 +13,7 @@
 #include "common/exception.hpp"
 //#include "common/printer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! SQLStatement is the base class of any type of SQL statement.
 class SQLStatement {
@@ -43,4 +43,4 @@ public:
 	//! Create a copy of this SelectStatement
 	virtual unique_ptr<SQLStatement> Copy() const = 0;
 };
-} // namespace duckdb
+} // namespace s62

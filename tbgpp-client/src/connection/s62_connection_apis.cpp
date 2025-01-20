@@ -14,7 +14,7 @@
 using namespace antlr4;
 using namespace gpopt;
 
-namespace duckdb {
+namespace s62 {
 
 typedef vector<idx_t> PartitionIndexes;
 typedef vector<idx_t> PropertySchemaIDs;
@@ -58,7 +58,7 @@ void S62ConnectionAPIs::SetupDatabase() {
 
     // craet client
 	client = std::make_shared<ClientContext>(database->instance->shared_from_this());
-    duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
+    s62::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 
     // create planner
     auto planner_config = s62::PlannerConfig();

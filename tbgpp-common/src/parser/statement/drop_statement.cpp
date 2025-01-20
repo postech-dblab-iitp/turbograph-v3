@@ -1,6 +1,6 @@
 #include "parser/statement/drop_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 DropStatement::DropStatement() : SQLStatement(StatementType::DROP_STATEMENT), info(make_unique<DropInfo>()) {
 }
@@ -12,4 +12,4 @@ unique_ptr<SQLStatement> DropStatement::Copy() const {
 	return unique_ptr<DropStatement>(new DropStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

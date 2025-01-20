@@ -11,7 +11,7 @@
 #include "common/types/value.hpp"
 #include "common/unordered_map.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BoundParameterData {
 	BoundParameterData() {
@@ -40,4 +40,4 @@ struct BoundParameterMap {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

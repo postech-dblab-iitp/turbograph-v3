@@ -12,7 +12,7 @@
 #include "common/atomic.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Executor;
 class Task;
 
@@ -67,4 +67,4 @@ protected:
 	atomic<bool> finished;
 };
 
-} // namespace duckdb
+} // namespace s62

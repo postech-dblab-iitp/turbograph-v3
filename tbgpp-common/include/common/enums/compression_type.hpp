@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class CompressionType : uint8_t {
 	COMPRESSION_AUTO = 0,
@@ -26,4 +26,4 @@ enum class CompressionType : uint8_t {
 CompressionType CompressionTypeFromString(const string &str);
 string CompressionTypeToString(CompressionType type);
 
-} // namespace duckdb
+} // namespace s62

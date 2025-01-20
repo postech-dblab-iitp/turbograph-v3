@@ -7,7 +7,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 void LabelSet::insert(std::string input)
 {
     this->data.insert(input);
@@ -50,7 +50,7 @@ bool operator==(const LabelSet lhs, const LabelSet rhs)
     return lhs.data == rhs.data;
 }
 
-void Schema::setStoredTypes(std::vector<duckdb::LogicalType> types)
+void Schema::setStoredTypes(std::vector<s62::LogicalType> types)
 {
     stored_types_size = 0;
     for (auto &t : types) {
@@ -59,7 +59,7 @@ void Schema::setStoredTypes(std::vector<duckdb::LogicalType> types)
     }
 }
 
-void Schema::appendStoredTypes(std::vector<duckdb::LogicalType> types)
+void Schema::appendStoredTypes(std::vector<s62::LogicalType> types)
 {
     for (auto &t : types) {
         stored_types.push_back(t);
@@ -73,12 +73,12 @@ void Schema::setStoredColumnNames(std::vector<std::string> &names)
     }
 }
 
-std::vector<duckdb::LogicalType> Schema::getStoredTypes()
+std::vector<s62::LogicalType> Schema::getStoredTypes()
 {
     return stored_types;
 }
 
-std::vector<duckdb::LogicalType> &Schema::getStoredTypesRef()
+std::vector<s62::LogicalType> &Schema::getStoredTypesRef()
 {
     return stored_types;
 }
@@ -145,4 +145,4 @@ void FilteredChunkBuffer::Initialize(vector<LogicalType> types)
     buffer_idx = 0;
 }
 
-}  // namespace duckdb
+}  // namespace s62

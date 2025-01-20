@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-namespace duckdb {
+namespace s62 {
 
 inline void MkDir(string &path, bool delete_if_exist) {
 	if (delete_if_exist) remove(path.c_str());
@@ -20,4 +20,4 @@ inline void MkDir(string &path, bool delete_if_exist) {
 	umask(old_umask);
 }
 
-} // namespace duckdb
+} // namespace s62

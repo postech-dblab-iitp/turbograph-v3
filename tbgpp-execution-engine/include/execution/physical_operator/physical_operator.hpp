@@ -15,7 +15,7 @@
 #include "execution/execution_context.hpp"
 #include "common/enums/operator_result_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Event;
 class Executor;
 class PhysicalOperator;
@@ -211,4 +211,4 @@ public:
 	                        PhysicalOperator *pipeline_child);
 };*/
 
-} // namespace duckdb
+} // namespace s62

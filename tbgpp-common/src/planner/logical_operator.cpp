@@ -5,7 +5,7 @@
 // // #include "common/tree_renderer.hpp"
 // #include "parser/parser.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // LogicalOperator::LogicalOperator(LogicalOperatorType type) : type(type) {
 // }
@@ -143,4 +143,4 @@
 // 	//Printer::Print(ToString());
 // }
 
-// } // namespace duckdb
+// } // namespace s62

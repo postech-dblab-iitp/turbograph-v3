@@ -11,7 +11,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/join_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! PhysicalJoin represents the base class of the join operators
 class PhysicalJoin : public CypherPhysicalOperator {
@@ -31,4 +31,4 @@ public:
 	static void ConstructLeftJoinResult(DataChunk &left, DataChunk &result, bool found_match[], const vector<uint32_t>& right_col_map);
 };
 
-} // namespace duckdb
+} // namespace s62

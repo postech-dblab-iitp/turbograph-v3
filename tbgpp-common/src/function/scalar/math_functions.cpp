@@ -1,7 +1,7 @@
 #include "function/scalar/math_functions.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterMathFunctions() {
 	Register<AbsFun>();
@@ -42,4 +42,4 @@ void BuiltinFunctions::RegisterMathFunctions() {
 	Register<IsFiniteFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

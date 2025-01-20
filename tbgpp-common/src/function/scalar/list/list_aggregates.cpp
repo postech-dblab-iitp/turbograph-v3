@@ -6,7 +6,7 @@
 // #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 // #include "execution/expression_executor.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // // FIXME: use a local state for each thread to increase performance?
 // // FIXME: benchmark the use of simple_update against using update (if applicable)
@@ -215,4 +215,4 @@
 // 	set.AddFunction({"list_aggregate", "array_aggregate", "list_aggr", "array_aggr"}, GetFunction());
 // }
 
-// } // namespace duckdb
+// } // namespace s62

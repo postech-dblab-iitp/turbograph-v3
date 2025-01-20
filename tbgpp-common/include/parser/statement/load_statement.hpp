@@ -11,7 +11,7 @@
 #include "parser/sql_statement.hpp"
 #include "parser/parsed_data/load_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class LoadStatement : public SQLStatement {
 public:
@@ -25,4 +25,4 @@ public:
 
 	unique_ptr<LoadInfo> info;
 };
-} // namespace duckdb
+} // namespace s62

@@ -8,7 +8,7 @@
 
 #include "execution/physical_operator/physical_join.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // PhysicalNestedLoopJoin::PhysicalNestedLoopJoin(LogicalOperator &op, unique_ptr<PhysicalOperator> left,
 //                                                unique_ptr<PhysicalOperator> right, vector<JoinCondition> cond,
@@ -446,4 +446,4 @@ void PhysicalJoin::ConstructLeftJoinResult(DataChunk &left, DataChunk &result, b
 // 	ConstructFullOuterJoinResult(sink.right_found_match.get(), sink.right_data, chunk, state.right_outer_position);
 // }
 
-} // namespace duckdb
+} // namespace s62

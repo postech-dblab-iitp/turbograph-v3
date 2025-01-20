@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // CatalogEntry::CatalogEntry(CatalogType type, Catalog *catalog_p, string name_p) {
 // 	// Deprecated
@@ -34,4 +34,4 @@ string CatalogEntry::ToSQL() {
 }
 // LCOV_EXCL_STOP
 
-} // namespace duckdb
+} // namespace s62

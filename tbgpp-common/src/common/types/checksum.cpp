@@ -1,7 +1,7 @@
 #include "common/checksum.hpp"
 #include "common/types/hash.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 uint64_t Checksum(uint8_t *buffer, size_t size) {
 	uint64_t result = 5381;
@@ -18,4 +18,4 @@ uint64_t Checksum(uint8_t *buffer, size_t size) {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

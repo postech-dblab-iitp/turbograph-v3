@@ -6,7 +6,7 @@
 #include "storage/statistics/string_statistics.hpp"
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct InstrOperator {
 	template <class TA, class TB, class TR>
@@ -15,12 +15,12 @@ struct InstrOperator {
 
 		auto location = ContainsFun::Find(haystack, needle);
 		if (location != DConstants::INVALID_INDEX) {
-			auto len = (utf8proc_ssize_t)location;
-			auto str = reinterpret_cast<const utf8proc_uint8_t *>(haystack.GetDataUnsafe());
-			D_ASSERT(len <= (utf8proc_ssize_t)haystack.GetSize());
+			auto len = (duckdb::utf8proc_ssize_t)location;
+			auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(haystack.GetDataUnsafe());
+			D_ASSERT(len <= (duckdb::utf8proc_ssize_t)haystack.GetSize());
 			for (++string_position; len > 0; ++string_position) {
-				utf8proc_int32_t codepoint;
-				auto bytes = utf8proc_iterate(str, len, &codepoint);
+				duckdb::utf8proc_int32_t codepoint;
+				auto bytes = duckdb::utf8proc_iterate(str, len, &codepoint);
 				str += bytes;
 				len -= bytes;
 			}
@@ -66,4 +66,4 @@ void InstrFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(instr);
 }
 
-} // namespace duckdb
+} // namespace s62

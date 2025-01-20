@@ -3,7 +3,7 @@
 #include "function/aggregate/distributive_functions.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SkewState {
 	size_t n;
@@ -82,4 +82,4 @@ void SkewFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(function_set);
 }
 
-} // namespace duckdb
+} // namespace s62

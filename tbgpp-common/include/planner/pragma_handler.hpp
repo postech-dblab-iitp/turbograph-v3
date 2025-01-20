@@ -12,7 +12,7 @@
 #include "common/vector.hpp"
 #include "parser/statement/pragma_statement.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 // class ClientContext;
 // class ClientContextLock;
 // class SQLStatement;
@@ -34,4 +34,4 @@
 
 // 	void HandlePragmaStatementsInternal(vector<unique_ptr<SQLStatement>> &statements);
 // };
-// } // namespace duckdb
+// } // namespace s62

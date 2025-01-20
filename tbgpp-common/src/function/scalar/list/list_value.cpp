@@ -7,7 +7,7 @@
 #include "storage/statistics/list_statistics.hpp"
 #include "planner/expression_binder.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static void ListValueFunction(DataChunk &args, ExpressionState &state, Vector &result) {
 	D_ASSERT(result.GetType().id() == LogicalTypeId::LIST);
@@ -75,4 +75,4 @@ void ListValueFun::RegisterFunction(BuiltinFunctions &set) {
     set.AddFunction(fun);
 }
 
-} // namespace duckdb
+} // namespace s62

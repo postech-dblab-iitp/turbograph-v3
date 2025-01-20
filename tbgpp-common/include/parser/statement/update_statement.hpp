@@ -14,7 +14,7 @@
 #include "common/vector.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class UpdateStatement : public SQLStatement {
 public:
@@ -38,4 +38,4 @@ public:
 	unique_ptr<SQLStatement> Copy() const override;
 };
 
-} // namespace duckdb
+} // namespace s62

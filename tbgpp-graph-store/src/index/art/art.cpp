@@ -10,7 +10,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // ART::ART(const vector<column_t> &column_ids, const vector<unique_ptr<Expression>> &unbound_expressions,
 //          IndexConstraintType constraint_type)
@@ -920,4 +920,4 @@ void ART::VerifyExistence(DataChunk &chunk, VerifyExistenceType verify_type, str
 	// }
 }
 
-} // namespace duckdb
+} // namespace s62

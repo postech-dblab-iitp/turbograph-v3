@@ -41,7 +41,7 @@
 #include <memory>
 using namespace std;
 
-namespace duckdb {
+namespace s62 {
 
 /*struct ActiveQueryContext {
 	//! The query that is currently being executed
@@ -1160,4 +1160,4 @@ ParserOptions ClientContext::GetParserOptions() {
 	return options;
 }
 */
-} // namespace duckdb
+} // namespace s62

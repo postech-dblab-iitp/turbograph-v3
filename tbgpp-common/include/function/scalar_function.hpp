@@ -16,7 +16,7 @@
 #include "function/function.hpp"
 #include "storage/statistics/base_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundFunctionExpression;
 class ScalarFunctionCatalogEntry;
@@ -185,4 +185,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

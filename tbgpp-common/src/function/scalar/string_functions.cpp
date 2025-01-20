@@ -2,7 +2,7 @@
 // #include "function/scalar/blob_functions.hpp"
 // #include "function/scalar/uuid_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterStringFunctions() {
 	Register<ReverseFun>();
@@ -46,4 +46,4 @@ void BuiltinFunctions::RegisterStringFunctions() {
 	// Register<UUIDFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

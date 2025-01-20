@@ -18,7 +18,7 @@
 #include <cstring> // strlen() on Solaris
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Vector::Vector(LogicalType type_p, bool create_data, bool zero_data, idx_t capacity)
     : vector_type(VectorType::FLAT_VECTOR), type(move(type_p)), data(nullptr), capacity(capacity) {
@@ -1712,4 +1712,4 @@ void ListVector::PushBack(Vector &target, const Value &insert) {
 	target_buffer.PushBack(insert);
 }
 
-} // namespace duckdb
+} // namespace s62

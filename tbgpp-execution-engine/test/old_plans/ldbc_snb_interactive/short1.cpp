@@ -1,19 +1,19 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 
 	// scan schema
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "birthday", duckdb::LogicalType::BIGINT);
-	schema.addPropertyIntoNode("n", "firstName", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "lastName", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "gender", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "browserUsed", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "locationIP", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "creationDate", duckdb::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "birthday", s62::LogicalType::BIGINT);
+	schema.addPropertyIntoNode("n", "firstName", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "lastName", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "gender", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "browserUsed", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "locationIP", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "creationDate", s62::LogicalType::BIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -28,10 +28,10 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	scan_propertyKeys.push_back("creationDate");
 	
 	// Filter
-	duckdb::Value filter_val; // person key
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(35184372099695); }
-	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	s62::Value filter_val; // person key
+	if(LDBC_SF==1) { filter_val = s62::Value::UBIGINT(35184372099695); }
+	if(LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	if(LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 
 	// Expand
 	Schema expandschema = schema;
@@ -39,7 +39,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 	
 	// FetchId
 	Schema schema3 = expandschema;
-	schema3.addPropertyIntoNode("p", "id", duckdb::LogicalType::UBIGINT );
+	schema3.addPropertyIntoNode("p", "id", s62::LogicalType::UBIGINT );
 	PropertyKeys seek_propertyKeys;
 	seek_propertyKeys.push_back("id");
 
@@ -48,14 +48,14 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::LDBC_IS1() {
 
 	// Project
 	Schema project_schema;
-	project_schema.addColumn("firstName", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("lastName", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("birthday", duckdb::LogicalType::BIGINT);
-	project_schema.addColumn("locationIP", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("browserUsed", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("cityId", duckdb::LogicalType::UBIGINT);
-	project_schema.addColumn("gender", duckdb::LogicalType::VARCHAR);
-	project_schema.addColumn("creationDate", duckdb::LogicalType::BIGINT);
+	project_schema.addColumn("firstName", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("lastName", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("birthday", s62::LogicalType::BIGINT);
+	project_schema.addColumn("locationIP", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("browserUsed", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("cityId", s62::LogicalType::UBIGINT);
+	project_schema.addColumn("gender", s62::LogicalType::VARCHAR);
+	project_schema.addColumn("creationDate", s62::LogicalType::BIGINT);
 	vector<unique_ptr<Expression>> proj_exprs;
 	{
 		proj_exprs.push_back( move(make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 2)) );

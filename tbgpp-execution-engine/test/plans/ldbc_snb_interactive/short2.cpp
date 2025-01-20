@@ -1,6 +1,6 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -28,12 +28,12 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	projection_mapping1.push_back({std::numeric_limits<uint64_t>::max(), 1});
 
 	int64_t filterKeyIndex = 1;
-	duckdb::Value filter_val = duckdb::Value::UBIGINT(2783);
+	s62::Value filter_val = s62::Value::UBIGINT(2783);
 
 // FIXME
-	// if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(35184372099695); }
-	// if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	// if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	// if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(35184372099695); }
+	// if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	// if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 
 // expand (person <- message)
 	// p._id, p.id, m._id

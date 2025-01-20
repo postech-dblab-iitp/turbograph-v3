@@ -30,7 +30,7 @@
 #include <utility>
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 Value::Value(LogicalType type) : type_(move(type)), is_null(true) {
 }
@@ -358,8 +358,8 @@ bool Value::IsFinite(double input) {
 
 bool Value::StringIsValid(const char *str, idx_t length) {
 	return true;
-	//auto utf_type = Utf8Proc::Analyze(str, length);
-	//return utf_type != UnicodeType::INVALID;
+	//auto utf_type = duckdb::Utf8Proc::Analyze(str, length);
+	//return utf_type != duckdb::UnicodeType::INVALID;
 }
 
 Value Value::DECIMAL(int16_t value, uint8_t width, uint8_t scale) {
@@ -1211,33 +1211,33 @@ hash_t Value::Hash() const {
 	}
 	switch (type_.InternalType()) {
 	case PhysicalType::BOOL:
-		return duckdb::Hash(value_.boolean);
+		return s62::Hash(value_.boolean);
 	case PhysicalType::INT8:
-		return duckdb::Hash(value_.tinyint);
+		return s62::Hash(value_.tinyint);
 	case PhysicalType::INT16:
-		return duckdb::Hash(value_.smallint);
+		return s62::Hash(value_.smallint);
 	case PhysicalType::INT32:
-		return duckdb::Hash(value_.integer);
+		return s62::Hash(value_.integer);
 	case PhysicalType::INT64:
-		return duckdb::Hash(value_.bigint);
+		return s62::Hash(value_.bigint);
 	case PhysicalType::UINT8:
-		return duckdb::Hash(value_.utinyint);
+		return s62::Hash(value_.utinyint);
 	case PhysicalType::UINT16:
-		return duckdb::Hash(value_.usmallint);
+		return s62::Hash(value_.usmallint);
 	case PhysicalType::UINT32:
-		return duckdb::Hash(value_.uinteger);
+		return s62::Hash(value_.uinteger);
 	case PhysicalType::UINT64:
-		return duckdb::Hash(value_.ubigint);
+		return s62::Hash(value_.ubigint);
 	case PhysicalType::INT128:
-		return duckdb::Hash(value_.hugeint);
+		return s62::Hash(value_.hugeint);
 	case PhysicalType::FLOAT:
-		return duckdb::Hash(value_.float_);
+		return s62::Hash(value_.float_);
 	case PhysicalType::DOUBLE:
-		return duckdb::Hash(value_.double_);
+		return s62::Hash(value_.double_);
 	case PhysicalType::INTERVAL:
-		return duckdb::Hash(value_.interval);
+		return s62::Hash(value_.interval);
 	case PhysicalType::VARCHAR:
-		return duckdb::Hash(string_t(StringValue::Get(*this)));
+		return s62::Hash(string_t(StringValue::Get(*this)));
 	case PhysicalType::STRUCT: {
 		auto &struct_children = StructValue::GetChildren(*this);
 		hash_t hash = 0;
@@ -1835,4 +1835,4 @@ bool Value::ValuesAreEqual(const Value &result_value, const Value &value) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! ComparisonExpression represents a boolean comparison (e.g. =, >=, <>). Always returns a boolean
 //! and has two children.
 class ComparisonExpression : public ParsedExpression {
@@ -37,4 +37,4 @@ public:
 		return entry.left->ToString() + " " + ExpressionTypeToOperator(entry.type) + " " + entry.right->ToString();
 	}
 };
-} // namespace duckdb
+} // namespace s62

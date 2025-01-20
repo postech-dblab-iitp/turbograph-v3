@@ -2,8 +2,8 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class JsonFileType : uint8_t { JSON = 0, JSONL = 1, };
 
-} // namespace duckdb
+} // namespace s62

@@ -6,7 +6,7 @@
 #include "planner/expression/bound_function_expression.hpp"
 #include "common/limits.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SetseedBindData : public FunctionData {
 	//! The client context for the function call
@@ -52,4 +52,4 @@ void SetseedFun::RegisterFunction(BuiltinFunctions &set) {
 	    ScalarFunction("setseed", {LogicalType::DOUBLE}, LogicalType::SQLNULL, SetSeedFunction, true, SetSeedBind));
 }
 
-} // namespace duckdb
+} // namespace s62

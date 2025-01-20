@@ -39,7 +39,7 @@
 #include "cache/chunk_cache_manager.h"
 #include "common/robin_hood.h"
 
-using namespace duckdb;
+using namespace s62;
 namespace po = boost::program_options;
 
 #define CATCH_CONFIG_RUNNER

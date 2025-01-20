@@ -9,7 +9,7 @@
 #include "common/types/null_value.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct MinMaxState {
@@ -566,4 +566,4 @@ void MaxFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(max);
 }
 
-} // namespace duckdb
+} // namespace s62

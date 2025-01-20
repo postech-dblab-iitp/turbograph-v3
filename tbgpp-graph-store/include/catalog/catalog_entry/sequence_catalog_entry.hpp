@@ -13,7 +13,7 @@
 #include "parser/parsed_data/create_sequence_info.hpp"
 #include "parser/parsed_data/alter_table_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Serializer;
 class Deserializer;
 
@@ -62,5 +62,5 @@ public:
 
 	CatalogEntry *AlterOwnership(ClientContext &context, AlterInfo *info);
 };
-} // namespace duckdb
+} // namespace s62
 */

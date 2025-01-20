@@ -1,7 +1,7 @@
 #include "common/types/decimal.hpp"
 #include "common/types/cast_helpers.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class SIGNED, class UNSIGNED>
 string TemplatedDecimalToString(SIGNED value, uint8_t scale) {
@@ -30,4 +30,4 @@ string Decimal::ToString(hugeint_t value, uint8_t scale) {
 	return string(data.get(), len);
 }
 
-} // namespace duckdb
+} // namespace s62

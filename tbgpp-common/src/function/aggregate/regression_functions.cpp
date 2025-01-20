@@ -4,7 +4,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "function/aggregate/regression_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterRegressiveAggregates() {
 	Register<RegrAvgxFun>();
@@ -18,4 +18,4 @@ void BuiltinFunctions::RegisterRegressiveAggregates() {
 	Register<RegrInterceptFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

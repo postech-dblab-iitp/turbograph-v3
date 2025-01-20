@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Blob class is a static class that holds helper functions for the Blob type.
 class Blob {
@@ -54,4 +54,4 @@ public:
 	//! Converts a base64 string to a blob, output should have space for at least FromBase64Size(blob) bytes
 	static void FromBase64(string_t str, data_ptr_t output, idx_t output_size);
 };
-} // namespace duckdb
+} // namespace s62

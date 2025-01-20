@@ -15,7 +15,7 @@ namespace re2 {
 class RE2;
 }
 
-namespace duckdb {
+namespace s62 {
 
 struct ReverseFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -63,7 +63,7 @@ struct LengthFun {
 			if (input_data[i] & 0x80) {
 				int64_t length = 0;
 				// non-ascii character: use grapheme iterator on remainder of string
-				utf8proc_grapheme_callback(input_data, input_length, [&](size_t start, size_t end) {
+				duckdb::utf8proc_grapheme_callback(input_data, input_length, [&](size_t start, size_t end) {
 					length++;
 					return true;
 				});
@@ -187,4 +187,4 @@ struct ToStringFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

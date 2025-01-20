@@ -2,7 +2,7 @@
 #include "common/types/interval.hpp"
 #include "common/operator/multiply.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ToYearsOperator {
 	template <class TA, class TR>
@@ -127,4 +127,4 @@ void ToIntervalFun::RegisterFunction(BuiltinFunctions &set) {
 	                               ScalarFunction::UnaryFunction<int64_t, interval_t, ToMicroSecondsOperator>));
 }
 
-} // namespace duckdb
+} // namespace s62

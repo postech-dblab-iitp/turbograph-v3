@@ -10,7 +10,7 @@
 #endif
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 // LCOV_EXCL_START
 void Printer::Print(const string &str) {
@@ -56,4 +56,4 @@ void Printer::Print(const string &str) {
 // }
 // LCOV_EXCL_STOP
 
-} // namespace duckdb
+} // namespace s62

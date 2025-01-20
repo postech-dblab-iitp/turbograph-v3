@@ -6,7 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 
-namespace duckdb {
+namespace s62 {
 
 static string_t RepeatScalarFunction(const string_t &str, const int64_t cnt, vector<char> &result) {
 	// Get information about the repeated string
@@ -40,4 +40,4 @@ void RepeatFun::RegisterFunction(BuiltinFunctions &set) {
 	                               RepeatFunction));                            // pointer to function implementation
 }
 
-} // namespace duckdb
+} // namespace s62

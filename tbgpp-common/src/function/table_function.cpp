@@ -1,6 +1,6 @@
 #include "function/table_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 FunctionOperatorData::~FunctionOperatorData() {
 }
@@ -53,4 +53,4 @@ TableFunction::TableFunction(const vector<LogicalType> &arguments, table_functio
 TableFunction::TableFunction() : SimpleNamedParameterFunction("", {}) {
 }
 
-} // namespace duckdb
+} // namespace s62

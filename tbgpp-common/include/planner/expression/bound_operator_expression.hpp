@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundOperatorExpression : public Expression {
 public:
@@ -25,4 +25,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

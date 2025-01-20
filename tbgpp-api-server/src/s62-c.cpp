@@ -18,7 +18,7 @@
 #include "catalog/catalog_entry/list.hpp"
 #include "common/types/decimal.hpp"
 
-using namespace duckdb;
+using namespace s62;
 using namespace antlr4;
 using namespace gpopt;
 
@@ -67,7 +67,7 @@ s62_state s62_connect(const char *dbname) {
 
         // create client
         client = std::make_shared<ClientContext>(database->instance->shared_from_this());
-        duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
+        s62::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 
         // create planner
         auto planner_config = s62::PlannerConfig();
@@ -95,7 +95,7 @@ s62_state s62_connect(const char *dbname) {
 }
 
 void s62_disconnect() {
-	duckdb::ReleaseClientWrapper();
+	s62::ReleaseClientWrapper();
     client.reset();
     delete ChunkCacheManager::ccm;
     database.reset();
@@ -522,18 +522,18 @@ s62_state s62_bind_double(s62_prepared_statement* prepared_statement, idx_t para
 }
 
 s62_state s62_bind_date(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_date val) {
-	auto value = Value::DATE(duckdb::date_t(val.days));
+	auto value = Value::DATE(s62::date_t(val.days));
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 
 s62_state s62_bind_time(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_time val) {
-	auto value = Value::TIME(duckdb::dtime_t(val.micros));
+	auto value = Value::TIME(s62::dtime_t(val.micros));
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 
 s62_state s62_bind_timestamp(s62_prepared_statement* prepared_statement, idx_t param_idx,
                                    s62_timestamp val) {
-	auto value = Value::TIMESTAMP(duckdb::timestamp_t(val.micros));
+	auto value = Value::TIMESTAMP(s62::timestamp_t(val.micros));
 	return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 }
 
@@ -558,7 +558,7 @@ s62_state s62_bind_varchar_length(s62_prepared_statement* prepared_statement, id
 
 s62_state s62_bind_decimal(s62_prepared_statement* prepared_statement, idx_t param_idx, s62_decimal val) {
 	auto hugeint_val = s62_internal_hugeint(val.value);
-	if (val.width > duckdb::Decimal::MAX_WIDTH_INT64) {
+	if (val.width > s62::Decimal::MAX_WIDTH_INT64) {
 		auto value = Value::DECIMAL(hugeint_val, val.width, val.scale);
 		return s62_bind_value(prepared_statement, param_idx, (s62_value)&value);
 	}
@@ -727,7 +727,7 @@ static s62_result* s62_move_to_cursored_result(s62_resultset_wrapper* result_set
 	return result;
 }
 
-template <typename T, duckdb::LogicalTypeId TYPE_ID>
+template <typename T, s62::LogicalTypeId TYPE_ID>
 T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
@@ -739,9 +739,9 @@ T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return T(); }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != TYPE_ID && vec->GetType().InternalType() != duckdb::LogicalType(TYPE_ID).InternalType()) {
+    if (vec->GetType().id() != TYPE_ID && vec->GetType().InternalType() != s62::LogicalType(TYPE_ID).InternalType()) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return T();
@@ -752,7 +752,7 @@ T s62_get_value(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 }
 
 template <>
-string s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+string s62_get_value<string, s62::LogicalTypeId::VARCHAR>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -763,9 +763,9 @@ string s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(s62_resultset_wrapp
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return string(); }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != duckdb::LogicalTypeId::VARCHAR) {
+    if (vec->GetType().id() != s62::LogicalTypeId::VARCHAR) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return string();
@@ -776,7 +776,7 @@ string s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(s62_resultset_wrapp
 }
 
 template <>
-int16_t s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+int16_t s62_get_value<int16_t, s62::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -787,9 +787,9 @@ int16_t s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return 0; }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+    if (vec->GetType().id() != s62::LogicalTypeId::DECIMAL) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return 0;
@@ -800,7 +800,7 @@ int16_t s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
 }
 
 template <>
-int32_t s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+int32_t s62_get_value<int32_t, s62::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -811,9 +811,9 @@ int32_t s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return 0; }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+    if (vec->GetType().id() != s62::LogicalTypeId::DECIMAL) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return 0;
@@ -824,7 +824,7 @@ int32_t s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
 }
 
 template <>
-int64_t s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+int64_t s62_get_value<int64_t, s62::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -835,9 +835,9 @@ int64_t s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return 0; }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+    if (vec->GetType().id() != s62::LogicalTypeId::DECIMAL) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return 0;
@@ -848,7 +848,7 @@ int64_t s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wra
 }
 
 template <>
-hugeint_t s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
+hugeint_t s62_get_value<hugeint_t, s62::LogicalTypeId::DECIMAL>(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
 	if (result_set_wrp == NULL) {
 		last_error_message = INVALID_RESULT_SET_MSG;
 		last_error_code = S62_ERROR_INVALID_RESULT_SET;
@@ -859,9 +859,9 @@ hugeint_t s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return hugeint_t(); }
 
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 
-    if (vec->GetType().id() != duckdb::LogicalTypeId::DECIMAL) {
+    if (vec->GetType().id() != s62::LogicalTypeId::DECIMAL) {
         last_error_message = INVALID_RESULT_SET_MSG;
         last_error_code = S62_ERROR_INVALID_COLUMN_TYPE;
         return 0;
@@ -872,27 +872,27 @@ hugeint_t s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(s62_resultset
 }
 
 bool s62_get_bool(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-    return s62_get_value<bool, duckdb::LogicalTypeId::BOOLEAN>(result_set_wrp, col_idx);
+    return s62_get_value<bool, s62::LogicalTypeId::BOOLEAN>(result_set_wrp, col_idx);
 }
 
 int8_t s62_get_int8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-    return s62_get_value<int8_t, duckdb::LogicalTypeId::TINYINT>(result_set_wrp, col_idx);
+    return s62_get_value<int8_t, s62::LogicalTypeId::TINYINT>(result_set_wrp, col_idx);
 }
 
 int16_t s62_get_int16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<int16_t, duckdb::LogicalTypeId::SMALLINT>(result_set_wrp, col_idx);
+	return s62_get_value<int16_t, s62::LogicalTypeId::SMALLINT>(result_set_wrp, col_idx);
 }
 
 int32_t s62_get_int32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<int32_t, duckdb::LogicalTypeId::INTEGER>(result_set_wrp, col_idx);
+	return s62_get_value<int32_t, s62::LogicalTypeId::INTEGER>(result_set_wrp, col_idx);
 }
 
 int64_t s62_get_int64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<int64_t, duckdb::LogicalTypeId::BIGINT>(result_set_wrp, col_idx);
+	return s62_get_value<int64_t, s62::LogicalTypeId::BIGINT>(result_set_wrp, col_idx);
 }
 
 s62_hugeint s62_get_hugeint(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	hugeint_t hugeint = s62_get_value<hugeint_t, duckdb::LogicalTypeId::HUGEINT>(result_set_wrp, col_idx);
+	hugeint_t hugeint = s62_get_value<hugeint_t, s62::LogicalTypeId::HUGEINT>(result_set_wrp, col_idx);
 	s62_hugeint result;
 	result.lower = hugeint.lower;
 	result.upper = hugeint.upper;
@@ -900,52 +900,52 @@ s62_hugeint s62_get_hugeint(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 }
 
 uint8_t s62_get_uint8(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint8_t, duckdb::LogicalTypeId::UTINYINT>(result_set_wrp, col_idx);
+	return s62_get_value<uint8_t, s62::LogicalTypeId::UTINYINT>(result_set_wrp, col_idx);
 }
 
 uint16_t s62_get_uint16(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint16_t, duckdb::LogicalTypeId::USMALLINT>(result_set_wrp, col_idx);
+	return s62_get_value<uint16_t, s62::LogicalTypeId::USMALLINT>(result_set_wrp, col_idx);
 }
 
 uint32_t s62_get_uint32(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint32_t, duckdb::LogicalTypeId::UINTEGER>(result_set_wrp, col_idx);
+	return s62_get_value<uint32_t, s62::LogicalTypeId::UINTEGER>(result_set_wrp, col_idx);
 }
 
 uint64_t s62_get_uint64(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint64_t, duckdb::LogicalTypeId::UBIGINT>(result_set_wrp, col_idx);
+	return s62_get_value<uint64_t, s62::LogicalTypeId::UBIGINT>(result_set_wrp, col_idx);
 }
 
 float s62_get_float(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<float, duckdb::LogicalTypeId::FLOAT>(result_set_wrp, col_idx);
+	return s62_get_value<float, s62::LogicalTypeId::FLOAT>(result_set_wrp, col_idx);
 }
 
 double s62_get_double(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<double, duckdb::LogicalTypeId::DOUBLE>(result_set_wrp, col_idx);
+	return s62_get_value<double, s62::LogicalTypeId::DOUBLE>(result_set_wrp, col_idx);
 }
 
 s62_date s62_get_date(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	duckdb::date_t date = s62_get_value<duckdb::date_t, duckdb::LogicalTypeId::DATE>(result_set_wrp, col_idx);
+	s62::date_t date = s62_get_value<s62::date_t, s62::LogicalTypeId::DATE>(result_set_wrp, col_idx);
 	s62_date result;
 	result.days = date.days;
 	return result;
 }
 
 s62_time s62_get_time(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	duckdb::dtime_t time = s62_get_value<duckdb::dtime_t, duckdb::LogicalTypeId::TIME>(result_set_wrp, col_idx);
+	s62::dtime_t time = s62_get_value<s62::dtime_t, s62::LogicalTypeId::TIME>(result_set_wrp, col_idx);
 	s62_time result;
 	result.micros = time.micros;
 	return result;
 }
 
 s62_timestamp s62_get_timestamp(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	duckdb::timestamp_t timestamp = s62_get_value<duckdb::timestamp_t, duckdb::LogicalTypeId::TIMESTAMP>(result_set_wrp, col_idx);
+	s62::timestamp_t timestamp = s62_get_value<s62::timestamp_t, s62::LogicalTypeId::TIMESTAMP>(result_set_wrp, col_idx);
 	s62_timestamp result;
 	result.micros = timestamp.value;
 	return result;
 }
 
 s62_string s62_get_varchar(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	string str = s62_get_value<string, duckdb::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
+	string str = s62_get_value<string, s62::LogicalTypeId::VARCHAR>(result_set_wrp, col_idx);
 	s62_string result;
 	result.size = str.length();
 	result.data = (char*)malloc(result.size + 1);
@@ -965,20 +965,20 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
     size_t local_cursor;
     auto result = s62_move_to_cursored_result(result_set_wrp, col_idx, local_cursor);
     if (result == NULL) { return default_value; }
-	duckdb::Vector* vec = reinterpret_cast<duckdb::Vector*>(result->__internal_data);
+	s62::Vector* vec = reinterpret_cast<s62::Vector*>(result->__internal_data);
 	auto data_type = vec->GetType();
-	auto width = duckdb::DecimalType::GetWidth(data_type);
-	auto scale = duckdb::DecimalType::GetScale(data_type);
+	auto width = s62::DecimalType::GetWidth(data_type);
+	auto scale = s62::DecimalType::GetScale(data_type);
 	switch (data_type.InternalType()) {
-		case duckdb::PhysicalType::INT16:
-			return s62_decimal{width,scale,{s62_get_value<int16_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
-		case duckdb::PhysicalType::INT32:
-			return s62_decimal{width,scale,{s62_get_value<int32_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
-		case duckdb::PhysicalType::INT64:
-			return s62_decimal{width,scale,{s62_get_value<int64_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
-		case duckdb::PhysicalType::INT128:
+		case s62::PhysicalType::INT16:
+			return s62_decimal{width,scale,{s62_get_value<int16_t, s62::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
+		case s62::PhysicalType::INT32:
+			return s62_decimal{width,scale,{s62_get_value<int32_t, s62::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
+		case s62::PhysicalType::INT64:
+			return s62_decimal{width,scale,{s62_get_value<int64_t, s62::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx),0}};
+		case s62::PhysicalType::INT128:
 		{
-			auto int128_val = s62_get_value<hugeint_t, duckdb::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx);
+			auto int128_val = s62_get_value<hugeint_t, s62::LogicalTypeId::DECIMAL>(result_set_wrp, col_idx);
 			return s62_decimal{width,scale,{int128_val.lower,int128_val.upper}};
 			break;
 		}
@@ -988,11 +988,11 @@ s62_decimal s62_get_decimal(s62_resultset_wrapper* result_set_wrp, idx_t col_idx
 }
 
 uint64_t s62_get_id(s62_resultset_wrapper* result_set_wrp, idx_t col_idx) {
-	return s62_get_value<uint64_t, duckdb::LogicalTypeId::ID>(result_set_wrp, col_idx);
+	return s62_get_value<uint64_t, s62::LogicalTypeId::ID>(result_set_wrp, col_idx);
 }
 
 s62_string s62_decimal_to_string(s62_decimal val) {
-	auto type_ = duckdb::LogicalType::DECIMAL(val.width, val.scale);
+	auto type_ = s62::LogicalType::DECIMAL(val.width, val.scale);
 	auto internal_type = type_.InternalType();
 	auto scale = DecimalType::GetScale(type_);
 

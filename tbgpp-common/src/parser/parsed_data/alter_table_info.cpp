@@ -2,7 +2,7 @@
 #include "common/field_writer.hpp"
 #include "parser/constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 AlterInfo::AlterInfo(AlterType type, string schema_p, string name_p)
     : type(type), if_exists(false), schema(move(schema_p)), name(move(name_p)) {
@@ -350,4 +350,4 @@ unique_ptr<AlterInfo> RenameViewInfo::Deserialize(FieldReader &reader, string sc
 	auto new_name = reader.ReadRequired<string>();
 	return make_unique<RenameViewInfo>(move(schema), move(view), new_name);
 }
-} // namespace duckdb
+} // namespace s62

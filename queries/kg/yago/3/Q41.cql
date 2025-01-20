@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v2) WHERE v0.`http://schema.org/url` IS NOT NULL AND v0.`http://schema.org/alternateName` IS NOT NULL RETURN v0.`http://schema.org/dateCreated` AS `v0_dateCreated`, COUNT(v0.`http://schema.org/dateCreated`) AS `v0_dateCreated_count` ORDER BY `v0_dateCreated`

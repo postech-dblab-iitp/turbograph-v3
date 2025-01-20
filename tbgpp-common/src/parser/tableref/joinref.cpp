@@ -3,7 +3,7 @@
 #include "common/limits.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string JoinRef::ToString() const {
 	string result;
@@ -82,4 +82,4 @@ unique_ptr<TableRef> JoinRef::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

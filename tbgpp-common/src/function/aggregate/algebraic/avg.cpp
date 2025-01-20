@@ -5,7 +5,7 @@
 #include "function/function_set.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct AvgState {
@@ -200,4 +200,4 @@ void AvgFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(favg);
 }
 
-} // namespace duckdb
+} // namespace s62

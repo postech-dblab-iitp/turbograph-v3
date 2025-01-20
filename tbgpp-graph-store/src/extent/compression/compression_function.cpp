@@ -1,7 +1,7 @@
 #include "common/types/vector.hpp"
 #include "extent/compression/compression_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // Dictionary
 bool LookupString(string_t str, std::unordered_map<string_t, uint32_t, StringHash, StringCompare> &current_string_map, uint32_t &latest_lookup_result) {
@@ -139,4 +139,4 @@ void DictionaryDecompress (data_ptr_t buf_ptr, size_t buf_size, Vector &output, 
     }
 }
 
-} // namespace duckdb
+} // namespace s62

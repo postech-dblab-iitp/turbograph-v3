@@ -2,7 +2,7 @@
 #include "function/scalar/nested_functions.hpp"
 #include "planner/expression_binder.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 static inline bool ValueEqualsOrNot(const T &left, const T &right) {
@@ -237,4 +237,4 @@ void ListContainsFun::RegisterFunction(BuiltinFunctions &set) {
 void ListPositionFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction({"list_position", "list_indexof", "array_position", "array_indexof"}, GetFunction());
 }
-} // namespace duckdb
+} // namespace s62

@@ -13,7 +13,7 @@
 
 #include <sstream>
 
-namespace duckdb {
+namespace s62 {
 
 RenderTree::RenderTree(idx_t width_p, idx_t height_p) : width(width_p), height(height_p) {
 	nodes = unique_ptr<unique_ptr<RenderTreeNode>[]>(new unique_ptr<RenderTreeNode>[(width + 1) * (height + 1)]);
@@ -98,8 +98,8 @@ string AdjustTextForRendering(string source, idx_t max_render_width) {
 	idx_t render_width = 0;
 	vector<pair<idx_t, idx_t>> render_widths;
 	while (cpos < source.size()) {
-		idx_t char_render_width = Utf8Proc::RenderWidth(source.c_str(), source.size(), cpos);
-		cpos = Utf8Proc::NextGraphemeCluster(source.c_str(), source.size(), cpos);
+		idx_t char_render_width = duckdb::Utf8Proc::RenderWidth(source.c_str(), source.size(), cpos);
+		cpos = duckdb::Utf8Proc::NextGraphemeCluster(source.c_str(), source.size(), cpos);
 		render_width += char_render_width;
 		render_widths.emplace_back(cpos, render_width);
 		if (render_width > max_render_width) {
@@ -308,8 +308,8 @@ void TreeRenderer::SplitStringBuffer(const string &source, vector<string> &resul
 		if (CanSplitOnThisChar(source[cpos])) {
 			last_possible_split = cpos;
 		}
-		size_t char_render_width = Utf8Proc::RenderWidth(source.c_str(), source.size(), cpos);
-		idx_t next_cpos = Utf8Proc::NextGraphemeCluster(source.c_str(), source.size(), cpos);
+		size_t char_render_width = duckdb::Utf8Proc::RenderWidth(source.c_str(), source.size(), cpos);
+		idx_t next_cpos = duckdb::Utf8Proc::NextGraphemeCluster(source.c_str(), source.size(), cpos);
 		if (render_width + char_render_width > max_line_render_size) {
 			if (last_possible_split <= start_pos + 8) {
 				last_possible_split = cpos;
@@ -539,4 +539,4 @@ unique_ptr<RenderTree> TreeRenderer::CreateTree(const CypherPipeline &op) {
 	return CreateRenderTree<PipelineRenderNode>(*node);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "function/aggregate_function.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct QuantileFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -29,4 +29,4 @@ struct ReservoirQuantileFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

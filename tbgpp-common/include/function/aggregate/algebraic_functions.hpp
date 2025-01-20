@@ -10,7 +10,7 @@
 
 #include "function/aggregate_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AvgFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -52,4 +52,4 @@ struct StandardErrorOfTheMeanFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

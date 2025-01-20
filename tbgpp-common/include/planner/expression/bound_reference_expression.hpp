@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A BoundReferenceExpression represents a physical index into a DataChunk
 class BoundReferenceExpression : public Expression {
@@ -38,4 +38,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

@@ -12,7 +12,7 @@
 #include "common/limits.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Hugeint class contains static operations for the INT128 type
 class Hugeint {
@@ -165,4 +165,4 @@ bool Hugeint::TryConvert(double value, hugeint_t &result);
 template <>
 bool Hugeint::TryConvert(long double value, hugeint_t &result);
 
-} // namespace duckdb
+} // namespace s62

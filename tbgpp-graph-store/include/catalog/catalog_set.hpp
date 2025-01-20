@@ -23,7 +23,7 @@
 #include <functional>
 #include <memory>
 
-namespace duckdb {
+namespace s62 {
 struct AlterInfo;
 
 class ClientContext;
@@ -183,4 +183,4 @@ private:
 	fixed_managed_mapped_file *catalog_segment;
 	// string catalog_set_name;
 };
-} // namespace duckdb
+} // namespace s62

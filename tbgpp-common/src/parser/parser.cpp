@@ -14,7 +14,7 @@
 
 #include "parser/parser.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Parser::Parser(ParserOptions options_p) : options(options_p) {
 }
@@ -208,4 +208,4 @@ vector<ParserKeyword> Parser::KeywordList() {
 // 	return move(info.columns);
 // }
 
-} // namespace duckdb
+} // namespace s62

@@ -249,7 +249,7 @@ private:
 
 	// get the relation columns
 	static CMDColumnArray *RetrieveRelColumns(
-		CMemoryPool *mp, CMDAccessor *md_accessor, duckdb::PropertySchemaCatalogEntry *rel,
+		CMemoryPool *mp, CMDAccessor *md_accessor, s62::PropertySchemaCatalogEntry *rel,
 		IMDRelation::Erelstoragetype rel_storage_type);
 
 	// return the dxl representation of the column's default value
@@ -269,7 +269,7 @@ private:
 										ULONG max_cols);
 
 	// check if index is supported
-	static BOOL IsIndexSupported(duckdb::IndexCatalogEntry *index_cat);
+	static BOOL IsIndexSupported(s62::IndexCatalogEntry *index_cat);
 
 	// // retrieve index info list of partitioned table
 	// static List *RetrievePartTableIndexInfo(Relation rel);
@@ -278,7 +278,7 @@ private:
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
 											  const IMDRelation *md_rel,
 											  IMDIndex::EmdindexType index_type
-											  /*const duckdb::PartitionCatalogEntry *part_cat*/);
+											  /*const s62::PartitionCatalogEntry *part_cat*/);
 
 	// // is given level included in the default partitions
 	// static BOOL LevelHasDefaultPartition(List *default_levels, ULONG level);
@@ -301,11 +301,11 @@ private:
 	// 	ULongPtrArray *level_with_default_part_array, BOOL is_unbounded);
 
 	// return relation name
-	static CMDName *GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
+	static CMDName *GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel);
 
 	// return the index info list defined on the given relation
 	static CMDIndexInfoArray *RetrieveRelIndexInfo(CMemoryPool *mp,
-												   duckdb::PropertySchemaCatalogEntry *rel);
+												   s62::PropertySchemaCatalogEntry *rel);
 
 	// return index info list of indexes defined on a partitioned table
 	static CMDIndexInfoArray *RetrieveRelIndexInfoForPartTable(
@@ -313,7 +313,7 @@ private:
 
 	// return index info list of indexes defined on regular, external tables or leaf partitions
 	static CMDIndexInfoArray *RetrieveRelIndexInfoForNonPartTable(
-		CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
+		CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel);
 
 	// retrieve an index over a partitioned table from the relcache
 	static IMDIndex *RetrievePartTableIndex(CMemoryPool *mp,
@@ -334,7 +334,7 @@ private:
 	// 										const IMDRelation *md_rel);
 
 	// return the triggers defined on the given relation
-	static IMdIdArray *RetrieveRelTriggers(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel);
+	static IMdIdArray *RetrieveRelTriggers(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel);
 
 	// return the check constraints defined on the relation with the given oid
 	static IMdIdArray *RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid);
@@ -397,7 +397,7 @@ public:
 	// populate the attribute number to position mapping
 	static ULONG *PopulateAttnoPositionMap(CMemoryPool *mp,
 										   const IMDRelation *md_rel,
-										   /*const duckdb::PartitionCatalogEntry *part_cat,*/
+										   /*const s62::PartitionCatalogEntry *part_cat,*/
 										   ULONG size);
 
 	// return the position of a given attribute number

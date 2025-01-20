@@ -12,7 +12,7 @@
 #include "common/types/row_layout.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BufferManager;
 
 class BaseAggregateHashTable {
@@ -29,4 +29,4 @@ protected:
 	vector<LogicalType> payload_types;
 };
 
-} // namespace duckdb
+} // namespace s62

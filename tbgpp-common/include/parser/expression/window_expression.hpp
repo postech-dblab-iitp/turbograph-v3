@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class WindowBoundary : uint8_t {
 	INVALID = 0,
@@ -198,4 +198,4 @@ public:
 		return result;
 	}
 };
-} // namespace duckdb
+} // namespace s62

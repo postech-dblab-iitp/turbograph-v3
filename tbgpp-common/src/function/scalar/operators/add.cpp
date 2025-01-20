@@ -11,7 +11,7 @@
 
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // + [add]
@@ -222,4 +222,4 @@ dtime_t AddTimeOperator::Operation(interval_t left, dtime_t right) {
 	return AddTimeOperator::Operation<dtime_t, interval_t, dtime_t>(right, left);
 }
 
-} // namespace duckdb
+} // namespace s62

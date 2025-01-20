@@ -240,17 +240,17 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
             queryRel->getLowerBound() != queryRel->getUpperBound() ? true
                                                                    : false;
 
-        // duckdb::idx_t_vector *universal_schema_ids;
-        // duckdb::LogicalTypeId_vector *universal_types_id;
-        // duckdb::PropertyToPropertySchemaPairVecUnorderedMap *property_schema_index;
+        // s62::idx_t_vector *universal_schema_ids;
+        // s62::LogicalTypeId_vector *universal_types_id;
+        // s62::PropertyToPropertySchemaPairVecUnorderedMap *property_schema_index;
 
-        vector<duckdb::idx_t> universal_schema_ids;
-        vector<duckdb::LogicalTypeId> universal_types_id;
-        unordered_map<duckdb::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
+        vector<s62::idx_t> universal_schema_ids;
+        vector<s62::LogicalTypeId> universal_types_id;
+        unordered_map<s62::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
 
-        duckdb::GraphCatalogEntry *graph_catalog_entry =
-            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
-                *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+        s62::GraphCatalogEntry *graph_catalog_entry =
+            (s62::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client, s62::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
                 DEFAULT_GRAPH);
 
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(
@@ -278,8 +278,8 @@ uint64_t Binder::bindQueryRelSchema(shared_ptr<RelExpression> queryRel,
         // for each property, create property expression
         // for variable length join, cannot create property
         for (uint64_t i = 0; i < universal_schema_ids.size(); i++) {
-            duckdb::idx_t property_key_id = universal_schema_ids.at(i);
-            duckdb::LogicalTypeId property_key_type = universal_types_id.at(i);
+            s62::idx_t property_key_id = universal_schema_ids.at(i);
+            s62::LogicalTypeId property_key_type = universal_types_id.at(i);
             // vector<Property> prop_id;
             unordered_map<table_id_t, property_id_t> propertyIDPerTable;
             propertyIDPerTable.reserve(tableIDs.size());
@@ -396,14 +396,14 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
             expressionBinder.createInternalNodeIDExpression(*queryNode));
 
         unordered_map<string,
-                      vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>>
+                      vector<tuple<uint64_t, uint64_t, s62::LogicalTypeId>>>
             pkey_to_ps_map;
-        vector<duckdb::idx_t> universal_schema_ids; 
-        vector<duckdb::LogicalTypeId> universal_types_id;
-        unordered_map<duckdb::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
-        duckdb::GraphCatalogEntry *graph_catalog_entry =
-            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
-                *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+        vector<s62::idx_t> universal_schema_ids; 
+        vector<s62::LogicalTypeId> universal_types_id;
+        unordered_map<s62::idx_t, vector<std::pair<uint64_t, uint64_t>>> property_schema_index;
+        s62::GraphCatalogEntry *graph_catalog_entry =
+            (s62::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+                *client, s62::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
                 DEFAULT_GRAPH);
 
         client->db->GetCatalogWrapper().GetPropertyKeyToPropertySchemaMap(
@@ -432,8 +432,8 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
 
         // for each property, create property expression
         for (uint64_t i = 0; i < universal_schema_ids.size(); i++) {
-            duckdb::idx_t property_key_id = universal_schema_ids.at(i);
-            duckdb::LogicalTypeId property_key_type = universal_types_id.at(i);
+            s62::idx_t property_key_id = universal_schema_ids.at(i);
+            s62::LogicalTypeId property_key_type = universal_types_id.at(i);
             auto it = property_schema_index.find(property_key_id);
             unordered_map<table_id_t, property_id_t> propertyIDPerTable;
             propertyIDPerTable.reserve(tableIDs.size());
@@ -505,7 +505,7 @@ void Binder::bindNodePartitionIDs(const vector<string> &tableNames,
 {
     D_ASSERT(client != nullptr);
     client->db->GetCatalogWrapper().GetPartitionIDs(
-        *client, tableNames, partitionIDs, duckdb::GraphComponentType::VERTEX);
+        *client, tableNames, partitionIDs, s62::GraphComponentType::VERTEX);
 }
 
 void Binder::bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
@@ -516,7 +516,7 @@ void Binder::bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
     vector<uint64_t> all_table_ids;
     client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(
         *client, partitionIDs, all_table_ids, univTableID,
-        duckdb::GraphComponentType::VERTEX);
+        s62::GraphComponentType::VERTEX);
     client->db->GetCatalogWrapper().RemoveFakePropertySchemas(
         *client, all_table_ids, tableIDs);
 }
@@ -532,7 +532,7 @@ void Binder::bindNodeTableIDs(const vector<string> &tableNames,
     //     // e.g. (A:B | C:D) => [[A,B], [C,D]]
 
     // // syntax is strange. each tablename is considered intersection.
-    // client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, partitionIDs, tableIDs, duckdb::GraphComponentType::VERTEX);
+    // client->db->GetCatalogWrapper().GetSubPartitionIDs(*client, tableNames, partitionIDs, tableIDs, s62::GraphComponentType::VERTEX);
 }
 
 // S62 access catalog and  change to mdids
@@ -557,7 +557,7 @@ void Binder::bindRelTableIDs(const vector<string> &tableNames,
     else {
         client->db->GetCatalogWrapper().GetSubPartitionIDs(
             *client, tableNames, partitionIDs, tableIDs,
-            duckdb::GraphComponentType::EDGE);
+            s62::GraphComponentType::EDGE);
     }
 }
 
@@ -568,7 +568,7 @@ void Binder::bindRelTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
     D_ASSERT(client != nullptr);
     client->db->GetCatalogWrapper().GetSubPartitionIDsFromPartitions(
         *client, partitionIDs, tableIDs, univTableID,
-        duckdb::GraphComponentType::EDGE);
+        s62::GraphComponentType::EDGE);
 }
 
 void Binder::bindRelPartitionIDs(const vector<string> &tableNames,
@@ -595,7 +595,7 @@ void Binder::bindRelPartitionIDs(const vector<string> &tableNames,
     else {
         client->db->GetCatalogWrapper().GetEdgeAndConnectedSrcDstPartitionIDs(
             *client, tableNames, partitionIDs, srcPartitionIDs, dstPartitionIDs,
-            duckdb::GraphComponentType::EDGE);
+            s62::GraphComponentType::EDGE);
 
         // prune unnecessary partition IDs
         vector<uint64_t> new_srcPartitionIDs;

@@ -5,7 +5,7 @@
 #include "common/string_util.hpp"
 #include "common/operator/cast_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 constexpr const char *Blob::HEX_TABLE;
 const int Blob::HEX_MAP[256] = {
@@ -259,4 +259,4 @@ void Blob::FromBase64(string_t str, data_ptr_t output, idx_t output_size) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

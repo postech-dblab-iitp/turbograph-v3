@@ -15,7 +15,7 @@
 
 #include <stdexcept>
 
-namespace duckdb {
+namespace s62 {
 enum class PhysicalType : uint8_t;
 struct LogicalType;
 struct hugeint_t;
@@ -315,4 +315,4 @@ public:
 	DUCKDB_API ValueOutOfRangeException(const PhysicalType varType, const idx_t length);
 };
 
-} // namespace duckdb
+} // namespace s62

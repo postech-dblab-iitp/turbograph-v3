@@ -11,7 +11,7 @@
 #include "parser/parsed_data/parse_info.hpp"
 #include "common/enums/catalog_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct DropInfo : public ParseInfo {
 	DropInfo() : schema(INVALID_SCHEMA), if_exists(false), cascade(false) {
@@ -41,4 +41,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

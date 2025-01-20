@@ -4,7 +4,7 @@
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
 
-using namespace duckdb;
+using namespace s62;
 
 int main (int argc, char **argv) {
     string csv_path;

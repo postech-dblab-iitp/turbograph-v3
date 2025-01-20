@@ -3,7 +3,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "common/unordered_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateChunkDefinitionInfo : public CreateInfo {
 	CreateChunkDefinitionInfo() : CreateInfo(CatalogType::CHUNKDEFINITION_ENTRY, INVALID_SCHEMA) {
@@ -22,4 +22,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/about`]->(v1), (v1)-[:`http://yago-knowledge.org/resource/notableWork`]->(v2) WHERE v0.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

@@ -3,7 +3,7 @@
 #include "common/types/hash.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundUnnestExpression::BoundUnnestExpression(LogicalType return_type)
     : Expression(ExpressionType::BOUND_UNNEST, ExpressionClass::BOUND_UNNEST, move(return_type)) {
@@ -19,7 +19,7 @@ string BoundUnnestExpression::ToString() const {
 
 hash_t BoundUnnestExpression::Hash() const {
 	hash_t result = Expression::Hash();
-	return CombineHash(result, duckdb::Hash("unnest"));
+	return CombineHash(result, s62::Hash("unnest"));
 }
 
 bool BoundUnnestExpression::Equals(const BaseExpression *other_p) const {
@@ -39,4 +39,4 @@ unique_ptr<Expression> BoundUnnestExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

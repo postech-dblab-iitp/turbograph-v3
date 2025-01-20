@@ -3,7 +3,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct FirstState {
@@ -316,4 +316,4 @@ void FirstFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(last);
 }
 
-} // namespace duckdb
+} // namespace s62

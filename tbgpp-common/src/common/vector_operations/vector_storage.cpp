@@ -2,7 +2,7 @@
 #include "common/types/null_value.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 static void CopyToStorageLoop(VectorData &vdata, idx_t count, data_ptr_t target) {
@@ -122,4 +122,4 @@ void VectorOperations::ReadFromStorage(data_ptr_t source, idx_t count, Vector &r
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

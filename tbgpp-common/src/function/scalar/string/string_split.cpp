@@ -11,7 +11,7 @@
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct StringSplitIterator {
 public:
@@ -78,23 +78,23 @@ public:
 	    : StringSplitIterator(input_size), delim_size(delim_size) {
 		int cp_sz;
 		for (idx_t i = 0; i < delim_size; i += cp_sz) {
-			delim_cps.push_back(utf8proc_codepoint(delim, cp_sz));
+			delim_cps.push_back(duckdb::utf8proc_codepoint(delim, cp_sz));
 		}
 	}
 	idx_t Next(const char *input) override {
 		// special case: separate by empty delimiter
 		if (delim_size == 0) {
-			offset = utf8proc_next_grapheme(input, size, offset);
+			offset = duckdb::utf8proc_next_grapheme(input, size, offset);
 			start = offset;
 			return offset;
 		}
 		int cp_sz;
-		for (offset = start; HasNext(); offset = utf8proc_next_grapheme(input, size, offset)) {
+		for (offset = start; HasNext(); offset = duckdb::utf8proc_next_grapheme(input, size, offset)) {
 			// potential delimiter match
-			if (utf8proc_codepoint(&input[offset], cp_sz) == delim_cps[0] && offset + delim_size <= size) {
+			if (duckdb::utf8proc_codepoint(&input[offset], cp_sz) == delim_cps[0] && offset + delim_size <= size) {
 				idx_t delim_offset = cp_sz;
 				for (idx_t i = 1; i < delim_cps.size(); i++) {
-					if (utf8proc_codepoint(&input[offset + delim_offset], cp_sz) != delim_cps[i]) {
+					if (duckdb::utf8proc_codepoint(&input[offset + delim_offset], cp_sz) != delim_cps[i]) {
 						break;
 					}
 					delim_offset += cp_sz;
@@ -110,7 +110,7 @@ public:
 	}
 
 protected:
-	vector<utf8proc_int32_t> delim_cps;
+	vector<duckdb::utf8proc_int32_t> delim_cps;
 	size_t delim_size;
 };
 
@@ -129,7 +129,7 @@ public:
 				if (ascii_only) {
 					offset++;
 				} else {
-					offset = utf8proc_next_grapheme(input, size, offset);
+					offset = duckdb::utf8proc_next_grapheme(input, size, offset);
 				}
 				start = offset;
 			} else {
@@ -168,7 +168,7 @@ unique_ptr<Vector> BaseStringSplitFunction(string_t input, string_t delim, const
 	const char *delim_data = delim.GetDataUnsafe();
 	size_t delim_size = delim.GetSize();
 
-	bool ascii_only = Utf8Proc::Analyze(input_data, input_size) == UnicodeType::ASCII;
+	bool ascii_only = duckdb::Utf8Proc::Analyze(input_data, input_size) == duckdb::UnicodeType::ASCII;
 
 	auto list_type = LogicalType::LIST(LogicalType::VARCHAR);
 	auto output = make_unique<Vector>(list_type);
@@ -259,4 +259,4 @@ void StringSplitFun::RegisterFunction(BuiltinFunctions &set) {
 	    ScalarFunction({LogicalType::VARCHAR, LogicalType::VARCHAR}, varchar_list_type, StringSplitRegexFunction));
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "parser/parsed_data/parse_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class LoadType { LOAD, INSTALL, FORCE_INSTALL };
 
@@ -27,4 +27,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

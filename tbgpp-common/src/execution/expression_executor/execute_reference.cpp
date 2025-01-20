@@ -1,7 +1,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundReferenceExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -32,4 +32,4 @@ void ExpressionExecutor::Execute(const BoundReferenceExpression &expr, Expressio
 	// }
 }
 
-} // namespace duckdb
+} // namespace s62

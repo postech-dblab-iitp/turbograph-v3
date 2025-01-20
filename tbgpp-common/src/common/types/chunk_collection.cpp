@@ -11,7 +11,7 @@
 #include <cstring>
 #include <queue>
 
-namespace duckdb {
+namespace s62 {
 
 void ChunkCollection::Verify() {
 #ifdef DEBUG
@@ -519,4 +519,4 @@ bool ChunkCollection::Equals(ChunkCollection &other) {
 	return true;
 }
 
-} // namespace duckdb
+} // namespace s62

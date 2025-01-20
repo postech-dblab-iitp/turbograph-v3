@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Query Node
@@ -54,4 +54,4 @@ class BoundWindowExpression;
 // class BoundExpressionListRef;
 // class BoundCTERef;
 
-} // namespace duckdb
+} // namespace s62

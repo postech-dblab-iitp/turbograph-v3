@@ -2,7 +2,7 @@
 
 #include "index/art/art.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Key::Key(unique_ptr<data_t[]> data, idx_t len) : len(len), data(move(data)) {
 }
@@ -65,4 +65,4 @@ bool Key::operator==(const Key &k) const {
 	}
 	return true;
 }
-} // namespace duckdb
+} // namespace s62

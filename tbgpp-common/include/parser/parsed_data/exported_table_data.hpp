@@ -11,7 +11,7 @@
 #include "parser/parsed_data/parse_info.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ExportedTableData {
 	//! Name of the exported table
@@ -33,4 +33,4 @@ struct BoundExportData : public ParseInfo {
 	std::vector<ExportedTableInfo> data;
 };
 
-} // namespace duckdb
+} // namespace s62

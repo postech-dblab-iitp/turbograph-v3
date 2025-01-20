@@ -2,7 +2,7 @@
 #include "common/row_operations/row_operations.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using ValidityBytes = TemplatedValidityMask<uint8_t>;
 
@@ -205,4 +205,4 @@ void RowOperations::HeapGather(Vector &v, const idx_t &vcount, const SelectionVe
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

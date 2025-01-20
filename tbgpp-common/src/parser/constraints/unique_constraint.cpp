@@ -4,7 +4,7 @@
 #include "common/limits.hpp"
 #include "parser/keyword_helper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 UniqueConstraint::UniqueConstraint(uint64_t index, bool is_primary_key)
     : Constraint(ConstraintType::UNIQUE), index(index), is_primary_key(is_primary_key) {
@@ -58,4 +58,4 @@ unique_ptr<Constraint> UniqueConstraint::Deserialize(FieldReader &source) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

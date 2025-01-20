@@ -14,7 +14,7 @@
 #include "parser/qualified_name.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Serializer;
 class Deserializer;
 class FieldWriter;
@@ -70,4 +70,4 @@ protected:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

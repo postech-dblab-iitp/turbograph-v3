@@ -4,7 +4,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/execution_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalTop: public CypherPhysicalOperator {
 

@@ -3,7 +3,7 @@
 #include "function/aggregate/distributive_functions.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct KurtosisState {
 	idx_t n;
@@ -91,4 +91,4 @@ void KurtosisFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(function_set);
 }
 
-} // namespace duckdb
+} // namespace s62

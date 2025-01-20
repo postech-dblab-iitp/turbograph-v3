@@ -9,7 +9,7 @@
 #include "common/types/row_layout.hpp"
 #include "planner/expression/bound_aggregate_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 vector<AggregateObject> AggregateObject::CreateAggregateObjects(const vector<BoundAggregateExpression *> &bindings) {
 	vector<AggregateObject> aggregates;
@@ -99,4 +99,4 @@ void RowLayout::Initialize(Aggregates aggregates_p, bool align) {
 	Initialize(vector<LogicalType>(), move(aggregates_p), align);
 }
 
-} // namespace duckdb
+} // namespace s62

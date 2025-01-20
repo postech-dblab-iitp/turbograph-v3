@@ -12,7 +12,7 @@
 #include "common/vector.hpp"
 #include "common/exception_format_value.hpp"
 
-namespace duckdb {
+namespace s62 {
 class SQLStatement;
 
 class QueryErrorContext {
@@ -43,4 +43,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -42,7 +42,7 @@
 #include <fstream>
 
 #include "icecream.hpp"	
-namespace duckdb {
+namespace s62 {
 
 string SimilarCatalogEntry::GetQualifiedName() const {
 	D_ASSERT(Found());
@@ -638,4 +638,4 @@ idx_t Catalog::ModifyCatalog() {
 	return catalog_version++;
 }
 
-} // namespace duckdb
+} // namespace s62

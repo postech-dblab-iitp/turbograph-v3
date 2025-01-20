@@ -15,7 +15,7 @@
 #include <iostream>
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Class responsible to keep track of state when removing entries from the catalog.
 //! When deleting, many types of errors can be thrown, since we want to avoid try/catch blocks
@@ -810,4 +810,4 @@ void CatalogSet::Scan(const std::function<void(CatalogEntry *)> &callback) {
 		}
 	}
 }
-} // namespace duckdb
+} // namespace s62

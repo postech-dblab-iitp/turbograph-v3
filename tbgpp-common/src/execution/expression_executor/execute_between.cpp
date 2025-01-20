@@ -4,7 +4,7 @@
 #include "common/operator/comparison_operators.hpp"
 #include "common/vector_operations/ternary_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BothInclusiveBetweenOperator {
 	template <class T>
@@ -146,4 +146,4 @@ idx_t ExpressionExecutor::Select(const BoundBetweenExpression &expr, ExpressionS
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

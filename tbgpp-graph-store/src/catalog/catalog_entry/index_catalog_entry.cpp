@@ -1,7 +1,7 @@
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
 // #include "duckdb/storage/data_table.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 IndexCatalogEntry::IndexCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateIndexInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::INDEX_ENTRY, schema, catalog, info->index_name, void_alloc), index(nullptr), index_type(info->index_type),
@@ -41,4 +41,4 @@ idx_t IndexCatalogEntry::GetAdjColIdx() {
 	return adj_col_idx;
 }
 
-} // namespace duckdb
+} // namespace s62

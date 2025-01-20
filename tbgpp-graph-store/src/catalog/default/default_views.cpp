@@ -7,7 +7,7 @@
 #include "duckdb/catalog/catalog_entry/view_catalog_entry.hpp"
 #include "duckdb/common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct DefaultView {
 	const char *schema;
@@ -98,5 +98,5 @@ vector<string> DefaultViewGenerator::GetDefaultEntries() {
 
 }
 
-} // namespace duckdb
+} // namespace s62
 */

@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 // See: https://www.kdnuggets.com/2020/10/optimizing-levenshtein-distance-measuring-text-similarity.html
 // And: Iterative 2-row algorithm: https://en.wikipedia.org/wiki/Levenshtein_distance
@@ -91,4 +91,4 @@ void LevenshteinFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(editdist3);
 }
 
-} // namespace duckdb
+} // namespace s62

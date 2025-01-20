@@ -1,7 +1,7 @@
 #include "parallel/task.hpp"
 #include "parallel/executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExecutorTask::ExecutorTask(Executor &executor_p) : executor(executor_p) {
 }
@@ -25,4 +25,4 @@ TaskExecutionResult ExecutorTask::Execute(TaskExecutionMode mode) {
 	return TaskExecutionResult::TASK_ERROR;
 }
 
-} // namespace duckdb
+} // namespace s62

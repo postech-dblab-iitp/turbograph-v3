@@ -16,7 +16,7 @@
 #include "common/types/vector.hpp"
 #include "duckdb_fmt/format.h"
 
-namespace duckdb {
+namespace s62 {
 
 //! NumericHelper is a static class that holds helper functions for integers/doubles
 class NumericHelper {
@@ -546,4 +546,4 @@ struct IntervalToStringCast {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

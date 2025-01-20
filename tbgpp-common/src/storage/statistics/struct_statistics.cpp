@@ -2,7 +2,7 @@
 #include "common/types/vector.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 StructStatistics::StructStatistics(LogicalType type_p) : BaseStatistics(move(type_p)) {
 	D_ASSERT(type.InternalType() == PhysicalType::STRUCT);
@@ -104,4 +104,4 @@ void StructStatistics::Verify(Vector &vector, const SelectionVector &sel, idx_t 
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

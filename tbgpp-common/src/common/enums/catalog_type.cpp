@@ -2,7 +2,7 @@
 
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // LCOV_EXCL_START
 string CatalogTypeToString(CatalogType type) {
@@ -56,4 +56,4 @@ string CatalogTypeToString(CatalogType type) {
 }
 // LCOV_EXCL_STOP
 
-} // namespace duckdb
+} // namespace s62

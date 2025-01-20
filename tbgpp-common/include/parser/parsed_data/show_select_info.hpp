@@ -11,7 +11,7 @@
 #include "parser/parsed_data/parse_info.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ShowSelectInfo : public ParseInfo {
 	//! Types of projected columns
@@ -33,4 +33,4 @@ struct ShowSelectInfo : public ParseInfo {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

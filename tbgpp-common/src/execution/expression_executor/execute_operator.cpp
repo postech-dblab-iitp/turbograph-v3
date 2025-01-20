@@ -2,7 +2,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_operator_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundOperatorExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -136,4 +136,4 @@ void ExpressionExecutor::Execute(const BoundOperatorExpression &expr, Expression
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

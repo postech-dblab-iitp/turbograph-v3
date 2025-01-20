@@ -8,7 +8,7 @@
 #include "common/vector_operations/unary_executor.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // AND/OR
@@ -174,4 +174,4 @@ void VectorOperations::Not(Vector &input, Vector &result, idx_t count) {
 	UnaryExecutor::Execute<bool, bool, NotOperator>(input, result, count);
 }
 
-} // namespace duckdb
+} // namespace s62

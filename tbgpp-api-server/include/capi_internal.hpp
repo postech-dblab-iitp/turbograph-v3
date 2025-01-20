@@ -28,7 +28,7 @@
 
 using json = nlohmann::json;
 
-namespace duckdb {
+namespace s62 {
 	
 s62_type ConvertCPPTypeToC(const LogicalType &type);
 LogicalTypeId ConvertCTypeToCPP(s62_type c_type);
@@ -36,4 +36,4 @@ idx_t GetCTypeSize(s62_type type);
 std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors);
 json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root);
 
-} // namespace duckdb
+} // namespace s62

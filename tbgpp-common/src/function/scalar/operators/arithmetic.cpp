@@ -16,7 +16,7 @@
 
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 template <class OP>
 static scalar_function_t GetScalarIntegerFunction(PhysicalType type) {
@@ -877,4 +877,4 @@ void ModFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(functions);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -13,7 +13,7 @@
 
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 struct string_t {
 	friend struct StringComparisonOperators;
@@ -136,4 +136,4 @@ private:
 	} value;
 };
 
-} // namespace duckdb
+} // namespace s62

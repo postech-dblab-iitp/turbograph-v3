@@ -11,7 +11,7 @@
 #include "common/types/value.hpp"
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! ConstantExpression represents a constant value in the query
 class ConstantExpression : public ParsedExpression {
@@ -33,4 +33,4 @@ public:
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
 
-} // namespace duckdb
+} // namespace s62

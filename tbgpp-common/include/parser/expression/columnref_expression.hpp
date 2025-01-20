@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Represents a reference to a column from either the FROM clause or from an
 //! alias
@@ -46,4 +46,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

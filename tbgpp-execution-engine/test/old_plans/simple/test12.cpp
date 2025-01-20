@@ -1,7 +1,7 @@
 
 #include "old_plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test12() {
 // 	Schema schema;
@@ -13,7 +13,7 @@ namespace duckdb {
 // 	vector<vector<uint64_t>> projection_mapping;
 // 	projection_mapping.push_back({std::numeric_limits<uint64_t>::max(), 1});
 // 	int64_t filterKeyIndex = 1;
-// 	duckdb::Value filter_val = duckdb::Value::UBIGINT(94);
+// 	s62::Value filter_val = s62::Value::UBIGINT(94);
 
 // 	// varlen expand (comment -> comment)
 // 	Schema schema2;
@@ -59,8 +59,8 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test12() {
 	vector<vector<uint64_t>> projection_mapping1;
 	projection_mapping1.push_back({std::numeric_limits<uint64_t>::max(), 1});
 	int64_t filterKeyIndex = 1;
-	duckdb::Value filter_val = duckdb::Value::UBIGINT(1099511628400);
-	// duckdb::Value filter_val = duckdb::Value::UBIGINT(549757114029);
+	s62::Value filter_val = s62::Value::UBIGINT(1099511628400);
+	// s62::Value filter_val = s62::Value::UBIGINT(549757114029);
 
 	// varlen expand (comment -> comment)
 	Schema schema2;

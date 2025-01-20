@@ -23,7 +23,7 @@
 #include <cmath>
 #include <cstdlib>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Cast bool -> Numeric
@@ -1119,15 +1119,15 @@ bool TryCast::Operation(interval_t input, interval_t &result, bool strict) {
 // Non-Standard Timestamps
 //===--------------------------------------------------------------------===//
 template <>
-duckdb::string_t CastFromTimestampNS::Operation(duckdb::timestamp_t input, Vector &result) {
+s62::string_t CastFromTimestampNS::Operation(s62::timestamp_t input, Vector &result) {
 	return StringCast::Operation<timestamp_t>(Timestamp::FromEpochNanoSeconds(input.value), result);
 }
 template <>
-duckdb::string_t CastFromTimestampMS::Operation(duckdb::timestamp_t input, Vector &result) {
+s62::string_t CastFromTimestampMS::Operation(s62::timestamp_t input, Vector &result) {
 	return StringCast::Operation<timestamp_t>(Timestamp::FromEpochMs(input.value), result);
 }
 template <>
-duckdb::string_t CastFromTimestampSec::Operation(duckdb::timestamp_t input, Vector &result) {
+s62::string_t CastFromTimestampSec::Operation(s62::timestamp_t input, Vector &result) {
 	return StringCast::Operation<timestamp_t>(Timestamp::FromEpochSeconds(input.value), result);
 }
 
@@ -2236,4 +2236,4 @@ bool TryCastFromDecimal::Operation(hugeint_t input, double &result, string *erro
 	return TryCastDecimalToFloatingPoint<hugeint_t, double>(input, result, scale);
 }
 
-} // namespace duckdb
+} // namespace s62

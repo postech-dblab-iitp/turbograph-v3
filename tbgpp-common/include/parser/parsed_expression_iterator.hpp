@@ -13,7 +13,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 class ParsedExpressionIterator {
 public:
@@ -32,4 +32,4 @@ public:
 	                                        const std::function<void(unique_ptr<ParsedExpression> &child)> &callback);
 };
 
-} // namespace duckdb
+} // namespace s62

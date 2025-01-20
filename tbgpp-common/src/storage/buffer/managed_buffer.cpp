@@ -4,7 +4,7 @@
 #include "common/exception.hpp"
 // #include "main/config.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ManagedBuffer::ManagedBuffer(DatabaseInstance &db, idx_t size, bool can_destroy, block_id_t id)
     // : FileBuffer(Allocator::Get(db), FileBufferType::MANAGED_BUFFER, size), db(db), can_destroy(can_destroy), id(id) {
@@ -13,4 +13,4 @@ ManagedBuffer::ManagedBuffer(DatabaseInstance &db, idx_t size, bool can_destroy,
 	D_ASSERT(size >= Storage::BLOCK_SIZE);
 }
 
-} // namespace duckdb
+} // namespace s62

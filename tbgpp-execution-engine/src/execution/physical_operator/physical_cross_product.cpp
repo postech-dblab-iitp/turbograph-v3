@@ -2,7 +2,7 @@
 
 #include "common/vector_operations/vector_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalCrossProduct::PhysicalCrossProduct(Schema &sch, vector<uint32_t> &outer_col_map_p, vector<uint32_t> &inner_col_map_p)
     : CypherPhysicalOperator(PhysicalOperatorType::CROSS_PRODUCT, sch), outer_col_map(move(outer_col_map_p)), inner_col_map(move(inner_col_map_p)) {
@@ -134,4 +134,4 @@ OperatorResultType PhysicalCrossProduct::Execute(ExecutionContext &context, Data
 	return OperatorResultType::HAVE_MORE_OUTPUT;
 }
 
-} // namespace duckdb
+} // namespace s62

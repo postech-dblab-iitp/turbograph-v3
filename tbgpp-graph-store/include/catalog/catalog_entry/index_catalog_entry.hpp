@@ -12,7 +12,7 @@
 #include "parser/parsed_data/create_index_info.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // struct DataTableInfo;
 class Index;
@@ -42,4 +42,4 @@ public:
 	idx_t GetAdjColIdx();
 };
 
-} // namespace duckdb
+} // namespace s62

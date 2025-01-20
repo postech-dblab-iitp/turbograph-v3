@@ -12,7 +12,7 @@
 #include "function/function.hpp"
 #include "parser/parsed_data/create_collation_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A collation catalog entry
 class CollateCatalogEntry : public StandardEntry {
@@ -31,5 +31,5 @@ public:
 	//! speeds up processing.
 	bool not_required_for_equality;
 };
-} // namespace duckdb
+} // namespace s62
 */

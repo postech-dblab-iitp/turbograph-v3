@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-namespace duckdb {
+namespace s62 {
 
 //! Fast ASCII string reverse, returns false if the input data is not ascii
 static bool StrReverseASCII(const char *input, idx_t n, char *output) {
@@ -23,7 +23,7 @@ static bool StrReverseASCII(const char *input, idx_t n, char *output) {
 
 //! Unicode string reverse using grapheme breakers
 static void StrReverseUnicode(const char *input, idx_t n, char *output) {
-	utf8proc_grapheme_callback(input, n, [&](size_t start, size_t end) {
+	duckdb::utf8proc_grapheme_callback(input, n, [&](size_t start, size_t end) {
 		memcpy(output + n - end, input + start, end - start);
 		return true;
 	});
@@ -53,4 +53,4 @@ void ReverseFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(ScalarFunction("reverse", {LogicalType::VARCHAR}, LogicalType::VARCHAR, ReverseFunction));
 }
 
-} // namespace duckdb
+} // namespace s62

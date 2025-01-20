@@ -5,7 +5,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ListAggState {
 	Vector *list_vector;
@@ -137,4 +137,4 @@ AggregateFunction ListFun::GetFunction() {
 	return agg;
 }
 
-} // namespace duckdb
+} // namespace s62

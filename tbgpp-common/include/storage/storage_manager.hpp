@@ -13,7 +13,7 @@
 //#include "storage/data_table.hpp"
 // #include "storage/write_ahead_log.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BlockManager;
 class Catalog;
 class DatabaseInstance;
@@ -69,4 +69,4 @@ private:
 	bool read_only;
 };
 
-} // namespace duckdb
+} // namespace s62

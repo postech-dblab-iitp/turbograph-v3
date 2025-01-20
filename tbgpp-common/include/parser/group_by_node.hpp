@@ -12,7 +12,7 @@
 #include "common/set.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using GroupingSet = set<idx_t>;
 
@@ -24,4 +24,4 @@ public:
 	vector<GroupingSet> grouping_sets;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -20,7 +20,7 @@
 #include "common/boost.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ColumnStatistics;
 class DataTable;
@@ -212,4 +212,4 @@ public:
 	//idx_t GetColumnIndex(string &name, bool if_exists = false);
 
 };
-} // namespace duckdb
+} // namespace s62

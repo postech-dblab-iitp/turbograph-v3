@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class SetScope : uint8_t {
 	AUTOMATIC = 0,
@@ -19,4 +19,4 @@ enum class SetScope : uint8_t {
 	GLOBAL = 3
 };
 
-} // namespace duckdb
+} // namespace s62

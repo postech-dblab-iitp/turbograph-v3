@@ -6,7 +6,7 @@
 #include <string>
 #include "common/allocator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class TopState : public OperatorState {
 public:

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::PROPERTY_SCHEMA_ENTRY, schema, catalog, info->propertyschema, void_alloc)
@@ -265,4 +265,4 @@ uint64_t PropertySchemaCatalogEntry::GetNumberOfExtents() {
 	return extent_ids.size();
 }
 
-} // namespace duckdb
+} // namespace s62

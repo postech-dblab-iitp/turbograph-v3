@@ -11,7 +11,7 @@
 // #include "planner/expression/bound_subquery_expression.hpp"
 // #include "planner/expression_iterator.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // ExpressionBinder::ExpressionBinder(Binder &binder, ClientContext &context, bool replace_binder)
 //     : binder(binder), context(context), stored_binder(nullptr) {
@@ -227,4 +227,4 @@
 // 	return string();
 // }
 
-// } // namespace duckdb
+// } // namespace s62

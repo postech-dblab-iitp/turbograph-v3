@@ -12,7 +12,7 @@
 #include "parser/group_by_node.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BufferManager;
 class Executor;
 class PhysicalHashAggregate;
@@ -56,4 +56,4 @@ public:
 	bool ForceSingleHT(GlobalSinkState &state) const;
 };
 
-} // namespace duckdb
+} // namespace s62

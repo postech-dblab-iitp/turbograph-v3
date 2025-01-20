@@ -14,7 +14,7 @@
 #include "parallel/task.hpp"
 #include "common/atomic.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ConcurrentQueue;
 struct QueueProducerToken;
@@ -73,4 +73,4 @@ private:
 static TaskScheduler DEFAULT_TASK_SCHEDULER = TaskScheduler();
 
 
-} // namespace duckdb
+} // namespace s62

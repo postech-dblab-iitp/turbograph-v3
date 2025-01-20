@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ConvertToString {
 	template <class SRC>
@@ -56,4 +56,4 @@ string ConvertToString::Operation(timestamp_t input);
 template <>
 string ConvertToString::Operation(string_t input);
 
-} // namespace duckdb
+} // namespace s62

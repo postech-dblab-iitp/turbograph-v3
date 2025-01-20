@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 OperatorExpression::OperatorExpression(ExpressionType type, unique_ptr<ParsedExpression> left,
                                        unique_ptr<ParsedExpression> right)
@@ -55,4 +55,4 @@ unique_ptr<ParsedExpression> OperatorExpression::Deserialize(ExpressionType type
 	return move(expression);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "function/scalar_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateCollationInfo : public CreateInfo {
 	CreateCollationInfo(string name_p, ScalarFunction function_p, bool combinable_p, bool not_required_for_equality_p)
@@ -39,4 +39,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

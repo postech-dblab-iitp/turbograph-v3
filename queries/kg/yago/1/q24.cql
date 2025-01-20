@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/location`]->(v1), (v1)-[:`http://yago-knowledge.org/resource/leader`]->(v2) WHERE v0.`http://schema.org/dissolutionDate` IS NOT NULL AND v1.`http://schema.org/postalCode` IS NOT NULL AND v1.`http://schema.org/dateCreated` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

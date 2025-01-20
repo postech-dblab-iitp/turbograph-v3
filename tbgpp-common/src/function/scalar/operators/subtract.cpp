@@ -8,7 +8,7 @@
 
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // - [subtract]
@@ -224,4 +224,4 @@ dtime_t SubtractTimeOperator::Operation(dtime_t left, interval_t right) {
 	return AddTimeOperator::Operation<dtime_t, interval_t, dtime_t>(left, right);
 }
 
-} // namespace duckdb
+} // namespace s62

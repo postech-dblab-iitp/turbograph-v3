@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class ExceptionFormatValueType : uint8_t {
 	FORMAT_VALUE_TYPE_DOUBLE,
@@ -56,4 +56,4 @@ DUCKDB_API ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(char *va
 template <>
 DUCKDB_API ExceptionFormatValue ExceptionFormatValue::CreateFormatValue(hugeint_t value);
 
-} // namespace duckdb
+} // namespace s62

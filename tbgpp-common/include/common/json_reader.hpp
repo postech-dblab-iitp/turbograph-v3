@@ -7,7 +7,7 @@
 #include "common/types/data_chunk.hpp"
 //#include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 inline Value JsonValToValue(yyjson_val *val, LogicalType &type) {
 	switch (type.id()) {
@@ -178,4 +178,4 @@ private:
 	GraphComponentType type;
 };
 
-} // namespace duckdb
+} // namespace s62

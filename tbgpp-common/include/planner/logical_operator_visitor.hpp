@@ -14,7 +14,7 @@
 
 // #include <functional>
 
-// namespace duckdb {
+// namespace s62 {
 // //! The LogicalOperatorVisitor is an abstract base class that implements the
 // //! Visitor pattern on LogicalOperator.
 // class LogicalOperatorVisitor {
@@ -56,4 +56,4 @@
 // 	virtual unique_ptr<Expression> VisitReplace(BoundWindowExpression &expr, unique_ptr<Expression> *expr_ptr);
 // 	virtual unique_ptr<Expression> VisitReplace(BoundUnnestExpression &expr, unique_ptr<Expression> *expr_ptr);
 // };
-// } // namespace duckdb
+// } // namespace s62

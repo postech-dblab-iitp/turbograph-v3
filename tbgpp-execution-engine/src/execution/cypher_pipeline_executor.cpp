@@ -12,7 +12,7 @@
 
 #include <cassert>
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor::CypherPipelineExecutor(ExecutionContext *context,
                                                CypherPipeline *pipeline)
@@ -425,7 +425,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
                         *prev_output_chunk);
 #endif
 
-		duckdb::OperatorResultType opResult;
+		s62::OperatorResultType opResult;
 		StartOperator(pipeline->GetReprIdxOperator(current_idx));
 		if (cur_op_type == OperatorType::UNARY) {
 			// execute operator
@@ -541,4 +541,4 @@ void CypherPipelineExecutor::PrintOutputChunk(std::string opname,
     OutputUtil::PrintTop10TuplesInDataChunk(output);
 }
 
-}  // namespace duckdb
+}  // namespace s62

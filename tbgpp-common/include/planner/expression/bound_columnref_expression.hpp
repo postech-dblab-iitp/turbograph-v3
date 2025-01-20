@@ -11,7 +11,7 @@
 #include "planner/column_binding.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A BoundColumnRef expression represents a ColumnRef expression that was bound to an actual table and column index. It
 //! is not yet executable, however. The ColumnBindingResolver transforms the BoundColumnRefExpressions into
@@ -42,4 +42,4 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

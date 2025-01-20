@@ -3,7 +3,7 @@
 #include "common/output_util.hpp"
 #include "extent/adjlist_iterator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class AllShortestPathState : public OperatorState {
 public:
@@ -147,4 +147,4 @@ std::string PhysicalAllShortestPathJoin::ToString() const {
     return "AllShortestPath";
 }
 
-} // namespace duckdb
+} // namespace s62

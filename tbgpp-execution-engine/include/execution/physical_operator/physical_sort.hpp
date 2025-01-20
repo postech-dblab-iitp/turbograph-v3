@@ -10,7 +10,7 @@
 #include "planner/bound_query_node.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalSort: public CypherPhysicalOperator {
 

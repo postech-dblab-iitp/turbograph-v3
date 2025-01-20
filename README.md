@@ -1,16 +1,6 @@
-# Turbograph v3
+# S62
 
 Fast, scalable, and flexible OLAP graph database, S62.
-
-## Abstract
-
-The absence of strict requirements to define schemas formally before use in the property graph model offers great flexibility facilitating painless graph data loading and update.
-However, such schemalessness comes at a cost during the operations. 
-It complicates the design of efficient storage and becomes a major bottleneck during the graph query processing.
-To overcome these challenges, we designed and developed a system called S62 to bridge the gap between the flexibility of schemaless data and the efficiency of schema-aware storage and query optimization.
-S62 utilizes a novel approach of internally extracting and clustering schemas based on similarity.
-This technique, termed homogeneous relation chunking, organizes data into groups stored in a columnar format, enabling efficient vectorized query execution.
-Moreover, S62 incorporates the industrial-strength Orca optimizer, minimally modified to be graph-aware, allowing for advanced query optimization techniques developed in the relational database domain.
 
 ## Getting Started
 
@@ -36,12 +26,9 @@ To experiment with a typical dataset, you can download the LDBC SF1 dataset from
 We provide a docker image for the project. You can build the image using the following command.
 
 ```
-git clone https://github.com/postech-dblab-iitp/turbograph-v3.git
-cd turbograph-v3
-git checkout remotes/origin/main
 cd docker
-docker build . -t turbograph-image
-./run-docker-example.sh <database folder> <source data folder>
+docker build . -t s62-image
+./run-docker-container.sh <database folder> <source data folder>
 ```
 
 Directory Definitions
@@ -65,18 +52,20 @@ RUN apt-get update --fix-missing
 RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
 ```
 
-Also, if you failed to find image while executing run-docker-example.sh, then change the IMAGE_NAME to the appropriate name.
+Also, if you failed to find image while executing run-docker-container.sh, then change the IMAGE_NAME to the appropriate name.
 
 ### Building Project
+
+Before build, please run the following command
+
+```
+cd tbgpp-common/third_party/velox
+./scripts/setup-ubuntu.sh
+```
 
 To build in debug mode, you can run the following commands.
 
 ```
-cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
-cd tbgpp-common/third_party/velox
-./scripts/setup-ubuntu.sh
-cd /turbograph-v3
 mkdir build
 cd build/
 cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
@@ -86,11 +75,6 @@ ninja
 To build in release mode, you can run the following commands.
 
 ```
-cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
-cd tbgpp-common/third_party/velox
-./scripts/setup-ubuntu.sh
-cd /turbograph-v3
 mkdir build
 cd build/
 cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
@@ -155,10 +139,3 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 - `:exit`: Exits the client.
 - `analyze`: Update the statistics
 - `flush_file_meta`: increase client initialization speed by flushing file metadata
-
-## Query Support
-
-- COUNT
-    - COUNT(): Not Supported
-    - COUNT(*): Supported
-    - COUNT(column_name): Supported

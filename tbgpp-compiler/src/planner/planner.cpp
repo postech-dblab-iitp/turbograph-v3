@@ -10,7 +10,7 @@ namespace s62 {
 // #define BREAKDOWN_COMPILE_TIME
 
 Planner::Planner(PlannerConfig config, MDProviderType mdp_type,
-                 duckdb::ClientContext *context, std::string memory_mdp_path)
+                 s62::ClientContext *context, std::string memory_mdp_path)
     : config(config),
       mdp_type(mdp_type),
       context(context),
@@ -39,10 +39,10 @@ Planner::Planner(PlannerConfig config, MDProviderType mdp_type,
         CName(GPOS_NEW(memory_pool) CWStringConst(w_tid_col_name),
               true /*fOwnsMemory*/);
     
-    duckdb::Catalog &catalog = context->db->GetCatalog();
-    duckdb::GraphCatalogEntry *graph_catalog_entry =
-        (duckdb::GraphCatalogEntry *)catalog.GetEntry(
-            *context, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+    s62::Catalog &catalog = context->db->GetCatalog();
+    s62::GraphCatalogEntry *graph_catalog_entry =
+        (s62::GraphCatalogEntry *)catalog.GetEntry(
+            *context, s62::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
             DEFAULT_GRAPH);
     SID_COLNAME_ID = graph_catalog_entry->GetPropertyKeyID(*context, SID_COLNAME);
     TID_COLNAME_ID = graph_catalog_entry->GetPropertyKeyID(*context, TID_COLNAME);
@@ -635,7 +635,7 @@ void *Planner::_orcaExec(void *planner_ptr)
     return nullptr;
 }
 
-vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
+vector<s62::CypherPipelineExecutor *> Planner::genPipelineExecutors()
 {
     D_ASSERT(pipelines.size() > 0);
 
@@ -644,7 +644,7 @@ vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
 		- per-pipeline: child_executors / dep_executors
 	*/
 
-    std::vector<duckdb::CypherPipelineExecutor *> executors;
+    std::vector<s62::CypherPipelineExecutor *> executors;
 
     if (generate_sfg) {
         D_ASSERT(pipelines.size() == sfgs.size());
@@ -652,19 +652,19 @@ vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
 
     for (auto pipe_idx = 0; pipe_idx < pipelines.size(); pipe_idx++) {
         auto &pipe = pipelines[pipe_idx];
-        duckdb::SchemaFlowGraph *sfg = generate_sfg ? &sfgs[pipe_idx] : nullptr;
+        s62::SchemaFlowGraph *sfg = generate_sfg ? &sfgs[pipe_idx] : nullptr;
 
         // find children and deps - the child/dep ordering matters.
         // must run in ascending order of the vector
-        auto *new_ctxt = new duckdb::ExecutionContext(context);
-        vector<duckdb::CypherPipelineExecutor *>
+        auto *new_ctxt = new s62::ExecutionContext(context);
+        vector<s62::CypherPipelineExecutor *>
             child_executors;  // child : pipe's sink == op's source
-        std::map<duckdb::CypherPhysicalOperator *,
-                duckdb::CypherPipelineExecutor *>
+        std::map<s62::CypherPhysicalOperator *,
+                s62::CypherPipelineExecutor *>
             dep_executors;  // dep   : pipe's sink == op's operator
 
         // inject per-operator dependencies in a pipeline
-        for (duckdb::idx_t op_idx = 1; op_idx < pipe->pipelineLength;
+        for (s62::idx_t op_idx = 1; op_idx < pipe->pipelineLength;
             op_idx++) {
             pipe->GetIdxOperator(op_idx)->children.push_back(
                 pipe->GetIdxOperator(op_idx - 1));
@@ -683,7 +683,7 @@ vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
             // connect OPERATORS with previous SINK
             for (int op_idx = 0; op_idx < pipe->GetOperators().size();
                 op_idx++) {
-                duckdb::CypherPhysicalOperator *op =
+                s62::CypherPhysicalOperator *op =
                     pipe->GetOperators()[op_idx];
                 if (op == ce->pipeline->GetSink()) {
                     dep_executors.insert(std::make_pair(op, ce));
@@ -699,14 +699,14 @@ vector<duckdb::CypherPipelineExecutor *> Planner::genPipelineExecutors()
                 }
             }
         }
-        duckdb::CypherPipelineExecutor *pipe_exec;
+        s62::CypherPipelineExecutor *pipe_exec;
         if (generate_sfg) {
-            pipe_exec = new duckdb::CypherPipelineExecutor(
+            pipe_exec = new s62::CypherPipelineExecutor(
                 new_ctxt, pipe, *sfg, move(child_executors),
                 move(dep_executors));
         }
         else {
-            pipe_exec = new duckdb::CypherPipelineExecutor(
+            pipe_exec = new s62::CypherPipelineExecutor(
                 new_ctxt, pipe, move(child_executors), move(dep_executors));
         }
 

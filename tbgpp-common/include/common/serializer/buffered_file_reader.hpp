@@ -10,7 +10,7 @@
 
 #include "common/serializer/buffered_file_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BufferedFileReader : public Deserializer {
 public:
@@ -36,4 +36,4 @@ private:
 	idx_t total_read;
 };
 
-} // namespace duckdb
+} // namespace s62

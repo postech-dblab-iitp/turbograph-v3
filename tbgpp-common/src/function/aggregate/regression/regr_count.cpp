@@ -5,7 +5,7 @@
 #include "function/aggregate/regression/regr_count.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void RegrCountFun::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet corr("regr_count");
@@ -14,4 +14,4 @@ void RegrCountFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(corr);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "common/field_writer.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool ResultModifier::Equals(const ResultModifier *other) const {
 	if (!other) {
@@ -226,4 +226,4 @@ unique_ptr<ResultModifier> LimitPercentModifier::Deserialize(FieldReader &reader
 	return move(mod);
 }
 
-} // namespace duckdb
+} // namespace s62

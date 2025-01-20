@@ -10,7 +10,7 @@
 
 #include <tuple>
 
-namespace duckdb {
+namespace s62 {
 using std::make_tuple;
 using std::tuple;
-} // namespace duckdb
+} // namespace s62

@@ -8,7 +8,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ProduceResultsState : public LocalSinkState {
    public:
@@ -49,7 +49,7 @@ class ProduceResultsState : public LocalSinkState {
     bool isResultTypeDetermined;
     std::vector<uint64_t> projection_mapping;
     std::vector<std::vector<uint64_t>> projection_mappings;
-    std::vector<duckdb::LogicalType> result_types;
+    std::vector<s62::LogicalType> result_types;
 };
 
 unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(
@@ -307,4 +307,4 @@ std::string PhysicalProduceResults::ToString() const
     return "ProduceResults";
 }
 
-}  // namespace duckdb
+}  // namespace s62

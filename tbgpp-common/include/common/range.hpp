@@ -4,7 +4,7 @@
 #include <iterator>
 #include <type_traits>
 
-namespace duckdb {
+namespace s62 {
 
 // Range : [begin, end]
 template <typename T>
@@ -143,7 +143,7 @@ bool operator!= (Range<elem_t>& l, const Range<elem_t>& r) {
 	return !(l == r);
 }
 
-} // namespace duckdb
+} // namespace s62
 
 namespace util { namespace lang {
 

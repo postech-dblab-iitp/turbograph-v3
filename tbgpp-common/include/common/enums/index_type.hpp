@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Index Types
@@ -33,4 +33,4 @@ enum class IndexType : uint8_t {
 // 	FOREIGN = 3  // index is an index built to enforce a FOREIGN KEY constraint
 // };
 
-} // namespace duckdb
+} // namespace s62

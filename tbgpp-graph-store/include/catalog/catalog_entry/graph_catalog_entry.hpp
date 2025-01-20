@@ -13,7 +13,7 @@
 #include "catalog/inverted_index.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ColumnStatistics;
 struct CreateGraphInfo;
@@ -153,4 +153,4 @@ public:
 	//idx_t GetColumnIndex(string &name, bool if_exists = false);
 
 };
-} // namespace duckdb
+} // namespace s62

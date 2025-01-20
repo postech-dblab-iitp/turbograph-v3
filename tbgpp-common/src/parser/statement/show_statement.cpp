@@ -1,6 +1,6 @@
 #include "parser/statement/show_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ShowStatement::ShowStatement() : SQLStatement(StatementType::SHOW_STATEMENT), info(make_unique<ShowSelectInfo>()) {
 }
@@ -12,4 +12,4 @@ unique_ptr<SQLStatement> ShowStatement::Copy() const {
 	return unique_ptr<ShowStatement>(new ShowStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

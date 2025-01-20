@@ -10,6 +10,6 @@
 
 #include <atomic>
 
-namespace duckdb {
+namespace s62 {
 using std::atomic;
 }

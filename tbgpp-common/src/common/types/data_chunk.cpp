@@ -21,7 +21,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 DataChunk::DataChunk() : count(0), capacity(STANDARD_VECTOR_SIZE) {
 }
@@ -534,4 +534,4 @@ void DataChunk::Verify() {
 	Printer::Print(ToString());
 }*/
 
-} // namespace duckdb
+} // namespace s62

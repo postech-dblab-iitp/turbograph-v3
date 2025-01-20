@@ -96,7 +96,7 @@
 
 // // Parser
 // 	std::cout << "[TEST] generating and calling KuzuCypherParser" << std::endl;
-// 	auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+// 	auto kuzuCypherParser = s62::parser::KuzuCypherParser(&tokens);
 
 // 	// std::cout << (kcp.oC_AnyCypherOption()->oC_Explain() != nullptr) << std::endl;
 // 	// std::cout << (kcp.oC_AnyCypherOption()->oC_Profile() != nullptr) << std::endl;
@@ -104,17 +104,17 @@
 // // Sematic parsing
 // 	// Transformer
 // 	std::cout << "[TEST] generating transformer" << std::endl;
-// 	kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+// 	s62::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
 // 	std::cout << "[TEST] calling transformer" << std::endl;
 // 	auto statement = transformer.transform();
 	
 // 	// Binder
 // 	std::cout << "[TEST] generating binder" << std::endl;
-// 	auto binder = kuzu::binder::Binder(nullptr);
+// 	auto binder = s62::binder::Binder(nullptr);
 // 	std::cout << "[TEST] calling binder" << std::endl;
 // 	auto boundStatement = binder.bind(*statement);
-// 	kuzu::binder::BoundStatement * bst = boundStatement.get();
-// 	BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+// 	s62::binder::BoundStatement * bst = boundStatement.get();
+// 	BTTree<s62::binder::ParseTreeNode> printer(bst, &s62::binder::ParseTreeNode::getChildNodes, &s62::binder::BoundStatement::getName);
 // 	// WARNING - printer should be disabled when processing following compilation step.
 // 	std::cout << "Tree => " << std::endl;
 // 	printer.print();

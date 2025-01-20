@@ -13,7 +13,7 @@
 #include "function/aggregate_function.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BoundAggregateExpression;
 
 struct AggregateObject {
@@ -118,4 +118,4 @@ private:
 	idx_t heap_pointer_offset;
 };
 
-} // namespace duckdb
+} // namespace s62

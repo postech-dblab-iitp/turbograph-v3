@@ -10,7 +10,7 @@
 
 #include "planner/bound_constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundNotNullConstraint : public BoundConstraint {
 public:
@@ -21,4 +21,4 @@ public:
 	storage_t index;
 };
 
-} // namespace duckdb
+} // namespace s62

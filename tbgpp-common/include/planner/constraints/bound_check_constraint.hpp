@@ -12,7 +12,7 @@
 #include "planner/bound_constraint.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The CheckConstraint contains an expression that must evaluate to TRUE for
 //! every row in a table
@@ -27,4 +27,4 @@ public:
 	unordered_set<column_t> bound_columns;
 };
 
-} // namespace duckdb
+} // namespace s62

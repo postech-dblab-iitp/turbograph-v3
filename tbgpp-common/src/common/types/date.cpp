@@ -11,7 +11,7 @@
 #include <cctype>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 static_assert(sizeof(date_t) == sizeof(int32_t), "date_t was padded");
 
@@ -530,4 +530,4 @@ date_t Date::GetMondayOfCurrentWeek(date_t date) {
 	return date - (dotw - 1);
 }
 
-} // namespace duckdb
+} // namespace s62

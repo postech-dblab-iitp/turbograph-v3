@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! CollateExpression represents a COLLATE statement
 class CollateExpression : public ParsedExpression {
@@ -32,4 +32,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

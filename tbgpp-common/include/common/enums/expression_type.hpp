@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Predicate Expression Operation Types
@@ -210,4 +210,4 @@ ExpressionType NegateComparisionExpression(ExpressionType type);
 //! Flip a comparison expression, turning e.g. < into >, or = into =
 ExpressionType FlipComparisionExpression(ExpressionType type);
 
-} // namespace duckdb
+} // namespace s62

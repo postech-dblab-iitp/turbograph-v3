@@ -4,7 +4,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "function/aggregate_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterDistributiveAggregates() {
 	Register<BitAndFun>();
@@ -28,4 +28,4 @@ void BuiltinFunctions::RegisterDistributiveAggregates() {
 	Register<EntropyFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

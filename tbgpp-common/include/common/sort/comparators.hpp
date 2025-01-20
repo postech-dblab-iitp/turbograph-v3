@@ -11,7 +11,7 @@
 #include "common/types.hpp"
 #include "common/types/row_layout.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SortLayout;
 struct SBScanState;
@@ -60,4 +60,4 @@ private:
 	static void SwizzleSingleValue(data_ptr_t data_ptr, const data_ptr_t &heap_ptr, const LogicalType &type);
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static bool SuffixFunction(const string_t &str, const string_t &suffix);
 
@@ -44,4 +44,4 @@ void SuffixFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(GetFunction());
 }
 
-} // namespace duckdb
+} // namespace s62

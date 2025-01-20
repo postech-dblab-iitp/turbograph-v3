@@ -4,7 +4,7 @@
 #include <bitset>
 #include "common/vector_size.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum CompressionFunctionType : uint8_t {
     UNCOMPRESSED = 0,

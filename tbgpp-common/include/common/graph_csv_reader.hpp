@@ -8,7 +8,7 @@
 #include "common/enums/graph_component_type.hpp"
 #include "third_party/csv-parser/csv.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 inline void SetValueFromCSV(LogicalType type, DataChunk &output, size_t i, idx_t current_index, csv::CSVField &val) {
 	auto data_ptr = output.data[i].GetData();
@@ -300,4 +300,4 @@ private:
 	};
 };
 
-} // namespace duckdb
+} // namespace s62

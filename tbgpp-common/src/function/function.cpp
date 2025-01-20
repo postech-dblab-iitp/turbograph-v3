@@ -23,7 +23,7 @@
 // #include "planner/expression_binder.hpp"
 #include <iostream>
 
-namespace duckdb {
+namespace s62 {
 
 FunctionData::~FunctionData() {
 }
@@ -245,7 +245,7 @@ void BuiltinFunctions::AddFunction(ScalarFunctionSet set) {
 hash_t BaseScalarFunction::Hash() const {
 	hash_t hash = return_type.Hash();
 	for (auto &arg : arguments) {
-		duckdb::CombineHash(hash, arg.Hash());
+		s62::CombineHash(hash, arg.Hash());
 	}
 	return hash;
 }
@@ -554,4 +554,4 @@ AggregateFunction::BindAggregateFunction(ClientContext &context, AggregateFuncti
 	                                             is_distinct);
 }
 
-} // namespace duckdb
+} // namespace s62

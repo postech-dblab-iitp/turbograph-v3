@@ -1,6 +1,6 @@
 #include "execution/partitionable_hashtable.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static idx_t PartitionInfoNPartitions(const idx_t n_partitions_upper_bound) {
 	idx_t n_partitions = 1;
@@ -173,4 +173,4 @@ void PartitionableHashTable::Finalize() {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

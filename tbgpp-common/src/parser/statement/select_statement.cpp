@@ -2,7 +2,7 @@
 
 #include "common/serializer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SelectStatement::SelectStatement(const SelectStatement &other) : SQLStatement(other), node(other.node->Copy()) {
 }
@@ -33,4 +33,4 @@ string SelectStatement::ToString() const {
 	return node->ToString();
 }
 
-} // namespace duckdb
+} // namespace s62

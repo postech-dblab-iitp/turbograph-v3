@@ -11,7 +11,7 @@
 #include "planner/expression/list.hpp"
 
 #include <random>
-namespace duckdb {
+namespace s62 {
 class TableFilterSet;
 
 class AdaptiveFilter {
@@ -35,4 +35,4 @@ private:
 	vector<idx_t> swap_likeliness;
 	std::default_random_engine generator;
 };
-} // namespace duckdb
+} // namespace s62

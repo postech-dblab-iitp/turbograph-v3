@@ -11,7 +11,7 @@
 #include "common/assert.hpp"
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 struct DivideOperator {
 	template <class TA, class TB, class TR>
@@ -45,4 +45,4 @@ double ModuloOperator::Operation(double left, double right);
 template <>
 hugeint_t ModuloOperator::Operation(hugeint_t left, hugeint_t right);
 
-} // namespace duckdb
+} // namespace s62

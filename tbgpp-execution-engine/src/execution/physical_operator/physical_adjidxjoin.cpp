@@ -10,7 +10,7 @@
 #include <string>
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Operator
@@ -833,4 +833,4 @@ std::string PhysicalAdjIdxJoin::ToString() const
     return "AdjIdxJoin";
 }
 
-}  // namespace duckdb
+}  // namespace s62

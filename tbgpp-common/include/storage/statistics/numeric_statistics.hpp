@@ -19,7 +19,7 @@
 #include "common/windows_undefs.hpp"
 #include "common/enums/filter_propagate_result.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class NumericStatistics : public BaseStatistics {
 public:
@@ -72,4 +72,4 @@ void NumericStatistics::Update<interval_t>(SegmentStatistics &stats, interval_t 
 template <>
 void NumericStatistics::Update<list_entry_t>(SegmentStatistics &stats, list_entry_t new_value);
 
-} // namespace duckdb
+} // namespace s62

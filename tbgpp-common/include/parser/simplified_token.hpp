@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Simplified tokens are a simplified (dense) representation of the lexer
 //! Used for simple syntax highlighting in the tests
@@ -35,4 +35,4 @@ struct ParserKeyword {
 	KeywordCategory category;
 };
 
-} // namespace duckdb
+} // namespace s62

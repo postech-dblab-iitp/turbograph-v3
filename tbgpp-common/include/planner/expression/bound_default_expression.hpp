@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundDefaultExpression : public Expression {
 public:
@@ -34,4 +34,4 @@ public:
 		return make_unique<BoundDefaultExpression>(return_type);
 	}
 };
-} // namespace duckdb
+} // namespace s62

@@ -8,7 +8,7 @@
 #include "common/row_operations/row_operations.hpp"
 #include "common/types/row_layout.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t base_row_ptr, const idx_t count) {
 	const idx_t row_width = layout.GetRowWidth();
@@ -110,4 +110,4 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

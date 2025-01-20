@@ -4,7 +4,7 @@
 // #include "common/crypto/md5.hpp"
 // #include "common/vector_operations/unary_executor.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct MD5Operator {
 // 	template <class INPUT_TYPE, class RESULT_TYPE>
@@ -89,4 +89,4 @@
 // 	                               MD5NumberLowerFunction)); // pointer to function implementation
 // }
 
-// } // namespace duckdb
+// } // namespace s62

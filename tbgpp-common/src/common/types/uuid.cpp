@@ -1,6 +1,6 @@
 #include "common/types/uuid.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool UUID::FromString(string str, hugeint_t &result) {
 	auto hex2char = [](char ch) -> unsigned char {
@@ -84,4 +84,4 @@ void UUID::ToString(hugeint_t input, char *buf) {
 	byte_to_hex(input.lower & 0xFF, buf, pos);
 }
 
-} // namespace duckdb
+} // namespace s62

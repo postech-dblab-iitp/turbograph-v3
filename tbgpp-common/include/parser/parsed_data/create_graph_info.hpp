@@ -6,7 +6,7 @@
 //#include "parser/constraint.hpp"
 //#include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateGraphInfo : public CreateInfo {
 	CreateGraphInfo() : CreateInfo(CatalogType::GRAPH_ENTRY, INVALID_SCHEMA) {
@@ -30,4 +30,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

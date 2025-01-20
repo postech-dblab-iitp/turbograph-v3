@@ -3,7 +3,7 @@
 // #include "planner/expression/bound_function_expression.hpp"
 // #include "storage/statistics/list_statistics.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // void ListFlattenFunction(DataChunk &args, ExpressionState &state, Vector &result) {
 // 	D_ASSERT(args.ColumnCount() == 1);
@@ -132,4 +132,4 @@
 // 	set.AddFunction({"flatten"}, fun);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

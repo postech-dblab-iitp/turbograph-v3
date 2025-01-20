@@ -10,7 +10,7 @@
 #include <sstream>
 #include <cctype>
 
-namespace duckdb {
+namespace s62 {
 
 static_assert(sizeof(dtime_t) == sizeof(int64_t), "dtime_t was padded");
 
@@ -223,4 +223,4 @@ void Time::Convert(dtime_t dtime, int32_t &hour, int32_t &min, int32_t &sec, int
 #endif
 }
 
-} // namespace duckdb
+} // namespace s62

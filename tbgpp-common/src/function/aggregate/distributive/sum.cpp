@@ -6,7 +6,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "function/aggregate/algebraic_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SumSetOperation {
 	template <class STATE>
@@ -196,4 +196,4 @@ void SumFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(fsum);
 }
 
-} // namespace duckdb
+} // namespace s62

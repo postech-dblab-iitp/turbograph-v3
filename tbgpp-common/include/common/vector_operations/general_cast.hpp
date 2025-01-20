@@ -11,7 +11,7 @@
 #include "common/operator/cast_operators.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct HandleVectorCastError {
 	template <class RESULT_TYPE>
@@ -40,4 +40,4 @@ static bool TryVectorNullCast(Vector &source, Vector &result, idx_t count, strin
 	return success;
 }
 
-} // namespace duckdb
+} // namespace s62

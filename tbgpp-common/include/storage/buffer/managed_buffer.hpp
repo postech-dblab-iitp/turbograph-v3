@@ -12,7 +12,7 @@
 #include "common/file_buffer.hpp"
 #include "storage/storage_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class DatabaseInstance;
 
 //! Managed buffer is an arbitrarily-sized buffer that is at least of size >= BLOCK_SIZE
@@ -31,4 +31,4 @@ public:
 	block_id_t id;
 };
 
-} // namespace duckdb
+} // namespace s62

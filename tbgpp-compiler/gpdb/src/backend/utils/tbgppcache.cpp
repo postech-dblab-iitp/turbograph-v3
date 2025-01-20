@@ -101,9 +101,9 @@ extern "C" {
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
-static std::shared_ptr<duckdb::DatabaseInstance> db;
-static std::unique_ptr<duckdb::Catalog> catalog;
-static duckdb::fixed_managed_mapped_file *catalog_shm;
+static std::shared_ptr<s62::DatabaseInstance> db;
+static std::unique_ptr<s62::Catalog> catalog;
+static s62::fixed_managed_mapped_file *catalog_shm;
 
 // /*
 //  *		name of relcache init file(s), used to speed up backend startup
@@ -894,10 +894,10 @@ static duckdb::fixed_managed_mapped_file *catalog_shm;
 // 	Oid			relid;
 // 	// HeapTuple	pg_class_tuple;
 // 	// Form_pg_class relp;
-// 	duckdb::PropertySchemaCatalogEntry *pscat;
-// 	duckdb::ClientContext client(db);
+// 	s62::PropertySchemaCatalogEntry *pscat;
+// 	s62::ClientContext client(db);
 
-// 	pscat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
+// 	pscat = (s62::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
 
 // 	/*
 // 	 * find the tuple in pg_class corresponding to the given relation id
@@ -1751,13 +1751,13 @@ static duckdb::fixed_managed_mapped_file *catalog_shm;
  *		Caller should eventually decrement count.  (Usually,
  *		that happens by calling RelationClose().)
  */
-duckdb::PropertySchemaCatalogEntry*
-RelationIdGetRelation(duckdb::idx_t relationId)
+s62::PropertySchemaCatalogEntry*
+RelationIdGetRelation(s62::idx_t relationId)
 {
-	duckdb::PropertySchemaCatalogEntry *ps_cat;
-	duckdb::ClientContext client(db);
+	s62::PropertySchemaCatalogEntry *ps_cat;
+	s62::ClientContext client(db);
 
-	//ps_cat = (duckdb::PropertySchemaCatalogEntry *)catalog->GetEntry(client, relationId);
+	//ps_cat = (s62::PropertySchemaCatalogEntry *)catalog->GetEntry(client, relationId);
 	
 	return ps_cat;
 }

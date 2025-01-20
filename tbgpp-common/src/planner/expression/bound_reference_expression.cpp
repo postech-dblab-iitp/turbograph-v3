@@ -4,7 +4,7 @@
 #include "common/types/hash.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 BoundReferenceExpression::BoundReferenceExpression(string alias, LogicalType type, idx_t index)
     : Expression(ExpressionType::BOUND_REF, ExpressionClass::BOUND_REF, move(type)), index(index) {
 	this->alias = move(alias);
@@ -34,11 +34,11 @@ bool BoundReferenceExpression::Equals(const BaseExpression *other_p) const {
 }
 
 hash_t BoundReferenceExpression::Hash() const {
-	return CombineHash(Expression::Hash(), duckdb::Hash<idx_t>(index));
+	return CombineHash(Expression::Hash(), s62::Hash<idx_t>(index));
 }
 
 unique_ptr<Expression> BoundReferenceExpression::Copy() {
 	return make_unique<BoundReferenceExpression>(alias, return_type, index);
 }
 
-} // namespace duckdb
+} // namespace s62

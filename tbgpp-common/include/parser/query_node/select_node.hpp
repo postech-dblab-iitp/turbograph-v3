@@ -16,7 +16,7 @@
 #include "parser/group_by_node.hpp"
 #include "common/enums/aggregate_handling.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! SelectNode represents a standard SELECT statement
 class SelectNode : public QueryNode {
@@ -58,4 +58,4 @@ public:
 	static unique_ptr<QueryNode> Deserialize(FieldReader &reader);
 };
 
-} // namespace duckdb
+} // namespace s62

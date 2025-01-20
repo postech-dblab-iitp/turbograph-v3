@@ -2,7 +2,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/types/cast_helpers.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class OP>
 static scalar_function_t GetScalarIntegerUnaryFunction(const LogicalType &type) {
@@ -218,4 +218,4 @@ void BitwiseNotFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(functions);
 }
 
-} // namespace duckdb
+} // namespace s62

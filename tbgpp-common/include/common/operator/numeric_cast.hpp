@@ -12,7 +12,7 @@
 #include "common/types/hugeint.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class SRC, class DST>
 static bool TryCastWithOverflowCheck(SRC value, DST &result) {
@@ -394,4 +394,4 @@ struct NumericCast {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

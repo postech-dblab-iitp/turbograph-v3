@@ -13,7 +13,7 @@
 #include "common/enums/order_type.hpp"
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class FieldWriter;
 class FieldReader;
 
@@ -131,4 +131,4 @@ public:
 	static unique_ptr<ResultModifier> Deserialize(FieldReader &reader);
 };
 
-} // namespace duckdb
+} // namespace s62

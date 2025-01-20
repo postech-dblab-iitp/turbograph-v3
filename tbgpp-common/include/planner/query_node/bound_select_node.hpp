@@ -15,7 +15,7 @@
 #include "parser/parsed_data/sample_options.hpp"
 #include "parser/group_by_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundGroupByNode {
 public:
@@ -91,4 +91,4 @@ public:
 		return need_prune ? prune_index : projection_index;
 	}
 };
-} // namespace duckdb
+} // namespace s62

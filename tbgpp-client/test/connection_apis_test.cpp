@@ -3,11 +3,11 @@
 
 int main(int argc, char** argv) {
     std::string workspace("/data");
-    duckdb::S62ConnectionAPIs conn(workspace);
+    s62::S62ConnectionAPIs conn(workspace);
 
     std::cout << "\n<<<Node metadata>>>" << std::endl;
     
-    duckdb::NodeMetadataList node_metadata_list;
+    s62::NodeMetadataList node_metadata_list;
     conn.GetNodesMetadata(node_metadata_list);
 
     // Print node metadata
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
     std::cout << "<<<Edge metadata>>>" << std::endl;
 
-    duckdb::EdgeMetadataList edge_metadata_list;
+    s62::EdgeMetadataList edge_metadata_list;
     conn.GetEdgesMetadata(edge_metadata_list);
 
     // Print edge metadata
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     auto prepared_statement = conn.PrepareStatement(query);
     prepared_statement->setParam(1, 65);
 
-    duckdb::QueryResultSetMetadata result_set_metadata;
+    s62::QueryResultSetMetadata result_set_metadata;
     size_t result_count;
     std::string final_query = prepared_statement->getQuery();
     conn.ExecuteStatement(final_query, result_set_metadata);

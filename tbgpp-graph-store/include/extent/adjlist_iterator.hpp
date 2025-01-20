@@ -14,7 +14,7 @@
 
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 class Value;
 class DataChunk;
@@ -182,6 +182,6 @@ private:
 };
 
 
-} // namespace duckdb
+} // namespace s62
 
 #endif

@@ -10,6 +10,6 @@
 
 #include <stack>
 
-namespace duckdb {
+namespace s62 {
 using std::stack;
 }

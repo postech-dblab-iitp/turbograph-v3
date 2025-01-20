@@ -4,7 +4,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "main/client_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalUnwind: public CypherPhysicalOperator {
 public:

@@ -7,7 +7,7 @@
 #include "main/client_context.hpp"
 #include "storage/buffer_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalSort::PhysicalSort(Schema &sch, vector<BoundOrderByNode> orders_p)
     : CypherPhysicalOperator(PhysicalOperatorType::SORT, sch),
@@ -169,4 +169,4 @@ std::string PhysicalSort::ToString() const
     return "Sort";
 }
 
-}  // namespace duckdb
+}  // namespace s62

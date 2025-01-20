@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 StarExpression::StarExpression(string relation_name_p)
     : ParsedExpression(ExpressionType::STAR, ExpressionClass::STAR), relation_name(move(relation_name_p)) {
@@ -105,4 +105,4 @@ unique_ptr<ParsedExpression> StarExpression::Copy() const {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -14,7 +14,7 @@
 #include "common/vector.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 class Serializer;
 class Deserializer;
@@ -648,4 +648,4 @@ struct aggregate_state_t {
 	vector<LogicalType> bound_argument_types;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/manufacturer`]->(v1), (v1)-[:`http://schema.org/founder`]->(v2) WHERE v2.`http://schema.org/url` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

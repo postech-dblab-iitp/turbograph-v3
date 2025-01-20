@@ -3,7 +3,7 @@
 #include "common/field_writer.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ConjunctionExpression::ConjunctionExpression(ExpressionType type)
     : ParsedExpression(type, ExpressionClass::CONJUNCTION) {
@@ -63,4 +63,4 @@ unique_ptr<ParsedExpression> ConjunctionExpression::Deserialize(ExpressionType t
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

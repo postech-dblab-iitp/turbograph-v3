@@ -12,7 +12,7 @@
 #include "catalog/catalog_set.hpp"
 //#include "parser/query_error_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 
 class StandardEntry;
@@ -186,4 +186,4 @@ private:
 	//! Get the catalog set for the specified type
 	CatalogSet &GetCatalogSet(CatalogType type);
 };
-} // namespace duckdb
+} // namespace s62

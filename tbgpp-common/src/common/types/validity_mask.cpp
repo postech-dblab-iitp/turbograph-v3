@@ -1,6 +1,6 @@
 #include "common/types/validity_mask.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ValidityData::ValidityData(idx_t count) : TemplatedValidityData(count) {
 }
@@ -121,4 +121,4 @@ void ValidityMask::Slice(const ValidityMask &other, idx_t offset) {
 #endif
 }
 
-} // namespace duckdb
+} // namespace s62

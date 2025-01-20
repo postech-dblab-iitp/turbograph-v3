@@ -1,6 +1,6 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor *sch1_pipe1(QueryPlanSuite& suite);
 
@@ -426,9 +426,9 @@ CypherPipelineExecutor* sch3_pipe1(QueryPlanSuite& suite) {
 	unique_ptr<Expression> filter_expr1;
 	{
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 8);
-		auto rhsval = duckdb::Value("C13H18N2O2");
+		auto rhsval = s62::Value("C13H18N2O2");
 		// auto lhs = make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 0);
-		// auto rhsval = duckdb::Value::UBIGINT(8589934592);
+		// auto rhsval = s62::Value::UBIGINT(8589934592);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
 	}
@@ -578,9 +578,9 @@ CypherPipelineExecutor* sch4_pipe1(QueryPlanSuite& suite) {
 	unique_ptr<Expression> filter_expr1;
 	{
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::VARCHAR, 8);
-		auto rhsval = duckdb::Value("C13H18N2O2");
+		auto rhsval = s62::Value("C13H18N2O2");
 		// auto lhs = make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 0);
-		// auto rhsval = duckdb::Value::UBIGINT(8589934592);
+		// auto rhsval = s62::Value::UBIGINT(8589934592);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
 	}

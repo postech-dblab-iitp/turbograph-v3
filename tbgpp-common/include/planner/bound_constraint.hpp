@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "parser/constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Bound equivalent of Constraint
 class BoundConstraint {
 public:
@@ -21,4 +21,4 @@ public:
 
 	ConstraintType type;
 };
-} // namespace duckdb
+} // namespace s62

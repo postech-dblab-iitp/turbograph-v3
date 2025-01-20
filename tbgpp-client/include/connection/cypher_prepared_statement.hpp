@@ -7,7 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace duckdb {
+namespace s62 {
 
 class CypherPreparedStatement {
 private:

@@ -5,7 +5,7 @@
 #include "common/cycle_counter.hpp"
 #include "common/chrono.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 inline uint64_t ChronoNow() {
 	return std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -73,4 +73,4 @@ inline uint64_t Now() {
 uint64_t CycleCounter::Tick() const {
 	return Now();
 }
-} // namespace duckdb
+} // namespace s62

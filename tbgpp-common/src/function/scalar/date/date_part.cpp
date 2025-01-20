@@ -11,7 +11,7 @@
 #include "planner/expression/bound_function_expression.hpp"
 #include "storage/statistics/numeric_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool TryGetDatePartSpecifier(const string &specifier_p, DatePartSpecifier &result) {
 	auto specifier = StringUtil::Lower(specifier_p);
@@ -1533,4 +1533,4 @@ void DatePartFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(date_part);
 }
 
-} // namespace duckdb
+} // namespace s62

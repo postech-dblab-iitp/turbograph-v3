@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/about`]->(v1), (v1)-[:`http://yago-knowledge.org/resource/notableWork`]->(v2) RETURN v0.uri, v1.uri, v2.uri

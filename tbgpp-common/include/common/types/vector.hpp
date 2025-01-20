@@ -17,7 +17,7 @@
 #include "common/types/vector_buffer.hpp"
 #include "common/vector_size.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct VectorData {
 	const SelectionVector *sel;
@@ -429,4 +429,4 @@ struct RowColVector {
 	
 };
 
-} // namespace duckdb
+} // namespace s62

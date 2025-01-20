@@ -14,7 +14,7 @@
 #include "common/serializer/buffered_file_reader.hpp"
 // #include "storage/checkpoint_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 StorageManager::StorageManager(DatabaseInstance &db, string path, bool read_only)
     : db(db), path(move(path)), read_only(read_only) {
@@ -137,4 +137,4 @@ void StorageManager::CreateCheckpoint(bool delete_wal, bool force_checkpoint) {
 	// }
 }
 
-} // namespace duckdb
+} // namespace s62

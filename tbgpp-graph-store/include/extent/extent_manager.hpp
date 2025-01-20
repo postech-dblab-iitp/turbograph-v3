@@ -4,7 +4,7 @@
 #include "common/common.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Catalog;
 class DataChunk;
@@ -67,6 +67,6 @@ private:
     void _DestroyDeltaTile(DBInstance &db, TileID &tile_id);*/
 };
 
-} // namespace duckdb
+} // namespace s62
 
 #endif // TILE_MANAGER_H

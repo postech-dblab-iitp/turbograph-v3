@@ -10,7 +10,7 @@
 
 using namespace std;
 
-namespace duckdb {
+namespace s62 {
 
 BlockHandle::BlockHandle(DatabaseInstance &db, block_id_t block_id_p)
     : db(db), readers(0), block_id(block_id_p), buffer(nullptr), eviction_timestamp(0), can_destroy(false) {
@@ -133,7 +133,7 @@ struct BufferEvictionNode {
 	}
 };
 
-typedef duckdb_moodycamel::ConcurrentQueue<unique_ptr<BufferEvictionNode>> eviction_queue_t;
+typedef s62_moodycamel::ConcurrentQueue<unique_ptr<BufferEvictionNode>> eviction_queue_t;
 
 struct EvictionQueue {
 	eviction_queue_t q;
@@ -477,4 +477,4 @@ string BufferManager::InMemoryWarning() {
 	       "\nOr set PRAGMA temp_directory='/path/to/tmp.tmp'";
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "common/string_util.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundLambdaExpression::BoundLambdaExpression(ExpressionType type_p, LogicalType return_type_p,
                                              unique_ptr<Expression> lambda_expr_p, idx_t parameter_count_p)
@@ -39,4 +39,4 @@ unique_ptr<Expression> BoundLambdaExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

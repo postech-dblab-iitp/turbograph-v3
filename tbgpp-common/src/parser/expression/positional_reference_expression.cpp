@@ -5,7 +5,7 @@
 #include "common/types/hash.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PositionalReferenceExpression::PositionalReferenceExpression(idx_t index)
     : ParsedExpression(ExpressionType::POSITIONAL_REFERENCE, ExpressionClass::POSITIONAL_REFERENCE), index(index) {
@@ -28,7 +28,7 @@ unique_ptr<ParsedExpression> PositionalReferenceExpression::Copy() const {
 
 hash_t PositionalReferenceExpression::Hash() const {
 	hash_t result = ParsedExpression::Hash();
-	return CombineHash(duckdb::Hash(index), result);
+	return CombineHash(s62::Hash(index), result);
 }
 
 void PositionalReferenceExpression::Serialize(FieldWriter &writer) const {
@@ -40,4 +40,4 @@ unique_ptr<ParsedExpression> PositionalReferenceExpression::Deserialize(Expressi
 	return move(expression);
 }
 
-} // namespace duckdb
+} // namespace s62

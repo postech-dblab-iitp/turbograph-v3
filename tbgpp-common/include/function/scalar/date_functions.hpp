@@ -11,7 +11,7 @@
 #include "function/scalar_function.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AgeFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -65,4 +65,4 @@ struct ToIntervalFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

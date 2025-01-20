@@ -22,7 +22,7 @@
 
 static bool unionall_forced = false;
 
-namespace duckdb {
+namespace s62 {
 
 class IdSeekState : public OperatorState {
    public:
@@ -77,7 +77,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
                                vector<vector<uint32_t>> &inner_col_maps,
                                vector<uint32_t> &union_inner_col_map,
                                vector<vector<uint64_t>> scan_projection_mapping,
-                               vector<vector<duckdb::LogicalType>> scan_types,
+                               vector<vector<s62::LogicalType>> scan_types,
                                bool force_output_union, JoinType join_type)
     : CypherPhysicalOperator(PhysicalOperatorType::ID_SEEK, sch),
       id_col_idx(id_col_idx),
@@ -115,7 +115,7 @@ PhysicalIdSeek::PhysicalIdSeek(
     vector<uint32_t> &outer_col_map, vector<vector<uint32_t>> &inner_col_maps,
     vector<uint32_t> &union_inner_col_map,
     vector<vector<uint64_t>> scan_projection_mapping,
-    vector<vector<duckdb::LogicalType>> scan_types,
+    vector<vector<s62::LogicalType>> scan_types,
     vector<vector<unique_ptr<Expression>>> &predicates,
     vector<vector<idx_t>> &pred_col_idxs_per_schema, bool force_output_union,
     JoinType join_type)
@@ -1679,4 +1679,4 @@ std::string PhysicalIdSeek::ToString() const
     return "IdSeek";
 }
 
-}  // namespace duckdb
+}  // namespace s62

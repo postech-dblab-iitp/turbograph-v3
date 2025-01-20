@@ -5,7 +5,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 template <>
 hash_t Hash(uint64_t val) {
@@ -116,4 +116,4 @@ hash_t Hash(uint8_t *val, size_t size) {
 	return HashBytes((void *)val, size);
 }
 
-} // namespace duckdb
+} // namespace s62

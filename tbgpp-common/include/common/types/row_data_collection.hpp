@@ -12,7 +12,7 @@
 #include "common/types/vector.hpp"
 #include "storage/buffer_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct RowDataBlock {
 	RowDataBlock(BufferManager &buffer_manager, idx_t capacity, idx_t entry_size)
@@ -82,4 +82,4 @@ private:
 	const bool keep_pinned;
 };
 
-} // namespace duckdb
+} // namespace s62

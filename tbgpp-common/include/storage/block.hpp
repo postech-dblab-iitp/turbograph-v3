@@ -12,7 +12,7 @@
 #include "storage/storage_info.hpp"
 #include "common/file_buffer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Block : public FileBuffer {
 public:
@@ -27,4 +27,4 @@ struct BlockPointer {
 	uint32_t offset;
 };
 
-} // namespace duckdb
+} // namespace s62

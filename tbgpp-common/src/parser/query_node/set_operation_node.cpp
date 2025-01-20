@@ -1,7 +1,7 @@
 #include "parser/query_node/set_operation_node.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string SetOperationNode::ToString() const {
 	string result;
@@ -77,4 +77,4 @@ unique_ptr<QueryNode> SetOperationNode::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

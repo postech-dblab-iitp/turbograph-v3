@@ -14,7 +14,7 @@
 #include "planner/expression.hpp"
 //#include "storage/statistics/base_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A ResultModifier
 class BoundResultModifier {
@@ -85,4 +85,4 @@ public:
 	unique_ptr<Expression> offset;
 };
 
-} // namespace duckdb
+} // namespace s62

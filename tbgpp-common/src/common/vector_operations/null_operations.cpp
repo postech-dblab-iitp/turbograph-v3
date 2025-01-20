@@ -7,7 +7,7 @@
 #include "common/exception.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <bool INVERSE>
 void IsNullLoop(Vector &input, Vector &result, idx_t count) {
@@ -124,4 +124,4 @@ idx_t VectorOperations::CountNotNull(Vector &input, const idx_t count) {
 	return valid;
 }
 
-} // namespace duckdb
+} // namespace s62

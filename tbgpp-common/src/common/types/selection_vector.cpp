@@ -2,7 +2,7 @@
 #include "common/printer.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // LCOV_EXCL_START
 string SelectionVector::ToString(idx_t count) const {
@@ -34,4 +34,4 @@ buffer_ptr<SelectionData> SelectionVector::Slice(const SelectionVector &sel, idx
 	return data;
 }
 
-} // namespace duckdb
+} // namespace s62

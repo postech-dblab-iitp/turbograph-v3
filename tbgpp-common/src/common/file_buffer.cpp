@@ -8,7 +8,7 @@
 
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 FileBuffer::FileBuffer(Allocator &allocator, FileBufferType type, uint64_t bufsiz)
     : allocator(allocator), type(type), malloced_buffer(nullptr) {
@@ -124,4 +124,4 @@ void FileBuffer::Clear() {
 	memset(internal_buffer, 0, internal_size);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class SelectStatement;
 
@@ -19,4 +19,4 @@ struct CommonTableExpressionInfo {
 	unique_ptr<SelectStatement> query;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -14,7 +14,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 class Catalog;
 class ClientContext;
 
@@ -48,4 +48,4 @@ private:
 	void AlterObject(ClientContext &context, CatalogEntry *old_obj, CatalogEntry *new_obj);
 	void EraseObjectInternal(CatalogEntry *object);
 };
-} // namespace duckdb
+} // namespace s62

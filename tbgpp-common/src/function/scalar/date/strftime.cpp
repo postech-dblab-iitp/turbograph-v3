@@ -18,7 +18,7 @@
 
 #include <cctype>
 
-namespace duckdb {
+namespace s62 {
 
 idx_t StrfTimepecifierSize(StrTimeSpecifier specifier) {
 	switch (specifier) {
@@ -1225,4 +1225,4 @@ void StrpTimeFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(strptime);
 }
 
-} // namespace duckdb
+} // namespace s62

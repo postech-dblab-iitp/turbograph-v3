@@ -8,7 +8,7 @@
 
 #include "typedef.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class SchemaFlowGraph {  // for each pipeline
    public:
@@ -178,6 +178,6 @@ class SchemaFlowGraph {  // for each pipeline
     idx_t cur_source_idx = 0;
 };
 
-}  // namespace duckdb
+}  // namespace s62
 
 #endif  // SCHEMA_FLOW_GRAPH_H

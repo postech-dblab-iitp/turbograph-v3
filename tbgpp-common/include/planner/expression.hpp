@@ -11,7 +11,7 @@
 #include "parser/base_expression.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BaseStatistics;
 
 //!  The Expression class represents a bound Expression with a return type
@@ -61,4 +61,4 @@ protected:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

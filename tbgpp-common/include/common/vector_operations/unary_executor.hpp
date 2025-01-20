@@ -14,7 +14,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 struct UnaryOperatorWrapper {
 	template <class OP, class INPUT_TYPE, class RESULT_TYPE>
@@ -214,4 +214,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

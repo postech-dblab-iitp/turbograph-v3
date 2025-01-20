@@ -7,7 +7,7 @@
 #include "main/database.hpp"
 //#include "parser/expression/constant_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 DependencyManager::DependencyManager(Catalog &catalog) : catalog(catalog) {
 }
@@ -217,4 +217,4 @@ void DependencyManager::AddOwnership(ClientContext &context, CatalogEntry *owner
 	dependencies_map[owner].emplace(entry);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -6,7 +6,7 @@
 //#include "parser/constraint.hpp"
 //#include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreatePartitionInfo : public CreateInfo {
 	CreatePartitionInfo() : CreateInfo(CatalogType::PARTITION_ENTRY, INVALID_SCHEMA) {
@@ -31,4 +31,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

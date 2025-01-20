@@ -2,7 +2,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_cast_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundCastExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -31,4 +31,4 @@ void ExpressionExecutor::Execute(const BoundCastExpression &expr, ExpressionStat
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

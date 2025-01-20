@@ -15,7 +15,7 @@
 // #include "common/enums/profiler_format.hpp"
 #include "main/client_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 
 
@@ -66,4 +66,4 @@ public:
 	static ClientConfig &GetConfig(ClientContext &context);
 };
 
-} // namespace duckdb
+} // namespace s62

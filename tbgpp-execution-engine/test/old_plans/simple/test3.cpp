@@ -3,15 +3,15 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("n", "url", s62::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
 	scan_labels.insert("Organisation");
@@ -20,16 +20,16 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test3() {
 	scan_propertyKeys.push_back("id");
 	scan_propertyKeys.push_back("url");
 	// filter preds
-	duckdb::Value filter_val; // person key
-	if(LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	s62::Value filter_val; // person key
+	if(LDBC_SF==1) { filter_val = s62::Value::UBIGINT(14); }
+	if(LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	if(LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 	
 	// projection
 	Schema pj_schema;
 	pj_schema.addNode("n");
-	pj_schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	pj_schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
+	pj_schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	pj_schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
 	//proj pred
 	vector<unique_ptr<Expression>> proj_exprs;
 	{	//  pid name id url => pid id name

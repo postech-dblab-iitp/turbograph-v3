@@ -4,7 +4,7 @@
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalProduceResults : public CypherPhysicalOperator {
 
@@ -57,4 +57,4 @@ class PhysicalProduceResults : public CypherPhysicalOperator {
     mutable uint64_t num_nulls = 0;
 };
 
-}  // namespace duckdb
+}  // namespace s62

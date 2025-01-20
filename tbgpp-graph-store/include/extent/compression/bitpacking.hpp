@@ -14,7 +14,7 @@
 #include "common/helper.hpp"
 #include "common/limits.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using bitpacking_width_t = uint8_t;
 //static constexpr const idx_t BITPACKING_WIDTH_GROUP_SIZE = 16384; // 16K
@@ -262,4 +262,4 @@ private:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_function_info.hpp"
 #include "function/pragma_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreatePragmaFunctionInfo : public CreateFunctionInfo {
 	explicit CreatePragmaFunctionInfo(PragmaFunction function)
@@ -37,4 +37,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

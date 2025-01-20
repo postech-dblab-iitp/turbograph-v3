@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 static int64_t MismatchesScalarFunction(Vector &result, const string_t str, string_t tgt) {
 	idx_t str_len = str.GetSize();
@@ -51,4 +51,4 @@ void MismatchesFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(hamming);
 }
 
-} // namespace duckdb
+} // namespace s62

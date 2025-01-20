@@ -6,7 +6,7 @@
 // #include "main/client_context.hpp"
 // #include "catalog/catalog.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // CatalogSearchPath::CatalogSearchPath(ClientContext &context_p) : context(context_p) {
 // 	SetPaths(ParsePaths(""));
@@ -57,4 +57,4 @@
 // 	return StringUtil::SplitWithQuote(StringUtil::Lower(value));
 // }
 
-// } // namespace duckdb
+// } // namespace s62

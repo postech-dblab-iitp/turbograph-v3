@@ -4,7 +4,7 @@
 #include "common/string_util.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 StringStatistics::StringStatistics(LogicalType type_p) : BaseStatistics(move(type_p)) {
 	for (idx_t i = 0; i < MAX_STRING_MINMAX_SIZE; i++) {
@@ -88,10 +88,10 @@ void StringStatistics::Update(const string_t &value) {
 		max_string_length = size;
 	}
 	if (type.id() == LogicalTypeId::VARCHAR && !has_unicode) {
-		// auto unicode = Utf8Proc::Analyze((const char *)data, size);
-		// if (unicode == UnicodeType::UNICODE) {
+		// auto unicode = duckdb::Utf8Proc::Analyze((const char *)data, size);
+		// if (unicode == duckdb::UnicodeType::UNICODE) {
 		// 	has_unicode = true;
-		// } else if (unicode == UnicodeType::INVALID) {
+		// } else if (unicode == duckdb::UnicodeType::INVALID) {
 		// 	throw InternalException("Invalid unicode detected in segment statistics update!");
 		// }
 		throw InternalException("No Unicode - jhko");
@@ -196,12 +196,12 @@ void StringStatistics::Verify(Vector &vector, const SelectionVector &sel, idx_t 
 			    ToString(), vector.ToString(count));
 		}
 		if (type.id() == LogicalTypeId::VARCHAR && !has_unicode) {
-			// auto unicode = Utf8Proc::Analyze(data, len);
-			// if (unicode == UnicodeType::UNICODE) {
+			// auto unicode = duckdb::Utf8Proc::Analyze(data, len);
+			// if (unicode == duckdb::UnicodeType::UNICODE) {
 			// 	throw InternalException("Statistics mismatch: string value contains unicode, but statistics says it "
 			// 	                        "shouldn't.\nStatistics: %s\nVector: %s",
 			// 	                        ToString(), vector.ToString(count));
-			// } else if (unicode == UnicodeType::INVALID) {
+			// } else if (unicode == duckdb::UnicodeType::INVALID) {
 			// 	throw InternalException("Invalid unicode detected in vector: %s", vector.ToString(count));
 			// }
 			throw InternalException("Invalid unicode detected in vector: %s", vector.ToString(count));
@@ -218,4 +218,4 @@ void StringStatistics::Verify(Vector &vector, const SelectionVector &sel, idx_t 
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

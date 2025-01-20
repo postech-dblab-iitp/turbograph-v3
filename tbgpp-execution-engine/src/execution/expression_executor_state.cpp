@@ -2,7 +2,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void ExpressionState::AddChild(Expression *expr) {
 	types.push_back(expr->return_type);
@@ -20,4 +20,4 @@ ExpressionState::ExpressionState(const Expression &expr, ExpressionExecutorState
 
 ExpressionExecutorState::ExpressionExecutorState(const string &name) : profiler(), name(name) {
 }
-} // namespace duckdb
+} // namespace s62

@@ -1,7 +1,7 @@
 #include "planner/expression/bound_between_expression.hpp"
 #include "parser/expression/between_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundBetweenExpression::BoundBetweenExpression(unique_ptr<Expression> input, unique_ptr<Expression> lower,
                                                unique_ptr<Expression> upper, bool lower_inclusive, bool upper_inclusive)
@@ -38,4 +38,4 @@ unique_ptr<Expression> BoundBetweenExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

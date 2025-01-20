@@ -1,7 +1,7 @@
 #include "parser/expression/between_expression.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BetweenExpression::BetweenExpression(unique_ptr<ParsedExpression> input_p, unique_ptr<ParsedExpression> lower_p,
                                      unique_ptr<ParsedExpression> upper_p)
@@ -45,4 +45,4 @@ unique_ptr<ParsedExpression> BetweenExpression::Deserialize(ExpressionType type,
 	return make_unique<BetweenExpression>(move(input), move(lower), move(upper));
 }
 
-} // namespace duckdb
+} // namespace s62

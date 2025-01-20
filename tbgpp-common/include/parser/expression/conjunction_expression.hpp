@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Represents a conjunction (AND/OR)
 class ConjunctionExpression : public ParsedExpression {
@@ -45,4 +45,4 @@ public:
 		return result + ")";
 	}
 };
-} // namespace duckdb
+} // namespace s62

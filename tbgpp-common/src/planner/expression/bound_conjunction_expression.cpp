@@ -2,7 +2,7 @@
 #include "parser/expression/conjunction_expression.hpp"
 #include "parser/expression_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundConjunctionExpression::BoundConjunctionExpression(ExpressionType type)
     : Expression(type, ExpressionClass::BOUND_CONJUNCTION, LogicalType::BOOLEAN) {
@@ -40,4 +40,4 @@ unique_ptr<Expression> BoundConjunctionExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

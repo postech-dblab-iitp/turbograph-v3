@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class NodeStatistics {
 public:
@@ -34,4 +34,4 @@ public:
 	idx_t max_cardinality;
 };
 
-} // namespace duckdb
+} // namespace s62

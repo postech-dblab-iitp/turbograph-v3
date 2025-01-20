@@ -1,6 +1,6 @@
 #include "function/cast_rules.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The target type determines the preferred implicit casts
 static int64_t TargetTypeCost(const LogicalType &type) {
@@ -259,4 +259,4 @@ int64_t CastRules::ImplicitCast(const LogicalType &from, const LogicalType &to) 
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

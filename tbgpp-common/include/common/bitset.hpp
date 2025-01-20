@@ -10,6 +10,6 @@
 
 #include <bitset>
 
-namespace duckdb {
+namespace s62 {
 using std::bitset;
 }

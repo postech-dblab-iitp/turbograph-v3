@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CollateExpression::CollateExpression(string collation_p, unique_ptr<ParsedExpression> child)
     : ParsedExpression(ExpressionType::COLLATE, ExpressionClass::COLLATE), collation(move(collation_p)) {
@@ -42,4 +42,4 @@ unique_ptr<ParsedExpression> CollateExpression::Deserialize(ExpressionType type,
 	return make_unique_base<ParsedExpression, CollateExpression>(collation, move(child));
 }
 
-} // namespace duckdb
+} // namespace s62

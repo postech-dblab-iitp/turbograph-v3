@@ -1,7 +1,7 @@
 #include "parser/query_node/recursive_cte_node.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string RecursiveCTENode::ToString() const {
 	string result;
@@ -64,4 +64,4 @@ unique_ptr<QueryNode> RecursiveCTENode::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

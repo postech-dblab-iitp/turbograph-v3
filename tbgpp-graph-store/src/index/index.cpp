@@ -5,7 +5,7 @@
 // #include "planner/expression/bound_reference_expression.hpp"
 // #include "storage/table/append_state.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Index::Index(IndexType type, const vector<column_t> &column_ids_p, IndexConstraintType constraint_type_p)
     : type(type), column_ids(column_ids_p), constraint_type(constraint_type_p) {
@@ -77,4 +77,4 @@ vector<column_t> Index::GetColumnIds() {
 // 	return false;
 // }
 
-} // namespace duckdb
+} // namespace s62

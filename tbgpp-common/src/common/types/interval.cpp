@@ -10,7 +10,7 @@
 #include "common/operator/multiply.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool Interval::FromString(const string &str, interval_t &result) {
 	string error_message;
@@ -485,4 +485,4 @@ timestamp_t Interval::Add(timestamp_t left, interval_t right) {
 	return Timestamp::FromDatetime(new_date, new_time);
 }
 
-} // namespace duckdb
+} // namespace s62

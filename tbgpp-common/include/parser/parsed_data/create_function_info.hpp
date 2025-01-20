@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "function/function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateFunctionInfo : public CreateInfo {
 	explicit CreateFunctionInfo(CatalogType type, string schema = DEFAULT_SCHEMA) : CreateInfo(type, schema) {
@@ -24,4 +24,4 @@ struct CreateFunctionInfo : public CreateInfo {
 	string name;
 };
 
-} // namespace duckdb
+} // namespace s62

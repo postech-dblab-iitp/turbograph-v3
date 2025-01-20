@@ -2,7 +2,7 @@
 
 // #include "common/exception.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // BoundSubqueryExpression::BoundSubqueryExpression(LogicalType return_type)
 //     : Expression(ExpressionType::SUBQUERY, ExpressionClass::BOUND_SUBQUERY, move(return_type)) {
@@ -26,4 +26,4 @@
 // 	return false;
 // }
 
-// } // namespace duckdb
+// } // namespace s62

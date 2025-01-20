@@ -1,6 +1,6 @@
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Field Writer
@@ -91,4 +91,4 @@ void FieldReader::Finalize() {
 	D_ASSERT(source.RemainingData() == 0);
 }
 
-} // namespace duckdb
+} // namespace s62

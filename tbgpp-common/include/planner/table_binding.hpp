@@ -17,7 +17,7 @@
 #include "parser/column_definition.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 class BindContext;
 class BoundQueryNode;
 class ColumnRefExpression;
@@ -104,4 +104,4 @@ public:
 	unique_ptr<ParsedExpression> ParamToArg(ColumnRefExpression &colref);
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 // #include "planner/logical_operator.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct BoundStatement {
 // 	unique_ptr<LogicalOperator> plan;
@@ -18,4 +18,4 @@
 // 	vector<string> names;
 // };
 
-// } // namespace duckdb
+// } // namespace s62

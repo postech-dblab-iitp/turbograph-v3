@@ -14,7 +14,7 @@
 #include "parser/sql_statement.hpp"
 #include "parser/tableref.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class QueryNode;
 
@@ -43,4 +43,4 @@ public:
 	//! Whether or not the statements are equivalent
 	bool Equals(const SQLStatement *other) const;
 };
-} // namespace duckdb
+} // namespace s62

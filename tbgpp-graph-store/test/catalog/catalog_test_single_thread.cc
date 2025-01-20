@@ -24,7 +24,7 @@
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch_all.hpp>

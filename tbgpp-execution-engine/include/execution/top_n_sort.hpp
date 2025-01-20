@@ -12,7 +12,7 @@
 #include "common/sort/sorted_block.hpp"
 #include "common/sort/sort.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Heaps
@@ -89,4 +89,4 @@ public:
 };
 
 
-} // namespace duckdb
+} // namespace s62

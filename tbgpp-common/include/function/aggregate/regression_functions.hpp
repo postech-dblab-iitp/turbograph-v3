@@ -12,7 +12,7 @@
 #include "function/function_set.hpp"
 #include "common/types/null_value.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct RegrAvgxFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
@@ -49,4 +49,4 @@ struct RegrInterceptFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

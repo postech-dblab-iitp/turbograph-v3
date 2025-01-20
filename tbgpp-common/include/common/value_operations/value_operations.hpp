@@ -10,7 +10,7 @@
 
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ValueOperations {
 	//===--------------------------------------------------------------------===//
@@ -44,4 +44,4 @@ struct ValueOperations {
 	// A <= B, NULLs last
 	static bool DistinctLessThanEquals(const Value &left, const Value &right);
 };
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The OperatorResultType is used to indicate how data should flow around a regular (i.e. non-sink and non-source)
 //! physical operator
@@ -36,4 +36,4 @@ enum class SinkResultType : uint8_t { NEED_MORE_INPUT, FINISHED };
 //! NO_OUTPUT_POSSIBLE means the sink will never provide output, and any pipelines involving the sink can be skipped
 enum class SinkFinalizeType : uint8_t { READY, NO_OUTPUT_POSSIBLE };
 
-} // namespace duckdb
+} // namespace s62

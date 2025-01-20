@@ -1,3 +1,0 @@
-MATCH (v1)-[:`http://xmlns.com/foaf/0.1/homepage`]->(v2), 
-(v1)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v3)
-RETURN v3.uri AS r1, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#long`, v2.`http://www.w3.org/2000/01/rdf-schema#label`, v2.`http://dbpedia.org/ontology/wikiPageID`, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#lat`, v2.`http://dbpedia.org/ontology/abstract`, v1.`http://dbpedia.org/property/locale`, v1.`http://dbpedia.org/property/children`, v1.`http://dbpedia.org/property/formerChannelNumbers`, v1.`http://dbpedia.org/property/timeZone`, v1.`http://dbpedia.org/property/horsename`

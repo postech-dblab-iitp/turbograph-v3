@@ -6,7 +6,7 @@
 #include <cstring> // strlen() on Solaris
 #include <limits.h>
 
-namespace duckdb {
+namespace s62 {
 
 bool IsLittleEndian() {
 	int n = 1;
@@ -165,4 +165,4 @@ void EncodeStringDataPrefix(data_ptr_t dataptr, string_t value, idx_t prefix_len
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

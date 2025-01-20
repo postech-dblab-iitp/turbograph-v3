@@ -7,7 +7,7 @@
 #include "parser/query_node/set_operation_node.hpp"
 #include "parser/tableref/list.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void ParsedExpressionIterator::EnumerateChildren(const ParsedExpression &expression,
                                                  const std::function<void(const ParsedExpression &child)> &callback) {
@@ -287,4 +287,4 @@ void ParsedExpressionIterator::EnumerateQueryNodeChildren(
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

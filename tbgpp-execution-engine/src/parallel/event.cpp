@@ -5,7 +5,7 @@
 
 #include "parallel/executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Event::Event(Executor &executor_p)
     : executor(executor_p), finished_tasks(0), total_tasks(0), finished_dependencies(0), total_dependencies(0),
@@ -72,4 +72,4 @@ void Event::SetTasks(vector<unique_ptr<Task>> tasks) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

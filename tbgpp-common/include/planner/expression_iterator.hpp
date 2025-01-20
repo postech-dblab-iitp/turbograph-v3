@@ -13,7 +13,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 class BoundQueryNode;
 class BoundTableRef;
 
@@ -33,4 +33,4 @@ public:
 	                                       const std::function<void(Expression &child)> &callback);
 };
 
-} // namespace duckdb
+} // namespace s62

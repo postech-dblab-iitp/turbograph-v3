@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SubqueryExpression::SubqueryExpression()
     : ParsedExpression(ExpressionType::SUBQUERY, ExpressionClass::SUBQUERY), subquery_type(SubqueryType::INVALID),
@@ -72,4 +72,4 @@ unique_ptr<ParsedExpression> SubqueryExpression::Deserialize(ExpressionType type
 	return move(expression);
 }
 
-} // namespace duckdb
+} // namespace s62

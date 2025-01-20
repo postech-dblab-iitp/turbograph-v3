@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! A string heap is the owner of a set of strings, strings can be inserted into
 //! it On every insert, a pointer to the inserted string is returned The
 //! returned pointer will remain valid until the StringHeap is destroyed
@@ -67,4 +67,4 @@ private:
 	unique_ptr<StringChunk> chunk;
 };
 
-} // namespace duckdb
+} // namespace s62

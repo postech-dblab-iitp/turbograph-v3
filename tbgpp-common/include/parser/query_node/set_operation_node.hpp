@@ -13,7 +13,7 @@
 #include "parser/query_node.hpp"
 #include "parser/sql_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class SetOperationNode : public QueryNode {
 public:
@@ -45,4 +45,4 @@ public:
 	static unique_ptr<QueryNode> Deserialize(FieldReader &reader);
 };
 
-} // namespace duckdb
+} // namespace s62

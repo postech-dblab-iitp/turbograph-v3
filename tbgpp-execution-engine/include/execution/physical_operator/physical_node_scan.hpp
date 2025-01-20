@@ -9,7 +9,7 @@
 
 #include <vector>
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalNodeScan: public CypherPhysicalOperator {
 
@@ -18,21 +18,21 @@ public:
 	 * Non-schemaless APIs
 	*/
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping);
+		std::vector<s62::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping);
 	
 	// eq filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
-		int64_t filterKeyIndex, duckdb::Value filterValue);
+		std::vector<s62::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping, 
+		int64_t filterKeyIndex, s62::Value filterValue);
 
 	// range filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
-		int64_t filterKeyIndex, duckdb::Value l_filterValue,  duckdb::Value r_filterValue, bool l_inclusive, bool r_inclusive);
+		std::vector<s62::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
+		int64_t filterKeyIndex, s62::Value l_filterValue,  s62::Value r_filterValue, bool l_inclusive, bool r_inclusive);
 
 	// complex filter pushdown
 	PhysicalNodeScan(Schema &sch, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		std::vector<duckdb::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
+		std::vector<s62::LogicalType> scan_types, vector<vector<uint64_t>> scan_projection_mapping,
 		vector<unique_ptr<Expression>> predicates);
 
 	/**
@@ -43,7 +43,7 @@ public:
 
 	// eq filter pushdown
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,
-		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<duckdb::Value>& filterValues);
+		vector<vector<uint64_t>> scan_projection_mapping, vector<int64_t>& filterKeyIndexes, vector<s62::Value>& filterValues);
 
 	// range filter pushdown
 	PhysicalNodeScan(vector<Schema> &sch, Schema &union_schema, vector<idx_t> oids, vector<vector<uint64_t>> projection_mapping,

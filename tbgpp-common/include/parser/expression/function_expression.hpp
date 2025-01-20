@@ -12,7 +12,7 @@
 #include "parser/parsed_expression.hpp"
 #include "parser/result_modifier.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a function call
 class FunctionExpression : public ParsedExpression {
 public:
@@ -114,4 +114,4 @@ public:
 		return result;
 	}
 };
-} // namespace duckdb
+} // namespace s62

@@ -12,7 +12,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 // Note that optimizations in scanning only work if this value is equal to STANDARD_VECTOR_SIZE, however we keep them
 // separated to prevent the code from break on lower vector sizes
@@ -461,4 +461,4 @@ CompressionFunction BitpackingFun::GetFunction(PhysicalType type) {
 	}
 }*/
 
-} // namespace duckdb
+} // namespace s62

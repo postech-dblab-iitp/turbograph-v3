@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Time class is a static class that holds helper functions for the Time
 //! type.
@@ -41,4 +41,4 @@ private:
 	static bool TryConvertInternal(const char *buf, idx_t len, idx_t &pos, dtime_t &result, bool strict);
 };
 
-} // namespace duckdb
+} // namespace s62

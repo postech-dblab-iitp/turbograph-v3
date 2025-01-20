@@ -43,7 +43,7 @@
 
 #include "icecream.hpp"	
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class QueryPlanSuite {

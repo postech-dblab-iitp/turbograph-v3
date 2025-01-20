@@ -4,7 +4,7 @@
 #include "common/windows_undefs.hpp"
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 using std::numeric_limits;
 
@@ -102,4 +102,4 @@ hugeint_t NumericLimits<hugeint_t>::Maximum() {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

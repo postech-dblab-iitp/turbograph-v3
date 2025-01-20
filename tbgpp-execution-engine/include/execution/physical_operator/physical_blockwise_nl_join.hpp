@@ -12,7 +12,7 @@
 #include "execution/physical_operator/physical_join.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! PhysicalBlockwiseNLJoin represents a nested loop join between two tables on arbitrary expressions. This is different
 //! from the PhysicalNestedLoopJoin in that it does not require expressions to be comparisons between the LHS and the
@@ -62,4 +62,4 @@ public:
 
 };
 
-} // namespace duckdb
+} // namespace s62

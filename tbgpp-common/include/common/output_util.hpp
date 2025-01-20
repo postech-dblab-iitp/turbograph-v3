@@ -4,7 +4,7 @@
 #include <memory>
 #include "typedef.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60
@@ -23,6 +23,6 @@ class OutputUtil {
 
     static void PrintProgress(double percentage);
 };
-}  // namespace duckdb
+}  // namespace s62
 
 #endif

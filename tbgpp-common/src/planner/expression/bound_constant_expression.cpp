@@ -3,7 +3,7 @@
 #include "common/types/hash.hpp"
 #include "common/value_operations/value_operations.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundConstantExpression::BoundConstantExpression(Value value_p)
     : Expression(ExpressionType::VALUE_CONSTANT, ExpressionClass::BOUND_CONSTANT, value_p.type()),
@@ -33,4 +33,4 @@ unique_ptr<Expression> BoundConstantExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

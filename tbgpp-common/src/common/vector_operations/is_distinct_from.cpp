@@ -1,7 +1,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/operator/comparison_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct DistinctBinaryLambdaWrapper {
 	template <class OP, class LEFT_TYPE, class RIGHT_TYPE, class RESULT_TYPE>
@@ -368,14 +368,14 @@ struct PositionComparator {
 
 // NotDistinctFrom must always check every column
 template <>
-idx_t PositionComparator::Definite<duckdb::NotDistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Definite<s62::NotDistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
                                                             idx_t count, SelectionVector *true_sel,
                                                             SelectionVector &false_sel) {
 	return 0;
 }
 
 template <>
-idx_t PositionComparator::Final<duckdb::NotDistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Final<s62::NotDistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
                                                          idx_t count, SelectionVector *true_sel,
                                                          SelectionVector *false_sel) {
 	return VectorOperations::NestedEquals(left, right, sel, count, true_sel, false_sel);
@@ -383,14 +383,14 @@ idx_t PositionComparator::Final<duckdb::NotDistinctFrom>(Vector &left, Vector &r
 
 // DistinctFrom must check everything that matched
 template <>
-idx_t PositionComparator::Possible<duckdb::DistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Possible<s62::DistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
                                                          idx_t count, SelectionVector &true_sel,
                                                          SelectionVector *false_sel) {
 	return count;
 }
 
 template <>
-idx_t PositionComparator::Final<duckdb::DistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Final<s62::DistinctFrom>(Vector &left, Vector &right, const SelectionVector &sel,
                                                       idx_t count, SelectionVector *true_sel,
                                                       SelectionVector *false_sel) {
 	return VectorOperations::NestedNotEquals(left, right, sel, count, true_sel, false_sel);
@@ -398,7 +398,7 @@ idx_t PositionComparator::Final<duckdb::DistinctFrom>(Vector &left, Vector &righ
 
 // Non-strict inequalities must use strict comparisons for Definite
 template <>
-idx_t PositionComparator::Definite<duckdb::DistinctLessThanEquals>(Vector &left, Vector &right,
+idx_t PositionComparator::Definite<s62::DistinctLessThanEquals>(Vector &left, Vector &right,
                                                                    const SelectionVector &sel, idx_t count,
                                                                    SelectionVector *true_sel,
                                                                    SelectionVector &false_sel) {
@@ -406,14 +406,14 @@ idx_t PositionComparator::Definite<duckdb::DistinctLessThanEquals>(Vector &left,
 }
 
 template <>
-idx_t PositionComparator::Final<duckdb::DistinctLessThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Final<s62::DistinctLessThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
                                                                 idx_t count, SelectionVector *true_sel,
                                                                 SelectionVector *false_sel) {
 	return VectorOperations::DistinctLessThanEquals(left, right, &sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t PositionComparator::Definite<duckdb::DistinctGreaterThanEquals>(Vector &left, Vector &right,
+idx_t PositionComparator::Definite<s62::DistinctGreaterThanEquals>(Vector &left, Vector &right,
                                                                       const SelectionVector &sel, idx_t count,
                                                                       SelectionVector *true_sel,
                                                                       SelectionVector &false_sel) {
@@ -421,7 +421,7 @@ idx_t PositionComparator::Definite<duckdb::DistinctGreaterThanEquals>(Vector &le
 }
 
 template <>
-idx_t PositionComparator::Final<duckdb::DistinctGreaterThanEquals>(Vector &left, Vector &right,
+idx_t PositionComparator::Final<s62::DistinctGreaterThanEquals>(Vector &left, Vector &right,
                                                                    const SelectionVector &sel, idx_t count,
                                                                    SelectionVector *true_sel,
                                                                    SelectionVector *false_sel) {
@@ -430,14 +430,14 @@ idx_t PositionComparator::Final<duckdb::DistinctGreaterThanEquals>(Vector &left,
 
 // Strict inequalities just use strict for both Definite and Final
 template <>
-idx_t PositionComparator::Final<duckdb::DistinctLessThan>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Final<s62::DistinctLessThan>(Vector &left, Vector &right, const SelectionVector &sel,
                                                           idx_t count, SelectionVector *true_sel,
                                                           SelectionVector *false_sel) {
 	return VectorOperations::DistinctLessThan(left, right, &sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t PositionComparator::Final<duckdb::DistinctGreaterThan>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t PositionComparator::Final<s62::DistinctGreaterThan>(Vector &left, Vector &right, const SelectionVector &sel,
                                                              idx_t count, SelectionVector *true_sel,
                                                              SelectionVector *false_sel) {
 	return VectorOperations::DistinctGreaterThan(left, right, &sel, count, true_sel, false_sel);
@@ -873,72 +873,72 @@ static void NestedDistinctExecute(Vector &left, Vector &right, Vector &result, i
 }
 
 void VectorOperations::DistinctFrom(Vector &left, Vector &right, Vector &result, idx_t count) {
-	ExecuteDistinct<duckdb::DistinctFrom>(left, right, result, count);
+	ExecuteDistinct<s62::DistinctFrom>(left, right, result, count);
 }
 
 void VectorOperations::NotDistinctFrom(Vector &left, Vector &right, Vector &result, idx_t count) {
-	ExecuteDistinct<duckdb::NotDistinctFrom>(left, right, result, count);
+	ExecuteDistinct<s62::NotDistinctFrom>(left, right, result, count);
 }
 
 // true := A != B with nulls being equal
 idx_t VectorOperations::DistinctFrom(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                      SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctFrom>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::DistinctFrom>(left, right, sel, count, true_sel, false_sel);
 }
 // true := A == B with nulls being equal
 idx_t VectorOperations::NotDistinctFrom(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                         SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::NotDistinctFrom>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::NotDistinctFrom>(left, right, sel, count, true_sel, false_sel);
 }
 
 // true := A > B with nulls being maximal
 idx_t VectorOperations::DistinctGreaterThan(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                             SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctGreaterThan>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::DistinctGreaterThan>(left, right, sel, count, true_sel, false_sel);
 }
 
 // true := A > B with nulls being minimal
 idx_t VectorOperations::DistinctGreaterThanNullsFirst(Vector &left, Vector &right, const SelectionVector *sel,
                                                       idx_t count, SelectionVector *true_sel,
                                                       SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctGreaterThanNullsFirst, duckdb::DistinctGreaterThan>(
+	return TemplatedDistinctSelectOperation<s62::DistinctGreaterThanNullsFirst, s62::DistinctGreaterThan>(
 	    left, right, sel, count, true_sel, false_sel);
 }
 // true := A >= B with nulls being maximal
 idx_t VectorOperations::DistinctGreaterThanEquals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                                   SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctGreaterThanEquals>(left, right, sel, count, true_sel,
+	return TemplatedDistinctSelectOperation<s62::DistinctGreaterThanEquals>(left, right, sel, count, true_sel,
 	                                                                           false_sel);
 }
 // true := A < B with nulls being maximal
 idx_t VectorOperations::DistinctLessThan(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                          SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctLessThan>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::DistinctLessThan>(left, right, sel, count, true_sel, false_sel);
 }
 
 // true := A < B with nulls being minimal
 idx_t VectorOperations::DistinctLessThanNullsFirst(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                                    SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctLessThanNullsFirst, duckdb::DistinctLessThan>(
+	return TemplatedDistinctSelectOperation<s62::DistinctLessThanNullsFirst, s62::DistinctLessThan>(
 	    left, right, sel, count, true_sel, false_sel);
 }
 
 // true := A <= B with nulls being maximal
 idx_t VectorOperations::DistinctLessThanEquals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                                SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctLessThanEquals>(left, right, sel, count, true_sel,
+	return TemplatedDistinctSelectOperation<s62::DistinctLessThanEquals>(left, right, sel, count, true_sel,
 	                                                                        false_sel);
 }
 
 // true := A != B with nulls being equal, inputs selected
 idx_t VectorOperations::NestedNotEquals(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                         SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::DistinctFrom>(left, right, &sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::DistinctFrom>(left, right, &sel, count, true_sel, false_sel);
 }
 // true := A == B with nulls being equal, inputs selected
 idx_t VectorOperations::NestedEquals(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                      SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedDistinctSelectOperation<duckdb::NotDistinctFrom>(left, right, &sel, count, true_sel, false_sel);
+	return TemplatedDistinctSelectOperation<s62::NotDistinctFrom>(left, right, &sel, count, true_sel, false_sel);
 }
 
-} // namespace duckdb
+} // namespace s62

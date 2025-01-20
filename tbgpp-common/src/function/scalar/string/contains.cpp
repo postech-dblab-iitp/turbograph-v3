@@ -4,7 +4,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "planner/expression/bound_function_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class UNSIGNED, int NEEDLE_SIZE>
 static idx_t ContainsUnaligned(const unsigned char *haystack, idx_t haystack_size, const unsigned char *needle,
@@ -162,4 +162,4 @@ void ContainsFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(GetFunction());
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CaseExpression::CaseExpression() : ParsedExpression(ExpressionType::CASE_EXPR, ExpressionClass::CASE) {
 }
@@ -69,4 +69,4 @@ unique_ptr<ParsedExpression> CaseExpression::Deserialize(ExpressionType type, Fi
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

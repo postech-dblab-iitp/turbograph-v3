@@ -15,7 +15,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct ValidityMask;
 
 template <typename V>
@@ -352,4 +352,4 @@ public:
 	DUCKDB_API string ToString(idx_t count) const;
 };
 
-} // namespace duckdb
+} // namespace s62

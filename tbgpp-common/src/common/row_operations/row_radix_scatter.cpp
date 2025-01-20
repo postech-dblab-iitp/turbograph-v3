@@ -3,7 +3,7 @@
 #include "common/row_operations/row_operations.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 void TemplatedRadixScatter(VectorData &vdata, const SelectionVector &sel, idx_t add_count, data_ptr_t *key_locations,
@@ -304,4 +304,4 @@ void RowOperations::RadixScatter(Vector &v, idx_t vcount, const SelectionVector 
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

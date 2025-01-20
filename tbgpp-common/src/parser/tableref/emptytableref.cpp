@@ -2,7 +2,7 @@
 
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string EmptyTableRef::ToString() const {
 	return "";
@@ -23,4 +23,4 @@ unique_ptr<TableRef> EmptyTableRef::Deserialize(FieldReader &reader) {
 	return make_unique<EmptyTableRef>();
 }
 
-} // namespace duckdb
+} // namespace s62

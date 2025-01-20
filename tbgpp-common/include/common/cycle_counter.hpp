@@ -11,7 +11,7 @@
 #include "common/helper.hpp"
 #include "common/chrono.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The cycle counter can be used to measure elapsed cycles for a function, expression and ...
 //! Optimized by sampling mechanism. Once per 100 times.
@@ -65,4 +65,4 @@ private:
 	uint64_t tuples_count = 0;
 };
 
-} // namespace duckdb
+} // namespace s62

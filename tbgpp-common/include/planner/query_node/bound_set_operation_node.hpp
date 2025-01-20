@@ -12,7 +12,7 @@
 // #include "planner/binder.hpp"
 // #include "planner/bound_query_node.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // //! Bound equivalent of SetOperationNode
 // class BoundSetOperationNode : public BoundQueryNode {
@@ -40,4 +40,4 @@
 // 	}
 // };
 
-// } // namespace duckdb
+// } // namespace s62

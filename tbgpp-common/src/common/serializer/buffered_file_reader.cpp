@@ -5,7 +5,7 @@
 #include <cstring>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 BufferedFileReader::BufferedFileReader(FileSystem &fs, const char *path, FileOpener *opener)
     : fs(fs), data(unique_ptr<data_t[]>(new data_t[FILE_BUFFER_SIZE])), offset(0), read_data(0), total_read(0) {
@@ -44,4 +44,4 @@ bool BufferedFileReader::Finished() {
 	return total_read + offset == file_size;
 }
 
-} // namespace duckdb
+} // namespace s62

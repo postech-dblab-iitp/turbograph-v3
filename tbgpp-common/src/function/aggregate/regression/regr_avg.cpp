@@ -4,7 +4,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct RegrState {
 	double sum;
 	size_t count;
@@ -67,4 +67,4 @@ void RegrAvgyFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(corr);
 }
 
-} // namespace duckdb
+} // namespace s62

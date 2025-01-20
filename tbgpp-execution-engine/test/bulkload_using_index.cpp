@@ -61,7 +61,7 @@ using json = nlohmann::json;
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 vector<std::pair<string, string>> vertex_files;
 vector<std::pair<string, string>> edge_files;

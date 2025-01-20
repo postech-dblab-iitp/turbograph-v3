@@ -1,7 +1,7 @@
 #include "planner/expression/bound_case_expression.hpp"
 #include "parser/expression/case_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundCaseExpression::BoundCaseExpression(LogicalType type)
     : Expression(ExpressionType::CASE_EXPR, ExpressionClass::BOUND_CASE, move(type)) {
@@ -57,4 +57,4 @@ unique_ptr<Expression> BoundCaseExpression::Copy() {
 	return move(new_case);
 }
 
-} // namespace duckdb
+} // namespace s62

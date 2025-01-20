@@ -7,7 +7,7 @@
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalVarlenAdjIdxJoin: public CypherPhysicalOperator {
 
@@ -56,6 +56,6 @@ private:
 	bool load_eid;
 };
 
-} // namespace duckdb
+} // namespace s62
 
 #endif

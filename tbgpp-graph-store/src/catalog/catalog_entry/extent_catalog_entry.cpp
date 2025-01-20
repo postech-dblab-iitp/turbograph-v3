@@ -6,7 +6,7 @@
 #include <memory>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateExtentInfo *info, const void_allocator &void_alloc)
     : StandardEntry(CatalogType::EXTENT_ENTRY, schema, catalog, info->extent, void_alloc), chunks(void_alloc), adjlist_chunks(void_alloc) {
@@ -46,4 +46,4 @@ void ExtentCatalogEntry::AddAdjListChunkDefinitionID(ChunkDefinitionID cdf_id) {
 	adjlist_chunks.push_back(cdf_id);
 }
 
-} // namespace duckdb
+} // namespace s62

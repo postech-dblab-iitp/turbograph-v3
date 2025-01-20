@@ -8,7 +8,7 @@
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
 
-namespace duckdb {
+namespace s62 {
 
 class Coalescing {
    public:
@@ -17,7 +17,7 @@ class Coalescing {
         vector<uint64_t> &property_key_ids, vector<idx_t> &table_oids,
         gpmd::MDProviderTBGPP *provider,
         vector<idx_t> &representative_table_oids,
-        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,
         vector<bool> &is_each_group_has_temporary_table)
     {
@@ -87,7 +87,7 @@ class Coalescing {
         idx_t_vector *num_groups_for_each_column,
         idx_t_vector *group_info_for_each_table, idx_t_vector *multipliers,
         idx_t_vector *ps_oids, vector<idx_t> &table_oids,
-        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+        std::vector<std::vector<s62::idx_t>> &table_oids_in_group)
     {
         // TODO we need to develop a better algorithm to group similar tables
         if (true) {
@@ -136,7 +136,7 @@ class Coalescing {
 
     static void _group_similar_tables_based_on_cardinality(
         ClientContext &context, DatabaseInstance &db, vector<idx_t> &table_oids,
-        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+        std::vector<std::vector<s62::idx_t>> &table_oids_in_group)
     {
         // get cardinality for each graphlet
         auto &catalog = db.GetCatalog();
@@ -178,7 +178,7 @@ class Coalescing {
     static void _create_temporal_table_catalog(
         ClientContext &context, DatabaseInstance &db,
         PartitionCatalogEntry *part_cat, gpmd::MDProviderTBGPP *provider,
-        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<idx_t> &representative_table_oids, PartitionID part_id,
         idx_t part_oid, vector<uint64_t> &property_key_ids,
         vector<vector<uint64_t>> &property_location_in_representative,
@@ -305,7 +305,7 @@ class Coalescing {
         ClientContext &context, DatabaseInstance &db,
         vector<PartitionID> &part_ids, vector<idx_t> &part_oids,
         vector<idx_t> &table_oids,
-        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<idx_t> &representative_table_oids,
         vector<uint64_t> &property_key_ids,
         vector<vector<uint64_t>> &property_location_in_representative)
@@ -567,7 +567,7 @@ class Coalescing {
 
     static void grouping_default(
         vector<std::pair<idx_t, idx_t>> &cardinality_for_each_gl,
-        std::vector<std::vector<duckdb::idx_t>> &table_oids_in_group)
+        std::vector<std::vector<s62::idx_t>> &table_oids_in_group)
     {
         std::sort(cardinality_for_each_gl.begin(),
                   cardinality_for_each_gl.end(),
@@ -612,4 +612,4 @@ class Coalescing {
     }
 };
 
-}  // namespace duckdb
+}  // namespace s62

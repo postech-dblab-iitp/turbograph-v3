@@ -30,7 +30,7 @@ extern "C" WINBASEAPI BOOL WINAPI GetPhysicallyInstalledSystemMemory(PULONGLONG)
 #undef FILE_CREATE // woo mingw
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 FileSystem::~FileSystem() {
 }
@@ -338,4 +338,4 @@ FileType FileHandle::GetType() {
 	return file_system.GetFileType(*this);
 }
 
-} // namespace duckdb
+} // namespace s62

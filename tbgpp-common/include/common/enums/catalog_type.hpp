@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Catalog Types
@@ -50,4 +50,4 @@ enum class CatalogType : uint8_t {
 
 string CatalogTypeToString(CatalogType type);
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class FilterPropagateResult : uint8_t {
 	NO_PRUNING_POSSIBLE = 0,
@@ -20,4 +20,4 @@ enum class FilterPropagateResult : uint8_t {
 	FILTER_FALSE_OR_NULL = 4
 };
 
-} // namespace duckdb
+} // namespace s62

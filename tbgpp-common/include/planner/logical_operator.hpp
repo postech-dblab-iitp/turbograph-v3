@@ -18,7 +18,7 @@
 // #include <functional>
 // #include <algorithm>
 
-// namespace duckdb {
+// namespace s62 {
 
 // //! LogicalOperator is the base class of the logical operators present in the
 // //! logical query tree
@@ -63,4 +63,4 @@
 // 	//! Resolve types for this specific operator
 // 	virtual void ResolveTypes() = 0;
 // };
-// } // namespace duckdb
+// } // namespace s62

@@ -2,7 +2,7 @@
 
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string ExpressionListRef::ToString() const {
 	D_ASSERT(!values.empty());
@@ -90,4 +90,4 @@ unique_ptr<TableRef> ExpressionListRef::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

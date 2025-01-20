@@ -13,7 +13,7 @@
 #include "common/unordered_map.hpp"
 #include "common/enums/filter_propagate_result.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BaseStatistics;
 
 enum class TableFilterType : uint8_t {
@@ -76,4 +76,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

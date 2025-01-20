@@ -4,7 +4,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BoolState {
 	bool empty;
@@ -119,4 +119,4 @@ void BoolAndFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(bool_and);
 }
 
-} // namespace duckdb
+} // namespace s62

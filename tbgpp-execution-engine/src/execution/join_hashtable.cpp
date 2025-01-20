@@ -6,7 +6,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "storage/buffer_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using ValidityBytes = JoinHashTable::ValidityBytes;
 using ScanStructure = JoinHashTable::ScanStructure;
@@ -871,4 +871,4 @@ idx_t JoinHashTable::FillWithHTOffsets(data_ptr_t *key_locations, JoinHTScanStat
 	}
 	return key_count;
 }
-} // namespace duckdb
+} // namespace s62

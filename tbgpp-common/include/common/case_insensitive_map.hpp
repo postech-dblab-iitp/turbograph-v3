@@ -13,7 +13,7 @@
 #include "common/string.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CaseInsensitiveStringHashFunction {
 	uint64_t operator()(const string &str) const {
@@ -34,4 +34,4 @@ using case_insensitive_map_t =
 
 using case_insensitive_set_t = unordered_set<string, CaseInsensitiveStringHashFunction, CaseInsensitiveStringEquality>;
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 // #include "parser/statement/vacuum_statement.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // VacuumStatement::VacuumStatement(const VacuumOptions &options)
 //     : SQLStatement(StatementType::VACUUM_STATEMENT), info(make_unique<VacuumInfo>(options)) {
@@ -13,4 +13,4 @@
 // 	return unique_ptr<VacuumStatement>(new VacuumStatement(*this));
 // }
 
-// } // namespace duckdb
+// } // namespace s62

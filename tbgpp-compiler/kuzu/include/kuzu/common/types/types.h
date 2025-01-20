@@ -36,7 +36,7 @@ enum DataTypeID : uint8_t {
     //    - bind (static evaluate) functions work on node/rel table.
     //      E.g. ID(a "datatype:NODE") -> node ID property "datatype:NODE_ID"
 
-    // S62 ID changed to match that of Duckdb::LogicalTypeId
+    // S62 ID changed to match that of kuzu::LogicalTypeId
     // refer to /turbograph-v3/tbgpp-common/include/common/types.hpp
 
     // logical  types

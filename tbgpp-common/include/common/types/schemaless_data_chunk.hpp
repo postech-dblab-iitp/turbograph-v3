@@ -5,7 +5,7 @@
 #include "common/types/vector.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Vector;
 class VectorCache;
 
@@ -37,4 +37,4 @@ class SchemalessDataChunk : public DataChunk {
     vector<unique_ptr<char[]>> row_major_datas;
 };
 
-};  // namespace duckdb
+};  // namespace s62

@@ -1,7 +1,7 @@
 #include "parser/parsed_data/sample_options.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string SampleMethodToString(SampleMethod method) {
 	switch (method) {
@@ -61,4 +61,4 @@ bool SampleOptions::Equals(SampleOptions *a, SampleOptions *b) {
 	return true;
 }
 
-} // namespace duckdb
+} // namespace s62

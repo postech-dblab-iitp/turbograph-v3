@@ -14,7 +14,7 @@
 
 // #include "execution/adaptive_filter.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ColumnSegment;
 class LocalTableStorage;
 class Index;
@@ -136,4 +136,4 @@ struct IndexScanState {
 // 	unique_lock<mutex> delete_lock;
 // };
 
-} // namespace duckdb
+} // namespace s62

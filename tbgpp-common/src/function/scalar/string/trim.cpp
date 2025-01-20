@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-namespace duckdb {
+namespace s62 {
 
 template <bool LTRIM, bool RTRIM>
 struct TrimOperator {
@@ -16,16 +16,16 @@ struct TrimOperator {
 		auto data = input.GetDataUnsafe();
 		auto size = input.GetSize();
 
-		utf8proc_int32_t codepoint;
-		auto str = reinterpret_cast<const utf8proc_uint8_t *>(data);
+		duckdb::utf8proc_int32_t codepoint;
+		auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(data);
 
 		// Find the first character that is not left trimmed
 		idx_t begin = 0;
 		if (LTRIM) {
 			while (begin < size) {
-				auto bytes = utf8proc_iterate(str + begin, size - begin, &codepoint);
+				auto bytes = duckdb::utf8proc_iterate(str + begin, size - begin, &codepoint);
 				D_ASSERT(bytes > 0);
-				if (utf8proc_category(codepoint) != UTF8PROC_CATEGORY_ZS) {
+				if (duckdb::utf8proc_category(codepoint) != duckdb::UTF8PROC_CATEGORY_ZS) {
 					break;
 				}
 				begin += bytes;
@@ -37,10 +37,10 @@ struct TrimOperator {
 		if (RTRIM) {
 			end = begin;
 			for (auto next = begin; next < size;) {
-				auto bytes = utf8proc_iterate(str + next, size - next, &codepoint);
+				auto bytes = duckdb::utf8proc_iterate(str + next, size - next, &codepoint);
 				D_ASSERT(bytes > 0);
 				next += bytes;
-				if (utf8proc_category(codepoint) != UTF8PROC_CATEGORY_ZS) {
+				if (duckdb::utf8proc_category(codepoint) != duckdb::UTF8PROC_CATEGORY_ZS) {
 					end = next;
 				}
 			}
@@ -63,13 +63,13 @@ static void UnaryTrimFunction(DataChunk &args, ExpressionState &state, Vector &r
 	UnaryExecutor::ExecuteString<string_t, string_t, TrimOperator<LTRIM, RTRIM>>(args.data[0], result, args.size());
 }
 
-static void GetIgnoredCodepoints(string_t ignored, unordered_set<utf8proc_int32_t> &ignored_codepoints) {
-	auto dataptr = (utf8proc_uint8_t *)ignored.GetDataUnsafe();
+static void GetIgnoredCodepoints(string_t ignored, unordered_set<duckdb::utf8proc_int32_t> &ignored_codepoints) {
+	auto dataptr = (duckdb::utf8proc_uint8_t *)ignored.GetDataUnsafe();
 	auto size = ignored.GetSize();
 	idx_t pos = 0;
 	while (pos < size) {
-		utf8proc_int32_t codepoint;
-		pos += utf8proc_iterate(dataptr + pos, size - pos, &codepoint);
+		duckdb::utf8proc_int32_t codepoint;
+		pos += duckdb::utf8proc_iterate(dataptr + pos, size - pos, &codepoint);
 		ignored_codepoints.insert(codepoint);
 	}
 }
@@ -81,17 +81,17 @@ static void BinaryTrimFunction(DataChunk &input, ExpressionState &state, Vector 
 		    auto data = input.GetDataUnsafe();
 		    auto size = input.GetSize();
 
-		    unordered_set<utf8proc_int32_t> ignored_codepoints;
+		    unordered_set<duckdb::utf8proc_int32_t> ignored_codepoints;
 		    GetIgnoredCodepoints(ignored, ignored_codepoints);
 
-		    utf8proc_int32_t codepoint;
-		    auto str = reinterpret_cast<const utf8proc_uint8_t *>(data);
+		    duckdb::utf8proc_int32_t codepoint;
+		    auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(data);
 
 		    // Find the first character that is not left trimmed
 		    idx_t begin = 0;
 		    if (LTRIM) {
 			    while (begin < size) {
-				    auto bytes = utf8proc_iterate(str + begin, size - begin, &codepoint);
+				    auto bytes = duckdb::utf8proc_iterate(str + begin, size - begin, &codepoint);
 				    if (ignored_codepoints.find(codepoint) == ignored_codepoints.end()) {
 					    break;
 				    }
@@ -104,7 +104,7 @@ static void BinaryTrimFunction(DataChunk &input, ExpressionState &state, Vector 
 		    if (RTRIM) {
 			    end = begin;
 			    for (auto next = begin; next < size;) {
-				    auto bytes = utf8proc_iterate(str + next, size - next, &codepoint);
+				    auto bytes = duckdb::utf8proc_iterate(str + next, size - next, &codepoint);
 				    D_ASSERT(bytes > 0);
 				    next += bytes;
 				    if (ignored_codepoints.find(codepoint) == ignored_codepoints.end()) {
@@ -146,4 +146,4 @@ void TrimFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(trim);
 }
 
-} // namespace duckdb
+} // namespace s62

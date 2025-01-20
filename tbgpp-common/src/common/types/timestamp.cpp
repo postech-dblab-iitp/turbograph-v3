@@ -11,7 +11,7 @@
 #include "common/limits.hpp"
 #include <ctime>
 
-namespace duckdb {
+namespace s62 {
 
 static_assert(sizeof(timestamp_t) == sizeof(int64_t), "timestamp_t was padded");
 
@@ -230,4 +230,4 @@ int64_t Timestamp::GetEpochNanoSeconds(timestamp_t timestamp) {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

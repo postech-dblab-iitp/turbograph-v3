@@ -5,7 +5,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/vector_operations/unary_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct EpochSecOperator {
 	template <class INPUT_TYPE, class RESULT_TYPE>
@@ -43,4 +43,4 @@ void EpochFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(to_timestamp);
 }
 
-} // namespace duckdb
+} // namespace s62

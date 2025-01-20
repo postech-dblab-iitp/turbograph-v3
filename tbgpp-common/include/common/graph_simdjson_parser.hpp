@@ -39,7 +39,7 @@ using namespace simdjson;
 // static variable
 std::chrono::duration<double> fpgrowth_duration;
 
-namespace duckdb {
+namespace s62 {
 
 #ifndef LIDPAIR
 #define LIDPAIR
@@ -3518,4 +3518,4 @@ private:
     // const double CostVectorizationVal = 5.0;
 };
 
-} // namespace duckdb
+} // namespace s62

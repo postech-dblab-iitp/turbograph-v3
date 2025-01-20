@@ -1,1 +1,0 @@
-MATCH (v0)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Broader_Group`]->(v1), (v0)-[:`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Gene`]->(v2) WHERE v2.`file:/mnt/sdb/turbograph-s62/competitor-dataset/kg/freebase/freebase-easy-latest/source/Symbol` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

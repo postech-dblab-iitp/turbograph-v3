@@ -1,6 +1,6 @@
 #include "parser/statement/alter_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 AlterStatement::AlterStatement() : SQLStatement(StatementType::ALTER_STATEMENT) {
 }
@@ -12,4 +12,4 @@ unique_ptr<SQLStatement> AlterStatement::Copy() const {
 	return unique_ptr<AlterStatement>(new AlterStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

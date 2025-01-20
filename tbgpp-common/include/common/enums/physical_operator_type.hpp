@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class OperatorType : uint8_t {
 	UNARY,
@@ -131,4 +131,4 @@ enum class PhysicalOperatorType : uint8_t {
 
 // string PhysicalOperatorToString(PhysicalOperatorType type);
 
-} // namespace duckdb
+} // namespace s62

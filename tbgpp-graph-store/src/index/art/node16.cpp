@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 Node16::Node16(ART &art, size_t compression_length) : Node(art, NodeType::N16, compression_length) {
 	memset(key, 16, sizeof(key));
@@ -106,4 +106,4 @@ void Node16::Erase(ART &art, unique_ptr<Node> &node, int pos) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

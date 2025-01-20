@@ -8,7 +8,7 @@
 
 #include <numeric>
 
-namespace duckdb {
+namespace s62 {
 
 idx_t GetNestedSortingColSize(idx_t &col_size, const LogicalType &type) {
 	auto physical_type = type.InternalType();
@@ -436,4 +436,4 @@ void GlobalSortState::CompleteMergeRound(bool keep_radix_data) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 #include "extent/compression/bitpacking.hpp"
 #include "extent/compression/compression_header.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // BitPacking
 template <typename T>

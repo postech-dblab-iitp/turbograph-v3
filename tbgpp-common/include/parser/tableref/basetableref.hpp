@@ -11,7 +11,7 @@
 #include "parser/tableref.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a TableReference to a base table in the schema
 class BaseTableRef : public TableRef {
 public:
@@ -36,4 +36,4 @@ public:
 	//! Deserializes a blob back into a BaseTableRef
 	static unique_ptr<TableRef> Deserialize(FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

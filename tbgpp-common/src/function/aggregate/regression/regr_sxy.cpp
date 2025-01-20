@@ -5,7 +5,7 @@
 #include "function/aggregate/regression_functions.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct RegrSXyState {
 	size_t count;
@@ -54,4 +54,4 @@ void RegrSXYFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(fun);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -14,12 +14,12 @@
 #include "parser/column_definition.hpp"
 #include "parser/simplified_token.hpp"
 
-namespace duckdb_libpgquery {
+namespace s62_libpgquery {
 struct PGNode;
 struct PGList;
-} // namespace duckdb_libpgquery
+} // namespace s62_libpgquery
 
-namespace duckdb {
+namespace s62 {
 class ParserExtension;
 
 struct ParserOptions {
@@ -71,4 +71,4 @@ public:
 private:
 	ParserOptions options;
 };
-} // namespace duckdb
+} // namespace s62

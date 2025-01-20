@@ -4,7 +4,7 @@
 #include "common/types/schemaless_data_chunk.hpp"
 #include "execution/execution_context.hpp"
 
-namespace duckdb {
+namespace s62 {
 idx_t CypherPhysicalOperator::operator_version = 0;
 void CypherPhysicalOperator::GetData(ExecutionContext &context,
                                      DataChunk &chunk,
@@ -116,4 +116,4 @@ const vector<LogicalType> &CypherPhysicalOperator::GetTypes()
     return types;
 }
 
-}  // namespace duckdb
+}  // namespace s62

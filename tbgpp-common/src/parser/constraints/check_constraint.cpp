@@ -2,7 +2,7 @@
 
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CheckConstraint::CheckConstraint(unique_ptr<ParsedExpression> expression)
     : Constraint(ConstraintType::CHECK), expression(move(expression)) {
@@ -25,4 +25,4 @@ unique_ptr<Constraint> CheckConstraint::Deserialize(FieldReader &source) {
 	return make_unique<CheckConstraint>(move(expression));
 }
 
-} // namespace duckdb
+} // namespace s62

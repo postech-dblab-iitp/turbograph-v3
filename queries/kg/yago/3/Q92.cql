@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://www.w3.org/2002/07/owl#sameAs`]->(v1), (v0)-[:`http://schema.org/location`]->(v2) WHERE v0.`http://schema.org/sameAs` IS NOT NULL AND v2.`http://schema.org/address` IS NOT NULL RETURN v0.`http://schema.org/sameAs` AS `v0_sameAs`, v2.`http://schema.org/address` AS `v2_address`, COUNT(v0.`http://schema.org/sameAs`) AS `v0_sameAs_count` ORDER BY `v2_address`

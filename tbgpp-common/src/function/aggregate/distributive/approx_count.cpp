@@ -6,7 +6,7 @@
 // #include "function/function_set.hpp"
 // #include "common/types/hash.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct ApproxDistinctCountState {
 // 	HyperLogLog *log;
@@ -159,4 +159,4 @@
 // 	set.AddFunction(approx_count);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

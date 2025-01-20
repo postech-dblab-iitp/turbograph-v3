@@ -11,7 +11,7 @@
 #include "function/function_set.hpp"
 #include "function/scalar_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct VariableReturnBindData : public FunctionData {
 	LogicalType stype;
@@ -96,4 +96,4 @@ struct ListFilterFun {
 // 	static void RegisterFunction(BuiltinFunctions &set);
 // };
 
-} // namespace duckdb
+} // namespace s62

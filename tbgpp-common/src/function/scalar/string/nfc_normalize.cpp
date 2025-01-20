@@ -2,7 +2,7 @@
 
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct NFCNormalizeOperator {
 	template <class INPUT_TYPE, class RESULT_TYPE>
@@ -12,7 +12,7 @@ struct NFCNormalizeOperator {
 		if (StripAccentsFun::IsAscii(input_data, input_length)) {
 			return input;
 		}
-		auto normalized_str = Utf8Proc::Normalize(input_data, input_length);
+		auto normalized_str = duckdb::Utf8Proc::Normalize(input_data, input_length);
 		D_ASSERT(normalized_str);
 		auto result_str = StringVector::AddString(result, normalized_str);
 		free(normalized_str);
@@ -35,4 +35,4 @@ void NFCNormalizeFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(NFCNormalizeFun::GetFunction());
 }
 
-} // namespace duckdb
+} // namespace s62

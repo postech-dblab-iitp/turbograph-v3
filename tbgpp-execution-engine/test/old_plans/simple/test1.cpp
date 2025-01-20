@@ -1,15 +1,15 @@
 
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test1() {
 	icecream::ic.disable();
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("n", "url", s62::LogicalType::VARCHAR);
 	// scan params
 	IC();
 	LabelSet scan_labels;

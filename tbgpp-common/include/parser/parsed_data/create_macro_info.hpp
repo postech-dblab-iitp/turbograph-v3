@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_function_info.hpp"
 #include "function/macro_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateMacroInfo : public CreateFunctionInfo {
 	CreateMacroInfo() : CreateFunctionInfo(CatalogType::MACRO_ENTRY, INVALID_SCHEMA) {
@@ -32,4 +32,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -14,7 +14,7 @@
 #include "common/types/string_type.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Key {
 public:
@@ -61,4 +61,4 @@ unique_ptr<Key> Key::CreateKey(string_t value, bool is_little_endian);
 template <>
 unique_ptr<Key> Key::CreateKey(const char *value, bool is_little_endian);
 
-} // namespace duckdb
+} // namespace s62

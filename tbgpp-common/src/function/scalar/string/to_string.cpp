@@ -5,7 +5,7 @@
 #include "common/vector_operations/unary_executor.hpp"
 #include "common/operator/convert_to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct ToStringOperator {
 	template <class TA, class TR>
 	static inline TR Operation(const TA &input) {
@@ -21,4 +21,4 @@ void ToStringFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(to_string);
 }
 
-} // namespace duckdb
+} // namespace s62

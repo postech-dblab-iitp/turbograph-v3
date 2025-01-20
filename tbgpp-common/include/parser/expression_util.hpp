@@ -11,7 +11,7 @@
 #include "parser/base_expression.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ParsedExpression;
 class Expression;
 
@@ -32,4 +32,4 @@ private:
 	static bool ExpressionSetEquals(const vector<unique_ptr<T>> &a, const vector<unique_ptr<T>> &b);
 };
 
-} // namespace duckdb
+} // namespace s62

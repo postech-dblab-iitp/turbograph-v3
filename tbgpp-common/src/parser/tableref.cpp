@@ -5,7 +5,7 @@
 #include "parser/tableref/list.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string TableRef::BaseToString(string result) const {
 	vector<string> column_name_alias;
@@ -103,4 +103,4 @@ void TableRef::Print() {
 	// Printer::Print(ToString());
 }
 
-} // namespace duckdb
+} // namespace s62

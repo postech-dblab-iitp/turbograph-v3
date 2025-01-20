@@ -5,7 +5,7 @@
 #include "parser/parsed_data/alter_table_info.hpp"
 #include "parser/expression/cast_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ColumnDefinition::ColumnDefinition(string name_p, LogicalType type_p) : name(move(name_p)), type(move(type_p)) {
 }
@@ -100,11 +100,11 @@ void ColumnDefinition::SetName(const string &name) {
 	this->name = name;
 }
 
-const duckdb::CompressionType &ColumnDefinition::CompressionType() const {
+const s62::CompressionType &ColumnDefinition::CompressionType() const {
 	return compression_type;
 }
 
-void ColumnDefinition::SetCompressionType(duckdb::CompressionType compression_type) {
+void ColumnDefinition::SetCompressionType(s62::CompressionType compression_type) {
 	this->compression_type = compression_type;
 }
 
@@ -211,4 +211,4 @@ ParsedExpression &ColumnDefinition::GeneratedExpressionMutable() {
 	return *generated_expression;
 }
 
-} // namespace duckdb
+} // namespace s62

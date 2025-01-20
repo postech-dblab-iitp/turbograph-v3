@@ -10,7 +10,7 @@
 #include "planner/expression/bound_function_expression.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 RegexpMatchesBindData::RegexpMatchesBindData(duckdb_re2::RE2::Options options, string constant_string_p)
     : options(options), constant_string(move(constant_string_p)) {
@@ -331,4 +331,4 @@ void RegexpFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(regexp_extract);
 }
 
-} // namespace duckdb
+} // namespace s62

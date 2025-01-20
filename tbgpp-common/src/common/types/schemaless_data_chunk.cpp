@@ -4,7 +4,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SchemalessDataChunk::SchemalessDataChunk() : DataChunk() {}
 
@@ -67,4 +67,4 @@ char *SchemalessDataChunk::GetRowMajorStore(idx_t column_idx)
     return row_major_datas[-1 - rowcol_idx].get();
 }
 
-}  // namespace duckdb
+}  // namespace s62

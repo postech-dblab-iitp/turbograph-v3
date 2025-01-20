@@ -12,7 +12,7 @@
 // #include "parser/parsed_data/pragma_info.hpp"
 // #include "parser/parsed_expression.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // class PragmaStatement : public SQLStatement {
 // public:
@@ -27,4 +27,4 @@
 // 	unique_ptr<SQLStatement> Copy() const override;
 // };
 
-// } // namespace duckdb
+// } // namespace s62

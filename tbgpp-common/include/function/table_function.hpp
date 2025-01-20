@@ -12,7 +12,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 class BaseStatistics;
 class LogicalGet;
 struct ParallelState;
@@ -165,4 +165,4 @@ public:
 	shared_ptr<TableFunctionInfo> function_info;
 };
 
-} // namespace duckdb
+} // namespace s62

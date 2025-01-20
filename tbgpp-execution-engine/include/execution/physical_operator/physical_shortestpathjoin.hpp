@@ -6,7 +6,7 @@
 #include "planner/expression.hpp"
 #include "extent/adjlist_iterator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class PhysicalShortestPathJoin: public CypherPhysicalOperator {
 
@@ -14,8 +14,8 @@ public:
 	PhysicalShortestPathJoin(Schema &sch, 
 						uint64_t adjidx_obj_id,
                        vector<uint32_t> &input_col_map,
-					   duckdb::idx_t output_idx,
-					   duckdb::idx_t src_id_idx, duckdb::idx_t dst_id_idx,
+					   s62::idx_t output_idx,
+					   s62::idx_t src_id_idx, s62::idx_t dst_id_idx,
 					   uint64_t lower_bound, uint64_t upper_bound)
 					   : CypherPhysicalOperator(PhysicalOperatorType::SHORTEST_PATH, sch),
 					   adjidx_obj_id(adjidx_obj_id),
@@ -31,8 +31,8 @@ public:
 						uint64_t adjidx_obj_id_fwd,
 						uint64_t adjidx_obj_id_bwd,
                        vector<uint32_t> &input_col_map,
-					   duckdb::idx_t output_idx,
-					   duckdb::idx_t src_id_idx, duckdb::idx_t dst_id_idx,
+					   s62::idx_t output_idx,
+					   s62::idx_t src_id_idx, s62::idx_t dst_id_idx,
 					   uint64_t lower_bound, uint64_t upper_bound)
 					   : CypherPhysicalOperator(PhysicalOperatorType::SHORTEST_PATH, sch),
 					   adjidx_obj_id_fwd(adjidx_obj_id_fwd),
@@ -60,19 +60,19 @@ public:
 private:
 	/* common params */
 	vector<uint32_t> input_col_map;
-	duckdb::idx_t output_idx;
+	s62::idx_t output_idx;
 
 	uint64_t adjidx_obj_id;
 	uint64_t adjidx_obj_id_fwd;
 	uint64_t adjidx_obj_id_bwd;
 
-	duckdb::idx_t src_id_idx;
-	duckdb::idx_t dst_id_idx;
+	s62::idx_t src_id_idx;
+	s62::idx_t dst_id_idx;
 
 	uint64_t lower_bound;
 	uint64_t upper_bound;
 };
 
-} // namespace duckdb
+} // namespace s62
 
 #endif

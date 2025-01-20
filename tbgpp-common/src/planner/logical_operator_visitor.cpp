@@ -4,7 +4,7 @@
 // #include "planner/expression_iterator.hpp"
 // #include "planner/operator/list.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // void LogicalOperatorVisitor::VisitOperator(LogicalOperator &op) {
 // 	VisitOperatorChildren(op);
@@ -261,4 +261,4 @@
 
 // // LCOV_EXCL_STOP
 
-// } // namespace duckdb
+// } // namespace s62

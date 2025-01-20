@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Allocator;
 class ClientContext;
 class DatabaseInstance;
@@ -86,4 +86,4 @@ private:
 
 static Allocator DEFAULT_ALLOCATOR = Allocator();
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "common/types/vector.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ListStatistics::ListStatistics(LogicalType type_p) : BaseStatistics(move(type_p)) {
 	D_ASSERT(type.InternalType() == PhysicalType::LIST);
@@ -95,4 +95,4 @@ void ListStatistics::Verify(Vector &vector, const SelectionVector &sel, idx_t co
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

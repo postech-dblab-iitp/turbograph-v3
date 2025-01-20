@@ -1,6 +1,6 @@
 #include "common/enums/physical_operator_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // LCOV_EXCL_START
 // string PhysicalOperatorToString(PhysicalOperatorType type) {
@@ -128,4 +128,4 @@ namespace duckdb {
 // }
 // LCOV_EXCL_STOP
 
-} // namespace duckdb
+} // namespace s62

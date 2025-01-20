@@ -7,7 +7,7 @@
 #include "main/client_context.hpp"
 //#include "transaction/transaction.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CurrentBindData : public FunctionData {
 	ClientContext &context;
@@ -67,4 +67,4 @@ void CurrentTimestampFun::RegisterFunction(BuiltinFunctions &set) {
 	//                                                              false, false, BindCurrentTime));
 }
 
-} // namespace duckdb
+} // namespace s62

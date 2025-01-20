@@ -10,11 +10,11 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ParseInfo {
 	virtual ~ParseInfo() {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

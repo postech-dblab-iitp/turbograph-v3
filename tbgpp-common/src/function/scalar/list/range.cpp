@@ -3,7 +3,7 @@
 // #include "common/types/data_chunk.hpp"
 // #include "common/types/vector.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct NumericRangeInfo {
 // 	using TYPE = int64_t;
@@ -253,4 +253,4 @@
 // 	set.AddFunction(generate_series);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

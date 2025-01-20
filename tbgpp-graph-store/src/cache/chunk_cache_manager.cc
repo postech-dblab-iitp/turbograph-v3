@@ -13,7 +13,7 @@
 #include "common/types/string_type.hpp"
 #include "cache/cache_data_transformer.h"
 
-namespace duckdb {
+namespace s62 {
 
 ChunkCacheManager* ChunkCacheManager::ccm;
 

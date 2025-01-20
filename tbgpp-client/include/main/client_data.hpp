@@ -13,7 +13,7 @@
 #include "common/types/value.hpp"
 #include "common/enums/output_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BufferedFileWriter;
 class ClientContext;
 class CatalogSearchPath;
@@ -56,4 +56,4 @@ public:
 	DUCKDB_API static ClientData &Get(ClientContext &context);
 };
 
-} // namespace duckdb
+} // namespace s62

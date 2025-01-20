@@ -4,7 +4,7 @@
 
 #include "common/operator/comparison_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool Comparators::TieIsBreakable(const idx_t &col_idx, const data_ptr_t row_ptr, const RowLayout &row_layout) {
 	// Check if the blob is NULL
@@ -358,4 +358,4 @@ void Comparators::SwizzleSingleValue(data_ptr_t data_ptr, const data_ptr_t &heap
 	Store<idx_t>(Load<data_ptr_t>(data_ptr) - heap_ptr, data_ptr);
 }
 
-} // namespace duckdb
+} // namespace s62

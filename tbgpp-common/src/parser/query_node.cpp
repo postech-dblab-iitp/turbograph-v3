@@ -6,7 +6,7 @@
 #include "common/limits.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CommonTableExpressionMap::CommonTableExpressionMap() {
 }
@@ -202,4 +202,4 @@ unique_ptr<QueryNode> QueryNode::Deserialize(Deserializer &main_source) {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

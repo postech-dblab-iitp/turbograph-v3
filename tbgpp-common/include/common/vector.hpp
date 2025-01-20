@@ -10,6 +10,6 @@
 
 #include <vector>
 
-namespace duckdb {
+namespace s62 {
 using std::vector;
 }

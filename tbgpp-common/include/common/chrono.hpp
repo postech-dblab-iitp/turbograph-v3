@@ -10,10 +10,10 @@
 
 #include <chrono>
 
-namespace duckdb {
+namespace s62 {
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::system_clock;
 using std::chrono::time_point;
-} // namespace duckdb
+} // namespace s62

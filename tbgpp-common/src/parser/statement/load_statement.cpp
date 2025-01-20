@@ -1,6 +1,6 @@
 #include "parser/statement/load_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 LoadStatement::LoadStatement() : SQLStatement(StatementType::LOAD_STATEMENT) {
 }
@@ -12,4 +12,4 @@ unique_ptr<SQLStatement> LoadStatement::Copy() const {
 	return unique_ptr<LoadStatement>(new LoadStatement(*this));
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 #include "common/allocator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 AllocatedData::AllocatedData(Allocator &allocator, data_ptr_t pointer, idx_t allocated_size)
     : allocator(allocator), pointer(pointer), allocated_size(allocated_size) {
@@ -46,4 +46,4 @@ data_ptr_t Allocator::ReallocateData(data_ptr_t pointer, idx_t size) {
 	return reallocate_function(private_data.get(), pointer, size);
 }
 
-} // namespace duckdb
+} // namespace s62

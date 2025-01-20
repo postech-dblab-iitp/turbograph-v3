@@ -2,7 +2,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterTrigonometricsFunctions() {
 	Register<SinFun>();
@@ -15,4 +15,4 @@ void BuiltinFunctions::RegisterTrigonometricsFunctions() {
 	Register<Atan2Fun>();
 }
 
-} // namespace duckdb
+} // namespace s62

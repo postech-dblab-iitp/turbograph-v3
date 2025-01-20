@@ -68,7 +68,7 @@
 
 using namespace gpopt;
 
-using namespace duckdb;
+using namespace s62;
 
 void print_depth(string data, int depth=0) {
 	for( int i = 0; i<depth; i++ ) {
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
 	icecream::ic.disable();
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
-	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
+	s62::SetClientWrapper(client, make_shared<CatalogWrapper>(database->instance->GetCatalogWrapper()));
 
 	PrintCatalogEntryOid(client, database->instance->GetCatalog());
 

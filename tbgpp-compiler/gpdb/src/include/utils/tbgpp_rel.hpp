@@ -105,7 +105,7 @@ typedef struct RelationData
 												 * current xact */
 
 	// Form_pg_class rd_rel;		/* RELATION tuple */ // TODO --> change this to our class
-	duckdb::PropertySchemaCatalogEntry *rd_rel;
+	s62::PropertySchemaCatalogEntry *rd_rel;
 	// TupleDesc	rd_att;			/* tuple descriptor */ // TODO --> change this to our class
 	Oid			rd_id;			/* relation's object id */
 	LockInfoData rd_lockInfo;	/* lock mgr's info for locking relation */

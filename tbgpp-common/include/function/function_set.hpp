@@ -4,7 +4,7 @@
 #include "function/scalar_function.hpp"
 #include "function/table_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 class FunctionSet {
@@ -42,4 +42,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

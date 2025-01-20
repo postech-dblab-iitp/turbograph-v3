@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Join Types
@@ -38,4 +38,4 @@ bool IsLeftOuterJoin(JoinType type);
 //! True if join is rght or full outer join
 bool IsRightOuterJoin(JoinType type);
 
-} // namespace duckdb
+} // namespace s62

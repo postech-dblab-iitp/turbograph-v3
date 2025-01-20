@@ -18,7 +18,7 @@
 #include <cstring>
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 //! Placeholder to insert in Vectors or to use for hashing NULLs
 template <class T>
@@ -76,4 +76,4 @@ inline double NullValue() {
 	return NAN;
 }
 
-} // namespace duckdb
+} // namespace s62

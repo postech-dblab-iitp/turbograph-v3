@@ -7,7 +7,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* q10_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -36,7 +36,7 @@ CypherPipelineExecutor* q10_pipe1(QueryPlanSuite& suite) {
 	sch1.addPropertyIntoNode("l", "L_RETURNFLAG", LogicalType::VARCHAR);
 	sch1.addPropertyIntoNode("l", "L_EXTENDEDPRICE", LogicalType::DECIMAL(12, 2));
 	sch1.addPropertyIntoNode("l", "L_DISCOUNT", LogicalType::DECIMAL(12, 2));
-	duckdb::Value filter_val = duckdb::Value((string_t)"R");
+	s62::Value filter_val = s62::Value((string_t)"R");
 
 // FIXME further pushdown (later)
 	// filter_expr (_l, l.rf, l.ep, l.d)

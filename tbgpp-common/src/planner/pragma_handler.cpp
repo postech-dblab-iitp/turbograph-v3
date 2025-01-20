@@ -13,7 +13,7 @@
 // #include "common/string_util.hpp"
 // #include "common/file_system.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // PragmaHandler::PragmaHandler(ClientContext &context) : context(context) {
 // }
@@ -78,4 +78,4 @@
 // 	return string();
 // }
 
-// } // namespace duckdb
+// } // namespace s62

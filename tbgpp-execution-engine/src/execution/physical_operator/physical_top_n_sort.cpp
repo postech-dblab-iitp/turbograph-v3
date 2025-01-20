@@ -11,7 +11,7 @@
 #include "common/output_util.hpp"
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 
 PhysicalTopNSort::PhysicalTopNSort(Schema& sch, vector<BoundOrderByNode> orders, idx_t limit, idx_t offset)

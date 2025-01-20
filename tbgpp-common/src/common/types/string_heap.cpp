@@ -9,7 +9,7 @@
 
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 #define MINIMUM_HEAP_SIZE 4096 // What is the best?
 // #define MINIMUM_HEAP_SIZE 1073741824
@@ -18,7 +18,7 @@ StringHeap::StringHeap() : tail(nullptr) {
 }
 
 string_t StringHeap::AddString(const char *data, idx_t len) {
-	D_ASSERT(Utf8Proc::Analyze(data, len) != UnicodeType::INVALID);
+	D_ASSERT(duckdb::Utf8Proc::Analyze(data, len) != duckdb::UnicodeType::INVALID);
 	return AddBlob(data, len);
 }
 
@@ -58,4 +58,4 @@ string_t StringHeap::EmptyString(idx_t len) {
 	return string_t(insert_pos, len);
 }
 
-} // namespace duckdb
+} // namespace s62

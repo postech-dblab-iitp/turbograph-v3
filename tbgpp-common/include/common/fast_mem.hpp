@@ -20,7 +20,7 @@ static inline int MemcmpFixed(const void *str1, const void *str2) {
 	return memcmp(str1, str2, SIZE);
 }
 
-namespace duckdb {
+namespace s62 {
 
 //! This templated memcpy is significantly faster than std::memcpy,
 //! but only when you are calling memcpy with a const size in a loop.
@@ -690,4 +690,4 @@ static inline int FastMemcmp(const void *str1, const void *str2, const size_t si
 	// LCOV_EXCL_STOP
 }
 
-} // namespace duckdb
+} // namespace s62

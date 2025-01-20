@@ -6,7 +6,7 @@
 
 #include "common/allocator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExpressionExecutor::ExpressionExecutor() {
 }
@@ -279,4 +279,4 @@ vector<unique_ptr<ExpressionExecutorState>> &ExpressionExecutor::GetStates() {
 	return states;
 }
 
-} // namespace duckdb
+} // namespace s62

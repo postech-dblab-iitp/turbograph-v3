@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Table Reference Types
@@ -27,4 +27,4 @@ enum class TableReferenceType : uint8_t {
 	EMPTY = 8            // placeholder for empty FROM
 };
 
-} // namespace duckdb
+} // namespace s62

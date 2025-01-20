@@ -3,7 +3,7 @@
 #include "common/limits.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string SubqueryRef::ToString() const {
 	string result = "(" + subquery->ToString() + ")";
@@ -42,4 +42,4 @@ unique_ptr<TableRef> SubqueryRef::Deserialize(FieldReader &reader) {
 	return move(result);
 }
 
-} // namespace duckdb
+} // namespace s62

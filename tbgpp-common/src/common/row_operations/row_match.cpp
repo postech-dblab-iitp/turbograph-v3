@@ -9,7 +9,7 @@
 #include "common/row_operations/row_operations.hpp"
 #include "common/types/row_layout.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 using ValidityBytes = RowLayout::ValidityBytes;
 using Predicates = RowOperations::Predicates;
@@ -277,4 +277,4 @@ idx_t RowOperations::Match(DataChunk &columns, VectorData col_data[], const RowL
 	return count;
 }
 
-} // namespace duckdb
+} // namespace s62

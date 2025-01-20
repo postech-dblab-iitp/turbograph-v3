@@ -13,7 +13,7 @@
 #include "planner/bound_tokens.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ExecutionContext;
 //! ExpressionExecutor is responsible for executing a set of expressions and storing the result in a data chunk
 class ExpressionExecutor {
@@ -140,4 +140,4 @@ private:
 	//! The states of the expression executor; this holds any intermediates and temporary states of expressions
 	vector<unique_ptr<ExpressionExecutorState>> states;
 };
-} // namespace duckdb
+} // namespace s62

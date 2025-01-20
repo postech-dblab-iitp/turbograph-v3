@@ -7,7 +7,7 @@
 // #include "planner/query_node/bound_recursive_cte_node.hpp"
 // #include "planner/tableref/list.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void ExpressionIterator::EnumerateChildren(const Expression &expr,
                                            const std::function<void(const Expression &child)> &callback) {
@@ -241,4 +241,4 @@ void ExpressionIterator::EnumerateQueryNodeChildren(BoundQueryNode &node,
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

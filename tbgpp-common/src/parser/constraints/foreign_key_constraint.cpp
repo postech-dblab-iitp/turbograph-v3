@@ -4,7 +4,7 @@
 #include "common/limits.hpp"
 #include "parser/keyword_helper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ForeignKeyConstraint::ForeignKeyConstraint(vector<string> pk_columns, vector<string> fk_columns, ForeignKeyInfo info)
     : Constraint(ConstraintType::FOREIGN_KEY), pk_columns(move(pk_columns)), fk_columns(move(fk_columns)),
@@ -73,4 +73,4 @@ unique_ptr<Constraint> ForeignKeyConstraint::Deserialize(FieldReader &source) {
 	return make_unique<ForeignKeyConstraint>(pk_columns, fk_columns, move(read_info));
 }
 
-} // namespace duckdb
+} // namespace s62

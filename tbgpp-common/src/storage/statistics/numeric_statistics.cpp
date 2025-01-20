@@ -3,7 +3,7 @@
 #include "common/operator/comparison_operators.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <>
 void NumericStatistics::Update<interval_t>(SegmentStatistics &stats, interval_t new_value) {
@@ -206,4 +206,4 @@ void NumericStatistics::Verify(Vector &vector, const SelectionVector &sel, idx_t
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

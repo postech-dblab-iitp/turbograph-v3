@@ -1,6 +1,6 @@
 #include "function/scalar_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ScalarFunction::ScalarFunction(string name, vector<LogicalType> arguments, LogicalType return_type,
                                scalar_function_t function, bool has_side_effects, bind_scalar_function_t bind,
@@ -73,4 +73,4 @@ void ScalarFunction::NopFunction(DataChunk &input, ExpressionState &state, Vecto
 	result.Reference(input.data[0]);
 }
 
-} // namespace duckdb
+} // namespace s62

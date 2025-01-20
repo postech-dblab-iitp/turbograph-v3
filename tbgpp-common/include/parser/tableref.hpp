@@ -12,7 +12,7 @@
 #include "common/enums/tableref_type.hpp"
 #include "parser/parsed_data/sample_options.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Deserializer;
 class Serializer;
 
@@ -52,4 +52,4 @@ public:
 	//! Copy the properties of this table ref to the target
 	void CopyProperties(TableRef &target) const;
 };
-} // namespace duckdb
+} // namespace s62

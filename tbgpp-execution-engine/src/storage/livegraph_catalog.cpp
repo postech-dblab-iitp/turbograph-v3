@@ -1,7 +1,7 @@
 #include <storage/livegraph_catalog.hpp>
 
 #include <iostream>
-namespace duckdb {
+namespace s62 {
 void LiveGraphCatalog::printCatalog() {
 
 	std::cout << "### LiveGrahCatalog ###" << std::endl << std::endl;

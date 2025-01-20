@@ -10,7 +10,7 @@
 
 #include "common/serializer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define SERIALIZER_DEFAULT_SIZE 1024
 
@@ -46,4 +46,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

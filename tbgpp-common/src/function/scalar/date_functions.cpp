@@ -1,6 +1,6 @@
 #include "function/scalar/date_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterDateFunctions() {
 	Register<AgeFun>();
@@ -18,4 +18,4 @@ void BuiltinFunctions::RegisterDateFunctions() {
 	Register<ToIntervalFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

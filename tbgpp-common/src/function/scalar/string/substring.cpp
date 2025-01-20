@@ -8,7 +8,7 @@
 #include "planner/expression/bound_function_expression.hpp"
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string_t SubstringEmptyString(Vector &result) {
 	auto result_string = StringVector::EmptyString(result, 0);
@@ -102,7 +102,7 @@ string_t SubstringFun::SubstringScalarFunction(Vector &result, string_t input, i
 		// negative offset, this case is more difficult
 		// we first need to count the number of characters in the string
 		idx_t num_characters = 0;
-		utf8proc_grapheme_callback(input_data, input_size, [&](size_t start, size_t end) {
+		duckdb::utf8proc_grapheme_callback(input_data, input_size, [&](size_t start, size_t end) {
 			num_characters++;
 			return true;
 		});
@@ -113,7 +113,7 @@ string_t SubstringFun::SubstringScalarFunction(Vector &result, string_t input, i
 	// now scan the graphemes of the string to find the positions of the start and end characters
 	int64_t current_character = 0;
 	idx_t start_pos = DConstants::INVALID_INDEX, end_pos = input_size;
-	utf8proc_grapheme_callback(input_data, input_size, [&](size_t gstart, size_t gend) {
+	duckdb::utf8proc_grapheme_callback(input_data, input_size, [&](size_t gstart, size_t gend) {
 		if (current_character == start) {
 			start_pos = gstart;
 		} else if (current_character == end) {
@@ -196,4 +196,4 @@ void SubstringFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(substr);
 }
 
-} // namespace duckdb
+} // namespace s62

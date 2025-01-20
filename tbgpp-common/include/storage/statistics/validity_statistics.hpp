@@ -10,7 +10,7 @@
 
 #include "storage/statistics/base_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Serializer;
 class Deserializer;
 class Vector;
@@ -40,4 +40,4 @@ public:
 	string ToString() const override;
 };
 
-} // namespace duckdb
+} // namespace s62

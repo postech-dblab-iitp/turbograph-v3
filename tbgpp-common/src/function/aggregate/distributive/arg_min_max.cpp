@@ -5,7 +5,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "common/operator/comparison_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T, class T2>
 struct ArgMinMaxState {
@@ -204,4 +204,4 @@ void ArgMaxFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(fun);
 }
 
-} // namespace duckdb
+} // namespace s62

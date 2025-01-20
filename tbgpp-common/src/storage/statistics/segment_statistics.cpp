@@ -4,7 +4,7 @@
 #include "common/exception.hpp"
 #include "planner/table_filter.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SegmentStatistics::SegmentStatistics(LogicalType type) : type(move(type)) {
 	Reset();
@@ -22,4 +22,4 @@ void SegmentStatistics::Reset() {
 	statistics->validity_stats = make_unique<ValidityStatistics>(false);
 }
 
-} // namespace duckdb
+} // namespace s62

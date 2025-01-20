@@ -11,7 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <charconv>
 
-namespace duckdb {
+namespace s62 {
 
 class S62ConnectionServer {
 public:

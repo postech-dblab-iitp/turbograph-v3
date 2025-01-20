@@ -11,7 +11,7 @@
 #include "common/unordered_set.hpp"
 #include "planner/bound_constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundUniqueConstraint : public BoundConstraint {
 public:
@@ -34,4 +34,4 @@ public:
 	bool is_primary_key;
 };
 
-} // namespace duckdb
+} // namespace s62

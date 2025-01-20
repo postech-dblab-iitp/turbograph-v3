@@ -13,7 +13,7 @@
 #include "function/macro_function.hpp"
 #include "parser/parsed_data/create_macro_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A macro function in the catalog
 class MacroCatalogEntry : public StandardEntry {
@@ -27,5 +27,5 @@ public:
 	virtual void Serialize(Serializer &serializer) = 0;
 };
 
-} // namespace duckdb
+} // namespace s62
 */

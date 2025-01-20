@@ -11,7 +11,7 @@
 #include <cmath>
 #include <errno.h>
 
-namespace duckdb {
+namespace s62 {
 
 template <class TR, class OP>
 static scalar_function_t GetScalarIntegerUnaryFunctionFixedReturn(const LogicalType &type) {
@@ -1005,4 +1005,4 @@ void EvenFun::RegisterFunction(BuiltinFunctions &set) {
 	                               ScalarFunction::UnaryFunction<double, double, EvenOperator>));
 }
 
-} // namespace duckdb
+} // namespace s62

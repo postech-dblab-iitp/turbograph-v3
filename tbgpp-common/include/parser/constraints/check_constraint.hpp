@@ -12,7 +12,7 @@
 #include "parser/constraint.hpp"
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The CheckConstraint contains an expression that must evaluate to TRUE for
 //! every row in a table
@@ -31,4 +31,4 @@ public:
 	DUCKDB_API static unique_ptr<Constraint> Deserialize(FieldReader &source);
 };
 
-} // namespace duckdb
+} // namespace s62

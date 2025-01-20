@@ -2,7 +2,7 @@
 #include "common/vector_size.hpp"
 #include "common/limits.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 constexpr const idx_t DConstants::INVALID_INDEX;
 const row_t MAX_ROW_ID = 4611686018427388000ULL; // 2^62
@@ -27,4 +27,4 @@ uint64_t NextPowerOfTwo(uint64_t v) {
 	return v;
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "parser/parser.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool KeywordHelper::IsKeyword(const string &text) {
 	return Parser::IsKeyword(text);
@@ -31,4 +31,4 @@ string KeywordHelper::WriteOptionallyQuoted(const string &text, char quote) {
 	return string(1, quote) + StringUtil::Replace(text, string(1, quote), string(2, quote)) + string(1, quote);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "storage/storage_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class BlockHandle;
 class FileBuffer;
 
@@ -26,4 +26,4 @@ public:
 	DUCKDB_API data_ptr_t Ptr();
 };
 
-} // namespace duckdb
+} // namespace s62

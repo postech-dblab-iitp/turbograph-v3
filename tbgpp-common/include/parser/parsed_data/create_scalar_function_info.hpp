@@ -12,7 +12,7 @@
 #include "function/scalar_function.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateScalarFunctionInfo : public CreateFunctionInfo {
 	// deprecated
@@ -41,4 +41,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

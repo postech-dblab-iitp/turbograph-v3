@@ -1,15 +1,15 @@
 
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("n", "url", s62::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
 	scan_labels.insert("Organisation");
@@ -22,7 +22,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test2() {
 	unique_ptr<Expression> filter_expr1;
 	{
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 2);
-		auto rhsval = duckdb::Value::UBIGINT(0);
+		auto rhsval = s62::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
 	}

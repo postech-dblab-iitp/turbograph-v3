@@ -5,7 +5,7 @@
 #include "planner/expression_iterator.hpp"
 // #include "storage/statistics/base_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Expression::Expression(ExpressionType type, ExpressionClass expression_class, LogicalType return_type)
     : BaseExpression(type, expression_class), return_type(move(return_type)) {
@@ -85,11 +85,11 @@ bool Expression::HasSubquery() const {
 }
 
 hash_t Expression::Hash() const {
-	hash_t hash = duckdb::Hash<uint32_t>((uint32_t)type);
+	hash_t hash = s62::Hash<uint32_t>((uint32_t)type);
 	hash = CombineHash(hash, return_type.Hash());
 	ExpressionIterator::EnumerateChildren(*this,
 	                                      [&](const Expression &child) { hash = CombineHash(child.Hash(), hash); });
 	return hash;
 }
 
-} // namespace duckdb
+} // namespace s62

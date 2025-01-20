@@ -1,6 +1,6 @@
 #include "planner/bound_result_modifier.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundResultModifier::BoundResultModifier(ResultModifierType type) : type(type) {
 }
@@ -60,4 +60,4 @@ BoundLimitPercentModifier::BoundLimitPercentModifier()
     : BoundResultModifier(ResultModifierType::LIMIT_PERCENT_MODIFIER) {
 }
 
-} // namespace duckdb
+} // namespace s62

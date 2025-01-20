@@ -10,7 +10,7 @@
 
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Decimal class is a static class that holds helper functions for the Decimal type
 class Decimal {
@@ -27,4 +27,4 @@ public:
 	static string ToString(int64_t value, uint8_t scale);
 	static string ToString(hugeint_t value, uint8_t scale);
 };
-} // namespace duckdb
+} // namespace s62

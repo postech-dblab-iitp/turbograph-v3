@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateViewInfo : public CreateInfo {
 	CreateViewInfo() : CreateInfo(CatalogType::VIEW_ENTRY, INVALID_SCHEMA) {
@@ -40,4 +40,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

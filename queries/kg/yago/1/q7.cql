@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://yago-knowledge.org/resource/notableWork`]->(v1), (v1)-[:`http://schema.org/author`]->(v2), (v2)-[:`http://schema.org/children`]->(v0) WHERE v2.`http://schema.org/sameAs` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

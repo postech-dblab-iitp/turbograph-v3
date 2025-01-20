@@ -10,7 +10,7 @@
 
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The vector size used in the storage
 #ifndef STANDARD_VECTOR_SIZE
@@ -47,4 +47,4 @@ namespace duckdb {
 //! Zero selection vector: completely filled with the value 0 [READ ONLY]
 extern const sel_t ZERO_VECTOR[STANDARD_VECTOR_SIZE];
 
-} // namespace duckdb
+} // namespace s62

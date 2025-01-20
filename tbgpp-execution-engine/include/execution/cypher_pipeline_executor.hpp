@@ -16,7 +16,7 @@
 // #define DEBUG_PRINT_OP_INPUT_OUTPUT
 // #define DEBUG_PRINT_PIPELINE
 
-namespace duckdb {
+namespace s62 {
 
 struct LogicalType;
 class Executor;
@@ -101,7 +101,7 @@ public:
 	//! Child executors - to access sink information of the source 			// child : pipe's sink == op's source
 	vector<CypherPipelineExecutor *> childs;
 	//! Dependent executors - to access sink information of the operator	// dep   : pipe's sink == op's operator
-	std::map<duckdb::CypherPhysicalOperator*, duckdb::CypherPipelineExecutor*> deps;
+	std::map<s62::CypherPhysicalOperator*, s62::CypherPipelineExecutor*> deps;
 
 private:
 	void StartOperator(CypherPhysicalOperator *op);

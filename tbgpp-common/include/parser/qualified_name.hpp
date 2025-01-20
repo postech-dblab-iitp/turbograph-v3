@@ -13,7 +13,7 @@
 #include "parser/keyword_helper.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct QualifiedName {
 	string schema;
@@ -80,4 +80,4 @@ struct QualifiedColumnName {
 	string column;
 };
 
-} // namespace duckdb
+} // namespace s62

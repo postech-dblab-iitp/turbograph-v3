@@ -7,7 +7,7 @@
 #include <algorithm>
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundComparisonExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -114,38 +114,38 @@ struct NestedSelector {
 };
 
 template <>
-idx_t NestedSelector::Select<duckdb::Equals>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
+idx_t NestedSelector::Select<s62::Equals>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                              SelectionVector *true_sel, SelectionVector *false_sel) {
 	return VectorOperations::NestedEquals(left, right, sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t NestedSelector::Select<duckdb::NotEquals>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
+idx_t NestedSelector::Select<s62::NotEquals>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                                 SelectionVector *true_sel, SelectionVector *false_sel) {
 	return VectorOperations::NestedNotEquals(left, right, sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t NestedSelector::Select<duckdb::LessThan>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
+idx_t NestedSelector::Select<s62::LessThan>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                                SelectionVector *true_sel, SelectionVector *false_sel) {
 	return VectorOperations::DistinctLessThan(left, right, &sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t NestedSelector::Select<duckdb::LessThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t NestedSelector::Select<s62::LessThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
                                                      idx_t count, SelectionVector *true_sel,
                                                      SelectionVector *false_sel) {
 	return VectorOperations::DistinctLessThanEquals(left, right, &sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t NestedSelector::Select<duckdb::GreaterThan>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
+idx_t NestedSelector::Select<s62::GreaterThan>(Vector &left, Vector &right, const SelectionVector &sel, idx_t count,
                                                   SelectionVector *true_sel, SelectionVector *false_sel) {
 	return VectorOperations::DistinctGreaterThan(left, right, &sel, count, true_sel, false_sel);
 }
 
 template <>
-idx_t NestedSelector::Select<duckdb::GreaterThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
+idx_t NestedSelector::Select<s62::GreaterThanEquals>(Vector &left, Vector &right, const SelectionVector &sel,
                                                         idx_t count, SelectionVector *true_sel,
                                                         SelectionVector *false_sel) {
 	return VectorOperations::DistinctGreaterThanEquals(left, right, &sel, count, true_sel, false_sel);
@@ -249,32 +249,32 @@ static idx_t NestedSelectOperation(Vector &left, Vector &right, const SelectionV
 
 idx_t VectorOperations::Equals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::Equals>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::Equals>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t VectorOperations::NotEquals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                   SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::NotEquals>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::NotEquals>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t VectorOperations::GreaterThan(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                     SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::GreaterThan>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::GreaterThan>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t VectorOperations::GreaterThanEquals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                           SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::GreaterThanEquals>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::GreaterThanEquals>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t VectorOperations::LessThan(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                  SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::LessThan>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::LessThan>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t VectorOperations::LessThanEquals(Vector &left, Vector &right, const SelectionVector *sel, idx_t count,
                                        SelectionVector *true_sel, SelectionVector *false_sel) {
-	return TemplatedSelectOperation<duckdb::LessThanEquals>(left, right, sel, count, true_sel, false_sel);
+	return TemplatedSelectOperation<s62::LessThanEquals>(left, right, sel, count, true_sel, false_sel);
 }
 
 idx_t ExpressionExecutor::Select(const BoundComparisonExpression &expr, ExpressionState *state,
@@ -310,4 +310,4 @@ idx_t ExpressionExecutor::Select(const BoundComparisonExpression &expr, Expressi
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -1,7 +1,7 @@
 #include "common/types/cast_helpers.hpp"
 #include "common/types/hugeint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 const int64_t NumericHelper::POWERS_OF_TEN[] {1,
                                               10,
@@ -107,4 +107,4 @@ std::string NumericHelper::ToString(hugeint_t value) {
 	return Hugeint::ToString(value);
 }
 
-} // namespace duckdb
+} // namespace s62

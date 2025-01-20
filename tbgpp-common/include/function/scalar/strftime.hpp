@@ -11,7 +11,7 @@
 #include "function/scalar_function.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class StrTimeSpecifier : uint8_t {
 	ABBREVIATED_WEEKDAY_NAME = 0,    // %a - Abbreviated weekday name. (Sun, Mon, ...)
@@ -141,4 +141,4 @@ protected:
 	                           idx_t collection_count);
 };
 
-} // namespace duckdb
+} // namespace s62

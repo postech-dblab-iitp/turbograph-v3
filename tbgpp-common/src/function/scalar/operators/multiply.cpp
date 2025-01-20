@@ -8,7 +8,7 @@
 #include <limits>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // * [multiply]
@@ -230,4 +230,4 @@ hugeint_t DecimalMultiplyOverflowCheck::Operation(hugeint_t left, hugeint_t righ
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

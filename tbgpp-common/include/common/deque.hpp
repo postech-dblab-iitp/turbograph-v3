@@ -10,6 +10,6 @@
 
 #include <deque>
 
-namespace duckdb {
+namespace s62 {
 using std::deque;
 }

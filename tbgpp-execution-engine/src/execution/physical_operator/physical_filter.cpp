@@ -11,7 +11,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class FilterState : public OperatorState {
 public:

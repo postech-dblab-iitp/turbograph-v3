@@ -12,7 +12,7 @@
 #include "parser/parsed_expression.hpp"
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! BoundExpression is an intermediate dummy class used by the binder. It is a ParsedExpression but holds an Expression.
 //! It represents a successfully bound expression. It is used in the Binder to prevent re-binding of already bound parts
@@ -49,4 +49,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

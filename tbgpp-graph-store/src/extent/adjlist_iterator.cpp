@@ -10,7 +10,7 @@
 
 #include "icecream.hpp" 
 
-namespace duckdb {
+namespace s62 {
 
 bool AdjacencyListIterator::Initialize(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd) {
     if (is_initialized && target_eid == cur_eid) return true;

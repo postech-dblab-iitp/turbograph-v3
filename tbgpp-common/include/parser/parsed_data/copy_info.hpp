@@ -13,7 +13,7 @@
 #include "common/unordered_map.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CopyInfo : public ParseInfo {
 	CopyInfo() : schema(DEFAULT_SCHEMA) {
@@ -48,4 +48,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

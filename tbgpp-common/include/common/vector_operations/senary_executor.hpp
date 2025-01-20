@@ -12,7 +12,7 @@
 
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 struct SenaryExecutor {
 	static const size_t NCOLS = 6;
@@ -99,4 +99,4 @@ struct SenaryExecutor {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

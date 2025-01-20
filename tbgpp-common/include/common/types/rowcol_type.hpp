@@ -3,7 +3,7 @@
 #include "common/assert.hpp"
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct rowcol_t {
     rowcol_t(idx_t offset_val, const char *schema_info) {
@@ -16,4 +16,4 @@ public:
     char *schema_ptr;
 };
 
-} // namespace duckdb
+} // namespace s62

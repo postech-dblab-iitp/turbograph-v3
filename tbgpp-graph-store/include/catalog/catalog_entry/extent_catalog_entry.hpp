@@ -19,7 +19,7 @@
 //#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ColumnStatistics;
 class DataTable;
@@ -73,4 +73,4 @@ public:
 		return num_tuples_in_extent;
 	}
 };
-} // namespace duckdb
+} // namespace s62

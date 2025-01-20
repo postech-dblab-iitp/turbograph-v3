@@ -11,7 +11,7 @@
 #include "function/function_set.hpp"
 #include "function/scalar_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AddFun {
 	static ScalarFunction GetFunction(const LogicalType &type);
@@ -62,4 +62,4 @@ struct BitwiseNotFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

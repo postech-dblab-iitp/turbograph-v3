@@ -12,7 +12,7 @@
 #include "common/mutex.hpp"
 #include "parser/parsed_data/create_type_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Serializer;
 class Deserializer;
 
@@ -32,5 +32,5 @@ public:
 
 	string ToSQL() override;
 };
-} // namespace duckdb
+} // namespace s62
 */

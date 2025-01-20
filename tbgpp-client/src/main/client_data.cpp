@@ -8,7 +8,7 @@
 //#include "catalog/catalog.hpp"
 //#include "common/serializer/buffered_file_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //ClientData::ClientData(ClientContext &context) : catalog_search_path(make_unique<CatalogSearchPath>(context)) {
 ClientData::ClientData(ClientContext &context) {
@@ -30,4 +30,4 @@ ClientData &ClientData::Get(ClientContext &context) {
 	return *ClientData::Get(context).random_engine;
 }*/
 
-} // namespace duckdb
+} // namespace s62

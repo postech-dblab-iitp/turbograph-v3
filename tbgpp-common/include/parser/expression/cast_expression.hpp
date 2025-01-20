@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! CastExpression represents a type cast from one SQL type to another SQL type
 class CastExpression : public ParsedExpression {
@@ -42,4 +42,4 @@ public:
 		       entry.cast_type.ToString() + ")";
 	}
 };
-} // namespace duckdb
+} // namespace s62

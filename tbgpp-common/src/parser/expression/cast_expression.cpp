@@ -3,7 +3,7 @@
 #include "common/exception.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CastExpression::CastExpression(LogicalType target, unique_ptr<ParsedExpression> child, bool try_cast_p)
     : ParsedExpression(ExpressionType::OPERATOR_CAST, ExpressionClass::CAST), cast_type(move(target)),
@@ -49,4 +49,4 @@ unique_ptr<ParsedExpression> CastExpression::Deserialize(ExpressionType type, Fi
 	return make_unique_base<ParsedExpression, CastExpression>(cast_type, move(child), try_cast);
 }
 
-} // namespace duckdb
+} // namespace s62

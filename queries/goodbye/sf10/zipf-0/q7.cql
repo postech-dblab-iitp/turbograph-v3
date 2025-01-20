@@ -1,1 +1,0 @@
-MATCH (n) WHERE n.sparse_32 = "E" RETURN n;

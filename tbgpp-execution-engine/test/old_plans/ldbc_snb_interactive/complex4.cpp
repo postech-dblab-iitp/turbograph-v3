@@ -3,7 +3,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* ic4_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -32,10 +32,10 @@ CypherPipelineExecutor* ic4_pipe1(QueryPlanSuite& suite) {
 //IC();
 	// person
 	Schema sch1; sch1.addNode("person");
-	duckdb::Value filter_val; // person key
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(21990232559429); }	//demo samsung
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	s62::Value filter_val; // person key
+	if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(21990232559429); }	//demo samsung
+	if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 	// p-K->friend
 	Schema sch2 = sch1; sch2.addNode("friend");
 	//friend<-HC-post:Post
@@ -168,7 +168,7 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 		// pc > 0
 		unique_ptr<Expression> filter_expr1;
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 1);	// pc
-		auto rhsval = duckdb::Value::UBIGINT(0);
+		auto rhsval = s62::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_GREATERTHAN, std::move(lhs), std::move(rhs));
 		predicates.push_back(std::move(filter_expr1));
@@ -177,7 +177,7 @@ CypherPipelineExecutor* ic4_pipe3(QueryPlanSuite& suite, CypherPipelineExecutor*
 		// ipc == 0
 		unique_ptr<Expression> filter_expr1;
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::HUGEINT, 2);	// ipc
-		auto rhsval = duckdb::Value::UBIGINT(0);
+		auto rhsval = s62::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
 		predicates.push_back(std::move(filter_expr1));

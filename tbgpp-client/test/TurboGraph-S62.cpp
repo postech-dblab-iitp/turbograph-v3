@@ -113,7 +113,7 @@ using json = nlohmann::json;
 
 using namespace antlr4;
 using namespace gpopt;
-using namespace duckdb;
+using namespace s62;
 
 CUnittest* m_rgut = NULL;
 ULONG m_ulTests = 0;
@@ -320,7 +320,7 @@ class InputParser{
     std::vector <std::string> tokens;
 };
 
-void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk>> &resultChunks, duckdb::Schema &schema) {
+void printOutput(s62::Planner& planner, std::vector<unique_ptr<s62::DataChunk>> &resultChunks, s62::Schema &schema) {
 	PropertyKeys col_names;
 	col_names = planner.getQueryOutputColNames();
 	if (col_names.size() == 0) {
@@ -582,7 +582,7 @@ int main(int argc, char** argv) {
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
-	duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
+	s62::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 	if (enable_profile) {
 		client.get()->EnableProfiling();
 	} else {
@@ -629,7 +629,7 @@ int main(int argc, char** argv) {
 				try {
 					// protected code
 					CompileAndRun(query_str, client, planner, binder);
-				} catch (duckdb::Exception e) {
+				} catch (s62::Exception e) {
 					std::cerr << e.what() << std::endl;
 				} catch (std::exception &e1) {
 					std::cerr << "Unexpected Exception" << std::endl;
@@ -679,7 +679,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	bool isRootOp = true;	// is true for only one operator
 	
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+  		s62::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
 		auto operators = pipeline->GetOperators();
 		for (auto it2 = operators.crbegin() ; it2 != operators.crend(); ++it2) {

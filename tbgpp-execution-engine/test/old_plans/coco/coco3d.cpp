@@ -2,7 +2,7 @@
 
 //  --nodes:IMAGES images --nodes:CATEGORIES categories --nodes:ANNOTATIONS annotations --nodes:LICENSES licenses
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* coco3d_pipe1(QueryPlanSuite& suite);
 
@@ -31,7 +31,7 @@ CypherPipelineExecutor* coco3d_pipe1(QueryPlanSuite& suite) {
 	//src
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("IMAGES"),
 		PropertyKeys({"id", "license", "file_name", "coco_url", "height", "width", "date_captured", "flickr_url"}),
-		"date_captured", duckdb::Value("1975-08-21")	// date_captured = "blabla"
+		"date_captured", s62::Value("1975-08-21")	// date_captured = "blabla"
 	));
 	//ops
 	ops.push_back( new PhysicalTop(sch1, (idx_t) 1, (idx_t)0)); // offset 0 limit 1

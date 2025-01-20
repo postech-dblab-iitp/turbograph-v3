@@ -4,11 +4,11 @@
 #include "function/aggregate/algebraic/corr.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 void Corr::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet corr("corr");
 	corr.AddFunction(AggregateFunction::BinaryAggregate<CorrState, double, double, double, CorrOperation>(
 	    LogicalType::DOUBLE, LogicalType::DOUBLE, LogicalType::DOUBLE));
 	set.AddFunction(corr);
 }
-} // namespace duckdb
+} // namespace s62

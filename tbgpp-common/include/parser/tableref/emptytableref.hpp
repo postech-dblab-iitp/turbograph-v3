@@ -10,7 +10,7 @@
 
 #include "parser/tableref.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a cross product
 class EmptyTableRef : public TableRef {
 public:
@@ -28,4 +28,4 @@ public:
 	//! Deserializes a blob back into a DummyTableRef
 	static unique_ptr<TableRef> Deserialize(FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

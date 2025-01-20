@@ -2,7 +2,7 @@
 #include <iostream>
 #include "catalog/catalog_server.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 CatalogServer *cat_server;
 

@@ -12,7 +12,7 @@
 #include "common/types/hash.hpp"
 #include "common/unordered_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct QualifiedColumnHashFunction {
 	uint64_t operator()(const QualifiedColumnName &a) const {
@@ -29,4 +29,4 @@ struct QualifiedColumnEquality {
 
 using qualified_column_set_t = unordered_set<QualifiedColumnName, QualifiedColumnHashFunction, QualifiedColumnEquality>;
 
-} // namespace duckdb
+} // namespace s62

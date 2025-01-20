@@ -13,7 +13,7 @@
 #include "parser/constraint.hpp"
 #include "parser/statement/select_statement.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateTypeInfo : public CreateInfo {
 
@@ -35,4 +35,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

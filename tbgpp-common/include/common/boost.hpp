@@ -24,6 +24,6 @@
 #include <boost/interprocess/containers/flat_map.hpp>
 #include <boost/interprocess/containers/string.hpp>
 
-//namespace duckdb {
+//namespace s62 {
 //using namespace boost::interprocess;
 //}

@@ -8,7 +8,7 @@
 #include <cmath>
 #include <limits>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // String Conversion
@@ -756,4 +756,4 @@ string hugeint_t::ToString() const {
 	return Hugeint::ToString(*this);
 }
 
-} // namespace duckdb
+} // namespace s62

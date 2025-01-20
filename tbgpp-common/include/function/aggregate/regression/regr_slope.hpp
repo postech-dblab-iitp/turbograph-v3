@@ -10,7 +10,7 @@
 #include "function/aggregate/algebraic/stddev.hpp"
 #include "function/aggregate/algebraic/covar.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct RegrSlopeState {
 	CovarState cov_pop;
@@ -60,4 +60,4 @@ struct RegrSlopeOperation {
 		return true;
 	}
 };
-} // namespace duckdb
+} // namespace s62

@@ -17,7 +17,7 @@
 #include "common/boost.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct CreateSchemaInfo;
 struct DropInfo;
 struct BoundCreateTableInfo;
@@ -315,4 +315,4 @@ DUCKDB_API CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const 
                                                   bool if_exists);//, QueryErrorContext error_context);
 */
 
-} // namespace duckdb
+} // namespace s62

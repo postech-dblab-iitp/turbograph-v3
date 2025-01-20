@@ -2,14 +2,14 @@
 #include "third_party/utf8proc/utf8proc.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ChrOperator {
 	template <class TA, class TR>
 	static inline TR Operation(const TA &input) {
 		char c[5] = {'\0', '\0', '\0', '\0', '\0'};
 		int utf8_bytes = 4;
-		if (input < 0 || !Utf8Proc::CodepointToUtf8(input, utf8_bytes, &c[0])) {
+		if (input < 0 || !duckdb::Utf8Proc::CodepointToUtf8(input, utf8_bytes, &c[0])) {
 			throw InvalidInputException("Invalid UTF8 Codepoint %d", input);
 		}
 		return string_t(&c[0]);
@@ -22,4 +22,4 @@ void CHR::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(chr);
 }
 
-} // namespace duckdb
+} // namespace s62

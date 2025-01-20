@@ -12,7 +12,7 @@
 #include "common/vector.hpp"
 #include "common/types/vector_buffer.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Vector;
 
 //! The VectorCache holds cached data that allows for re-use of the same memory by vectors
@@ -33,4 +33,4 @@ public:
 	const LogicalType &GetType() const;
 };
 
-} // namespace duckdb
+} // namespace s62

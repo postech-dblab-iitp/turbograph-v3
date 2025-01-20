@@ -5,7 +5,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/cypher_physical_operator_group.hpp"
 
-namespace duckdb {
+namespace s62 {
 	
 class CypherPipeline {
 

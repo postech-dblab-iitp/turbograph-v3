@@ -18,7 +18,7 @@
 #include "icecream.hpp"
 #include "range/v3/all.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 iTbgppGraphStore::iTbgppGraphStore(ClientContext &client)
     : client(client),
@@ -35,7 +35,7 @@ iTbgppGraphStore::iTbgppGraphStore(ClientContext &client)
 StoreAPIResult iTbgppGraphStore::InitializeScan(
     std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids,
     vector<vector<uint64_t>> &projection_mapping,
-    vector<vector<duckdb::LogicalType>> &scanSchemas,
+    vector<vector<s62::LogicalType>> &scanSchemas,
     bool enable_filter_buffering)
 {
     Catalog &cat_instance = client.db->GetCatalog();
@@ -64,7 +64,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(
 StoreAPIResult iTbgppGraphStore::InitializeScan(
     std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids,
     vector<vector<uint64_t>> &projection_mapping,
-    vector<vector<duckdb::LogicalType>> &scanSchemas,
+    vector<vector<s62::LogicalType>> &scanSchemas,
     bool enable_filter_buffering)
 {
     Catalog &cat_instance = client.db->GetCatalog();
@@ -94,8 +94,8 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(
  * Scan without filter pushdown
 */
 StoreAPIResult iTbgppGraphStore::doScan(
-    std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
-    std::vector<duckdb::LogicalType> &scanSchema)
+    std::queue<ExtentIterator *> &ext_its, s62::DataChunk &output,
+    std::vector<s62::LogicalType> &scanSchema)
 {
     ExtentID current_eid;
     auto ext_it = ext_its.front();
@@ -111,9 +111,9 @@ StoreAPIResult iTbgppGraphStore::doScan(
 }
 
 StoreAPIResult iTbgppGraphStore::doScan(
-    std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
+    std::queue<ExtentIterator *> &ext_its, s62::DataChunk &output,
     vector<vector<uint64_t>> &projection_mapping,
-    std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx,
+    std::vector<s62::LogicalType> &scanSchema, int64_t current_schema_idx,
     bool is_output_initialized)
 {
     ExtentID current_eid;
@@ -137,11 +137,11 @@ StoreAPIResult iTbgppGraphStore::doScan(
 
 // equality filter
 StoreAPIResult iTbgppGraphStore::doScan(
-    std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
+    std::queue<ExtentIterator *> &ext_its, s62::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
-    std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx,
-    int64_t &filterKeyColIdx, duckdb::Value &filterValue)
+    std::vector<s62::LogicalType> &scanSchema, int64_t current_schema_idx,
+    int64_t &filterKeyColIdx, s62::Value &filterValue)
 {
     ExtentID current_eid;
     auto ext_it = ext_its.front();
@@ -161,11 +161,11 @@ StoreAPIResult iTbgppGraphStore::doScan(
 
 // range filter
 StoreAPIResult iTbgppGraphStore::doScan(
-    std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
+    std::queue<ExtentIterator *> &ext_its, s62::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
-    std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx,
-    int64_t &filterKeyColIdx, duckdb::RangeFilterValue &rangeFilterValue)
+    std::vector<s62::LogicalType> &scanSchema, int64_t current_schema_idx,
+    int64_t &filterKeyColIdx, s62::RangeFilterValue &rangeFilterValue)
 {
     ExtentID current_eid;
     auto ext_it = ext_its.front();
@@ -188,10 +188,10 @@ StoreAPIResult iTbgppGraphStore::doScan(
 
 // complex filter
 StoreAPIResult iTbgppGraphStore::doScan(
-    std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
+    std::queue<ExtentIterator *> &ext_its, s62::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
-    std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx,
+    std::vector<s62::LogicalType> &scanSchema, int64_t current_schema_idx,
     ExpressionExecutor &executor)
 {
     ExtentID current_eid;
@@ -494,7 +494,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
 StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, uint64_t vid, LabelSet labels,
     std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj,
-    PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema)
+    PropertyKeys properties, std::vector<s62::LogicalType> &scanSchema)
 {
     D_ASSERT(ext_it == nullptr);
     Catalog &cat_instance = client.db->GetCatalog();
@@ -532,7 +532,7 @@ StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
     idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels,
     LoadAdjListOption loadAdj, PropertyKeys properties,
-    std::vector<duckdb::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
+    std::vector<s62::LogicalType> &scanSchema, vector<ExtentID> &target_eids,
     vector<idx_t> &boundary_position)
 {
     D_ASSERT(false);  // temporary
@@ -658,4 +658,4 @@ void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t> &oids,
     }
 }
 
-}  // namespace duckdb
+}  // namespace s62

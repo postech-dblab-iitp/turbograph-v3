@@ -11,7 +11,7 @@
 #include "index/art/art_key.hpp"
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 enum class NodeType : uint8_t { N4 = 0, N16 = 1, N48 = 2, N256 = 3, NLeaf = 4 };
 
 class ART;
@@ -68,4 +68,4 @@ protected:
 	static void CopyPrefix(ART &art, Node *src, Node *dst);
 };
 
-} // namespace duckdb
+} // namespace s62

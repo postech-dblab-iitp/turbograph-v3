@@ -5,7 +5,7 @@
 // #include "storage/statistics/list_statistics.hpp"
 // #include "storage/statistics/validity_statistics.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // static void ListConcatFunction(DataChunk &args, ExpressionState &state, Vector &result) {
 // 	D_ASSERT(args.ColumnCount() == 2);
@@ -133,4 +133,4 @@
 // 	set.AddFunction({"list_concat", "list_cat", "array_concat", "array_cat"}, GetFunction());
 // }
 
-// } // namespace duckdb
+// } // namespace s62

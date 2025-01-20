@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace duckdb {
+namespace s62 {
 
 struct PickLeft {
 	template <class T>
@@ -52,4 +52,4 @@ struct AddOne {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

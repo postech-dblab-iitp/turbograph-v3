@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ParameterExpression : public ParsedExpression {
 public:
 	ParameterExpression();
@@ -35,4 +35,4 @@ public:
 	void Serialize(FieldWriter &writer) const override;
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

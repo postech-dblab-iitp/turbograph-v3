@@ -11,7 +11,7 @@
 #include "parser/statement/select_statement.hpp"
 #include "parser/tableref.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a subquery
 class SubqueryRef : public TableRef {
 public:
@@ -33,4 +33,4 @@ public:
 	//! Deserializes a blob back into a SubqueryRef
 	static unique_ptr<TableRef> Deserialize(FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

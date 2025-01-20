@@ -10,7 +10,7 @@
 #include "common/operator/numeric_cast.hpp"
 #include "common/likely.hpp"
 #include "common/limits.hpp"
-namespace duckdb {
+namespace s62 {
 
 template <class OP>
 struct VectorStringCastOperator {
@@ -134,36 +134,36 @@ static bool NumericCastSwitch(Vector &source, Vector &result, idx_t count, strin
 	// now switch on the result type
 	switch (result.GetType().id()) {
 	case LogicalTypeId::BOOLEAN:
-		return VectorTryCastLoop<SRC, bool, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, bool, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::TINYINT:
-		return VectorTryCastLoop<SRC, int8_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, int8_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::SMALLINT:
-		return VectorTryCastLoop<SRC, int16_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, int16_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::INTEGER:
-		return VectorTryCastLoop<SRC, int32_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, int32_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::BIGINT:
-		return VectorTryCastLoop<SRC, int64_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, int64_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::UTINYINT:
-		return VectorTryCastLoop<SRC, uint8_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, uint8_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::USMALLINT:
-		return VectorTryCastLoop<SRC, uint16_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, uint16_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::UINTEGER:
-		return VectorTryCastLoop<SRC, uint32_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, uint32_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::ID:
-		return VectorTryCastLoop<SRC, uint64_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, uint64_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::UBIGINT:
-		return VectorTryCastLoop<SRC, uint64_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, uint64_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::HUGEINT:
-		return VectorTryCastLoop<SRC, hugeint_t, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, hugeint_t, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::FLOAT:
-		return VectorTryCastLoop<SRC, float, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, float, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::DOUBLE:
-		return VectorTryCastLoop<SRC, double, duckdb::NumericTryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<SRC, double, s62::NumericTryCast>(source, result, count, error_message);
 	case LogicalTypeId::DECIMAL:
 		return ToDecimalCast<SRC>(source, result, count, error_message);
 	case LogicalTypeId::JSON:
 	case LogicalTypeId::VARCHAR: {
-		VectorStringCast<SRC, duckdb::StringCast>(source, result, count);
+		VectorStringCast<SRC, s62::StringCast>(source, result, count);
 		return true;
 	}
 	default:
@@ -248,39 +248,39 @@ static bool VectorStringCastNumericSwitch(Vector &source, Vector &result, idx_t 
 		}
 	}
 	case LogicalTypeId::BOOLEAN:
-		return VectorTryCastStrictLoop<string_t, bool, duckdb::TryCast>(source, result, count, strict, error_message);
+		return VectorTryCastStrictLoop<string_t, bool, s62::TryCast>(source, result, count, strict, error_message);
 	case LogicalTypeId::TINYINT:
-		return VectorTryCastStrictLoop<string_t, int8_t, duckdb::TryCast>(source, result, count, strict, error_message);
+		return VectorTryCastStrictLoop<string_t, int8_t, s62::TryCast>(source, result, count, strict, error_message);
 	case LogicalTypeId::SMALLINT:
-		return VectorTryCastStrictLoop<string_t, int16_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, int16_t, s62::TryCast>(source, result, count, strict,
 		                                                                   error_message);
 	case LogicalTypeId::INTEGER:
-		return VectorTryCastStrictLoop<string_t, int32_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, int32_t, s62::TryCast>(source, result, count, strict,
 		                                                                   error_message);
 	case LogicalTypeId::BIGINT:
-		return VectorTryCastStrictLoop<string_t, int64_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, int64_t, s62::TryCast>(source, result, count, strict,
 		                                                                   error_message);
 	case LogicalTypeId::UTINYINT:
-		return VectorTryCastStrictLoop<string_t, uint8_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, uint8_t, s62::TryCast>(source, result, count, strict,
 		                                                                   error_message);
 	case LogicalTypeId::USMALLINT:
-		return VectorTryCastStrictLoop<string_t, uint16_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, uint16_t, s62::TryCast>(source, result, count, strict,
 		                                                                    error_message);
 	case LogicalTypeId::UINTEGER:
-		return VectorTryCastStrictLoop<string_t, uint32_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, uint32_t, s62::TryCast>(source, result, count, strict,
 		                                                                    error_message);
 	case LogicalTypeId::UBIGINT:
-		return VectorTryCastStrictLoop<string_t, uint64_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, uint64_t, s62::TryCast>(source, result, count, strict,
 		                                                                    error_message);
 	case LogicalTypeId::HUGEINT:
-		return VectorTryCastStrictLoop<string_t, hugeint_t, duckdb::TryCast>(source, result, count, strict,
+		return VectorTryCastStrictLoop<string_t, hugeint_t, s62::TryCast>(source, result, count, strict,
 		                                                                     error_message);
 	case LogicalTypeId::FLOAT:
-		return VectorTryCastStrictLoop<string_t, float, duckdb::TryCast>(source, result, count, strict, error_message);
+		return VectorTryCastStrictLoop<string_t, float, s62::TryCast>(source, result, count, strict, error_message);
 	case LogicalTypeId::DOUBLE:
-		return VectorTryCastStrictLoop<string_t, double, duckdb::TryCast>(source, result, count, strict, error_message);
+		return VectorTryCastStrictLoop<string_t, double, s62::TryCast>(source, result, count, strict, error_message);
 	case LogicalTypeId::INTERVAL:
-		return VectorTryCastErrorLoop<string_t, interval_t, duckdb::TryCastErrorMessage>(source, result, count, strict,
+		return VectorTryCastErrorLoop<string_t, interval_t, s62::TryCastErrorMessage>(source, result, count, strict,
 		                                                                                 error_message);
 	case LogicalTypeId::DECIMAL:
 		return ToDecimalCast<string_t>(source, result, count, error_message);
@@ -293,30 +293,30 @@ static bool StringCastSwitch(Vector &source, Vector &result, idx_t count, bool s
 	// now switch on the result type
 	switch (result.GetType().id()) {
 	case LogicalTypeId::DATE:
-		return VectorTryCastErrorLoop<string_t, date_t, duckdb::TryCastErrorMessage>(source, result, count, strict,
+		return VectorTryCastErrorLoop<string_t, date_t, s62::TryCastErrorMessage>(source, result, count, strict,
 		                                                                             error_message);
 	case LogicalTypeId::TIME:
 	case LogicalTypeId::TIME_TZ:
-		return VectorTryCastErrorLoop<string_t, dtime_t, duckdb::TryCastErrorMessage>(source, result, count, strict,
+		return VectorTryCastErrorLoop<string_t, dtime_t, s62::TryCastErrorMessage>(source, result, count, strict,
 		                                                                              error_message);
 	case LogicalTypeId::TIMESTAMP:
 	case LogicalTypeId::TIMESTAMP_TZ:
-		return VectorTryCastErrorLoop<string_t, timestamp_t, duckdb::TryCastErrorMessage>(source, result, count, strict,
+		return VectorTryCastErrorLoop<string_t, timestamp_t, s62::TryCastErrorMessage>(source, result, count, strict,
 		                                                                                  error_message);
 	case LogicalTypeId::TIMESTAMP_NS:
-		return VectorTryCastStrictLoop<string_t, timestamp_t, duckdb::TryCastToTimestampNS>(source, result, count,
+		return VectorTryCastStrictLoop<string_t, timestamp_t, s62::TryCastToTimestampNS>(source, result, count,
 		                                                                                    strict, error_message);
 	case LogicalTypeId::TIMESTAMP_SEC:
-		return VectorTryCastStrictLoop<string_t, timestamp_t, duckdb::TryCastToTimestampSec>(source, result, count,
+		return VectorTryCastStrictLoop<string_t, timestamp_t, s62::TryCastToTimestampSec>(source, result, count,
 		                                                                                     strict, error_message);
 	case LogicalTypeId::TIMESTAMP_MS:
-		return VectorTryCastStrictLoop<string_t, timestamp_t, duckdb::TryCastToTimestampMS>(source, result, count,
+		return VectorTryCastStrictLoop<string_t, timestamp_t, s62::TryCastToTimestampMS>(source, result, count,
 		                                                                                    strict, error_message);
 	case LogicalTypeId::BLOB:
-		return VectorTryCastStringLoop<string_t, string_t, duckdb::TryCastToBlob>(source, result, count, strict,
+		return VectorTryCastStringLoop<string_t, string_t, s62::TryCastToBlob>(source, result, count, strict,
 		                                                                          error_message);
 	case LogicalTypeId::UUID:
-		return VectorTryCastStringLoop<string_t, hugeint_t, duckdb::TryCastToUUID>(source, result, count, strict,
+		return VectorTryCastStringLoop<string_t, hugeint_t, s62::TryCastToUUID>(source, result, count, strict,
 		                                                                           error_message);
 	case LogicalTypeId::SQLNULL:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -335,12 +335,12 @@ static bool DateCastSwitch(Vector &source, Vector &result, idx_t count, string *
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// date to varchar
-		VectorStringCast<date_t, duckdb::StringCast>(source, result, count);
+		VectorStringCast<date_t, s62::StringCast>(source, result, count);
 		return true;
 	case LogicalTypeId::TIMESTAMP:
 	case LogicalTypeId::TIMESTAMP_TZ:
 		// date to timestamp
-		return VectorTryCastLoop<date_t, timestamp_t, duckdb::TryCast>(source, result, count, error_message);
+		return VectorTryCastLoop<date_t, timestamp_t, s62::TryCast>(source, result, count, error_message);
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
 	}
@@ -352,11 +352,11 @@ static bool TimeCastSwitch(Vector &source, Vector &result, idx_t count, string *
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// time to varchar
-		VectorStringCast<dtime_t, duckdb::StringCast>(source, result, count);
+		VectorStringCast<dtime_t, s62::StringCast>(source, result, count);
 		return true;
 	case LogicalTypeId::TIME_TZ:
 		// time to time with time zone
-		UnaryExecutor::Execute<dtime_t, dtime_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<dtime_t, dtime_t, s62::Cast>(source, result, count);
 		return true;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -369,11 +369,11 @@ static bool TimeTzCastSwitch(Vector &source, Vector &result, idx_t count, string
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// time with time zone to varchar
-		VectorStringCast<dtime_t, duckdb::StringCastTZ>(source, result, count);
+		VectorStringCast<dtime_t, s62::StringCastTZ>(source, result, count);
 		return true;
 	case LogicalTypeId::TIME:
 		// time with time zone to time
-		UnaryExecutor::Execute<dtime_t, dtime_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<dtime_t, dtime_t, s62::Cast>(source, result, count);
 		return true;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -386,32 +386,32 @@ static bool TimestampCastSwitch(Vector &source, Vector &result, idx_t count, str
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// timestamp to varchar
-		VectorStringCast<timestamp_t, duckdb::StringCast>(source, result, count);
+		VectorStringCast<timestamp_t, s62::StringCast>(source, result, count);
 		break;
 	case LogicalTypeId::DATE:
 		// timestamp to date
-		UnaryExecutor::Execute<timestamp_t, date_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, date_t, s62::Cast>(source, result, count);
 		break;
 	case LogicalTypeId::TIME:
 	case LogicalTypeId::TIME_TZ:
 		// timestamp to time
-		UnaryExecutor::Execute<timestamp_t, dtime_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, dtime_t, s62::Cast>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP_TZ:
 		// timestamp (us) to timestamp with time zone
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::Cast>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP_NS:
 		// timestamp (us) to timestamp (ns)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampUsToNs>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampUsToNs>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP_MS:
 		// timestamp (us) to timestamp (ms)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampUsToMs>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampUsToMs>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP_SEC:
 		// timestamp (us) to timestamp (s)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampUsToSec>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampUsToSec>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -425,20 +425,20 @@ static bool TimestampTzCastSwitch(Vector &source, Vector &result, idx_t count, s
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// timestamp with time zone to varchar
-		VectorStringCast<timestamp_t, duckdb::StringCastTZ>(source, result, count);
+		VectorStringCast<timestamp_t, s62::StringCastTZ>(source, result, count);
 		break;
 	case LogicalTypeId::DATE:
 		// timestamp with time zone to date
-		UnaryExecutor::Execute<timestamp_t, date_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, date_t, s62::Cast>(source, result, count);
 		break;
 	case LogicalTypeId::TIME:
 	case LogicalTypeId::TIME_TZ:
 		// timestamp with time zone to time
-		UnaryExecutor::Execute<timestamp_t, dtime_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, dtime_t, s62::Cast>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP:
 		// timestamp with time zone to timestamp (us)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::Cast>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::Cast>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -452,11 +452,11 @@ static bool TimestampNsCastSwitch(Vector &source, Vector &result, idx_t count, s
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// timestamp (ns) to varchar
-		VectorStringCast<timestamp_t, duckdb::CastFromTimestampNS>(source, result, count);
+		VectorStringCast<timestamp_t, s62::CastFromTimestampNS>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP:
 		// timestamp (ns) to timestamp (us)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampNsToUs>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampNsToUs>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -470,11 +470,11 @@ static bool TimestampMsCastSwitch(Vector &source, Vector &result, idx_t count, s
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// timestamp (ms) to varchar
-		VectorStringCast<timestamp_t, duckdb::CastFromTimestampMS>(source, result, count);
+		VectorStringCast<timestamp_t, s62::CastFromTimestampMS>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP:
 		// timestamp (ms) to timestamp (us)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampMsToUs>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampMsToUs>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -488,11 +488,11 @@ static bool TimestampSecCastSwitch(Vector &source, Vector &result, idx_t count, 
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// timestamp (sec) to varchar
-		VectorStringCast<timestamp_t, duckdb::CastFromTimestampSec>(source, result, count);
+		VectorStringCast<timestamp_t, s62::CastFromTimestampSec>(source, result, count);
 		break;
 	case LogicalTypeId::TIMESTAMP:
 		// timestamp (s) to timestamp (us)
-		UnaryExecutor::Execute<timestamp_t, timestamp_t, duckdb::CastTimestampSecToUs>(source, result, count);
+		UnaryExecutor::Execute<timestamp_t, timestamp_t, s62::CastTimestampSecToUs>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -506,7 +506,7 @@ static bool IntervalCastSwitch(Vector &source, Vector &result, idx_t count, stri
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// time to varchar
-		VectorStringCast<interval_t, duckdb::StringCast>(source, result, count);
+		VectorStringCast<interval_t, s62::StringCast>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -520,7 +520,7 @@ static bool UUIDCastSwitch(Vector &source, Vector &result, idx_t count, string *
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// uuid to varchar
-		VectorStringCast<hugeint_t, duckdb::CastFromUUID>(source, result, count);
+		VectorStringCast<hugeint_t, s62::CastFromUUID>(source, result, count);
 		break;
 	default:
 		return TryVectorNullCast(source, result, count, error_message);
@@ -534,7 +534,7 @@ static bool BlobCastSwitch(Vector &source, Vector &result, idx_t count, string *
 	case LogicalTypeId::VARCHAR:
 	case LogicalTypeId::JSON:
 		// blob to varchar
-		VectorStringCast<string_t, duckdb::CastFromBlob>(source, result, count);
+		VectorStringCast<string_t, s62::CastFromBlob>(source, result, count);
 		break;
 	case LogicalTypeId::AGGREGATE_STATE:
 		result.Reinterpret(source);
@@ -872,4 +872,4 @@ void VectorOperations::Cast(Vector &source, Vector &result, idx_t count, bool st
 	VectorOperations::TryCast(source, result, count, nullptr, strict);
 }
 
-} // namespace duckdb
+} // namespace s62

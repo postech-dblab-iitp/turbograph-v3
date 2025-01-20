@@ -21,7 +21,7 @@
 #define DUCKDB_POSIX
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 #ifndef likely
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -129,4 +129,4 @@ void AssignSharedPointer(shared_ptr<T> &target, const shared_ptr<T> &source) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

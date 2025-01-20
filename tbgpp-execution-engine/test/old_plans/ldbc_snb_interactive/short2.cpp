@@ -1,6 +1,6 @@
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite);
 CypherPipelineExecutor* is2_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);
@@ -22,10 +22,10 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	sch1.addNode("UNNAMED1");
 
 // FIXME
-	duckdb::Value filter_val;
-	if(suite.LDBC_SF==1) { filter_val = duckdb::Value::UBIGINT(35184372099695); }
-	if(suite.LDBC_SF==10) { filter_val = duckdb::Value::UBIGINT(14); }
-	if(suite.LDBC_SF==100) { filter_val = duckdb::Value::UBIGINT(14); }
+	s62::Value filter_val;
+	if(suite.LDBC_SF==1) { filter_val = s62::Value::UBIGINT(35184372099695); }
+	if(suite.LDBC_SF==10) { filter_val = s62::Value::UBIGINT(14); }
+	if(suite.LDBC_SF==100) { filter_val = s62::Value::UBIGINT(14); }
 
 // expand
 	Schema sch2 = sch1;
@@ -35,7 +35,7 @@ CypherPipelineExecutor* is2_pipe1(QueryPlanSuite& suite) {
 	Schema sch3 = sch2;
 	sch3.addPropertyIntoNode("message", "id", LogicalType::UBIGINT);
 	sch3.addPropertyIntoNode("message", "creationDate", LogicalType::BIGINT);
-	sch3.addPropertyIntoNode("message", "content", duckdb::LogicalType::VARCHAR);
+	sch3.addPropertyIntoNode("message", "content", s62::LogicalType::VARCHAR);
 	PropertyKeys exp_pkeys;
 	exp_pkeys.push_back("id");
 	exp_pkeys.push_back("creationDate");

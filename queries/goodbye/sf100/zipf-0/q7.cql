@@ -1,1 +1,0 @@
-MATCH (n) WHERE n.sparse_64 = "C" RETURN n;

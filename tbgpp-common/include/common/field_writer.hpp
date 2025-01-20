@@ -12,7 +12,7 @@
 #include "common/serializer/buffered_serializer.hpp"
 #include <type_traits>
 
-namespace duckdb {
+namespace s62 {
 class BufferedSerializer;
 
 class FieldWriter {
@@ -279,4 +279,4 @@ private:
 	bool finalized;
 };
 
-} // namespace duckdb
+} // namespace s62

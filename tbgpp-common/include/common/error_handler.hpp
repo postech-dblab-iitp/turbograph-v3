@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string.h>
 
-namespace duckdb {
+namespace s62 {
 
 //This structure mirrors the one found in /usr/include/asm/ucontext.h
 typedef struct _sig_ucontext {

@@ -7,7 +7,7 @@
 // #include "common/pair.hpp"
 // #include "function/scalar/string_functions.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // template <typename INPUT_TYPE, typename INDEX_TYPE>
 // INDEX_TYPE ValueOffset(const INPUT_TYPE &value) {
@@ -199,4 +199,4 @@
 // 	set.AddFunction({"array_slice", "list_slice"}, fun);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

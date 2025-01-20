@@ -13,7 +13,7 @@
 #include "parser/parsed_data/create_macro_info.hpp"
 #include "catalog/catalog_entry/macro_catalog_entry.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A macro function in the catalog
 class ScalarMacroCatalogEntry : public MacroCatalogEntry {
@@ -26,5 +26,5 @@ public:
 	//! Deserializes to a CreateMacroInfo
 	static unique_ptr<CreateMacroInfo> Deserialize(Deserializer &source);
 };
-} // namespace duckdb
+} // namespace s62
 */

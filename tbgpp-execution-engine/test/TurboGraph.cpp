@@ -65,7 +65,7 @@ using namespace tblr;
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/error_handler.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 vector<std::pair<string, string>> vertex_files;
 vector<std::pair<string, string>> edge_files;
@@ -307,7 +307,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	bool isRootOp = true;	// is true for only one operator
 	
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+  		s62::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
 		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
 			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );

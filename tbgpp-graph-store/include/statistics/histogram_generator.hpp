@@ -12,7 +12,7 @@
 #include <queue>
 #include <unordered_set>
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class ExtentIterator;
@@ -90,4 +90,4 @@ private:
     void _store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples);
 };
 
-} // namespace duckdb
+} // namespace s62

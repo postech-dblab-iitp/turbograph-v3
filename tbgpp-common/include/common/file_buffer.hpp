@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Allocator;
 struct FileHandle;
 
@@ -77,4 +77,4 @@ protected:
 	void Construct(uint64_t bufsiz);
 };
 
-} // namespace duckdb
+} // namespace s62

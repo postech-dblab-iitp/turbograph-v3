@@ -1,7 +1,7 @@
 #include "function/aggregate/algebraic_functions.hpp"
 #include "function/aggregate_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterAlgebraicAggregates() {
 	Register<AvgFun>();
@@ -18,4 +18,4 @@ void BuiltinFunctions::RegisterAlgebraicAggregates() {
 	Register<Corr>();
 }
 
-} // namespace duckdb
+} // namespace s62

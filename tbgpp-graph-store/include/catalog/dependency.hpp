@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include "common/unordered_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 class CatalogEntry;
 
 enum class DependencyType {
@@ -48,4 +48,4 @@ struct DependencyEquality {
 
 using dependency_set_t = unordered_set<Dependency, DependencyHashFunction, DependencyEquality>;
 
-} // namespace duckdb
+} // namespace s62

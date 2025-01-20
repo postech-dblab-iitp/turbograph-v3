@@ -14,7 +14,7 @@
 #include "parser/tableref/basetableref.hpp"
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateIndexInfo : public CreateInfo {
 	CreateIndexInfo() : CreateInfo(CatalogType::INDEX_ENTRY) {
@@ -59,4 +59,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

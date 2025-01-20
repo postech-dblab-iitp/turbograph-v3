@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===----
 enum class AggregateHandling : uint8_t {
@@ -19,4 +19,4 @@ enum class AggregateHandling : uint8_t {
 	FORCE_AGGREGATES       // force aggregates: any non-aggregate select list entry will become a GROUP
 };
 
-} // namespace duckdb
+} // namespace s62

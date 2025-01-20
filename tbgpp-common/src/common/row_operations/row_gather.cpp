@@ -9,7 +9,7 @@
 #include "common/types/row_data_collection.hpp"
 #include "common/types/row_layout.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static void print_bytes(const void *object, size_t size)
 {
@@ -190,4 +190,4 @@ void RowOperations::FullScanColumn(const RowLayout &layout, Vector &rows, Vector
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

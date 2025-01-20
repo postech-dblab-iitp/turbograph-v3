@@ -13,7 +13,7 @@
 #include <cstring>
 #include "common/operator/comparison_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct Min {
 	template <class T>
@@ -29,4 +29,4 @@ struct Max {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

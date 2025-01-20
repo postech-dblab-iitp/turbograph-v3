@@ -31,7 +31,7 @@
 #include <algorithm>
 #include <sstream>
 
-namespace duckdb {
+namespace s62 {
 
 idx_t TableCatalogEntry::GetColumnIndex(string &column_name, bool if_exists) {
 	auto entry = name_map.find(column_name);
@@ -675,5 +675,5 @@ void TableCatalogEntry::CommitDrop() {
 	storage->CommitDropTable();
 }
 
-} // namespace duckdb
+} // namespace s62
 */

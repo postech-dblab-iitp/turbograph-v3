@@ -12,7 +12,7 @@
 #include "common/types/row_data_collection.hpp"
 #include "planner/bound_query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class RowLayout;
 struct LocalSortState;
@@ -199,4 +199,4 @@ private:
 	                data_ptr_t &target_heap_ptr, idx_t &copied, const idx_t &count);
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -14,7 +14,7 @@
 #include "parser/statement/select_statement.hpp"
 //#include "main/external_dependencies.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Represents a Table producing function
 class TableFunctionRef : public TableRef {
@@ -42,4 +42,4 @@ public:
 	//! Deserializes a blob back into a BaseTableRef
 	static unique_ptr<TableRef> Deserialize(FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

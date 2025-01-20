@@ -1,1 +1,0 @@
-MATCH (v0)-[:`http://schema.org/about`]->(v1), (v1)-[:`http://schema.org/spouse`]->(v2) WHERE v1.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL AND v0.`http://schema.org/numberOfPages` IS NOT NULL AND v0.`http://schema.org/mainEntityOfPage` IS NOT NULL RETURN v0.uri, v1.uri, v2.uri

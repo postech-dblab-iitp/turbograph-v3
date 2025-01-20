@@ -11,7 +11,7 @@
 #include "common/serializer/buffered_serializer.hpp"
 #include "common/serializer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BufferedDeserializer : public Deserializer {
 public:
@@ -25,4 +25,4 @@ public:
 	void ReadData(data_ptr_t buffer, uint64_t read_size) override;
 };
 
-} // namespace duckdb
+} // namespace s62

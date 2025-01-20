@@ -13,10 +13,10 @@ typedef string PropertyName;
 typedef string PropertySQLType;
 typedef vector<PropertyName> PropertyNames;
 typedef vector<PropertySQLType> PropertySQLTypes;
-typedef vector<duckdb::LogicalType> LogicalTypes;
+typedef vector<s62::LogicalType> LogicalTypes;
 typedef size_t ResultSetSize;
 
-namespace duckdb {
+namespace s62 {
     namespace MetadataUtils {
         inline void LogicalTypeIdsToSQLTypes(LogicalTypes& logical_types, PropertySQLTypes& sql_types) {
             sql_types.reserve(logical_types.size());

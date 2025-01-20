@@ -2,7 +2,7 @@
 
 //  --nodes:IMAGES images --nodes:CATEGORIES categories --nodes:ANNOTATIONS annotations --nodes:LICENSES licenses
 
-namespace duckdb {
+namespace s62 {
 
 CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite);
 
@@ -66,7 +66,7 @@ CypherPipelineExecutor* coco2_pipe1(QueryPlanSuite& suite) {
 	std::vector<CypherPhysicalOperator *> ops;
 	//src
 	ops.push_back( new PhysicalNodeScan(sch1, LabelSet("IMAGES"), image_keys,
-		"id", duckdb::Value::BIGINT(1)	  // predicate images.id = 1
+		"id", s62::Value::BIGINT(1)	  // predicate images.id = 1
 	));
 	//ops
 	// images <- annotations (incoming)

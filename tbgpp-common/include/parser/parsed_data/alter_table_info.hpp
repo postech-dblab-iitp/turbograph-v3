@@ -13,7 +13,7 @@
 #include "common/enums/catalog_type.hpp"
 #include "parser/constraint.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 enum class AlterType : uint8_t {
 	INVALID = 0,
@@ -258,4 +258,4 @@ public:
 	static unique_ptr<AlterInfo> Deserialize(FieldReader &reader, string schema, string table);
 };
 
-} // namespace duckdb
+} // namespace s62

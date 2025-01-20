@@ -4,7 +4,7 @@
 #include "function/aggregate/regression/regr_slope.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct RegrInterceptState {
 	size_t count;
@@ -65,4 +65,4 @@ void RegrInterceptFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(fun);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Statement Types
@@ -75,4 +75,4 @@ struct StatementProperties {
 	idx_t parameter_count;
 };
 
-} // namespace duckdb
+} // namespace s62

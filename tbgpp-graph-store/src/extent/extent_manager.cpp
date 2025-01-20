@@ -10,7 +10,7 @@
 #include "common/directory_helper.hpp"
 #include "extent/compression/compression_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 ExtentManager::ExtentManager() {}
 
@@ -307,4 +307,4 @@ void ExtentManager::_UpdatePartitionMinMaxArray(PartitionCatalogEntry &part_cat,
     }
 }
 
-} // namespace duckdb
+} // namespace s62

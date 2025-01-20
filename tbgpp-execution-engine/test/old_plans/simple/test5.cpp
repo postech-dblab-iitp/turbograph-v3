@@ -1,14 +1,14 @@
 
 #include "plans/query_plan_suite.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
 	
 	// scan params
 	LabelSet scan_labels;
@@ -19,7 +19,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test5() {
 
 	// seek ; add url column
 	Schema seekSchema = schema;
-	seekSchema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR );
+	seekSchema.addPropertyIntoNode("n", "url", s62::LogicalType::VARCHAR );
 	PropertyKeys seek_propertyKeys;
 	seek_propertyKeys.push_back("url");
 

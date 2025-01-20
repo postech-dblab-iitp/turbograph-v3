@@ -11,7 +11,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_parameter_data.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundParameterExpression : public Expression {
 public:
@@ -38,4 +38,4 @@ public:
 	unique_ptr<Expression> Copy() override;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -14,7 +14,7 @@ extern "C" {
 #include "enums/index_type.hpp"
 #include "catalog/catalog_entry/list.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class CatalogWrapper;

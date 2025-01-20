@@ -1,6 +1,6 @@
 #include "common/enums/join_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string JoinTypeToString(JoinType type) {
 	switch (type) {
@@ -34,4 +34,4 @@ bool IsRightOuterJoin(JoinType type) {
 	return type == JoinType::OUTER || type == JoinType::RIGHT;
 }
 
-} // namespace duckdb
+} // namespace s62

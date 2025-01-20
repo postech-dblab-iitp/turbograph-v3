@@ -6,7 +6,7 @@
 #include "planner/expression/bound_subquery_expression.hpp"
 #include "planner/expression_iterator.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<Expression> JoinCondition::CreateExpression(JoinCondition cond) {
 	auto bound_comparison = make_unique<BoundComparisonExpression>(cond.comparison, move(cond.left), move(cond.right));
@@ -100,4 +100,4 @@ unique_ptr<Expression> JoinCondition::CreateExpression(vector<JoinCondition> con
 // 	return side;
 // }
 
-} // namespace duckdb
+} // namespace s62

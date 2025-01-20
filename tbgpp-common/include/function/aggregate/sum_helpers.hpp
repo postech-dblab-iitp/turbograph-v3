@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static inline void KahanAddInternal(double input, double &summed, double &err) {
 	double diff = input - err;
@@ -161,4 +161,4 @@ struct BaseSumOperation {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

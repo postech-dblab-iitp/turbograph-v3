@@ -1,10 +1,10 @@
 #include "function/aggregate/nested_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 void BuiltinFunctions::RegisterNestedAggregates() {
 	Register<ListFun>();
 	// Register<HistogramFun>();
 }
 
-} // namespace duckdb
+} // namespace s62

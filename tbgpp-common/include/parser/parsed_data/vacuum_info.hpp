@@ -13,7 +13,7 @@
 // #include "planner/tableref/bound_basetableref.hpp"
 // #include "common/unordered_map.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // struct VacuumOptions {
 // 	bool vacuum;
@@ -43,4 +43,4 @@
 // 	vector<string> columns;
 // };
 
-// } // namespace duckdb
+// } // namespace s62

@@ -10,7 +10,7 @@
 
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 struct NumericLimits {
@@ -142,4 +142,4 @@ struct NumericLimits<double> {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 #include "parser/parsed_expression.hpp"
 #include "parser/expression_map.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 bool ExpressionUtil::ExpressionListEquals(const vector<unique_ptr<T>> &a, const vector<unique_ptr<T>> &b) {
@@ -69,4 +69,4 @@ bool ExpressionUtil::SetEquals(const vector<unique_ptr<Expression>> &a, const ve
 	return ExpressionSetEquals<Expression>(a, b);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // We disable Wexit-time-destructors here
 // Otherwise we get a warning about the two selection vectors (ZERO/INCREMENTAL_SELECTION_VECTOR)
@@ -29,4 +29,4 @@ const sel_t ConstantVector::ZERO_VECTOR[STANDARD_VECTOR_SIZE] = {0};
 #pragma clang diagnostic pop
 #endif
 
-} // namespace duckdb
+} // namespace s62

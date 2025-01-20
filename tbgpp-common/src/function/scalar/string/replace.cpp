@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include <unordered_map>
 
-namespace duckdb {
+namespace s62 {
 
 static idx_t NextNeedle(const char *input_haystack, idx_t size_haystack, const char *input_needle,
                         const idx_t size_needle) {
@@ -84,4 +84,4 @@ void ReplaceFun::RegisterFunction(BuiltinFunctions &set) {
 	                               ReplaceFunction));    // pointer to function implementation
 }
 
-} // namespace duckdb
+} // namespace s62

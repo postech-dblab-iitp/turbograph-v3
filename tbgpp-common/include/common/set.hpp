@@ -10,6 +10,6 @@
 
 #include <set>
 
-namespace duckdb {
+namespace s62 {
 using std::set;
 }

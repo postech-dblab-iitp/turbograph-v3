@@ -10,7 +10,7 @@
 
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! The Interval class is a static class that holds helper functions for the Interval
 //! type.
@@ -88,4 +88,4 @@ public:
 	static bool GreaterThan(interval_t left, interval_t right);
 	static bool GreaterThanEquals(interval_t left, interval_t right);
 };
-} // namespace duckdb
+} // namespace s62

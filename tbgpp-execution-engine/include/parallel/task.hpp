@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 class Executor;
 
@@ -46,4 +46,4 @@ public:
 	TaskExecutionResult Execute(TaskExecutionMode mode) override;
 };
 
-} // namespace duckdb
+} // namespace s62

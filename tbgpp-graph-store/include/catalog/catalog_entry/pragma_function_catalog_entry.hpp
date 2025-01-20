@@ -11,7 +11,7 @@
 #include "catalog/standard_entry.hpp"
 #include "function/pragma_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class Catalog;
 struct CreatePragmaFunctionInfo;
@@ -24,5 +24,5 @@ public:
 	//! The pragma functions
 	vector<PragmaFunction> functions;
 };
-} // namespace duckdb
+} // namespace s62
 */

@@ -1,7 +1,6 @@
-# Dockerfile for turbograph-v3
+# Dockerfile for s62
 
 FROM ubuntu:20.04
-# TODO Fix
 WORKDIR /root/
 
 # Versions
@@ -140,8 +139,8 @@ RUN git clone https://github.com/sparsehash/sparsehash.git && \
     make && make install
 
 # Resolve git issue
-RUN git config --global --add safe.directory /turbograph-v3
+RUN git config --global --add safe.directory /s62
 
 # WORKDIR to project repository
-WORKDIR /turbograph-v3/
+WORKDIR /s62/
 

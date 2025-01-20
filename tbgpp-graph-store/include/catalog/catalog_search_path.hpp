@@ -14,7 +14,7 @@
 // #include "common/vector.hpp"
 // #include "common/types/value.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // class ClientContext;
 
@@ -44,4 +44,4 @@
 // 	vector<string> set_paths;
 // };
 
-// } // namespace duckdb
+// } // namespace s62

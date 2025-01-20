@@ -12,7 +12,7 @@
 #include "main/client_context.hpp"
 #include "execution/schema_flow_graph.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class ThreadContext;
@@ -39,4 +39,4 @@ public:
 	
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -2,17 +2,17 @@
 #include "third_party/utf8proc/utf8proc.hpp"
 #include "third_party/utf8proc/utf8proc_wrapper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AsciiOperator {
 	template <class TA, class TR>
 	static inline TR Operation(const TA &input) {
 		auto str = input.GetDataUnsafe();
-		if (Utf8Proc::Analyze(str, input.GetSize()) == UnicodeType::ASCII) {
+		if (duckdb::Utf8Proc::Analyze(str, input.GetSize()) == duckdb::UnicodeType::ASCII) {
 			return str[0];
 		}
 		int utf8_bytes = 4;
-		return Utf8Proc::UTF8ToCodepoint(str, utf8_bytes);
+		return duckdb::Utf8Proc::UTF8ToCodepoint(str, utf8_bytes);
 	}
 };
 
@@ -22,4 +22,4 @@ void ASCII::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(ascii);
 }
 
-} // namespace duckdb
+} // namespace s62

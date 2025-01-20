@@ -13,7 +13,7 @@
 #include "parser/tableref.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class DeleteStatement : public SQLStatement {
 public:
@@ -34,4 +34,4 @@ public:
 	unique_ptr<SQLStatement> Copy() const override;
 };
 
-} // namespace duckdb
+} // namespace s62

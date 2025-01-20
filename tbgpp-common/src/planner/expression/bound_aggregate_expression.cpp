@@ -5,7 +5,7 @@
 #include "common/types/hash.hpp"
 #include "planner/expression/bound_cast_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundAggregateExpression::BoundAggregateExpression(AggregateFunction function, vector<unique_ptr<Expression>> children,
                                                    unique_ptr<Expression> filter, unique_ptr<FunctionData> bind_info,
@@ -24,7 +24,7 @@ string BoundAggregateExpression::ToString() const {
 hash_t BoundAggregateExpression::Hash() const {
 	hash_t result = Expression::Hash();
 	result = CombineHash(result, function.Hash());
-	result = CombineHash(result, duckdb::Hash(distinct));
+	result = CombineHash(result, s62::Hash(distinct));
 	return result;
 }
 
@@ -73,4 +73,4 @@ unique_ptr<Expression> BoundAggregateExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 bool StripAccentsFun::IsAscii(const char *input, idx_t n) {
 	for (idx_t i = 0; i < n; i++) {
@@ -22,7 +22,7 @@ struct StripAccentsOperator {
 		}
 
 		// non-ascii, perform collation
-		auto stripped = utf8proc_remove_accents((const utf8proc_uint8_t *)input.GetDataUnsafe(), input.GetSize());
+		auto stripped = duckdb::utf8proc_remove_accents((const duckdb::utf8proc_uint8_t *)input.GetDataUnsafe(), input.GetSize());
 		auto result_str = StringVector::AddString(result, (const char *)stripped);
 		free(stripped);
 		return result_str;
@@ -44,4 +44,4 @@ void StripAccentsFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(StripAccentsFun::GetFunction());
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 // #include <stdlib.h>
 // #include <utility>
 
-// namespace duckdb {
+// namespace s62 {
 
 // // Hugeint arithmetic
 // hugeint_t operator*(const hugeint_t &h, const double &d) {
@@ -1283,4 +1283,4 @@
 // 	set.AddFunction(mad);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

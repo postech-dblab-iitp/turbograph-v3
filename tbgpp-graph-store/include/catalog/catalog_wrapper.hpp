@@ -14,7 +14,7 @@
 #include <tuple>
 #include <unordered_map>
 
-namespace duckdb {
+namespace s62 {
 
 class CatalogWrapper {
 
@@ -323,7 +323,7 @@ public:
 
             // Merge
             for (auto i = 0; i < part_universal_schema_ids->size(); i++) {
-                duckdb::idx_t property_key_id =
+                s62::idx_t property_key_id =
                     part_universal_schema_ids->at(i);
                 auto it = property_schema_index.find(property_key_id);
                 if (it == property_schema_index.end()) {
@@ -469,7 +469,7 @@ public:
         ClientContext &context, vector<uint64_t> &property_key_ids,
         vector<idx_t> &table_oids, gpmd::MDProviderTBGPP *provider,
         vector<idx_t> &representative_table_oids,
-        vector<vector<duckdb::idx_t>> &table_oids_in_group,
+        vector<vector<s62::idx_t>> &table_oids_in_group,
         vector<vector<uint64_t>> &property_location_in_representative,
         vector<bool> &is_each_group_has_temporary_table)
     {
@@ -657,4 +657,4 @@ private:
 	DatabaseInstance &db;
 };
 
-} // namespace duckdb
+} // namespace s62

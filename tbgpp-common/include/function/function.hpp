@@ -14,7 +14,7 @@
 // #include "duckdb/main/external_dependencies.hpp"
 #include "parser/column_definition.hpp"
 
-namespace duckdb {
+namespace s62 {
 class CatalogEntry;
 class Catalog;
 class ClientContext;
@@ -219,4 +219,4 @@ private:
 	void RegisterPragmaFunctions();
 };
 
-} // namespace duckdb
+} // namespace s62

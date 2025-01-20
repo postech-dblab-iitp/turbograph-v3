@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! LambdaExpression represents either:
 //!  1. A lambda operator that can be used for e.g. mapping an expression to a list
@@ -39,4 +39,4 @@ public:
 	static unique_ptr<ParsedExpression> Deserialize(ExpressionType type, FieldReader &source);
 };
 
-} // namespace duckdb
+} // namespace s62

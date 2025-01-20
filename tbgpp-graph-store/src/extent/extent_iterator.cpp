@@ -28,7 +28,7 @@ struct NoHook {
 };
 }  // namespace facebook::velox::dwio::common
 
-namespace duckdb {
+namespace s62 {
 
 // #define DO_SIMD_FOR_SEEK
 // #define DO_PREFETCH_FOR_SEEK
@@ -637,9 +637,9 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output,
                                    FilteredChunkBuffer &output_buffer,
                                    ExtentID &output_eid,
                                    int64_t &filterKeyColIdx,
-                                   duckdb::Value &filterValue,
+                                   s62::Value &filterValue,
                                    vector<idx_t> &output_column_idxs,
-                                   std::vector<duckdb::LogicalType> &scanSchema,
+                                   std::vector<s62::LogicalType> &scanSchema,
                                    size_t scan_size,
                                    bool is_output_chunk_initialized)
 {
@@ -711,10 +711,10 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output,
 bool ExtentIterator::GetNextExtent(
     ClientContext &context, DataChunk &output,
     FilteredChunkBuffer &output_buffer, ExtentID &output_eid,
-    int64_t &filterKeyColIdx, duckdb::Value &l_filterValue,
-    duckdb::Value &r_filterValue, bool l_inclusive, bool r_inclusive,
+    int64_t &filterKeyColIdx, s62::Value &l_filterValue,
+    s62::Value &r_filterValue, bool l_inclusive, bool r_inclusive,
     vector<idx_t> &output_column_idxs,
-    std::vector<duckdb::LogicalType> &scanSchema, size_t scan_size,
+    std::vector<s62::LogicalType> &scanSchema, size_t scan_size,
     bool is_output_chunk_initialized)
 {
     if ((current_idx_in_this_extent ==
@@ -790,7 +790,7 @@ bool ExtentIterator::GetNextExtent(ClientContext &context, DataChunk &output,
                                    ExtentID &output_eid,
                                    ExpressionExecutor &executor,
                                    vector<idx_t> &output_column_idxs,
-                                   vector<duckdb::LogicalType> &scanSchema,
+                                   vector<s62::LogicalType> &scanSchema,
                                    size_t scan_size,
                                    bool is_output_chunk_initialized)
 {
@@ -1002,8 +1002,8 @@ bool ExtentIterator::getScanRange(ClientContext &context,
 
 bool ExtentIterator::getScanRange(ClientContext &context,
                                   ChunkDefinitionID filter_cdf_id,
-                                  duckdb::Value &l_filterValue,
-                                  duckdb::Value &r_filterValue,
+                                  s62::Value &l_filterValue,
+                                  s62::Value &r_filterValue,
                                   bool l_inclusive, bool r_inclusive,
                                   size_t scan_size, idx_t &scan_start_offset,
                                   idx_t &scan_end_offset)
@@ -2814,4 +2814,4 @@ template void ExtentIterator::evalEQPredicateSIMD<int32_t, common::BigintRange>(
 template void ExtentIterator::evalEQPredicateSIMD<int64_t, common::BigintRange>(
     Vector &, size_t, std::unique_ptr<common::BigintRange> &, idx_t, idx_t,
     vector<idx_t> &);
-}  // namespace duckdb
+}  // namespace s62

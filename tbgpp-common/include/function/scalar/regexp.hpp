@@ -11,7 +11,7 @@
 #include "function/function_set.hpp"
 #include "duckdb_re2/re2.h"
 
-namespace duckdb {
+namespace s62 {
 
 struct RegexpMatchesBindData : public FunctionData {
 	RegexpMatchesBindData(duckdb_re2::RE2::Options options, string constant_string);
@@ -46,4 +46,4 @@ struct RegexpExtractBindData : public FunctionData {
 	unique_ptr<FunctionData> Copy() override;
 };
 
-} // namespace duckdb
+} // namespace s62

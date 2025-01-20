@@ -12,7 +12,7 @@
 #include "common/vector.hpp"
 #include "main/query_profiler.hpp"
 
-namespace duckdb {
+namespace s62 {
 // class LogicalOperator;
 class CypherPhysicalOperator;
 class CypherPipeline;
@@ -147,4 +147,4 @@ private:
 	string ExtractExpressionsRecursive(ExpressionInfo &states);
 };
 
-} // namespace duckdb
+} // namespace s62

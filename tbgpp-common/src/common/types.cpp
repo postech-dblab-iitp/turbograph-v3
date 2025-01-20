@@ -21,7 +21,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace duckdb {
+namespace s62 {
 
 LogicalType::LogicalType() : LogicalType(LogicalTypeId::INVALID) {
 }
@@ -43,7 +43,7 @@ LogicalType::LogicalType(LogicalType &&other) noexcept
 }
 
 hash_t LogicalType::Hash() const {
-	return duckdb::Hash<uint8_t>((uint8_t)id_);
+	return s62::Hash<uint8_t>((uint8_t)id_);
 }
 
 PhysicalType LogicalType::GetInternalType() {
@@ -1478,4 +1478,4 @@ bool LogicalType::operator==(const LogicalType &rhs) const {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

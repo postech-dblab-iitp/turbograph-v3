@@ -13,7 +13,7 @@
 #include <ctime>
 
 using namespace boost::accumulators;
-namespace duckdb {
+namespace s62 {
 
 void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client)
 {
@@ -561,4 +561,4 @@ void HistogramGenerator::_store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<L
     D_ASSERT(ndvs->size() == types.size() + 1);
 }
 
-} // namespace duckdb
+} // namespace s62

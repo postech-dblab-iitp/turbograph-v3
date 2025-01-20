@@ -16,7 +16,7 @@
 #include "common/case_insensitive_map.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ColumnStatistics;
 class DataTable;
@@ -66,4 +66,4 @@ public:
 
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 };
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 #include "common/field_writer.hpp"
 #include "parser/keyword_helper.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 string BaseTableRef::ToString() const {
 	string schema = schema_name.empty() ? "" : KeywordHelper::WriteOptionallyQuoted(schema_name) + ".";
@@ -46,4 +46,4 @@ unique_ptr<TableRef> BaseTableRef::Copy() {
 
 	return move(copy);
 }
-} // namespace duckdb
+} // namespace s62

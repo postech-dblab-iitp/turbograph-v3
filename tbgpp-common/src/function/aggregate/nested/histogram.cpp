@@ -6,7 +6,7 @@
 // #include "common/map.hpp"
 // #include "common/types/vector.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 // template <class T>
 // struct HistogramAggState {
 // 	map<T, idx_t> *hist;
@@ -257,4 +257,4 @@
 // 	set.AddFunction(fun);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

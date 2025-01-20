@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "common/winapi.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct timestamp_struct {
 	int32_t year;
@@ -76,4 +76,4 @@ public:
 	DUCKDB_API static string ConversionError(const string &str);
 	DUCKDB_API static string ConversionError(string_t str);
 };
-} // namespace duckdb
+} // namespace s62

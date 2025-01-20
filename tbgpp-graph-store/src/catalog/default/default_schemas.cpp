@@ -2,7 +2,7 @@
 #include "catalog/catalog_entry/schema_catalog_entry.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct DefaultSchema {
 	const char *name;
@@ -39,4 +39,4 @@ vector<string> DefaultSchemaGenerator::GetDefaultEntries() {
 	return result;
 }
 
-} // namespace duckdb
+} // namespace s62

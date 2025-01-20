@@ -11,7 +11,7 @@
 #include "parser/sql_statement.hpp"
 #include "parser/parsed_data/transaction_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class TransactionStatement : public SQLStatement {
 public:
@@ -25,4 +25,4 @@ protected:
 public:
 	unique_ptr<SQLStatement> Copy() const override;
 };
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "parser/parsed_data/create_info.hpp"
 #include "function/copy_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateCopyFunctionInfo : public CreateInfo {
 	explicit CreateCopyFunctionInfo(CopyFunction function)
@@ -32,4 +32,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

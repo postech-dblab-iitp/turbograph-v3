@@ -10,7 +10,7 @@
 
 #include "main/query_profiler.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 
 //! The ThreadContext holds thread-local info for parallel usage
@@ -22,4 +22,4 @@ public:
 	OperatorProfiler profiler;
 };
 
-} // namespace duckdb
+} // namespace s62

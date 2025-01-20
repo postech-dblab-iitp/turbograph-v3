@@ -12,7 +12,7 @@
 // #include "execution/physical_operator.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! PhysicalCrossProduct represents a cross product between two tables
 class PhysicalCrossProduct : public CypherPhysicalOperator {
 public:
@@ -43,4 +43,4 @@ public:
 
 };
 
-} // namespace duckdb
+} // namespace s62

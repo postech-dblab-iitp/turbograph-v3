@@ -8,7 +8,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 RadixPartitionedHashTable::RadixPartitionedHashTable(GroupingSet &grouping_set_p, const PhysicalHashAggregate &op_p)
     : grouping_set(grouping_set_p), op(op_p) {
@@ -430,4 +430,4 @@ void RadixPartitionedHashTable::GetData(ExecutionContext &context, DataChunk &ch
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

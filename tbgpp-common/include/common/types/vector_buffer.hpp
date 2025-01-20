@@ -13,7 +13,7 @@
 #include "common/types/string_heap.hpp"
 #include "common/types/string_type.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BufferHandle;
 class VectorBuffer;
@@ -225,4 +225,4 @@ private:
 	unique_ptr<BufferHandle> handle;
 };*/
 
-} // namespace duckdb
+} // namespace s62

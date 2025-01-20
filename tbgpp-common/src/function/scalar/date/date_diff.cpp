@@ -10,7 +10,7 @@
 #include "common/string_util.hpp"
 #include "storage/statistics/numeric_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // This function is an implementation of the "period-crossing" date difference function from T-SQL
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/datediff-transact-sql?view=sql-server-ver15
@@ -417,4 +417,4 @@ void DateDiffFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(date_diff);
 }
 
-} // namespace duckdb
+} // namespace s62

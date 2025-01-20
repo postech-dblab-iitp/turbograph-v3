@@ -3,7 +3,7 @@
 #include "common/types/hash.hpp"
 #include "common/string_util.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 LambdaExpression::LambdaExpression(unique_ptr<ParsedExpression> lhs, unique_ptr<ParsedExpression> expr)
     : ParsedExpression(ExpressionType::LAMBDA, ExpressionClass::LAMBDA), lhs(move(lhs)), expr(move(expr)) {
@@ -40,4 +40,4 @@ unique_ptr<ParsedExpression> LambdaExpression::Deserialize(ExpressionType type, 
 	return make_unique<LambdaExpression>(move(lhs), move(expr));
 }
 
-} // namespace duckdb
+} // namespace s62

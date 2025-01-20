@@ -13,7 +13,7 @@
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ChunkCollection;
 
 //! PhysicalJoin represents the base class of the join operators
@@ -35,4 +35,4 @@ public:
 	                                         idx_t &scan_position);
 };
 
-} // namespace duckdb
+} // namespace s62

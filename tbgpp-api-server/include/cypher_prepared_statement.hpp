@@ -10,7 +10,7 @@
 #include "types/value.hpp"
 #include "types/data_chunk.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class CypherPreparedStatement {
 public:

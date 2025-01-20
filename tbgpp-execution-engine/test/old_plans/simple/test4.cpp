@@ -3,15 +3,15 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test4() {
 	// TODO scan - project - sort
 	Schema schema;
 	schema.addNode("n");
-	schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
-	schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	schema.addPropertyIntoNode("n", "url", duckdb::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
+	schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	schema.addPropertyIntoNode("n", "url", s62::LogicalType::VARCHAR);
 	// scan params
 	LabelSet scan_labels;
 	scan_labels.insert("Organisation");
@@ -25,7 +25,7 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test4() {
 		// expression space
 		unique_ptr<Expression> filter_expr1;
 		auto lhs = make_unique<BoundReferenceExpression>(LogicalType::UBIGINT, 2);	// pid name "id" -> index 2
-		auto rhsval = duckdb::Value::UBIGINT(0);
+		auto rhsval = s62::Value::UBIGINT(0);
 		auto rhs = make_unique<BoundConstantExpression>(rhsval);
 		filter_expr1 = make_unique<BoundComparisonExpression>(ExpressionType::COMPARE_EQUAL, std::move(lhs), std::move(rhs));
 		predicates.push_back(std::move(filter_expr1));
@@ -34,8 +34,8 @@ std::vector<CypherPipelineExecutor*> QueryPlanSuite::Test4() {
 	// projection
 	Schema pj_schema;
 	pj_schema.addNode("n");
-	pj_schema.addPropertyIntoNode("n", "id", duckdb::LogicalType::UBIGINT);
-	pj_schema.addPropertyIntoNode("n", "name", duckdb::LogicalType::VARCHAR);
+	pj_schema.addPropertyIntoNode("n", "id", s62::LogicalType::UBIGINT);
+	pj_schema.addPropertyIntoNode("n", "name", s62::LogicalType::VARCHAR);
 	//proj pred
 	vector<unique_ptr<Expression>> proj_exprs;
 	{	//  pid name id url => pid id name

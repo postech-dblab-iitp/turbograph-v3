@@ -3,7 +3,7 @@
 #include "planner/table_filter.hpp"
 #include <vector>
 
-namespace duckdb {
+namespace s62 {
 
 AdaptiveFilter::AdaptiveFilter(const Expression &expr)
     : iteration_count(0), observe_interval(10), execute_interval(20), warmup(true) {
@@ -87,4 +87,4 @@ void AdaptiveFilter::AdaptRuntimeStatistics(double duration) {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -1,6 +1,6 @@
 #include "capi_internal.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 LogicalTypeId ConvertCTypeToCPP(s62_type c_type) {
 	switch (c_type) {
@@ -179,7 +179,7 @@ std::string jsonifyQueryPlan(std::vector<CypherPipelineExecutor*>& executors) {
 	bool isRootOp = true;	// is true for only one operator
 	
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+  		s62::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
 		auto operators = pipeline->GetOperators();
 		for (auto it2 = operators.crbegin() ; it2 != operators.crend(); ++it2) {
@@ -229,4 +229,4 @@ json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root
 	return content;
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -15,7 +15,7 @@
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 
 //! ObjectCache is the base class for objects caches in DuckDB
@@ -61,4 +61,4 @@ private:
 	mutex lock;
 };
 
-} // namespace duckdb
+} // namespace s62

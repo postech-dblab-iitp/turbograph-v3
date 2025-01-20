@@ -17,7 +17,7 @@
 // #include "storage/table/scan_state.hpp"
 // #include "execution/expression_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class Transaction;
@@ -125,4 +125,4 @@ private:
 	// unique_ptr<Expression> BindExpression(unique_ptr<Expression> expr);
 };
 
-} // namespace duckdb
+} // namespace s62

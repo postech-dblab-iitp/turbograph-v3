@@ -4,7 +4,7 @@
 #include "function/aggregate/algebraic/stddev.hpp"
 #include <cmath>
 
-namespace duckdb {
+namespace s62 {
 
 void StdDevSampFun::RegisterFunction(BuiltinFunctions &set) {
 	AggregateFunctionSet stddev_samp("stddev_samp");
@@ -51,4 +51,4 @@ void StandardErrorOfTheMeanFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(sem);
 }
 
-} // namespace duckdb
+} // namespace s62

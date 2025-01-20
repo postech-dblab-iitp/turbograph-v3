@@ -12,7 +12,7 @@
 #include "common/types/decimal.hpp"
 #include "common/operator/decimal_cast_operators.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct VectorDecimalCastData {
 	VectorDecimalCastData(string *error_message_p, uint8_t width_p, uint8_t scale_p)
@@ -346,4 +346,4 @@ static bool DecimalCastSwitch(Vector &source, Vector &result, idx_t count, strin
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -19,7 +19,7 @@
 
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 Executor::Executor(ClientContext &context) : context(context) {
 }
@@ -741,4 +741,4 @@ void Executor::PushError(ExceptionType type, const string &exception) {
 // 	return chunk;
 // }
 
-} // namespace duckdb
+} // namespace s62

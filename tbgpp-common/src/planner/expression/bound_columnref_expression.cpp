@@ -3,7 +3,7 @@
 #include "common/types/hash.hpp"
 #include "common/to_string.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundColumnRefExpression::BoundColumnRefExpression(string alias_p, LogicalType type, ColumnBinding binding, idx_t depth)
     : Expression(ExpressionType::BOUND_COLUMN_REF, ExpressionClass::BOUND_COLUMN_REF, move(type)), binding(binding),
@@ -21,9 +21,9 @@ unique_ptr<Expression> BoundColumnRefExpression::Copy() {
 
 hash_t BoundColumnRefExpression::Hash() const {
 	auto result = Expression::Hash();
-	result = CombineHash(result, duckdb::Hash<uint64_t>(binding.column_index));
-	result = CombineHash(result, duckdb::Hash<uint64_t>(binding.table_index));
-	return CombineHash(result, duckdb::Hash<uint64_t>(depth));
+	result = CombineHash(result, s62::Hash<uint64_t>(binding.column_index));
+	result = CombineHash(result, s62::Hash<uint64_t>(binding.table_index));
+	return CombineHash(result, s62::Hash<uint64_t>(depth));
 }
 
 bool BoundColumnRefExpression::Equals(const BaseExpression *other_p) const {
@@ -41,4 +41,4 @@ string BoundColumnRefExpression::ToString() const {
 	return "#[" + to_string(binding.table_index) + "." + to_string(binding.column_index) + "]";
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -6,7 +6,7 @@
 #include "common/vector_operations/unary_executor.hpp"
 #include "common/vector_operations/binary_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static void AgeFunctionStandard(DataChunk &input, ExpressionState &state, Vector &result) {
 	D_ASSERT(input.ColumnCount() == 1);
@@ -33,4 +33,4 @@ void AgeFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(age);
 }
 
-} // namespace duckdb
+} // namespace s62

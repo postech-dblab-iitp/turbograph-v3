@@ -2,7 +2,7 @@
 #include "common/operator/string_cast.hpp"
 #include "common/types/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 string StandardStringCast(T input) {
@@ -79,4 +79,4 @@ string ConvertToString::Operation(string_t input) {
 	return input.GetString();
 }
 
-} // namespace duckdb
+} // namespace s62

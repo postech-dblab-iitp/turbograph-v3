@@ -11,7 +11,7 @@
 #include "catalog/default/default_generator.hpp"
 #include "parser/parsed_data/create_macro_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class SchemaCatalogEntry;
 
 struct DefaultMacro {
@@ -39,5 +39,5 @@ private:
 	                                                                unique_ptr<MacroFunction> function);
 };
 
-} // namespace duckdb
+} // namespace s62
 */

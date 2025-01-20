@@ -12,7 +12,7 @@
 #include "common/enums/tableref_type.hpp"
 #include "parser/parsed_data/sample_options.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundTableRef {
 public:
@@ -26,4 +26,4 @@ public:
 	//! The sample options (if any)
 	unique_ptr<SampleOptions> sample;
 };
-} // namespace duckdb
+} // namespace s62

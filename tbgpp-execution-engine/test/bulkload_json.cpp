@@ -63,7 +63,7 @@ using json = nlohmann::json;
 #include "common/graph_simdjson_parser.hpp"
 #include "common/range.hpp"
 
-using namespace duckdb;
+using namespace s62;
 
 vector<std::pair<string, string>> json_files;
 vector<JsonFileType> json_file_types;
@@ -1428,7 +1428,7 @@ void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, 
 	json* current_root = &(j[0]);
 	bool isRootOp = true;	// is true for only one operator
 	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		duckdb::CypherPipeline* pipeline = (*it)->pipeline;
+  		s62::CypherPipeline* pipeline = (*it)->pipeline;
 		// reverse operator
 		for (auto it2 = pipeline->operators.crbegin() ; it2 != pipeline->operators.crend(); ++it2) {
 			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );

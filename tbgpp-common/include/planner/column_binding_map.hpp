@@ -13,7 +13,7 @@
 #include "common/unordered_set.hpp"
 #include "planner/column_binding.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ColumnBindingHashFunction {
 	uint64_t operator()(const ColumnBinding &a) const {
@@ -32,4 +32,4 @@ using column_binding_map_t = unordered_map<ColumnBinding, T, ColumnBindingHashFu
 
 using column_binding_set_t = unordered_set<ColumnBinding, ColumnBindingHashFunction, ColumnBindingEquality>;
 
-} // namespace duckdb
+} // namespace s62

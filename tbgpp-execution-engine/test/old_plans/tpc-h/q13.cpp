@@ -3,7 +3,7 @@
 // #include "function/scalar/string_functions.hpp"
 
 // #include "icecream.hpp"
-// namespace duckdb {
+// namespace s62 {
 
 // CypherPipelineExecutor* q13_pipe1(QueryPlanSuite& suite);
 // CypherPipelineExecutor* q13_pipe2(QueryPlanSuite& suite, CypherPipelineExecutor* prev_pipe);

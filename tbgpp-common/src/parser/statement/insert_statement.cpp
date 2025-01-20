@@ -2,7 +2,7 @@
 #include "parser/query_node/select_node.hpp"
 #include "parser/tableref/expressionlistref.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 InsertStatement::InsertStatement() : SQLStatement(StatementType::INSERT_STATEMENT), schema(DEFAULT_SCHEMA) {
 }
@@ -82,4 +82,4 @@ ExpressionListRef *InsertStatement::GetValuesList() const {
 	return (ExpressionListRef *)node.from_table.get();
 }
 
-} // namespace duckdb
+} // namespace s62

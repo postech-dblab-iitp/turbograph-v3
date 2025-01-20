@@ -10,7 +10,7 @@
 
 #include "execution/aggregate_hashtable.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct RadixPartitionInfo {
 	explicit RadixPartitionInfo(idx_t _n_partitions_upper_bound);
@@ -56,4 +56,4 @@ private:
 private:
 	idx_t ListAddChunk(HashTableList &list, DataChunk &groups, Vector &group_hashes, DataChunk &payload);
 };
-} // namespace duckdb
+} // namespace s62

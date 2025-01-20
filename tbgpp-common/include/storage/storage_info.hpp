@@ -10,7 +10,7 @@
 
 #include "common/constants.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Serializer;
 class Deserializer;
 struct FileHandle;
@@ -64,4 +64,4 @@ struct DatabaseHeader {
 	static DatabaseHeader Deserialize(Deserializer &source);
 };
 
-} // namespace duckdb
+} // namespace s62

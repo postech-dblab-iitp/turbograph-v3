@@ -13,7 +13,7 @@
 #include "common/string_util.hpp"
 #include "parser/qualified_name.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a built-in operator expression
 class OperatorExpression : public ParsedExpression {
 public:
@@ -99,4 +99,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

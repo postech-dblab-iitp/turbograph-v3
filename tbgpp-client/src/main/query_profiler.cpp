@@ -14,7 +14,7 @@
 #include <utility>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 QueryProfiler::QueryProfiler(ClientContext &context_p)
     : context(context_p), running(false), query_requires_profiling(false), is_explain_analyze(false) {
@@ -635,4 +635,4 @@ ExpressionRootInfo::ExpressionRootInfo(ExpressionExecutorState &state, string na
 	expression_info_p->ExtractExpressionsRecursive(state.root_state);
 	root = move(expression_info_p);
 }
-} // namespace duckdb
+} // namespace s62

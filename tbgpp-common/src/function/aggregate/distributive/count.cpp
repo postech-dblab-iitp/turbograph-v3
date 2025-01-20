@@ -4,7 +4,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 // #include "storage/statistics/validity_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BaseCountFunction {
 	template <class STATE>
@@ -95,4 +95,4 @@ void CountStarFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(count);
 }
 
-} // namespace duckdb
+} // namespace s62

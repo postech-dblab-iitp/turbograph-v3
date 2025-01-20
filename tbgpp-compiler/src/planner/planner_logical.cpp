@@ -1346,10 +1346,10 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
 
     auto table_oids = edge_expr->getTableIDs();
 
-    duckdb::Catalog &catalog = context->db->GetCatalog();
-    duckdb::GraphCatalogEntry *graph_catalog_entry =
-        (duckdb::GraphCatalogEntry *)catalog.GetEntry(
-            *context, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
+    s62::Catalog &catalog = context->db->GetCatalog();
+    s62::GraphCatalogEntry *graph_catalog_entry =
+        (s62::GraphCatalogEntry *)catalog.GetEntry(
+            *context, s62::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
             DEFAULT_GRAPH);
 
     // generate three columns, based on the first table

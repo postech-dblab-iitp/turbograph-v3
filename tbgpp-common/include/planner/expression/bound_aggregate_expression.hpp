@@ -12,7 +12,7 @@
 #include "function/aggregate_function.hpp"
 #include <memory>
 
-namespace duckdb {
+namespace s62 {
 class BoundAggregateExpression : public Expression {
 public:
 	BoundAggregateExpression(AggregateFunction function, vector<unique_ptr<Expression>> children,
@@ -45,4 +45,4 @@ public:
 	bool Equals(const BaseExpression *other) const override;
 	unique_ptr<Expression> Copy() override;
 };
-} // namespace duckdb
+} // namespace s62

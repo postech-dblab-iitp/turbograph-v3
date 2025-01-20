@@ -6,7 +6,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class ProjectionState : public OperatorState {
 public:

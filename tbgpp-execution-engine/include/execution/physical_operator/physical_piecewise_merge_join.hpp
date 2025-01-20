@@ -16,7 +16,7 @@
 #include "planner/bound_result_modifier.hpp"
 #include "typedef.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! PhysicalPiecewiseMergeJoin represents a piecewise merge loop join between
 //! two tables
@@ -74,4 +74,4 @@ class PhysicalPiecewiseMergeJoin : public PhysicalComparisonJoin {
                                           LocalSinkState &sink_state) const;
 };
 
-}  // namespace duckdb
+}  // namespace s62

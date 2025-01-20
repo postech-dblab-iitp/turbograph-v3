@@ -21,24 +21,24 @@
 // 	}                                                      \
 // 	}
 
-using namespace duckdb;
+using namespace s62;
 
 bool assert_enabled = true;  // TODO
 
-void duckdb::SetClientWrapper(shared_ptr<ClientContext> client_,
+void s62::SetClientWrapper(shared_ptr<ClientContext> client_,
                               shared_ptr<CatalogWrapper> catalog_wrapper_)
 {
     client_wrapper = client_;
     catalog_wrapper = catalog_wrapper_;
 }
 
-void duckdb::ReleaseClientWrapper()
+void s62::ReleaseClientWrapper()
 {
     client_wrapper.reset();
     catalog_wrapper.reset();
 }
 
-IndexType duckdb::GetLogicalIndexType(Oid index_oid)
+IndexType s62::GetLogicalIndexType(Oid index_oid)
 {
     // TODO we don't have index catalog yet
     // GP_WRAP_START;
@@ -50,12 +50,12 @@ IndexType duckdb::GetLogicalIndexType(Oid index_oid)
     return IndexType::ART;
 }
 
-duckdb::PartitionCatalogEntry *duckdb::GetPartition(idx_t partition_oid)
+s62::PartitionCatalogEntry *s62::GetPartition(idx_t partition_oid)
 {
     return catalog_wrapper->GetPartition(*client_wrapper.get(), partition_oid);
 }
 
-duckdb::PropertySchemaCatalogEntry *duckdb::GetRelation(idx_t rel_oid)
+s62::PropertySchemaCatalogEntry *s62::GetRelation(idx_t rel_oid)
 {
     // GP_WRAP_START;
     {
@@ -67,28 +67,28 @@ duckdb::PropertySchemaCatalogEntry *duckdb::GetRelation(idx_t rel_oid)
     return NULL;
 }
 
-duckdb::AggregateFunctionCatalogEntry *duckdb::GetAggFunc(idx_t aggfunc_oid)
+s62::AggregateFunctionCatalogEntry *s62::GetAggFunc(idx_t aggfunc_oid)
 {
     return catalog_wrapper->GetAggFunc(*client_wrapper.get(), aggfunc_oid);
 }
 
-duckdb::ScalarFunctionCatalogEntry *duckdb::GetScalarFunc(idx_t scalarfunc_oid)
+s62::ScalarFunctionCatalogEntry *s62::GetScalarFunc(idx_t scalarfunc_oid)
 {
     return catalog_wrapper->GetScalarFunc(*client_wrapper.get(),
                                           scalarfunc_oid);
 }
 
-idx_t duckdb::GetAggFuncIndex(idx_t aggfunc_oid)
+idx_t s62::GetAggFuncIndex(idx_t aggfunc_oid)
 {
     return (aggfunc_oid - FUNCTION_BASE_ID) % 65536;
 }
 
-idx_t duckdb::GetScalarFuncIndex(idx_t scalarfunc_oid)
+idx_t s62::GetScalarFuncIndex(idx_t scalarfunc_oid)
 {
     return (scalarfunc_oid - FUNCTION_BASE_ID) % 65536;
 }
 
-void duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno,
+void s62::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno,
                               AttStatsSlot *hist_slot)
 {
     auto *offset_infos = rel->GetOffsetInfos();
@@ -149,7 +149,7 @@ void duckdb::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno,
     }
 }
 
-double duckdb::GetNDV(PropertySchemaCatalogEntry *rel, int16_t attno)
+double s62::GetNDV(PropertySchemaCatalogEntry *rel, int16_t attno)
 {
     auto *ndvs = rel->GetNDVs();
     if (ndvs->size() == 0) {
@@ -165,51 +165,51 @@ double duckdb::GetNDV(PropertySchemaCatalogEntry *rel, int16_t attno)
     }
 }
 
-idx_t duckdb::GetRelationPhysicalIDIndex(idx_t partition_oid)
+idx_t s62::GetRelationPhysicalIDIndex(idx_t partition_oid)
 {
     return catalog_wrapper->GetRelationPhysicalIDIndex(*client_wrapper.get(),
                                                        partition_oid);
 }
 
-idx_t_vector *duckdb::GetRelationAdjIndexes(idx_t partition_oid)
+idx_t_vector *s62::GetRelationAdjIndexes(idx_t partition_oid)
 {
     return catalog_wrapper->GetRelationAdjIndexes(*client_wrapper.get(),
                                                   partition_oid);
 }
 
-idx_t_vector *duckdb::GetRelationPropertyIndexes(idx_t partition_oid)
+idx_t_vector *s62::GetRelationPropertyIndexes(idx_t partition_oid)
 {
     return catalog_wrapper->GetRelationPropertyIndexes(*client_wrapper.get(),
                                                        partition_oid);
 }
 
-IndexCatalogEntry *duckdb::GetIndex(idx_t index_oid)
+IndexCatalogEntry *s62::GetIndex(idx_t index_oid)
 {
     return catalog_wrapper->GetIndex(*client_wrapper.get(), index_oid);
 }
 
-string duckdb::GetTypeName(idx_t type_id)
+string s62::GetTypeName(idx_t type_id)
 {
     return catalog_wrapper->GetTypeName(type_id);
 }
 
-idx_t duckdb::GetTypeSize(idx_t type_id)
+idx_t s62::GetTypeSize(idx_t type_id)
 {
     return catalog_wrapper->GetTypeSize(type_id);
 }
 
-bool duckdb::isTypeFixedLength(idx_t type_id)
+bool s62::isTypeFixedLength(idx_t type_id)
 {
     return catalog_wrapper->isTypeFixedLength(type_id);
 }
 
-idx_t duckdb::GetAggregate(const char *aggname, idx_t type_id, int nargs)
+idx_t s62::GetAggregate(const char *aggname, idx_t type_id, int nargs)
 {
     return catalog_wrapper->GetAggregate(*client_wrapper.get(), aggname,
                                          type_id, nargs);
 }
 
-idx_t duckdb::GetComparisonOperator(idx_t left_type_id, idx_t right_type_id,
+idx_t s62::GetComparisonOperator(idx_t left_type_id, idx_t right_type_id,
                                     CmpType cmpt)
 {
     switch (cmpt) {
@@ -241,7 +241,7 @@ idx_t duckdb::GetComparisonOperator(idx_t left_type_id, idx_t right_type_id,
     return InvalidOid;
 }
 
-CmpType duckdb::GetComparisonType(idx_t op_id)
+CmpType s62::GetComparisonType(idx_t op_id)
 {
     ExpressionType etype = catalog_wrapper->GetComparisonType(op_id);
     switch (etype) {
@@ -264,7 +264,7 @@ CmpType duckdb::GetComparisonType(idx_t op_id)
     return CmptOther;  // TODO invalid
 }
 
-void duckdb::GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id,
+void s62::GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id,
                              uint32_t *right_type_id)
 {
     idx_t left_tid, right_tid;
@@ -277,32 +277,32 @@ void duckdb::GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id,
     *right_type_id = (uint32_t)right_tid;
 }
 
-string duckdb::GetOpName(idx_t op_id)
+string s62::GetOpName(idx_t op_id)
 {
     return catalog_wrapper->GetOpName(op_id);
 }
 
-idx_t duckdb::GetOpFunc(idx_t op_id)
+idx_t s62::GetOpFunc(idx_t op_id)
 {
     return catalog_wrapper->GetOpFunc(op_id);
 }
 
-idx_t duckdb::GetCommutatorOp(idx_t op_id)
+idx_t s62::GetCommutatorOp(idx_t op_id)
 {
     return catalog_wrapper->GetCommutatorOp(op_id);
 }
 
-idx_t duckdb::GetInverseOp(idx_t op_id)
+idx_t s62::GetInverseOp(idx_t op_id)
 {
     return catalog_wrapper->GetInverseOp(op_id);
 }
 
-idx_t duckdb::GetOpFamiliesForScOp(idx_t op_id)
+idx_t s62::GetOpFamiliesForScOp(idx_t op_id)
 {
     return catalog_wrapper->GetOpFamiliesForScOp(op_id);
 }
 
-idx_t duckdb::AddVirtualTable(uint32_t original_vtbl_oid, uint32_t *oid_array,
+idx_t s62::AddVirtualTable(uint32_t original_vtbl_oid, uint32_t *oid_array,
                               idx_t size)
 {
     return catalog_wrapper->AddVirtualTable(*client_wrapper.get(),

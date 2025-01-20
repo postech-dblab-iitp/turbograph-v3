@@ -14,7 +14,7 @@
 #include "common/enums/expression_type.hpp"
 #include "common/types/value.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct SelectionVector;
 
 class Serializer;
@@ -58,4 +58,4 @@ public:
 	virtual string ToString() const;
 };
 
-} // namespace duckdb
+} // namespace s62

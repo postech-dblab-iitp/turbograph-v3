@@ -4,7 +4,7 @@
 
 // #include <ctype.h>
 
-// namespace duckdb {
+// namespace s62 {
 
 // static inline map<char, idx_t> GetSet(const string_t &str) {
 // 	auto map_of_chars = map<char, idx_t> {};
@@ -65,4 +65,4 @@
 // 	set.AddFunction(jaccard);
 // }
 
-// } // namespace duckdb
+// } // namespace s62

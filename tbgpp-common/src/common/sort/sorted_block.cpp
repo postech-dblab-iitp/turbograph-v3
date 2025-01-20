@@ -8,7 +8,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 SortedData::SortedData(SortedDataType type, const RowLayout &layout, BufferManager &buffer_manager,
                        GlobalSortState &state)
@@ -352,4 +352,4 @@ void PayloadScanner::Scan(DataChunk &chunk) {
 	total_scanned += scanned;
 }
 
-} // namespace duckdb
+} // namespace s62

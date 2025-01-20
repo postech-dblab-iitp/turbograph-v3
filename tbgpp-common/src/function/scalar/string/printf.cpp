@@ -4,7 +4,7 @@
 #include "duckdb_fmt/format.h"
 #include "duckdb_fmt/printf.h"
 
-namespace duckdb {
+namespace s62 {
 
 struct FMTPrintf {
 	template <class CTX>
@@ -164,4 +164,4 @@ void PrintfFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(format_fun);
 }
 
-} // namespace duckdb
+} // namespace s62

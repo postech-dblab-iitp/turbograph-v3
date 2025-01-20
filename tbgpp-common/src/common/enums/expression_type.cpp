@@ -2,7 +2,7 @@
 
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 // LCOV_EXCL_START
 string ExpressionTypeToString(ExpressionType type) {
@@ -364,4 +364,4 @@ ExpressionType FlipComparisionExpression(ExpressionType type) {
 	return flipped_type;
 }
 
-} // namespace duckdb
+} // namespace s62

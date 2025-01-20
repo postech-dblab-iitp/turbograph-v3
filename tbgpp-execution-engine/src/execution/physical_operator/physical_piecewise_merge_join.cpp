@@ -12,7 +12,7 @@
 #include "common/row_operations/row_operations.hpp"
 #include "parallel/task_scheduler.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalPiecewiseMergeJoin::PhysicalPiecewiseMergeJoin(Schema sch, 
                                                     vector<JoinCondition> cond, 
@@ -965,4 +965,4 @@ std::string PhysicalPiecewiseMergeJoin::ToString() const
     return "PhysicalPiecewiseMergeJoin";
 }
 
-} // namespace duckdb
+} // namespace s62

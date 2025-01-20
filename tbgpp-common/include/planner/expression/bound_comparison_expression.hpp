@@ -10,7 +10,7 @@
 
 #include "planner/expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundComparisonExpression : public Expression {
 public:
@@ -29,4 +29,4 @@ public:
 public:
 	static LogicalType BindComparison(LogicalType left_type, LogicalType right_type);
 };
-} // namespace duckdb
+} // namespace s62

@@ -15,7 +15,7 @@
 #include "planner/expression.hpp"
 #include "common/vector_operations/aggregate_executor.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BoundAggregateExpression;
 
@@ -254,4 +254,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

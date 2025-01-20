@@ -4,7 +4,7 @@
 #include "common/exception.hpp"
 
 using namespace std;
-using namespace duckdb;
+using namespace s62;
 
 class Clustering {
 public:

@@ -11,7 +11,7 @@
 #include "common/common.hpp"
 #include <functional>
 
-namespace duckdb {
+namespace s62 {
 
 struct ColumnBinding {
 	idx_t table_index;
@@ -27,4 +27,4 @@ struct ColumnBinding {
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

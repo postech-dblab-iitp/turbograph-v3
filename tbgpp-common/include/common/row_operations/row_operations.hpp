@@ -13,7 +13,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AggregateObject;
 class DataChunk;
@@ -107,4 +107,4 @@ struct RowOperations {
 	                              const data_ptr_t base_heap_ptr, const idx_t count);
 };
 
-} // namespace duckdb
+} // namespace s62

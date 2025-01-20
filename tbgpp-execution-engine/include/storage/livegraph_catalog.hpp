@@ -5,7 +5,7 @@
 
 #include <vector>
 #include <map>
-namespace duckdb {
+namespace s62 {
 class LiveGraphCatalog {
 
 public:

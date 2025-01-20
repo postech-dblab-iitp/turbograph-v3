@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <algorithm>
 
-namespace duckdb {
+namespace s62 {
 
 static string_t LeftScalarFunction(Vector &result, const string_t str, int64_t pos) {
 	if (pos >= 0) {
@@ -56,4 +56,4 @@ void RightFun::RegisterFunction(BuiltinFunctions &set) {
 	    ScalarFunction("right", {LogicalType::VARCHAR, LogicalType::BIGINT}, LogicalType::VARCHAR, RightFunction));
 }
 
-} // namespace duckdb
+} // namespace s62

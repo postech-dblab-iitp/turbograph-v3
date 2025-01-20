@@ -10,7 +10,7 @@
 
 #include "parser/parsed_data/create_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CreateSchemaInfo : public CreateInfo {
 	CreateSchemaInfo() : CreateInfo(CatalogType::SCHEMA_ENTRY) {
@@ -24,4 +24,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

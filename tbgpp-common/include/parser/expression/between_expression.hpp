@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class BetweenExpression : public ParsedExpression {
 public:
@@ -37,4 +37,4 @@ public:
 		return entry.input->ToString() + " BETWEEN " + entry.lower->ToString() + " AND " + entry.upper->ToString();
 	}
 };
-} // namespace duckdb
+} // namespace s62

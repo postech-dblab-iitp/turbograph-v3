@@ -76,7 +76,7 @@ extern "C" {
 
 using namespace gpdxl;
 using namespace gpopt;
-using namespace duckdb;
+using namespace s62;
 
 // Temporary defines..
 #define NameStr(name)	((name).data) // From src/include/c.h
@@ -251,7 +251,7 @@ CTranslatorTBGPPToDXL::RetrieveObjectGPDB(CMemoryPool *mp, IMDId *mdid,
 //
 //---------------------------------------------------------------------------
 CMDName *
-CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, duckdb::PropertySchemaCatalogEntry *rel)
+CTranslatorTBGPPToDXL::GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel)
 {
 	GPOS_ASSERT(NULL != rel);
 	CHAR *relname = std::strcpy(new char[rel->GetName().length() + 1], rel->GetName().c_str());
@@ -358,7 +358,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 	CMDIndexInfoArray *md_index_info_array = GPOS_NEW(mp) CMDIndexInfoArray(mp);
 
 	auto append_index_md = [&](idx_t index_oid) {
-		IndexCatalogEntry *index_cat = duckdb::GetIndex(index_oid);
+		IndexCatalogEntry *index_cat = s62::GetIndex(index_oid);
 	
 		if (NULL == index_cat)
 		{
@@ -396,7 +396,7 @@ CTranslatorTBGPPToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 
 	// not a partitioned table: obtain indexes directly from the catalog
 	idx_t partition_oid = rel->GetPartitionOID();
-	PartitionCatalogEntry *part_cat = duckdb::GetPartition(partition_oid);
+	PartitionCatalogEntry *part_cat = s62::GetPartition(partition_oid);
 
 	// Get PhysicalID Index
 	// idx_t physical_id_index_oid = part_cat->GetPhysicalIDIndexOid(); // TODO 240115 tslee change this to ps_cat
@@ -583,7 +583,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 
 	CheckUnsupportedRelation(oid);
 
-	duckdb::PropertySchemaCatalogEntry *rel = duckdb::GetRelation(oid);
+	s62::PropertySchemaCatalogEntry *rel = s62::GetRelation(oid);
 
 	if (NULL == rel)
 	{
@@ -764,7 +764,7 @@ CTranslatorTBGPPToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 //---------------------------------------------------------------------------
 CMDColumnArray *
 CTranslatorTBGPPToDXL::RetrieveRelColumns(
-	CMemoryPool *mp, CMDAccessor *md_accessor, duckdb::PropertySchemaCatalogEntry *rel,
+	CMemoryPool *mp, CMDAccessor *md_accessor, s62::PropertySchemaCatalogEntry *rel,
 	IMDRelation::Erelstoragetype rel_storage_type)
 {
 	CMDColumnArray *mdcol_array = GPOS_NEW(mp) CMDColumnArray(mp);
@@ -779,7 +779,7 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 
 		ULONG col_len = sizeof(uint64_t);
 		CMDIdGPDB *mdid_col =
-			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
+			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, (OID) s62::LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID);
 		
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, -1/*att->attnum*/, mdid_col, -1/*att->atttypmod*/,
@@ -793,8 +793,8 @@ CTranslatorTBGPPToDXL::RetrieveRelColumns(
 	
 	for (ULONG ul = 0; ul < (ULONG) rel->GetNumberOfColumns(); ul++)
 	{
-		if (rel->GetType(ul) == duckdb::LogicalType::FORWARD_ADJLIST ||
-			rel->GetType(ul) == duckdb::LogicalType::BACKWARD_ADJLIST) continue;
+		if (rel->GetType(ul) == s62::LogicalType::FORWARD_ADJLIST ||
+			rel->GetType(ul) == s62::LogicalType::BACKWARD_ADJLIST) continue;
 		// Form_pg_attribute att = rel->rd_att->attrs[ul];
 		CMDName *md_colname =
 			CDXLUtils::CreateMDNameFromCharArray(mp, rel->GetPropertyKeyName(ul).c_str());
@@ -1139,7 +1139,7 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 {
 	OID index_oid = CMDIdGPDB::CastMdid(mdid_index)->Oid();
 	GPOS_ASSERT(0 != index_oid);
-	IndexCatalogEntry *index_cat = duckdb::GetIndex(index_oid);
+	IndexCatalogEntry *index_cat = s62::GetIndex(index_oid);
 
 	if (NULL == index_cat)
 	{
@@ -1230,8 +1230,8 @@ CTranslatorTBGPPToDXL::RetrieveIndex(CMemoryPool *mp,
 
 		// Relation table =
 		// 	gpdb::GetRelation(CMDIdGPDB::CastMdid(md_rel->MDId())->Oid());
-		// part_cat = duckdb::GetPartition(pid);
-		ps_cat = duckdb::GetRelation(psid);
+		// part_cat = s62::GetPartition(pid);
+		ps_cat = s62::GetRelation(psid);
 		// ULONG size = GPDXL_SYSTEM_COLUMNS + part_cat->GetNumberOfColumns() + 1;
 		ULONG size = GPDXL_SYSTEM_COLUMNS + ps_cat->GetNumberOfColumns() + 1;
 			// = GPDXL_SYSTEM_COLUMNS + (ULONG) table->rd_att->natts + 1;
@@ -1733,8 +1733,8 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 	ULONG length = 0;
 	INT gpdb_length = 0;
 
-	is_fixed_length = duckdb::isTypeFixedLength(oid_type);
-	length = duckdb::GetTypeSize(oid_type);
+	is_fixed_length = s62::isTypeFixedLength(oid_type);
+	length = s62::GetTypeSize(oid_type);
 	if (is_fixed_length) { // TODO tricky code
 		gpdb_length = length;
 	} else {
@@ -1751,17 +1751,17 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 	// collect ids of different comparison operators for types
 	CMDIdGPDB *mdid_op_eq =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptEq)/*ptce->eq_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, s62::GetComparisonOperator(oid_type, oid_type, CmptEq)/*ptce->eq_opr*/);
 	CMDIdGPDB *mdid_op_neq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptNEq)/*gpdb::GetInverseOp(ptce->eq_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, s62::GetComparisonOperator(oid_type, oid_type, CmptNEq)/*gpdb::GetInverseOp(ptce->eq_opr)*/);
 	CMDIdGPDB *mdid_op_lt =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptLT)/*ptce->lt_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, s62::GetComparisonOperator(oid_type, oid_type, CmptLT)/*ptce->lt_opr*/);
 	CMDIdGPDB *mdid_op_leq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptLEq)/*gpdb::GetInverseOp(ptce->gt_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, s62::GetComparisonOperator(oid_type, oid_type, CmptLEq)/*gpdb::GetInverseOp(ptce->gt_opr)*/);
 	CMDIdGPDB *mdid_op_gt =
-		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetComparisonOperator(oid_type, oid_type, CmptGT)/*ptce->gt_opr*/);
+		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, s62::GetComparisonOperator(oid_type, oid_type, CmptGT)/*ptce->gt_opr*/);
 	CMDIdGPDB *mdid_op_geq = GPOS_NEW(mp)
-		CMDIdGPDB(IMDId::EmdidGeneral, (OID) duckdb::GetComparisonOperator(oid_type, oid_type, CmptGEq)/*gpdb::GetInverseOp(ptce->lt_opr)*/);
+		CMDIdGPDB(IMDId::EmdidGeneral, (OID) s62::GetComparisonOperator(oid_type, oid_type, CmptGEq)/*gpdb::GetInverseOp(ptce->lt_opr)*/);
 	CMDIdGPDB *mdid_op_cmp =
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, 0/*ptce->cmp_proc*/); // TODO what is this? B-tree lookup?
 	BOOL is_hashable = true;//gpdb::IsOpHashJoinable(ptce->eq_opr, oid_type); //TODO
@@ -1771,13 +1771,13 @@ CTranslatorTBGPPToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 
 	// get standard aggregates
 	CMDIdGPDB *mdid_min = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("min", oid_type, 1));
+	 	CMDIdGPDB(IMDId::EmdidGeneral, s62::GetAggregate("min", oid_type, 1));
 	CMDIdGPDB *mdid_max = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("max", oid_type, 1));
+	 	CMDIdGPDB(IMDId::EmdidGeneral, s62::GetAggregate("max", oid_type, 1));
 	CMDIdGPDB *mdid_avg = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("avg", oid_type, 1));
+	 	CMDIdGPDB(IMDId::EmdidGeneral, s62::GetAggregate("avg", oid_type, 1));
 	CMDIdGPDB *mdid_sum = GPOS_NEW(mp)
-	 	CMDIdGPDB(IMDId::EmdidGeneral, duckdb::GetAggregate("sum", oid_type, 1));
+	 	CMDIdGPDB(IMDId::EmdidGeneral, s62::GetAggregate("sum", oid_type, 1));
 
 	// count aggregate is the same for all types
 	CMDIdGPDB *mdid_count =
@@ -1842,7 +1842,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 	GPOS_ASSERT(InvalidOid != op_oid);
 
 	// get operator name
-	string name_str = duckdb::GetOpName(op_oid);
+	string name_str = s62::GetOpName(op_oid);
 	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); // TODO avoid copy?
 
 	if (NULL == name)
@@ -1857,7 +1857,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 	OID right_oid = InvalidOid;
 
 	// get operator argument types
-	duckdb::GetOpInputTypes(op_oid, &left_oid, &right_oid);
+	s62::GetOpInputTypes(op_oid, &left_oid, &right_oid);
 
 	CMDIdGPDB *mdid_type_left = NULL;
 	CMDIdGPDB *mdid_type_right = NULL;
@@ -1874,11 +1874,11 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 	}
 
 	// get comparison type
-	CmpType cmpt = (CmpType) duckdb::GetComparisonType(op_oid);
+	CmpType cmpt = (CmpType) s62::GetComparisonType(op_oid);
 	IMDType::ECmpType cmp_type = ParseCmpType(cmpt);
 
 	// get func oid
-	OID func_oid = duckdb::GetOpFunc(op_oid);
+	OID func_oid = s62::GetOpFunc(op_oid);
 	GPOS_ASSERT(InvalidOid != func_oid);
 
 	CMDIdGPDB *mdid_func =
@@ -1895,7 +1895,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 	// get commutator and inverse
 	CMDIdGPDB *mdid_commute_opr = NULL;
 
-	OID commute_oid = duckdb::GetCommutatorOp(op_oid);
+	OID commute_oid = s62::GetCommutatorOp(op_oid);
 
 	if (InvalidOid != commute_oid)
 	{
@@ -1905,7 +1905,7 @@ CTranslatorTBGPPToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 
 	CMDIdGPDB *m_mdid_inverse_opr = NULL;
 
-	OID inverse_oid = duckdb::GetInverseOp(op_oid);
+	OID inverse_oid = s62::GetInverseOp(op_oid);
 
 	if (InvalidOid != inverse_oid)
 	{
@@ -1998,8 +1998,8 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 	GPOS_ASSERT(InvalidOid != func_oid);
 
 	// get aggfunc catalog entry
-	duckdb::ScalarFunctionCatalogEntry *scalar_func_cat =
-		duckdb::GetScalarFunc(func_oid);
+	s62::ScalarFunctionCatalogEntry *scalar_func_cat =
+		s62::GetScalarFunc(func_oid);
 
 	// get func name
 	string name_str = scalar_func_cat->GetName();
@@ -2019,7 +2019,7 @@ CTranslatorTBGPPToDXL::RetrieveFunc(CMemoryPool *mp, IMDId *mdid)
 	GPOS_DELETE(func_name_str);
 
 	// get result type
-	idx_t scalar_func_idx = duckdb::GetScalarFuncIndex(func_oid);
+	idx_t scalar_func_idx = s62::GetScalarFuncIndex(func_oid);
 	GPOS_ASSERT(scalar_func_cat->functions->functions.size() > scalar_func_idx);
 	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) scalar_func_cat->functions->functions[scalar_func_idx].return_type.id();
 	
@@ -2083,8 +2083,8 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 	GPOS_ASSERT(InvalidOid != agg_oid);
 
 	// get aggfunc catalog entry
-	duckdb::AggregateFunctionCatalogEntry *agg_func_cat =
-		duckdb::GetAggFunc(agg_oid);
+	s62::AggregateFunctionCatalogEntry *agg_func_cat =
+		s62::GetAggFunc(agg_oid);
 
 	// get agg name
 	string name_str = agg_func_cat->GetName();
@@ -2104,7 +2104,7 @@ CTranslatorTBGPPToDXL::RetrieveAgg(CMemoryPool *mp, IMDId *mdid)
 	GPOS_DELETE(agg_name_str);
 
 	// get result type
-	idx_t agg_func_idx = duckdb::GetAggFuncIndex(agg_oid);
+	idx_t agg_func_idx = s62::GetAggFuncIndex(agg_oid);
 	GPOS_ASSERT(agg_func_cat->functions->functions.size() > agg_func_idx);
 	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) agg_func_cat->functions->functions[agg_func_idx].return_type.id();
 
@@ -2279,8 +2279,8 @@ CTranslatorTBGPPToDXL::GetTypeName(CMemoryPool *mp, IMDId *mdid)
 
 	GPOS_ASSERT(InvalidOid != oid_type);
 
-	CHAR *typename_str = std::strcpy(new char[duckdb::GetTypeName(oid_type).length() + 1], duckdb::GetTypeName(oid_type).c_str());
-	//CHAR *typename_str = const_cast<char *>(duckdb::GetTypeName(oid_type).c_str());
+	CHAR *typename_str = std::strcpy(new char[s62::GetTypeName(oid_type).length() + 1], s62::GetTypeName(oid_type).c_str());
+	//CHAR *typename_str = const_cast<char *>(s62::GetTypeName(oid_type).c_str());
 	GPOS_ASSERT(NULL != typename_str);
 
 	CWStringDynamic *str_name =
@@ -2376,7 +2376,7 @@ CTranslatorTBGPPToDXL::RetrieveAggIntermediateResultType(CMemoryPool *mp,
 	OID intermediate_type_oid;
 
 	GPOS_ASSERT(InvalidOid != agg_oid);
-	duckdb::AggregateFunctionCatalogEntry *agg_func_cat = duckdb::GetAggFunc(agg_oid);
+	s62::AggregateFunctionCatalogEntry *agg_func_cat = s62::GetAggFunc(agg_oid);
 	intermediate_type_oid = GPDB_BOOL; // S62 TODO temporary.. maybe we don't use this info in this step
 	// intermediate_type_oid = gpdb::GetAggIntermediateResultType(agg_oid);
 
@@ -2408,7 +2408,7 @@ CTranslatorTBGPPToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 	IMDId *mdid_rel = m_rel_stats_mdid->GetRelMdId();
 	OID rel_oid = CMDIdGPDB::CastMdid(mdid_rel)->Oid();
 
-	PropertySchemaCatalogEntry *rel = duckdb::GetRelation(rel_oid);
+	PropertySchemaCatalogEntry *rel = s62::GetRelation(rel_oid);
 	if (NULL == rel)
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
@@ -2478,7 +2478,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	ULONG pos = mdid_col_stats->Position();
 	OID rel_oid = CMDIdGPDB::CastMdid(mdid_rel)->Oid();
 
-	duckdb::PropertySchemaCatalogEntry *rel = duckdb::GetRelation(rel_oid);
+	s62::PropertySchemaCatalogEntry *rel = s62::GetRelation(rel_oid);
 	if (NULL == rel)
 	{
 		GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound,
@@ -2548,7 +2548,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 
 	// column width
 	idx_t width_penalty = 1;//rel->GetName().rfind("vps", 0) == 0 ? 1 : 100L; // S62 TODO.. avoid edge table scan
-	CDouble width = CDouble(width_penalty * duckdb::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
+	CDouble width = CDouble(width_penalty * s62::GetTypeSize(att_type));// = CDouble(form_pg_stats->stawidth);
 	if(rel->is_fake) {
 		// TODO: change hard coded value
 		// 500 means the number of schemas.
@@ -2558,7 +2558,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 
 	// calculate total number of distinct values
 	CDouble num_distinct(1.0);
-	num_distinct = CDouble(duckdb::GetNDV(rel, attno));
+	num_distinct = CDouble(s62::GetNDV(rel, attno));
 	// if (form_pg_stats->stadistinct < 0)
 	// {
 	// 	GPOS_ASSERT(form_pg_stats->stadistinct > -1.01);
@@ -2629,7 +2629,7 @@ CTranslatorTBGPPToDXL::RetrieveColStats(CMemoryPool *mp,
 	// (void) gpdb::GetAttrStatsSlot(&hist_slot, stats_tup,
 	// 							  STATISTIC_KIND_HISTOGRAM, InvalidOid,
 	// 							  ATTSTATSSLOT_VALUES);
-	duckdb::GetHistogramInfo(rel, attno, &hist_slot);
+	s62::GetHistogramInfo(rel, attno, &hist_slot);
 
 	if (InvalidOid != hist_slot.valuetype && hist_slot.valuetype != att_type)
 	{
@@ -2953,7 +2953,7 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 	OID right_oid = CMDIdGPDB::CastMdid(mdid_right)->Oid();
 	CmpType cmpt = (CmpType) GetComparisonType(cmp_type);
 
-	OID scalar_cmp_oid = duckdb::GetComparisonOperator(left_oid, right_oid, cmpt);
+	OID scalar_cmp_oid = s62::GetComparisonOperator(left_oid, right_oid, cmpt);
 
 	if (InvalidOid == scalar_cmp_oid)
 	{
@@ -2961,7 +2961,7 @@ CTranslatorTBGPPToDXL::RetrieveScCmp(CMemoryPool *mp, IMDId *mdid)
 				   mdid->GetBuffer());
 	}
 
-	string name_str = duckdb::GetOpName(scalar_cmp_oid);
+	string name_str = s62::GetOpName(scalar_cmp_oid);
 	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); // TODO avoid copy?
 
 	if (NULL == name)
@@ -3789,11 +3789,11 @@ CTranslatorTBGPPToDXL::RetrieveIndexOpFamilies(CMemoryPool *mp,
 	// ForEach(lc, op_families)
 	// {
 		// OID op_family_oid = lfirst_oid(lc);
-		OID op_family_logical_oid = duckdb::GetComparisonOperator( // TODO for adjidx currently..
+		OID op_family_logical_oid = s62::GetComparisonOperator( // TODO for adjidx currently..
 			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
 			(idx_t)LogicalTypeId::ID + LOGICAL_TYPE_BASE_ID,
 			CmptEq);
-		OID op_family_oid = duckdb::GetOpFamiliesForScOp(op_family_logical_oid);
+		OID op_family_oid = s62::GetOpFamiliesForScOp(op_family_logical_oid);
 		input_col_mdids->Append(
 			GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, op_family_oid));
 	// }
@@ -3816,7 +3816,7 @@ CTranslatorTBGPPToDXL::RetrieveScOpOpFamilies(CMemoryPool *mp,
 	// List *op_families =
 	// 	gpdb::GetOpFamiliesForScOp(CMDIdGPDB::CastMdid(mdid_scalar_op)->Oid());
 	OID op_family_oid =
-		duckdb::GetOpFamiliesForScOp(CMDIdGPDB::CastMdid(mdid_scalar_op)->Oid());
+		s62::GetOpFamiliesForScOp(CMDIdGPDB::CastMdid(mdid_scalar_op)->Oid());
 	IMdIdArray *input_col_mdids = GPOS_NEW(mp) IMdIdArray(mp);
 
 	// ListCell *lc = NULL;
@@ -3842,7 +3842,7 @@ CTranslatorTBGPPToDXL::AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray 
 		IMDId *graphlet_mdid = (*pdrgmdid)[i];
 		oid_array[i] = CMDIdGPDB::CastMdid(graphlet_mdid)->Oid();
 	}
-	ULONG virtual_table_oid = duckdb::AddVirtualTable(original_vtbl_oid, oid_array, size);
+	ULONG virtual_table_oid = s62::AddVirtualTable(original_vtbl_oid, oid_array, size);
 
 	CMDIdGPDB *new_mdid = GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, virtual_table_oid, 0, 0);
 	return new_mdid;

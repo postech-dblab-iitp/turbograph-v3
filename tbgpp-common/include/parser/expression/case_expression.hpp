@@ -11,7 +11,7 @@
 #include "parser/parsed_expression.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct CaseCheck {
 	unique_ptr<ParsedExpression> when_expr;
@@ -49,4 +49,4 @@ public:
 		return case_str;
 	}
 };
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "common/sort/comparators.hpp"
 #include "common/sort/sort.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Calls std::sort on strings that are tied by their prefix after the radix sort
 static void SortTiedBlobs(BufferManager &buffer_manager, const data_ptr_t dataptr, const idx_t &start, const idx_t &end,
@@ -331,4 +331,4 @@ void LocalSortState::SortInMemory() {
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -12,7 +12,7 @@
 #include "parser/statement/select_statement.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ExpressionListRef;
 
 class InsertStatement : public SQLStatement {
@@ -47,4 +47,4 @@ public:
 	ExpressionListRef *GetValuesList() const;
 };
 
-} // namespace duckdb
+} // namespace s62

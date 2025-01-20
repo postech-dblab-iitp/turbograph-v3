@@ -14,7 +14,7 @@
 #include "parser/tableref.hpp"
 #include "common/vector.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Represents a JOIN between two expressions
 class JoinRef : public TableRef {
 public:
@@ -45,4 +45,4 @@ public:
 	//! Deserializes a blob back into a JoinRef
 	static unique_ptr<TableRef> Deserialize(FieldReader &source);
 };
-} // namespace duckdb
+} // namespace s62

@@ -1,7 +1,7 @@
 #include "function/aggregate_function.hpp"
 #include "common/types/chunk_collection.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct SortedAggregateBindData : public FunctionData {
 
@@ -268,4 +268,4 @@ unique_ptr<FunctionData> AggregateFunction::BindSortedAggregate(AggregateFunctio
 	return move(sorted_bind);
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -2,7 +2,7 @@
 #include "execution/expression_executor.hpp"
 #include "planner/expression/bound_constant_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundConstantExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -17,4 +17,4 @@ void ExpressionExecutor::Execute(const BoundConstantExpression &expr, Expression
 	result.Reference(expr.value);
 }
 
-} // namespace duckdb
+} // namespace s62

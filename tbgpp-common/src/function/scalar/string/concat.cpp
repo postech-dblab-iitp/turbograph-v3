@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-namespace duckdb {
+namespace s62 {
 
 static void ConcatFunction(DataChunk &args, ExpressionState &state, Vector &result) {
 	result.SetVectorType(VectorType::CONSTANT_VECTOR);
@@ -262,4 +262,4 @@ void ConcatFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(concat_ws);
 }
 
-} // namespace duckdb
+} // namespace s62

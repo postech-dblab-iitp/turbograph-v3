@@ -14,7 +14,7 @@
 #include "parser/parsed_data/create_scalar_function_info.hpp"
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! A table function in the catalog
 class ScalarFunctionCatalogEntry : public StandardEntry {
@@ -37,4 +37,4 @@ public:
 		functions = move(set_ptr);
 	}
 };
-} // namespace duckdb
+} // namespace s62

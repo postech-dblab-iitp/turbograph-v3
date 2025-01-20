@@ -1,7 +1,7 @@
 #include "execution/physical_operator/physical_comparison_join.hpp"
 #include "common/types/chunk_collection.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalComparisonJoin::PhysicalComparisonJoin(Schema& sch, PhysicalOperatorType type,
                                                vector<JoinCondition> conditions_p, JoinType join_type)
@@ -166,4 +166,4 @@ void PhysicalComparisonJoin::ConstructFullOuterJoinResult(bool *found_match, Chu
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

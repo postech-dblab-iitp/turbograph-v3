@@ -11,7 +11,7 @@
 #include "catalog/catalog_entry.hpp"
 #include "common/atomic.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 
 class DefaultGenerator {
@@ -31,4 +31,4 @@ public:
 	virtual vector<string> GetDefaultEntries() = 0;
 };
 
-} // namespace duckdb
+} // namespace s62

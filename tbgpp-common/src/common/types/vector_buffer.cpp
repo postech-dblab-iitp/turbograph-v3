@@ -7,7 +7,7 @@
 #include "common/assert.hpp"
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 buffer_ptr<VectorBuffer> VectorBuffer::CreateStandardVector(PhysicalType type, idx_t capacity) {
 	return make_buffer<VectorBuffer>(capacity * GetTypeIdSize(type));
@@ -107,4 +107,4 @@ char *VectorRowStoreBuffer::GetRowData() {
 ManagedVectorBuffer::~ManagedVectorBuffer() {
 }*/
 
-} // namespace duckdb
+} // namespace s62

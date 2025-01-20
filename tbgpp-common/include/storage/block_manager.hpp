@@ -12,7 +12,7 @@
 #include "storage/block.hpp"
 #include "storage/storage_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 class ClientContext;
 class DatabaseInstance;
 
@@ -59,5 +59,5 @@ public:
 
 // static BlockManager DEFAULT_BLOCK_MANAGER = BlockManager();
 
-} // namespace duckdb
+} // namespace s62
 

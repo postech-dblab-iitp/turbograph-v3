@@ -13,7 +13,7 @@
 #include "function/function.hpp"
 #include "parser/parsed_data/create_aggregate_function_info.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! An aggregate function in the catalog
 class AggregateFunctionCatalogEntry : public StandardEntry {
@@ -32,4 +32,4 @@ public:
 		functions = move(set_ptr);
 	}
 };
-} // namespace duckdb
+} // namespace s62

@@ -11,7 +11,7 @@
 #include "common/types.hpp"
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct AddOperator {
 	template <class TA, class TB, class TR>
@@ -122,4 +122,4 @@ dtime_t AddTimeOperator::Operation(dtime_t left, interval_t right);
 template <>
 dtime_t AddTimeOperator::Operation(interval_t left, dtime_t right);
 
-} // namespace duckdb
+} // namespace s62

@@ -8,16 +8,16 @@
 
 #include "third_party/utf8proc/utf8proc.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static pair<idx_t, idx_t> PadCountChars(const idx_t len, const char *data, const idx_t size) {
 	//  Count how much of str will fit in the output
-	auto str = reinterpret_cast<const utf8proc_uint8_t *>(data);
+	auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(data);
 	idx_t nbytes = 0;
 	idx_t nchars = 0;
 	for (; nchars < len && nbytes < size; ++nchars) {
-		utf8proc_int32_t codepoint;
-		auto bytes = utf8proc_iterate(str + nbytes, size - nbytes, &codepoint);
+		duckdb::utf8proc_int32_t codepoint;
+		auto bytes = duckdb::utf8proc_iterate(str + nbytes, size - nbytes, &codepoint);
 		D_ASSERT(bytes > 0);
 		nbytes += bytes;
 	}
@@ -36,7 +36,7 @@ static bool InsertPadding(const idx_t len, const string_t &pad, vector<char> &re
 	}
 
 	//  Insert characters until we have all we need.
-	auto str = reinterpret_cast<const utf8proc_uint8_t *>(data);
+	auto str = reinterpret_cast<const duckdb::utf8proc_uint8_t *>(data);
 	idx_t nbytes = 0;
 	for (idx_t nchars = 0; nchars < len; ++nchars) {
 		//  If we are at the end of the pad, flush all of it and loop back
@@ -46,8 +46,8 @@ static bool InsertPadding(const idx_t len, const string_t &pad, vector<char> &re
 		}
 
 		//  Write the next character
-		utf8proc_int32_t codepoint;
-		auto bytes = utf8proc_iterate(str + nbytes, size - nbytes, &codepoint);
+		duckdb::utf8proc_int32_t codepoint;
+		auto bytes = duckdb::utf8proc_iterate(str + nbytes, size - nbytes, &codepoint);
 		D_ASSERT(bytes > 0);
 		nbytes += bytes;
 	}
@@ -146,4 +146,4 @@ void RpadFun::RegisterFunction(BuiltinFunctions &set) {
 	                               PadFunction<RightPadOperator>)); // pointer to function implementation
 }
 
-} // namespace duckdb
+} // namespace s62

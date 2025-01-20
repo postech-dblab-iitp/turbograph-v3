@@ -10,7 +10,7 @@
 
 #include "common/types.hpp"
 
-namespace duckdb {
+namespace s62 {
 //! Contains a list of rules for casting
 class CastRules {
 public:
@@ -18,4 +18,4 @@ public:
 	static int64_t ImplicitCast(const LogicalType &from, const LogicalType &to);
 };
 
-} // namespace duckdb
+} // namespace s62

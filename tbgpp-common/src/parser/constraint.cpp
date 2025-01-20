@@ -5,7 +5,7 @@
 #include "parser/constraints/list.hpp"
 #include "common/field_writer.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 Constraint::Constraint(ConstraintType type) : type(type) {
 }
@@ -48,4 +48,4 @@ void Constraint::Print() const {
 	// Printer::Print(ToString());
 }
 
-} // namespace duckdb
+} // namespace s62

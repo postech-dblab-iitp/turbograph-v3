@@ -12,7 +12,7 @@
 #include "function/function_set.hpp"
 #include "common/types/null_value.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct BitAndFun {
 	static void RegisterFunction(BuiltinFunctions &set);
@@ -111,4 +111,4 @@ struct StringAggFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
-} // namespace duckdb
+} // namespace s62

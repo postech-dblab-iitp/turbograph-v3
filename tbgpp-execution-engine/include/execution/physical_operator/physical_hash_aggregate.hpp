@@ -16,7 +16,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 class ClientContext;
 class BufferManager;
@@ -99,4 +99,4 @@ public:
 	mutable uint64_t num_loops = 0;
 };
 
-} // namespace duckdb
+} // namespace s62

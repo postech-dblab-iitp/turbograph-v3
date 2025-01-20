@@ -12,7 +12,7 @@
 #include "common/types.hpp"
 #include "storage/statistics/base_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class SegmentStatistics {
 public:
@@ -28,4 +28,4 @@ public:
 	void Reset();
 };
 
-} // namespace duckdb
+} // namespace s62

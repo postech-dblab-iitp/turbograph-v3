@@ -21,7 +21,7 @@
 #include "planner/joinside.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 class BufferManager;
 class BufferHandle;
 
@@ -222,4 +222,4 @@ private:
 	JoinHashTable(const JoinHashTable &) = delete;
 };
 
-} // namespace duckdb
+} // namespace s62

@@ -34,7 +34,7 @@ extern "C" WINBASEAPI BOOL WINAPI GetPhysicallyInstalledSystemMemory(PULONGLONG)
 #undef FILE_CREATE // woo mingw
 #endif
 
-namespace duckdb {
+namespace s62 {
 
 
 static void AssertValidFileFlags(uint8_t flags) {
@@ -955,4 +955,4 @@ unique_ptr<FileSystem> FileSystem::CreateLocal() {
 	return make_unique<LocalFileSystem>();
 }
 
-} // namespace duckdb
+} // namespace s62

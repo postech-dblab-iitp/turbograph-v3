@@ -13,7 +13,7 @@
 #include "common/vector.hpp"
 #include <type_traits>
 
-namespace duckdb {
+namespace s62 {
 
 //! The Serialize class is a base class that can be used to serializing objects into a binary buffer
 class Serializer {
@@ -109,4 +109,4 @@ public:
 template <>
 string Deserializer::Read();
 
-} // namespace duckdb
+} // namespace s62

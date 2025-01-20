@@ -16,7 +16,7 @@
 
 #include <cstring>
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Comparison Operations
@@ -293,4 +293,4 @@ template <>
 inline bool LessThanEquals::Operation(hugeint_t left, hugeint_t right) {
 	return Hugeint::LessThanEquals(left, right);
 }
-} // namespace duckdb
+} // namespace s62

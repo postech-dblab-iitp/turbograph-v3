@@ -10,6 +10,6 @@
 
 #include <unordered_set>
 
-namespace duckdb {
+namespace s62 {
 using std::unordered_set;
 }

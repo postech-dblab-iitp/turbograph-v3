@@ -1,6 +1,0 @@
-MATCH (v1)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v2), 
-(v1)-[:`http://dbpedia.org/ontology/nationality`]->(v3)
-WHERE v2.uri = "http://dbpedia.org/ontology/Person" AND 
-v3.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL AND 
-v1.`http://www.w3.org/2000/01/rdf-schema#label` IS NOT NULL
-RETURN DISTINCT v1.`http://www.w3.org/2000/01/rdf-schema#label` AS r1, v3.`http://dbpedia.org/property/imageFlag`, v3.`http://dbpedia.org/property/regions`, v3.`http://dbpedia.org/ontology/course`, v3.`http://dbpedia.org/ontology/added`, v3.`http://dbpedia.org/property/rulingParty`, v3.`http://dbpedia.org/property/membership`, v3.`http://dbpedia.org/property/fam`, v3.`http://dbpedia.org/ontology/areaCode`, v3.`http://dbpedia.org/ontology/areaUrban`, v3.`http://dbpedia.org/ontology/populationUrbanDensity`, v1.`http://dbpedia.org/property/eyeColour`, v1.`http://xmlns.com/foaf/0.1/surname`, v1.`http://dbpedia.org/ontology/year`, v1.`http://dbpedia.org/property/name`, v1.`http://dbpedia.org/property/subdivisionName`, v1.`http://dbpedia.org/property/bodyDiscovered`, v1.`http://dbpedia.org/ontology/block`, v1.`http://dbpedia.org/property/teams`, v1.`http://dbpedia.org/property/weight`, v1.`http://dbpedia.org/property/boards`

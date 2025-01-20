@@ -7,7 +7,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "common/limits.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 template <class T>
 void TemplatedGenerateSequence(Vector &result, idx_t count, int64_t start, int64_t increment) {
@@ -99,4 +99,4 @@ void VectorOperations::GenerateSequence(Vector &result, idx_t count, const Selec
 	}
 }
 
-} // namespace duckdb
+} // namespace s62

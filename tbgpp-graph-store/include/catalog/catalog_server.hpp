@@ -8,7 +8,7 @@
 #include <common/boost.hpp>
 #include "common/boost_typedefs.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 class CatalogServer {
 public:
@@ -26,6 +26,6 @@ private:
   fixed_managed_mapped_file *catalog_segment;
 };
 
-} // namespace duckdb
+} // namespace s62
 
 #endif // CATALOG_SERVER_H

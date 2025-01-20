@@ -12,7 +12,7 @@
 #include "common/enums/filter_propagate_result.hpp"
 #include "storage/statistics/validity_statistics.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Value;
 
 class ListStatistics : public BaseStatistics {
@@ -33,4 +33,4 @@ public:
 	string ToString() const override;
 };
 
-} // namespace duckdb
+} // namespace s62

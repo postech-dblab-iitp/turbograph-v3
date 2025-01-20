@@ -15,7 +15,7 @@
 // #include "planner/expression.hpp"
 // #include "common/unordered_map.hpp"
 
-// namespace duckdb {
+// namespace s62 {
 
 // class Binder;
 // class ClientContext;
@@ -149,4 +149,4 @@
 // 	vector<BoundColumnReferenceInfo> bound_columns;
 // };
 
-// } // namespace duckdb
+// } // namespace s62

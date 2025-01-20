@@ -3,7 +3,7 @@
 #include "parser/expression_util.hpp"
 #include "parser/expression/operator_expression.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 BoundOperatorExpression::BoundOperatorExpression(ExpressionType type, LogicalType return_type)
     : Expression(type, ExpressionClass::BOUND_OPERATOR, move(return_type)) {
@@ -33,4 +33,4 @@ unique_ptr<Expression> BoundOperatorExpression::Copy() {
 	return move(copy);
 }
 
-} // namespace duckdb
+} // namespace s62

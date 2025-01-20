@@ -3,7 +3,7 @@
 
 #include "common/exception.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 static bool PrefixFunction(const string_t &str, const string_t &pattern);
 
@@ -69,4 +69,4 @@ void PrefixFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(GetFunction());
 }
 
-} // namespace duckdb
+} // namespace s62

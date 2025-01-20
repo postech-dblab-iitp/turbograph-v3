@@ -8,7 +8,7 @@
 #include "function/function_set.hpp"
 #include "function/aggregate/regression_functions.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct RegrR2State {
 	CorrState corr;
 	StddevState var_pop_x;
@@ -72,4 +72,4 @@ void RegrR2Fun::RegisterFunction(BuiltinFunctions &set) {
 	    LogicalType::DOUBLE, LogicalType::DOUBLE, LogicalType::DOUBLE));
 	set.AddFunction(fun);
 }
-} // namespace duckdb
+} // namespace s62

@@ -12,7 +12,7 @@
 #include "common/exception.hpp"
 #include "storage/block_manager.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! InMemoryBlockManager is an implementation for a BlockManager
 class InMemoryBlockManager : public BlockManager {
@@ -56,4 +56,4 @@ public:
 	}
 	// LCOV_EXCL_STOP
 };
-} // namespace duckdb
+} // namespace s62

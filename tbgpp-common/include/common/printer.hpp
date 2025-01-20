@@ -10,7 +10,7 @@
 
 #include "common/common.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Printer is a static class that allows printing to logs or stdout/stderr
 class Printer {
@@ -24,4 +24,4 @@ public:
 	// //! Whether or not we are printing to a terminal
 	// DUCKDB_API static bool IsTerminal();
 };
-} // namespace duckdb
+} // namespace s62

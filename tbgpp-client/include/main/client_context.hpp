@@ -33,7 +33,7 @@
 #include "parallel/executor.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 class Appender;
 class Catalog;
 class CatalogSearchPath;
@@ -303,4 +303,4 @@ private:
 	std::weak_ptr<ClientContext> client_context;
 };
 
-} // namespace duckdb
+} // namespace s62

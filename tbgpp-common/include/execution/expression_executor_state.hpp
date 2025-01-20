@@ -14,7 +14,7 @@
 #include "common/cycle_counter.hpp"
 #include "function/function.hpp"
 
-namespace duckdb {
+namespace s62 {
 class Expression;
 class ExpressionExecutor;
 struct ExpressionExecutorState;
@@ -57,4 +57,4 @@ struct ExpressionExecutorState {
 	string name;
 };
 
-} // namespace duckdb
+} // namespace s62

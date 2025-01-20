@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace duckdb {
+namespace s62 {
 
 //===--------------------------------------------------------------------===//
 // Statements
@@ -96,4 +96,4 @@ class ExpressionListRef;
 //===--------------------------------------------------------------------===//
 struct SampleOptions;
 
-} // namespace duckdb
+} // namespace s62

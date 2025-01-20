@@ -12,7 +12,7 @@
 #include "planner/bound_result_modifier.hpp"
 #include "parser/query_node.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 //! Bound equivalent of QueryNode
 class BoundQueryNode {
@@ -36,4 +36,4 @@ public:
 	virtual idx_t GetRootIndex() = 0;
 };
 
-} // namespace duckdb
+} // namespace s62

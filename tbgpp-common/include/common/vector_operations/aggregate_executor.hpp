@@ -13,7 +13,7 @@
 #include "common/vector_operations/vector_operations.hpp"
 #include "function/aggregate_function.hpp"
 
-namespace duckdb {
+namespace s62 {
 struct FunctionData;
 typedef std::pair<idx_t, idx_t> FrameBounds;
 
@@ -366,4 +366,4 @@ public:
 	}
 };
 
-} // namespace duckdb
+} // namespace s62

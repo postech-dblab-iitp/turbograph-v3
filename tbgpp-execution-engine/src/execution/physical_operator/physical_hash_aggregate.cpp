@@ -20,7 +20,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 PhysicalHashAggregate::PhysicalHashAggregate(
     Schema &sch, vector<uint64_t> &output_projection_mapping,

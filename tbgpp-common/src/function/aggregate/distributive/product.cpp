@@ -4,7 +4,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "function/function_set.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 struct ProductState {
 	bool empty;
@@ -67,4 +67,4 @@ void ProductFun::RegisterFunction(BuiltinFunctions &set) {
 	set.AddFunction(product);
 }
 
-} // namespace duckdb
+} // namespace s62

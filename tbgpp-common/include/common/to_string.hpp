@@ -8,6 +8,6 @@
 
 #pragma once
 
-namespace duckdb {
+namespace s62 {
 using std::to_string;
 }

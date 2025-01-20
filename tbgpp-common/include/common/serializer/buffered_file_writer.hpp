@@ -11,7 +11,7 @@
 #include "common/serializer.hpp"
 #include "common/file_system.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 #define FILE_BUFFER_SIZE 4096
 
@@ -45,4 +45,4 @@ public:
 	idx_t GetTotalWritten();
 };
 
-} // namespace duckdb
+} // namespace s62

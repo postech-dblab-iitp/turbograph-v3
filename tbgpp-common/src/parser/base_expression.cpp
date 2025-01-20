@@ -2,7 +2,7 @@
 #include "common/printer.hpp"
 
 
-namespace duckdb {
+namespace s62 {
 
 void BaseExpression::Print() const {
 	Printer::Print(ToString());
@@ -25,4 +25,4 @@ bool BaseExpression::Equals(const BaseExpression *other) const {
 void BaseExpression::Verify() const {
 }
 
-} // namespace duckdb
+} // namespace s62

@@ -3,7 +3,7 @@
 
 #include "icecream.hpp"
 
-namespace duckdb {
+namespace s62 {
 
 unique_ptr<ExpressionState> ExpressionExecutor::InitializeState(const BoundFunctionExpression &expr,
                                                                 ExpressionExecutorState &root) {
@@ -45,4 +45,4 @@ void ExpressionExecutor::Execute(const BoundFunctionExpression &expr, Expression
 	D_ASSERT(result.GetType() == expr.return_type);
 }
 
-} // namespace duckdb
+} // namespace s62

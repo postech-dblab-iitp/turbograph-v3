@@ -10,6 +10,6 @@
 
 #include <thread>
 
-namespace duckdb {
+namespace s62 {
 using std::thread;
 }

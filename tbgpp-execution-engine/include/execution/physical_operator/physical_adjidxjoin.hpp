@@ -12,7 +12,7 @@
 #include <cassert>
 #include <tuple>
 
-namespace duckdb {
+namespace s62 {
 
 class AdjIdxJoinState : public OperatorState {
    public:
@@ -534,4 +534,4 @@ class PhysicalAdjIdxJoin : public CypherPhysicalOperator {
     }
 };
 
-}  // namespace duckdb
+}  // namespace s62

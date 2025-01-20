@@ -17,7 +17,7 @@
 
 #include <memory>
 
-namespace duckdb {
+namespace s62 {
 struct AlterInfo;
 class Catalog;
 class CatalogSet;
@@ -72,4 +72,4 @@ public:
 
 	void SetCatalog(Catalog *catalog) { this->catalog = catalog; }
 };
-} // namespace duckdb
+} // namespace s62
