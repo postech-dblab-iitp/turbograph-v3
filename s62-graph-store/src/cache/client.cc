@@ -670,7 +670,7 @@ int LightningClient::flush_internal(uint64_t object_id, Turbo_bin_aio_handler* f
 
   ObjectEntry *object_entry = &header_->object_entries[object_index];
   assert(object_entry->sealed);
-  if (object_entry->dirty_bit == 1) { // tslee: We don't need this logic maybe.. 
+  if (object_entry->dirty_bit == 1) {
     assert(file_handler);
     if (file_handler->IsReserved())
       file_handler->Write(0, object_entry->size, (char*) &base_[object_entry->offset]);

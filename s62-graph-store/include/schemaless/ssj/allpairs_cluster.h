@@ -95,7 +95,6 @@ class AllPairsCluster: public Algorithm {
 
 		Index index;
 
-		// tslee added for clustering
 		Index cluster_index;
 		std::vector<std::vector<int32_t>> cluster_to_rid_lists;
 

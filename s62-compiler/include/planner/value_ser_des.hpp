@@ -58,7 +58,6 @@ public:
 				break;
 			}
 			case DataTypeID::HUGEINT: {
-				// jhha: currently, think hugeint as int64
 				out_length = 8;
 				int64_t* mem_ptr = (int64_t*) malloc(out_length);
 				(*mem_ptr) = kuzu_literal->val.uint64Val;

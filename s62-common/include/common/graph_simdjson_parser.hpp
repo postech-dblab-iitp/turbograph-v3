@@ -99,7 +99,7 @@ public:
         ext_mng = ext_mng_;
         cat_instance = cat_instance_;
 
-        sch_HT.resize(1000); // TODO appropriate size
+        sch_HT.resize(1000);
 
         cluster_algo = new AllPairsCluster<Jaccard>(SET_SIM_THRESHOLD);
     }
@@ -109,7 +109,7 @@ public:
         ext_mng = ext_mng_;
         cat_instance = cat_instance_;
 
-        sch_HT.resize(1000); // TODO appropriate size
+        sch_HT.resize(1000);
 
         cluster_algo = new AllPairsCluster<Jaccard>(set_sim_threshold);
     }
@@ -124,7 +124,7 @@ public:
     }
 
     void StoreLidToPidInfo(DataChunk &data, vector<idx_t> &key_column_idxs, ExtentID eid) {
-        D_ASSERT(key_column_idxs.size() == 1); // TODO handle general case
+        D_ASSERT(key_column_idxs.size() == 1);
         idx_t *key_column = (idx_t *)data.data[key_column_idxs[0]].GetData();
 
         idx_t pid_base = (idx_t) eid;
@@ -173,7 +173,7 @@ public:
     void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
         boost::timer::cpu_timer clustering_timer;
         if (jftype == JsonFileType::JSON) {
-            // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
+            throw NotImplementedException("LoadJson for JSON is now deprecated");
         } else if (jftype == JsonFileType::JSONL) {
             switch (cluster_algo_type) {
             case ClusterAlgorithmType::ALLPAIRS: {
@@ -290,313 +290,11 @@ public:
         }
     }
 
-    void IterateJson(const char *label_name, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
-        if (jftype == JsonFileType::JSON) {
-            _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
-        } else if (jftype == JsonFileType::JSONL) {
-            _IterateJsonL(data, gctype);
-        }
-    }
-
-    void _IterateJson(const char *label_name, const char *json_key, DataChunk &data, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat) {
-        // Run FPGrowth for the sample
-        // for (auto doc_ : docs) {
-        recursive_collect_key_paths(doc[json_key], "", false, transactions, 0);
-        // }
-
-        // Get Schema
-        most_common_schema.clear();
-        most_common_key_paths.clear();
-        key_column_idxs.clear();
-        for (std::set<Item>::iterator item_it = most_frequency_pattern.first.begin(); item_it != most_frequency_pattern.first.end(); item_it++) {
-            std::string key_path_and_type = std::string(*item_it);
-            size_t delimiter_pos = key_path_and_type.find_last_of("_");
-            if (delimiter_pos == std::string::npos) {
-                continue;
-            }
-            std::string key_path = key_path_and_type.substr(0, delimiter_pos);
-            std::string type = key_path_and_type.substr(delimiter_pos + 1);
-            most_common_key_paths.push_back(key_path);
-            std::cout << key_path << ": ";
-            if (key_path == "id") {
-                key_column_idxs.push_back(std::distance(most_frequency_pattern.first.begin(), item_it));
-            }
-            if (type == "str") {
-                std::cout << "str / ";
-                most_common_schema.push_back(LogicalType::VARCHAR);
-            } else if (type == "int64") {
-                std::cout << "int64 / ";
-                most_common_schema.push_back(LogicalType::BIGINT);
-            } else if (type == "uint64 / ") {
-                most_common_schema.push_back(LogicalType::UBIGINT);
-            } else if (type == "bool") {
-                most_common_schema.push_back(LogicalType::BOOLEAN);
-            } else if (type == "double") {
-                std::cout << "double / ";
-                most_common_schema.push_back(LogicalType::DOUBLE);
-            } else if (type == "arr") {
-                std::cout << "arr / ";
-                // most_common_schema.push_back(LogicalType::LIST(LogicalType::BIGINT));
-                // most_common_schema.push_back(LogicalType::LIST(LogicalType::VARCHAR));
-                most_common_schema.push_back(LogicalType::LIST(LogicalType::DOUBLE));
-            }
-        }
-        std::cout << std::endl;
-
-        // Initialize Property Schema Catalog Entry using Schema of the vertex
-		// vector<int64_t> key_column_idxs_ = reader.GetKeyColumnIndexFromHeader();
-		// vector<idx_t> key_column_idxs;
-		// for (size_t i = 0; i < key_column_idxs_.size(); i++) key_column_idxs.push_back((idx_t) key_column_idxs_[i]);
-		
-        PartitionID new_pid = partition_cat->GetPartitionID();
-		string property_schema_name = "vps_" + std::string(label_name);
-		fprintf(stdout, "prop_schema_name = %s\n", property_schema_name.c_str());
-		CreatePropertySchemaInfo propertyschema_info("main", property_schema_name.c_str(), new_pid, partition_cat->GetOid());
-		property_schema_cat = (PropertySchemaCatalogEntry*) cat_instance->CreatePropertySchema(*client.get(), &propertyschema_info);
-		
-		vector<PropertyKeyID> property_key_ids;
-		graph_cat->GetPropertyKeyIDs(*client.get(), most_common_key_paths, most_common_schema, property_key_ids);
-		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
-        property_schema_cat->SetSchema(*client.get(), most_common_key_paths, most_common_schema, property_key_ids);
-		property_schema_cat->SetKeyColumnIdxs(key_column_idxs);
-
-        // Initialize LID_TO_PID_MAP
-		if (load_edge) {
-			lid_to_pid_map->emplace_back(label_name, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_to_pid_map_instance = &lid_to_pid_map->back().second;
-			// lid_to_pid_map_instance->reserve(approximated_num_rows * 2);
-		}
-
-        // Rewind
-        doc.rewind();
-
-        // Iterate & Create DataChunk
-        data.Initialize(most_common_schema, STORAGE_STANDARD_VECTOR_SIZE);
-
-        // for (auto doc_ : docs) {
-        recursive_iterate_json(doc[json_key], "", false, 0, 0, data);
-        // }
-    }
-
-    void _IterateJsonL(DataChunk &data, GraphComponentType gctype) {
-        // deprecate
-        // if (gctype == GraphComponentType::INVALID) {
-        //     for (auto doc_ : docs) {
-        //         std::string_view type = doc_["type"].get_string();
-        //         if (type == "node") {
-        //             // fprintf(stderr, "Node\n");
-        //             ondemand::value labels = doc_["labels"];
-        //             D_ASSERT(labels.type() == ondemand::json_type::array);
-        //             int num_labels = 0;
-        //             if (labels.count_elements() >= 2) {
-        //                 for (auto child : labels.get_array()) {
-        //                     std::cout << "\"" << child.get_raw_json_string() << "\"";
-        //                 }
-        //             }
-        //             // recursive_print_json(doc_["properties"], "", false);
-
-        //             // Get Scheam from samples
-                    
-        //         } else if (type == "relationship") {
-        //             fprintf(stderr, "Relationship\n");
-        //             ondemand::value labels = doc_["labels"];
-        //             D_ASSERT(labels.type() == ondemand::json_type::array);
-        //             // recursive_print_json(doc_["properties"], "", false);
-
-        //             // Get Scheam from samples
-        //         }
-        //     }
-        // } else if (gctype == GraphComponentType::VERTEX) {
-        //     int num_tuples = 0;
-        //     for (auto doc_ : docs) {
-        //         // recursive_collect_key_paths_jsonl(doc_["properties"], "", true, transactions, num_tuples);
-        //         num_tuples++;
-
-        //         if (num_tuples == TILE_SIZE) {
-        //             // Run FPGrowth
-        //             auto fpgrowth_start = std::chrono::high_resolution_clock::now();
-        //             // Run FpGrowth
-        //             std::cout << "\tRun FPGrowth for (" << num_tuples << ") tuples\n";
-                    
-        //             const uint64_t minimum_support_threshold = 2;
-        //             const FPTree fptree{ transactions, minimum_support_threshold };
-        //             const std::set<Pattern> patterns = fptree_growth( fptree );
-        //             auto fpgrowth_end = std::chrono::high_resolution_clock::now();
-        //             fpgrowth_duration += (fpgrowth_end - fpgrowth_start);
-
-        //             Pattern *current_mfp = nullptr;
-        //             // std::cout << "Pattern Size = " << patterns.size() << std::endl;
-        //             for (std::set<Pattern>::iterator it = patterns.begin(); it != patterns.end(); ++it) {
-        //                 // std::cout << "Set Size = " << it->first.size() << " ";
-        //                 // std::cout << "({";
-        //                 bool print_comma = false;
-        //                 if (current_mfp == nullptr) {
-        //                     current_mfp = new Pattern;
-        //                     current_mfp->first = it->first;
-        //                     current_mfp->second = it->second;
-        //                 } else {
-        //                     if (current_mfp->first.size() < it->first.size() && it->second >= (num_tuples * FREQUENCY_THRESHOLD)) {
-        //                         current_mfp->first = it->first;
-        //                         current_mfp->second = it->second;
-        //                     }
-        //                 }
-        //                 // for (std::set<Item>::iterator item_it = it->first.begin(); item_it != it->first.end(); item_it++) {
-        //                 //     if (print_comma) std::cout << ",";
-        //                 //     std::cout << *item_it;
-        //                 //     print_comma = true;
-        //                 // }
-        //                 // std::cout << "}, " << it->second << ")\n";
-        //             }
-        //             most_frequency_pattern.first = current_mfp->first;
-        //             most_frequency_pattern.second = current_mfp->second;
-
-        //             // Clear Transactions
-        //             for (int i = 0; i < TILE_SIZE; i++) transactions[i].clear();
-        //             num_tuples = 0;
-        //             break;
-        //         }
-        //     }
-
-        //     if (num_tuples > 0) {
-        //         auto fpgrowth_start = std::chrono::high_resolution_clock::now();
-        //         // Run FpGrowth for remaining
-        //         std::cout << "\tRun FPGrowth for (" << num_tuples << ") tuples\n";
-
-        //         const uint64_t minimum_support_threshold = 2;
-        //         const FPTree fptree{ transactions, minimum_support_threshold };
-        //         const std::set<Pattern> patterns = fptree_growth( fptree );
-        //         auto fpgrowth_end = std::chrono::high_resolution_clock::now();
-        //         fpgrowth_duration += (fpgrowth_end - fpgrowth_start);
-
-        //         Pattern *current_mfp = nullptr;
-        //         //std::cout << "Pattern Size = " << patterns.size() << std::endl;
-        //         for (std::set<Pattern>::iterator it = patterns.begin(); it != patterns.end(); ++it) {
-        //             //std::cout << "Set Size = " << it->first.size() << " ";
-        //             //std::cout << "({";
-        //             bool print_comma = false;
-        //             if (current_mfp == nullptr) {
-        //                 current_mfp = new Pattern;
-        //                 current_mfp->first = it->first;
-        //                 current_mfp->second = it->second;
-        //             } else {
-        //                 if (current_mfp->first.size() < it->first.size() && it->second >= (num_tuples * FREQUENCY_THRESHOLD)) {
-        //                     current_mfp->first = it->first;
-        //                     current_mfp->second = it->second;
-        //                 }
-        //             }
-        //             //for (std::set<Item>::iterator item_it = it->first.begin(); item_it != it->first.end(); item_it++) {
-        //                 // if (print_comma) std::cout << ",";
-        //             //     std::cout << *item_it;
-        //             //     print_comma = true;
-        //             // }
-        //             // std::cout << "}, " << it->second << ")\n";
-
-        //             most_frequency_pattern.first = current_mfp->first;
-        //             most_frequency_pattern.second = current_mfp->second;
-        //         }
-
-        //         // Clear Transactions
-        //         for (int i = 0; i < TILE_SIZE; i++) transactions[i].clear();
-        //     }
-            
-        //     num_tuples = 0;
-
-        //     // Get Scheam from samples
-        //     most_common_schema.clear();
-        //     most_common_key_paths.clear();
-        //     for (std::set<Item>::iterator item_it = most_frequency_pattern.first.begin(); item_it != most_frequency_pattern.first.end(); item_it++) {
-        //         std::string key_path_and_type = std::string(*item_it);
-        //         size_t delimiter_pos = key_path_and_type.find_last_of("_");
-        //         if (delimiter_pos == std::string::npos) {
-        //             continue;
-        //         }
-        //         std::string key_path = key_path_and_type.substr(0, delimiter_pos);
-        //         std::string type = key_path_and_type.substr(delimiter_pos + 1);
-        //         most_common_key_paths.push_back(key_path);
-        //         std::cout << key_path << ": ";
-        //         if (type == "str") {
-        //             std::cout << "str / ";
-        //             most_common_schema.push_back(LogicalType::VARCHAR);
-        //         } else if (type == "int64") {
-        //             std::cout << "int64 / ";
-        //             most_common_schema.push_back(LogicalType::BIGINT);
-        //         } else if (type == "uint64 / ") {
-        //             most_common_schema.push_back(LogicalType::UBIGINT);
-        //         } else if (type == "bool") {
-        //             most_common_schema.push_back(LogicalType::BOOLEAN);
-        //         } else if (type == "double") {
-        //             std::cout << "double / ";
-        //             most_common_schema.push_back(LogicalType::DOUBLE);
-        //         } else if (type == "arr") {
-        //             std::cout << "arr / ";
-        //             most_common_schema.push_back(LogicalType::LIST(LogicalType::BIGINT));
-        //             // most_common_schema.push_back(LogicalType::LIST(LogicalType::VARCHAR)); // TODO..
-        //         }
-        //     }
-        //     std::cout << std::endl;
-
-        //     data.Initialize(most_common_schema, STORAGE_STANDARD_VECTOR_SIZE);
-
-        //     // Iterate from the beginning
-        //     for (auto doc_ : docs) {
-        //         // icecream::ic.enable(); IC(num_tuples); icecream::ic.disable();
-        //         recursive_iterate_jsonl(doc_["properties"], "", true, num_tuples, 0, data);
-        //         num_tuples++;
-        //         if (num_tuples == STORAGE_STANDARD_VECTOR_SIZE) {
-        //             // Do something
-        //             fprintf(stderr, "CreateExtent\n");
-        //             num_tuples = 0;
-        //             data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
-        //         }
-        //     }
-        //     if (num_tuples > 0) {
-        //         fprintf(stderr, "CreateExtent\n");
-        //     }
-        // } else if (gctype == GraphComponentType::EDGE) {
-        //     icecream::ic.enable(); IC(); icecream::ic.disable();
-        //     for (auto doc_ : docs) {
-        //         std::string_view type = doc_["type"].get_string();
-
-        //         ondemand::value labels = doc_["labels"];
-        //         D_ASSERT(labels.type() == ondemand::json_type::array);
-        //         // recursive_print_json(doc_["properties"], "", false);
-
-        //         // Get Scheam from samples
-        //     }
-        // }
-    }
-
     void _ExtractSchema(GraphComponentType gctype) {
         if (gctype == GraphComponentType::INVALID) {
-            D_ASSERT(false); // deactivate temporarily
-            // for (auto doc_ : docs) {
-            //     std::string_view type = doc_["type"].get_string();
-            //     if (type == "node") {
-            //         // fprintf(stderr, "Node\n");
-            //         ondemand::value labels = doc_["labels"];
-            //         D_ASSERT(labels.type() == ondemand::json_type::array);
-            //         int num_labels = 0;
-            //         if (labels.count_elements() >= 2) {
-            //             for (auto child : labels.get_array()) {
-            //                 std::cout << "\"" << child.get_raw_json_string() << "\"";
-            //             }
-            //         }
-            //         // recursive_print_json(doc_["properties"], "", false);
-
-            //         // Get Scheam from samples
-                    
-            //     } else if (type == "relationship") {
-            //         fprintf(stderr, "Relationship\n");
-            //         ondemand::value labels = doc_["labels"];
-            //         D_ASSERT(labels.type() == ondemand::json_type::array);
-            //         // recursive_print_json(doc_["properties"], "", false);
-
-            //         // Get Scheam from samples
-            //     }
-            // }
+            throw NotImplementedException("ExtractSchema for INVALID is not implemented yet");
         } else if (gctype == GraphComponentType::VERTEX) {
             int num_tuples = 0;
-            // TODO check; always same order?
             for (auto doc_ : docs) { // iterate each jsonl document; one for each vertex
                 // properties object has vertex properties; assume Neo4J dump file format
                 std::vector<uint32_t> tmp_vec;
@@ -606,10 +304,6 @@ public:
 
                 int64_t schema_id;
                 sch_HT.find(tmp_vec, schema_id);
-                // for (auto i = 0; i < tmp_vec.size(); i++) {
-                //     fprintf(stdout, "%ld ", tmp_vec[i]);
-                // }
-                // fprintf(stdout, ": %ld\n", schema_id);
                 if (schema_id == INVALID_TUPLE_GROUP_ID) { // not found
                     schema_id = schema_groups_with_num_tuples.size();
                     sch_HT.insert(tmp_vec, schema_id);
@@ -645,54 +339,11 @@ public:
 
                 ondemand::value labels = doc_["labels"];
                 D_ASSERT(labels.type() == ondemand::json_type::array);
-                // recursive_print_json(doc_["properties"], "", false);
-
-                // Get Scheam from samples
             }
         }
     }
 
-    void _ExtractSchemaBagSemantic(GraphComponentType gctype) {
-        D_ASSERT(false);
-        // if (gctype == GraphComponentType::INVALID) {
-        //     D_ASSERT(false); // deactivate temporarily
-        // } else if (gctype == GraphComponentType::VERTEX) {
-        //     int num_tuples = 0;
-        //     // TODO check; always same order?
-        //     for (auto doc_ : docs) { // iterate each jsonl document; one for each vertex
-        //         // properties object has vertex properties; assume Neo4j dump file format
-        //         std::vector<uint64_t> tmp_vec;
-
-        //         string current_prefix = "";
-        //         recursive_collect_key_paths_jsonl(doc_["properties"], current_prefix, true, tmp_vec, num_tuples);
-
-        //         int64_t schema_id;
-        //         schema_id = schema_groups.size();
-        //         schema_groups.push_back(tmp_vec);
-        //         corresponding_schemaID.push_back(schema_id);
-        //         num_tuples++;
-        //     }
-        //     schema_property_freq_vec.resize(property_freq_vec.size(), 0);
-        //     for (size_t i = 0; i < schema_groups.size(); i++) {
-        //         for (size_t j = 0; j < schema_groups[i].size(); j++) {
-        //             schema_property_freq_vec[schema_groups[i][j]]++;
-        //         }
-        //     }
-        //     printf("schema_groups.size = %ld\n", schema_groups.size());
-
-        //     return;
-        // } else if (gctype == GraphComponentType::EDGE) {
-        //     D_ASSERT(false); // not implemented yet
-        // }
-    }
-
     void _PreprocessSchemaForClustering(bool use_setsim_algo = true) {
-        // Sort tokens by frequency
-        // printf("Schema Freq vec\n");
-        // for (int i = 0; i < schema_property_freq_vec.size(); i++) {
-        //     printf("%d-th (%s) freq: %ld, ", i, id_to_property_vec[i].c_str(), schema_property_freq_vec[i]);
-        // }
-        // printf("\n");
         order.resize(schema_property_freq_vec.size());
         std::iota(order.begin(), order.end(), 0);
         std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
@@ -705,13 +356,7 @@ public:
         for (size_t i = 0; i < order.size(); i++) {
             inv_order[order[i]] = i;
         }
-        // for (int i = 0; i < order.size(); i++) {
-        //     printf("%ld - freq %ld, ", order[i], schema_property_freq_vec[order[i]]);
-        // }
-        // printf("\n");
 
-        // TODO sort schema groups by their size
-        // TODO? do not use addrecord to avoid copy?
         for (size_t i = 0; i < schema_groups_with_num_tuples.size(); i++) {
             IntRecord rec;
             // rec.recordid = i;
@@ -721,46 +366,8 @@ public:
             std::sort(rec.tokens.begin(), rec.tokens.end(), [&](size_t a, size_t b) {
                 return a < b;
             });
-            // for (size_t x = 0; x < rec.tokens.size(); x++) {
-            //     printf("%ld, ", rec.tokens[x]);
-            // }
-            // printf("\n");
             cluster_algo->addrecord(rec);
         }
-    }
-
-    void _GenerateDistanceMatrix() {
-        // distance_matrix = Eigen::MatrixXd::Zero(schema_groups.size(), schema_groups.size());
-        
-        // for (auto i = 0; i < schema_groups.size(); i++) {
-        //     std::sort(schema_groups[i].begin(), schema_groups[i].end());
-        // }
-
-        // double min_distance = std::numeric_limits<double>::max();
-        // for (auto i = 0; i < schema_groups.size(); i++) {
-        //     for (auto j = i + 1; j < schema_groups.size(); j++) {
-        //         double distance = _ComputeDistance(i, j);
-        //         distance_matrix(i, j) = distance;
-        //         distance_matrix(j, i) = distance;
-
-        //         if (distance < min_distance) {
-        //             min_distance = distance;
-        //         }
-        //     }
-        // }
-
-        // if (min_distance < 0) {
-        //     min_distance = -min_distance;
-        //     for (auto i = 0; i < schema_groups.size(); i++) {
-        //         for (auto j = i + 1; j < schema_groups.size(); j++) {
-        //             distance_matrix(i, j) += (min_distance + 1.0);
-        //             distance_matrix(j, i) += (min_distance + 1.0);
-        //         }
-        //     }
-        // }
-
-        // std::cout << "Generate Distance Matrix Done!\n";
-        // std::cout << distance_matrix << std::endl;
     }
 
     double _ComputeDistance(size_t rowid1, size_t rowid2) {
@@ -1103,39 +710,6 @@ public:
         else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
-    void _ComputeCoordinateMatrix() {
-        // Mij = ((D1j)^2 + (Di1)^2 - (Dij)^2) / 2
-        // Eigen::MatrixXd gram_matrix =
-        //     Eigen::MatrixXd::Zero(schema_groups.size(), schema_groups.size());
-        // for (auto i = 0; i < schema_groups.size(); i++) {
-        //     for (auto j = 0; j < schema_groups.size(); j++) {
-        //         // TODO efficient way?
-        //         gram_matrix(i, j) =
-        //             0.5 * (distance_matrix(0, j) * distance_matrix(0, j) +
-        //                    distance_matrix(i, 0) * distance_matrix(i, 0) -
-        //                    distance_matrix(i, j) * distance_matrix(i, j));
-        //     }
-        // }
-
-        // std::cout << "Generate Gram Matrix Done!\n";
-        // std::cout << gram_matrix << std::endl;
-        // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(gram_matrix);
-        // if (eigensolver.info() != Eigen::Success) {
-        //     throw InternalException("Failed to compute eigenvalues");
-        // }
-
-        // std::cout << "Eigen decomposition results\n";
-        // // std::cout << "The eigenvalues of A are:\n" << eigensolver.eigenvalues() << std::endl;
-        // // std::cout << "Here's a matrix whose columns are eigenvectors of A \n"
-        // //     << "corresponding to these eigenvalues:\n"
-        // //     << eigensolver.eigenvectors() << std::endl;
-        // std::cout << eigensolver.eigenvectors() << std::endl;
-        // std::cout << eigensolver.eigenvalues() << std::endl;
-        // std::cout << eigensolver.eigenvalues().array().sqrt().matrix() << std::endl;
-        // std::cout << eigensolver.eigenvectors() * eigensolver.eigenvalues().array().sqrt().matrix().asDiagonal() << std::endl;
-    }
-
-
     double CalculateCost(
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group1,
         std::pair<std::vector<uint32_t>, uint64_t> &schema_group2,
@@ -1233,8 +807,6 @@ public:
             }
         }
         num_clusters = cluster_to_rid_lists.size();
-
-        // TODO phase 2
     }
 
     void _ClusterSchemaDBScan() {
@@ -2492,7 +2064,7 @@ public:
             }
             
             int64_t doc_idx = 0;
-            docs = parser.iterate_many(json); // TODO w/o parse?
+            docs = parser.iterate_many(json);
             for (auto doc_ : docs) {
                 uint64_t cluster_id =
                     sg_to_cluster_vec[corresponding_schemaID[doc_idx++]];
@@ -2760,10 +2332,6 @@ private:
                     case ondemand::number_type::unsigned_integer:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::BIGINT);
                         break;
-                    // jhha: enfoce a property cannot be the signed and unsigned integer at the same time
-                    // case ondemand::number_type::unsigned_integer:
-                    //     current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::UBIGINT);
-                    //     break;
                     case ondemand::number_type::floating_point_number:
                         current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::DOUBLE);
                         break;
@@ -2779,14 +2347,12 @@ private:
                     break;
                 }
                 case ondemand::json_type::null: {
-                    // @jhha:
                     current_prefix = current_prefix + std::string("_") + std::to_string((uint8_t)LogicalTypeId::VARCHAR);
                     break;
                 }
                 }
 
-                //if (in_array && field.value().type() != ondemand::json_type::object) transactions[current_idx].emplace_back(current_prefix);
-                if (field.value().type() != ondemand::json_type::object) { // TODO stop traversing if (child != (obj or arr))
+                if (field.value().type() != ondemand::json_type::object) { 
                     uint64_t prop_id;
                     auto it = property_to_id_map.find(current_prefix);
                     if (it == property_to_id_map.end()) {
@@ -3104,7 +2670,6 @@ private:
                 break;
             }
             case ondemand::number_type::unsigned_integer: {
-                // jhha: assume unsigned integer column's type is int64_t
                 int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
                 column_ptr[current_idx] = static_cast<int64_t>(element.get_uint64());
                 FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
@@ -3136,9 +2701,6 @@ private:
             break;
         }
         case ondemand::json_type::null: {
-            // We check that the value is indeed null
-            // otherwise: an error is thrown.
-            // @jhha: think this value as a empty string (temporal)
             std::string_view string_val = "";
             auto data_ptr = data.data[current_col_idx].GetData();
             ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
@@ -3149,7 +2711,7 @@ private:
         }
     }
 
-    void recursive_iterate_json(ondemand::value element, std::string current_prefix, bool in_array, int current_idx, int current_col_idx, DataChunk &data) { // TODO remove transactions & current_idx    
+    void recursive_iterate_json(ondemand::value element, std::string current_prefix, bool in_array, int current_idx, int current_col_idx, DataChunk &data) {
         D_ASSERT(false);
         bool count_num_tuples = !in_array;
         int num_tuples = 0;
@@ -3209,7 +2771,6 @@ private:
                         fprintf(stderr, "CreateExtent %d\n", num_tuples);
                         data.SetCardinality(num_tuples);
                         ExtentID new_eid;
-                        // ExtentID new_eid = ext_mng->CreateExtent(*client.get(), data, *property_schema_cat); // TODO
                         property_schema_cat->AddExtent(new_eid);
 
                         if (load_edge) {
@@ -3264,7 +2825,6 @@ private:
                 // CreateExtent
                 data.SetCardinality(num_tuples);
                 ExtentID new_eid;
-                // ExtentID new_eid = ext_mng->CreateExtent(*client.get(), data, *property_schema_cat); // TODO
                 property_schema_cat->AddExtent(new_eid);
                 if (load_edge) {
                     // Initialize pid base

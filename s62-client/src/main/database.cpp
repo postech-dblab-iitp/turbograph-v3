@@ -14,7 +14,7 @@
 #include "common/boost.hpp"
 
 // #include "catalog/catalog_entry/schema_catalog_entry.hpp" 
-#include "parser/parsed_data/create_schema_info.hpp" // TODO remove this..
+#include "parser/parsed_data/create_schema_info.hpp"
 
 #ifndef DUCKDB_NO_THREADS
 #include "common/thread.hpp"
@@ -198,7 +198,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
 	// fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
 	
-	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
+	bool create_new_db = (num_objects_in_catalog == 0);
 	if (create_new_db) {
 		// Make a new catalog
 		catalog = make_unique<Catalog>(*this, catalog_shm);

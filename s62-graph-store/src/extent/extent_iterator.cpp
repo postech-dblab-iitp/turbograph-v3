@@ -2170,10 +2170,6 @@ bool ExtentIterator::GetNextExtentInRowFormat(
         type_sizes.push_back(type_size);
     }
 
-    // Null handling
-    // @jhha: this implementation is not discusssed with tslee
-    // Though we used row format, we still need to handle null values
-    // Therefore, we use the null bitmap as ususal, but this may not efficient
     ValidityMask src_validities[cur_ext_property_type.size()];
     for (size_t i = 0; i < cur_ext_property_type.size(); i++) {
         if (cur_ext_property_type[i] != LogicalType::ID) {

@@ -759,7 +759,7 @@ void PhysicalAdjIdxJoin::FillLHSOutput(AdjIdxJoinState &state, DataChunk &input,
                                        DataChunk &chunk) const
 {
     idx_t schema_idx = input.GetSchemaIdx();
-    schema_idx = 0;  // TODO 240117 tslee maybe we don't need
+    schema_idx = 0; 
     D_ASSERT(schema_idx < state.outer_col_maps.size());
     D_ASSERT(input.ColumnCount() == state.outer_col_maps[schema_idx].size());
     for (idx_t colId = 0; colId < input.ColumnCount(); colId++) {

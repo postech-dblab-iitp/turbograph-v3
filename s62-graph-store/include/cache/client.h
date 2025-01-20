@@ -48,7 +48,6 @@ public:
 
   int Subscribe(uint64_t object_id);
 
-  // tslee added for debugging purpose
   int GetRefCount(uint64_t object_id);
   void PrintRemainingMemory();
 

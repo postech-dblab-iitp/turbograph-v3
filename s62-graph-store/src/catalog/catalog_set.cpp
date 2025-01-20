@@ -157,13 +157,6 @@ void CatalogSet::Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segm
 
 bool CatalogSet::CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
                              unordered_set<CatalogEntry *> &dependencies) {
-	//auto &transaction = Transaction::GetTransaction(context);
-	// lock the catalog for writing
-	// lock_guard<mutex> write_lock(catalog->write_lock); // TODO 240103 tslee disable lock not work
-	// lock this catalog set to disallow reading
-	// lock_guard<mutex> read_lock(catalog_lock); // TODO 240103 tslee disable lock not work
-
-	// first check if the entry exists in the unordered set
 	idx_t entry_index;
 	auto mapping_value = GetMapping(context, name);
 	if (mapping_value == nullptr || mapping_value->deleted) {
@@ -209,7 +202,6 @@ bool CatalogSet::CreateEntry(ClientContext &context, const string &name, Catalog
 	value->set = this;
 
 	// now add the dependency set of this object to the dependency manager
-	// catalog->dependency_manager->AddObject(context, value, dependencies); // TODO 240103 tslee disabled this.. error occur
 
 	value->child = move(entries->at(entry_index));
 	value->child->parent = value;

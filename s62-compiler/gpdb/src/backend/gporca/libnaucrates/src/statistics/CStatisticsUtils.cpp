@@ -1903,9 +1903,6 @@ CStatisticsUtils::ComputeCardUpperBounds(
 		  // technique used to estimate max source cardinality in the output stats object
 )
 {
-	/**
-	 * @brief jhha: Disable this function (currently, Orca does not use this)
-	 */
 	// GPOS_ASSERT(NULL != output_stats);
 	// GPOS_ASSERT(CStatistics::EcbmSentinel != card_bounding_method);
 

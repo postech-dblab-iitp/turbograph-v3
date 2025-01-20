@@ -18,7 +18,7 @@ class SchemaFlowGraph {  // for each pipeline
                     vector<OperatorType> &pipeline_operator_types,
                     vector<vector<uint64_t>> &num_schemas_of_childs,
                     vector<vector<Schema>> &pipeline_schemas,
-                    vector<vector<Schema>> &other_source_schemas, // @jhha: temporal impl. please remove
+                    vector<vector<Schema>> &other_source_schemas,
                     vector<Schema> &pipeline_union_schemas)
         : pipeline_length(pipeline_length),
           pipeline_operator_types(std::move(pipeline_operator_types)),
@@ -127,7 +127,6 @@ class SchemaFlowGraph {  // for each pipeline
         return true;
     }
 
-    // @jhha: temporal impl. please remove
     void ReplaceToOtherSourceSchema()
     {
         D_ASSERT(other_source_schemas.size() > 0);
@@ -171,8 +170,7 @@ class SchemaFlowGraph {  // for each pipeline
     vector<vector<uint64_t>> num_schemas_of_childs;
     vector<vector<idx_t>> flow_graph;
     vector<vector<Schema>> schema_per_operator;
-    vector<vector<Schema>> other_source_schemas;  // @jhha: temporal impl. please remove
-    vector<Schema> union_schema_per_operator;
+    vector<vector<Schema>> other_source_schemas;
     bool is_sfg_exists = false;
     bool is_schema_changed_flag = true;
     idx_t cur_source_idx = 0;

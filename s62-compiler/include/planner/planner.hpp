@@ -683,7 +683,7 @@ private:
 	PipelineOperatorTypes pipeline_operator_types;
 	PipelineNumSchemas num_schemas_of_childs;
 	PipelineSchemas pipeline_schemas;
-	PipelineSchemas other_source_schemas; // @jhha: temporal impl. please remove
+	PipelineSchemas other_source_schemas;
 	PipelineUnionSchema pipeline_union_schema;
 	vector<s62::SchemaFlowGraph> sfgs;
 	bool generate_sfg = false;

@@ -23,7 +23,7 @@
 #include <boost/filesystem.hpp>
 
 
-#include <nlohmann/json.hpp>	// TODO remove json and use that of boost
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 #include <icecream.hpp>
@@ -238,7 +238,6 @@ class InputParser{
         	edge_files.push_back(pair_to_insert);
         	load_edge = true;
         } else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
-        	// TODO check if a corresponding forward edge exists
         	std::pair<std::string, std::string> pair_to_insert;
         	pair_to_insert.first = std::string(*itr).substr(25);
         	itr++;

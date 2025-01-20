@@ -100,12 +100,6 @@ public:
 					CExpressionHandle &	 // exprhdl
 	) const
 	{
-		/**
-		 * jhha: This limits the join depth of
-		 * UNION ALL to 1. In S62, we consider
-		 * tables under the UNION ALL as a
-		 * single get.
-		*/
 		return 1;
 	}
 

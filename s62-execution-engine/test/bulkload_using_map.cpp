@@ -299,13 +299,6 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		DataChunk adj_list_chunk;
 		vector<LogicalType> adj_list_chunk_types = { edge_direction_type };
 		vector<data_ptr_t> adj_list_datas(1);
-		
-		/**
-		 * jhha: to reduce the adjacency list size,
-		 * we record num adj list in front of the vector
-		 * therefore, the structur would be
-		 * [num_adj_list, offsets, adj lists]
-		 */
 
 		// TODO directly copy into buffer in AppendChunk.. to avoid copy
 		vector<idx_t> tmp_adj_list_buffer;

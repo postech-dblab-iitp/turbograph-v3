@@ -835,7 +835,6 @@ private:
 		if (it != end) {
       LogicalType return_type = it->second;
       if (type_name.find("DATE_EPOCHMS") != std::string::npos) {
-        // TODO TIMESTAMP_MS is not equal to DATE_EPOCHMS originally, but use temporarily
         internal_key_types.push_back(LogicalType::TIMESTAMP_MS);
       } else {
         internal_key_types.push_back(return_type);

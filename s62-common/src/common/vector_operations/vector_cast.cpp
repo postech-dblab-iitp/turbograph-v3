@@ -792,8 +792,6 @@ static bool StructCastSwitch(Vector &source, Vector &result, idx_t count, string
 }
 
 bool VectorOperations::TryCast(Vector &source, Vector &result, idx_t count, string *error_message, bool strict) {
-	// D_ASSERT(source.GetType() != result.GetType()); // TODO 240315 tslee temporarily disable
-	// first switch on source type
 	switch (source.GetType().id()) {
 	case LogicalTypeId::BOOLEAN:
 		return NumericCastSwitch<bool>(source, result, count, error_message);

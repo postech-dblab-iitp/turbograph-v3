@@ -79,7 +79,7 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
     }
-    if (is_root) { //@jhha: temporal implementation for OR filter
+    if (is_root) {
         currentORGroupID = 0;
     }
     return expression;
@@ -306,14 +306,6 @@ unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
     unordered_map<table_id_t, property_id_t> &propertyIDPerTable,
     uint64_t prop_key_id)
 {
-    // assert(!properties.empty());
-    // auto anchorProperty = properties[0];
-
-    // tslee: 250114 disabled for performance issue
-    // // conform data type between multi table access
-    // validatePropertiesWithSameDataType(properties, anchorProperty.dataType,
-    //                                    anchorProperty.name,
-    //                                    nodeOrRel.getRawName());
     return make_unique<PropertyExpression>(
         anchorProperty.dataType, anchorProperty.name, prop_key_id, nodeOrRel,
         std::move(propertyIDPerTable));

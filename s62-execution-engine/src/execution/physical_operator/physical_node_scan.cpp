@@ -219,10 +219,6 @@ void PhysicalNodeScan::GetData(ExecutionContext &context, DataChunk &chunk,
         }
     }
     else {
-        /* TODO @jhha - Even if the minmax array does not exist,
-		 * if the number of predicate application results is 0, 
-		 * continue scanning the next area. 
-		 */
         // filter pushdown applied
         filtered_chunk_buffer.Reset(scan_types[current_schema_idx]);
         if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {

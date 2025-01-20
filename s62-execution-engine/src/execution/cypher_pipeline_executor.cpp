@@ -345,20 +345,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		*/	
 
 		if (cur_op_type == OperatorType::UNARY) {
-			/**
-			 * Q. (tslee) Why we need reset?
-			 * A. (jhha) Since we are reusing the chunk, we need to reset the chunk. 
-			 * The Execute() function assumes that the chunk is empty.
-			 * Based on the assumption, it determines return value after the execution.
-			 * If empty, NEED_MORE_INPUT. Else, HAVE_MORE_OUTPUT.
-			 * See HashJoin for the example. 
-			 * 
-			 * Suppose this pipeline. OP1 -> OP2 -> OP3 (all are unary operators).
-			 * Assume after an execution, OP2 and OP3 outputs HAVE_MORE_OUTPUT.
-			 * Due to in_process_operators logic, OP3 will be executed first, until it returns NEED_MORE_INPUT.
-			 * Then, OP2 will be executed. In this time, the output of OP2, which is the input of OP3, is resetted.
-			 * If not, OP3 can have invalid input.
-			*/
 			// D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
 			// current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 			current_output_schema_idx = 0;

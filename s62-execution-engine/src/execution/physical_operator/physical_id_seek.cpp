@@ -60,10 +60,6 @@ class IdSeekState : public OperatorState {
     vector<idx_t> eid_to_schema_idx;
     vector<idx_t> seqno_to_eid_idx;
 
-    // Selection vectors (TODO: Optimize this using pools)
-    // jhha: we cannot avoid filter_sels.
-    // Since columns scanned after filter should have
-    // difference sel vector than other columns.
     vector<SelectionVector> sels;
     vector<SelectionVector> filter_sels;
 
@@ -1483,15 +1479,6 @@ void PhysicalIdSeek::nullifyValuesForPrunedExtents(
     DataChunk &chunk, IdSeekState &state, size_t num_unpruned_extents,
     vector<vector<uint32_t>> &target_seqnos_per_extent) const
 {
-    // @jhha
-    // Some extents can be prunned during planning due to applied filters.
-    // In such cases, the seek will not load values for these extents,
-    // resulting in dummy values (not null values) in the output chunk.
-    // We need to eliminate these dummy values.
-    // Currently, we are replacing them with null values.
-    // However, we may need another solution (e.g., slice).
-    // Note: target_seqnos_per_extent have vector for all extents,
-    // including the pruned one. Those are appended in the last.
     for (u_int64_t extentIdx = num_unpruned_extents;
          extentIdx < target_seqnos_per_extent.size(); extentIdx++) {
         auto &target_seqnos = target_seqnos_per_extent[extentIdx];
@@ -1572,10 +1559,6 @@ void PhysicalIdSeek::generateOutputColIdxsForInner()
     }
 }
 
-/**
- * @brief This code is very error prone
- * Check the algorithm and fix the code @jhha
- */
 void PhysicalIdSeek::getUnionScanTypes()
 {
     if (num_total_schemas == 1)

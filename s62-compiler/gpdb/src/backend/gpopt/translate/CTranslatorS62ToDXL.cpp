@@ -399,7 +399,6 @@ CTranslatorS62ToDXL::RetrieveRelIndexInfoForNonPartTable(CMemoryPool *mp,
 	PartitionCatalogEntry *part_cat = s62::GetPartition(partition_oid);
 
 	// Get PhysicalID Index
-	// idx_t physical_id_index_oid = part_cat->GetPhysicalIDIndexOid(); // TODO 240115 tslee change this to ps_cat
 	idx_t physical_id_index_oid = rel->GetPhysicalIDIndex();
 	append_index_md(physical_id_index_oid);
 

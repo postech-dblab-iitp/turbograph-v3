@@ -918,11 +918,11 @@ LogicalPlan *Planner::lPlanProjection(const expression_vector &expressions,
                 // reuse colref
                 CColRef *orig_colref = col_factory->LookupColRef(
                     ((CScalarIdent *)(expr->Pop()))->Pcr()->Id());
-                orig_colref->MarkAsUsed();  // TODO correctness check @jhha
+                orig_colref->MarkAsUsed();
                 // also mark the previous one
                 CColRef *prev_colref = col_factory->LookupColRef(
                     ((CScalarIdent *)(expr->Pop()))->Pcr()->PrevId());
-                prev_colref->MarkAsUsed();  // TODO correctness check @jhha
+                prev_colref->MarkAsUsed(); 
                 generated_colrefs.push_back(orig_colref);
                 if (proj_expr->expressionType ==
                     kuzu::common::ExpressionType::PROPERTY) {
@@ -956,7 +956,7 @@ LogicalPlan *Planner::lPlanProjection(const expression_vector &expressions,
                 CColRef *new_colref = col_factory->PcrCreate(
                     lGetMDAccessor()->RetrieveType(scalar_op->MdidType()),
                     scalar_op->TypeModifier(), col_cname);
-                new_colref->MarkAsUsed();  // TODO correctness check @jhha
+                new_colref->MarkAsUsed();
                 generated_colrefs.push_back(new_colref);
                 new_schema.appendColumn(col_name, generated_colrefs.back());
             }
@@ -1937,7 +1937,6 @@ Planner::lExprScalarAddSchemaConformProject(
                     col_id);
             CColRef *new_colref;
 
-            // TODO 240116 tslee - this logic will not work when we have index for properties
             if ((std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._id") !=
                  0) ||
                 (std::wcsstr(colref->Name().Pstr()->GetBuffer(), L"._sid") !=
@@ -2361,9 +2360,6 @@ CTableDescriptorArray *Planner::lGetTableDescriptorArrayFromOids(
     return path_table_descs;
 }
 
-// @jhha: this pruning is not complete. It cannot fully capture complex operator tree
-// Instead, for implementation efficency, we used simple algorithm (see expresison binder)
-// Later, we need to implement more complex pruning algorithm (UNION for OR filter, INTERSECT for AND filter)
 void Planner::lPruneUnnecessaryGraphlets(
     std::vector<uint64_t> &table_oids, NodeOrRelExpression *node_expr,
     const expression_vector &prop_exprs,

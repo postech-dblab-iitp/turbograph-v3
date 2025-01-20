@@ -346,7 +346,7 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 
 	tgt_adj_column = (uint64_t *)chunk.data[state.tgtColIdx].GetData();	// always flatvector[ID]. so ok to access directly
 	// eid_adj_column = (uint64_t *)chunk.data[state.edgeColIdx].GetData();	// always flatvector[ID]. so ok to access directly
-	eid_adj_column = nullptr; // jhha: this eid column is not used.
+	eid_adj_column = nullptr; 
 
 	if (state.first_time_in_this_loop) {
 		state.first_time_in_this_loop = false;

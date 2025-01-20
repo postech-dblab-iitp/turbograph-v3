@@ -105,7 +105,6 @@ struct algo_handle_records_freq_sort {
 			return IndexedDummy;
 		}
 
-		// For each token, update the tokensseen vector // tslee we don't need this
 		typename IntRecord::Tokens::iterator toit = record.tokens.begin();
 		for(; toit != record.tokens.end(); ++toit) {
 			if(*toit > maxtokenid) {

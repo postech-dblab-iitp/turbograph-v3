@@ -99,7 +99,7 @@ CDrvdPropPlan::Derive(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	if (NULL != pdpctxt &&
 		COperator::EopPhysicalCTEConsumer == popPhysical->Eopid())
 	{
-		GPOS_ASSERT(false); // tslee added
+		GPOS_ASSERT(false);
 		CopyCTEProducerPlanProps(mp, pdpctxt, popPhysical);
 	}
 	else
