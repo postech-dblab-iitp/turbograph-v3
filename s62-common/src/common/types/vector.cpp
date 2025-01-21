@@ -919,6 +919,35 @@ void Vector::Normalify(idx_t count) {
 	}
 }
 
+template <class T>
+static void TemplatedFlattenRowStore(const Vector &source, const SelectionVector &sel, Vector &target, idx_t count) {
+	// source data
+	auto ldata = FlatVector::GetData<rowcol_t>(source);
+	auto rowcol_idx = source.GetRowColIdx();
+	auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
+	char *row_data = row_buffer->GetRowData();
+
+	// target data
+	auto tdata = FlatVector::GetData<T>(target);
+	auto &target_validity = FlatVector::Validity(target);
+
+	D_ASSERT(rowcol_idx >= 0);
+
+	for (idx_t i = 0; i < count; i++) {
+		auto idx = sel.get_index(i);
+		auto base_offset = ldata[idx].offset;
+		PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
+		if (schema_ptr->hasIthCol(rowcol_idx)) {
+			auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+			memcpy(tdata + idx,
+				row_data + offset,
+				sizeof(T));
+		} else {
+			target_validity.SetInvalid(idx);
+		}
+	}
+}
+
 void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 	switch (GetVectorType()) {
 	case VectorType::FLAT_VECTOR:
@@ -931,6 +960,84 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 		buffer = VectorBuffer::CreateStandardVector(GetType());
 		data = buffer->GetData();
 		VectorOperations::GenerateSequence(*this, count, sel, start, increment);
+		break;
+	}
+	case VectorType::ROW_VECTOR: {
+		Vector other(GetType());
+		auto &other_validity = FlatVector::Validity(other);
+
+		if(!this->is_valid) {
+			other_validity.SetAllInvalid(count);
+			break;
+		}
+
+		switch(GetType().InternalType()) {
+		case PhysicalType::BOOL:
+			TemplatedFlattenRowStore<bool>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT8:
+			TemplatedFlattenRowStore<int8_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT16:
+			TemplatedFlattenRowStore<int16_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT32:
+			TemplatedFlattenRowStore<int32_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT64:
+			TemplatedFlattenRowStore<int64_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT8:
+			TemplatedFlattenRowStore<uint8_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT16:
+			TemplatedFlattenRowStore<uint16_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT32:
+			TemplatedFlattenRowStore<uint32_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT64:
+			TemplatedFlattenRowStore<uint64_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT128:
+			TemplatedFlattenRowStore<hugeint_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::FLOAT:
+			TemplatedFlattenRowStore<float>(*this, sel, other, count);
+			break;
+		case PhysicalType::DOUBLE:
+			TemplatedFlattenRowStore<double>(*this, sel, other, count);
+			break;
+		case PhysicalType::INTERVAL:
+			TemplatedFlattenRowStore<interval_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::VARCHAR: {
+			auto ldata = FlatVector::GetData<rowcol_t>(*this);
+			auto rowcol_idx = this->GetRowColIdx();
+			auto *row_buffer = (VectorRowStoreBuffer *)(this->GetAuxiliary().get());
+			char *row_data = row_buffer->GetRowData();
+			auto tdata = FlatVector::GetData<string_t>(other);
+			auto &target_validity = FlatVector::Validity(other);
+
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto base_offset = ldata[idx].offset;
+				PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
+				if (schema_ptr->hasIthCol(rowcol_idx)) {
+					auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+					string_t str = *((string_t *)(row_data + offset));
+					tdata[idx] = StringVector::AddStringOrBlob(other, str);
+				} else {
+					target_validity.SetInvalid(idx);
+				}
+			}
+			break;
+		}
+		default:
+			throw InternalException("Unimplemented type for VectorOperations::Normalify");
+		}
+
+		this->Reference(other);
 		break;
 	}
 	default:
@@ -990,134 +1097,10 @@ void Vector::Sequence(int64_t start, int64_t increment) {
 
 void Vector::Serialize(idx_t count, Serializer &serializer) {
 	D_ASSERT(false);
-	/*auto &type = GetType();
-
-	VectorData vdata;
-	Orrify(count, vdata);
-
-	const auto write_validity = (count > 0) && !vdata.validity.AllValid();
-	serializer.Write<bool>(write_validity);
-	if (write_validity) {
-		ValidityMask flat_mask(count);
-		for (idx_t i = 0; i < count; ++i) {
-			auto row_idx = vdata.sel->get_index(i);
-			flat_mask.Set(i, vdata.validity.RowIsValid(row_idx));
-		}
-		serializer.WriteData((const_data_ptr_t)flat_mask.GetData(), flat_mask.ValidityMaskSize(count));
-	}
-	if (TypeIsConstantSize(type.InternalType())) {
-		// constant size type: simple copy
-		idx_t write_size = GetTypeIdSize(type.InternalType()) * count;
-		auto ptr = unique_ptr<data_t[]>(new data_t[write_size]);
-		VectorOperations::WriteToStorage(*this, count, ptr.get());
-		serializer.WriteData(ptr.get(), write_size);
-	} else {
-		switch (type.InternalType()) {
-		case PhysicalType::VARCHAR: {
-			auto strings = (string_t *)vdata.data;
-			for (idx_t i = 0; i < count; i++) {
-				auto idx = vdata.sel->get_index(i);
-				auto source = !vdata.validity.RowIsValid(idx) ? NullValue<string_t>() : strings[idx];
-				serializer.WriteStringLen((const_data_ptr_t)source.GetDataUnsafe(), source.GetSize());
-			}
-			break;
-		}
-		case PhysicalType::STRUCT: {
-			Normalify(count);
-			auto &entries = StructVector::GetEntries(*this);
-			for (auto &entry : entries) {
-				entry->Serialize(count, serializer);
-			}
-			break;
-		}
-		case PhysicalType::LIST: {
-			auto &child = ListVector::GetEntry(*this);
-			auto list_size = ListVector::GetListSize(*this);
-
-			// serialize the list entries in a flat array
-			auto data = unique_ptr<list_entry_t[]>(new list_entry_t[count]);
-			auto source_array = (list_entry_t *)vdata.data;
-			for (idx_t i = 0; i < count; i++) {
-				auto idx = vdata.sel->get_index(i);
-				auto source = source_array[idx];
-				data[i].offset = source.offset;
-				data[i].length = source.length;
-			}
-
-			// write the list size
-			serializer.Write<idx_t>(list_size);
-			serializer.WriteData((data_ptr_t)data.get(), count * sizeof(list_entry_t));
-
-			child.Serialize(list_size, serializer);
-			break;
-		}
-		default:
-			throw InternalException("Unimplemented variable width type for Vector::Serialize!");
-		}
-	}*/
 }
 
 void Vector::Deserialize(idx_t count, Deserializer &source) {
 	D_ASSERT(false);
-	/*auto &type = GetType();
-
-	auto &validity = FlatVector::Validity(*this);
-	validity.Reset();
-	const auto has_validity = source.Read<bool>();
-	if (has_validity) {
-		validity.Initialize(count);
-		source.ReadData((data_ptr_t)validity.GetData(), validity.ValidityMaskSize(count));
-	}
-
-	if (TypeIsConstantSize(type.InternalType())) {
-		// constant size type: read fixed amount of data from
-		auto column_size = GetTypeIdSize(type.InternalType()) * count;
-		auto ptr = unique_ptr<data_t[]>(new data_t[column_size]);
-		source.ReadData(ptr.get(), column_size);
-
-		VectorOperations::ReadFromStorage(ptr.get(), count, *this);
-	} else {
-		switch (type.InternalType()) {
-		case PhysicalType::VARCHAR: {
-			auto strings = FlatVector::GetData<string_t>(*this);
-			for (idx_t i = 0; i < count; i++) {
-				// read the strings
-				auto str = source.Read<string>();
-				// now add the string to the StringHeap of the vector
-				// and write the pointer into the vector
-				if (validity.RowIsValid(i)) {
-					strings[i] = StringVector::AddStringOrBlob(*this, str);
-				}
-			}
-			break;
-		}
-		case PhysicalType::STRUCT: {
-			auto &entries = StructVector::GetEntries(*this);
-			for (auto &entry : entries) {
-				entry->Deserialize(count, source);
-			}
-			break;
-		}
-		case PhysicalType::LIST: {
-			// read the list size
-			auto list_size = source.Read<idx_t>();
-			ListVector::Reserve(*this, list_size);
-			ListVector::SetListSize(*this, list_size);
-
-			// read the list entry
-			auto list_entries = FlatVector::GetData(*this);
-			source.ReadData(list_entries, count * sizeof(list_entry_t));
-
-			// deserialize the child vector
-			auto &child = ListVector::GetEntry(*this);
-			child.Deserialize(list_size, source);
-
-			break;
-		}
-		default:
-			throw InternalException("Unimplemented variable width type for Vector::Deserialize!");
-		}
-	}*/
 }
 
 void Vector::SetVectorType(VectorType vector_type_p) {

@@ -1,7 +1,24 @@
 #include "s62dbwrappers.hpp"
 #include "catalog/catalog_wrapper.hpp"
 #include "client_context.hpp"
-#include "utils/s62cache.hpp"
+// #include <setjmp.h>
+
+// #define GP_WRAP_START                                            \
+// 	sigjmp_buf local_sigjmp_buf;                                 \
+// 	{                                                            \
+// 		CAutoExceptionStack aes((void **) &PG_exception_stack,   \
+// 								(void **) &error_context_stack); \
+// 		if (0 == sigsetjmp(local_sigjmp_buf, 0))                 \
+// 		{                                                        \
+// 			aes.SetLocalJmp(&local_sigjmp_buf)
+
+// #define GP_WRAP_END                                        \
+// 	}                                                      \
+// 	else                                                   \
+// 	{                                                      \
+// 		GPOS_RAISE(gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError); \
+// 	}                                                      \
+// 	}
 
 using namespace s62;
 

@@ -270,33 +270,6 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 
 	SelectionVector owned_sel;
 	const SelectionVector *sel = &sel_p;
-	switch (source.GetVectorType()) {
-	// case VectorType::DICTIONARY_VECTOR: {
-	// 	// dictionary vector: merge selection vectors
-	// 	auto &child = DictionaryVector::Child(source);
-	// 	auto &dict_sel = DictionaryVector::SelVector(source);
-	// 	// merge the selection vectors and verify the child
-	// 	auto new_buffer = dict_sel.Slice(*sel, source_count);
-	// 	SelectionVector merged_sel(new_buffer);
-	// 	VectorOperations::Copy(child, target, merged_sel, source_count, source_offset, target_offset);
-	// 	return;
-	// }
-	// case VectorType::SEQUENCE_VECTOR: {
-	// 	int64_t start, increment;
-	// 	Vector seq(source.GetType());
-	// 	SequenceVector::GetSequence(source, start, increment);
-	// 	VectorOperations::GenerateSequence(seq, source_count, *sel, start, increment);
-	// 	VectorOperations::Copy(seq, target, *sel, source_count, source_offset, target_offset);
-	// 	return;
-	// }
-	// case VectorType::CONSTANT_VECTOR:
-	// 	sel = ConstantVector::ZeroSelectionVector(copy_count, owned_sel);
-	// 	break; // carry on with below code
-	case VectorType::ROW_VECTOR:
-		break;
-	default:
-		throw NotImplementedException("FIXME unimplemented vector type for VectorOperations::Copy");
-	}
 
 	if (copy_count == 0) {
 		return;
@@ -400,75 +373,11 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 		break;
 	}
 	case PhysicalType::STRUCT: {
-		throw NotImplementedException("CopyRowStore");
-		// auto &source_children = StructVector::GetEntries(source);
-		// auto &target_children = StructVector::GetEntries(target);
-		// D_ASSERT(source_children.size() == target_children.size());
-		// for (idx_t i = 0; i < source_children.size(); i++) {
-		// 	VectorOperations::Copy(*source_children[i], *target_children[i], *sel, source_count, source_offset,
-		// 	                       target_offset);
-		// }
+		throw NotImplementedException("CopyRowStore");   
 		break;
 	}
 	case PhysicalType::LIST: {
 		throw NotImplementedException("CopyRowStore");
-		// D_ASSERT(target.GetType().InternalType() == PhysicalType::LIST);
-
-		// auto &source_child = ListVector::GetEntry(source);
-		// auto sdata = FlatVector::GetData<list_entry_t>(source);
-		// auto tdata = FlatVector::GetData<list_entry_t>(target);
-
-		// if (target_vector_type == VectorType::CONSTANT_VECTOR) {
-		// 	// If we are only writing one value, then the copied values (if any) are contiguous
-		// 	// and we can just Append from the offset position
-		// 	if (!tmask.RowIsValid(target_offset)) {
-		// 		break;
-		// 	}
-		// 	auto source_idx = sel->get_index(source_offset);
-		// 	auto &source_entry = sdata[source_idx];
-		// 	const idx_t source_child_size = source_entry.length + source_entry.offset;
-
-		// 	//! overwrite constant target vectors.
-		// 	ListVector::SetListSize(target, 0);
-		// 	ListVector::Append(target, source_child, source_child_size, source_entry.offset);
-
-		// 	auto &target_entry = tdata[target_offset];
-		// 	target_entry.length = source_entry.length;
-		// 	target_entry.offset = 0;
-		// } else {
-		// 	//! if the source has list offsets, we need to append them to the target
-		// 	//! build a selection vector for the copied child elements
-		// 	vector<sel_t> child_rows;
-		// 	for (idx_t i = 0; i < copy_count; ++i) {
-		// 		if (tmask.RowIsValid(target_offset + i)) {
-		// 			auto source_idx = sel->get_index(source_offset + i);
-		// 			auto &source_entry = sdata[source_idx];
-		// 			for (idx_t j = 0; j < source_entry.length; ++j) {
-		// 				child_rows.emplace_back(source_entry.offset + j);
-		// 			}
-		// 		}
-		// 	}
-		// 	idx_t source_child_size = child_rows.size();
-		// 	SelectionVector child_sel(child_rows.data());
-
-		// 	idx_t old_target_child_len = ListVector::GetListSize(target);
-
-		// 	//! append to list itself
-		// 	ListVector::Append(target, source_child, child_sel, source_child_size);
-
-		// 	//! now write the list offsets
-		// 	for (idx_t i = 0; i < copy_count; i++) {
-		// 		auto source_idx = sel->get_index(source_offset + i);
-		// 		auto &source_entry = sdata[source_idx];
-		// 		auto &target_entry = tdata[target_offset + i];
-
-		// 		target_entry.length = source_entry.length;
-		// 		target_entry.offset = old_target_child_len;
-		// 		if (tmask.RowIsValid(target_offset + i)) {
-		// 			old_target_child_len += target_entry.length;
-		// 		}
-		// 	}
-		// }
 		break;
 	}
 	default:
@@ -476,10 +385,6 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 		                              TypeIdToString(source.GetType().InternalType()));
 	}
 
-	// if (target_vector_type != VectorType::FLAT_VECTOR) {
-	// 	target.SetVectorType(target_vector_type);
-	// }
-	// target.SetVectorType(VectorType::ROW_VECTOR);
 	target.SetVectorType(VectorType::FLAT_VECTOR);
 }
 
