@@ -44,7 +44,7 @@ StoreAPIResult S62GraphStore::InitializeScan(
     vector<vector<idx_t>> column_idxs;
     for (idx_t i = 0; i < oids.size(); i++) {
         PropertySchemaCatalogEntry
-            *ps_cat_entry =  // TODO get this in compilation process?
+            *ps_cat_entry =
             (PropertySchemaCatalogEntry *)cat_instance.GetEntry(
                 client, DEFAULT_SCHEMA, oids[i]);
 
@@ -73,7 +73,7 @@ StoreAPIResult S62GraphStore::InitializeScan(
     vector<vector<idx_t>> column_idxs;
     for (idx_t i = 0; i < oids->size(); i++) {
         PropertySchemaCatalogEntry
-            *ps_cat_entry =  // TODO get this in compilation process?
+            *ps_cat_entry =
             (PropertySchemaCatalogEntry *)cat_instance.GetEntry(
                 client, DEFAULT_SCHEMA, oids->at(i));
 
@@ -378,13 +378,6 @@ StoreAPIResult S62GraphStore::InitializeVertexIndexSeek(
         _fillTargetSeqnosVecAndBoundaryPosition(input.size(), prev_eid);
     }
 
-    /**
-	 * TODO: this code should be rmoved! this is temporal code
-	 * Also, this is very slow due to GetEntry access.
-	 * Optimize this.
-	*/
-    // remove extent ids to be removed due to filter
-    // target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
     auto partition_id = GET_PARTITION_ID_FROM_EID(prev_eid);
     for (auto i = 0; i < target_eid_flags.size(); i++) {
         if (target_eid_flags[i]) {
@@ -413,7 +406,6 @@ StoreAPIResult S62GraphStore::InitializeVertexIndexSeek(
         target_seqnos_per_extent.push_back({vec.begin(), vec.begin() + cursor});
     }
 
-    // TODO maybe we don't need this..
     if (is_multi_schema) {
         ranges::sort(ranges::views::zip(mapping_idxs, target_eids,
                                         target_seqnos_per_extent),
@@ -566,9 +558,7 @@ StoreAPIResult S62GraphStore::InitializeEdgeIndexSeek(
             : (UBigIntValue::Get(input.GetValue(nodeColIdx, 0)) >> 32);
     for (size_t i = 0; i < input.size(); i++) {
         uint64_t vid = UBigIntValue::Get(input.GetValue(nodeColIdx, i));
-        ExtentID target_eid =
-            vid >>
-            32;  // TODO make this functionality as Macro --> GetEIDFromPhysicalID
+        ExtentID target_eid = vid >> 32;
         target_eids.push_back(target_eid);
         if (prev_eid != target_eid)
             boundary_position.push_back(i - 1);

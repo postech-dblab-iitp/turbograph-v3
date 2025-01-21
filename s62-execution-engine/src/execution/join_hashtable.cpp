@@ -467,14 +467,8 @@ void ScanStructure::GatherResult(Vector &result, const SelectionVector &sel_vect
 }
 
 void ScanStructure::NextInnerJoin(DataChunk &keys, DataChunk &left, DataChunk &result) {
-	// S62 - we do not need this condition because we can drop useless column after join
-	// D_ASSERT(result.ColumnCount() == left.ColumnCount() + ht.build_types.size());
 	if (this->count == 0) {
 		// no pointers left to chase
-		/**
-		 * TODO: check correctness for this temporal code.
-		 * We need reset the output chunk.
-		*/
 		result.SetCardinality(0); 
 		return;
 	}
