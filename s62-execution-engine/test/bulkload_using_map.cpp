@@ -25,7 +25,7 @@
 #include <boost/filesystem.hpp>
 #include <Python.h>
 
-#include <nlohmann/json.hpp>	// TODO remove json and use that of boost
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 #include <icecream.hpp>
@@ -122,7 +122,7 @@ void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
 }
 
 void InitializeDiskAio() {
-	fprintf(stdout, "\nInitialize Disk Aio Parameters\n"); // TODO use debug options
+	fprintf(stdout, "\nInitialize Disk Aio Parameters\n");
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 1;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
@@ -238,19 +238,12 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		PartitionCatalogEntry *src_vertex_part_cat_entry = 
 			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
 
-		// vector<idx_t> dst_vertex_part_cat_oids = 
-		// 	graph_cat->LookupPartition(*client.get(), { dst_column_name }, GraphComponentType::VERTEX);
-		// if (dst_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input dst key corresponds to multiple vertex partitions.");
-		// PartitionCatalogEntry *dst_vertex_part_cat_entry = 
-		// 	(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
 		src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
-		// graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
-		// partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	} else {
 		D_ASSERT(false);
 	}
 	
-	idx_t adj_col_idx; // TODO bug fix
+	idx_t adj_col_idx;
 	for (auto i = 0; i < vertex_ps_cat_oids.size(); i++) {
 		PropertySchemaCatalogEntry *vertex_ps_cat_entry = 
 			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[i]);
@@ -300,7 +293,6 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		vector<LogicalType> adj_list_chunk_types = { edge_direction_type };
 		vector<data_ptr_t> adj_list_datas(1);
 
-		// TODO directly copy into buffer in AppendChunk.. to avoid copy
 		vector<idx_t> tmp_adj_list_buffer;
 		const size_t slot_for_num_adj = 1;
 
@@ -387,7 +379,7 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 
 				// change lid -> pid
-				dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
+				dst_key_columns[0][dst_seqno] = cur_dst_pid;
 
 				// update adjlist buffer
 				(*adj_list_buffer)[cur_src_seqno].push_back(cur_dst_pid);
@@ -437,7 +429,6 @@ inline void FillBwdAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_
 					   unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> &adj_list_buffers) {
 	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 
-	// TODO need to be optimized
 	ExtentID cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
 	ExtentID cur_vertex_localextentID = cur_vertex_extentID & 0xFFFF;
 	vector<vector<idx_t>> *adj_list_buffer;
@@ -499,47 +490,6 @@ inline void FillBwdAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_
 }
 
 void BuildIndex() {
-	// auto index_build_start = std::chrono::high_resolution_clock::now();
-	// Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
-	// int64_t *row_ids_data = (int64_t *)row_ids.GetData();
-	// for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-	// 	row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-	// 	// IC(seqno, row_ids_data[seqno]);
-	// }
-	// DataChunk tmp_chunk;
-	// vector<LogicalType> tmp_types;
-	// tmp_types.resize(1);
-	// if (key_column_idxs.size() == 1) {
-	// 	tmp_types[0] = LogicalType::UBIGINT;
-	// 	tmp_chunk.Initialize(tmp_types, data.size());
-	// 	tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
-	// 	tmp_chunk.SetCardinality(data.size());
-	// } else if (key_column_idxs.size() == 2) {
-	// 	tmp_types[0] = LogicalType::HUGEINT;
-	// 	tmp_chunk.Initialize(tmp_types, data.size());
-	// 	hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
-	// 	for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-	// 		hugeint_t key_val;
-	// 		key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
-	// 		key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
-	// 		tmp_chunk_data[seqno] = key_val;
-	// 		// IC(key_val.upper, key_val.lower);
-	// 		// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
-	// 	}
-	// 	tmp_chunk.SetCardinality(data.size());
-	// } else {
-	// 	throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-	// }
-	// // tmp_types.resize(key_column_idxs.size());
-	// // for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
-	// // tmp_chunk.Initialize(tmp_types);
-	// // for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-	// // IC(tmp_chunk.size());
-	// IndexLock lock;
-	// index->Insert(lock, tmp_chunk, row_ids);
-	// auto index_build_end = std::chrono::high_resolution_clock::now();
-	// std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-	// fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
 }
 
 void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
@@ -589,11 +539,6 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 			lid_to_pid_map.emplace_back(vertex_labelset, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
 			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
 			lid_to_pid_map_instance->reserve(approximated_num_rows);
-			// vector<column_t> column_ids;
-			// for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
-			// index = new ART(column_ids, IndexConstraintType::NONE);
-			// std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
-			// lid_to_pid_index.push_back(pair_to_insert);
 		}
 
 		// Read CSV File into DataChunk & CreateVertexExtent
@@ -642,10 +587,6 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 				auto map_build_end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				// fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
-				// Build Index
-				// BuildIndex();
 			}
 			read_chunk_start = std::chrono::high_resolution_clock::now();
 		}
@@ -725,7 +666,6 @@ void ClearAdjListBuffers(
     }
 }
 
-// For multi-threaded version, please see 6fdb44c724faf1a3bd4218a32c54e5daf6c8aeae
 void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
@@ -1121,7 +1061,7 @@ void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManage
 											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
 }
 
-class InputParser{ // TODO use boost options
+class InputParser{
   public:
     InputParser (int &argc, char **argv){
     	for (int i=1; i < argc; ++i) {
@@ -1137,8 +1077,6 @@ class InputParser{ // TODO use boost options
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(8);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
 				std::get<2>(tuple_to_insert) = 0;
 				vertex_files.push_back(tuple_to_insert);
 			} else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
@@ -1146,19 +1084,14 @@ class InputParser{ // TODO use boost options
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(16);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
 				std::get<2>(tuple_to_insert) = 0;
 				edge_files.push_back(tuple_to_insert);
 				load_edge = true;
 			} else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
-				// TODO check if a corresponding forward edge exists
 				std::tuple<std::string, std::string, size_t> tuple_to_insert;
 				std::get<0>(tuple_to_insert) = std::string(*itr).substr(25);
 				itr++;
 				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
 				std::get<2>(tuple_to_insert) = 0;
 				edge_files_backward.push_back(tuple_to_insert);
 				load_backward_edge = true;
@@ -1196,12 +1129,6 @@ class InputParser{ // TODO use boost options
 						json_files.push_back(pair_to_insert);
 						is_file_path_exist = true;
 					} else if (std::strncmp(current_parameter.c_str(), "--relationships:", 16) == 0) {
-						// std::pair<std::string, std::string> pair_to_insert;
-						// pair_to_insert.first = std::string(*label_itr).substr(16);
-						// label_itr++;
-						// pair_to_insert.second = *label_itr;
-						// edge_label_json_expression_pairs.push_back(pair_to_insert);
-						// load_edge = true;
 					}
 				}
 
@@ -1212,53 +1139,6 @@ class InputParser{ // TODO use boost options
 				json_file_types.push_back(JsonFileType::JSON);
 				json_file_vertices.push_back(vertex_label_json_expression_pairs);
 				json_file_edges.push_back(edge_label_json_expression_pairs);
-
-				// size_t space_pos = json_file_path_and_input_parameters.find(' ');
-				// if (space_pos != std::string::npos) {
-				// 	// The input parameter contains label_info
-				// 	std::string label_info = json_file_path_and_label_info.substr(space_pos + 1);
-					
-				// 	size_t pos;
-				// 	std::string token;
-				// 	vector<std::string> labels;
-					
-					
-				// 	while ((pos = label_info.find(' ')) != std::string::npos) {
-				// 		token = label_info.substr(0, pos);
-				// 		labels.push_back(token);
-				// 		label_info.erase(0, pos + 1);
-				// 	}
-				// 	labels.push_back(label_info);
-
-				// 	std::vector<std::string>::const_iterator label_itr;
-				// 	for (label_itr = labels.begin(); label_itr != labels.end(); label_itr++) {
-				// 		std::string current_label = *label_itr;
-				// 		if (std::strncmp(current_label.c_str(), "--nodes:", 8) == 0) {
-				// 			std::pair<std::string, std::string> pair_to_insert;
-				// 			pair_to_insert.first = std::string(*label_itr).substr(8);
-				// 			label_itr++;
-				// 			pair_to_insert.second = *label_itr;
-				// 			vertex_label_json_expression_pairs.push_back(pair_to_insert);
-				// 		} else if (std::strncmp(current_label.c_str(), "--relationships:", 16) == 0) {
-				// 			std::pair<std::string, std::string> pair_to_insert;
-				// 			pair_to_insert.first = std::string(*label_itr).substr(16);
-				// 			label_itr++;
-				// 			pair_to_insert.second = *label_itr;
-				// 			edge_label_json_expression_pairs.push_back(pair_to_insert);
-				// 			load_edge = true;
-				// 		}
-				// 	}
-				// 	json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				// 	json_file_edges.push_back(edge_label_json_expression_pairs);
-				// } else {
-				// 	vector<std::pair<std::string, std::string>> vertex_label_json_expression_pairs;
-				// 	vector<std::pair<std::string, std::string>> edge_label_json_expression_pairs;
-				// 	json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				// 	json_file_edges.push_back(edge_label_json_expression_pairs);
-				// }
-				// std::string json_file_path = json_file_path_and_label_info.substr(0, space_pos);
-				// pair_to_insert.second = json_file_path;
-				// json_files.push_back(pair_to_insert);
 			} else if (std::strncmp(current_str.c_str(), "--jsonl:", 8) == 0) {
 				bool is_file_path_exist = false;
 				std::pair<std::string, std::string> pair_to_insert;
@@ -1357,7 +1237,7 @@ int main(int argc, char** argv) {
 		std::make_shared<ClientContext>(database->instance->shared_from_this());
 
 	Catalog& cat_instance = database->instance->GetCatalog();
-	ExtentManager ext_mng; // TODO put this into database
+	ExtentManager ext_mng;
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_to_pid_map; // For Forward & Backward AdjList
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
 	vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList

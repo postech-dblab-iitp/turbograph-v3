@@ -225,12 +225,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             auto begin_offset = target_col_idx == 0 ? 0 : offset_infos->at(target_col_idx - 1);
             auto end_offset = offset_infos->at(target_col_idx);
             auto num_boundaries = target_col_idx == 0 ? offset_infos->at(0) : offset_infos->at(target_col_idx) - offset_infos->at(target_col_idx - 1);
-            // while (col_idx < target_col_idx) {
-            //     for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
-            //         frequency_values_for_each_column[col_idx].push_back(0);
-            //     }
-            //     col_idx++;
-            // }
             D_ASSERT(num_boundaries - 1 == num_buckets_for_each_column[col_idx]);
             
             accumulated_offset += (num_boundaries);
@@ -239,18 +233,8 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
                 frequency_values->push_back(h.at(j));
                 frequency_values_for_each_column[target_col_idx].push_back(h.at(j));
             }
-            // col_idx++;
         }
-        // while (col_idx < universal_schema.size()) {
-        //     for (auto j = 0; j < num_buckets_for_each_column[col_idx]; j++) {
-        //         frequency_values_for_each_column[col_idx].push_back(0);
-        //     }
-        //     col_idx++;
-        // }
     }
-
-    // generate group info
-    // _generate_group_info(partition_cat, ps_oids, num_buckets_for_each_column, frequency_values_for_each_column);
 }
 
 void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column) {
@@ -414,14 +398,6 @@ void HistogramGenerator::_generate_group_info(PartitionCatalogEntry *partition_c
         uint64_t num_groups_for_this_column;
         vector<uint64_t> group_info_for_this_column;
         _cluster_column<CliqueClustering>(ps_oids->size(), num_buckets_for_each_column[i], frequency_values_for_each_column[i], num_groups_for_this_column, group_info_for_this_column);
-        
-        // print num_groups_for_this_column and group_info_for_this_column
-        // std::cout << i << "-th column num_groups: " << num_groups_for_this_column << std::endl;
-        // std::cout << i << "-th column group_info: ";
-        // for (auto j = 0; j < group_info_for_this_column.size(); j++) {
-        //     std::cout << group_info_for_this_column[j] << " ";
-        // }
-        // std::cout << std::endl;
 
         num_groups->push_back(num_groups_for_this_column);
         for (auto j = 0; j < group_info_for_this_column.size(); j++) {

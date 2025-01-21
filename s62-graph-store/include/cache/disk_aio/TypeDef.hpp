@@ -19,8 +19,6 @@ struct PaddedIdx {
 	CACHE_PADOUT;
 };
 
-//TODO change file name
-
 struct DiskAioParameters {
   static int64_t NUM_THREADS;
   static int64_t NUM_TOTAL_CPU_CORES;

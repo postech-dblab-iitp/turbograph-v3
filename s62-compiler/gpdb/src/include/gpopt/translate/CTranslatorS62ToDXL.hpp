@@ -20,9 +20,6 @@
 
 extern "C" {
 #include "postgres.h"
-
-// #include "access/tupdesc.h"
-// #include "catalog/gp_policy.h"
 }
 
 // Temporary defines..
@@ -252,17 +249,6 @@ private:
 		CMemoryPool *mp, CMDAccessor *md_accessor, s62::PropertySchemaCatalogEntry *rel,
 		IMDRelation::Erelstoragetype rel_storage_type);
 
-	// return the dxl representation of the column's default value
-	// static CDXLNode *GetDefaultColumnValue(CMemoryPool *mp,
-	// 									   CMDAccessor *md_accessor,
-	// 									   TupleDesc rd_att, AttrNumber attrno);
-
-
-	// // get the distribution columns
-	// static ULongPtrArray *RetrieveRelDistributionCols(
-	// 	CMemoryPool *mp, GpPolicy *gp_policy, CMDColumnArray *mdcol_array,
-	// 	ULONG size);
-
 	// construct a mapping GPDB attnos -> position in the column array
 	static ULONG *ConstructAttnoMapping(CMemoryPool *mp,
 										CMDColumnArray *mdcol_array,
@@ -271,34 +257,11 @@ private:
 	// check if index is supported
 	static BOOL IsIndexSupported(s62::IndexCatalogEntry *index_cat);
 
-	// // retrieve index info list of partitioned table
-	// static List *RetrievePartTableIndexInfo(Relation rel);
-
 	// compute the array of included columns
 	static ULongPtrArray *ComputeIncludedCols(CMemoryPool *mp,
 											  const IMDRelation *md_rel,
 											  IMDIndex::EmdindexType index_type
 											  /*const s62::PartitionCatalogEntry *part_cat*/);
-
-	// // is given level included in the default partitions
-	// static BOOL LevelHasDefaultPartition(List *default_levels, ULONG level);
-
-	// // retrieve part constraint for index
-	// static CMDPartConstraintGPDB *RetrievePartConstraintForIndex(
-	// 	CMemoryPool *mp, CMDAccessor *md_accessor, const IMDRelation *md_rel,
-	// 	Node *part_constraint, ULongPtrArray *level_with_default_part_array,
-	// 	BOOL is_unbounded);
-
-	// // retrieve part constraint for relation
-	// static CMDPartConstraintGPDB *RetrievePartConstraintForRel(
-	// 	CMemoryPool *mp, CMDAccessor *md_accessor, OID rel_oid,
-	// 	CMDColumnArray *mdcol_array, BOOL construct_full_expr);
-
-	// // retrieve part constraint from a GPDB node
-	// static CMDPartConstraintGPDB *RetrievePartConstraintFromNode(
-	// 	CMemoryPool *mp, CMDAccessor *md_accessor,
-	// 	CDXLColDescrArray *dxl_col_descr_array, Node *part_constraint,
-	// 	ULongPtrArray *level_with_default_part_array, BOOL is_unbounded);
 
 	// return relation name
 	static CMDName *GetRelName(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel);
@@ -326,21 +289,11 @@ private:
 	static LogicalIndexInfo *LookupLogicalIndexById(
 		LogicalIndexes *logical_indexes, OID oid);
 
-	// // construct an MD cache index object given its logical index representation
-	// static IMDIndex *RetrievePartTableIndex(CMemoryPool *mp,
-	// 										CMDAccessor *md_accessor,
-	// 										LogicalIndexInfo *index_info,
-	// 										IMDId *mdid_index,
-	// 										const IMDRelation *md_rel);
-
 	// return the triggers defined on the given relation
 	static IMdIdArray *RetrieveRelTriggers(CMemoryPool *mp, s62::PropertySchemaCatalogEntry *rel);
 
 	// return the check constraints defined on the relation with the given oid
 	static IMdIdArray *RetrieveRelCheckConstraints(CMemoryPool *mp, OID oid);
-
-	// // does attribute number correspond to a transaction visibility attribute
-	// static BOOL IsTransactionVisibilityAttribute(INT attrnum);
 
 	// does relation type have system columns
 	static BOOL RelHasSystemColumns(char rel_kind);
@@ -355,9 +308,6 @@ private:
 	// retrieve the opfamilies mdids for the given index
 	static IMdIdArray *RetrieveIndexOpFamilies(CMemoryPool *mp,
 											   IMDId *mdid_index);
-
-	// static IMdIdArray *RetrieveRelDistributionOpFamilies(CMemoryPool *mp,
-	// 													 GpPolicy *policy);
 
 	static IMdIdArray *RetrieveRelExternalPartitions(CMemoryPool *mp,
 													 OID rel_oid);
@@ -397,7 +347,6 @@ public:
 	// populate the attribute number to position mapping
 	static ULONG *PopulateAttnoPositionMap(CMemoryPool *mp,
 										   const IMDRelation *md_rel,
-										   /*const s62::PartitionCatalogEntry *part_cat,*/
 										   ULONG size);
 
 	// return the position of a given attribute number
@@ -420,9 +369,6 @@ public:
 
 	// translate GPDB comparison type
 	static IMDType::ECmpType ParseCmpType(ULONG cmpt);
-
-	// // get the distribution policy of the relation
-	// static IMDRelation::Ereldistrpolicy GetRelDistribution(GpPolicy *gp_policy);
 
 	// add virtual table to the MD cache
 	static IMDId *AddVirtualTable(CMemoryPool *mp, IMDId *mdid, IMdIdArray *pdrgmdid);

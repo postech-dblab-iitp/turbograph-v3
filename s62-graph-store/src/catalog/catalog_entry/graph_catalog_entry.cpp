@@ -154,7 +154,6 @@ vector<idx_t> GraphCatalogEntry::Intersection(ClientContext &context, vector<Ver
     return last_intersection;
 }
 
-// TODO avoid copy & change name keys -> labelset_name?
 vector<idx_t> GraphCatalogEntry::LookupPartition(ClientContext &context, vector<string> keys, GraphComponentType graph_component_type) {
 	char_allocator temp_charallocator (context.db->GetCatalog().catalog_segment->get_segment_manager());
 	char_string key_(temp_charallocator);

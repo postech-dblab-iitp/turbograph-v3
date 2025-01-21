@@ -204,8 +204,6 @@ void PartitionCatalogEntry::SetTypes(vector<LogicalType> &types)
     }
 }
 
-// TODO we need to create universal schema in memory only once & reuse
-// avoid serialize in-memory DS
 vector<LogicalType> PartitionCatalogEntry::GetTypes()
 {
     vector<LogicalType> universal_schema;
@@ -227,7 +225,6 @@ vector<LogicalType> PartitionCatalogEntry::GetTypes()
 void PartitionCatalogEntry::SetKeys(ClientContext &context,
                                     vector<string> &key_names)
 {
-    // TODO add logic to generate global schema (ex. if size = 0, just insert, not, insert only new things
     char_allocator temp_charallocator(
         context.GetCatalogSHM()->get_segment_manager());
     D_ASSERT(global_property_key_names.empty());

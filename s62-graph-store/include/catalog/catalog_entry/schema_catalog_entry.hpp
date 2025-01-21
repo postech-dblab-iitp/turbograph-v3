@@ -1,24 +1,13 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/schema_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "catalog/catalog_entry.hpp"
 #include "catalog/catalog_set.hpp"
-//#include "parser/query_error_context.hpp"
 
 namespace s62 {
 class ClientContext;
 
 class StandardEntry;
 class TableCatalogEntry;
-class TableFunctionCatalogEntry;
-class SequenceCatalogEntry;
 class GraphCatalogEntry;
 class PartitionCatalogEntry;
 class PropertySchemaCatalogEntry;
@@ -32,16 +21,10 @@ enum class OnCreateConflict : uint8_t;
 struct AlterTableInfo;
 struct CreateIndexInfo;
 struct CreateFunctionInfo;
-struct CreateCollationInfo;
-struct CreateIndexInfo;
 struct CreateViewInfo;
 struct BoundCreateTableInfo;
-struct CreatePragmaFunctionInfo;
 struct CreateSequenceInfo;
 struct CreateSchemaInfo;
-struct CreateTableFunctionInfo;
-struct CreateCopyFunctionInfo;
-struct CreateTypeInfo;
 struct CreateGraphInfo;
 struct CreatePartitionInfo;
 struct CreatePropertySchemaInfo;
@@ -85,25 +68,10 @@ private:
 	CatalogSet indexes;
 	//! The catalog set holding the scalar and aggregate functions
 	CatalogSet functions;
-	/*
-	//! The catalog set holding the tables
-	CatalogSet tables;
-	//! The catalog set holding the table functions
-	CatalogSet table_functions;
-	//! The catalog set holding the copy functions
-	CatalogSet copy_functions;
-	//! The catalog set holding the pragma functions
-	CatalogSet pragma_functions;
-	//! The catalog set holding the sequences
-	CatalogSet sequences;
-	//! The catalog set holding the collations
-	CatalogSet collations;
-	//! The catalog set holding the types
-	CatalogSet types;
-	*/
+
 	fixed_managed_mapped_file *catalog_segment;
 	//! oid to catalog entry array
-	OidToCatalogEntryPtrUnorderedMap oid_to_catalog_entry_array; // TODO change this to array data structure
+	OidToCatalogEntryPtrUnorderedMap oid_to_catalog_entry_array;
 
 public:
 	//! Scan the specified catalog set, invoking the callback method for every entry
@@ -137,24 +105,6 @@ private:
 	CatalogEntry *CreateFunction(ClientContext &context, CreateFunctionInfo *info);
 	//! Creates an index with the given name in the schema
 	CatalogEntry *CreateIndex(ClientContext &context, CreateIndexInfo *info);
-	/*
-	//! Creates a table with the given name in the schema
-	CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);
-	//! Creates a view with the given name in the schema
-	CatalogEntry *CreateView(ClientContext &context, CreateViewInfo *info);
-	//! Creates a sequence with the given name in the schema
-	CatalogEntry *CreateSequence(ClientContext &context, CreateSequenceInfo *info);
-	//! Create a table function within the given schema
-	CatalogEntry *CreateTableFunction(ClientContext &context, CreateTableFunctionInfo *info);
-	//! Create a copy function within the given schema
-	CatalogEntry *CreateCopyFunction(ClientContext &context, CreateCopyFunctionInfo *info);
-	//! Create a pragma function within the given schema
-	CatalogEntry *CreatePragmaFunction(ClientContext &context, CreatePragmaFunctionInfo *info);
-	//! Create a collation within the given schema
-	CatalogEntry *CreateCollation(ClientContext &context, CreateCollationInfo *info);
-	//! Create a enum within the given schema
-	CatalogEntry *CreateType(ClientContext &context, CreateTypeInfo *info);
-	*/
 
 	//! Drops an entry from the schema
 	void DropEntry(ClientContext &context, DropInfo *info);
@@ -170,16 +120,7 @@ private:
 	//! Add a catalog entry to this schema
 	CatalogEntry *AddEntry(ClientContext &context, StandardEntry *entry, OnCreateConflict on_conflict,
 	                       unordered_set<CatalogEntry *> dependencies);
-	/*GraphCatalogEntry *AddGraphEntry(ClientContext &context, GraphCatalogEntry *entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	PartitionCatalogEntry *AddPartitionEntry(ClientContext &context, PartitionCatalogEntry entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	PropertySchemaCatalogEntry *AddPropertySchemaEntry(ClientContext &context, propertyschema_unique_ptr_type entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	ExtentCatalogEntry *AddExtentEntry(ClientContext &context, extent_unique_ptr_type entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
-	ChunkDefinitionCatalogEntry *AddChunkDefinitionEntry(ClientContext &context, chunkdefinition_unique_ptr_type entry,
-							OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);*/
+						   
 	bool AddEntryInternal(ClientContext &context, CatalogEntry *entry, string &entry_name, CatalogType &entry_type,
                                            OnCreateConflict on_conflict, unordered_set<CatalogEntry *> dependencies);
 

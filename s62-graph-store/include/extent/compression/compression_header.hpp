@@ -20,12 +20,8 @@ enum SwizzlingType : uint8_t {
 
 struct CompressionHeader {
     CompressionHeader() {}
-    // CompressionHeader(CompressionFunctionType comp_type_, size_t data_len_) : comp_type(comp_type_), data_len(data_len_), has_null(false) {
-    // }
     CompressionHeader(CompressionFunctionType comp_type_, size_t data_len_) : comp_type(comp_type_), data_len(data_len_), has_null_bitmap(0) {
     }
-    // CompressionHeader(CompressionFunctionType comp_type_, size_t data_len_, SwizzlingType swizzle_type_) : comp_type(comp_type_), data_len(data_len_), swizzle_type(swizzle_type_), has_null(false) {
-    // }
     CompressionHeader(CompressionFunctionType comp_type_, size_t data_len_, SwizzlingType swizzle_type_) : comp_type(comp_type_), data_len(data_len_), swizzle_type(swizzle_type_), has_null_bitmap(0) {
     }
 

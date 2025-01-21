@@ -12,7 +12,6 @@
 #include <numeric>
 using namespace std;
 
-// typedef vector<uint64_t> SchemaKeyIDs;
 typedef unordered_set<uint32_t> SchemaKeyIDs;
 typedef vector<uint32_t> SchemaKeyIDsVec;
 
@@ -102,7 +101,6 @@ public:
 
     void insert(SchemaKeyIDs &schema_key_ids, int group_id) {
         int64_t tuple_group_id = INVALID_TUPLE_GROUP_ID;
-        // find(schema_key_ids, tuple_group_id);
         if (tuple_group_id != INVALID_TUPLE_GROUP_ID) { 
             return; 
         }
@@ -114,7 +112,6 @@ public:
 
     void insert(SchemaKeyIDsVec &schema_key_ids, int group_id) {
         int64_t tuple_group_id = INVALID_TUPLE_GROUP_ID;
-        // find(schema_key_ids, tuple_group_id);
         if (tuple_group_id != INVALID_TUPLE_GROUP_ID) { 
             return; 
         } else { 

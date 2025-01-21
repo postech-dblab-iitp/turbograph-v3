@@ -9,7 +9,6 @@
 
 namespace s62 {
 
-// typedef fixed_managed_shared_memory::const_named_iterator const_named_it;
 typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 
 void signal_handler(int sig_number) {
@@ -20,9 +19,6 @@ void signal_handler(int sig_number) {
 CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_directory)
     : unix_socket_(unix_socket), shm_directory_(shm_directory) {
   fprintf(stdout, "CatalogServer uses Boost %d.%d.%d\n", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
-  // Remove the existing shared memory file
-  // boost::interprocess::shared_memory_object::remove("S62_Catalog_SHM");
-  // int status = remove("/data/S62_Catalog_SHM");
   
   // Create shared memory
   std::string shm_path = shm_directory_ + std::string("/S62_Catalog_SHM");
@@ -33,16 +29,11 @@ CatalogServer::CatalogServer(const std::string &unix_socket, std::string shm_dir
   int64_t num_objects_in_the_catalog = 0;
 	for(; named_beg != named_end; ++named_beg){
     num_objects_in_the_catalog++;
-		//A pointer to the name of the named object
-		// const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-		// fprintf(stdout, "\t%s %p\n", name, named_beg->value());
 	}
   fprintf(stdout, "# of named object list in the catalog = %ld\n", num_objects_in_the_catalog);
 }
 
 bool CatalogServer::recreate() {
-  // Remove the existing shared memory
-  // boost::interprocess::shared_memory_object::remove("S62_Catalog_SHM");
   delete catalog_segment;
   std::string shm_path = shm_directory_ + std::string("/S62_Catalog_SHM");
   int status = remove(shm_path.c_str());
@@ -117,49 +108,6 @@ void CatalogServer::Exit() {
   catalog_segment->flush();
   delete catalog_segment;
   fprintf(stdout, "Exit CatalogServer, flushes cached data to file done\n");
-
-  // const_named_it named_beg = catalog_segment->named_begin();
-	// const_named_it named_end = catalog_segment->named_end();
-	// fprintf(stdout, "All named object list\n");
-	// for(; named_beg != named_end; ++named_beg){
-	// 	//A pointer to the name of the named object
-	// 	const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-	// 	fprintf(stdout, "\t%s %p\n", name, named_beg->value());
-	// }
-  // std::pair<SchemaCatalogEntry *,std::size_t> ret = catalog_segment->find<SchemaCatalogEntry>("schemacatalogentry_main");
-  // SchemaCatalogEntry *schema_cat = ret.first;
-  // std::list<CatalogType> cat_list = {CatalogType::GRAPH_ENTRY, CatalogType::PARTITION_ENTRY, CatalogType::PROPERTY_SCHEMA_ENTRY, 
-  //                                    CatalogType::EXTENT_ENTRY, CatalogType::CHUNKDEFINITION_ENTRY};
-  // schema_cat->Scan(CatalogType::GRAPH_ENTRY,
-  //                   [&](CatalogEntry *entry) {
-  //                     GraphCatalogEntry *graph_cat_entry = (GraphCatalogEntry *)entry;
-  //                     fprintf(stdout, "Graph Entry %p %p\n", graph_cat_entry, &graph_cat_entry->name);
-  //                     fprintf(stdout, "Graph Name: %s\n", graph_cat_entry->name.c_str());
-  //                   });
-  // schema_cat->Scan(CatalogType::PARTITION_ENTRY,
-  //                   [&](CatalogEntry *entry) {
-  //                     PartitionCatalogEntry *part_cat_entry = (PartitionCatalogEntry *)entry;
-  //                     fprintf(stdout, "Partition Entry %p %p\n", part_cat_entry, &part_cat_entry->name);
-  //                     fprintf(stdout, "Partition Name: %s\n", part_cat_entry->name.c_str());
-  //                   });
-  // schema_cat->Scan(CatalogType::PROPERTY_SCHEMA_ENTRY,
-  //                   [&](CatalogEntry *entry) {
-  //                     PropertySchemaCatalogEntry *ps_cat_entry = (PropertySchemaCatalogEntry *)entry;
-  //                     fprintf(stdout, "PropertySchema Entry %p %p\n", ps_cat_entry, &ps_cat_entry->name);
-  //                     fprintf(stdout, "PropertySchema Name: %s\n", ps_cat_entry->name.c_str());
-  //                   });
-  // schema_cat->Scan(CatalogType::EXTENT_ENTRY,
-  //                   [&](CatalogEntry *entry) {
-  //                     ExtentCatalogEntry *ext_cat_entry = (ExtentCatalogEntry *)entry;
-  //                     fprintf(stdout, "Extent Entry %p %p\n", ext_cat_entry, &ext_cat_entry->name);
-  //                     fprintf(stdout, "Extent Name: %s\n", ext_cat_entry->name.c_str());
-  //                   });
-  // schema_cat->Scan(CatalogType::CHUNKDEFINITION_ENTRY,
-  //                   [&](CatalogEntry *entry) {
-  //                     ChunkDefinitionCatalogEntry *cdf_cat_entry = (ChunkDefinitionCatalogEntry *)entry;
-  //                     fprintf(stdout, "ChunkDefinition Entry %p %p\n", cdf_cat_entry, &cdf_cat_entry->name);
-  //                     fprintf(stdout, "ChunkDefinition Name: %s\n", cdf_cat_entry->name.c_str());
-  //                   });
 }
 
 } // namespace s62

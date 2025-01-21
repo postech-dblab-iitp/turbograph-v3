@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "client.h"
-#include "Turbo_bin_aio_handler.hpp"
+#include "Bin_aio_handler.hpp"
 
 static int pkey_ = -1;
 static std::mutex pkey_lock_;
@@ -574,37 +574,6 @@ int LightningClient::Release(uint64_t object_id) {
   LOGGED_WRITE(object_entry->ref_count, object_entry->ref_count - 1, header_,
                disk_);
   // object_entry->ref_count--;
-
-  /*if (object_entry->ref_count == 0) {
-    allocator_->FreeShared(object_entry->offset);
-    int64_t prev_object_index = object_entry->prev;
-    int64_t next_object_index = object_entry->next;
-
-    if (prev_object_index < 0) {
-      if (next_object_index >= 0) {
-        ObjectEntry *next = &header_->object_entries[next_object_index];
-
-        LOGGED_WRITE(next->prev, -1, header_, disk_);
-        // next->prev = -1;
-      }
-
-      LOGGED_WRITE(header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list,
-                   next_object_index, header_, disk_);
-      // header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
-      //     next_object_index;
-    } else {
-      ObjectEntry *prev = &header_->object_entries[prev_object_index];
-      LOGGED_WRITE(prev->next, next_object_index, header_, disk_);
-      // prev->next = next_object_index;
-      if (next_object_index >= 0) {
-        ObjectEntry *next = &header_->object_entries[next_object_index];
-
-        LOGGED_WRITE(next->prev, prev_object_index, header_, disk_);
-        next->prev = prev_object_index;
-      }
-    }
-    dealloc_object_entry(object_index);
-  }*/
   UNLOCK;
   mpk_lock();
   return 0;
@@ -664,7 +633,7 @@ int LightningClient::Delete(uint64_t object_id) {
   return status;
 }
 
-int LightningClient::flush_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+int LightningClient::flush_internal(uint64_t object_id, Bin_aio_handler* file_handler) {
   int64_t object_index = find_object(object_id);
   assert(object_index >= 0);
 
@@ -674,14 +643,13 @@ int LightningClient::flush_internal(uint64_t object_id, Turbo_bin_aio_handler* f
     assert(file_handler);
     if (file_handler->IsReserved())
       file_handler->Write(0, object_entry->size, (char*) &base_[object_entry->offset]);
-      //file_handler->Append(object_entry->size, (char*) &base_[object_entry->offset], nullptr);
     else
       exit(-1);
   }
   return 0;
 }
 
-int LightningClient::Flush(uint64_t object_id, Turbo_bin_aio_handler* file_handler) {
+int LightningClient::Flush(uint64_t object_id, Bin_aio_handler* file_handler) {
   mpk_unlock();
   LOCK;
   disk_->BeginTx();

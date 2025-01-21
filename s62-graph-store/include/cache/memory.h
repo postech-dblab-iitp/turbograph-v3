@@ -4,16 +4,9 @@
 #include <atomic>
 #include <semaphore.h>
 
-// #define MINIMAL_BLOCK_SIZE_LOG 10
-// #define MAXIMUM_BLOCK_SIZE_LOG 30
 #define MINIMAL_BLOCK_SIZE_LOG 10
 #define MAXIMUM_BLOCK_SIZE_LOG 62
-// TODO The hashmap size can affect performance as your data grows. A method for adaptively determining size is needed.
-// #define HASHMAP_SIZE 65536
-// #define HASHMAP_SIZE 262144
 #define HASHMAP_SIZE 2097152
-// #define MAX_NUM_OBJECTS 100000
-// #define MAX_NUM_OBJECTS 524288
 #define MAX_NUM_OBJECTS 16777216
 
 typedef int64_t sm_offset;

@@ -1,11 +1,3 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/index_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "catalog/standard_entry.hpp"
@@ -14,22 +6,18 @@
 
 namespace s62 {
 
-// struct DataTableInfo;
 class Index;
 
 //! An index catalog entry
 class IndexCatalogEntry : public StandardEntry {
 public:
-	//! Create a real TableCatalogEntry and initialize storage for it
 	IndexCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateIndexInfo *info, const void_allocator &void_alloc);
 	~IndexCatalogEntry() override;
 
 	IndexType index_type;
-	Index *index; // TODO maybe useless in SHM..
+	Index *index;
 	idx_t pid; // oid of the partition to which this index belongs
-	idx_t psid; // oid of the segment to which this index belongs (temporary)
-	// shared_ptr<DataTableInfo> info;
-	// string sql;
+	idx_t psid; // oid of the segment to which this index belongs
 	int64_t_vector index_key_columns;
 	idx_t adj_col_idx;
 

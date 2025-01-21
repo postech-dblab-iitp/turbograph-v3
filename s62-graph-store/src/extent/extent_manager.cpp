@@ -30,7 +30,6 @@ ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionC
     MkDir(extent_dir_path, true);
 
     // Append Chunk
-    //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
     _UpdatePartitionMinMaxArray(context, cat_instance, part_cat, ps_cat, *extent_cat_entry);
     return new_eid;
@@ -51,7 +50,6 @@ ExtentManager::CreateExtent(ClientContext &context, DataChunk &input, PartitionC
     MkDir(extent_dir_path, true);
 
     // Append Chunk
-    //_AppendChunkToExtent(context, input, cat_instance, prop_schema_cat_entry, *extent_cat_entry, pid, new_eid);
     _AppendChunkToExtentWithCompression(context, input, cat_instance, *extent_cat_entry, pid, new_eid);
     _UpdatePartitionMinMaxArray(context, cat_instance, part_cat, ps_cat, *extent_cat_entry);
 }
@@ -102,7 +100,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
 
         // Analyze compression to find best compression method
         CompressionFunctionType best_compression_function = UNCOMPRESSED;
-        //if (l_type == LogicalType::VARCHAR) best_compression_function = DICTIONARY;
         // Create Compressionheader, based on nullity
         CompressionHeader comp_header(UNCOMPRESSED, input.size(), SwizzlingType::SWIZZLE_NONE);
         if (FlatVector::HasNull(input.data[input_chunk_idx])) {
@@ -117,11 +114,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         size_t alloc_buf_size = 0;
         size_t bitmap_size = 0;
 		const size_t slot_for_num_adj = 1;
-
-        /**
-         * TODO: check null is correctly handled for LIST types
-         * If there is null, we cannot use the size of the input vector to calculate the size of the buffer
-         */
 
         // Calculate the size of the buffer to allocate
         if (l_type.id() == LogicalTypeId::FORWARD_ADJLIST || l_type.id() == LogicalTypeId::BACKWARD_ADJLIST) {
@@ -171,7 +163,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
         // Check null mask
         if (comp_header.HasNullMask()) {
             bitmap_size = (input.size() + 7) / 8;
-            // alloc_buf_size += bitmap_size;
             comp_header.SetNullBitmapOffset(alloc_buf_size);
         }
 
@@ -234,7 +225,6 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
             memcpy(buf_ptr, &comp_header, comp_header_size);
             memcpy(buf_ptr + comp_header_size, input.data[input_chunk_idx].GetData(), input_size * sizeof(list_entry_t));
             memcpy(buf_ptr + comp_header_size + input_size * sizeof(list_entry_t), child_vec.GetData(), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t));
-            // icecream::ic.enable(); IC(); IC(comp_header_size + input_size * sizeof(list_entry_t), alloc_buf_size - comp_header_size - input_size * sizeof(list_entry_t)); icecream::ic.disable();
         } else {
             // Create MinMaxArray in ChunkDefinitionCatalog. We support only INT types for now.
             size_t input_size = input.size();
@@ -242,13 +232,9 @@ void ExtentManager::_AppendChunkToExtentWithCompression(ClientContext &context, 
                 input.GetTypes()[input_chunk_idx] == LogicalType::ID ||
                 input.GetTypes()[input_chunk_idx] == LogicalType::BIGINT) {
                 chunkdefinition_cat->CreateMinMaxArray(input.data[input_chunk_idx], input_size);
-                // _UpdatePartitionMinMaxArray(part_cat_entry, prop_key_id, *chunkdefinition_cat);
-                // part_cat_entry.UpdateWelfordStdDevArray(prop_key_id, input.data[input_chunk_idx], input_size);
-                // if(input_chunk_idx == 0) fprintf(stdout, "StdDev: %f\n", part_cat_entry.GetStdDev(prop_key_id));
             }
 
             // Copy Data Into Cache
-            // TODO type support check should be done by CompressionFunction
             if (best_compression_function == BITPACKING && BitpackingPrimitives::TypeIsSupported(p_type)) {
                 D_ASSERT(false);
                 // Set Compression Function

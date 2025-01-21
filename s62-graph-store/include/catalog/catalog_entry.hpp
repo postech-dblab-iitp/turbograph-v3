@@ -49,10 +49,8 @@ public:
 	//! Timestamp at which the catalog entry was created
 	atomic<transaction_t> timestamp;
 	//! Child entry
-	//unique_ptr<CatalogEntry> child;
 	boost::interprocess::offset_ptr<CatalogEntry> child;
 	//! Parent entry (the node that dependents_map this node)
-	//CatalogEntry *parent;
 	boost::interprocess::offset_ptr<CatalogEntry> parent;
 
 public:

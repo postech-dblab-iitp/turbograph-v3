@@ -1,11 +1,3 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/aggregate_function_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "catalog/standard_entry.hpp"
@@ -23,12 +15,10 @@ public:
 	      functions(move(info->functions)) {
 	}
 
-	unique_ptr<AggregateFunctionSet> functions; // TODO how..
-	//! The aggregate functions
-	// vector<AggregateFunction> *functions;
+	unique_ptr<AggregateFunctionSet> functions;
 
 	void SetFunctions(unique_ptr<AggregateFunctionSet> set_ptr) {
-		functions.release(); // TODO this is tricky code.. not preferred
+		functions.release();
 		functions = move(set_ptr);
 	}
 };

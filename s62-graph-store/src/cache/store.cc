@@ -170,31 +170,7 @@ int LightningStore::release_object(uint64_t object_id) {
 
   ObjectEntry *object_entry = &store_header_->object_entries[object_index];
   object_entry->ref_count--;
-  // if (object_entry->ref_count == 0) {
-  //   allocator_->FreeSharedNoLog(object_entry->offset);
-  //   int64_t prev_object_index = object_entry->prev;
-  //   int64_t next_object_index = object_entry->next;
 
-  //   if (prev_object_index < 0) {
-  //     if (next_object_index >= 0) {
-  //       ObjectEntry *next = &store_header_->object_entries[next_object_index];
-  //       next->prev = -1;
-  //     }
-  //     store_header_->hashmap.hash_entries[object_id % HASHMAP_SIZE].object_list =
-  //         next_object_index;
-  //   } else {
-  //     ObjectEntry *prev = &store_header_->object_entries[prev_object_index];
-  //     prev->next = next_object_index;
-  //     if (next_object_index >= 0) {
-  //       ObjectEntry *next = &store_header_->object_entries[next_object_index];
-  //       next->prev = prev_object_index;
-  //     }
-  //   }
-
-  //   int64_t j = store_header_->object_entry_free_list;
-  //   store_header_->object_entries[object_index].free_list_next = j;
-  //   store_header_->object_entry_free_list = object_index;
-  // }
   return 0;
 }
 
@@ -226,7 +202,6 @@ void LightningStore::recover(uint8_t *base, uint8_t *log, uint8_t *object_log,
   LogObjectEntry *objects = (LogObjectEntry *)object_log;
   for (int i = 0; i < OBJECT_LOG_SIZE; i++) {
     if (objects[i].in_use) {
-      // std::cout << "releasing object " << objects[i].object_id << std::endl;
       release_object(objects[i].object_id);
     }
   }

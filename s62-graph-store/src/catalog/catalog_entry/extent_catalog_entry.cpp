@@ -22,8 +22,6 @@ ExtentCatalogEntry::ExtentCatalogEntry(Catalog *catalog, SchemaCatalogEntry *sch
 
 unique_ptr<CatalogEntry> ExtentCatalogEntry::Copy(ClientContext &context) {
 	D_ASSERT(false);
-	//auto create_info = make_unique<CreateExtentInfo>(schema->name, name, extent_type, eid);
-	//return make_unique<ExtentCatalogEntry>(catalog, schema, create_info.get());
 }
 
 void ExtentCatalogEntry::SetExtentType(ExtentType extent_type_) {

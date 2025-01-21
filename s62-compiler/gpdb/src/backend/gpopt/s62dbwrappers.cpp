@@ -22,7 +22,7 @@
 
 using namespace s62;
 
-bool assert_enabled = true;  // TODO
+bool assert_enabled = true;
 
 void s62::SetClientWrapper(shared_ptr<ClientContext> client_,
                               shared_ptr<CatalogWrapper> catalog_wrapper_)
@@ -39,13 +39,6 @@ void s62::ReleaseClientWrapper()
 
 IndexType s62::GetLogicalIndexType(Oid index_oid)
 {
-    // TODO we don't have index catalog yet
-    // GP_WRAP_START;
-    // {
-    // 	/* catalog tables: pg_index */
-    // 	return logicalIndexTypeForIndexOid(index_oid);
-    // }
-    // GP_WRAP_END;
     return IndexType::ART;
 }
 
@@ -56,14 +49,8 @@ s62::PartitionCatalogEntry *s62::GetPartition(idx_t partition_oid)
 
 s62::PropertySchemaCatalogEntry *s62::GetRelation(idx_t rel_oid)
 {
-    // GP_WRAP_START;
-    {
-        /* catalog tables: relcache */
-        return catalog_wrapper->RelationIdGetRelation(*client_wrapper.get(),
-                                                      rel_oid);
-    }
-    // GP_WRAP_END;
-    return NULL;
+    return catalog_wrapper->RelationIdGetRelation(*client_wrapper.get(),
+                                                    rel_oid);
 }
 
 s62::AggregateFunctionCatalogEntry *s62::GetAggFunc(idx_t aggfunc_oid)
@@ -93,8 +80,7 @@ void s62::GetHistogramInfo(PropertySchemaCatalogEntry *rel, int16_t attno,
     auto *offset_infos = rel->GetOffsetInfos();
     auto *frequency_values = rel->GetFrequencyValues();
     auto type = LogicalType((*rel->GetTypes())[attno - 1]);
-    // if (!type.IsNumeric()) {
-    // TODO type checking
+
     if (!(type == LogicalType::INTEGER || type == LogicalType::BIGINT ||
           type == LogicalType::UINTEGER || type == LogicalType::UBIGINT ||
           type == LogicalType::FLOAT || type == LogicalType::DOUBLE ||
@@ -234,7 +220,6 @@ idx_t s62::GetComparisonOperator(idx_t left_type_id, idx_t right_type_id,
                 left_type_id, right_type_id,
                 ExpressionType::COMPARE_GREATERTHANOREQUALTO);
         default:
-            // TODO throw invalid type exception
             break;
     }
     return InvalidOid;
@@ -260,7 +245,7 @@ CmpType s62::GetComparisonType(idx_t op_id)
             D_ASSERT(false);
             break;
     }
-    return CmptOther;  // TODO invalid
+    return CmptOther;
 }
 
 void s62::GetOpInputTypes(idx_t op_oid, uint32_t *left_type_id,
