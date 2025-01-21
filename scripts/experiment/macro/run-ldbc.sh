@@ -41,8 +41,8 @@ for query_num in $queries; do
         continue
     fi
     query_str=$(cat "$query_file")
-    warmup_output=$(timeout 3600s ../../build-release/s62-client/S62-CLI --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:greedy)
-    output_str=$(timeout 3600s ../../build-release/s62-client/S62-CLI --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:greedy)
+    warmup_output=$(timeout 3600s ../../build-release/s62-client/s62_cli --workspace:${database_path} --query:"$query_str" --disable-merge-join --join-order-optimizer:greedy)
+    output_str=$(timeout 3600s ../../build-release/s62-client/s62_cli --workspace:${database_path} --query:"$query_str" --disable-merge-join --num-iterations:3 --join-order-optimizer:greedy)
     exit_status=$?
 
     if [ $exit_status -ne 0 ]; then

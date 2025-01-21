@@ -175,8 +175,6 @@ private:
     std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_forward;
     std::shared_ptr<vector<BufPtrAdjIdxPair>> eid_to_bufptr_idx_map_backward;
 
-    std::vector<std::vector<NodeID>> constructPaths();
-
     bool biDirectionalSearch(ClientContext &context);
     bool enqueueNeighbors(ClientContext &context, NodeID current_node, Level node_level, std::queue<std::pair<NodeID, Level>> &queue, bool is_forward);
 };
